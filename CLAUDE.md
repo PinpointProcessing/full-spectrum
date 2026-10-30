@@ -19,15 +19,16 @@ Styles in `css/style.css`. Game code in `js/` as plain `<script>` files (not ES 
 4. `scene.js` `initGL()` (renderer, scene, camera), camera maths (`toS`/`toW`), textures, world meshes, lights, soldier models, `render()`
 5. `state.js` battle state variables, `mk`, `reset`, `timeScale`
 6. `combat.js` hit chance, shots, suppression, grenades, move assignment, enemy and squad AI, `update(dt)`
-7. `overlay.js` 2D overlay drawing and rain
-8. `input.js` pointer/pinch/wheel handling (`bindInput`), `tap`
-9. `hud.js` banner, status chip, buttons, keyboard (`bindHud`), detection ring, end screen
-10. `cards.js` team tabs' health pips and the unit cards (portrait, name, status, heart monitor, equipment): `buildCards`, `updateCards` (from `hud()`), `drawCards` (every frame)
-11. `main.js` resize, frame loop, boot (shows the no-WebGL message and stops if `initGL()` fails)
+7. `waves.js` the battle's second wave: phases, countdown, gun jeep, wave-two assault AI (`waveTick` from `update`, `waveHud`/`aimTurret` every frame, `resetWaves` from `reset`)
+8. `overlay.js` 2D overlay drawing and rain
+9. `input.js` pointer/pinch/wheel handling (`bindInput`), `tap`
+10. `hud.js` banner, status chip, buttons, keyboard (`bindHud`), detection ring, end screen
+11. `cards.js` team tabs' health pips and the unit cards (portrait, name, status, heart monitor, equipment): `buildCards`, `updateCards` (from `hud()`), `drawCards` (every frame)
+12. `main.js` resize, frame loop, boot (shows the no-WebGL message and stops if `initGL()` fails)
 
 Only `main.js` does work at load time beyond building pure data (map, nav grid, cover points); everything touching THREE or wiring events runs from boot.
 
-Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW corner by containers: Alpha (A1 Reyes, A2 Kowalski) and Bravo (B1 Hayes, B2 Okafor). One big warehouse in the middle with 4 hostiles behind crates watching the south roll door. Sandbag nest (U shape with single bags off each side) ahead-left. Flank routes: west window, east window and east door.
+Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW corner by containers: Alpha (A1 Reyes, A2 Kowalski) and Bravo (B1 Hayes, B2 Okafor). One big warehouse in the middle with 4 hostiles behind crates watching the south roll door. Sandbag nest (U shape with single bags off each side) ahead-left. Flank routes: west window, east window and east door. Gate in the north fence (x 450–500) where reinforcements arrive.
 
 ### Decisions made (keep unless Bryan changes them)
 - Real-time with slow-mo (quarter speed) while giving orders, plus Pause. Not turn-based.
@@ -61,12 +62,13 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Stealth (first pass, Bryan wants to discuss further): gait is automatic, sneak (24/s, low pose) while undetected with a live enemy within 300, run (54/s) otherwise (`gaitOf`). Unaware enemies build awareness 0..1 instead of spotting instantly (`sense` in combat.js): seen in the ±62° cone within 300 (or within 80 any direction at half rate) adds 1.6×(1−d/330)/s × running 1.3 / sneaking 0.6 / still in the open 0.45 / still in cover 0.3. Running within 110 is heard through walls (+0.5×(1−d/110)/s). Fades 0.15/s. At 0.35 he turns towards what he noticed ("?" callout); at 1 he raises the alarm for everyone. Gunfire and grenades still alert at once. Example spot times: 10 m in the open 2.1 s still / 1.6 s sneaking / 0.7 s running.
 - Detection indicator top centre (`#alert`, `alertMeter` in hud.js): ring fills clockwise from the top with the most aware enemy, starting faint and see-through and getting more solid, redder, brighter and glowing as it fills; the filled arc throbs past 70 %, shows red "!!" once spotted. View cones redden with awareness.
 - Enemies: cone vision (±62°, 300) until alerted, then reposition inside the warehouse when exposed, fall back below 40 hp.
+- Second wave (Bryan's design): when the warehouse is cleared, "All clear!" (grey-blue) fades in and out for 2.6 s; then a red 10 s countdown with "INCOMING!" above it pulses each second where the detection ring sits (ring hidden); at zero "Enemy inbound!" (red) flashes the same way and a gun jeep drives in through the north gate (60/s) and parks at (475,190). On parking it becomes a half-cover object (`addObstacle` in pathfinding.js: nav cells and cover points updated, undone by `removeObstacle` on reset), its gunner (E5, `gunner`, stands at elev 9 in the turret, never moves, always visible) opens up, and four hostiles (E6–E9, `wave:2`) dismount. Gunner: 5-round bursts every 1.3–1.8 s, range 440, −0.05 accuracy, +0.08 suppression per shot, damage ×0.45. Wave-two hostiles push (`assaultThink`): hold if they have a covered shot within 240, else move to a cover point within 130 that makes progress towards the nearest soldier (never within 70 of him), every 3–5 s. Clearing wave two shows "All clear!" again, then mission complete. While counting down, `threats()` defaults to the jeep's parking spot so previews judge cover against the north. Timings use game time. Balance is a first guess: with no orders, a fire team in the jeep's open view gets overrun.
 - Pathfinding: A* on a 10-unit grid with string-pulling. Cover points are generated around every object edge (merged if closer than 6).
 - Spacing between soldiers' destinations: 20 in the open (`SPACE_OPEN`), 10 when both are at cover points (`SPACE_COVER`), so two can share a short bit of cover like the single sandbags. A crowded soldier's HP bar is lifted so the two don't overlap.
 
 ### Known gaps / next ideas
 - Balance untested at real speed. Bryan's playtests matter more than the numbers above.
-- Enemy AI only shifts and falls back: no pushing, flanking, or grenades.
+- Wave-one enemy AI only shifts and falls back; wave two pushes from cover to cover. Nobody flanks deliberately or throws grenades yet.
 - Agreed stealth roadmap (Bryan approved): alert ladder unaware → suspicious → searching (walks to check, stays jumpy) → alerted; alerts spread by shout (~25 m, sight/hearing) and a ~5 s radio call that can be cut short by killing him; break contact after ~30 s unseen → back to searching; light/dark affects spotting; noise from gunfire/doors; bodies found → search + radio; tools: suppressed pistol, takedown from behind, distraction throw, shooting out lights.
 - Phone performance of the 3D lighting is unverified. If it stutters: drop the 4 flashlight spotlights first, then shadow map size (2048 → 1024).
 - Bryan plans to add a second squad of 4 once the one-squad mechanics feel right.

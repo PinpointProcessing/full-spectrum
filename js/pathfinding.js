@@ -50,12 +50,28 @@ function findPath(sx,sy,tx,ty){
 
 /* ---------- cover points ---------- */
 const coverPts=[];
-(function(){
-  const add=(x,y,o)=>{if(!isFree(x,y,8))return;if(coverPts.some(p=>hyp(p.x-x,p.y-y)<6))return;coverPts.push({x,y,o});};
-  for(const o of objs){
-    if(o.kind==='fence')continue;
-    const off=11,step=14,nx=Math.max(1,Math.round(o.w/step)),ny=Math.max(1,Math.round(o.h/step));
-    for(let i=0;i<nx;i++){const x=o.x+(i+.5)*o.w/nx;add(x,o.y-off,o);add(x,o.y+o.h+off,o);}
-    for(let i=0;i<ny;i++){const y=o.y+(i+.5)*o.h/ny;add(o.x-off,y,o);add(o.x+o.w+off,y,o);}
-  }
-})();
+function addCoverPts(o){
+  const add=(x,y)=>{if(!isFree(x,y,8))return;if(coverPts.some(p=>hyp(p.x-x,p.y-y)<6))return;coverPts.push({x,y,o});};
+  const off=11,step=14,nx=Math.max(1,Math.round(o.w/step)),ny=Math.max(1,Math.round(o.h/step));
+  for(let i=0;i<nx;i++){const x=o.x+(i+.5)*o.w/nx;add(x,o.y-off);add(x,o.y+o.h+off);}
+  for(let i=0;i<ny;i++){const y=o.y+(i+.5)*o.h/ny;add(o.x-off,y);add(o.x+o.w+off,y);}
+}
+for(const o of objs)if(o.kind!=='fence')addCoverPts(o);
+
+/* ---------- objects placed mid-battle (the parked jeep) ---------- */
+function regrid(o){   // re-mark the nav cells around o
+  const g0=Math.max(0,Math.floor((o.x-12)/CS)),g1=Math.min(GW-1,Math.floor((o.x+o.w+12)/CS));
+  const h0=Math.max(0,Math.floor((o.y-12)/CS)),h1=Math.min(GH-1,Math.floor((o.y+o.h+12)/CS));
+  for(let gy=h0;gy<=h1;gy++)for(let gx=g0;gx<=g1;gx++)blk[gy*GW+gx]=isFree(gx*CS+5,gy*CS+5)?0:1;
+}
+// returns the cover points it displaced, to hand back to removeObstacle
+function addObstacle(o){
+  objs.push(o);
+  const gone=coverPts.filter(p=>rectDist(p.x,p.y,o)<8);for(const p of gone)coverPts.splice(coverPts.indexOf(p),1);
+  regrid(o);addCoverPts(o);return gone;
+}
+function removeObstacle(o,gone){
+  objs.splice(objs.indexOf(o),1);
+  for(let i=coverPts.length-1;i>=0;i--)if(coverPts[i].o===o)coverPts.splice(i,1);
+  coverPts.push(...gone);regrid(o);
+}

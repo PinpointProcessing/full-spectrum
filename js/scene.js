@@ -145,7 +145,7 @@ const lamps=[
   {x:560,y:870,h:40,c:0xffa860,i:2.4,d:280,pole:1},
   {x:310,y:410,h:30,c:0xffd9a8,i:2.4,d:260},
 ];
-let hemi,muzzle=[],boomL;
+let hemi,muzzle=[],boomL,jeepLight;
 function buildWorld(){
   const corrTex=canvasTex(64,64,(g,w,h)=>{
     for(let x=0;x<w;x+=8){const gr=g.createLinearGradient(x,0,x+8,0);gr.addColorStop(0,'#8a8a8a');gr.addColorStop(.5,'#f0f0f0');gr.addColorStop(1,'#8a8a8a');g.fillStyle=gr;g.fillRect(x,0,8,h);}
@@ -245,6 +245,7 @@ function buildWorld(){
   }
   for(let k=0;k<2;k++){const m=new T.PointLight(0xffcf8a,0,95,2);scene.add(m);muzzle.push(m);}
   boomL=new T.PointLight(0xffa050,0,280,1.6);scene.add(boomL);
+  jeepLight=new T.SpotLight(0xfff1d6,0,300,.5,.55,1.2);scene.add(jeepLight,jeepLight.target);   // jeep headlights, off until it arrives (made now so adding it later doesn't stall)
 }
 
 /* soldiers */
@@ -262,17 +263,40 @@ function makeSoldier(u){
   if(P){spot=new T.SpotLight(0xd8e8ff,2.6,210,.42,.5,1.2);spot.position.set(4,14,0);const tg=new T.Object3D();tg.position.set(60,0,0);pose.add(spot,tg);spot.target=tg;}
   scene.add(g);u.m={g,pose,ring,spot};
 }
+// the reinforcement gun jeep: open tub, hood, wheels, roll bar, and a pintle machine gun on a turret ring at the back.
+// Front is +z (it drives south). The turret group turns to follow the gunner's aim.
+function makeJeep(){
+  const g=new T.Group(),body=new T.MeshStandardMaterial({color:0x4b513b,roughness:.75,metalness:.3}),dark=new T.MeshStandardMaterial({color:0x1b1e1b,roughness:.7,metalness:.45});
+  const part=(geo,mat,x,y,z,par=g)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;par.add(m);return m;};
+  part(new T.BoxGeometry(22,6,44),body,0,7,0);
+  part(new T.BoxGeometry(21,3,13),body,0,11.2,15.5);
+  part(new T.BoxGeometry(20,6,.8),dark,0,13.5,8.6);
+  part(new T.BoxGeometry(22,1.2,3),dark,0,8,22.3);
+  const wg=new T.CylinderGeometry(5,5,4,14),wm=new T.MeshStandardMaterial({color:0x111214,roughness:.9});
+  for(const z of[-14,14])for(const s of[-1,1])part(wg,wm,s*11.5,5,z).rotation.z=Math.PI/2;
+  for(const s of[-1,1])part(new T.BoxGeometry(1,9,1),dark,s*10,14.5,-2);
+  part(new T.BoxGeometry(21,1,1),dark,0,19,-2);
+  const tur=new T.Group();tur.position.set(0,13,-8);g.add(tur);
+  part(new T.TorusGeometry(5,.6,6,18),dark,0,0,0,tur).rotation.x=Math.PI/2;
+  part(new T.CylinderGeometry(.7,.7,4,6),dark,0,2,0,tur);
+  part(new T.BoxGeometry(16,1.5,1.5),dark,7,4.5,0,tur);
+  part(new T.BoxGeometry(4,2.4,2.2),dark,1,4.5,0,tur);
+  part(new T.BoxGeometry(1,5,8),body,4,5,0,tur);
+  const lamp=new T.MeshBasicMaterial({color:0xfff1d6,toneMapped:false});
+  for(const s of[-1,1])part(new T.BoxGeometry(3,2,.6),lamp,s*7,9.5,22.2);
+  scene.add(g);return{g,tur};
+}
 function syncUnits(t){
   for(const u of units){
     const m=u.m;if(!m)continue;
     const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
-    m.g.position.set(u.x+u.lx,0,u.y+u.ly);m.g.rotation.y=-u.ang;
-    m.g.visible=u.side==='P'||u.vis||(u.dead&&u.seen);
+    m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
+    m.g.visible=u.side==='P'||u.vis||(u.dead&&u.seen)||!!u.gunner;   // the jeep gunner is always in plain view
     const lying=u.downed||u.dead;
     m.pose.rotation.z+=((lying?Math.PI/2:0)-m.pose.rotation.z)*.2;
     const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
     m.pose.position.y=lying?2.6:(u.path.length?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
-    const crouch=!lying&&!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow);
+    const crouch=!lying&&!u.gunner&&!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow);
     m.pose.scale.y+=((crouch?.7:sneak?.8:1)-m.pose.scale.y)*.15;
     m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
     if(m.spot)m.spot.intensity=lying?0:2.6;

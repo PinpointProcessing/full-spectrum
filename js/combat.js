@@ -32,12 +32,13 @@ function hitChance(s,t,L){
   if(s.path.length)c-=0.15;
   if(t.path.length)c-=0.08;
   if(s.side==='E')c-=0.1;
+  if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);
 }
 function threats(){
   const t=[];
   for(const e of enemies)if(!e.dead&&e.seen)t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push({x:310,y:540});
+  if(!t.length)t.push(wave.phase==='fight1'?{x:310,y:540}:{x:JEEP.x,y:JEEP.y1});   // before anyone's seen: the warehouse door, or the north gate once reinforcements are coming
   return t;
 }
 function protStats(p,th){
@@ -178,7 +179,7 @@ function pickTarget(u){
   const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(alive);
   let best=null,bs=-1;
   for(const f of foes){
-    if(hyp(f.x-u.x,f.y-u.y)>380)continue;
+    if(hyp(f.x-u.x,f.y-u.y)>(u.gunner?440:380))continue;
     const L=fireLine(u,f);if(!L)continue;
     let c=hitChance(u,f,L);if(u.focus===f)c+=1;
     if(c>bs){bs=c;best={t:f,L};}
@@ -188,7 +189,8 @@ function pickTarget(u){
 function burst(u,t,L){
   u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
   const c=hitChance(u,t,L);
-  for(let i=0;i<3;i++)shots.push({at:simT+i*0.08,u,t,L,hit:Math.random()<c});
+  const n=u.gunner?5:3;   // the jeep's machine gun fires longer bursts
+  for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner?0.07:0.08),u,t,L,hit:Math.random()<c});
   if(u.side==='P'&&t.alerted&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
 }
 function resolveShot(s){
@@ -204,8 +206,8 @@ function resolveShot(s){
   }
   tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
   flashes.push({x:fx,y:fy,t:0});
-  t.sup=Math.min(1.2,t.sup+0.06);
-  if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?0.6:1));
+  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:0.06));   // machine-gun fire pins people down
+  if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1));
   if(u.side==='P')alertAll('Contact. Weapons free.',true);
   else if(!t.alerted){}
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -302,8 +304,9 @@ function computeVis(){
   }
 }
 function enemyThink(e){
-  if(e.dead||!e.alerted||e.path.length)return;
+  if(e.dead||!e.alerted||e.path.length||e.gunner)return;
   if(e.sup>0.65){e.exposeT=0;return;}
+  if(e.wave===2){assaultThink(e);return;}
   const vis=players.filter(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=380&&los(e.x,e.y,p.x,p.y));
   const exposed=vis.some(p=>coverAt(e.x,e.y,p.x,p.y)===0);
   e.exposeT=exposed?e.exposeT+.4:0;
@@ -366,7 +369,7 @@ function updateUnit(u,dt){
   if(u.cool<=0){
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.supT)suppressShot(u);
-    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);u.cool=1.6+Math.random()*.6;}else u.cool=.25;}
+    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);u.cool=u.gunner?1.3+Math.random()*.5:1.6+Math.random()*.6;}else u.cool=.25;}
   }
 }
 function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Math.min(1,k);}
@@ -389,7 +392,7 @@ function update(dt){
   for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
   for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;
   if(state==='play'&&!endAt){
-    if(enemies.every(e=>e.dead))endAt=performance.now()+1500;
-    else if(players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
+    waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete
+    if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

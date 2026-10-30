@@ -104,4 +104,15 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #alert.hot #alertArc{animation:alertPulse .8s ease-in-out infinite}
 @keyframes alertPop{from{transform:scale(1.8);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes alertPulse{50%{stroke-width:4.5}}
-@media (prefers-reduced-motion: reduce){#banner{transition:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}
+/* big centre messages: "All clear!" (grey-blue) and "Enemy inbound!" (red), fading in and out */
+#bigText{position:absolute;left:0;right:0;top:32%;z-index:3;text-align:center;pointer-events:none;font-family:var(--font-hud);font-weight:700;font-size:34px;letter-spacing:.14em;text-transform:uppercase;opacity:0;padding-inline:12px}
+#bigText.clear{color:#bccddd;text-shadow:0 0 2px #000,0 0 3px #000,0 2px 10px rgba(0,0,0,.9),0 0 22px rgba(140,170,200,.55);animation:bigFade 2.6s ease-in-out forwards}
+#bigText.inbound{color:#ff4a3a;text-shadow:0 0 2px #000,0 0 3px #000,0 2px 10px rgba(0,0,0,.9),0 0 22px rgba(255,60,40,.7);animation:bigFade 2.6s ease-in-out forwards}
+@keyframes bigFade{0%{opacity:0;transform:scale(.96)}18%{opacity:1;transform:scale(1)}68%{opacity:1}100%{opacity:0}}
+/* reinforcement countdown, where the detection ring sits */
+#countdown{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:2;display:grid;justify-items:center;pointer-events:none;color:#ff3b2a;font-family:var(--font-hud);text-shadow:0 0 10px rgba(255,45,30,.8),0 1px 2px #000}
+#countdown small{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+#countdown b{font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+#countdown.tick small,#countdown.tick b{animation:cdPulse .9s ease-out}
+@keyframes cdPulse{0%{transform:scale(1.28);text-shadow:0 0 20px rgba(255,45,30,1),0 1px 2px #000}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}

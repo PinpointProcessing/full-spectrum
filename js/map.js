@@ -3,7 +3,8 @@
 const objs=[];
 const FULL=new Set(['container','wall','truck','rack','fence']);
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
-O('fence',0,0,W,8);O('fence',0,H-8,W,8);O('fence',0,0,8,H);O('fence',W-8,0,8,H);
+O('fence',0,0,450,8);O('fence',500,0,100,8);O('fence',0,H-8,W,8);   // north gate 450-500 (reinforcements come through it)
+O('fence',0,0,8,H);O('fence',W-8,0,8,H);
 // warehouse shell (x170-450, y260-560)
 O('wall',170,260,115,10);O('wall',325,260,125,10);           // north, back door 285-325
 O('wall',170,550,90,10);O('wall',360,550,90,10);             // south, roll door 260-360
@@ -70,7 +71,7 @@ function isFree(x,y,pad=7.5){if(x<10||y<10||x>W-10||y>H-10)return false;for(cons
 // How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
-  return{container:26,wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9}[o.kind]||0;
+  return{container:26,wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12}[o.kind]||0;
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;
