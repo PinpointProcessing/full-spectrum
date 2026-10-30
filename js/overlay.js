@@ -83,17 +83,17 @@ function drawOverlay(rdt,now){
   for(const e of enemies){
     if(e.dead)continue;
     if(e.vis){
-      const[hx,hy]=toS(e.x,e.y,24),[fx,fy]=toS(e.x,e.y);
+      const vx=e.x+e.lx,vy=e.y+e.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
       if(e.hp<100)bar(hx-9,hy-6,18,e.hp/100,e.hp>60?C.good:e.hp>30?C.warn:C.bad);
       if(e.sup>0.65&&e.alerted)label('PINNED',hx,hy-14,C.warn,9,700);
       else if(e.sup>0.08&&e.alerted)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
       if(act.length){
-        let best=0,bc=0;
-        for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>380||!los(u.x,u.y,e.x,e.y))continue;const c=hitChance(u,e);if(c>best){best=c;bc=coverAt(e.x,e.y,u.x,u.y);}}
-        if(best>0){const pct=Math.round(best*100);pill(`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}`,fx,fy+16,pct>=60?C.good:pct>=35?C.warn:C.bad);}
+        let best=0,bc=0,lean=false;
+        for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>380)continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}
+        if(best>0){const pct=Math.round(best*100);pill(`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}`,fx,fy+16,pct>=60?C.good:pct>=35?C.warn:C.bad);}
         else pill('no line',fx,fy+16,'#7d8a94');
       }
-      if(act.some(u=>u.focus===e)){gPath(e.x,e.y,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
+      if(act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
     }else if(e.seen&&e.last){
       gPath(e.last.x,e.last.y,7);ox.setLineDash([3,3]);ox.strokeStyle='rgba(255,90,72,.7)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);
       const[sx,sy]=toS(e.last.x,e.last.y,6);label('?',sx,sy,'rgba(255,110,90,.95)',11,700);
@@ -101,9 +101,9 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
-    const[hx,hy]=toS(u.x,u.y,24),[fx,fy]=toS(u.x,u.y);
+    const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
-    if(sel.includes(u)){gPath(u.x,u.y,11);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
+    if(sel.includes(u)){gPath(vx,vy,11);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(u.downed){
       const k=u.bleed/45;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=C.bad;ox.lineWidth=2;ox.stroke();
       if(u.revive>0){gPath(u.x,u.y,16,-Math.PI/2,-Math.PI/2+u.revive/3*TAU);ox.strokeStyle=C.good;ox.stroke();}
@@ -111,7 +111,7 @@ function drawOverlay(rdt,now){
       continue;
     }
     bar(hx-9,hy-6,18,u.hp/100,u.hp>60?C.good:u.hp>30?C.warn:C.bad);
-    shield(hx+16,hy-4,u.covered?C.good:C.bad);
+    shield(hx+16,hy-4,peekOf(u)?C.warn:u.covered?C.good:C.bad);
     label(u.id,fx,fy+15,teamCol(u),9,700);
     if(u.sup>0.65)label('PINNED',hx,hy-15,C.warn,9,700);
     else if(u.sup>0.08)bar(hx-9,hy-1,18,u.sup/0.65,C.warn);

@@ -1,10 +1,31 @@
 "use strict";
 /* Combat rules (hit chance, bursts, suppression, grenades), cover-aware move assignment, enemy and squad AI, and the sim step. */
+/* ---------- peeking round corners ---------- */
+// A soldier hugging a wall or container leans out past its edge to see, shoot or throw (leanPts in map.js).
+// After firing from a lean he stays leaned out for PEEK_T: enemies can see and hit him there, and he counts as half cover.
+const PEEK_T=1.2;
+function peekOf(u){return u.peek&&simT<u.peek.until&&alive(u)&&!u.path.length?u.peek:null;}
+// where u can fire at (tx,ty) from. Leaning out only when standing still.
+function sightOf(u,tx,ty){return u.path.length?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}
+// line of fire from a to b: from a's spot or lean (fx,fy) to b, or to b's peek spot if b is leaned out. null if none.
+function fireLine(a,b){
+  const pk=peekOf(b);
+  for(const t of pk?[b,pk]:[b]){
+    const f=sightOf(a,t.x,t.y);
+    if(f)return{fx:f.x,fy:f.y,tx:t.x,ty:t.y,lean:f.x!==a.x||f.y!==a.y,atPeek:t===pk};
+  }
+  return null;
+}
+function lineOf(s,t){return{fx:s.x,fy:s.y,tx:t.x,ty:t.y,lean:false,atPeek:false};}
+function shotCover(L){return L.atPeek?1:coverAt(L.tx,L.ty,L.fx,L.fy);}
+function leanOut(u,L){if(L.lean)u.peek={x:L.fx,y:L.fy,until:simT+PEEK_T};}
+
 /* ---------- combat helpers ---------- */
-function hitChance(s,t){
-  const d=hyp(t.x-s.x,t.y-s.y);
+function hitChance(s,t,L){
+  L=L||lineOf(s,t);
+  const d=hyp(L.tx-L.fx,L.ty-L.fy);
   let c=0.86-d/900;
-  const cov=coverAt(t.x,t.y,s.x,s.y);
+  const cov=shotCover(L);
   if(cov===1)c-=0.28;else if(cov===2)c-=0.42;
   c-=s.sup>0.65?0.25:s.sup*0.15;
   if(s.path.length)c-=0.15;
@@ -20,7 +41,7 @@ function threats(){
 }
 function protStats(p,th){
   let prot=0,see=0;
-  for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l)see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}
+  for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l||sightFrom(p.x,p.y,t.x,t.y))see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}
   return{prot,see};
 }
 function scorePt(p,th,tx,ty){const s=protStats(p,th);return s.prot/th.length*3+s.see*0.9-hyp(p.x-tx,p.y-ty)/45;}
@@ -96,29 +117,31 @@ function pickTarget(u){
   let best=null,bs=-1;
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>380)continue;
-    if(!los(u.x,u.y,f.x,f.y))continue;
-    let c=hitChance(u,f);if(u.focus===f)c+=1;
-    if(c>bs){bs=c;best=f;}
+    const L=fireLine(u,f);if(!L)continue;
+    let c=hitChance(u,f,L);if(u.focus===f)c+=1;
+    if(c>bs){bs=c;best={t:f,L};}
   }
   return best;
 }
-function burst(u,t){
-  u.target=t;u.aimT=simT;u.ang=Math.atan2(t.y-u.y,t.x-u.x);
-  const c=hitChance(u,t);
-  for(let i=0;i<3;i++)shots.push({at:simT+i*0.08,u,t,hit:Math.random()<c});
-  if(u.side==='P'&&t.alerted&&simT>t.flankCD&&coverAt(t.x,t.y,u.x,u.y)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
+function burst(u,t,L){
+  u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
+  const c=hitChance(u,t,L);
+  for(let i=0;i<3;i++)shots.push({at:simT+i*0.08,u,t,L,hit:Math.random()<c});
+  if(u.side==='P'&&t.alerted&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
 }
 function resolveShot(s){
   const u=s.u,t=s.t;if(u.dead||u.downed||t.dead)return;
-  let ex=t.x,ey=t.y;
+  // plain shots track both soldiers through the burst; a lean or peek spot stays where it was
+  const L=s.L,fx=L.lean?L.fx:u.x,fy=L.lean?L.fy:u.y,tx=L.atPeek?L.tx:t.x,ty=L.atPeek?L.ty:t.y;
+  let ex=tx,ey=ty;
   if(!s.hit){
-    const cov=coverAt(t.x,t.y,u.x,u.y);
-    const a=Math.atan2(t.y-u.y,t.x-u.x),d=hyp(t.x-u.x,t.y-u.y);
-    if(cov&&Math.random()<.7){ex=u.x+Math.cos(a)*(d-10);ey=u.y+Math.sin(a)*(d-10);sparks.push({x:ex,y:ey,t:0});}
-    else{const aa=a+(Math.random()-.5)*0.22,dd=d+Math.random()*40-8;ex=u.x+Math.cos(aa)*dd;ey=u.y+Math.sin(aa)*dd;}
+    const cov=shotCover({fx,fy,tx,ty,atPeek:L.atPeek});
+    const a=Math.atan2(ty-fy,tx-fx),d=hyp(tx-fx,ty-fy);
+    if(cov&&Math.random()<.7){ex=fx+Math.cos(a)*(d-10);ey=fy+Math.sin(a)*(d-10);sparks.push({x:ex,y:ey,t:0});}
+    else{const aa=a+(Math.random()-.5)*0.22,dd=d+Math.random()*40-8;ex=fx+Math.cos(aa)*dd;ey=fy+Math.sin(aa)*dd;}
   }
-  tracers.push({x1:u.x,y1:u.y,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
-  flashes.push({x:u.x,y:u.y,t:0});
+  tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
+  flashes.push({x:fx,y:fy,t:0});
   t.sup=Math.min(1.2,t.sup+0.06);
   if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?0.6:1));
   if(u.side==='P')alertAll('Contact. Weapons free.');
@@ -128,26 +151,33 @@ function resolveShot(s){
 function suppressShot(u){
   const a=u.supT;
   if(!enemies.some(e=>!e.dead&&hyp(e.x-a.x,e.y-a.y)<55)){u.supT=null;callout(u,'Area clear',C.good);return;}
-  const tg=enemies.filter(e=>!e.dead&&hyp(e.x-a.x,e.y-a.y)<55&&los(u.x,u.y,e.x,e.y));
-  let ax=a.x,ay=a.y,t=null;
-  if(tg.length){t=tg[(Math.random()*tg.length)|0];ax=t.x;ay=t.y;}
-  else if(!los(u.x,u.y,a.x,a.y)){u.cool=.6;if(++u.noLine>4){u.supT=null;callout(u,'No line of fire',C.warn);}return;}
-  u.noLine=0;u.ang=Math.atan2(ay-u.y,ax-u.x);u.aimT=simT;
-  const hit=t&&Math.random()<hitChance(u,t)*0.35;
-  const aa=u.ang+(Math.random()-.5)*0.12,dd=hyp(ax-u.x,ay-u.y)+(hit?0:Math.random()*20-14);
-  const ex=hit?ax:u.x+Math.cos(aa)*dd,ey=hit?ay:u.y+Math.sin(aa)*dd;
-  tracers.push({x1:u.x,y1:u.y,x2:ex,y2:ey,t:0,col:'255,231,163'});flashes.push({x:u.x,y:u.y,t:0});
+  const tg=[];
+  for(const e of enemies){if(e.dead||hyp(e.x-a.x,e.y-a.y)>=55)continue;const L=fireLine(u,e);if(L)tg.push({e,L});}
+  let L=null,t=null;
+  if(tg.length){const k=tg[(Math.random()*tg.length)|0];t=k.e;L=k.L;}
+  else{
+    const f=sightOf(u,a.x,a.y);
+    if(!f){u.cool=.6;if(++u.noLine>4){u.supT=null;callout(u,'No line of fire',C.warn);}return;}
+    L={fx:f.x,fy:f.y,tx:a.x,ty:a.y,lean:f.x!==u.x||f.y!==u.y,atPeek:false};
+  }
+  u.noLine=0;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;leanOut(u,L);
+  const hit=t&&Math.random()<hitChance(u,t,L)*0.35;
+  const aa=u.ang+(Math.random()-.5)*0.12,dd=hyp(L.tx-L.fx,L.ty-L.fy)+(hit?0:Math.random()*20-14);
+  const ex=hit?L.tx:L.fx+Math.cos(aa)*dd,ey=hit?L.ty:L.fy+Math.sin(aa)*dd;
+  tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163'});flashes.push({x:L.fx,y:L.fy,t:0});
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
-  for(const e of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
+  for(const{e}of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
   if(hit)damage(t,12);
   alertAll('Contact. Weapons free.');
   u.cool=.42+Math.random()*.12;
 }
 function throwNade(u,tx,ty){
   if(hyp(tx-u.x,ty-u.y)>170){banner('Too far. Throw inside the circle.');return false;}
-  if(!los(u.x,u.y,tx,ty)){banner('No clear throw from here.');return false;}
-  u.grenade=0;u.lastOrder=simT;u.ang=Math.atan2(ty-u.y,tx-u.x);u.aimT=simT;
-  nades.push({x0:u.x,y0:u.y,x1:tx,y1:ty,t:0,dur:.9});
+  const f=sightOf(u,tx,ty);
+  if(!f){banner('No clear throw from here.');return false;}
+  const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
+  u.grenade=0;u.lastOrder=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
+  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9});
   callout(u,'Frag out!',C.warn);
   return true;
 }
@@ -167,7 +197,7 @@ function explode(x,y){
 function computeVis(){
   for(const e of enemies){
     if(e.dead){e.vis=false;continue;}
-    e.vis=players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=360&&los(p.x,p.y,e.x,e.y));
+    e.vis=players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=360&&fireLine(p,e));
     if(e.vis){
       if(!e.seen){e.seen=true;callout(e,'Hostile!',C.bad);if(!contact)banner('Hostile spotted inside the warehouse.');}
       e.last={x:e.x,y:e.y};
@@ -177,7 +207,7 @@ function computeVis(){
       for(const p of players){
         if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d>300)continue;
         let da=Math.atan2(p.y-e.y,p.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
-        if((Math.abs(da)<1.08||d<80)&&los(e.x,e.y,p.x,p.y)){callout(p,'Spotted!',C.bad);alertAll('Contact. You have been spotted.');break;}
+        if((Math.abs(da)<1.08||d<80)&&fireLine(e,p)){callout(p,'Spotted!',C.bad);alertAll('Contact. You have been spotted.');break;}
       }
     }
   }
@@ -232,7 +262,7 @@ function updateUnit(u,dt){
   if(u.dead)return;
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
   if(u.downed)return;
-  if(u.path.length){
+  if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
     const sp=(u.side==='P'?54:46)*(u.sup>0.65?0.7:1)*dt;
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
@@ -245,7 +275,7 @@ function updateUnit(u,dt){
   if(u.cool<=0){
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.supT)suppressShot(u);
-    else{const t=pickTarget(u);if(t){burst(u,t);u.cool=1.6+Math.random()*.6;}else u.cool=.25;}
+    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);u.cool=1.6+Math.random()*.6;}else u.cool=.25;}
   }
 }
 function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Math.min(1,k);}

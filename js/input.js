@@ -3,12 +3,12 @@
 let ptr=null;
 function unitAtScreen(sx,sy,activeOnly){
   let best=null,bd=26;
-  for(const u of players){if(u.dead)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x,u.y,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
+  for(const u of players){if(u.dead)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
   return best;
 }
 function enemyAtScreen(sx,sy){
   let best=null,bd=26;
-  for(const e of enemies){if(e.dead||!e.vis)continue;const[x,y]=toS(e.x,e.y,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=e;}}
+  for(const e of enemies){if(e.dead||!e.vis)continue;const[x,y]=toS(e.x+e.lx,e.y+e.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=e;}}
   return best;
 }
 function localXY(ev){const r=ov.getBoundingClientRect();return[ev.clientX-r.left,ev.clientY-r.top];}

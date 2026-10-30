@@ -43,7 +43,7 @@ function hud(){
     else if(u.sup>0.65){txt='Pinned';cls+=' pin';}
     else if(u.supT)txt='Suppress';
     else if(u.path.length)txt='Moving';
-    else if(contact)txt=u.covered?'In cover':'Exposed';
+    else if(contact)txt=peekOf(u)?'Peeking':u.covered?'In cover':'Exposed';
     st.textContent=txt;st.className=cls;
   }
   for(const sec of document.querySelectorAll('.team')){

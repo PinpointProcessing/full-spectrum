@@ -233,7 +233,8 @@ function makeSoldier(u){
 function syncUnits(t){
   for(const u of units){
     const m=u.m;if(!m)continue;
-    m.g.position.set(u.x,0,u.y);m.g.rotation.y=-u.ang;
+    const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
+    m.g.position.set(u.x+u.lx,0,u.y+u.ly);m.g.rotation.y=-u.ang;
     m.g.visible=u.side==='P'||u.vis||(u.dead&&u.seen);
     const lying=u.downed||u.dead;
     m.pose.rotation.z+=((lying?Math.PI/2:0)-m.pose.rotation.z)*.2;

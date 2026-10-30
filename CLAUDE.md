@@ -48,6 +48,7 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Bursts of 3, every 1.6–2.2 s, range 380. Damage 11–16 per hit (enemies ×0.6).
 - Suppression: +0.06 per incoming shot, +0.17 per suppress-fire shot, decays 0.18/s. Pinned above 0.65: fires at 40 % rate, −0.25 accuracy, enemies stop repositioning.
 - Cover = an object within 15 of the target that the shot line crosses. Full objects (containers, walls, truck, racks, fence) block line of sight; half cover (sandbags, crates, barrels, pallets, barrier, window sills) doesn't.
+- Peeking round corners (both sides): if a full object within 22 blocks the line, a standing soldier can lean 8 or 14 sideways past its edge to see, shoot, suppress or throw (`leanPts`/`sightFrom` in map.js, `fireLine` in combat.js). After firing or throwing from a lean he stays leaned out 1.2 s (`PEEK_T`): enemies can see and shoot that spot, and he counts as half cover there. Moving cancels it. Cover scoring for moves counts a corner you can peek from as a spot that "sees" the enemy. UI: pill adds "· peek", shield turns amber, row reads Peeking.
 - Downed players bleed out in 45 s; a teammate standing still within 24 revives in 3 s at 35 hp.
 - Enemies: cone vision (±62°, 300) until alerted, then reposition inside the warehouse when exposed, fall back below 40 hp.
 - Pathfinding: A* on a 10-unit grid with string-pulling. Cover points are generated around every object edge.

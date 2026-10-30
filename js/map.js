@@ -67,3 +67,24 @@ function coverAt(tx,ty,sx,sy){
   return best;
 }
 function isFree(x,y,pad=7.5){if(x<10||y<10||x>W-10||y>H-10)return false;for(const o of objs)if(rectDist(x,y,o)<pad)return false;return true;}
+// Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
+const PEEK_REACH=[8,14],PEEK_NEAR=22;
+function leanPts(x,y,tx,ty){
+  let hug=false;
+  for(const o of objs)if(o.full&&rectDist(x,y,o)<=PEEK_NEAR&&segHitsRect(x,y,tx,ty,o,0)){hug=true;break;}
+  if(!hug)return[];
+  const d=hyp(tx-x,ty-y)||1,px=(y-ty)/d,py=(tx-x)/d,out=[];
+  for(const r of PEEK_REACH)for(const s of[1,-1]){
+    const lx=x+px*r*s,ly=y+py*r*s;
+    if(lx<10||ly<10||lx>W-10||ly>H-10)continue;
+    if(objs.some(o=>rectDist(lx,ly,o)<3))continue;
+    if(los(x,y,lx,ly))out.push({x:lx,y:ly});
+  }
+  return out;
+}
+// where someone standing at (x,y) can see (tx,ty) from: right there, or leaning out. null if nowhere.
+function sightFrom(x,y,tx,ty){
+  if(los(x,y,tx,ty))return{x,y};
+  for(const p of leanPts(x,y,tx,ty))if(los(p.x,p.y,tx,ty))return p;
+  return null;
+}
