@@ -24,10 +24,11 @@ function initGL(){
 }
 
 /* camera: angled, like a tactics game; from the south when yaw is 0 (a two-finger twist turns it). zoom tilts it lower. */
-const MAXZ=4;let zoom=1,camT={x:W/2,z:H/2},dist0=1200,yaw=0;
-const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180;
+const MAXZ=4;let zoom=1,camT={x:W/2,z:H/2},dist0=1200,yaw=0,tilt=0;
+const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH_MIN=20*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
+function basePitch(){return PITCH0+(PITCH1-PITCH0)*(zoom-1)/(MAXZ-1);}
 function updateCamera(){
-  const dist=dist0/zoom,k=(zoom-1)/(MAXZ-1),p=PITCH0+(PITCH1-PITCH0)*k;
+  const dist=dist0/zoom,p=Math.max(PITCH_MIN,basePitch()-tilt);
   const hd=dist*Math.cos(p);
   camera.position.set(camT.x+Math.sin(yaw)*hd,dist*Math.sin(p),camT.z+Math.cos(yaw)*hd);
   camera.lookAt(camT.x,0,camT.z);camera.updateMatrixWorld();
@@ -36,7 +37,7 @@ function clampCam(){
   const lim=1-1/zoom;
   camT.x=clamp(camT.x,W/2-W/2*lim,W/2+W/2*lim);
   camT.z=clamp(camT.z,H/2-H/2*lim,H/2+H/2*lim);
-  const fb=$('#fitBtn');if(fb)fb.hidden=zoom<1.02&&Math.abs(yaw)<0.02;
+  const fb=$('#fitBtn');if(fb)fb.hidden=zoom<1.02&&Math.abs(yaw)<0.02&&tilt<0.02;
 }
 function toS(x,y,h=0){_v.set(x,h,y).project(camera);return[(_v.x+1)/2*cw,(1-_v.y)/2*ch];}
 function toW(sx,sy){
@@ -46,14 +47,14 @@ function toW(sx,sy){
   const t=-_o.y/_d.y;return[_o.x+_d.x*t,_o.z+_d.z*t];
 }
 function fitDist(){
-  const sz=zoom,sy=yaw,st={x:camT.x,z:camT.z};zoom=1;yaw=0;camT={x:W/2,z:H/2};
+  const sz=zoom,sy=yaw,stl=tilt,st={x:camT.x,z:camT.z};zoom=1;yaw=0;tilt=0;camT={x:W/2,z:H/2};
   let lo=200,hi=9000;
   for(let i=0;i<30;i++){
     const mid=(lo+hi)/2;dist0=mid;updateCamera();let ok=true;
     for(const[x,z]of[[0,0],[W,0],[0,H],[W,H]]){_v.set(x,0,z).project(camera);if(Math.abs(_v.x)>.99||Math.abs(_v.y)>.99){ok=false;break;}}
     if(ok)hi=mid;else lo=mid;
   }
-  dist0=hi;zoom=sz;yaw=sy;camT=st;clampCam();updateCamera();
+  dist0=hi;zoom=sz;yaw=sy;tilt=stl;camT=st;clampCam();updateCamera();
 }
 function zoomAround(sx,sy,nz){
   const[wx,wz]=toW(sx,sy);zoom=clamp(nz,1,MAXZ);updateCamera();

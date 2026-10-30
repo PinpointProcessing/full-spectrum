@@ -17,6 +17,7 @@ function pinchInfo(){const p=[...touches.values()];return{d:Math.max(1,hyp(p[0].
 const TWIST_START=0.2;   // radians of twist before rotation kicks in, so a plain pinch doesn't turn the map
 function wrapA(a){return Math.atan2(Math.sin(a),Math.cos(a));}
 function turnCam(d){yaw=wrapA(yaw+d);clampCam();updateCamera();}
+function tiltCam(t){tilt=clamp(t,0,basePitch()-PITCH_MIN);clampCam();updateCamera();}
 let boxMode=false,inertia={vx:0,vy:0};
 // drawing a route: drag that starts on a soldier. Trail is in world coordinates.
 function addTrail(sx,sy){
@@ -71,7 +72,7 @@ function bindInput(){
     if(touches.size===2){
       if(ptr){clearTimeout(ptr.timer);ptr=null;}
       const i=pinchInfo(),[wx,wy]=toW(i.mx,i.my);
-      pinch={d0:i.d,z0:zoom,wx,wy,a0:i.a,yaw0:yaw,rot:false};return;
+      pinch={d0:i.d,z0:zoom,wx,wy,a0:i.a,yaw0:yaw,rot:false,my0:i.my,t0:tilt,mode:null};return;
     }
     if(touches.size>2||pinch)return;
     if(ptr)return;
@@ -91,8 +92,15 @@ function bindInput(){
     const[x,y]=localXY(ev);
     if(touches.has(ev.pointerId))touches.set(ev.pointerId,{x,y});
     if(pinch&&touches.size===2){
-      const i=pinchInfo();zoom=clamp(pinch.z0*i.d/pinch.d0,1,MAXZ);
-      const da=wrapA(i.a-pinch.a0);
+      const i=pinchInfo(),da=wrapA(i.a-pinch.a0),dmy=i.my-pinch.my0,dd=i.d-pinch.d0;
+      // two fingers moving down/up together tilt the camera; anything else is pinch-zoom and twist
+      if(!pinch.mode){
+        if(Math.abs(dmy)>14&&Math.abs(dmy)>Math.abs(dd)*1.5&&Math.abs(da)<TWIST_START){pinch.mode='tilt';pinch.my0=i.my;pinch.t0=tilt;}
+        else if(Math.abs(dd)>10||Math.abs(da)>TWIST_START)pinch.mode='zoom';
+        else return;
+      }
+      if(pinch.mode==='tilt'){tiltCam(pinch.t0+(i.my-pinch.my0)*0.004);return;}   // pull down = look further out
+      zoom=clamp(pinch.z0*i.d/pinch.d0,1,MAXZ);
       if(!pinch.rot&&Math.abs(da)>TWIST_START){pinch.rot=true;pinch.a0=i.a;pinch.yaw0=yaw;}
       if(pinch.rot)yaw=wrapA(pinch.yaw0+wrapA(i.a-pinch.a0));   // the map turns with your fingers
       updateCamera();
@@ -118,8 +126,8 @@ function bindInput(){
   ov.addEventListener('pointerup',ev=>endPtr(ev,false));
   ov.addEventListener('pointercancel',ev=>endPtr(ev,true));
   ov.addEventListener('contextmenu',ev=>ev.preventDefault());
-  ov.addEventListener('wheel',ev=>{ev.preventDefault();const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
-  $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
+  ov.addEventListener('wheel',ev=>{ev.preventDefault();if(ev.shiftKey){tiltCam(tilt-(ev.deltaY||ev.deltaX)*0.0015);return;}const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
+  $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;tilt=0;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
 }
 
 // changing the selection: soldiers who weren't already selected go back to the automatic sneak/run choice
@@ -132,7 +140,7 @@ function toggleGait(){
   else{const g=act.some(u=>autoGait(u)==='sneak')?'run':'sneak';for(const u of act)u.gaitForce=g;}
 }
 function tap(sx,sy){
-  const[wx,wy]=toW(sx,sy),inMap=wx>=0&&wy>=0&&wx<=W&&wy<=H;
+  const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=0&&wy>=0&&wx<=W&&wy<=H;
   sel=sel.filter(alive);
   if(mode==='suppress'){
     if(!inMap){mode=null;return;}

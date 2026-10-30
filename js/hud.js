@@ -93,7 +93,7 @@ function alertMeter(){
   el.querySelector('svg').style.filter=c>0.02?`drop-shadow(0 0 ${(1+7*c).toFixed(1)}px rgba(255,45,30,${(.9*c).toFixed(2)}))`:'none';
   el.setAttribute('aria-label',a>=1?'Spotted':`Detection ${k}%`);
 }
-function startView(){zoom=2.4;yaw=0;camT={x:190,z:700};clampCam();updateCamera();}
+function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:700};clampCam();updateCamera();}
 function bindHud(){
   for(const sec of document.querySelectorAll('.team'))sec.querySelector('header').addEventListener('click',()=>{if(state!=='play')return;selectTeam(sec.dataset.team);hud();});
   $('#boxBtn').addEventListener('click',()=>{if(state!=='play')return;boxMode=!boxMode;mode=null;preview=null;hud();});

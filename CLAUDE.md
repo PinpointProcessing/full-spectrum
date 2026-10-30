@@ -37,15 +37,15 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Weapons tight while undetected: before contact the squad only fires at a hostile you tapped (or via Suppress/grenade). Striking first is an ambush: enemies need 1.4–2 s to react and the squad gets +0.15 hit chance for 1.5 s (`alertAll(msg,true)`, `ambushing()`). The hit pill shows "· ambush" while undetected. After contact, everyone fires freely.
 - Soldiers act on their own to survive: return fire, shift to nearby cover if exposed ~2 s, but never wander off on a plan of their own. Player orders lock out auto-moves for 4 s.
 - Angled 3D camera, from the south by default (pitch 60° zoomed out → 46° zoomed in), rotatable by twisting. Bryan liked this far more than top-down. Screen-relative things (edge-scroll, labels placed below a point via `below()`) must account for `yaw`.
-- Hit chance shown per shot as "64% · open / cover / heavy", XCOM style.
+- Hit chance shown per shot as "64% · open / cover / heavy", XCOM style: best of the selected soldiers on that enemy; adds "· peek" if the shot needs a lean and "· ambush" while undetected; green ≥60 %, amber ≥35 %, red below; grey "no line" if nobody selected can shoot him.
 
 ### Controls
 - Fit map button is top right of the map; the sneak/run toggle is bottom right.
-- One-finger drag on empty ground: pan the map (with glide). Drag starting on a soldier: draw his route. Pinch: zoom 1–4×. Two-finger twist: rotate the camera around the point between the fingers (starts after 0.2 rad of twist so pinches don't turn it; `yaw` in scene.js). Fit map button resets zoom and rotation.
+- One-finger drag on empty ground: pan the map (with glide). Drag starting on a soldier: draw his route. Pinch: zoom 1–4×. Two-finger twist: rotate the camera around the point between the fingers (starts after 0.2 rad of twist so pinches don't turn it; `yaw` in scene.js). Two fingers dragged down/up together: tilt the camera towards the horizon / back (pitch down to 20°; `tilt`, `tiltCam`). The gesture picks tilt or zoom+twist from the first ~14 px of movement. Fit map button resets zoom, rotation and tilt. Taps that don't land on the map (beyond its edge) are ignored.
 - Tap a soldier: select his fire team. Hold a soldier (380 ms): select just him.
 - Box select: hold empty ground then drag, or press Box then drag.
 - Tap a visible enemy: focus fire (before contact: open fire, which springs the ambush). Suppress button then tap an enemy: pin that area. Grenade (single soldier, 1 each, 170 range). Tap a downed teammate with a soldier selected: go revive.
-- Keyboard: Space pause, Esc clear, 1/2 select teams, R sneak/run toggle, Q/E rotate camera 15°, wheel zoom.
+- Keyboard: Space pause, Esc clear, 1/2 select teams, R sneak/run toggle, Q/E rotate camera 15°, wheel zoom, Shift+wheel tilt.
 
 ### Rules and numbers (first guesses, not tuned)
 - Hit chance: 0.86 − dist/900; half cover −0.28, heavy −0.42; shooter moving −0.15, target moving −0.08; suppression up to −0.25; enemies −0.10. Clamped 5–95 %.
