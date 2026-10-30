@@ -79,8 +79,14 @@ function alertMeter(){
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);
+  // faint and see-through at first; more solid, redder, brighter and glowing as he closes in on finding you
+  const c=Math.pow(a,1.4),lerp=(p,q)=>p+(q-p)*c;
   const arc=$('#alertArc');arc.setAttribute('stroke-dashoffset',(94.25*(1-a)).toFixed(2));arc.style.opacity=a>0.005?1:0;
-  arc.setAttribute('stroke',`rgba(255,${Math.round(255-165*a)},${Math.round(255-183*a)},${(.8+.2*a).toFixed(2)})`);
+  arc.setAttribute('stroke',`rgba(255,${lerp(225,52)|0},${lerp(215,36)|0},${lerp(.5,1).toFixed(2)})`);
+  const ring=el.querySelector('.ring');
+  ring.style.fill=`rgba(${lerp(0,110)|0},${lerp(0,8)|0},${lerp(0,4)|0},${lerp(.22,.42).toFixed(2)})`;
+  ring.style.stroke=`rgba(255,${lerp(255,90)|0},${lerp(255,80)|0},${lerp(.1,.3).toFixed(2)})`;
+  el.querySelector('svg').style.filter=c>0.02?`drop-shadow(0 0 ${(1+7*c).toFixed(1)}px rgba(255,45,30,${(.9*c).toFixed(2)}))`:'none';
   el.setAttribute('aria-label',a>=1?'Spotted':`Detection ${k}%`);
 }
 function startView(){zoom=2.4;camT={x:190,z:700};clampCam();updateCamera();}
