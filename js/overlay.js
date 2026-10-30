@@ -97,7 +97,7 @@ function drawOverlay(rdt,now){
       if(act.length){
         let best=0,bc=0,lean=false;
         for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>380)continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}
-        if(best>0){const pct=Math.round(best*100);pill(`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}`,fx,fy+16,pct>=60?C.good:pct>=35?C.warn:C.bad);}
+        if(best>0){const pct=Math.round(best*100);pill(`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing()?' · ambush':''}`,fx,fy+16,pct>=60?C.good:pct>=35?C.warn:C.bad);}
         else pill('no line',fx,fy+16,'#7d8a94');
       }
       if(act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}

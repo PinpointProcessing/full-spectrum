@@ -26,7 +26,7 @@ function buildRows(){
     for(const u of players.filter(p=>p.team===t)){
       const b=document.createElement('button');b.className='row';b.dataset.id=u.id;
       b.innerHTML=`<span class="nm"><b>${u.id}</b>${u.name}</span><span class="hp"><i></i></span><span class="st">Ready</span>`;
-      b.addEventListener('click',()=>{if(state!=='play'||!alive(u))return;sel=[u];preview=null;mode=null;hud();});
+      b.addEventListener('click',()=>{if(state!=='play'||!alive(u))return;select([u]);preview=null;mode=null;hud();});
       rows.appendChild(b);u.row=b;
     }
   }
@@ -58,6 +58,10 @@ function hud(){
   $('#nadeBtn').textContent=one?`Grenade ×${one.grenade}`:'Grenade';
   $('#nadeBtn').classList.toggle('on',mode==='grenade');
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
+  {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
+   gb.disabled=!act.length;gb.classList.toggle('on',forced);gb.setAttribute('aria-pressed',forced);
+   gb.querySelector('span').textContent=g==='sneak'?'Sneak':'Run';gb.querySelector('small').textContent=forced?'Manual':'Auto';
+   gb.setAttribute('aria-label',`${g==='sneak'?'Sneaking':'Running'}, ${forced?'manual':'automatic'}. Press to ${forced?'go back to automatic':g==='sneak'?'run':'sneak'}.`);}
   $('#boxBtn').classList.toggle('on',boxMode);
   const ts=timeScale();
   const sp=$('#speed');sp.hidden=!(state==='play'&&ts<1);sp.textContent=paused?'Paused':'Slow-mo';
@@ -69,7 +73,7 @@ function hud(){
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Drag from a soldier to draw his route. Tap a soldier for his team.';
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Tap a downed man to revive him.`;
-  else h='Tap the ground to preview positions. Tap an enemy to focus fire.';
+  else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';
   $('#hint').textContent=h;
 }
 // detection indicator, updated every frame
@@ -93,7 +97,8 @@ function startView(){zoom=2.4;camT={x:190,z:700};clampCam();updateCamera();}
 function bindHud(){
   for(const sec of document.querySelectorAll('.team'))sec.querySelector('header').addEventListener('click',()=>{if(state!=='play')return;selectTeam(sec.dataset.team);hud();});
   $('#boxBtn').addEventListener('click',()=>{if(state!=='play')return;boxMode=!boxMode;mode=null;preview=null;hud();});
-  $('#allBtn').addEventListener('click',()=>{if(state!=='play')return;sel=players.filter(alive);preview=null;mode=null;hud();});
+  $('#allBtn').addEventListener('click',()=>{if(state!=='play')return;select(players.filter(alive));preview=null;mode=null;hud();});
+  $('#gaitBtn').addEventListener('click',()=>{if(state!=='play')return;toggleGait();hud();});
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
   $('#nadeBtn').addEventListener('click',()=>{if(state!=='play')return;sel=sel.filter(alive);if(sel.length!==1)return;mode=mode==='grenade'?null:'grenade';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else sel=[];hud();});
@@ -104,6 +109,7 @@ function bindHud(){
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}
     else if(e.key==='Escape'){$('#clearBtn').click();}
+    else if(e.key==='r'||e.key==='R'){toggleGait();hud();}
     else if(e.key==='1'){selectTeam('A');hud();}else if(e.key==='2'){selectTeam('B');hud();}
   });
 }

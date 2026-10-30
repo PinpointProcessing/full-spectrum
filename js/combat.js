@@ -28,6 +28,7 @@ function hitChance(s,t,L){
   const cov=shotCover(L);
   if(cov===1)c-=0.28;else if(cov===2)c-=0.42;
   c-=s.sup>0.65?0.25:s.sup*0.15;
+  if(s.side==='P'&&ambushing())c+=AMBUSH_BONUS;
   if(s.path.length)c-=0.15;
   if(t.path.length)c-=0.08;
   if(s.side==='E')c-=0.1;
@@ -126,11 +127,16 @@ function routeFromTrail(u,trail){
 }
 
 function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});}
-function alertAll(msg){
+// Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
+// and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.
+const AMBUSH_T=1.5,AMBUSH_BONUS=0.15;
+function alertAll(msg,ambush){
   if(contact)return;contact=true;
-  for(const e of enemies)if(!e.dead){e.alerted=true;e.aware=1;}
+  for(const e of enemies)if(!e.dead){e.alerted=true;e.aware=1;if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);}
+  if(ambush){ambushT=simT+AMBUSH_T;msg='Ambush! They never saw it coming.';}
   banner(msg||'Contact. They know you are here.');setStatus();
 }
+function ambushing(){return!contact||simT<ambushT;}
 
 function damage(t,dmg){
   if(t.dead||t.downed)return;
@@ -149,7 +155,8 @@ function damage(t,dmg){
 }
 
 function pickTarget(u){
-  const foes=u.side==='P'?enemies.filter(e=>!e.dead):players.filter(alive);
+  // undetected, the squad holds fire except at a hostile you've told them to shoot
+  const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(alive);
   let best=null,bs=-1;
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>380)continue;
@@ -180,7 +187,7 @@ function resolveShot(s){
   flashes.push({x:fx,y:fy,t:0});
   t.sup=Math.min(1.2,t.sup+0.06);
   if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?0.6:1));
-  if(u.side==='P')alertAll('Contact. Weapons free.');
+  if(u.side==='P')alertAll('Contact. Weapons free.',true);
   else if(!t.alerted){}
   if(t.side==='E'&&!t.alerted)t.alerted=true;
 }
@@ -204,7 +211,7 @@ function suppressShot(u){
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
   for(const{e}of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
   if(hit)damage(t,12);
-  alertAll('Contact. Weapons free.');
+  alertAll('Contact. Weapons free.',true);
   u.cool=.42+Math.random()*.12;
 }
 function throwNade(u,tx,ty){
@@ -226,13 +233,14 @@ function explode(x,y){
     if(!v.downed)damage(v,95*(1-d/62));
     if(v.side==='E')v.alerted=true;
   }
-  alertAll('Contact. Weapons free.');
+  alertAll('Contact. Weapons free.',true);
 }
 
 /* ---------- stealth ---------- */
-// Gait is automatic: sneak while undetected with a live enemy within SNEAK_R, otherwise run.
+// Gait is automatic: sneak while undetected with a live enemy within SNEAK_R, otherwise run. The gait button flips it (gaitForce).
 const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24;
-function gaitOf(p){return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';}
+function gaitOf(p){return p.gaitForce||autoGait(p);}
+function autoGait(p){return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';}
 // An unaware enemy builds awareness (0..1) instead of spotting the squad instantly. Seeing a soldier in his cone
 // (or very close) raises it faster the closer, faster and more exposed the soldier is; running is also heard through walls.
 // It fades slowly when there's nothing to notice. Past AWARE_LOOK he turns towards what he noticed; at 1 he raises the alarm.

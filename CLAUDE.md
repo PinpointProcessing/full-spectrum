@@ -33,16 +33,19 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Squad is the main unit, split into two 2-man fire teams. Individuals are for special moves (flank, grenade, revive).
 - Group move = two taps: first tap previews ghost positions (green = in cover, red = exposed, from known enemies), tap the marker again to go. Single soldier moves on one tap.
 - Drawn routes for independent soldiers (Bryan, inspired by mobile squad games): drag from a soldier to draw his route. He follows the line's shape; stretches through objects are routed round (`routeFromTrail` in combat.js, dropping a dead-end bit of line if that saves 15%+ locally); the end settles on cover within 18. Quarter speed while drawing, works while paused, map edge-scrolls while drawing.
+- Sneak/run toggle (Bryan's design): button bottom right (`#gaitBtn`, `toggleGait`) shows the selected soldiers' gait (AUTO SNEAK / AUTO RUN). Pressing flips them to the other gait (amber, MANUAL), pressing again returns to auto. A soldier goes back to auto when he's selected again after not being selected (`select()` in input.js; always change the selection through it). Key R.
+- Weapons tight while undetected: before contact the squad only fires at a hostile you tapped (or via Suppress/grenade). Striking first is an ambush: enemies need 1.4–2 s to react and the squad gets +0.15 hit chance for 1.5 s (`alertAll(msg,true)`, `ambushing()`). The hit pill shows "· ambush" while undetected. After contact, everyone fires freely.
 - Soldiers act on their own to survive: return fire, shift to nearby cover if exposed ~2 s, but never wander off on a plan of their own. Player orders lock out auto-moves for 4 s.
 - Angled 3D camera from the south (pitch 60° zoomed out → 46° zoomed in). Bryan liked this far more than top-down.
 - Hit chance shown per shot as "64% · open / cover / heavy", XCOM style.
 
 ### Controls
+- Fit map button is top right of the map; the sneak/run toggle is bottom right.
 - One-finger drag on empty ground: pan the map (with glide). Drag starting on a soldier: draw his route. Pinch: zoom 1–4×. Fit map button resets.
 - Tap a soldier: select his fire team. Hold a soldier (380 ms): select just him.
 - Box select: hold empty ground then drag, or press Box then drag.
-- Tap a visible enemy: focus fire. Suppress button then tap an enemy: pin that area. Grenade (single soldier, 1 each, 170 range). Tap a downed teammate with a soldier selected: go revive.
-- Keyboard: Space pause, Esc clear, 1/2 select teams, wheel zoom.
+- Tap a visible enemy: focus fire (before contact: open fire, which springs the ambush). Suppress button then tap an enemy: pin that area. Grenade (single soldier, 1 each, 170 range). Tap a downed teammate with a soldier selected: go revive.
+- Keyboard: Space pause, Esc clear, 1/2 select teams, R sneak/run toggle, wheel zoom.
 
 ### Rules and numbers (first guesses, not tuned)
 - Hit chance: 0.86 − dist/900; half cover −0.28, heavy −0.42; shooter moving −0.15, target moving −0.08; suppression up to −0.25; enemies −0.10. Clamped 5–95 %.
@@ -59,6 +62,7 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 ### Known gaps / next ideas
 - Balance untested at real speed. Bryan's playtests matter more than the numbers above.
 - Enemy AI only shifts and falls back: no pushing, flanking, or grenades.
+- Agreed stealth roadmap (Bryan approved): alert ladder unaware → suspicious → searching (walks to check, stays jumpy) → alerted; alerts spread by shout (~25 m, sight/hearing) and a ~5 s radio call that can be cut short by killing him; break contact after ~30 s unseen → back to searching; light/dark affects spotting; noise from gunfire/doors; bodies found → search + radio; tools: suppressed pistol, takedown from behind, distraction throw, shooting out lights.
 - Phone performance of the 3D lighting is unverified. If it stutters: drop the 4 flashlight spotlights first, then shadow map size (2048 → 1024).
 - Bryan plans to add a second squad of 4 once the one-squad mechanics feel right.
 

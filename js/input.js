@@ -47,7 +47,7 @@ function endPtr(ev,cancel){
     if(ptr.kind==='lasso'){
       const x0=Math.min(ptr.sx,ptr.cx)-8,x1=Math.max(ptr.sx,ptr.cx)+8,y0=Math.min(ptr.sy,ptr.cy)-8,y1=Math.max(ptr.sy,ptr.cy)+8;
       const got=players.filter(u=>{if(!alive(u))return false;const[x,y]=toS(u.x,u.y,8);return x>=x0&&x<=x1&&y>=y0&&y<=y1;});
-      if(got.length){sel=got;preview=null;mode=null;}
+      if(got.length){select(got);preview=null;mode=null;}
       else if(hyp(ptr.cx-ptr.sx,ptr.cy-ptr.sy)>12)banner('No soldiers in the box.',1400);
       boxMode=false;
     }else if(ptr.kind==='draw'){
@@ -78,7 +78,7 @@ function bindInput(){
       const u=unitAtScreen(ptr.sx,ptr.sy,true);
       ptr.lp=true;
       try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}
-      if(u){sel=[u];preview=null;mode=null;callout(u,u.name,teamCol(u));}
+      if(u){select([u]);preview=null;mode=null;callout(u,u.name,teamCol(u));}
       else{ptr.kind='lasso';}
       hud();
     },380);
@@ -95,7 +95,7 @@ function bindInput(){
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
       ptr.kind=(boxMode&&state==='play')?'lasso':ptr.unit&&alive(ptr.unit)?'draw':'pan';
-      if(ptr.kind==='draw'){sel=[ptr.unit];preview=null;mode=null;hud();}
+      if(ptr.kind==='draw'){select([ptr.unit]);preview=null;mode=null;hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
     if(ptr.kind==='draw')addTrail(x,y);
@@ -114,7 +114,15 @@ function bindInput(){
   $('#fitBtn').addEventListener('click',()=>{zoom=1;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
 }
 
-function selectTeam(t){sel=players.filter(p=>p.team===t&&alive(p));preview=null;mode=null;}
+// changing the selection: soldiers who weren't already selected go back to the automatic sneak/run choice
+function select(list){for(const u of list)if(!sel.includes(u))u.gaitForce=null;sel=list;}
+function selectTeam(t){select(players.filter(p=>p.team===t&&alive(p)));preview=null;mode=null;}
+// gait button: flip the selected soldiers to the other gait, or back to automatic if already flipped
+function toggleGait(){
+  const act=sel.filter(alive);if(!act.length)return;
+  if(act.some(u=>u.gaitForce)){for(const u of act)u.gaitForce=null;}
+  else{const g=act.some(u=>autoGait(u)==='sneak')?'run':'sneak';for(const u of act)u.gaitForce=g;}
+}
 function tap(sx,sy){
   const[wx,wy]=toW(sx,sy),inMap=wx>=0&&wy>=0&&wx<=W&&wy<=H;
   sel=sel.filter(alive);
@@ -145,7 +153,7 @@ function tap(sx,sy){
     selectTeam(pu.team);return;
   }
   const en=enemyAtScreen(sx,sy);
-  if(en&&sel.length){for(const u of sel){u.focus=en;u.supT=null;}callout(en,'Focus fire',C.warn);return;}
+  if(en&&sel.length){for(const u of sel){u.focus=en;u.supT=null;}callout(en,contact?'Focus fire':'Open fire!',C.warn);return;}
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}
   if(sel.length===1){
