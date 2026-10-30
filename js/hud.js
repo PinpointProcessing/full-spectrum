@@ -64,10 +64,11 @@ function hud(){
   let h;
   if(boxMode)h='Drag across the map to box-select soldiers.';
   else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
+  else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='grenade')h='Tap inside the dashed circle to throw.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
-  else if(!act.length)h='Drag to look around. Tap a soldier for his team, hold for just him.';
-  else if(act.length===1)h=`Tap ground to send ${act[0].name}. Tap a downed man to revive him.`;
+  else if(!act.length)h='Drag the map to look around. Drag from a soldier to draw his route. Tap a soldier for his team.';
+  else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Tap a downed man to revive him.`;
   else h='Tap the ground to preview positions. Tap an enemy to focus fire.';
   $('#hint').textContent=h;
 }

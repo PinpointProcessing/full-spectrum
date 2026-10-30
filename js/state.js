@@ -23,4 +23,4 @@ function reset(){
   shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];endAt=0;
   setStatus();buildRows();
 }
-function timeScale(){return paused?0:(preview||mode)?0.25:1;}
+function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw'))?0.25:1;}

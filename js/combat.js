@@ -88,6 +88,42 @@ function makeAssign(list,tx,ty,radius){
 function commit(as){
   for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;}
 }
+// Turn a finger-drawn trail into a walkable route that keeps its shape: skip points inside objects,
+// route round any stretch that cuts through something, and settle the end onto cover if there is some close by.
+function routeFromTrail(u,trail){
+  const start={x:u.x,y:u.y},pts=[];let last=start;
+  const len=a=>{let s=0,q=start;for(const p of a){s+=hyp(p.x-q.x,p.y-q.y);q=p;}return s;};
+  for(const p of trail){
+    if(hyp(p.x-last.x,p.y-last.y)<10||!isFree(p.x,p.y,7))continue;
+    if(clearLine(last.x,last.y,p.x,p.y)){pts.push({x:p.x,y:p.y});last=p;continue;}
+    // blocked: go round from whichever recent point is shortest overall, dropping any bit of line that led into a dead end
+    const k0=Math.max(0,pts.length-12),shared=len(pts.slice(0,k0));
+    let best=null,bl=1e9;
+    for(let k=pts.length;k>=k0;k--){
+      const head=pts.slice(0,k),from=k?head[k-1]:start,br=findPath(from.x,from.y,p.x,p.y);if(!br)continue;
+      const r=head.concat(br),l=(len(r)-shared)*(k===pts.length?0.85:1);if(l<bl){bl=l;best=r;}   // keep the drawn line unless cutting it saves 15% here
+    }
+    if(!best)continue;
+    pts.length=0;pts.push(...best);last=pts[pts.length-1];
+  }
+  if(!pts.length)return null;
+  const th=threats(),others=players.filter(o=>o!==u&&!o.dead).map(destOf);
+  let end=pts[pts.length-1];
+  const taken=p=>others.some(o=>hyp(o.x-p.x,o.y-p.y)<20);
+  let snap=null,bs=taken(end)?-1e9:protStats(end,th).prot/th.length*3;
+  for(const c of coverPts){
+    const d=hyp(c.x-end.x,c.y-end.y);if(d>18||taken(c))continue;
+    const s=protStats(c,th).prot/th.length*3-d/6;if(s>bs){bs=s;snap=c;}
+  }
+  if(!snap&&taken(end))snap=openSpot(end.x,end.y,others);
+  if(snap){
+    const prev=pts.length>1?pts[pts.length-2]:{x:u.x,y:u.y};
+    if(clearLine(prev.x,prev.y,snap.x,snap.y))pts[pts.length-1]={x:snap.x,y:snap.y};
+    else{const br=findPath(end.x,end.y,snap.x,snap.y);if(br)pts.push(...br);}
+    end=pts[pts.length-1];
+  }
+  return{u,path:pts,x:end.x,y:end.y,cov:isCovered(end,th)};
+}
 
 function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});}
 function alertAll(msg){

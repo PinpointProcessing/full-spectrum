@@ -32,12 +32,13 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Real-time with slow-mo (quarter speed) while giving orders, plus Pause. Not turn-based.
 - Squad is the main unit, split into two 2-man fire teams. Individuals are for special moves (flank, grenade, revive).
 - Group move = two taps: first tap previews ghost positions (green = in cover, red = exposed, from known enemies), tap the marker again to go. Single soldier moves on one tap.
+- Drawn routes for independent soldiers (Bryan, inspired by mobile squad games): drag from a soldier to draw his route. He follows the line's shape; stretches through objects are routed round (`routeFromTrail` in combat.js, dropping a dead-end bit of line if that saves 15%+ locally); the end settles on cover within 18. Quarter speed while drawing, works while paused, map edge-scrolls while drawing.
 - Soldiers act on their own to survive: return fire, shift to nearby cover if exposed ~2 s, but never wander off on a plan of their own. Player orders lock out auto-moves for 4 s.
 - Angled 3D camera from the south (pitch 60° zoomed out → 46° zoomed in). Bryan liked this far more than top-down.
 - Hit chance shown per shot as "64% · open / cover / heavy", XCOM style.
 
 ### Controls
-- One-finger drag: pan the map (with glide). Pinch: zoom 1–4×. Fit map button resets.
+- One-finger drag on empty ground: pan the map (with glide). Drag starting on a soldier: draw his route. Pinch: zoom 1–4×. Fit map button resets.
 - Tap a soldier: select his fire team. Hold a soldier (380 ms): select just him.
 - Box select: hold empty ground then drag, or press Box then drag.
 - Tap a visible enemy: focus fire. Suppress button then tap an enemy: pin that area. Grenade (single soldier, 1 each, 170 range). Tap a downed teammate with a soldier selected: go revive.

@@ -15,6 +15,29 @@ function localXY(ev){const r=ov.getBoundingClientRect();return[ev.clientX-r.left
 const touches=new Map();let pinch=null;
 function pinchInfo(){const p=[...touches.values()];return{d:Math.max(1,hyp(p[0].x-p[1].x,p[0].y-p[1].y)),mx:(p[0].x+p[1].x)/2,my:(p[0].y+p[1].y)/2};}
 let boxMode=false,inertia={vx:0,vy:0};
+// drawing a route: drag that starts on a soldier. Trail is in world coordinates.
+function addTrail(sx,sy){
+  const[wx,wy]=toW(sx,sy),p={x:clamp(wx,10,W-10),y:clamp(wy,10,H-10)},l=ptr.trail[ptr.trail.length-1];
+  if(!l||hyp(p.x-l.x,p.y-l.y)>=6)ptr.trail.push(p);
+}
+// while drawing near the edge of the view, slide the camera that way so long routes fit
+function edgePan(rdt){
+  if(!ptr||ptr.kind!=='draw')return;
+  const m=48,sp=260/zoom;let vx=0,vy=0;
+  if(ptr.cx<m)vx=-1;else if(ptr.cx>cw-m)vx=1;
+  if(ptr.cy<m)vy=-1;else if(ptr.cy>ch-m)vy=1;
+  if(!vx&&!vy)return;
+  camT.x+=vx*sp*rdt;camT.z+=vy*sp*rdt;clampCam();updateCamera();addTrail(ptr.cx,ptr.cy);
+}
+function finishDraw(){
+  const u=ptr.unit,t=ptr.trail;
+  if(!alive(u)||state!=='play')return;
+  const e=t[t.length-1];
+  if(!e||hyp(e.x-u.x,e.y-u.y)<12)return;            // dragged back onto him: cancel
+  const r=routeFromTrail(u,t);
+  if(!r){banner('Can’t get there.');return;}
+  commit([r]);u.peek=null;
+}
 function endPtr(ev,cancel){
   touches.delete(ev.pointerId);
   if(pinch){if(touches.size===0)pinch=null;return;}
@@ -27,6 +50,8 @@ function endPtr(ev,cancel){
       if(got.length){sel=got;preview=null;mode=null;}
       else if(hyp(ptr.cx-ptr.sx,ptr.cy-ptr.sy)>12)banner('No soldiers in the box.',1400);
       boxMode=false;
+    }else if(ptr.kind==='draw'){
+      finishDraw();
     }else if(ptr.kind==='pan'){
       if(performance.now()-ptr.lt<80){inertia.vx=ptr.vx*1000;inertia.vy=ptr.vy*1000;}
     }else if(!ptr.lp&&state==='play')tap(ptr.sx,ptr.sy);
@@ -46,7 +71,8 @@ function bindInput(){
     }
     if(touches.size>2||pinch)return;
     if(ptr)return;
-    ptr={id:ev.pointerId,sx,sy,cx:sx,cy:sy,lx:sx,ly:sy,lt:performance.now(),vx:0,vy:0,kind:null,lp:false};
+    ptr={id:ev.pointerId,sx,sy,cx:sx,cy:sy,lx:sx,ly:sy,lt:performance.now(),vx:0,vy:0,kind:null,lp:false,
+      unit:state==='play'?unitAtScreen(sx,sy,true):null,trail:[]};
     ptr.timer=setTimeout(()=>{
       if(!ptr||ptr.kind||state!=='play')return;
       const u=unitAtScreen(ptr.sx,ptr.sy,true);
@@ -66,11 +92,13 @@ function bindInput(){
     }
     if(!ptr||ev.pointerId!==ptr.id)return;
     ptr.cx=x;ptr.cy=y;
-    if(!ptr.kind&&!ptr.lp&&hyp(x-ptr.sx,y-ptr.sy)>12){
+    if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind=(boxMode&&state==='play')?'lasso':'pan';
+      ptr.kind=(boxMode&&state==='play')?'lasso':ptr.unit&&alive(ptr.unit)?'draw':'pan';
+      if(ptr.kind==='draw'){sel=[ptr.unit];preview=null;mode=null;hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
+    if(ptr.kind==='draw')addTrail(x,y);
     if(ptr.kind==='pan'){
       const now=performance.now(),dt=Math.max(1,now-ptr.lt);
       const[ax,az]=toW(ptr.lx,ptr.ly),[bx,bz]=toW(x,y),dx=ax-bx,dy=az-bz;

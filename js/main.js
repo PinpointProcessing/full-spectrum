@@ -21,6 +21,7 @@ function frame(nowMs){
   }
   if(!ptr&&!pinch&&(Math.abs(inertia.vx)+Math.abs(inertia.vy))>3){camT.x+=inertia.vx*rdt;camT.z+=inertia.vy*rdt;clampCam();const k=Math.exp(-rdt*5);inertia.vx*=k;inertia.vy*=k;}
   storm=Math.max(0,storm-rdt*6);
+  edgePan(rdt);
   render(rdt,nowMs/1000);
   hudT-=rdt;if(hudT<=0){hudT=.15;hud();}
   requestAnimationFrame(frame);

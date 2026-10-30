@@ -60,6 +60,13 @@ function drawOverlay(rdt,now){
     const covN=preview.as.filter(a=>a.cov).length,[px,py]=toS(preview.x,preview.y+24);
     label(`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',10,700);
   }
+  // route being drawn
+  if(ptr&&ptr.kind==='draw'&&ptr.trail.length){
+    const u=ptr.unit,e=ptr.trail[ptr.trail.length-1],cov=isCovered(e,threats());
+    ox.strokeStyle=teamCol(u);ox.globalAlpha=.85;ox.lineWidth=3;ox.lineJoin='round';ox.lineCap='round';
+    ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of ptr.trail){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}ox.stroke();ox.globalAlpha=1;
+    gPath(e.x,e.y,8);ox.fillStyle=cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=cov?C.good:C.bad;ox.lineWidth=2;ox.stroke();
+  }
   if(mode==='grenade'&&sel[0]){gPath(sel[0].x,sel[0].y,170);ox.setLineDash([6,5]);ox.strokeStyle=C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
 
   // tracers, flashes, sparks, blasts
