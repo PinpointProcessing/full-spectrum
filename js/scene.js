@@ -238,9 +238,10 @@ function syncUnits(t){
     m.g.visible=u.side==='P'||u.vis||(u.dead&&u.seen);
     const lying=u.downed||u.dead;
     m.pose.rotation.z+=((lying?Math.PI/2:0)-m.pose.rotation.z)*.2;
-    m.pose.position.y=lying?2.6:(u.path.length?Math.abs(Math.sin(t*11+u.x))*.9:0);
+    const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
+    m.pose.position.y=lying?2.6:(u.path.length?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
     const crouch=!lying&&!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow);
-    m.pose.scale.y+=((crouch?.7:1)-m.pose.scale.y)*.15;
+    m.pose.scale.y+=((crouch?.7:sneak?.8:1)-m.pose.scale.y)*.15;
     m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
     if(m.spot)m.spot.intensity=lying?0:2.6;
   }

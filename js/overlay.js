@@ -32,7 +32,7 @@ function drawOverlay(rdt,now){
   // enemy view cones (unaware, seen)
   for(const e of enemies){
     if(e.dead||e.alerted||!e.vis)continue;
-    gPath(e.x,e.y,300,e.ang-1.08,e.ang+1.08,true);ox.fillStyle='rgba(255,80,60,.09)';ox.fill();
+    gPath(e.x,e.y,300,e.ang-1.08,e.ang+1.08,true);ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
   }
   // suppression zones
   const zones=new Map();for(const p of players)if(alive(p)&&p.supT)zones.set(p.supT.x+','+p.supT.y,p.supT);

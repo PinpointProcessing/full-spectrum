@@ -128,7 +128,7 @@ function routeFromTrail(u,trail){
 function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});}
 function alertAll(msg){
   if(contact)return;contact=true;
-  for(const e of enemies)if(!e.dead)e.alerted=true;
+  for(const e of enemies)if(!e.dead){e.alerted=true;e.aware=1;}
   banner(msg||'Contact. They know you are here.');setStatus();
 }
 
@@ -229,6 +229,38 @@ function explode(x,y){
   alertAll('Contact. Weapons free.');
 }
 
+/* ---------- stealth ---------- */
+// Gait is automatic: sneak while undetected with a live enemy within SNEAK_R, otherwise run.
+const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24;
+function gaitOf(p){return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';}
+// An unaware enemy builds awareness (0..1) instead of spotting the squad instantly. Seeing a soldier in his cone
+// (or very close) raises it faster the closer, faster and more exposed the soldier is; running is also heard through walls.
+// It fades slowly when there's nothing to notice. Past AWARE_LOOK he turns towards what he noticed; at 1 he raises the alarm.
+const SEE_RATE=1.6,NOISE_R=110,AWARE_FADE=0.15,AWARE_LOOK=0.35;
+function sense(e,dt){
+  let gain=0,best=0,src=null;
+  for(const p of players){
+    if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);let g=0;
+    if(d<=300){
+      let da=Math.atan2(p.y-e.y,p.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
+      const cone=Math.abs(da)<1.08;
+      if((cone||d<80)&&fireLine(e,p)){
+        g=SEE_RATE*(1-d/330)*(cone?1:0.5);
+        g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least
+      }
+    }
+    if(p.path.length&&p.gait==='run'&&d<NOISE_R)g+=0.5*(1-d/NOISE_R);
+    gain+=g;if(g>best){best=g;src=p;}
+  }
+  if(gain>0){e.aware=Math.min(1,e.aware+gain*dt);e.susp={x:src.x,y:src.y};}
+  else e.aware=Math.max(0,e.aware-AWARE_FADE*dt);
+  if(e.aware>=AWARE_LOOK&&!e.wary){e.wary=true;if(e.vis)callout(e,'?',C.warn);}
+  else if(e.aware<0.2)e.wary=false;
+  if(e.aware>=1){callout(src,'Spotted!',C.bad);alertAll('Contact. You have been spotted.');}
+}
+// detection meter for the HUD: the most suspicious live enemy, full once there's contact
+function detection(){if(contact)return 1;let a=0;for(const e of enemies)if(!e.dead)a=Math.max(a,e.aware);return a;}
+
 /* ---------- AI ---------- */
 function computeVis(){
   for(const e of enemies){
@@ -239,13 +271,7 @@ function computeVis(){
       e.last={x:e.x,y:e.y};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
-    if(!e.alerted){
-      for(const p of players){
-        if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d>300)continue;
-        let da=Math.atan2(p.y-e.y,p.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
-        if((Math.abs(da)<1.08||d<80)&&fireLine(e,p)){callout(p,'Spotted!',C.bad);alertAll('Contact. You have been spotted.');break;}
-      }
-    }
+    if(!e.alerted)sense(e,0.1);
   }
 }
 function enemyThink(e){
@@ -296,15 +322,17 @@ function playerThink(p){
 /* ---------- update ---------- */
 function updateUnit(u,dt){
   if(u.dead)return;
+  if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
   if(u.downed)return;
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
-    const sp=(u.side==='P'?54:46)*(u.sup>0.65?0.7:1)*dt;
+    const sp=(u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):46)*(u.sup>0.65?0.7:1)*dt;
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
     if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
   }else if(simT-u.aimT>2){
     if(u.side==='P'){const th=threats();let n=th[0],nd=1e9;for(const t of th){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}
+    else if(!u.alerted&&u.aware>=AWARE_LOOK&&u.susp)u.ang=turn(u.ang,Math.atan2(u.susp.y-u.y,u.susp.x-u.x),dt*2);
     else if(u.alerted){const ps=players.filter(alive);if(ps.length){let n=ps[0],nd=1e9;for(const t of ps){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}}
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);

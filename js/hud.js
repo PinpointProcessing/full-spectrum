@@ -42,7 +42,7 @@ function hud(){
     else if(u.downed){txt=u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`;cls+=' down';}
     else if(u.sup>0.65){txt='Pinned';cls+=' pin';}
     else if(u.supT)txt='Suppress';
-    else if(u.path.length)txt='Moving';
+    else if(u.path.length)txt=u.gait==='sneak'?'Sneaking':'Running';
     else if(contact)txt=peekOf(u)?'Peeking':u.covered?'In cover':'Exposed';
     st.textContent=txt;st.className=cls;
   }
@@ -71,6 +71,17 @@ function hud(){
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Tap a downed man to revive him.`;
   else h='Tap the ground to preview positions. Tap an enemy to focus fire.';
   $('#hint').textContent=h;
+}
+// detection indicator, updated every frame
+let alertShown=-1;
+function alertMeter(){
+  const el=$('#alert');el.hidden=state!=='play';if(el.hidden)return;
+  const a=detection(),k=Math.round(a*100);
+  if(k===alertShown)return;alertShown=k;
+  el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);
+  const h=36*a;$('#alertLevel').setAttribute('y',36-h);$('#alertLevel').setAttribute('height',h);
+  $('#alertFill').setAttribute('fill',`rgba(255,${Math.round(255-165*a)},${Math.round(255-183*a)},${(.75+.2*a).toFixed(2)})`);
+  el.setAttribute('aria-label',a>=1?'Spotted':`Detection ${k}%`);
 }
 function startView(){zoom=2.4;camT={x:190,z:700};clampCam();updateCamera();}
 function bindHud(){

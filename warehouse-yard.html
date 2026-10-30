@@ -16,6 +16,15 @@
     <canvas id="cv"></canvas>
     <canvas id="ov"></canvas>
     <div id="nogl" hidden>This demo needs WebGL, which this browser has turned off.</div>
+    <div id="alert" role="img" aria-label="Detection 0%" hidden>
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <defs><clipPath id="alertClip"><rect id="alertLevel" x="0" y="36" width="36" height="0"/></clipPath></defs>
+        <circle class="bg" cx="18" cy="18" r="15"/>
+        <circle id="alertFill" cx="18" cy="18" r="15" clip-path="url(#alertClip)"/>
+        <circle class="ring" cx="18" cy="18" r="15"/>
+      </svg>
+      <b>!!</b>
+    </div>
     <div id="banner"></div>
     <span class="chip slow" id="speed" hidden>Slow-mo</span>
     <button id="fitBtn" hidden>Fit map</button>
@@ -51,6 +60,7 @@
       <li><b>Look around:</b> drag empty ground with one finger to move the map. Pinch with two to zoom.</li>
       <li><b>Select:</b> tap a soldier to grab his fire team. Hold on a soldier to take just him. To box-select, hold on empty ground and then drag, or press Box first.</li>
       <li><b>Move a team:</b> tap the ground to preview where they'll stand. Tap the marker again to go. Time slows while you decide.</li>
+      <li><b>Stay hidden:</b> near enemies your soldiers sneak on their own. The circle at the top fills as a hostile notices you, and turns into <b>!!</b> when you're spotted. Being close, in the open or in front of him gets you noticed faster. So does running near him, which he can hear through walls. Gunfire gives you away at once.</li>
       <li><b>Draw a route:</b> drag from any soldier and he follows your finger. Lift to go. Lines through walls get routed round them, and the end settles on cover nearby.</li>
       <li><b>Move one soldier:</b> with just him selected, a single tap sends him.</li>
       <li><b>Suppress:</b> pin an enemy so he barely shoots back, then flank him from the side windows or east door.</li>
