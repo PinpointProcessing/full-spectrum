@@ -3,7 +3,7 @@
    and the team tabs' health pips. Each card: portrait, name, status, a heart-rate monitor and equipment.
    The monitor is green when healthy, yellow when hurt, orange when badly hurt, red when downed and a grey flatline
    when dead; it beats faster under fire, when moving fast or hurt, and goes erratic when downed.
-   Tapping a card selects just that soldier (the group's cards stay up), tapping it again deselects him;
+   Tapping a card selects just that soldier (the group's cards stay up), tapping it again goes back to selecting the whole group on show;
    tapping his grenade readies a throw. */
 const ECG_SPEED=60;   // how fast the trace sweeps across, px per second
 const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy="10" rx="4.6" ry="5"/><rect x="5.8" y="2.6" width="3.4" height="2.6" rx=".6"/><path d="M9.2 3.6h2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
@@ -50,7 +50,7 @@ function buildCards(){
       if(state!=='play'||!alive(u))return;
       preview=null;
       if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
-      else{mode=null;if(sel.length===1&&sel[0]===u)sel=[];else select([u]);}   // tap him again to deselect; the cards stay up
+      else{mode=null;if(sel.length===1&&sel[0]===u)select(cardGroup.filter(alive));else select([u]);}   // tap him again: back to the whole group on show
       hud();
     };
     el.addEventListener('click',act);
