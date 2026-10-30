@@ -25,7 +25,7 @@ function initGL(){
 
 /* camera: angled, like a tactics game; from the south when yaw is 0 (a two-finger twist turns it). zoom tilts it lower. */
 const MAXZ=4;let zoom=1,camT={x:W/2,z:H/2},dist0=1200,yaw=0,tilt=0;
-const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH_MIN=20*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
+const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH_MIN=14*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
 function basePitch(){return PITCH0+(PITCH1-PITCH0)*(zoom-1)/(MAXZ-1);}
 function updateCamera(){
   const dist=dist0/zoom,p=Math.max(PITCH_MIN,basePitch()-tilt);

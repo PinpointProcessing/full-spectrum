@@ -14,6 +14,7 @@ function enemyAtScreen(sx,sy){
 function localXY(ev){const r=ov.getBoundingClientRect();return[ev.clientX-r.left,ev.clientY-r.top];}
 const touches=new Map();let pinch=null;
 function pinchInfo(){const p=[...touches.values()];return{d:Math.max(1,hyp(p[0].x-p[1].x,p[0].y-p[1].y)),a:Math.atan2(p[1].y-p[0].y,p[1].x-p[0].x),mx:(p[0].x+p[1].x)/2,my:(p[0].y+p[1].y)/2};}
+const ORBIT_SPIN=0.008;   // radians of spin per pixel of sideways two-finger drag
 const TWIST_START=0.2;   // radians of twist before rotation kicks in, so a plain pinch doesn't turn the map
 function wrapA(a){return Math.atan2(Math.sin(a),Math.cos(a));}
 function turnCam(d){yaw=wrapA(yaw+d);clampCam();updateCamera();}
@@ -72,7 +73,7 @@ function bindInput(){
     if(touches.size===2){
       if(ptr){clearTimeout(ptr.timer);ptr=null;}
       const i=pinchInfo(),[wx,wy]=toW(i.mx,i.my);
-      pinch={d0:i.d,z0:zoom,wx,wy,a0:i.a,yaw0:yaw,rot:false,my0:i.my,t0:tilt,mode:null};return;
+      pinch={d0:i.d,z0:zoom,wx,wy,a0:i.a,yaw0:yaw,rot:false,mx0:i.mx,my0:i.my,t0:tilt,mode:null,s:[...touches.values()].map(q=>({...q}))};return;
     }
     if(touches.size>2||pinch)return;
     if(ptr)return;
@@ -92,14 +93,20 @@ function bindInput(){
     const[x,y]=localXY(ev);
     if(touches.has(ev.pointerId))touches.set(ev.pointerId,{x,y});
     if(pinch&&touches.size===2){
-      const i=pinchInfo(),da=wrapA(i.a-pinch.a0),dmy=i.my-pinch.my0,dd=i.d-pinch.d0;
-      // two fingers moving down/up together tilt the camera; anything else is pinch-zoom and twist
+      const i=pinchInfo(),da=wrapA(i.a-pinch.a0);
+      // two fingers dragged together orbit the camera (up/down tilts, left/right spins round the view centre);
+      // spreading or twisting them is pinch-zoom and twist
       if(!pinch.mode){
-        if(Math.abs(dmy)>14&&Math.abs(dmy)>Math.abs(dd)*1.5&&Math.abs(da)<TWIST_START){pinch.mode='tilt';pinch.my0=i.my;pinch.t0=tilt;}
-        else if(Math.abs(dd)>10||Math.abs(da)>TWIST_START)pinch.mode='zoom';
+        // judged on each finger's own movement: touch events arrive one finger at a time
+        const q=[...touches.values()],v=q.map((p,k)=>[p.x-pinch.s[k].x,p.y-pinch.s[k].y]),l=v.map(w=>hyp(w[0],w[1]));
+        if(l[0]>8&&l[1]>8){
+          const same=(v[0][0]*v[1][0]+v[0][1]*v[1][1])/(l[0]*l[1])>0.7;
+          if(same&&Math.abs(da)<TWIST_START){pinch.mode='orbit';pinch.mx0=i.mx;pinch.my0=i.my;pinch.t0=tilt;pinch.yaw0=yaw;}
+          else pinch.mode='zoom';
+        }else if(Math.max(l[0],l[1])>30)pinch.mode='zoom';   // one finger moving on its own: pinch
         else return;
       }
-      if(pinch.mode==='tilt'){tiltCam(pinch.t0+(i.my-pinch.my0)*0.004);return;}   // pull down = look further out
+      if(pinch.mode==='orbit'){yaw=wrapA(pinch.yaw0-(i.mx-pinch.mx0)*ORBIT_SPIN);tiltCam(pinch.t0+(i.my-pinch.my0)*0.004);return;}   // pull down = look further out
       zoom=clamp(pinch.z0*i.d/pinch.d0,1,MAXZ);
       if(!pinch.rot&&Math.abs(da)>TWIST_START){pinch.rot=true;pinch.a0=i.a;pinch.yaw0=yaw;}
       if(pinch.rot)yaw=wrapA(pinch.yaw0+wrapA(i.a-pinch.a0));   // the map turns with your fingers
