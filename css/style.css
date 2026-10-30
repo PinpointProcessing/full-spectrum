@@ -72,15 +72,15 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--dim)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;display:inline-block}
-/* detection indicator: fills white to red as the most suspicious enemy notices the squad; "!!" once spotted */
+/* detection indicator: the ring fills clockwise from the top, white to red, as the most suspicious enemy notices the squad; "!!" once spotted */
 #alert{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:2;width:38px;height:38px;pointer-events:none;display:grid;place-items:center}
 #alert svg{width:100%;height:100%;display:block}
-#alert .bg{fill:rgba(255,255,255,.07)}
-#alert .ring{fill:none;stroke:rgba(255,255,255,.4);stroke-width:1.5}
+#alert .ring{fill:rgba(0,0,0,.25);stroke:rgba(255,255,255,.22);stroke-width:3}
+#alert #alertArc{fill:none;stroke-width:3;stroke-linecap:round}
 #alert b{display:none;font-family:var(--font-hud);font-weight:700;font-size:22px;letter-spacing:.02em;color:var(--bad);text-shadow:0 0 10px rgba(255,90,72,.7),0 1px 2px #000}
 #alert.spotted svg{display:none}
 #alert.spotted b{display:block;animation:alertPop .35s ease-out}
-#alert.hot .ring{animation:alertPulse .8s ease-in-out infinite}
+#alert.hot #alertArc{animation:alertPulse .8s ease-in-out infinite}
 @keyframes alertPop{from{transform:scale(1.8);opacity:0}to{transform:scale(1);opacity:1}}
-@keyframes alertPulse{50%{stroke:rgba(255,90,72,.9)}}
-@media (prefers-reduced-motion: reduce){#banner{transition:none}#alert.spotted b,#alert.hot .ring{animation:none}}
+@keyframes alertPulse{50%{stroke-width:4.5}}
+@media (prefers-reduced-motion: reduce){#banner{transition:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}

@@ -79,8 +79,8 @@ function alertMeter(){
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);
-  const h=36*a;$('#alertLevel').setAttribute('y',36-h);$('#alertLevel').setAttribute('height',h);
-  $('#alertFill').setAttribute('fill',`rgba(255,${Math.round(255-165*a)},${Math.round(255-183*a)},${(.75+.2*a).toFixed(2)})`);
+  const arc=$('#alertArc');arc.setAttribute('stroke-dashoffset',(94.25*(1-a)).toFixed(2));arc.style.opacity=a>0.005?1:0;
+  arc.setAttribute('stroke',`rgba(255,${Math.round(255-165*a)},${Math.round(255-183*a)},${(.8+.2*a).toFixed(2)})`);
   el.setAttribute('aria-label',a>=1?'Spotted':`Detection ${k}%`);
 }
 function startView(){zoom=2.4;camT={x:190,z:700};clampCam();updateCamera();}
