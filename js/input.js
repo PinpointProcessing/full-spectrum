@@ -13,7 +13,10 @@ function enemyAtScreen(sx,sy){
 }
 function localXY(ev){const r=ov.getBoundingClientRect();return[ev.clientX-r.left,ev.clientY-r.top];}
 const touches=new Map();let pinch=null;
-function pinchInfo(){const p=[...touches.values()];return{d:Math.max(1,hyp(p[0].x-p[1].x,p[0].y-p[1].y)),mx:(p[0].x+p[1].x)/2,my:(p[0].y+p[1].y)/2};}
+function pinchInfo(){const p=[...touches.values()];return{d:Math.max(1,hyp(p[0].x-p[1].x,p[0].y-p[1].y)),a:Math.atan2(p[1].y-p[0].y,p[1].x-p[0].x),mx:(p[0].x+p[1].x)/2,my:(p[0].y+p[1].y)/2};}
+const TWIST_START=0.2;   // radians of twist before rotation kicks in, so a plain pinch doesn't turn the map
+function wrapA(a){return Math.atan2(Math.sin(a),Math.cos(a));}
+function turnCam(d){yaw=wrapA(yaw+d);clampCam();updateCamera();}
 let boxMode=false,inertia={vx:0,vy:0};
 // drawing a route: drag that starts on a soldier. Trail is in world coordinates.
 function addTrail(sx,sy){
@@ -27,7 +30,8 @@ function edgePan(rdt){
   if(ptr.cx<m)vx=-1;else if(ptr.cx>cw-m)vx=1;
   if(ptr.cy<m)vy=-1;else if(ptr.cy>ch-m)vy=1;
   if(!vx&&!vy)return;
-  camT.x+=vx*sp*rdt;camT.z+=vy*sp*rdt;clampCam();updateCamera();addTrail(ptr.cx,ptr.cy);
+  const c=Math.cos(yaw),s=Math.sin(yaw);   // screen direction -> world, for a turned camera
+  camT.x+=(vx*c+vy*s)*sp*rdt;camT.z+=(vy*c-vx*s)*sp*rdt;clampCam();updateCamera();addTrail(ptr.cx,ptr.cy);
 }
 function finishDraw(){
   const u=ptr.unit,t=ptr.trail;
@@ -67,7 +71,7 @@ function bindInput(){
     if(touches.size===2){
       if(ptr){clearTimeout(ptr.timer);ptr=null;}
       const i=pinchInfo(),[wx,wy]=toW(i.mx,i.my);
-      pinch={d0:i.d,z0:zoom,wx,wy};return;
+      pinch={d0:i.d,z0:zoom,wx,wy,a0:i.a,yaw0:yaw,rot:false};return;
     }
     if(touches.size>2||pinch)return;
     if(ptr)return;
@@ -87,7 +91,11 @@ function bindInput(){
     const[x,y]=localXY(ev);
     if(touches.has(ev.pointerId))touches.set(ev.pointerId,{x,y});
     if(pinch&&touches.size===2){
-      const i=pinchInfo();zoom=clamp(pinch.z0*i.d/pinch.d0,1,MAXZ);updateCamera();
+      const i=pinchInfo();zoom=clamp(pinch.z0*i.d/pinch.d0,1,MAXZ);
+      const da=wrapA(i.a-pinch.a0);
+      if(!pinch.rot&&Math.abs(da)>TWIST_START){pinch.rot=true;pinch.a0=i.a;pinch.yaw0=yaw;}
+      if(pinch.rot)yaw=wrapA(pinch.yaw0+wrapA(i.a-pinch.a0));   // the map turns with your fingers
+      updateCamera();
       const[nx,nz]=toW(i.mx,i.my);camT.x+=pinch.wx-nx;camT.z+=pinch.wy-nz;clampCam();updateCamera();return;
     }
     if(!ptr||ev.pointerId!==ptr.id)return;
@@ -111,7 +119,7 @@ function bindInput(){
   ov.addEventListener('pointercancel',ev=>endPtr(ev,true));
   ov.addEventListener('contextmenu',ev=>ev.preventDefault());
   ov.addEventListener('wheel',ev=>{ev.preventDefault();const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
-  $('#fitBtn').addEventListener('click',()=>{zoom=1;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
+  $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
 }
 
 // changing the selection: soldiers who weren't already selected go back to the automatic sneak/run choice

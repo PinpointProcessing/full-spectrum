@@ -49,13 +49,16 @@ function scorePt(p,th,tx,ty){const s=protStats(p,th);return s.prot/th.length*3+s
 function isCovered(p,th){return protStats(p,th).prot===th.length;}
 function destOf(u){return u.path.length?u.path[u.path.length-1]:{x:u.x,y:u.y};}
 
+// Spacing between soldiers' spots: 2 m apart in the open, shoulder to shoulder (1 m) when both are at cover,
+// so a fire team can share a short bit of cover like a single sandbag.
+const SPACE_OPEN=20,SPACE_COVER=10;
 function openSpot(x,y,taken){
   for(let r=0;r<=48;r+=8){
     const n=Math.max(1,Math.round(r*0.8));
     for(let k=0;k<n;k++){
       const a=k/n*Math.PI*2,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;
       if(!isFree(px,py,8))continue;
-      if(taken.some(t=>hyp(t.x-px,t.y-py)<20))continue;
+      if(taken.some(t=>hyp(t.x-px,t.y-py)<SPACE_OPEN))continue;
       return{x:px,y:py};
     }
   }
@@ -67,8 +70,8 @@ function makeAssign(list,tx,ty,radius){
   const cands=[];
   for(const c of coverPts){
     if(hyp(c.x-tx,c.y-ty)>radius)continue;
-    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<20))continue;
-    cands.push({x:c.x,y:c.y,s:scorePt(c,th,tx,ty)});
+    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<SPACE_COVER))continue;
+    cands.push({x:c.x,y:c.y,cp:true,s:scorePt(c,th,tx,ty)});
   }
   if(isFree(tx,ty,8))cands.push({x:tx,y:ty,s:scorePt({x:tx,y:ty},th,tx,ty)-0.3});
   cands.sort((a,b)=>b.s-a.s);
@@ -77,12 +80,12 @@ function makeAssign(list,tx,ty,radius){
   for(const u of ord){
     let pick=null,path=null;
     for(const c of cands){
-      if(res.some(q=>hyp(q.x-c.x,q.y-c.y)<20))continue;
+      if(res.some(q=>hyp(q.x-c.x,q.y-c.y)<(c.cp&&q.cp?SPACE_COVER:SPACE_OPEN)))continue;
       const p=findPath(u.x,u.y,c.x,c.y);if(!p)continue;
       pick=c;path=p;break;
     }
     if(!pick){const o=openSpot(tx,ty,[...res,...others]);if(o){const p=findPath(u.x,u.y,o.x,o.y);if(p){pick=o;path=p;}}}
-    if(pick)res.push({u,x:pick.x,y:pick.y,path,cov:isCovered(pick,th)});
+    if(pick)res.push({u,x:pick.x,y:pick.y,cp:!!pick.cp,path,cov:isCovered(pick,th)});
   }
   return res;
 }
@@ -110,10 +113,10 @@ function routeFromTrail(u,trail){
   if(!pts.length)return null;
   const th=threats(),others=players.filter(o=>o!==u&&!o.dead).map(destOf);
   let end=pts[pts.length-1];
-  const taken=p=>others.some(o=>hyp(o.x-p.x,o.y-p.y)<20);
+  const taken=(p,gap=SPACE_OPEN)=>others.some(o=>hyp(o.x-p.x,o.y-p.y)<gap);
   let snap=null,bs=taken(end)?-1e9:protStats(end,th).prot/th.length*3;
   for(const c of coverPts){
-    const d=hyp(c.x-end.x,c.y-end.y);if(d>18||taken(c))continue;
+    const d=hyp(c.x-end.x,c.y-end.y);if(d>18||taken(c,SPACE_COVER))continue;
     const s=protStats(c,th).prot/th.length*3-d/6;if(s>bs){bs=s;snap=c;}
   }
   if(!snap&&taken(end))snap=openSpot(end.x,end.y,others);
@@ -319,7 +322,7 @@ function playerThink(p){
   let best=null,bs=-1e9;
   for(const c of coverPts){
     const d=hyp(c.x-p.x,c.y-p.y);if(d>80)continue;
-    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<20))continue;
+    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<SPACE_COVER))continue;
     const s=protStats(c,th);if(s.prot<th.length)continue;
     const sc=s.see*0.8-d/40;if(sc>bs){bs=sc;best=c;}
   }

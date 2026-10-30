@@ -11,6 +11,8 @@ function gPath(x,y,r,a0=0,a1=TAU,wedge=false){
   for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n,[p,q]=toS(x+Math.cos(a)*r,y+Math.sin(a)*r);if(i===0&&!wedge)ox.moveTo(p,q);else ox.lineTo(p,q);}
   if(wedge)ox.closePath();
 }
+// screen point under world (x,y), r world units lower on screen whichever way the camera faces
+function below(x,y,r){const[a,b]=toS(x,y),[c,d]=toS(x+r,y);return[a,b+hyp(c-a,d-b)];}
 function bar(x,y,w,frac,col){ox.fillStyle='rgba(0,0,0,.7)';ox.fillRect(x-1,y-1,w+2,5);ox.fillStyle=col;ox.fillRect(x,y,w*clamp(frac,0,1),3);}
 function shield(x,y,col){
   ox.beginPath();ox.moveTo(x,y-5);ox.lineTo(x+4.5,y-3.5);ox.lineTo(x+4,y+1.5);ox.quadraticCurveTo(x+2.5,y+4.5,x,y+5.5);ox.quadraticCurveTo(x-2.5,y+4.5,x-4,y+1.5);ox.lineTo(x-4.5,y-3.5);ox.closePath();
@@ -38,7 +40,7 @@ function drawOverlay(rdt,now){
   const zones=new Map();for(const p of players)if(alive(p)&&p.supT)zones.set(p.supT.x+','+p.supT.y,p.supT);
   for(const s of zones.values()){
     gPath(s.x,s.y,55);ox.setLineDash([5,5]);ox.lineDashOffset=-now*20;ox.strokeStyle=C.warn;ox.globalAlpha=.55+pulse*.3;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;
-    const[lx,ly]=toS(s.x,s.y+62);label('SUPPRESSING',lx,ly,C.warn,9);
+    const[lx,ly]=below(s.x,s.y,62);label('SUPPRESSING',lx,ly,C.warn,9);
   }
   // move paths
   for(const u of players){
@@ -57,7 +59,7 @@ function drawOverlay(rdt,now){
       const[lx,ly]=toS(a.x,a.y,18);label(a.u.id,lx,ly,teamCol(a.u),9,700);
     }
     gPath(preview.x,preview.y,15+pulse*3);ox.strokeStyle='rgba(235,240,245,.9)';ox.lineWidth=1.6;ox.stroke();
-    const covN=preview.as.filter(a=>a.cov).length,[px,py]=toS(preview.x,preview.y+24);
+    const covN=preview.as.filter(a=>a.cov).length,[px,py]=below(preview.x,preview.y,24);
     label(`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',10,700);
   }
   // route being drawn
@@ -108,9 +110,11 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
-    const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
+    // shoulder to shoulder with an earlier teammate: lift this one's bar so the two don't overlap
+    const crowd=players.some((o,i)=>i<players.indexOf(u)&&!o.dead&&hyp(o.x-u.x,o.y-u.y)<16);
+    const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy0]=toS(vx,vy,24),hy=hy0-(crowd?10:0),[fx,fy]=toS(vx,vy);
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
-    if(sel.includes(u)){gPath(vx,vy,11);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
+    if(sel.includes(u)){gPath(vx,vy,9.5);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(u.downed){
       const k=u.bleed/45;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=C.bad;ox.lineWidth=2;ox.stroke();
       if(u.revive>0){gPath(u.x,u.y,16,-Math.PI/2,-Math.PI/2+u.revive/3*TAU);ox.strokeStyle=C.good;ox.stroke();}

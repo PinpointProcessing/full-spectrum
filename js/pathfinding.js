@@ -51,7 +51,7 @@ function findPath(sx,sy,tx,ty){
 /* ---------- cover points ---------- */
 const coverPts=[];
 (function(){
-  const add=(x,y,o)=>{if(!isFree(x,y,8))return;if(coverPts.some(p=>hyp(p.x-x,p.y-y)<9))return;coverPts.push({x,y,o});};
+  const add=(x,y,o)=>{if(!isFree(x,y,8))return;if(coverPts.some(p=>hyp(p.x-x,p.y-y)<6))return;coverPts.push({x,y,o});};
   for(const o of objs){
     if(o.kind==='fence')continue;
     const off=11,step=14,nx=Math.max(1,Math.round(o.w/step)),ny=Math.max(1,Math.round(o.h/step));

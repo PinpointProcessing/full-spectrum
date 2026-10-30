@@ -93,7 +93,7 @@ function alertMeter(){
   el.querySelector('svg').style.filter=c>0.02?`drop-shadow(0 0 ${(1+7*c).toFixed(1)}px rgba(255,45,30,${(.9*c).toFixed(2)}))`:'none';
   el.setAttribute('aria-label',a>=1?'Spotted':`Detection ${k}%`);
 }
-function startView(){zoom=2.4;camT={x:190,z:700};clampCam();updateCamera();}
+function startView(){zoom=2.4;yaw=0;camT={x:190,z:700};clampCam();updateCamera();}
 function bindHud(){
   for(const sec of document.querySelectorAll('.team'))sec.querySelector('header').addEventListener('click',()=>{if(state!=='play')return;selectTeam(sec.dataset.team);hud();});
   $('#boxBtn').addEventListener('click',()=>{if(state!=='play')return;boxMode=!boxMode;mode=null;preview=null;hud();});
@@ -110,6 +110,7 @@ function bindHud(){
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}
     else if(e.key==='Escape'){$('#clearBtn').click();}
     else if(e.key==='r'||e.key==='R'){toggleGait();hud();}
+    else if(e.key==='q'||e.key==='Q')turnCam(-Math.PI/12);else if(e.key==='e'||e.key==='E')turnCam(Math.PI/12);
     else if(e.key==='1'){selectTeam('A');hud();}else if(e.key==='2'){selectTeam('B');hud();}
   });
 }

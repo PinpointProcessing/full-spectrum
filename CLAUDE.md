@@ -36,16 +36,16 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Sneak/run toggle (Bryan's design): button bottom right (`#gaitBtn`, `toggleGait`) shows the selected soldiers' gait (AUTO SNEAK / AUTO RUN). Pressing flips them to the other gait (amber, MANUAL), pressing again returns to auto. A soldier goes back to auto when he's selected again after not being selected (`select()` in input.js; always change the selection through it). Key R.
 - Weapons tight while undetected: before contact the squad only fires at a hostile you tapped (or via Suppress/grenade). Striking first is an ambush: enemies need 1.4–2 s to react and the squad gets +0.15 hit chance for 1.5 s (`alertAll(msg,true)`, `ambushing()`). The hit pill shows "· ambush" while undetected. After contact, everyone fires freely.
 - Soldiers act on their own to survive: return fire, shift to nearby cover if exposed ~2 s, but never wander off on a plan of their own. Player orders lock out auto-moves for 4 s.
-- Angled 3D camera from the south (pitch 60° zoomed out → 46° zoomed in). Bryan liked this far more than top-down.
+- Angled 3D camera, from the south by default (pitch 60° zoomed out → 46° zoomed in), rotatable by twisting. Bryan liked this far more than top-down. Screen-relative things (edge-scroll, labels placed below a point via `below()`) must account for `yaw`.
 - Hit chance shown per shot as "64% · open / cover / heavy", XCOM style.
 
 ### Controls
 - Fit map button is top right of the map; the sneak/run toggle is bottom right.
-- One-finger drag on empty ground: pan the map (with glide). Drag starting on a soldier: draw his route. Pinch: zoom 1–4×. Fit map button resets.
+- One-finger drag on empty ground: pan the map (with glide). Drag starting on a soldier: draw his route. Pinch: zoom 1–4×. Two-finger twist: rotate the camera around the point between the fingers (starts after 0.2 rad of twist so pinches don't turn it; `yaw` in scene.js). Fit map button resets zoom and rotation.
 - Tap a soldier: select his fire team. Hold a soldier (380 ms): select just him.
 - Box select: hold empty ground then drag, or press Box then drag.
 - Tap a visible enemy: focus fire (before contact: open fire, which springs the ambush). Suppress button then tap an enemy: pin that area. Grenade (single soldier, 1 each, 170 range). Tap a downed teammate with a soldier selected: go revive.
-- Keyboard: Space pause, Esc clear, 1/2 select teams, R sneak/run toggle, wheel zoom.
+- Keyboard: Space pause, Esc clear, 1/2 select teams, R sneak/run toggle, Q/E rotate camera 15°, wheel zoom.
 
 ### Rules and numbers (first guesses, not tuned)
 - Hit chance: 0.86 − dist/900; half cover −0.28, heavy −0.42; shooter moving −0.15, target moving −0.08; suppression up to −0.25; enemies −0.10. Clamped 5–95 %.
@@ -57,7 +57,8 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Stealth (first pass, Bryan wants to discuss further): gait is automatic, sneak (24/s, low pose) while undetected with a live enemy within 300, run (54/s) otherwise (`gaitOf`). Unaware enemies build awareness 0..1 instead of spotting instantly (`sense` in combat.js): seen in the ±62° cone within 300 (or within 80 any direction at half rate) adds 1.6×(1−d/330)/s × running 1.3 / sneaking 0.6 / still in the open 0.45 / still in cover 0.3. Running within 110 is heard through walls (+0.5×(1−d/110)/s). Fades 0.15/s. At 0.35 he turns towards what he noticed ("?" callout); at 1 he raises the alarm for everyone. Gunfire and grenades still alert at once. Example spot times: 10 m in the open 2.1 s still / 1.6 s sneaking / 0.7 s running.
 - Detection indicator top centre (`#alert`, `alertMeter` in hud.js): ring fills clockwise from the top with the most aware enemy, starting faint and see-through and getting more solid, redder, brighter and glowing as it fills; the filled arc throbs past 70 %, shows red "!!" once spotted. View cones redden with awareness.
 - Enemies: cone vision (±62°, 300) until alerted, then reposition inside the warehouse when exposed, fall back below 40 hp.
-- Pathfinding: A* on a 10-unit grid with string-pulling. Cover points are generated around every object edge.
+- Pathfinding: A* on a 10-unit grid with string-pulling. Cover points are generated around every object edge (merged if closer than 6).
+- Spacing between soldiers' destinations: 20 in the open (`SPACE_OPEN`), 10 when both are at cover points (`SPACE_COVER`), so two can share a short bit of cover like the single sandbags. A crowded soldier's HP bar is lifted so the two don't overlap.
 
 ### Known gaps / next ideas
 - Balance untested at real speed. Bryan's playtests matter more than the numbers above.
