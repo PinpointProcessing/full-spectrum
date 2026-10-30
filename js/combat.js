@@ -45,7 +45,6 @@ function protStats(p,th){
   for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l||sightFrom(p.x,p.y,t.x,t.y))see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}
   return{prot,see};
 }
-function scorePt(p,th,tx,ty){const s=protStats(p,th);return s.prot/th.length*3+s.see*0.9-hyp(p.x-tx,p.y-ty)/45;}
 function isCovered(p,th){return protStats(p,th).prot===th.length;}
 function destOf(u){return u.path.length?u.path[u.path.length-1]:{x:u.x,y:u.y};}
 
@@ -64,29 +63,46 @@ function openSpot(x,y,taken){
   }
   return null;
 }
-function makeAssign(list,tx,ty,radius){
-  const th=threats();
+// Where a soldier or group stands when you tap (tx,ty). Spots stay close to the tap, on the same side of any wall,
+// and cover only wins if it's close too. All the soldiers' spots are chosen together: each arrangement is scored on
+// cover, closeness to the tap, how far each man walks and how spread out the team is, so nobody runs off on his own.
+// On open ground the slots form a short line across the enemy's line of sight, with a second row behind.
+const ASSIGN_R=[0,14,32,45,45];   // how far from the tap a spot may be, by group size
+function makeAssign(list,tx,ty){
+  const th=threats(),n=list.length,R=ASSIGN_R[Math.min(n,4)];
   const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf);
   const cands=[];
-  for(const c of coverPts){
-    if(hyp(c.x-tx,c.y-ty)>radius)continue;
-    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<SPACE_COVER))continue;
-    cands.push({x:c.x,y:c.y,cp:true,s:scorePt(c,th,tx,ty)});
+  const add=(x,y,cp,pen=0)=>{
+    if(cands.some(c=>hyp(c.x-x,c.y-y)<6)||!los(tx,ty,x,y))return;
+    if(others.some(o=>hyp(o.x-x,o.y-y)<(cp?SPACE_COVER:SPACE_OPEN)))return;
+    const st=protStats({x,y},th);
+    cands.push({x,y,cp,cov:st.prot===th.length,v:st.prot/th.length*2+st.see*0.3-hyp(x-tx,y-ty)/12-pen});
+  };
+  for(const c of coverPts)if(hyp(c.x-tx,c.y-ty)<=R)add(c.x,c.y,true);
+  let ne=th[0];for(const t of th)if(hyp(t.x-tx,t.y-ty)<hyp(ne.x-tx,ne.y-ty))ne=t;
+  const dl=hyp(ne.x-tx,ne.y-ty)||1,fx=(ne.x-tx)/dl,fy=(ne.y-ty)/dl;
+  for(const[a,b]of[[0,0],[1,0],[-1,0],[2,0],[-2,0],[0,-1],[1,-1],[-1,-1]]){
+    const x=tx-fy*a*SPACE_OPEN+fx*b*SPACE_OPEN,y=ty+fx*a*SPACE_OPEN+fy*b*SPACE_OPEN;
+    if(isFree(x,y,8))add(x,y,false,b<0?0.5:0);   // back row only when the front line is full
   }
-  if(isFree(tx,ty,8))cands.push({x:tx,y:ty,s:scorePt({x:tx,y:ty},th,tx,ty)-0.3});
-  cands.sort((a,b)=>b.s-a.s);
-  const res=[];
-  const ord=[...list].sort((a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty));
-  for(const u of ord){
-    let pick=null,path=null;
-    for(const c of cands){
-      if(res.some(q=>hyp(q.x-c.x,q.y-c.y)<(c.cp&&q.cp?SPACE_COVER:SPACE_OPEN)))continue;
-      const p=findPath(u.x,u.y,c.x,c.y);if(!p)continue;
-      pick=c;path=p;break;
+  const C=cands.sort((p,q)=>q.v-p.v).slice(0,10);
+  let best=null,bs=-1e9;const pick=[];
+  (function search(i,score){
+    if(i===n){if(score>bs){bs=score;best=pick.slice();}return;}
+    const u=list[i];
+    for(const c of C){
+      if(pick.includes(c)||pick.some(q=>hyp(q.x-c.x,q.y-c.y)<(q.cp&&c.cp?SPACE_COVER:SPACE_OPEN)))continue;
+      let sc=c.v-hyp(u.x-c.x,u.y-c.y)/150;
+      for(const q of pick){const d=hyp(q.x-c.x,q.y-c.y);if(d>30)sc-=(d-30)/20;}
+      pick.push(c);search(i+1,score+sc);pick.pop();
     }
-    if(!pick){const o=openSpot(tx,ty,[...res,...others]);if(o){const p=findPath(u.x,u.y,o.x,o.y);if(p){pick=o;path=p;}}}
-    if(pick)res.push({u,x:pick.x,y:pick.y,cp:!!pick.cp,path,cov:isCovered(pick,th)});
-  }
+  })(0,0);
+  const res=[];
+  list.forEach((u,i)=>{
+    let c=best&&best[i],path=c&&findPath(u.x,u.y,c.x,c.y);
+    if(!path){c=openSpot(tx,ty,[...res,...others]);path=c&&findPath(u.x,u.y,c.x,c.y);if(c)c={x:c.x,y:c.y,cp:false,cov:isCovered(c,th)};}
+    if(path)res.push({u,x:c.x,y:c.y,cp:!!c.cp,path,cov:c.cov});
+  });
   return res;
 }
 function commit(as){
@@ -321,7 +337,7 @@ function playerThink(p){
   const others=players.filter(o=>o!==p&&!o.dead).map(destOf);
   let best=null,bs=-1e9;
   for(const c of coverPts){
-    const d=hyp(c.x-p.x,c.y-p.y);if(d>80)continue;
+    const d=hyp(c.x-p.x,c.y-p.y);if(d>50)continue;   // auto-move: only nearby cover, never a long run
     if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<SPACE_COVER))continue;
     const s=protStats(c,th);if(s.prot<th.length)continue;
     const sc=s.see*0.8-d/40;if(sc>bs){bs=sc;best=c;}

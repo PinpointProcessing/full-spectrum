@@ -46,6 +46,36 @@ function toW(sx,sy){
   if(_d.y>-1e-4)return[camT.x,camT.z];
   const t=-_o.y/_d.y;return[_o.x+_d.x*t,_o.z+_d.z*t];
 }
+// Where a tap points. On open ground that's just the ground point. If the tap lands on the side or top of a wall,
+// container, crate or sandbag first, it's the spot just in front of that face (towards the camera), so tapping the
+// side of the warehouse means "stand against this side" rather than the ground hidden behind it.
+function tapTarget(sx,sy){
+  _o.setFromMatrixPosition(camera.matrixWorld);
+  _d.set(sx/cw*2-1,-(sy/ch)*2+1,0.5).unproject(camera).sub(_o).normalize();
+  const org=[_o.x,_o.y,_o.z],dir=[_d.x,_d.y,_d.z];
+  let bt=_d.y<-1e-4?-_o.y/_d.y:1e9,best=null;
+  for(const o of objs){
+    const h=objHeight(o);if(!h)continue;
+    const mn=[o.x,0,o.y],mx=[o.x+o.w,h,o.y+o.h];
+    let t0=0,t1=bt,ax=-1,sg=0,miss=false;
+    for(let k=0;k<3;k++){
+      if(Math.abs(dir[k])<1e-9){if(org[k]<mn[k]||org[k]>mx[k]){miss=true;break;}continue;}
+      let a=(mn[k]-org[k])/dir[k],b=(mx[k]-org[k])/dir[k],s=-1;   // s: which way the face the ray enters points
+      if(a>b){const q=a;a=b;b=q;s=1;}
+      if(a>t0){t0=a;ax=k;sg=s;}
+      if(b<t1)t1=b;
+      if(t0>t1){miss=true;break;}
+    }
+    if(!miss&&ax>=0&&t0<bt){bt=t0;best={o,ax,sg};}
+  }
+  if(!best){const[x,y]=toW(sx,sy);return{x,y,obj:null};}
+  const o=best.o,hx=_o.x+_d.x*bt,hz=_o.z+_d.z*bt;
+  let nx=0,nz=0;
+  if(best.ax===0)nx=best.sg;else if(best.ax===2)nz=best.sg;
+  else{const cx=_o.x-hx,cz=_o.z-hz,l=hyp(cx,cz)||1;nx=cx/l;nz=cz/l;}   // top: step off towards the camera
+  let x=hx,y=hz;for(let i=0;i<80&&rectDist(x,y,o)<11;i++){x+=nx;y+=nz;}
+  return{x,y,obj:o};
+}
 function fitDist(){
   const sz=zoom,sy=yaw,stl=tilt,st={x:camT.x,z:camT.z};zoom=1;yaw=0;tilt=0;camT={x:W/2,z:H/2};
   let lo=200,hi=9000;

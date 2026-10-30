@@ -172,13 +172,14 @@ function tap(sx,sy){
   if(en&&sel.length){for(const u of sel){u.focus=en;u.supT=null;}callout(en,contact?'Focus fire':'Open fire!',C.warn);return;}
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}
+  const tg=tapTarget(sx,sy);   // tapping a wall or crate means: stand against the side you tapped
   if(sel.length===1){
-    const as=makeAssign(sel,wx,wy,30);
+    const as=makeAssign(sel,tg.x,tg.y);
     if(!as.length){banner('Can’t get there.');return;}
     commit(as);return;
   }
   if(preview){const[px,py]=toS(preview.x,preview.y);if(hyp(sx-px,sy-py)<40){commit(preview.as);preview=null;return;}}
-  const as=makeAssign(sel,wx,wy,80);
+  const as=makeAssign(sel,tg.x,tg.y);
   if(!as.length){banner('Can’t get there.');preview=null;return;}
-  preview={x:wx,y:wy,as};
+  preview={x:tg.x,y:tg.y,as};
 }

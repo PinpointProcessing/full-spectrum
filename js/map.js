@@ -67,6 +67,11 @@ function coverAt(tx,ty,sx,sy){
   return best;
 }
 function isFree(x,y,pad=7.5){if(x<10||y<10||x>W-10||y>H-10)return false;for(const o of objs)if(rectDist(x,y,o)<pad)return false;return true;}
+// How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
+function objHeight(o){
+  if(o.kind==='crate')return o.w*o.h>=400?14:11;
+  return{container:26,wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9}[o.kind]||0;
+}
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;
 function leanPts(x,y,tx,ty){
