@@ -21,8 +21,9 @@ Styles in `css/style.css`. Game code in `js/` as plain `<script>` files (not ES 
 6. `combat.js` hit chance, shots, suppression, grenades, move assignment, enemy and squad AI, `update(dt)`
 7. `overlay.js` 2D overlay drawing and rain
 8. `input.js` pointer/pinch/wheel handling (`bindInput`), `tap`
-9. `hud.js` banner, status chip, squad rows, buttons, keyboard (`bindHud`), end screen
-10. `main.js` resize, frame loop, boot (shows the no-WebGL message and stops if `initGL()` fails)
+9. `hud.js` banner, status chip, buttons, keyboard (`bindHud`), detection ring, end screen
+10. `cards.js` team tabs' health pips and the unit cards (portrait, name, status, heart monitor, equipment): `buildCards`, `updateCards` (from `hud()`), `drawCards` (every frame)
+11. `main.js` resize, frame loop, boot (shows the no-WebGL message and stops if `initGL()` fails)
 
 Only `main.js` does work at load time beyond building pure data (map, nav grid, cover points); everything touching THREE or wiring events runs from boot.
 
@@ -41,11 +42,13 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Hit chance shown per shot as "64% · open / cover / heavy", XCOM style: best of the selected soldiers on that enemy; adds "· peek" if the shot needs a lean and "· ambush" while undetected; green ≥60 %, amber ≥35 %, red below; grey "no line" if nobody selected can shoot him.
 
 ### Controls
-- Fit map button is top right of the map; the sneak/run toggle is bottom right.
+- Fit map button is top right of the map; the sneak/run toggle is bottom right (lifted above the cards when they show).
+- Bottom bar: team tabs Alpha / Bravo / All (each with a health pip per soldier), Suppress, Clear. Tap a tab to select that team.
+- Unit cards (Bryan's design, after Dark Descent's style of HUD; our own look): float over the bottom of the map for the selected team(s), all four when both teams are selected. Each card: procedural portrait, callsign + name, status word, a visual-only heart monitor (no sound) and equipment (weapon label, grenade button with count). Monitor colour: green ≥70 HP, yellow ≥35, orange below, red when downed (erratic, ~150 bpm), grey flatline when dead; rate ≈ 66 + suppression×55 + injury×0.45 + moving (sneak 8 / run 24) + contact 10. Tap a card to select just him. Bryan wants to test the portraits and judge them.
 - One-finger drag on empty ground: pan the map (with glide). Drag starting on a soldier: draw his route. Pinch: zoom 1–4×. Two-finger twist: rotate the camera around the point between the fingers (starts after 0.2 rad of twist so pinches don't turn it; `yaw` in scene.js). Two fingers dragged together orbit the camera: up/down tilts towards the horizon / back (pitch down to 14°; `tilt`, `tiltCam`), left/right spins it round the view centre (`ORBIT_SPIN`), the scene following the fingers. The gesture decides orbit vs pinch/twist from each finger's own movement (both >8 px the same way = orbit; opposite ways or one finger alone = pinch), because touch events arrive one finger at a time. Fit map button resets zoom, rotation and tilt. Taps that don't land on the map (beyond its edge) are ignored.
 - Tap a soldier: select his fire team. Hold a soldier (380 ms): select just him.
-- Box select: hold empty ground then drag, or press Box then drag.
-- Tap a visible enemy: focus fire (before contact: open fire, which springs the ambush). Suppress button then tap an enemy: pin that area. Grenade (single soldier, 1 each, 170 range). Tap a downed teammate with a soldier selected: go revive.
+- Lasso select: hold empty ground (380 ms), then draw a loop round soldiers (freeform, closed automatically; `inLoop`). There is no Box button (Bryan).
+- Tap a visible enemy: focus fire (before contact: open fire, which springs the ambush). Suppress button then tap an enemy: pin that area. Grenade: tap the grenade on a soldier's card (1 each, 170 range), tap again to cancel. Tap a downed teammate with a soldier selected: go revive.
 - Keyboard: Space pause, Esc clear, 1/2 select teams, R sneak/run toggle, Q/E rotate camera 15°, wheel zoom, Shift+wheel tilt.
 
 ### Rules and numbers (first guesses, not tuned)

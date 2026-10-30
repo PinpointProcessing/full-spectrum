@@ -25,26 +25,17 @@
     </div>
     <div id="banner"></div>
     <span class="chip slow" id="speed" hidden>Slow-mo</span>
+    <div id="cards" hidden></div>
     <button id="fitBtn" hidden>Fit map</button>
     <button id="gaitBtn" aria-pressed="false" disabled><small>Auto</small><span>Sneak</span></button>
   </div>
   <div class="panel">
     <div class="hint" id="hint"></div>
-    <div class="teams">
-      <section class="team" data-team="A" style="--tc:var(--alpha)">
-        <header><span class="tname">Alpha</span><span class="tkey">fire team</span></header>
-        <div class="rows"></div>
-      </section>
-      <section class="team" data-team="B" style="--tc:var(--bravo)">
-        <header><span class="tname">Bravo</span><span class="tkey">fire team</span></header>
-        <div class="rows"></div>
-      </section>
-    </div>
-    <div class="actions">
-      <button id="boxBtn">Box</button>
-      <button id="allBtn">All</button>
+    <div class="dock">
+      <button class="tab" data-team="A" style="--tc:var(--alpha)"><span class="tname">Alpha</span><span class="pips"></span></button>
+      <button class="tab" data-team="B" style="--tc:var(--bravo)"><span class="tname">Bravo</span><span class="pips"></span></button>
+      <button class="tab" id="allBtn" style="--tc:var(--text)"><span class="tname">All</span><span class="pips"></span></button>
       <button id="supBtn">Suppress</button>
-      <button id="nadeBtn">Grenade</button>
       <button id="clearBtn">Clear</button>
     </div>
   </div>
@@ -57,14 +48,15 @@
     <p>Take the warehouse. Four hostiles are dug in behind crates inside, watching the south door. You start by the containers in the southwest corner.</p>
     <ul>
       <li><b>Look around:</b> drag empty ground with one finger to move the map. Pinch with two to zoom.</li>
-      <li><b>Select:</b> tap a soldier to grab his fire team. Hold on a soldier to take just him. To box-select, hold on empty ground and then drag, or press Box first.</li>
+      <li><b>Select:</b> tap a team tab at the bottom, or tap a soldier to grab his fire team. Hold on a soldier, or tap his card, to take just him. To lasso, hold on empty ground and draw a loop round the soldiers you want.</li>
+      <li><b>Cards:</b> each selected soldier's card shows his heart rate. It beats faster under fire, and turns yellow, then orange as he's hurt, red when he's down.</li>
       <li><b>Move a team:</b> tap the ground to preview where they'll stand. Tap the marker again to go. Time slows while you decide.</li>
       <li><b>Stay hidden:</b> near enemies your soldiers sneak on their own. The circle at the top fills as a hostile notices you, and turns into <b>!!</b> when you're spotted. Being close, in the open or in front of him gets you noticed faster. So does running near him, which he can hear through walls. Gunfire gives you away at once.</li>
       <li><b>Draw a route:</b> drag from any soldier and he follows your finger. Lift to go. Lines through walls get routed round them, and the end settles on cover nearby.</li>
       <li><b>Move one soldier:</b> with just him selected, a single tap sends him.</li>
       <li><b>Sneak or run:</b> the button at the bottom right shows what the selected soldiers are doing. Press it to make them do the other. They go back to automatic the next time you select them. While you're undetected they hold fire. Tap a hostile to open fire, and a squad that strikes first gets an ambush bonus.</li>
       <li><b>Suppress:</b> pin an enemy so he barely shoots back, then flank him from the side windows or east door.</li>
-      <li><b>Grenade:</b> one per soldier. Select one soldier, press Grenade, tap inside the circle.</li>
+      <li><b>Grenade:</b> one per soldier. Tap the grenade on his card, then tap inside the circle.</li>
       <li><b>Corners:</b> a soldier at the edge of a wall or container leans out to shoot or throw round it. While he's leaned out, the enemy can hit him too.</li>
       <li><b>Downed men</b> bleed out. Park a teammate next to them to revive.</li>
     </ul>
@@ -97,4 +89,5 @@
 <script src="js/overlay.js"></script>
 <script src="js/input.js"></script>
 <script src="js/hud.js"></script>
+<script src="js/cards.js"></script>
 <script src="js/main.js"></script>

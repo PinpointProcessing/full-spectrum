@@ -128,7 +128,10 @@ function drawOverlay(rdt,now){
     else if(u.sup>0.08)bar(hx-9,hy-1,18,u.sup/0.65,C.warn);
   }
   for(const c of callouts){const[sx,sy]=toS(c.x,c.y,30),k=c.t/1.7;ox.globalAlpha=1-Math.max(0,k-.6)/.4;label(c.text,sx,sy-k*16,c.col,11,700);ox.globalAlpha=1;}
-  if(ptr&&ptr.kind==='lasso'){const x=Math.min(ptr.sx,ptr.cx),y=Math.min(ptr.sy,ptr.cy),w=Math.abs(ptr.cx-ptr.sx),h=Math.abs(ptr.cy-ptr.sy);ox.fillStyle='rgba(94,200,255,.1)';ox.fillRect(x,y,w,h);ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1;ox.setLineDash([4,3]);ox.strokeRect(x+.5,y+.5,w,h);ox.setLineDash([]);}
+  if(ptr&&ptr.kind==='lasso'&&ptr.loop.length>1){   // lasso loop, closed back to its start
+    ox.beginPath();ox.moveTo(...ptr.loop[0]);for(const p of ptr.loop)ox.lineTo(...p);ox.closePath();
+    ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);
+  }
   // rain
   const rts=state==='play'?timeScale():1;
   ox.strokeStyle='rgba(170,195,220,.2)';ox.lineWidth=1;ox.beginPath();

@@ -20,59 +20,26 @@ function finish(){
   $('#end').hidden=false;
 }
 /* ---------- HUD ---------- */
-function buildRows(){
-  for(const sec of document.querySelectorAll('.team')){
-    const t=sec.dataset.team,rows=sec.querySelector('.rows');rows.innerHTML='';
-    for(const u of players.filter(p=>p.team===t)){
-      const b=document.createElement('button');b.className='row';b.dataset.id=u.id;
-      b.innerHTML=`<span class="nm"><b>${u.id}</b>${u.name}</span><span class="hp"><i></i></span><span class="st">Ready</span>`;
-      b.addEventListener('click',()=>{if(state!=='play'||!alive(u))return;select([u]);preview=null;mode=null;hud();});
-      rows.appendChild(b);u.row=b;
-    }
-  }
-}
 function hud(){
-  for(const u of players){
-    if(!u.row)continue;
-    u.row.classList.toggle('sel',sel.includes(u));
-    const i=u.row.querySelector('i'),st=u.row.querySelector('.st');
-    i.style.width=(u.dead?0:u.hp)+'%';i.style.background=u.hp>60?'var(--good)':u.hp>30?'var(--warn)':'var(--bad)';
-    let txt='Ready',cls='st';
-    if(u.dead){txt='KIA';cls+=' kia';}
-    else if(u.downed){txt=u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`;cls+=' down';}
-    else if(u.sup>0.65){txt='Pinned';cls+=' pin';}
-    else if(u.supT)txt='Suppress';
-    else if(u.path.length)txt=u.gait==='sneak'?'Sneaking':'Running';
-    else if(contact)txt=peekOf(u)?'Peeking':u.covered?'In cover':'Exposed';
-    st.textContent=txt;st.className=cls;
-  }
-  for(const sec of document.querySelectorAll('.team')){
-    const team=players.filter(p=>p.team===sec.dataset.team&&alive(p));
-    sec.classList.toggle('sel',team.length>0&&team.every(p=>sel.includes(p)));
-  }
+  updateCards();
   const act=sel.filter(alive);
   $('#supBtn').disabled=!act.length||!enemies.some(e=>!e.dead&&e.seen);
   $('#supBtn').classList.toggle('on',mode==='suppress');
-  const one=act.length===1?act[0]:null;
-  $('#nadeBtn').disabled=!one||!one.grenade;
-  $('#nadeBtn').textContent=one?`Grenade ×${one.grenade}`:'Grenade';
-  $('#nadeBtn').classList.toggle('on',mode==='grenade');
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
   {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
    gb.disabled=!act.length;gb.classList.toggle('on',forced);gb.setAttribute('aria-pressed',forced);
    gb.querySelector('span').textContent=g==='sneak'?'Sneak':'Run';gb.querySelector('small').textContent=forced?'Manual':'Auto';
    gb.setAttribute('aria-label',`${g==='sneak'?'Sneaking':'Running'}, ${forced?'manual':'automatic'}. Press to ${forced?'go back to automatic':g==='sneak'?'run':'sneak'}.`);}
-  $('#boxBtn').classList.toggle('on',boxMode);
   const ts=timeScale();
   const sp=$('#speed');sp.hidden=!(state==='play'&&ts<1);sp.textContent=paused?'Paused':'Slow-mo';
   let h;
-  if(boxMode)h='Drag across the map to box-select soldiers.';
+  if(ptr&&ptr.kind==='lasso')h='Draw a loop round the soldiers you want.';
   else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
-  else if(mode==='grenade')h='Tap inside the dashed circle to throw.';
+  else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
-  else if(!act.length)h='Drag the map to look around. Drag from a soldier to draw his route. Tap a soldier for his team.';
-  else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Tap a downed man to revive him.`;
+  else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
+  else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';
   $('#hint').textContent=h;
 }
@@ -95,12 +62,10 @@ function alertMeter(){
 }
 function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:700};clampCam();updateCamera();}
 function bindHud(){
-  for(const sec of document.querySelectorAll('.team'))sec.querySelector('header').addEventListener('click',()=>{if(state!=='play')return;selectTeam(sec.dataset.team);hud();});
-  $('#boxBtn').addEventListener('click',()=>{if(state!=='play')return;boxMode=!boxMode;mode=null;preview=null;hud();});
+  for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>{if(state!=='play')return;selectTeam(tab.dataset.team);hud();});
   $('#allBtn').addEventListener('click',()=>{if(state!=='play')return;select(players.filter(alive));preview=null;mode=null;hud();});
   $('#gaitBtn').addEventListener('click',()=>{if(state!=='play')return;toggleGait();hud();});
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
-  $('#nadeBtn').addEventListener('click',()=>{if(state!=='play')return;sel=sel.filter(alive);if(sel.length!==1)return;mode=mode==='grenade'?null:'grenade';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else sel=[];hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#startBtn').addEventListener('click',()=>{startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});

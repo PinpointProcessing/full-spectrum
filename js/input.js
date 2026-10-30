@@ -19,7 +19,9 @@ const TWIST_START=0.2;   // radians of twist before rotation kicks in, so a plai
 function wrapA(a){return Math.atan2(Math.sin(a),Math.cos(a));}
 function turnCam(d){yaw=wrapA(yaw+d);clampCam();updateCamera();}
 function tiltCam(t){tilt=clamp(t,0,basePitch()-PITCH_MIN);clampCam();updateCamera();}
-let boxMode=false,inertia={vx:0,vy:0};
+let inertia={vx:0,vy:0};
+// is screen point (x,y) inside the polygon pts (the lasso loop, closed automatically)?
+function inLoop(x,y,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[a,b]=pts[i],[p,q]=pts[j];if((b>y)!==(q>y)&&x<(p-a)*(y-b)/(q-b)+a)c=!c;}return c;}
 // drawing a route: drag that starts on a soldier. Trail is in world coordinates.
 function addTrail(sx,sy){
   const[wx,wy]=toW(sx,sy),p={x:clamp(wx,10,W-10),y:clamp(wy,10,H-10)},l=ptr.trail[ptr.trail.length-1];
@@ -51,11 +53,10 @@ function endPtr(ev,cancel){
   clearTimeout(ptr.timer);
   if(!cancel){
     if(ptr.kind==='lasso'){
-      const x0=Math.min(ptr.sx,ptr.cx)-8,x1=Math.max(ptr.sx,ptr.cx)+8,y0=Math.min(ptr.sy,ptr.cy)-8,y1=Math.max(ptr.sy,ptr.cy)+8;
-      const got=players.filter(u=>{if(!alive(u))return false;const[x,y]=toS(u.x,u.y,8);return x>=x0&&x<=x1&&y>=y0&&y<=y1;});
+      const loop=ptr.loop;
+      const got=loop.length>2?players.filter(u=>{if(!alive(u))return false;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);return inLoop(x,y,loop);}):[];
       if(got.length){select(got);preview=null;mode=null;}
-      else if(hyp(ptr.cx-ptr.sx,ptr.cy-ptr.sy)>12)banner('No soldiers in the box.',1400);
-      boxMode=false;
+      else if(loop.length>2)banner('No soldiers inside the loop.',1400);
     }else if(ptr.kind==='draw'){
       finishDraw();
     }else if(ptr.kind==='pan'){
@@ -85,7 +86,7 @@ function bindInput(){
       ptr.lp=true;
       try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}
       if(u){select([u]);preview=null;mode=null;callout(u,u.name,teamCol(u));}
-      else{ptr.kind='lasso';}
+      else{ptr.kind='lasso';ptr.loop=[[ptr.cx,ptr.cy]];}
       hud();
     },380);
   });
@@ -117,11 +118,12 @@ function bindInput(){
     ptr.cx=x;ptr.cy=y;
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind=(boxMode&&state==='play')?'lasso':ptr.unit&&alive(ptr.unit)?'draw':'pan';
+      ptr.kind=ptr.unit&&alive(ptr.unit)?'draw':'pan';
       if(ptr.kind==='draw'){select([ptr.unit]);preview=null;mode=null;hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
     if(ptr.kind==='draw')addTrail(x,y);
+    if(ptr.kind==='lasso'){const l=ptr.loop[ptr.loop.length-1];if(hyp(x-l[0],y-l[1])>4)ptr.loop.push([x,y]);}
     if(ptr.kind==='pan'){
       const now=performance.now(),dt=Math.max(1,now-ptr.lt);
       const[ax,az]=toW(ptr.lx,ptr.ly),[bx,bz]=toW(x,y),dx=ax-bx,dy=az-bz;
