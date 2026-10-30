@@ -1,10 +1,10 @@
 "use strict";
-/* Second wave. When the warehouse is cleared: "All clear!" fades in and out, a 10 s "Incoming!" countdown takes the
+/* Second wave. When the warehouse is cleared: "All clear!" fades in and out, a 5 s "Incoming!" countdown takes the
    detection ring's place, then "Enemy inbound!" flashes and a gun jeep drives in through the north gate. Its gunner
    stays on the machine gun laying down cover fire while four hostiles dismount and push towards the squad.
    Clearing them ends the mission. Timings run on game time, so pause and slow-mo stretch them. */
 const JEEP={x:475,y0:-80,y1:190,w:24,l:46,speed:60};   // drives south through the gate and parks here (centre)
-const CLEAR_T=2.6,COUNT_T=10;
+const CLEAR_T=2.6,COUNT_T=5;
 let wave={phase:'fight1',t:0};   // phases: fight1 → clear → count → drive → fight2 → done
 function wavePhase(...ps){return ps.includes(wave.phase);}
 function resetWaves(){
@@ -89,8 +89,9 @@ let cdShown=-1;
 function waveHud(){
   const cd=$('#countdown'),on=state==='play'&&wave.phase==='count';
   cd.hidden=!on;if(!on){cdShown=-1;return;}
-  const n=Math.max(0,Math.ceil(COUNT_T-(simT-wave.t)));
+  const left=Math.max(0,COUNT_T-(simT-wave.t)),n=Math.ceil(left);
+  cd.querySelector('b').textContent=left.toFixed(2);   // counts down in hundredths
   if(n===cdShown)return;cdShown=n;
-  cd.querySelector('b').textContent=n;cd.setAttribute('aria-label',`Incoming in ${n}`);
-  cd.classList.remove('tick');void cd.offsetWidth;cd.classList.add('tick');   // pulse on every second
+  cd.setAttribute('aria-label',`Incoming in ${n}`);
+  cd.classList.remove('tick');void cd.offsetWidth;cd.classList.add('tick');   // pulse on every whole second
 }
