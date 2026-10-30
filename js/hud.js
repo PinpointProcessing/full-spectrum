@@ -1,0 +1,91 @@
+"use strict";
+/* DOM HUD: status chip, banner, squad rows, action buttons, keyboard, end screen. */
+let bannerTimer=0;
+function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
+function setStatus(){
+  const s=$('#status');
+  if(state==='end'){s.className='chip';return;}
+  s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
+}
+function finish(){
+  const win=enemies.every(e=>e.dead);
+  state='end';setStatus();$('#status').textContent=win?'Secured':'Lost';
+  const t=Math.floor(simT),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
+  const kia=players.filter(p=>p.dead).length;
+  $('#endEyebrow').textContent=win?'Mission complete':'Mission failed';
+  $('#endTitle').textContent=win?'Warehouse secured':'Squad lost';
+  $('#endText').textContent=win
+    ?`Cleared in ${mm}:${ss}. ${downCount} time${downCount===1?'':'s'} a soldier went down, ${kia} killed in action.`
+    :`The squad held out for ${mm}:${ss}. Try pinning one side of the room with Suppress while a fire team works around to the west window or the east door.`;
+  $('#end').hidden=false;
+}
+/* ---------- HUD ---------- */
+function buildRows(){
+  for(const sec of document.querySelectorAll('.team')){
+    const t=sec.dataset.team,rows=sec.querySelector('.rows');rows.innerHTML='';
+    for(const u of players.filter(p=>p.team===t)){
+      const b=document.createElement('button');b.className='row';b.dataset.id=u.id;
+      b.innerHTML=`<span class="nm"><b>${u.id}</b>${u.name}</span><span class="hp"><i></i></span><span class="st">Ready</span>`;
+      b.addEventListener('click',()=>{if(state!=='play'||!alive(u))return;sel=[u];preview=null;mode=null;hud();});
+      rows.appendChild(b);u.row=b;
+    }
+  }
+}
+function hud(){
+  for(const u of players){
+    if(!u.row)continue;
+    u.row.classList.toggle('sel',sel.includes(u));
+    const i=u.row.querySelector('i'),st=u.row.querySelector('.st');
+    i.style.width=(u.dead?0:u.hp)+'%';i.style.background=u.hp>60?'var(--good)':u.hp>30?'var(--warn)':'var(--bad)';
+    let txt='Ready',cls='st';
+    if(u.dead){txt='KIA';cls+=' kia';}
+    else if(u.downed){txt=u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`;cls+=' down';}
+    else if(u.sup>0.65){txt='Pinned';cls+=' pin';}
+    else if(u.supT)txt='Suppress';
+    else if(u.path.length)txt='Moving';
+    else if(contact)txt=u.covered?'In cover':'Exposed';
+    st.textContent=txt;st.className=cls;
+  }
+  for(const sec of document.querySelectorAll('.team')){
+    const team=players.filter(p=>p.team===sec.dataset.team&&alive(p));
+    sec.classList.toggle('sel',team.length>0&&team.every(p=>sel.includes(p)));
+  }
+  const act=sel.filter(alive);
+  $('#supBtn').disabled=!act.length||!enemies.some(e=>!e.dead&&e.seen);
+  $('#supBtn').classList.toggle('on',mode==='suppress');
+  const one=act.length===1?act[0]:null;
+  $('#nadeBtn').disabled=!one||!one.grenade;
+  $('#nadeBtn').textContent=one?`Grenade ×${one.grenade}`:'Grenade';
+  $('#nadeBtn').classList.toggle('on',mode==='grenade');
+  $('#pauseBtn').textContent=paused?'Resume':'Pause';
+  $('#boxBtn').classList.toggle('on',boxMode);
+  const ts=timeScale();
+  const sp=$('#speed');sp.hidden=!(state==='play'&&ts<1);sp.textContent=paused?'Paused':'Slow-mo';
+  let h;
+  if(boxMode)h='Drag across the map to box-select soldiers.';
+  else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
+  else if(mode==='grenade')h='Tap inside the dashed circle to throw.';
+  else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
+  else if(!act.length)h='Drag to look around. Tap a soldier for his team, hold for just him.';
+  else if(act.length===1)h=`Tap ground to send ${act[0].name}. Tap a downed man to revive him.`;
+  else h='Tap the ground to preview positions. Tap an enemy to focus fire.';
+  $('#hint').textContent=h;
+}
+function startView(){zoom=2.4;camT={x:190,z:700};clampCam();updateCamera();}
+function bindHud(){
+  for(const sec of document.querySelectorAll('.team'))sec.querySelector('header').addEventListener('click',()=>{if(state!=='play')return;selectTeam(sec.dataset.team);hud();});
+  $('#boxBtn').addEventListener('click',()=>{if(state!=='play')return;boxMode=!boxMode;mode=null;preview=null;hud();});
+  $('#allBtn').addEventListener('click',()=>{if(state!=='play')return;sel=players.filter(alive);preview=null;mode=null;hud();});
+  $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
+  $('#nadeBtn').addEventListener('click',()=>{if(state!=='play')return;sel=sel.filter(alive);if(sel.length!==1)return;mode=mode==='grenade'?null:'grenade';preview=null;hud();});
+  $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else sel=[];hud();});
+  $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
+  $('#startBtn').addEventListener('click',()=>{startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});
+  $('#againBtn').addEventListener('click',()=>{startView();$('#end').hidden=true;reset();state='play';hud();});
+  addEventListener('keydown',e=>{
+    if(state!=='play')return;
+    if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}
+    else if(e.key==='Escape'){$('#clearBtn').click();}
+    else if(e.key==='1'){selectTeam('A');hud();}else if(e.key==='2'){selectTeam('B');hud();}
+  });
+}

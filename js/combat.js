@@ -1,0 +1,274 @@
+"use strict";
+/* Combat rules (hit chance, bursts, suppression, grenades), cover-aware move assignment, enemy and squad AI, and the sim step. */
+/* ---------- combat helpers ---------- */
+function hitChance(s,t){
+  const d=hyp(t.x-s.x,t.y-s.y);
+  let c=0.86-d/900;
+  const cov=coverAt(t.x,t.y,s.x,s.y);
+  if(cov===1)c-=0.28;else if(cov===2)c-=0.42;
+  c-=s.sup>0.65?0.25:s.sup*0.15;
+  if(s.path.length)c-=0.15;
+  if(t.path.length)c-=0.08;
+  if(s.side==='E')c-=0.1;
+  return clamp(c,0.05,0.95);
+}
+function threats(){
+  const t=[];
+  for(const e of enemies)if(!e.dead&&e.seen)t.push(e.vis?{x:e.x,y:e.y}:e.last);
+  if(!t.length)t.push({x:310,y:540});
+  return t;
+}
+function protStats(p,th){
+  let prot=0,see=0;
+  for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l)see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}
+  return{prot,see};
+}
+function scorePt(p,th,tx,ty){const s=protStats(p,th);return s.prot/th.length*3+s.see*0.9-hyp(p.x-tx,p.y-ty)/45;}
+function isCovered(p,th){return protStats(p,th).prot===th.length;}
+function destOf(u){return u.path.length?u.path[u.path.length-1]:{x:u.x,y:u.y};}
+
+function openSpot(x,y,taken){
+  for(let r=0;r<=48;r+=8){
+    const n=Math.max(1,Math.round(r*0.8));
+    for(let k=0;k<n;k++){
+      const a=k/n*Math.PI*2,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;
+      if(!isFree(px,py,8))continue;
+      if(taken.some(t=>hyp(t.x-px,t.y-py)<20))continue;
+      return{x:px,y:py};
+    }
+  }
+  return null;
+}
+function makeAssign(list,tx,ty,radius){
+  const th=threats();
+  const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf);
+  const cands=[];
+  for(const c of coverPts){
+    if(hyp(c.x-tx,c.y-ty)>radius)continue;
+    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<20))continue;
+    cands.push({x:c.x,y:c.y,s:scorePt(c,th,tx,ty)});
+  }
+  if(isFree(tx,ty,8))cands.push({x:tx,y:ty,s:scorePt({x:tx,y:ty},th,tx,ty)-0.3});
+  cands.sort((a,b)=>b.s-a.s);
+  const res=[];
+  const ord=[...list].sort((a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty));
+  for(const u of ord){
+    let pick=null,path=null;
+    for(const c of cands){
+      if(res.some(q=>hyp(q.x-c.x,q.y-c.y)<20))continue;
+      const p=findPath(u.x,u.y,c.x,c.y);if(!p)continue;
+      pick=c;path=p;break;
+    }
+    if(!pick){const o=openSpot(tx,ty,[...res,...others]);if(o){const p=findPath(u.x,u.y,o.x,o.y);if(p){pick=o;path=p;}}}
+    if(pick)res.push({u,x:pick.x,y:pick.y,path,cov:isCovered(pick,th)});
+  }
+  return res;
+}
+function commit(as){
+  for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;}
+}
+
+function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});}
+function alertAll(msg){
+  if(contact)return;contact=true;
+  for(const e of enemies)if(!e.dead)e.alerted=true;
+  banner(msg||'Contact. They know you are here.');setStatus();
+}
+
+function damage(t,dmg){
+  if(t.dead||t.downed)return;
+  t.hp-=dmg;t.hitFlash=.25;
+  if(t.hp<=0){
+    t.hp=0;
+    if(t.side==='P'){
+      t.downed=true;t.wasDown=true;downCount++;t.bleed=45;t.revive=0;t.path=[];t.supT=null;
+      callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
+      sel=sel.filter(x=>x!==t);preview=null;
+    }else{
+      t.dead=true;t.path=[];callout(t,'Tango down',C.good);
+      paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});
+    }
+  }
+}
+
+function pickTarget(u){
+  const foes=u.side==='P'?enemies.filter(e=>!e.dead):players.filter(alive);
+  let best=null,bs=-1;
+  for(const f of foes){
+    if(hyp(f.x-u.x,f.y-u.y)>380)continue;
+    if(!los(u.x,u.y,f.x,f.y))continue;
+    let c=hitChance(u,f);if(u.focus===f)c+=1;
+    if(c>bs){bs=c;best=f;}
+  }
+  return best;
+}
+function burst(u,t){
+  u.target=t;u.aimT=simT;u.ang=Math.atan2(t.y-u.y,t.x-u.x);
+  const c=hitChance(u,t);
+  for(let i=0;i<3;i++)shots.push({at:simT+i*0.08,u,t,hit:Math.random()<c});
+  if(u.side==='P'&&t.alerted&&simT>t.flankCD&&coverAt(t.x,t.y,u.x,u.y)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
+}
+function resolveShot(s){
+  const u=s.u,t=s.t;if(u.dead||u.downed||t.dead)return;
+  let ex=t.x,ey=t.y;
+  if(!s.hit){
+    const cov=coverAt(t.x,t.y,u.x,u.y);
+    const a=Math.atan2(t.y-u.y,t.x-u.x),d=hyp(t.x-u.x,t.y-u.y);
+    if(cov&&Math.random()<.7){ex=u.x+Math.cos(a)*(d-10);ey=u.y+Math.sin(a)*(d-10);sparks.push({x:ex,y:ey,t:0});}
+    else{const aa=a+(Math.random()-.5)*0.22,dd=d+Math.random()*40-8;ex=u.x+Math.cos(aa)*dd;ey=u.y+Math.sin(aa)*dd;}
+  }
+  tracers.push({x1:u.x,y1:u.y,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
+  flashes.push({x:u.x,y:u.y,t:0});
+  t.sup=Math.min(1.2,t.sup+0.06);
+  if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?0.6:1));
+  if(u.side==='P')alertAll('Contact. Weapons free.');
+  else if(!t.alerted){}
+  if(t.side==='E'&&!t.alerted)t.alerted=true;
+}
+function suppressShot(u){
+  const a=u.supT;
+  if(!enemies.some(e=>!e.dead&&hyp(e.x-a.x,e.y-a.y)<55)){u.supT=null;callout(u,'Area clear',C.good);return;}
+  const tg=enemies.filter(e=>!e.dead&&hyp(e.x-a.x,e.y-a.y)<55&&los(u.x,u.y,e.x,e.y));
+  let ax=a.x,ay=a.y,t=null;
+  if(tg.length){t=tg[(Math.random()*tg.length)|0];ax=t.x;ay=t.y;}
+  else if(!los(u.x,u.y,a.x,a.y)){u.cool=.6;if(++u.noLine>4){u.supT=null;callout(u,'No line of fire',C.warn);}return;}
+  u.noLine=0;u.ang=Math.atan2(ay-u.y,ax-u.x);u.aimT=simT;
+  const hit=t&&Math.random()<hitChance(u,t)*0.35;
+  const aa=u.ang+(Math.random()-.5)*0.12,dd=hyp(ax-u.x,ay-u.y)+(hit?0:Math.random()*20-14);
+  const ex=hit?ax:u.x+Math.cos(aa)*dd,ey=hit?ay:u.y+Math.sin(aa)*dd;
+  tracers.push({x1:u.x,y1:u.y,x2:ex,y2:ey,t:0,col:'255,231,163'});flashes.push({x:u.x,y:u.y,t:0});
+  if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
+  for(const e of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
+  if(hit)damage(t,12);
+  alertAll('Contact. Weapons free.');
+  u.cool=.42+Math.random()*.12;
+}
+function throwNade(u,tx,ty){
+  if(hyp(tx-u.x,ty-u.y)>170){banner('Too far. Throw inside the circle.');return false;}
+  if(!los(u.x,u.y,tx,ty)){banner('No clear throw from here.');return false;}
+  u.grenade=0;u.lastOrder=simT;u.ang=Math.atan2(ty-u.y,tx-u.x);u.aimT=simT;
+  nades.push({x0:u.x,y0:u.y,x1:tx,y1:ty,t:0,dur:.9});
+  callout(u,'Frag out!',C.warn);
+  return true;
+}
+function explode(x,y){
+  booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});
+  for(const v of units){
+    if(v.dead)continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;
+    if(!los(x,y,v.x,v.y))continue;
+    v.sup=Math.min(1.2,v.sup+0.8);
+    if(!v.downed)damage(v,95*(1-d/62));
+    if(v.side==='E')v.alerted=true;
+  }
+  alertAll('Contact. Weapons free.');
+}
+
+/* ---------- AI ---------- */
+function computeVis(){
+  for(const e of enemies){
+    if(e.dead){e.vis=false;continue;}
+    e.vis=players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=360&&los(p.x,p.y,e.x,e.y));
+    if(e.vis){
+      if(!e.seen){e.seen=true;callout(e,'Hostile!',C.bad);if(!contact)banner('Hostile spotted inside the warehouse.');}
+      e.last={x:e.x,y:e.y};
+    }
+    {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
+    if(!e.alerted){
+      for(const p of players){
+        if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d>300)continue;
+        let da=Math.atan2(p.y-e.y,p.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
+        if((Math.abs(da)<1.08||d<80)&&los(e.x,e.y,p.x,p.y)){callout(p,'Spotted!',C.bad);alertAll('Contact. You have been spotted.');break;}
+      }
+    }
+  }
+}
+function enemyThink(e){
+  if(e.dead||!e.alerted||e.path.length)return;
+  if(e.sup>0.65){e.exposeT=0;return;}
+  const vis=players.filter(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=380&&los(e.x,e.y,p.x,p.y));
+  const exposed=vis.some(p=>coverAt(e.x,e.y,p.x,p.y)===0);
+  e.exposeT=exposed?e.exposeT+.4:0;
+  const hurt=e.hp<40&&!e.fell;
+  if(!((e.exposeT>=1.2||hurt)&&simT>e.moveCool))return;
+  const th=players.filter(alive).map(p=>({x:p.x,y:p.y}));if(!th.length)return;
+  const others=enemies.filter(o=>o!==e&&!o.dead).map(destOf);
+  let best=null,bs=-1e9;
+  for(const c of coverPts){
+    if(c.x<182||c.x>438||c.y<272||c.y>548)continue;
+    const d=hyp(c.x-e.x,c.y-e.y);if(d>150)continue;
+    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<14))continue;
+    const s=protStats(c,th);
+    let sc=s.prot/th.length*3+(hurt?0:s.see*0.8)-d/60;
+    if(hurt){let near=1e9;for(const t of th)near=Math.min(near,hyp(t.x-c.x,t.y-c.y));sc+=near/120;}
+    if(sc>bs){bs=sc;best=c;}
+  }
+  if(best&&hyp(best.x-e.x,best.y-e.y)>6){
+    const p=findPath(e.x,e.y,best.x,best.y);
+    if(p){e.path=p;e.moveCool=simT+5;e.exposeT=0;if(hurt)e.fell=true;if(e.vis)callout(e,hurt?'Falling back':'Shifting',C.bad);}
+  }else e.moveCool=simT+2;
+}
+function playerThink(p){
+  if(!alive(p)||p.path.length||!contact||p.sup>0.65){p.exposeT=0;return;}
+  if(simT-p.lastOrder<4)return;
+  const vis=enemies.filter(e=>!e.dead&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
+  const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);
+  p.exposeT=exposed?p.exposeT+.4:0;
+  if(p.exposeT<2)return;
+  const th=vis.map(e=>({x:e.x,y:e.y}));
+  const others=players.filter(o=>o!==p&&!o.dead).map(destOf);
+  let best=null,bs=-1e9;
+  for(const c of coverPts){
+    const d=hyp(c.x-p.x,c.y-p.y);if(d>80)continue;
+    if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<20))continue;
+    const s=protStats(c,th);if(s.prot<th.length)continue;
+    const sc=s.see*0.8-d/40;if(sc>bs){bs=sc;best=c;}
+  }
+  if(best){const path=findPath(p.x,p.y,best.x,best.y);if(path){p.path=path;p.lastOrder=simT;p.exposeT=0;callout(p,'Moving to cover',C.warn);}}
+  else p.exposeT=0;
+}
+
+/* ---------- update ---------- */
+function updateUnit(u,dt){
+  if(u.dead)return;
+  u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
+  if(u.downed)return;
+  if(u.path.length){
+    const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
+    const sp=(u.side==='P'?54:46)*(u.sup>0.65?0.7:1)*dt;
+    if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
+    if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
+  }else if(simT-u.aimT>2){
+    if(u.side==='P'){const th=threats();let n=th[0],nd=1e9;for(const t of th){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}
+    else if(u.alerted){const ps=players.filter(alive);if(ps.length){let n=ps[0],nd=1e9;for(const t of ps){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}}
+  }
+  u.cool-=dt*(u.sup>0.65?0.4:1);
+  if(u.cool<=0){
+    if(u.side==='E'&&!u.alerted)u.cool=.3;
+    else if(u.supT)suppressShot(u);
+    else{const t=pickTarget(u);if(t){burst(u,t);u.cool=1.6+Math.random()*.6;}else u.cool=.25;}
+  }
+}
+function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Math.min(1,k);}
+
+function update(dt){
+  simT+=dt;
+  for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);resolveShot(s);}
+  visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
+  for(const u of units)updateUnit(u,dt);
+  aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
+  for(const p of players){
+    if(!p.downed||p.dead)continue;
+    const helper=players.find(o=>alive(o)&&!o.path.length&&hyp(o.x-p.x,o.y-p.y)<24);
+    if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;callout(p,'Back in it',C.good);}}
+    else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.dead=true;p.downed=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}}
+  }
+  for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);explode(n.x1,n.y1);}}
+  for(const arr of [tracers,flashes,sparks,booms,callouts])for(const f of arr)f.t+=dt;
+  tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
+  for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
+  for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;
+  if(state==='play'&&!endAt){
+    if(enemies.every(e=>e.dead))endAt=performance.now()+1500;
+    else if(players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
+  }
+}

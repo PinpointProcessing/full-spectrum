@@ -9,7 +9,22 @@ Combat demo for Bryan's next game after Ashvale: modern squad tactics (Full Spec
 - Visual target: close to Aliens: Dark Descent.
 
 ## The demo (warehouse-yard.html)
-Single self-contained HTML page. Three.js r128 from cdnjs (global `THREE`) renders the 3D world; a 2D canvas overlay on top draws the HUD bits (hp bars, hit %, previews, tracers, rain).
+`warehouse-yard.html` is the page shell (markup only). Three.js r128 from cdnjs (global `THREE`) renders the 3D world; a 2D canvas overlay on top draws the HUD bits (hp bars, hit %, previews, tracers, rain). No build step: open the HTML directly or serve the folder statically.
+
+### Code layout
+Styles in `css/style.css`. Game code in `js/` as plain `<script>` files (not ES modules, so it still runs from `file://`). They share one global scope, so load order matters and is set in the HTML:
+1. `core.js` constants (map size, colours), DOM handles, `hyp`/`clamp`/`rng`, `teamCol`
+2. `map.js` map objects (`objs`), lamp/post data, LOS, cover, free-space queries
+3. `pathfinding.js` nav grid, A* + string-pulling, cover points
+4. `scene.js` `initGL()` (renderer, scene, camera), camera maths (`toS`/`toW`), textures, world meshes, lights, soldier models, `render()`
+5. `state.js` battle state variables, `mk`, `reset`, `timeScale`
+6. `combat.js` hit chance, shots, suppression, grenades, move assignment, enemy and squad AI, `update(dt)`
+7. `overlay.js` 2D overlay drawing and rain
+8. `input.js` pointer/pinch/wheel handling (`bindInput`), `tap`
+9. `hud.js` banner, status chip, squad rows, buttons, keyboard (`bindHud`), end screen
+10. `main.js` resize, frame loop, boot (shows the no-WebGL message and stops if `initGL()` fails)
+
+Only `main.js` does work at load time beyond building pure data (map, nav grid, cover points); everything touching THREE or wiring events runs from boot.
 
 Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW corner by containers: Alpha (A1 Reyes, A2 Kowalski) and Bravo (B1 Hayes, B2 Okafor). One big warehouse in the middle with 4 hostiles behind crates watching the south roll door. Sandbag nest (U shape with single bags off each side) ahead-left. Flank routes: west window, east window and east door.
 
@@ -42,7 +57,6 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Enemy AI only shifts and falls back: no pushing, flanking, or grenades.
 - Phone performance of the 3D lighting is unverified. If it stutters: drop the 4 flashlight spotlights first, then shadow map size (2048 → 1024).
 - Bryan plans to add a second squad of 4 once the one-squad mechanics feel right.
-- File should be split into modules (map data, pathfinding, combat/AI, 3D scene, overlay, input, HUD).
 
 ### Testing note
-Headless browsers here have no GPU, so WebGL runs in software at ~3 fps: fine for screenshots and checking layout, useless for judging pacing. For local tests without network, install `three@0.128.0` from npm and inline `build/three.min.js` in place of the CDN tag.
+Headless browsers here have no GPU, so WebGL runs in software at ~3 fps: fine for screenshots and checking layout, useless for judging pacing. For local tests without network, install `three@0.128.0` from npm and serve `build/three.min.js` for the CDN URL (e.g. Playwright `page.route`), or swap the CDN tag for a local copy. Because the game state is global, tests can drive it straight from `page.evaluate` (`update(1/60)`, `tap(...)`, `units`), and seeding `Math.random` makes runs repeatable.
