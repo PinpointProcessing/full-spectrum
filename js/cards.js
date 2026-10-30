@@ -63,6 +63,8 @@ function buildCards(){
 function statusText(u){
   if(u.dead)return['KIA','down'];
   if(u.downed)return[u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
+  if(u.inVeh)return[{driver:'Driving',gunner:'On the gun',pass:'Riding'}[u.seat],''];
+  if(u.boarding)return['Mounting up',''];
   if(u.sup>0.65)return['Pinned','pin'];
   if(u.supT)return['Suppressing',''];
   if(u.path.length)return[u.gait==='sneak'?'Sneaking':'Running',''];
@@ -79,7 +81,7 @@ function updateCards(){
     c.el.classList.toggle('sel',sel.includes(u));c.el.classList.toggle('downed',u.downed);c.el.classList.toggle('kia',u.dead);
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
     c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)} HP`;c.hp.style.color=hpCol(u);
-    c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade;
+    c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
   }
   $('#stage').style.setProperty('--cards-h',box.hidden?'0px':box.offsetHeight+6+'px');

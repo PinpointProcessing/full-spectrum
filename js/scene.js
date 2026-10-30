@@ -291,7 +291,7 @@ function syncUnits(t){
     const m=u.m;if(!m)continue;
     const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
     m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
-    m.g.visible=u.side==='P'||u.vis||(u.dead&&u.seen)||!!u.gunner;   // the jeep gunner is always in plain view
+    m.g.visible=(u.side==='P'&&!(u.inVeh&&u.seat!=='gunner'))||u.vis||(u.dead&&u.seen)||!!u.gunner;   // the jeep gunner is always in plain view; the rest of a crew is hidden inside
     const lying=u.downed||u.dead;
     m.pose.rotation.z+=((lying?Math.PI/2:0)-m.pose.rotation.z)*.2;
     const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps

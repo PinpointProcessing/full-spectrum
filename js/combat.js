@@ -25,7 +25,7 @@ function hitChance(s,t,L){
   L=L||lineOf(s,t);
   const d=hyp(L.tx-L.fx,L.ty-L.fy);
   let c=0.86-d/900;
-  const cov=shotCover(L);
+  let cov=shotCover(L);if(t.inVeh)cov=Math.max(cov,1);   // inside the jeep: partial cover
   if(cov===1)c-=0.28;else if(cov===2)c-=0.42;
   c-=s.sup>0.65?0.25:s.sup*0.15;
   if(s.side==='P'&&ambushing())c+=AMBUSH_BONUS;
@@ -38,7 +38,7 @@ function hitChance(s,t,L){
 }
 function threats(){
   const t=[];
-  for(const e of enemies)if(!e.dead&&e.seen)t.push(e.vis?{x:e.x,y:e.y}:e.last);
+  for(const e of enemies)if(!e.dead&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
   if(!t.length)t.push(wave.phase==='fight1'?{x:310,y:540}:{x:JEEP.x,y:JEEP.y1});   // before anyone's seen: the warehouse door, or the north gate once reinforcements are coming
   return t;
 }
@@ -182,7 +182,7 @@ function damage(t,dmg,src){
 
 function pickTarget(u){
   // undetected, the squad holds fire except at a hostile you've told them to shoot
-  const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(alive);
+  const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(p=>alive(p)&&p.seat!=='pass');   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>(u.gunner?440:380))continue;
@@ -213,7 +213,7 @@ function resolveShot(s){
   tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
   flashes.push({x:fx,y:fy,t:0});
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:0.06)*(t.side==='P'?rankNerve(t):1));   // machine-gun fire pins people down
-  if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1),u);
+  if(s.hit){const dm=(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.inVeh&&t.seat!=='gunner')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true);
   else if(!t.alerted){}
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -251,16 +251,18 @@ function throwNade(u,tx,ty){
   callout(u,'Frag out!',C.warn);
   return true;
 }
-function explode(x,y,by){
+// quiet: no alarm (an explosion with nobody left to hear it)
+function explode(x,y,by,quiet){
   booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});
+  const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}
   for(const v of units){
-    if(v.dead)continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;
+    if(v.dead||(v.inVeh&&v.seat!=='gunner'))continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;   // the crew inside are shielded
     if(!los(x,y,v.x,v.y))continue;
     v.sup=Math.min(1.2,v.sup+0.8);
     if(!v.downed)damage(v,95*(1-d/62),by);
     if(v.side==='E')v.alerted=true;
   }
-  alertAll('Contact. Weapons free.',true);
+  if(!quiet)alertAll('Contact. Weapons free.',true);
 }
 
 /* ---------- stealth ---------- */
@@ -336,7 +338,7 @@ function enemyThink(e){
   }else e.moveCool=simT+2;
 }
 function playerThink(p){
-  if(!alive(p)||p.path.length||!contact||p.sup>0.65){p.exposeT=0;return;}
+  if(!alive(p)||p.path.length||p.inVeh||!contact||p.sup>0.65){p.exposeT=0;return;}
   if(simT-p.lastOrder<4)return;
   const vis=enemies.filter(e=>!e.dead&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
   const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);
@@ -361,6 +363,7 @@ function updateUnit(u,dt){
   if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
   if(u.downed)return;
+  if(u.inVeh&&u.seat!=='gunner')return;   // driving or riding: only the gunner fights
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
     const sp=(u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):46)*(u.sup>0.65?0.7:1)*dt;
@@ -388,7 +391,7 @@ function update(dt){
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead)continue;
-    const helper=players.find(o=>alive(o)&&!o.path.length&&hyp(o.x-p.x,o.y-p.y)<24);
+    const helper=players.find(o=>alive(o)&&!o.path.length&&!o.inVeh&&hyp(o.x-p.x,o.y-p.y)<24);
     if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;callout(p,'Back in it',C.good);helper.stats.revives++;}}
     else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.dead=true;p.downed=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}}
   }
@@ -398,7 +401,7 @@ function update(dt){
   for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
   for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;
   if(state==='play'&&!endAt){
-    waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete
+    vehTick(dt);waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

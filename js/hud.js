@@ -32,7 +32,10 @@ function hud(){
   {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
    gb.disabled=!act.length;gb.classList.toggle('on',forced);gb.setAttribute('aria-pressed',forced);
    gb.querySelector('span').textContent=g==='sneak'?'Sneak':'Run';gb.querySelector('small').textContent=forced?'Manual':'Auto';
-   gb.setAttribute('aria-label',`${g==='sneak'?'Sneaking':'Running'}, ${forced?'manual':'automatic'}. Press to ${forced?'go back to automatic':g==='sneak'?'run':'sneak'}.`);}
+   gb.setAttribute('aria-label',`${g==='sneak'?'Sneaking':'Running'}, ${forced?'manual':'automatic'}. Press to ${forced?'go back to automatic':g==='sneak'?'run':'sneak'}.`);
+   if(selCrew().length){   // crew selected: the same spot becomes the Dismount button
+     gb.disabled=false;gb.classList.add('on');gb.removeAttribute('aria-pressed');
+     gb.querySelector('span').textContent='Dismount';gb.querySelector('small').textContent='Vehicle';gb.setAttribute('aria-label','Dismount the selected soldiers from the jeep');}}
   const ts=timeScale();
   const sp=$('#speed');sp.hidden=!(state==='play'&&ts<1);sp.textContent=paused?'Paused':'Slow-mo';
   let h;
@@ -40,6 +43,8 @@ function hud(){
   else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
+  else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
+  else if(wave.phase==='hq'&&jeepOf()&&jeepOf().state==='ok'&&act.length&&!preview)h='Tap the jeep to mount up: the first in drives, the second takes the gun.';
   else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box and restock in the supply box. The next area is to the north-east.';
   else if(wave.phase==='count'&&!preview)h='Reinforcements are coming through the north gate. Get the squad into cover facing north.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
@@ -71,7 +76,8 @@ function bindHud(){
   const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));select(on?[]:list);preview=null;mode=null;hud();};
   for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p))));
   $('#allBtn').addEventListener('click',()=>tabSelect(players.filter(alive)));
-  $('#gaitBtn').addEventListener('click',()=>{if(state!=='play')return;toggleGait();hud();});
+  const gaitOrDismount=()=>{if(state!=='play')return;const c=selCrew();if(c.length)dismount(c);else toggleGait();hud();};
+  $('#gaitBtn').addEventListener('click',gaitOrDismount);
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
@@ -84,7 +90,7 @@ function bindHud(){
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}
     else if(e.key==='Escape'){$('#clearBtn').click();}
-    else if(e.key==='r'||e.key==='R'){toggleGait();hud();}
+    else if(e.key==='r'||e.key==='R')gaitOrDismount();
     else if(e.key==='q'||e.key==='Q')turnCam(-Math.PI/12);else if(e.key==='e'||e.key==='E')turnCam(Math.PI/12);
     else if(e.key==='1'){selectTeam('A');hud();}else if(e.key==='2'){selectTeam('B');hud();}
   });

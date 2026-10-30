@@ -3,7 +3,7 @@
 let ptr=null;
 function unitAtScreen(sx,sy,activeOnly){
   let best=null,bd=26;
-  for(const u of players){if(u.dead)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
+  for(const u of players){if(u.dead||(u.inVeh&&u.seat!=='gunner'))continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
   return best;
 }
 function enemyAtScreen(sx,sy){
@@ -168,10 +168,18 @@ function tap(sx,sy){
     const u=sel[0];if(!u){mode=null;return;}
     if(throwNade(u,wx,wy))mode=null;return;
   }
+  // the jeep: with soldiers on foot selected, they board it; otherwise tapping it selects its crew
+  if(jeepAtScreen(sx,sy)){
+    const jv=jeepOf(),foot=sel.filter(u=>!u.inVeh);
+    if(foot.length&&jv.state==='ok'){orderBoard(foot);preview=null;return;}
+    const c=crewOf(jv).filter(alive);
+    if(c.length){select(c);preview=null;mode=null;return;}
+    banner(jv.state==='ok'?'Select soldiers, then tap the jeep to board it.':'The jeep is wrecked.',1800);return;
+  }
   const pu=unitAtScreen(sx,sy,false);
   if(pu){
     if(pu.downed){
-      const helpers=sel.filter(u=>u!==pu);
+      const helpers=sel.filter(u=>u!==pu&&!u.inVeh);
       if(!helpers.length){banner('Select a soldier, then tap the downed man.');return;}
       helpers.sort((a,b)=>hyp(a.x-pu.x,a.y-pu.y)-hyp(b.x-pu.x,b.y-pu.y));
       const h=helpers[0],spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));
@@ -183,10 +191,25 @@ function tap(sx,sy){
     selectTeam(pu.team);return;
   }
   const en=enemyAtScreen(sx,sy);
-  if(en&&sel.length){for(const u of sel){u.focus=en;u.supT=null;}callout(en,contact?'Focus fire':'Open fire!',C.warn);return;}
+  if(en&&sel.length){
+    for(const u of sel){u.focus=en;u.supT=null;}
+    if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up
+    callout(en,contact?'Focus fire':'Open fire!',C.warn);return;
+  }
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}
   const tg=tapTarget(sx,sy);   // tapping a wall or crate means: stand against the side you tapped
+  // crew selected: it's a drive order, two taps like a squad move (anyone on foot in the selection goes there too)
+  if(selCrew().length){
+    const jv=jeepOf();
+    if(preview&&preview.veh){const e=preview.path[preview.path.length-1],[px,py]=toS(e.x,e.y);if(hyp(sx-px,sy-py)<40){driveAlong(jv,preview.path);jv.engage=null;commit(preview.as);preview=null;return;}}
+    if(jv.state!=='ok'){banner('The jeep is out of action.');return;}
+    if(!seatOf(jv,'driver')){banner('Nobody is driving.');return;}
+    const p=vehRoute(jv,tg.x,tg.y);
+    if(!p){banner('The jeep can’t get there.');preview=null;return;}
+    const foot=sel.filter(u=>!u.inVeh);
+    preview={x:tg.x,y:tg.y,veh:true,path:p,as:foot.length?makeAssign(foot,tg.x,tg.y):[]};return;
+  }
   if(sel.length===1){
     const as=makeAssign(sel,tg.x,tg.y);
     if(!as.length){banner('Can’t get there.');return;}

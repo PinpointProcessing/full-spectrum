@@ -54,7 +54,7 @@ function driveJeep(dt){
 }
 // keep the machine gun pointing where the gunner aims (called every frame)
 function aimTurret(){
-  const j=wave.jeep,g=gunnerOf();if(!j||!g||g.dead)return;
+  const j=wave.jeep,g=j&&j.owner==='P'?seatOf(j,'gunner'):gunnerOf();if(!j||!g||g.dead||j.state==='wreck')return;
   j.m.tur.rotation.y=-g.ang-j.m.g.rotation.y;
 }
 

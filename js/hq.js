@@ -2,7 +2,7 @@
 /* Temporary HQ after the battle (free time, still the tutorial). The warehouse gets a medical point and a supply
    point inside, and the captured jeep sits on a motor-pool spot outside with a full repair bar. A soldier standing
    in the medical box heals; in the supply box he gets his grenade back. After 30 s a red arrow pulses towards the
-   north-east, where the next area will be. Driving the jeep comes next. */
+   north-east, where the next area will be. The jeep itself is in vehicle.js. */
 const HQ_ZONES=[
   {k:'med',x:195,y:322,w:52,h:44,col:'255,74,64',label:'MEDICAL'},
   {k:'sup',x:368,y:322,w:52,h:44,col:'232,186,84',label:'SUPPLY'},
@@ -24,10 +24,10 @@ function startHQ(){
 // the captured jeep moves to the motor pool (its old spot is freed, the new one blocked); the dead gunner drops to the ground
 function parkJeepAt(x,y){
   const j=wave.jeep;if(!j)return;
-  if(j.obj)removeObstacle(j.obj,j.gone);
-  j.x=x;j.y=y;j.m.g.position.set(x,0,y);j.m.tur.rotation.y=-Math.PI/2;jeepLight.intensity=0;
-  j.obj={kind:'jeep',x:x-JEEP.w/2,y:y-JEEP.l/2,w:JEEP.w,h:JEEP.l,full:false};j.gone=addObstacle(j.obj);
-  j.hp=100;
+  unparkObstacle(j);
+  Object.assign(j,{x,y,heading:Math.PI/2,owner:'P',hp:100,state:'ok',path:[],moving:false});   // it's ours now (vehicle.js)
+  j.m.g.position.set(x,0,y);j.m.g.rotation.y=0;j.m.tur.rotation.y=-Math.PI/2;jeepLight.intensity=0;
+  parkObstacle(j);
   const g=gunnerOf();if(g)g.elev=0;
 }
 function hqTick(dt){
@@ -65,9 +65,6 @@ function drawHQ(now){
     }
     const[lx,ly]=below(z.x+z.w/2,z.y+z.h,6);label(z.label,lx,ly,`rgba(${z.col},.95)`,9,700);
   }
-  // the jeep's repair bar
-  const j=wave.jeep;
-  if(j){const[bx,by]=toS(j.x,j.y,24);bar(bx-16,by-8,32,(j.hp||0)/100,C.good);label('JEEP',bx,by-16,'#cfe8d6',9,700);}
   // supply progress over anyone restocking
   for(const p of players)if(alive(p)&&p.restock>0){gPath(p.x,p.y,14,-Math.PI/2,-Math.PI/2+p.restock/SUPPLY_T*TAU);ox.strokeStyle='rgba(232,186,84,.95)';ox.lineWidth=2.2;ox.stroke();}
   // the way on: a pulsing red arrow on the ground in the north-east, pointing NE, and one at the screen edge if it's off view

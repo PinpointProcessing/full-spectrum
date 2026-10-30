@@ -58,9 +58,11 @@ function drawOverlay(rdt,now){
       gPath(a.x,a.y,8);ox.fillStyle=a.cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=col;ox.lineWidth=2;ox.stroke();
       const[lx,ly]=toS(a.x,a.y,18);label(a.u.id,lx,ly,teamCol(a.u),9,700);
     }
-    gPath(preview.x,preview.y,15+pulse*3);ox.strokeStyle='rgba(235,240,245,.9)';ox.lineWidth=1.6;ox.stroke();
-    const covN=preview.as.filter(a=>a.cov).length,[px,py]=below(preview.x,preview.y,24);
-    label(`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',10,700);
+    if(!preview.veh){   // a drive order draws its own ghost (vehicle.js)
+      gPath(preview.x,preview.y,15+pulse*3);ox.strokeStyle='rgba(235,240,245,.9)';ox.lineWidth=1.6;ox.stroke();
+      const covN=preview.as.filter(a=>a.cov).length,[px,py]=below(preview.x,preview.y,24);
+      label(`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',10,700);
+    }
   }
   // route being drawn
   if(ptr&&ptr.kind==='draw'&&ptr.trail.length){
@@ -87,7 +89,7 @@ function drawOverlay(rdt,now){
     ox.fillStyle='#c9d1a0';ox.beginPath();ox.arc(bx,by,3,0,TAU);ox.fill();
   }
 
-  drawHQ(now);
+  drawHQ(now);drawVehicle(rdt,now);
   // enemy info
   const act=sel.filter(alive);
   for(const e of enemies){
@@ -111,6 +113,7 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
+    if(u.inVeh&&u.seat!=='gunner')continue;   // inside the jeep: the jeep's own label covers him
     // shoulder to shoulder with an earlier teammate: lift this one's bar so the two don't overlap
     const crowd=players.some((o,i)=>i<players.indexOf(u)&&!o.dead&&hyp(o.x-u.x,o.y-u.y)<16);
     const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy0]=toS(vx,vy,24),hy=hy0-(crowd?10:0),[fx,fy]=toS(vx,vy);
