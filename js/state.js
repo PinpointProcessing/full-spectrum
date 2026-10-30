@@ -1,6 +1,6 @@
 "use strict";
 /* Mutable battle state, unit creation, reset, and the game speed (pause / slow-mo). */
-let units=[],players=[],enemies=[],sel=[],preview=null,mode=null,contact=false,paused=false,state='intro',ambushT=-9;
+let units=[],players=[],enemies=[],sel=[],preview=null,mode=null,contact=false,paused=false,state='intro',ambushT=-9,cardGroup=[];   // cardGroup: soldiers whose cards are on show
 let simT=0,shots=[],tracers=[],flashes=[],sparks=[],nades=[],booms=[],callouts=[],decals=[],visTick=0,aiTick=0,endAt=0,downCount=0,storm=0,stormT=12;
 const alive=u=>!u.dead&&!u.downed;
 
@@ -19,7 +19,7 @@ function reset(){
   players=units.filter(u=>u.side==='P');enemies=units.filter(u=>u.side==='E');
   for(const u of units)makeSoldier(u);
   drawGround();
-  sel=[];preview=null;mode=null;contact=false;paused=false;simT=0;downCount=0;ambushT=-9;
+  sel=[];cardGroup=[];preview=null;mode=null;contact=false;paused=false;simT=0;downCount=0;ambushT=-9;
   shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];endAt=0;
   setStatus();buildCards();
 }

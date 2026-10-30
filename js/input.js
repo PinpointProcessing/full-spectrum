@@ -139,8 +139,13 @@ function bindInput(){
   $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;tilt=0;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
 }
 
-// changing the selection: soldiers who weren't already selected go back to the automatic sneak/run choice
-function select(list){for(const u of list)if(!sel.includes(u))u.gaitForce=null;sel=list;}
+// changing the selection: soldiers who weren't already selected go back to the automatic sneak/run choice.
+// Cards on show: picking one soldier out of the group already showing keeps that group up; anything else shows the selection's teams.
+function select(list){
+  for(const u of list)if(!sel.includes(u))u.gaitForce=null;
+  if(!(list.length===1&&cardGroup.includes(list[0])))cardGroup=players.filter(p=>list.some(u=>u.team===p.team));
+  sel=list;
+}
 function selectTeam(t){select(players.filter(p=>p.team===t&&alive(p)));preview=null;mode=null;}
 // gait button: flip the selected soldiers to the other gait, or back to automatic if already flipped
 function toggleGait(){

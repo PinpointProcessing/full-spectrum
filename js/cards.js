@@ -3,7 +3,8 @@
    and the team tabs' health pips. Each card: portrait, name, status, a heart-rate monitor and equipment.
    The monitor is green when healthy, yellow when hurt, orange when badly hurt, red when downed and a grey flatline
    when dead; it beats faster under fire, when moving fast or hurt, and goes erratic when downed.
-   Tapping a card selects just that soldier; tapping his grenade readies a throw. */
+   Tapping a card selects just that soldier (the group's cards stay up), tapping it again deselects him;
+   tapping his grenade readies a throw. */
 const ECG_SPEED=60;   // how fast the trace sweeps across, px per second
 const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy="10" rx="4.6" ry="5"/><rect x="5.8" y="2.6" width="3.4" height="2.6" rx=".6"/><path d="M9.2 3.6h2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
 function hpCol(u){return u.dead?'#5b636a':u.downed?'#ff3b2a':u.hp>=70?C.good:u.hp>=35?C.warn:'#ff8a3d';}
@@ -47,9 +48,9 @@ function buildCards(){
       `<div class="uc-bot"><span class="uc-hp">100</span><span class="uc-gun">Rifle</span><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
-      select([u]);preview=null;
-      if(ev&&ev.target.closest('.uc-nade')){if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
-      else mode=null;
+      preview=null;
+      if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
+      else{mode=null;if(sel.length===1&&sel[0]===u)sel=[];else select([u]);}   // tap him again to deselect; the cards stay up
       hud();
     };
     el.addEventListener('click',act);
@@ -70,7 +71,7 @@ function statusText(u){
 }
 // called from hud(): which cards show, and their text
 function updateCards(){
-  const act=sel.filter(alive),teams=new Set(act.map(u=>u.team)),shown=players.filter(p=>teams.has(p.team));
+  const act=sel.filter(alive),shown=cardGroup;
   const box=$('#cards');box.hidden=!shown.length||state!=='play';box.style.setProperty('--n',shown.length||1);box.classList.toggle('narrow',shown.length>2);
   for(const u of players){
     const c=u.card;if(!c)continue;

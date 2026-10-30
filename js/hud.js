@@ -66,7 +66,7 @@ function bindHud(){
   $('#allBtn').addEventListener('click',()=>{if(state!=='play')return;select(players.filter(alive));preview=null;mode=null;hud();});
   $('#gaitBtn').addEventListener('click',()=>{if(state!=='play')return;toggleGait();hud();});
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
-  $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else sel=[];hud();});
+  $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#startBtn').addEventListener('click',()=>{startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});
   $('#againBtn').addEventListener('click',()=>{startView();$('#end').hidden=true;reset();state='play';hud();});
