@@ -67,8 +67,10 @@ function alertMeter(){
 }
 function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:700};clampCam();updateCamera();}
 function bindHud(){
-  for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>{if(state!=='play')return;selectTeam(tab.dataset.team);hud();});
-  $('#allBtn').addEventListener('click',()=>{if(state!=='play')return;select(players.filter(alive));preview=null;mode=null;hud();});
+  // team tabs toggle: pressing the tab of the group that's already selected deselects it
+  const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));select(on?[]:list);preview=null;mode=null;hud();};
+  for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p))));
+  $('#allBtn').addEventListener('click',()=>tabSelect(players.filter(alive)));
   $('#gaitBtn').addEventListener('click',()=>{if(state!=='play')return;toggleGait();hud();});
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
