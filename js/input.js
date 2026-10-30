@@ -107,7 +107,7 @@ function bindInput(){
         }else if(Math.max(l[0],l[1])>30)pinch.mode='zoom';   // one finger moving on its own: pinch
         else return;
       }
-      if(pinch.mode==='orbit'){yaw=wrapA(pinch.yaw0-(i.mx-pinch.mx0)*ORBIT_SPIN);tiltCam(pinch.t0+(i.my-pinch.my0)*0.004);return;}   // pull down = look further out
+      if(pinch.mode==='orbit'){yaw=wrapA(pinch.yaw0-(i.mx-pinch.mx0)*ORBIT_SPIN);tiltCam(pinch.t0-(i.my-pinch.my0)*0.004);return;}   // push up = look further out (as in Ashvale)
       zoom=clamp(pinch.z0*i.d/pinch.d0,1,MAXZ);
       if(!pinch.rot&&Math.abs(da)>TWIST_START){pinch.rot=true;pinch.a0=i.a;pinch.yaw0=yaw;}
       if(pinch.rot)yaw=wrapA(pinch.yaw0+wrapA(i.a-pinch.a0));   // the map turns with your fingers
@@ -135,7 +135,7 @@ function bindInput(){
   ov.addEventListener('pointerup',ev=>endPtr(ev,false));
   ov.addEventListener('pointercancel',ev=>endPtr(ev,true));
   ov.addEventListener('contextmenu',ev=>ev.preventDefault());
-  ov.addEventListener('wheel',ev=>{ev.preventDefault();if(ev.shiftKey){tiltCam(tilt-(ev.deltaY||ev.deltaX)*0.0015);return;}const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
+  ov.addEventListener('wheel',ev=>{ev.preventDefault();if(ev.shiftKey){tiltCam(tilt+(ev.deltaY||ev.deltaX)*0.0015);return;}const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
   $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;tilt=0;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
 }
 
