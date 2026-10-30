@@ -87,6 +87,7 @@ function drawOverlay(rdt,now){
     ox.fillStyle='#c9d1a0';ox.beginPath();ox.arc(bx,by,3,0,TAU);ox.fill();
   }
 
+  drawHQ(now);
   // enemy info
   const act=sel.filter(alive);
   for(const e of enemies){

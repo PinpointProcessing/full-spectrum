@@ -68,6 +68,31 @@
       <span>% = hit chance per shot</span>
     </div>
     <button class="go" id="startBtn">Deploy</button>
+    <button class="linkish" id="resetXpBtn" type="button">Reset squad XP and ranks</button>
+  </div>
+</div>
+
+<div class="overlay" id="aar" hidden>
+  <div class="card aar">
+    <div class="eyebrow">After-action report</div>
+    <h1>Mission complete</h1>
+    <p id="aarSum"></p>
+    <div id="aarRows"></div>
+    <button class="go" id="aarBtn">Continue</button>
+  </div>
+</div>
+
+<div class="overlay light" id="hqPop" hidden>
+  <div class="card">
+    <div class="eyebrow">Temporary HQ established</div>
+    <h1>Warehouse secured</h1>
+    <p>This warehouse is now your temporary HQ. You can heal, resupply, and repair your troops and equipment. Continue pushing to control more temporary HQs and establish a permanent HQ.</p>
+    <ul>
+      <li><b>Medical (red +):</b> soldiers standing inside heal.</li>
+      <li><b>Supply:</b> soldiers standing inside get their grenade back.</li>
+      <li><b>Motor pool (yellow):</b> the captured jeep, fully repaired. Driving it comes next.</li>
+    </ul>
+    <button class="go" id="hqBtn">Got it</button>
   </div>
 </div>
 
@@ -89,8 +114,10 @@
 <script src="js/state.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/waves.js"></script>
+<script src="js/hq.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/input.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/cards.js"></script>
+<script src="js/progress.js"></script>
 <script src="js/main.js"></script>

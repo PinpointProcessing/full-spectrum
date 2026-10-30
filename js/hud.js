@@ -5,12 +5,14 @@ function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classLis
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
+  if(wave.phase==='hq'){s.textContent='HQ secured';s.className='chip';return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
 }
 function finish(){
   const win=enemies.every(e=>e.dead);
   state='end';setStatus();$('#status').textContent=win?'Secured':'Lost';
+  if(win){bigText('Mission complete!','complete');setTimeout(showAAR,2600);return;}   // then the after-action report, then the HQ
   const t=Math.floor(simT),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
   const kia=players.filter(p=>p.dead).length;
   $('#endEyebrow').textContent=win?'Mission complete':'Mission failed';
@@ -38,6 +40,7 @@ function hud(){
   else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
+  else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box and restock in the supply box. The next area is to the north-east.';
   else if(wave.phase==='count'&&!preview)h='Reinforcements are coming through the north gate. Get the squad into cover facing north.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
@@ -48,7 +51,7 @@ function hud(){
 // detection indicator, updated every frame
 let alertShown=-1;
 function alertMeter(){
-  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done');if(el.hidden)return;   // the countdown takes its place
+  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done','hq');if(el.hidden)return;   // the countdown takes its place
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);
@@ -71,6 +74,9 @@ function bindHud(){
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#startBtn').addEventListener('click',()=>{startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});
+  $('#aarBtn').addEventListener('click',startHQ);
+  $('#hqBtn').addEventListener('click',()=>{$('#hqPop').hidden=true;paused=false;hud();});
+  $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
   $('#againBtn').addEventListener('click',()=>{startView();$('#end').hidden=true;reset();state='play';hud();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;

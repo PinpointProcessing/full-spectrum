@@ -5,12 +5,12 @@
    Clearing them ends the mission. Timings run on game time, so pause and slow-mo stretch them. */
 const JEEP={x:475,y0:-80,y1:190,w:24,l:46,speed:60};   // drives south through the gate and parks here (centre)
 const CLEAR_T=2.6,COUNT_T=5;
-let wave={phase:'fight1',t:0};   // phases: fight1 → clear → count → drive → fight2 → done
+let wave={phase:'fight1',t:0};   // phases: fight1 → clear → count → drive → fight2 → done → hq (after the report)
 function wavePhase(...ps){return ps.includes(wave.phase);}
 function resetWaves(){
   if(wave.jeep){scene.remove(wave.jeep.m.g);if(wave.jeep.obj)removeObstacle(wave.jeep.obj,wave.jeep.gone);}
   if(jeepLight)jeepLight.intensity=0;
-  wave={phase:'fight1',t:0};bigText(null);cdShown=-1;
+  wave={phase:'fight1',t:0};bigText(null);cdShown=-1;hq=null;camPan=null;
 }
 function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){
@@ -19,6 +19,7 @@ function waveTick(dt){
   else if(wave.phase==='clear'&&el>=CLEAR_T)goWave('count');
   else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnJeep();goWave('drive');}
   else if(wave.phase==='drive')driveJeep(dt);
+  else if(wave.phase==='hq')hqTick(dt);
   else if(wave.phase==='fight2'&&enemies.every(e=>e.dead)){goWave('done');bigText('All clear!','clear');endAt=performance.now()+CLEAR_T*1000;}
 }
 

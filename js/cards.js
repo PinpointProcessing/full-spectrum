@@ -43,7 +43,7 @@ function buildCards(){
   for(const u of players){
     const el=document.createElement('div');el.className='ucard';el.style.setProperty('--tc',teamCol(u));
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
-    el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
+    el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<canvas class="uc-ecg"></canvas>`+
       `<div class="uc-bot"><span class="uc-hp">100</span><span class="uc-gun">Rifle</span><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{

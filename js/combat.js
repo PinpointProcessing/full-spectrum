@@ -31,6 +31,7 @@ function hitChance(s,t,L){
   if(s.side==='P'&&ambushing())c+=AMBUSH_BONUS;
   if(s.path.length)c-=0.15;
   if(t.path.length)c-=0.08;
+  if(s.side==='P')c+=rankAim(s);   // rank: steadier aim
   if(s.side==='E')c-=0.1;
   if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);
@@ -158,17 +159,22 @@ function alertAll(msg,ambush){
 }
 function ambushing(){return!contact||simT<ambushT;}
 
-function damage(t,dmg){
+// a kill streak is kills no more than STREAK_GAP s apart
+const STREAK_GAP=8;
+function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREAK_GAP?s.streak+1:1;s.lastKill=simT;s.best=Math.max(s.best,s.streak);}
+// src: who did it (credited with the kill for the after-action report)
+function damage(t,dmg,src){
   if(t.dead||t.downed)return;
   t.hp-=dmg;t.hitFlash=.25;
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
-      t.downed=true;t.wasDown=true;downCount++;t.bleed=45;t.revive=0;t.path=[];t.supT=null;
+      t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=45;t.revive=0;t.path=[];t.supT=null;
       callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
       sel=sel.filter(x=>x!==t);preview=null;
     }else{
       t.dead=true;t.path=[];callout(t,'Tango down',C.good);
+      if(src&&src.side==='P')creditKill(src);
       paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});
     }
   }
@@ -206,8 +212,8 @@ function resolveShot(s){
   }
   tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
   flashes.push({x:fx,y:fy,t:0});
-  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:0.06));   // machine-gun fire pins people down
-  if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1));
+  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:0.06)*(t.side==='P'?rankNerve(t):1));   // machine-gun fire pins people down
+  if(s.hit)damage(t,(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1),u);
   if(u.side==='P')alertAll('Contact. Weapons free.',true);
   else if(!t.alerted){}
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -231,7 +237,7 @@ function suppressShot(u){
   tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163'});flashes.push({x:L.fx,y:L.fy,t:0});
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
   for(const{e}of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
-  if(hit)damage(t,12);
+  if(hit)damage(t,12,u);
   alertAll('Contact. Weapons free.',true);
   u.cool=.42+Math.random()*.12;
 }
@@ -241,17 +247,17 @@ function throwNade(u,tx,ty){
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.grenade=0;u.lastOrder=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
-  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9});
+  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u});u.stats.items++;
   callout(u,'Frag out!',C.warn);
   return true;
 }
-function explode(x,y){
+function explode(x,y,by){
   booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});
   for(const v of units){
     if(v.dead)continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;
     if(!los(x,y,v.x,v.y))continue;
     v.sup=Math.min(1.2,v.sup+0.8);
-    if(!v.downed)damage(v,95*(1-d/62));
+    if(!v.downed)damage(v,95*(1-d/62),by);
     if(v.side==='E')v.alerted=true;
   }
   alertAll('Contact. Weapons free.',true);
@@ -383,10 +389,10 @@ function update(dt){
   for(const p of players){
     if(!p.downed||p.dead)continue;
     const helper=players.find(o=>alive(o)&&!o.path.length&&hyp(o.x-p.x,o.y-p.y)<24);
-    if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;callout(p,'Back in it',C.good);}}
+    if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;callout(p,'Back in it',C.good);helper.stats.revives++;}}
     else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.dead=true;p.downed=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}}
   }
-  for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);explode(n.x1,n.y1);}}
+  for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);explode(n.x1,n.y1,n.by);}}
   for(const arr of [tracers,flashes,sparks,booms,callouts])for(const f of arr)f.t+=dt;
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
   for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
