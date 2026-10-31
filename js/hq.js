@@ -9,7 +9,7 @@ const HQ_ZONES=[
   {k:'motor',x:458,y:560,w:44,h:70,col:'255,206,64',label:'MOTOR POOL'},
 ];
 const UNLOCK_SHOW=3;   // s the camera stays on the jeep after the report before the HQ popup
-const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:520,y:105};   // NEXT: where the arrow sits, pointing NE
+const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:135};   // NEXT: where the arrow sits, pointing east at the depot gate
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>z.k!=='motor'&&x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
 
@@ -51,7 +51,10 @@ function startPatrol(){
 function hqTick(dt){
   const j=jeepOf(),live=players.filter(alive);
   if(!hq.patrol&&j&&j.state==='ok'&&live.length&&live.every(p=>p.inVeh===j))startPatrol();
-  if(hq.patrol==='on'&&enemies.every(e=>e.dead)){hq.patrol='done';contact=false;bigText('All clear!','clear');setStatus();}
+  if(hq.patrol==='on'&&enemies.every(e=>e.dead)){
+    hq.patrol='done';contact=false;bigText('All clear!','clear');setStatus();
+    const mine=hq;setTimeout(()=>{if(hq===mine&&state==='play')revealArea();},CLEAR_T*1000);   // then the depot opens
+  }
   for(const p of players){
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
@@ -59,6 +62,33 @@ function hqTick(dt){
     if(z&&z.k==='sup'&&p.grenade<1){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;p.restock=0;callout(p,'Restocked',C.good);}}else p.restock=0;
   }
   if(!hq.arrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Move out when you\'re ready.',4000);}
+}
+/* ---------- the depot: locked behind the yard's east gate until the jeep patrol is beaten ---------- */
+let area={open:false,gone:[],slide:0};
+function lockArea(){
+  if(area.open){area.gone=addObstacle(depotGate);area.open=false;}
+  area.slide=0;if(depotGate.mesh)depotGate.mesh.position.z=depotGate.y+depotGate.h/2;
+  VB={x0:0,z0:0,x1:YARD_W,z1:H};
+}
+function openArea(){
+  if(area.open)return;
+  removeObstacle(depotGate,area.gone);area.gone=[];area.open=true;area.slide=0.001;
+  VB={x0:0,z0:0,x1:W,z1:H};
+}
+function gateTick(rdt){   // the gate slides open along the fence (every frame)
+  if(area.slide>0&&area.slide<1){area.slide=Math.min(1,area.slide+rdt/1.6);depotGate.mesh.position.z=depotGate.y+depotGate.h/2-66*area.slide;}
+}
+// "New area unlocked!": the gate opens and the camera sweeps out to the checkpoint, then comes back
+function revealArea(){
+  openArea();paused=true;bigText('New area unlocked!','unlock');
+  const back={x:camT.x,z:camT.z,zoom};
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1000,z:240,zoom:1.6},t:0,dur:1.8};
+  const mine=hq;
+  setTimeout(()=>{
+    if(hq!==mine||state!=='play')return;
+    camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.6};paused=false;
+    banner('The depot is open. Push north-east to the checkpoint at the crossroads.',4500);hud();
+  },4200);
 }
 // smooth camera move to the warehouse when the HQ opens (real time, every frame)
 function panTick(rdt){
@@ -90,7 +120,7 @@ function drawHQ(now){
   for(const p of players)if(alive(p)&&p.restock>0){gPath(p.x,p.y,14,-Math.PI/2,-Math.PI/2+p.restock/SUPPLY_T*TAU);ox.strokeStyle='rgba(232,186,84,.95)';ox.lineWidth=2.2;ox.stroke();}
   // the way on: a pulsing red arrow on the ground in the north-east, pointing NE, and one at the screen edge if it's off view
   if(hq.arrow){
-    const a=-Math.PI/4,ca=Math.cos(a),sa=Math.sin(a),pts=[[34,0],[4,-22],[4,-9],[-28,-9],[-28,9],[4,9],[4,22]].map(([u,v])=>toS(NEXT.x+u*ca-v*sa,NEXT.y+u*sa+v*ca,.4));
+    const a=0,ca=Math.cos(a),sa=Math.sin(a),pts=[[34,0],[4,-22],[4,-9],[-28,-9],[-28,9],[4,9],[4,22]].map(([u,v])=>toS(NEXT.x+u*ca-v*sa,NEXT.y+u*sa+v*ca,.4));
     ox.globalAlpha=.35+pulse*.6;ox.beginPath();ox.moveTo(...pts[0]);for(const p of pts)ox.lineTo(...p);ox.closePath();
     ox.fillStyle='rgba(255,60,44,.85)';ox.fill();ox.strokeStyle='rgba(255,170,150,.9)';ox.lineWidth=1.5;ox.stroke();ox.globalAlpha=1;
     const[nx,ny]=toS(NEXT.x,NEXT.y);

@@ -10,7 +10,7 @@ function wavePhase(...ps){return ps.includes(wave.phase);}
 function resetWaves(){
   if(wave.jeep){scene.remove(wave.jeep.m.g);if(wave.jeep.obj)removeObstacle(wave.jeep.obj,wave.jeep.gone);}
   if(jeepLight)jeepLight.intensity=0;
-  wave={phase:'fight1',t:0};bigText(null);cdShown=-1;hq=null;camPan=null;
+  wave={phase:'fight1',t:0};bigText(null);cdShown=-1;hq=null;camPan=null;lockArea();
 }
 function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){

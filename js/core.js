@@ -1,6 +1,7 @@
 "use strict";
 /* Shared constants, DOM handles and small helpers. Loaded first; every other file uses these globals. */
-const W=600,H=900;
+const W=1300,H=900;   // the whole map: the yard (x 0–600) plus the shipping depot to the east, opened later (YARD_W)
+const YARD_W=600;
 const C={alpha:'#5ec8ff',bravo:'#ffb547',enemy:'#ff5a48',good:'#5fe08e',warn:'#ffcf4a',bad:'#ff5a48'};
 const HUDFONT='"Chakra Petch","Rajdhani",ui-sans-serif,system-ui,sans-serif';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;

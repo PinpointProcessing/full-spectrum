@@ -30,7 +30,7 @@ function findPath(sx,sy,tx,ty,nav=FOOT){
     const i=pop()[1];
     if(closedSt[i]===stampN)continue;closedSt[i]=stampN;
     if(i===g){found=true;break;}
-    if(++iter>6000)break;
+    if(++iter>20000)break;   // the map is 130 x 90 cells
     const x=i%GW,y=(i/GW)|0;
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy;

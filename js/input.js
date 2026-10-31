@@ -136,7 +136,7 @@ function bindInput(){
   ov.addEventListener('pointercancel',ev=>endPtr(ev,true));
   ov.addEventListener('contextmenu',ev=>ev.preventDefault());
   ov.addEventListener('wheel',ev=>{ev.preventDefault();if(ev.shiftKey){tiltCam(tilt+(ev.deltaY||ev.deltaX)*0.0015);return;}const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
-  $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;tilt=0;camT={x:W/2,z:H/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
+  $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;tilt=0;camT={x:(VB.x0+VB.x1)/2,z:(VB.z0+VB.z1)/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
 }
 
 // changing the selection: soldiers who weren't already selected go back to the automatic sneak/run choice.

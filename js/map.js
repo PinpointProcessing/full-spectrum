@@ -1,10 +1,14 @@
 "use strict";
-/* Map data (every object in the yard and warehouse) plus geometry queries: line of sight, cover, free space. */
+/* Map data (the yard and warehouse, and the shipping depot with the checkpoint to the east) plus geometry queries:
+   line of sight, cover, free space. */
 const objs=[];
-const FULL=new Set(['container','wall','truck','rack','fence']);
+const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank']);
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
 O('fence',0,0,450,8);O('fence',500,0,100,8);O('fence',0,H-8,W,8);   // north gate 450-500 (reinforcements come through it)
-O('fence',0,0,8,H);O('fence',W-8,0,8,H);
+O('fence',0,0,8,H);O('fence',W-8,0,8,H);O('fence',YARD_W,0,W-YARD_W,8);
+// the yard's east fence, with a gate (y 100-170) to the depot road. Locked until the area opens (hq.js)
+O('fence',YARD_W-8,0,8,100);O('fence',YARD_W-8,170,8,H-170);
+const depotGate=objs[objs.push({kind:'gate',x:YARD_W-8,y:100,w:8,h:70,full:true})-1];
 // warehouse shell (x170-450, y260-560)
 O('wall',170,260,115,10);O('wall',325,260,125,10);           // north, back door 285-325
 O('wall',170,550,90,10);O('wall',360,550,90,10);             // south, roll door 260-360
@@ -32,6 +36,35 @@ O('crate',420,150,26,26);O('pallet',150,170,30,20);
 O('container',520,240,34,110,{col:'#2c4a63',tag:'OOLU 5519'});
 O('container',470,800,100,34,{col:'#4f565b',tag:'TGHU 3302'});
 O('barrel',300,808,16,16,{col:'#6b3a28'});
+
+/* ---------- the shipping depot (x 600-1300), same rainy night ----------
+   An east-west road runs from the yard gate (y 110-160) to a crossroads at (1050,135) with a north-south road (x 1025-1075).
+   The checkpoint sits at the crossroads: a boom gate across the road at x 985, a guard tower beside it, a watchtower on the
+   far corner, a sandbagged firing position, and fuel tanks in the north-east corner. South of the road, rows of single and
+   double-stacked containers leave aisles for flanking. */
+const ROAD={y0:110,y1:160,x0:1025,x1:1075},CROSS={x:1050,y:135};
+const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
+const box=(x,y,w,h,k,stack=1)=>O('container',x,y,w,h,{col:CK[k%CK.length][0],tag:`${CK[k%CK.length][1]} ${(1000+k*397)%9000+1000}`,stack});
+// north strip, between the fence and the road
+box(640,30,110,34,0);box(780,24,34,70,1);box(832,40,110,34,2,2);
+// main stacks south of the road, west of the crossroads
+box(640,210,110,34,3,2);box(780,210,110,34,4);box(910,214,34,110,5,2);
+box(640,300,34,110,6);box(700,330,110,34,7,2);box(840,300,34,110,0);
+box(640,470,110,34,1);box(790,440,110,34,2,2);box(930,420,34,110,3);
+box(660,580,34,110,4,2);box(740,610,110,34,5);box(900,580,110,34,6,2);
+box(640,760,110,34,7);box(800,730,34,110,0,2);box(880,790,110,34,1);
+// east of the north-south road
+box(1110,240,110,34,2,2);box(1110,330,34,110,3);box(1200,360,34,110,4,2);
+box(1110,520,110,34,5);box(1140,620,110,34,6,2);box(1110,760,110,34,7);box(1244,700,34,110,0);
+// the checkpoint
+O('booth',958,66,30,30);                       // guard tower beside the gate, north of the road
+O('tower',1092,176,18,18);                     // watchtower on the south-east corner of the crossroads
+O('sandbag',978,176,44,10);O('sandbag',978,186,10,22);O('sandbag',1012,186,10,22);   // firing position covering the road
+O('tank',1120,20,44,44,{col:'#c9c6bc'});O('tank',1180,20,44,44,{col:'#b9b4a6'});O('tank',1240,24,36,36,{col:'#c9c6bc'});   // fuel tanks
+O('barrel',1100,80,16,16,{col:'#8a2f22'});O('barrel',1118,82,16,16,{col:'#8a2f22'});O('crate',1150,88,26,20);
+O('crate',980,250,26,26);O('pallet',990,330,30,20);O('crate',975,642,26,26);O('barrel',996,470,16,16,{col:'#3a5160'});
+// decoration that doesn't block anything: the boom barrier arm across the road
+const decor=[{kind:'boom',x:985,y:ROAD.y0+2,len:ROAD.y1-ROAD.y0-4}];
 
 const posts=[{x:30,y:560},{x:570,y:200},{x:560,y:870}];
 const lights=[
@@ -71,7 +104,8 @@ function isFree(x,y,pad=7.5){if(x<10||y<10||x>W-10||y>H-10)return false;for(cons
 // How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
-  return{container:26,wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12}[o.kind]||0;
+  if(o.kind==='container')return 26*(o.stack||1);
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32}[o.kind]||0;
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;
