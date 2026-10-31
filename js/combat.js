@@ -29,7 +29,7 @@ function hitChance(s,t,L){
   if(cov===1)c-=0.28;else if(cov===2)c-=0.42;
   c-=s.sup>0.65?0.25:s.sup*0.15;
   if(s.side==='P'&&ambushing())c+=AMBUSH_BONUS;
-  if(s.path.length)c-=0.15;
+  if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=0.15;
   if(t.path.length)c-=0.08;
   if(s.side==='P')c+=rankAim(s);   // rank: steadier aim
   if(s.side==='E')c-=0.1;
@@ -182,7 +182,7 @@ function damage(t,dmg,src){
 
 function pickTarget(u){
   // undetected, the squad holds fire except at a hostile you've told them to shoot
-  const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(p=>alive(p)&&p.seat!=='pass');   // a jeep is shot at through its driver (hits go to the jeep)
+  const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(alive);   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>(u.gunner?440:380))continue;
@@ -213,7 +213,7 @@ function resolveShot(s){
   tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
   flashes.push({x:fx,y:fy,t:0});
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:0.06)*(t.side==='P'?rankNerve(t):1));   // machine-gun fire pins people down
-  if(s.hit){const dm=(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.inVeh&&t.seat!=='gunner')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
+  if(s.hit){const dm=(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true);
   else if(!t.alerted){}
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -256,7 +256,7 @@ function explode(x,y,by,quiet){
   booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});
   const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}
   for(const v of units){
-    if(v.dead||(v.inVeh&&v.seat!=='gunner'))continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;   // the crew inside are shielded
+    if(v.dead||v.seat==='driver')continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;   // the driver is shielded; riders and the gunner sit in the open
     if(!los(x,y,v.x,v.y))continue;
     v.sup=Math.min(1.2,v.sup+0.8);
     if(!v.downed)damage(v,95*(1-d/62),by);
@@ -363,7 +363,7 @@ function updateUnit(u,dt){
   if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
   if(u.downed)return;
-  if(u.inVeh&&u.seat!=='gunner')return;   // driving or riding: only the gunner fights
+  if(u.seat==='driver')return;   // the driver drives; riders and the gunner fight from the jeep
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
     const sp=(u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):46)*(u.sup>0.65?0.7:1)*dt;

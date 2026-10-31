@@ -113,10 +113,10 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
-    if(u.inVeh&&u.seat!=='gunner')continue;   // inside the jeep: the jeep's own label covers him
+    if(u.seat==='driver')continue;   // behind the wheel: the jeep's own label covers him
     // shoulder to shoulder with an earlier teammate: lift this one's bar so the two don't overlap
-    const crowd=players.some((o,i)=>i<players.indexOf(u)&&!o.dead&&hyp(o.x-u.x,o.y-u.y)<16);
-    const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy0]=toS(vx,vy,24),hy=hy0-(crowd?10:0),[fx,fy]=toS(vx,vy);
+    const crowd=players.filter((o,i)=>i<players.indexOf(u)&&!o.dead&&o.seat!=='driver'&&hyp(o.x-u.x,o.y-u.y)<16).length;
+    const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy0]=toS(vx,vy,24),hy=hy0-crowd*10,[fx,fy]=toS(vx,vy);
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
     if(sel.includes(u)){gPath(vx,vy,9.5);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(u.downed){

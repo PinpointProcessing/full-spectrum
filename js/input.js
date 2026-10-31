@@ -3,7 +3,7 @@
 let ptr=null;
 function unitAtScreen(sx,sy,activeOnly){
   let best=null,bd=26;
-  for(const u of players){if(u.dead||(u.inVeh&&u.seat!=='gunner'))continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
+  for(const u of players){if(u.dead||u.seat==='driver')continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
   return best;
 }
 function enemyAtScreen(sx,sy){
@@ -200,7 +200,7 @@ function tap(sx,sy){
   if(!sel.length){banner('Select soldiers first.',1600);return;}
   const tg=tapTarget(sx,sy);   // tapping a wall or crate means: stand against the side you tapped
   // crew selected: it's a drive order, two taps like a squad move (anyone on foot in the selection goes there too)
-  if(selCrew().length){
+  if(selCrew().length&&seatOf(jeepOf(),'driver')){   // with nobody at the wheel, taps move whoever's on foot
     const jv=jeepOf();
     if(preview&&preview.veh){const e=preview.path[preview.path.length-1],[px,py]=toS(e.x,e.y);if(hyp(sx-px,sy-py)<40){driveAlong(jv,preview.path);jv.engage=null;commit(preview.as);preview=null;return;}}
     if(jv.state!=='ok'){banner('The jeep is out of action.');return;}
@@ -210,13 +210,15 @@ function tap(sx,sy){
     const foot=sel.filter(u=>!u.inVeh);
     preview={x:tg.x,y:tg.y,veh:true,path:p,as:foot.length?makeAssign(foot,tg.x,tg.y):[]};return;
   }
-  if(sel.length===1){
-    const as=makeAssign(sel,tg.x,tg.y);
+  const movers=sel.filter(u=>!u.inVeh);   // anyone still in the jeep (a gunner covering) stays put
+  if(!movers.length){banner('He stays on the gun until it\'s quiet. Select just him and press Dismount to pull him out.',2600);return;}
+  if(movers.length===1){
+    const as=makeAssign(movers,tg.x,tg.y);
     if(!as.length){banner('Can’t get there.');return;}
     commit(as);return;
   }
   if(preview){const[px,py]=toS(preview.x,preview.y);if(hyp(sx-px,sy-py)<40){commit(preview.as);preview=null;return;}}
-  const as=makeAssign(sel,tg.x,tg.y);
+  const as=makeAssign(movers,tg.x,tg.y);
   if(!as.length){banner('Can’t get there.');preview=null;return;}
   preview={x:tg.x,y:tg.y,as};
 }

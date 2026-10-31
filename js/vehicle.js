@@ -40,12 +40,13 @@ function seatIn(u,j){
   u.seat=!seatOf(j,'driver')?'driver':!seatOf(j,'gunner')?'gunner':'pass';
   u.inVeh=j;u.boarding=null;u.path=[];u.peek=null;u.supT=null;u.focus=null;
   if(u.seat==='gunner'){u.gunner=true;u.elev=9;}
+  if(u.seat==='pass'){u.slot=crewOf(j).some(o=>o!==u&&o.seat==='pass'&&o.slot===0)?1:0;u.elev=4;}   // front passenger seat, then the back
   callout(u,u.seat==='driver'?'Driving':u.seat==='gunner'?'On the gun':'Riding',C.good);
 }
 // force: everyone in list gets out (bailing out, or the gunner told to on his own). Otherwise, while the fight is on,
 // the gunner stays on the gun to cover the others and climbs down once it's been quiet for FIGHT_QUIET s.
 function dismount(list,force){
-  const j=list.length&&list[0].inVeh;if(!j)return;
+  const j=list.length&&list[0].inVeh;if(!j)return[];
   if(!force&&list.length>1&&simT-(j.lastFight??-99)<FIGHT_QUIET){
     const g=list.find(u=>u.seat==='gunner');
     if(g){list=list.filter(u=>u!==g);j.gunnerStays=true;callout(g,'Covering you!',C.warn);}
@@ -54,10 +55,11 @@ function dismount(list,force){
   const taken=players.filter(p=>!p.inVeh&&!p.dead).map(destOf);
   for(const u of list){
     const s=openSpot(j.x,j.y,taken)||{x:j.x,y:j.y+30};taken.push(s);
-    Object.assign(u,{inVeh:null,seat:null,gunner:false,elev:0,x:s.x,y:s.y,path:[],focus:null,lastOrder:simT});
+    Object.assign(u,{inVeh:null,seat:null,slot:null,gunner:false,elev:0,x:s.x,y:s.y,path:[],focus:null,lastOrder:simT});
   }
   const c=crewOf(j);   // whoever's left in the back takes the wheel (a gunner left alone stays on the gun: no driver, it can't move)
-  if(!seatOf(j,'driver')){const p=c.find(o=>o.seat==='pass');if(p)p.seat='driver';}
+  if(!seatOf(j,'driver')){const p=c.find(o=>o.seat==='pass');if(p){p.seat='driver';p.slot=null;p.elev=0;}}
+  return list;   // who actually got out
 }
 
 /* ---------- damage ---------- */
@@ -115,7 +117,8 @@ function vehTick(dt){
     }
     if(!j.path.length){j.moving=false;parkObstacle(j);}
   }
-  for(const u of crewOf(j)){const back=u.seat==='gunner'?-8:0;u.x=j.x+Math.cos(j.heading)*back;u.y=j.y+Math.sin(j.heading)*back;}
+  // where each seat is in the jeep: [forward, sideways]
+  for(const u of crewOf(j)){const[f,sd]=u.seat==='driver'?[6,-5]:u.seat==='gunner'?[-8,0]:u.slot?[-18,0]:[6,5],c=Math.cos(j.heading),s=Math.sin(j.heading);u.x=j.x+c*f-s*sd;u.y=j.y+s*f+c*sd;}
   // engage: the gunner takes the target; if he has no line, the driver moves to a spot that gives him one
   if(j.engage){
     const e=j.engage,g=seatOf(j,'gunner');
