@@ -20,15 +20,15 @@ Styles in `css/style.css`. Game code in `js/` as plain `<script>` files (not ES 
 5. `state.js` battle state variables, `mk`, `reset`, `timeScale`
 6. `combat.js` hit chance, shots, suppression, grenades, move assignment, enemy and squad AI, `update(dt)`
 7. `waves.js` the battle's second wave: phases, countdown, gun jeep, wave-two assault AI (`waveTick` from `update`, `waveHud`/`aimTurret` every frame, `resetWaves` from `reset`)
-8. `depot.js` the checkpoint fight: garrison, patrol, RPG gunner and rockets, fuel tanks, the checkpoint mission and second HQ (`startDepot` from `openArea`, `depotTick` via `waveTick`, `depotFx` every tick, `drawDepot` from the overlay, `resetDepot` from `resetWaves`)
-8b. `hq.js` the temporary HQ after the battle: popup, camera pan, medical/supply/motor-pool zones, next-area arrow (`startHQ`, `hqTick` via `waveTick`, `drawHQ` from the overlay, `panTick` every frame)
-9. `vehicle.js` the captured jeep as a squad vehicle: boarding, seats, driving on the vehicle grid, turret engagement, dismount, damage (smoke/fire/break down/explode, mines), repairs, its overlay drawing (`vehTick` from `update`, `drawVehicle` from the overlay)
-10. `overlay.js` 2D overlay drawing and rain
-11. `input.js` pointer/pinch/wheel handling (`bindInput`), `tap`
-12. `hud.js` banner, status chip, buttons, keyboard (`bindHud`), detection ring, end screen
-13. `cards.js` team tabs' health pips and the unit cards (portrait, name, status, heart monitor, equipment): `buildCards`, `updateCards` (from `hud()`), `drawCards` (every frame)
-14. `progress.js` XP, levels, ranks, saving progress in localStorage, the after-action report (`showAAR`)
-15. `main.js` resize, frame loop, boot (shows the no-WebGL message and stops if `initGL()` fails)
+8. `hq.js` the temporary HQ after the battle: popup, camera pan, medical/supply/motor-pool zones, next-area arrow (`startHQ`, `hqTick` via `waveTick`, `drawHQ` from the overlay, `panTick` every frame)
+9. `depot.js` the checkpoint fight: garrison, patrol, RPG gunner and rockets, fuel tanks, the checkpoint mission and second HQ (`startDepot` from `openArea`, `depotTick` via `waveTick`, `depotFx` every tick, `drawDepot` from the overlay, `resetDepot` from `resetWaves`)
+10. `vehicle.js` the captured jeep as a squad vehicle: boarding, seats, driving on the vehicle grid, turret engagement, dismount, damage (smoke/fire/break down/explode, mines), repairs, its overlay drawing (`vehTick` from `update`, `drawVehicle` from the overlay)
+11. `overlay.js` 2D overlay drawing and rain
+12. `input.js` pointer/pinch/wheel handling (`bindInput`), `tap`
+13. `hud.js` banner, status chip, buttons, keyboard (`bindHud`), detection ring, end screen
+14. `cards.js` team tabs' health pips and the unit cards (portrait, name, status, heart monitor, equipment): `buildCards`, `updateCards` (from `hud()`), `drawCards` (every frame)
+15. `progress.js` XP, levels, ranks, saving progress in localStorage, the after-action report (`showAAR`)
+16. `main.js` resize, frame loop, boot (shows the no-WebGL message and stops if `initGL()` fails)
 
 Only `main.js` does work at load time beyond building pure data (map, nav grid, cover points); everything touching THREE or wiring events runs from boot.
 
