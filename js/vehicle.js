@@ -6,7 +6,7 @@
    the crew bail out and it blows up BURN_T s later. A mine or RPG blows it up at once and leaves the crew downed
    outside the wreck (revivable). Hits on the jeep sometimes wound the crew inside; the gunner is exposed.
    It repairs on the motor-pool box. Partial (half) cover. */
-const VEH_SPEED=80,VEH_TURN=3,BURN_T=6,SEATS=4,REPAIR_RATE=6;
+const VEH_SPEED=80,VEH_TURN=3,BURN_T=6,SEATS=4,REPAIR_RATE=6,FIGHT_QUIET=5;   // FIGHT_QUIET: s with no enemy in sight before a gunner left on the gun climbs down
 let mines=[];   // {x,y}; none on this map yet
 function jeepOf(){const j=wave.jeep;return j&&j.owner==='P'?j:null;}
 function crewOf(j){return j?players.filter(p=>p.inVeh===j):[];}
@@ -42,29 +42,35 @@ function seatIn(u,j){
   if(u.seat==='gunner'){u.gunner=true;u.elev=9;}
   callout(u,u.seat==='driver'?'Driving':u.seat==='gunner'?'On the gun':'Riding',C.good);
 }
-function dismount(list){
+// force: everyone in list gets out (bailing out, or the gunner told to on his own). Otherwise, while the fight is on,
+// the gunner stays on the gun to cover the others and climbs down once it's been quiet for FIGHT_QUIET s.
+function dismount(list,force){
   const j=list.length&&list[0].inVeh;if(!j)return;
+  if(!force&&list.length>1&&simT-(j.lastFight??-99)<FIGHT_QUIET){
+    const g=list.find(u=>u.seat==='gunner');
+    if(g){list=list.filter(u=>u!==g);j.gunnerStays=true;callout(g,'Covering you!',C.warn);}
+  }
   j.path=[];j.moving=false;j.engage=null;parkObstacle(j);
   const taken=players.filter(p=>!p.inVeh&&!p.dead).map(destOf);
   for(const u of list){
     const s=openSpot(j.x,j.y,taken)||{x:j.x,y:j.y+30};taken.push(s);
     Object.assign(u,{inVeh:null,seat:null,gunner:false,elev:0,x:s.x,y:s.y,path:[],focus:null,lastOrder:simT});
   }
-  const c=crewOf(j);   // whoever's left: someone has to drive
-  if(c.length&&!seatOf(j,'driver')){const p=c.find(o=>o.seat==='pass')||c[0];if(p.seat==='gunner'){p.gunner=false;p.elev=0;}p.seat='driver';}
+  const c=crewOf(j);   // whoever's left in the back takes the wheel (a gunner left alone stays on the gun: no driver, it can't move)
+  if(!seatOf(j,'driver')){const p=c.find(o=>o.seat==='pass');if(p)p.seat='driver';}
 }
 
 /* ---------- damage ---------- */
 function vehHit(j,dmg,src){   // bullets that hit the jeep (or the driver/passengers inside it)
   if(j.state!=='ok')return;
-  j.hp-=dmg*0.7;
+  j.hp-=dmg*0.35;   // rifle fire wears a jeep down slowly; mines and RPGs are what kill it
   if(Math.random()<0.25){const c=crewOf(j).filter(u=>u.seat!=='gunner'&&alive(u));if(c.length)damage(c[(Math.random()*c.length)|0],dmg*0.5,src);}
   if(j.hp<=0){j.hp=0;vehBreakDown(j);}
 }
 function vehBlast(j,dmg){if(j.state!=='ok')return;j.hp-=dmg;if(j.hp<=0){j.hp=0;vehBreakDown(j);}}   // grenade nearby
 function vehBreakDown(j){
   j.state='broken';j.burnT=BURN_T;
-  const c=crewOf(j);dismount(c);
+  const c=crewOf(j);dismount(c,true);
   for(const u of c){   // bail out and get clear of the blast on their own
     const a=Math.atan2(u.y-j.y,u.x-j.x),taken=players.filter(o=>o!==u&&!o.dead).map(destOf);
     const s=openSpot(j.x+Math.cos(a)*85,j.y+Math.sin(a)*85,taken),p=s&&findPath(u.x,u.y,s.x,s.y);
@@ -76,7 +82,7 @@ function vehBreakDown(j){
 // mine, RPG, or a burning wreck going up. Anyone still inside is thrown out, downed (revivable)
 function vehDestroy(j,cause){
   if(j.state==='wreck')return;
-  const c=crewOf(j);dismount(c);for(const u of c)if(alive(u))damage(u,999);
+  const c=crewOf(j);dismount(c,true);for(const u of c)if(alive(u))damage(u,999);
   j.state='wreck';j.hp=0;j.wreckT=simT;j.path=[];j.moving=false;parkObstacle(j);
   explode(j.x,j.y,null,enemies.every(e=>e.dead));
   j.m.g.traverse(o=>{if(o.isMesh){o.material=o.material.clone();if(o.material.color)o.material.color.setHex(0x161616);if(o.material.emissive)o.material.emissive.setHex(0);}});
@@ -90,6 +96,12 @@ function vehTick(dt){
   for(const u of players)if(u.boarding&&!u.path.length){   // arrived next to it: climb in
     const b=u.boarding;u.boarding=null;
     if(alive(u)&&b===j&&j.state==='ok'&&crewOf(j).length<SEATS&&rectDist(u.x,u.y,jeepRect(j))<16)seatIn(u,j);
+  }
+  if(enemies.some(e=>!e.dead&&e.vis))j.lastFight=simT;
+  if(j.gunnerStays){   // left on the gun to cover the dismount: climbs down once it's quiet
+    const c=crewOf(j);
+    if(c.length===1&&c[0].seat==='gunner'){if(simT-(j.lastFight??-99)>=FIGHT_QUIET){j.gunnerStays=false;callout(c[0],'Gun\'s clear, coming down',C.good);dismount(c,true);}}
+    else if(!c.some(u=>u.seat==='gunner')||c.length>1)j.gunnerStays=false;
   }
   const drv=seatOf(j,'driver');
   if(j.state==='ok'&&j.path&&j.path.length){
@@ -110,7 +122,7 @@ function vehTick(dt){
     if(e.dead||!g){j.engage=null;}
     else{g.focus=e;if(!j.path.length&&drv&&!fireLine(g,e)&&simT>(j.engageT||0)){j.engageT=simT+3;const s=engageSpot(j,e);const p=s&&vehRoute(j,s.x,s.y);if(p)driveAlong(j,p);}}
   }
-  if(j.state==='ok'&&!j.moving&&j.hp<100&&onMotorPool(j))j.hp=Math.min(100,j.hp+REPAIR_RATE*dt);
+  if(j.state==='ok'&&!j.moving&&j.hp<100&&onMotorPool(j)&&simT-(j.lastFight??-99)>=FIGHT_QUIET)j.hp=Math.min(100,j.hp+REPAIR_RATE*dt);   // no repairs under fire
   if(j.state==='broken'){j.burnT-=dt;if(j.burnT<=0)vehDestroy(j,'burn');}
   j.m.g.position.set(j.x,0,j.y);j.m.g.rotation.y=Math.PI/2-j.heading;
   if(j.state==='ok'&&drv){jeepLight.intensity=3.2;const c=Math.cos(j.heading),s=Math.sin(j.heading);jeepLight.position.set(j.x+c*22,10,j.y+s*22);jeepLight.target.position.set(j.x+c*140,0,j.y+s*140);}

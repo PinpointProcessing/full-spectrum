@@ -5,7 +5,7 @@ function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classLis
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  if(wave.phase==='hq'){s.textContent='HQ secured';s.className='chip';return;}
+  if(wave.phase==='hq'){const on=hq&&hq.patrol==='on';s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
 }
@@ -76,7 +76,7 @@ function bindHud(){
   const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));select(on?[]:list);preview=null;mode=null;hud();};
   for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p))));
   $('#allBtn').addEventListener('click',()=>tabSelect(players.filter(alive)));
-  const gaitOrDismount=()=>{if(state!=='play')return;const c=selCrew();if(c.length)dismount(c);else toggleGait();hud();};
+  const gaitOrDismount=()=>{if(state!=='play')return;const c=selCrew();if(c.length)dismount(c,c.length===1);else toggleGait();hud();};   // one soldier on his own: out he gets, gunner included
   $('#gaitBtn').addEventListener('click',gaitOrDismount);
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});

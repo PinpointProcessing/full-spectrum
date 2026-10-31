@@ -8,6 +8,7 @@ const HQ_ZONES=[
   {k:'sup',x:368,y:322,w:52,h:44,col:'232,186,84',label:'SUPPLY'},
   {k:'motor',x:458,y:560,w:44,h:70,col:'255,206,64',label:'MOTOR POOL'},
 ];
+const UNLOCK_SHOW=3;   // s the camera stays on the jeep after the report before the HQ popup
 const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:520,y:105};   // NEXT: where the arrow sits, pointing NE
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>z.k!=='motor'&&x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
@@ -17,20 +18,40 @@ function startHQ(){
   state='play';endAt=0;contact=false;paused=true;wave.phase='hq';hq={t0:simT,arrow:false};
   for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;}
   parkJeepAt(MOTOR.x,MOTOR.y);
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:310,z:430,zoom:2.1},t:0,dur:1.4};
-  $('#hqPop').hidden=false;
+  // first the camera goes to the captured jeep: "New vehicle unlocked!"; then over to the warehouse with the HQ popup
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:MOTOR.x,z:MOTOR.y-45,zoom:2.8},t:0,dur:1.4};
+  bigText('New vehicle unlocked!','unlock');
+  const mine=hq;
+  setTimeout(()=>{
+    if(hq!==mine||state!=='play')return;   // restarted meanwhile
+    camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:310,z:430,zoom:2.1},t:0,dur:1.4};
+    $('#hqPop').hidden=false;
+  },UNLOCK_SHOW*1000);
   setStatus();hud();
 }
 // the captured jeep moves to the motor pool (its old spot is freed, the new one blocked); the dead gunner drops to the ground
 function parkJeepAt(x,y){
   const j=wave.jeep;if(!j)return;
   unparkObstacle(j);
-  Object.assign(j,{x,y,heading:Math.PI/2,owner:'P',hp:100,state:'ok',path:[],moving:false});   // it's ours now (vehicle.js)
-  j.m.g.position.set(x,0,y);j.m.g.rotation.y=0;j.m.tur.rotation.y=-Math.PI/2;jeepLight.intensity=0;
+  Object.assign(j,{x,y,heading:-Math.PI/2,owner:'P',hp:100,state:'ok',path:[],moving:false});   // it's ours now (vehicle.js); parked facing north
+  j.m.g.position.set(x,0,y);j.m.g.rotation.y=Math.PI/2-j.heading;j.m.tur.rotation.y=-Math.PI/2;jeepLight.intensity=0;
   parkObstacle(j);
   const g=gunnerOf();if(g)g.elev=0;
 }
+// the first time the whole squad is aboard the jeep, a patrol of four comes through the north gate and attacks
+function startPatrol(){
+  hq.patrol='on';contact=true;
+  [[465,22],[488,22],[470,48],[492,48]].forEach(([x,y],i)=>{
+    const u=mk('E','E','E'+(10+i),'Hostile',x,y,Math.PI/2);
+    Object.assign(u,{wave:2,alerted:true,aware:1,cool:1+Math.random(),moveCool:simT+0.3+i*0.4});makeSoldier(u);
+  });
+  enemies=units.filter(u=>u.side==='E');
+  bigText('Enemy inbound!','inbound');banner('A patrol is coming through the north gate!',2600);setStatus();
+}
 function hqTick(dt){
+  const j=jeepOf(),live=players.filter(alive);
+  if(!hq.patrol&&j&&j.state==='ok'&&live.length&&live.every(p=>p.inVeh===j))startPatrol();
+  if(hq.patrol==='on'&&enemies.every(e=>e.dead)){hq.patrol='done';contact=false;bigText('All clear!','clear');setStatus();}
   for(const p of players){
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
