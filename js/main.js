@@ -30,7 +30,7 @@ function frame(nowMs){
 /* ---------- boot ---------- */
 if(!initGL())$('#nogl').hidden=false;
 else{
-  bindInput();bindHud();
+  bindInput();bindHud();refreshSaveButtons();
   buildWorld();reset();
   new ResizeObserver(resize).observe(stage);resize();
   hud();

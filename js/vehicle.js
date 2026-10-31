@@ -87,9 +87,14 @@ function vehDestroy(j,cause){
   const c=crewOf(j);dismount(c,true);for(const u of c)if(alive(u))damage(u,999);
   j.state='wreck';j.hp=0;j.wreckT=simT;j.path=[];j.moving=false;parkObstacle(j);
   explode(j.x,j.y,null,enemies.every(e=>e.dead));
+  wreckLook(j);
+  banner(cause==='mine'?'Mine! The jeep is destroyed.':cause==='rpg'?'RPG hit! The jeep is destroyed.':'The jeep exploded.',2800);
+}
+
+// charred and slumped (also used when loading a save with a wrecked jeep)
+function wreckLook(j){
   j.m.g.traverse(o=>{if(o.isMesh){o.material=o.material.clone();if(o.material.color)o.material.color.setHex(0x161616);if(o.material.emissive)o.material.emissive.setHex(0);}});
   j.m.tur.rotation.z=0.35;jeepLight.intensity=0;
-  banner(cause==='mine'?'Mine! The jeep is destroyed.':cause==='rpg'?'RPG hit! The jeep is destroyed.':'The jeep exploded.',2800);
 }
 
 /* ---------- each game tick ---------- */

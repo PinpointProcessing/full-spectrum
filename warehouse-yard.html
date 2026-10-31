@@ -27,6 +27,7 @@
     <div id="bigText" aria-live="assertive"></div>
     <div id="banner"></div>
     <span class="chip slow" id="speed" hidden>Slow-mo</span>
+    <span class="chip" id="savedChip" hidden>Saved</span>
     <div id="cards" hidden></div>
     <button id="fitBtn" hidden>Fit map</button>
     <button id="gaitBtn" aria-pressed="false" disabled><small>Auto</small><span>Sneak</span></button>
@@ -67,6 +68,7 @@
       <span><i class="dot" style="color:var(--bad)"></i>Exposed</span>
       <span>% = hit chance per shot</span>
     </div>
+    <button class="go" id="continueBtn" hidden>Continue</button>
     <button class="go" id="startBtn">Deploy</button>
     <button class="linkish" id="resetXpBtn" type="button">Reset squad XP and ranks</button>
   </div>
@@ -101,6 +103,7 @@
     <div class="eyebrow" id="endEyebrow">Mission complete</div>
     <h1 id="endTitle">Warehouse secured</h1>
     <p id="endText"></p>
+    <button class="go" id="retryBtn" hidden>Retry from last save</button>
     <button class="go" id="againBtn">Run it again</button>
   </div>
 </div>
@@ -122,4 +125,5 @@
 <script src="js/hud.js"></script>
 <script src="js/cards.js"></script>
 <script src="js/progress.js"></script>
+<script src="js/save.js"></script>
 <script src="js/main.js"></script>

@@ -20,7 +20,7 @@ function finish(){
   $('#endText').textContent=win
     ?`Cleared in ${mm}:${ss}. ${downCount} time${downCount===1?'':'s'} a soldier went down, ${kia} killed in action.`
     :`The squad held out for ${mm}:${ss}. Try pinning one side of the room with Suppress while a fire team works around to the west window or the east door.`;
-  $('#end').hidden=false;
+  refreshSaveButtons();$('#end').hidden=false;
 }
 /* ---------- HUD ---------- */
 function hud(){
@@ -81,11 +81,13 @@ function bindHud(){
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
-  $('#startBtn').addEventListener('click',()=>{startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});
+  $('#continueBtn').addEventListener('click',()=>{continueGame();});
+  $('#retryBtn').addEventListener('click',()=>{continueGame();});
+  $('#startBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();if(wave.phase!=='fight1')reset();startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});
   $('#aarBtn').addEventListener('click',()=>mission.name==='checkpoint'?startHQ2():startHQ());
   $('#hqBtn').addEventListener('click',()=>{$('#hqPop').hidden=true;paused=false;hud();});
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
-  $('#againBtn').addEventListener('click',()=>{startView();$('#end').hidden=true;reset();state='play';hud();});
+  $('#againBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();startView();$('#end').hidden=true;reset();state='play';hud();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}

@@ -135,13 +135,15 @@ function startHQ2(){
   $('#aar').hidden=true;
   state='play';endAt=0;contact=false;paused=true;wave.phase='hq2';hq.arrow=false;hq.noArrow=true;
   for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;p.focusTank=null;}
-  HQ_ZONES.push({k:'med',x:1130,y:172,w:52,h:44,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:1200,y:172,w:52,h:44,col:'232,186,84',label:'SUPPLY',hq2:true});
+  addHQ2Zones();
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1120,z:170,zoom:2.2},t:0,dur:1.4};
   $('#hqPop .eyebrow').textContent='Second temporary HQ';$('#hqPop h1').textContent='Checkpoint secured';
   $('#hqPop p').textContent='The crossroads checkpoint is now a temporary HQ. Heal and resupply here before you push on. Hold enough of these and you can establish a permanent HQ.';
   $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up east of the crossroads.</li><li>That\'s the end of this demo area for now.</li>';
   $('#hqPop').hidden=false;setStatus();hud();
+  saveGame('hq2');
 }
+function addHQ2Zones(){HQ_ZONES.push({k:'med',x:1130,y:172,w:52,h:44,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:1200,y:172,w:52,h:44,col:'232,186,84',label:'SUPPLY',hq2:true});}
 
 /* ---------- drawn on the overlay ---------- */
 function drawDepot(rdt,now){

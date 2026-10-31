@@ -28,6 +28,7 @@ function startHQ(){
     $('#hqPop').hidden=false;
   },UNLOCK_SHOW*1000);
   setStatus();hud();
+  saveGame('hq');   // milestone: warehouse secured (save.js)
 }
 // the captured jeep moves to the motor pool (its old spot is freed, the new one blocked); the dead gunner drops to the ground
 function parkJeepAt(x,y){
@@ -81,7 +82,7 @@ function gateTick(rdt){   // the gate slides open along the fence (every frame)
 }
 // "New area unlocked!": the gate opens and the camera sweeps out to the checkpoint, then comes back
 function revealArea(){
-  openArea();paused=true;bigText('New area unlocked!','unlock');
+  openArea();paused=true;bigText('New area unlocked!','unlock');saveGame('depot');
   const back={x:camT.x,z:camT.z,zoom};
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1000,z:240,zoom:1.6},t:0,dur:1.8};
   const mine=hq;

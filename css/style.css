@@ -41,6 +41,7 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--dim);z-index:3}
 #banner{position:absolute;top:54px;left:50%;transform:translate(-50%,-6px);z-index:2;font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:4px;background:rgba(8,11,14,.86);border:1px solid var(--line);color:var(--text);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100% - 24px);text-align:center}
 #banner.show{opacity:1;transform:translate(-50%,0)}
+#savedChip{position:absolute;left:8px;top:8px;z-index:2;background:rgba(10,14,18,.88);color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent)}
 #fitBtn{position:absolute;right:8px;top:8px;z-index:2;min-height:32px;padding:0 10px;font-size:11px;background:rgba(10,14,18,.85)}
 .panel{display:grid;gap:7px;padding-block:8px 8px}
 .hint{font-size:12.5px;color:var(--dim);height:2.6em;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
