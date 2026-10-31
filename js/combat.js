@@ -39,7 +39,7 @@ function hitChance(s,t,L){
 function threats(){
   const t=[];
   for(const e of enemies)if(!e.dead&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(wave.phase==='fight1'?{x:310,y:540}:wavePhase('depot','depotdone')?{x:1000,y:150}:{x:JEEP.x,y:JEEP.y1});   // before anyone's seen: the warehouse door, the checkpoint, or the north gate   // before anyone's seen: the warehouse door, or the north gate once reinforcements are coming
+  if(!t.length)t.push(wave.phase==='fight1'?{x:310,y:540}:wavePhase('depot','depotdone')?{x:CKPT.x,y:CKPT.y}:{x:JEEP.x,y:JEEP.y1});   // before anyone's seen: the warehouse door, the checkpoint, or the north gate   // before anyone's seen: the warehouse door, or the north gate once reinforcements are coming
   return t;
 }
 function protStats(p,th){

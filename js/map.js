@@ -6,9 +6,9 @@ const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','to
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
 O('fence',0,0,450,8);O('fence',500,0,100,8);O('fence',0,H-8,W,8);   // north gate 450-500 (reinforcements come through it)
 O('fence',0,0,8,H);O('fence',W-8,0,8,H);O('fence',YARD_W,0,W-YARD_W,8);
-// the yard's east fence, with a gate (y 100-170) to the depot road. Locked until the area opens (hq.js)
-O('fence',YARD_W-8,0,8,100);O('fence',YARD_W-8,170,8,H-170);
-const depotGate=objs[objs.push({kind:'gate',x:YARD_W-8,y:100,w:8,h:70,full:true})-1];
+// the yard's east fence, with a gate (y 700-770) to the depot road. Locked until the area opens (hq.js)
+O('fence',YARD_W-8,0,8,700);O('fence',YARD_W-8,770,8,H-770);
+const depotGate=objs[objs.push({kind:'gate',x:YARD_W-8,y:700,w:8,h:70,full:true})-1];
 // warehouse shell (x170-450, y260-560)
 O('wall',170,260,115,10);O('wall',325,260,125,10);           // north, back door 285-325
 O('wall',170,550,90,10);O('wall',360,550,90,10);             // south, roll door 260-360
@@ -38,33 +38,34 @@ O('container',470,800,100,34,{col:'#4f565b',tag:'TGHU 3302'});
 O('barrel',300,808,16,16,{col:'#6b3a28'});
 
 /* ---------- the shipping depot (x 600-1300), same rainy night ----------
-   An east-west road runs from the yard gate (y 110-160) to a crossroads at (1050,135) with a north-south road (x 1025-1075).
-   The checkpoint sits at the crossroads: a boom gate across the road at x 985, a guard tower beside it, a watchtower on the
-   far corner, a sandbagged firing position, and fuel tanks in the north-east corner. South of the road, rows of single and
-   double-stacked containers leave aisles for flanking. */
-const ROAD={y0:110,y1:160,x0:1025,x1:1075},CROSS={x:1050,y:135};
+   From the yard gate (south end of the yard's east fence) an access road runs east to the main road on the right side of the
+   map, which runs south to north (x 1025-1075). Up the main road is the checkpoint, facing south: a boom gate across the road,
+   a guard tower on its west side, a watchtower on its east side, a sandbagged firing position and fuel tanks behind it.
+   Past the checkpoint the road forks (at FORK): the left branch will lead to an office building and the right one to a
+   drawbridge (both to come; the ground beside the branches is kept clear for them). Rows of single and double-stacked
+   containers on both sides of the main road leave aisles for flanking. */
+const ACCESS={y0:710,y1:760},MAIN={x0:1025,x1:1075,y0:210},FORK={x:1050,y:210},BRANCH=[{x:880,y:8},{x:1220,y:8}],CKPT={x:1050,y:362};
 const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
 const box=(x,y,w,h,k,stack=1)=>O('container',x,y,w,h,{col:CK[k%CK.length][0],tag:`${CK[k%CK.length][1]} ${(1000+k*397)%9000+1000}`,stack});
-// north strip, between the fence and the road
-box(640,30,110,34,0);box(780,24,34,70,1);box(832,40,110,34,2,2);
-// main stacks south of the road, west of the crossroads
-box(640,210,110,34,3,2);box(780,210,110,34,4);box(910,214,34,110,5,2);
-box(640,300,34,110,6);box(700,330,110,34,7,2);box(840,300,34,110,0);
-box(640,470,110,34,1);box(790,440,110,34,2,2);box(930,420,34,110,3);
-box(660,580,34,110,4,2);box(740,610,110,34,5);box(900,580,110,34,6,2);
-box(640,760,110,34,7);box(800,730,34,110,0,2);box(880,790,110,34,1);
-// east of the north-south road
-box(1110,240,110,34,2,2);box(1110,330,34,110,3);box(1200,360,34,110,4,2);
-box(1110,520,110,34,5);box(1140,620,110,34,6,2);box(1110,760,110,34,7);box(1244,700,34,110,0);
-// the checkpoint
-O('booth',958,66,30,30);                       // guard tower beside the gate, north of the road
-O('tower',1092,176,18,18,{cover:1});           // watchtower on the south-east corner of the crossroads
-O('sandbag',978,176,44,10);O('sandbag',978,186,10,22);O('sandbag',1012,186,10,22);   // firing position covering the road
-O('tank',1120,20,44,44,{col:'#c9c6bc'});O('tank',1180,20,44,44,{col:'#b9b4a6'});O('tank',1240,24,36,36,{col:'#c9c6bc'});   // fuel tanks
-O('barrel',1100,80,16,16,{col:'#8a2f22'});O('barrel',1118,82,16,16,{col:'#8a2f22'});O('crate',1150,88,26,20);
-O('crate',980,250,26,26);O('pallet',990,330,30,20);O('crate',975,642,26,26);O('barrel',996,470,16,16,{col:'#3a5160'});
-// decoration that doesn't block anything: the boom barrier arm across the road
-const decor=[{kind:'boom',x:985,y:ROAD.y0+2,len:ROAD.y1-ROAD.y0-4}];
+// west of the main road, between the checkpoint's latitude and the access road
+box(640,215,110,34,3,2);box(780,215,34,70,4);
+box(640,300,34,110,6);box(700,330,110,34,7,2);box(860,320,34,110,0);
+box(640,470,110,34,1);box(790,450,110,34,2,2);box(930,450,34,110,3);
+box(660,560,34,110,4,2);box(740,590,110,34,5);box(880,600,110,34,6,2);
+// south of the access road
+box(640,790,110,34,7);box(800,780,34,100,0,2);box(880,800,110,34,1);
+// east of the main road
+box(1120,390,110,34,2,2);box(1130,470,34,110,3);box(1220,460,34,110,4,2);
+box(1120,620,110,34,5);box(1150,700,110,34,6,2);box(1120,800,110,34,7);box(1244,770,34,100,0);
+// the checkpoint, across the main road and facing south
+O('booth',985,340,30,30);                      // guard tower on the west side of the gate
+O('tower',1090,330,18,18,{cover:1});           // watchtower on the east side (the open platform is half cover)
+O('sandbag',972,414,46,10);O('sandbag',972,392,10,22);O('sandbag',1008,392,10,22);   // firing position covering the road south
+O('tank',1120,250,44,44,{col:'#c9c6bc'});O('tank',1180,250,44,44,{col:'#b9b4a6'});O('tank',1240,256,36,36,{col:'#c9c6bc'});   // fuel tanks behind it
+O('barrel',1135,312,16,16,{col:'#8a2f22'});O('barrel',1153,314,16,16,{col:'#8a2f22'});O('crate',1185,316,26,20);
+O('crate',985,480,26,26);O('pallet',985,560,30,20);O('barrel',996,660,16,16,{col:'#3a5160'});
+// decoration that doesn't block anything: the boom barrier arm across the main road
+const decor=[{kind:'boom',x:MAIN.x0+2,y:CKPT.y,len:MAIN.x1-MAIN.x0-4,dir:'x'}];
 
 const posts=[{x:30,y:560},{x:570,y:200},{x:560,y:870}];
 const lights=[

@@ -9,7 +9,7 @@ const HQ_ZONES=[
   {k:'motor',x:458,y:560,w:44,h:70,col:'255,206,64',label:'MOTOR POOL'},
 ];
 const UNLOCK_SHOW=3;   // s the camera stays on the jeep after the report before the HQ popup
-const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:135};   // NEXT: where the arrow sits, pointing east at the depot gate
+const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:735};   // NEXT: where the arrow sits, pointing east at the depot gate
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>z.k!=='motor'&&x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
 
@@ -50,6 +50,7 @@ function startPatrol(){
   bigText('Enemy inbound!','inbound');banner('A patrol is coming through the north gate!',2600);setStatus();
 }
 function hqTick(dt){
+  if(!hq)return;
   const j=jeepOf(),live=players.filter(alive);
   if(!hq.patrol&&j&&j.state==='ok'&&live.length&&live.every(p=>p.inVeh===j))startPatrol();
   if(hq.patrol==='on'&&enemies.every(e=>e.dead)){
@@ -84,12 +85,12 @@ function gateTick(rdt){   // the gate slides open along the fence (every frame)
 function revealArea(){
   openArea();paused=true;bigText('New area unlocked!','unlock');saveGame('depot');
   const back={x:camT.x,z:camT.z,zoom};
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1000,z:240,zoom:1.6},t:0,dur:1.8};
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1050,z:420,zoom:1.6},t:0,dur:1.8};
   const mine=hq;
   setTimeout(()=>{
     if(hq!==mine||state!=='play')return;
     camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.6};paused=false;
-    banner('The depot is open. Push north-east to the checkpoint at the crossroads.',4500);hud();
+    banner('The depot is open. Take the road east, then north up the main road to the checkpoint.',4500);hud();
   },4200);
 }
 // smooth camera move to the warehouse when the HQ opens (real time, every frame)

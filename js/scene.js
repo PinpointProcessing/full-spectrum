@@ -127,13 +127,22 @@ function drawGround(){
   for(let y=270;y<=550;y+=28){g.beginPath();g.moveTo(180,y+.5);g.lineTo(440,y+.5);g.stroke();}
   for(let i=0;i<8;i++){const x=190+r()*240,y=280+r()*260,rad=8+r()*18,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.45)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
   g.strokeStyle='rgba(225,185,60,.6)';g.lineWidth=2;g.strokeRect(194,284,232,252);
-  // the depot: wet asphalt roads with lane markings, a stop line at the checkpoint, container bays
-  for(const c of[g,q]){c.fillStyle=c===g?'#2c2f33':'rgb(70,70,70)';c.fillRect(YARD_W-90,ROAD.y0,W-YARD_W+90,ROAD.y1-ROAD.y0);c.fillRect(ROAD.x0,8,ROAD.x1-ROAD.x0,H-16);}
-  g.strokeStyle='rgba(222,186,70,.6)';g.lineWidth=2;g.setLineDash([14,12]);
-  g.beginPath();g.moveTo(YARD_W-80,CROSS.y);g.lineTo(ROAD.x0-4,CROSS.y);g.moveTo(ROAD.x1+4,CROSS.y);g.lineTo(W,CROSS.y);
-  g.moveTo(CROSS.x,10);g.lineTo(CROSS.x,ROAD.y0-4);g.moveTo(CROSS.x,ROAD.y1+4);g.lineTo(CROSS.x,H-10);g.stroke();g.setLineDash([]);
-  g.strokeStyle='rgba(235,235,235,.6)';g.lineWidth=3;g.beginPath();g.moveTo(972,ROAD.y0+3);g.lineTo(972,ROAD.y1-3);g.stroke();
-  g.strokeStyle='rgba(230,230,230,.1)';g.lineWidth=1;for(let y=200;y<880;y+=90)for(let x=625;x<1000;x+=130)g.strokeRect(x,y,120,44);
+  // the depot: wet asphalt roads (access road, main road north, the fork's two branches) with lane markings,
+  // a stop line south of the checkpoint, and container bays
+  const branchQuad=(b,hw)=>{const dx=b.x-FORK.x,dy=b.y-FORK.y,l=hyp(dx,dy),nx=-dy/l*hw,ny=dx/l*hw;return[[FORK.x+nx,FORK.y+ny],[b.x+nx,b.y+ny],[b.x-nx,b.y-ny],[FORK.x-nx,FORK.y-ny]];};
+  for(const c of[g,q]){
+    c.fillStyle=c===g?'#2c2f33':'rgb(70,70,70)';
+    c.fillRect(YARD_W-80,ACCESS.y0,MAIN.x1-YARD_W+80,ACCESS.y1-ACCESS.y0);c.fillRect(MAIN.x0,MAIN.y0-10,MAIN.x1-MAIN.x0,H-8-MAIN.y0+10);
+    for(const b of BRANCH){const p=branchQuad(b,25);c.beginPath();c.moveTo(...p[0]);for(const v of p)c.lineTo(...v);c.closePath();c.fill();}
+    c.beginPath();c.arc(FORK.x,FORK.y,25,0,TAU);c.fill();
+  }
+  g.strokeStyle='rgba(222,186,70,.6)';g.lineWidth=2;g.setLineDash([14,12]);g.beginPath();
+  const mid=(ACCESS.y0+ACCESS.y1)/2,cx=(MAIN.x0+MAIN.x1)/2;
+  g.moveTo(YARD_W-70,mid);g.lineTo(MAIN.x0-4,mid);g.moveTo(cx,H-10);g.lineTo(cx,ACCESS.y1+4);g.moveTo(cx,ACCESS.y0-4);g.lineTo(cx,FORK.y+26);
+  for(const b of BRANCH){const dx=b.x-FORK.x,dy=b.y-FORK.y,l=hyp(dx,dy);g.moveTo(FORK.x+dx/l*30,FORK.y+dy/l*30);g.lineTo(b.x,b.y);}
+  g.stroke();g.setLineDash([]);
+  g.strokeStyle='rgba(235,235,235,.6)';g.lineWidth=3;g.beginPath();g.moveTo(MAIN.x0+3,CKPT.y+12);g.lineTo(MAIN.x1-3,CKPT.y+12);g.stroke();
+  g.strokeStyle='rgba(230,230,230,.1)';g.lineWidth=1;for(let y=300;y<880;y+=90)for(let x=625;x<990;x+=130)if(y+44<ACCESS.y0||y>ACCESS.y1)g.strokeRect(x,y,120,44);
   for(const o of objs){if(o.kind==='fence')continue;g.fillStyle='rgba(0,0,0,.32)';g.fillRect(o.x-3,o.y-3,o.w+6,o.h+6);}
   gtex.needsUpdate=true;rtex.needsUpdate=true;
 }
@@ -152,8 +161,8 @@ const lamps=[
   {x:570,y:200,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},
   {x:560,y:870,h:40,c:0xffa860,i:2.4,d:280,pole:1},
   {x:310,y:410,h:30,c:0xffd9a8,i:2.4,d:260},
-  {x:1082,y:100,h:40,c:0xffa860,i:2.6,d:300,pole:1},   // depot: crossroads
-  {x:1000,y:520,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},   // depot: among the containers
+  {x:1084,y:392,h:40,c:0xffa860,i:2.6,d:300,pole:1},   // depot: the checkpoint
+  {x:1002,y:690,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},   // depot: where the access road meets the main road
 ];
 let hemi,muzzle=[],boomL,jeepLight;
 function buildWorld(){
@@ -249,8 +258,8 @@ function buildWorld(){
       for(const[w2,d2,ox,oz]of[[24,1,0,-12],[24,1,0,12],[1,24,-12,0],[1,24,12,0]])addMesh(new T.BoxGeometry(w2,5,d2),wood,cx+ox,43.3,cz+oz);
       const roof=addMesh(new T.ConeGeometry(18,7,4),new T.MeshStandardMaterial({color:0x2a2d30,roughness:.7,metalness:.4}),cx,53,cz);roof.rotation.y=Math.PI/4;
       addMesh(new T.BoxGeometry(1,40,5),darkMetal,cx-10.5,20,cz);
-      const lamp=new T.Mesh(new T.CylinderGeometry(1.6,2.2,3,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx-11,46,cz-6);scene.add(lamp);
-      const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-11,46,cz-6);sl.target.position.set(820,0,CROSS.y);scene.add(sl,sl.target);
+      const lamp=new T.Mesh(new T.CylinderGeometry(1.6,2.2,3,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx-6,46,cz+11);scene.add(lamp);
+      const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-6,46,cz+11);sl.target.position.set(CKPT.x,0,ACCESS.y0);scene.add(sl,sl.target);
     }else if(o.kind==='tank'){   // fuel tank: white cylinder, domed top, a red band, a ladder and a pipe
       const r=o.w/2;
       o.meshes=[addMesh(new T.CylinderGeometry(r,r,30,28),new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.35}),cx,15,cz)];   // blackened when it blows (depot.js)
@@ -275,9 +284,10 @@ function buildWorld(){
   addMesh(new T.BoxGeometry(100,5,6),wallMat,310,21.5,555);
   // decoration: the checkpoint's striped boom barrier across the road
   for(const d of decor){
-    addMesh(new T.BoxGeometry(3,11,3),darkMetal,d.x,5.5,d.y-2);
-    addMesh(new T.BoxGeometry(4,4,5),darkMetal,d.x,9,d.y-5);
-    const arm=addMesh(new T.BoxGeometry(1.4,1.4,d.len),texMat(hazTex,d.len/12,1,{color:0xffd0c8,roughness:.6}),d.x,9,d.y+d.len/2);arm.rotation.x=0;
+    const ax=d.dir==='x';   // the arm runs along x (across a north-south road) or along y
+    addMesh(new T.BoxGeometry(3,11,3),darkMetal,ax?d.x-2:d.x,5.5,ax?d.y:d.y-2);
+    addMesh(new T.BoxGeometry(ax?5:4,4,ax?4:5),darkMetal,ax?d.x-5:d.x,9,ax?d.y:d.y-5);
+    addMesh(new T.BoxGeometry(ax?d.len:1.4,1.4,ax?1.4:d.len),texMat(hazTex,d.len/12,1,{color:0xffd0c8,roughness:.6}),ax?d.x+d.len/2:d.x,9,ax?d.y:d.y+d.len/2);
   }
 
   // lights

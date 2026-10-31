@@ -32,7 +32,7 @@ function continueGame(){
   }
   if(s.stage==='hq2'){for(const e of garrison){e.dead=true;e.hp=0;e.seen=false;}wave.phase='hq2';hq.arrow=false;hq.noArrow=true;addHQ2Zones();}
   // the squad: the dead stay gone, the living keep their wounds
-  const at={hq:{x:300,y:430},depot:{x:540,y:150},hq2:{x:1160,y:200}}[s.stage],taken=[];
+  const at={hq:{x:300,y:430},depot:{x:540,y:735},hq2:{x:930,y:290}}[s.stage],taken=[];
   for(const p of players){
     const d=s.squad[p.id];
     if(!d||d.dead){Object.assign(p,{dead:true,hp:0,gone:true});continue;}
