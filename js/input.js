@@ -192,13 +192,15 @@ function tap(sx,sy){
   }
   const en=enemyAtScreen(sx,sy);
   if(en&&sel.length){
-    for(const u of sel){u.focus=en;u.supT=null;}
+    for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}
     if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up
     callout(en,contact?'Focus fire':'Open fire!',C.warn);return;
   }
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}
   const tg=tapTarget(sx,sy);   // tapping a wall or crate means: stand against the side you tapped
+  // tapping a fuel tank: everyone selected who can shoot opens up on it (depot.js)
+  if(tg.obj&&tg.obj.kind==='tank'&&!tg.obj.burst){const sh=sel.filter(u=>u.seat!=='driver');for(const u of sh){u.focusTank=tg.obj;u.focus=null;u.supT=null;}if(sh[0])callout(sh[0],'Hit the tank!',C.warn);preview=null;return;}
   // crew selected: it's a drive order, two taps like a squad move (anyone on foot in the selection goes there too)
   if(selCrew().length&&seatOf(jeepOf(),'driver')){   // with nobody at the wheel, taps move whoever's on foot
     const jv=jeepOf();

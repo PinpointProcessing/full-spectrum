@@ -253,8 +253,8 @@ function buildWorld(){
       const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-11,46,cz-6);sl.target.position.set(820,0,CROSS.y);scene.add(sl,sl.target);
     }else if(o.kind==='tank'){   // fuel tank: white cylinder, domed top, a red band, a ladder and a pipe
       const r=o.w/2;
-      addMesh(new T.CylinderGeometry(r,r,30,28),new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.35}),cx,15,cz);
-      const top=addMesh(new T.SphereGeometry(r,28,8,0,Math.PI*2,0,Math.PI/2),new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.35}),cx,30,cz);top.scale.y=.22;
+      o.meshes=[addMesh(new T.CylinderGeometry(r,r,30,28),new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.35}),cx,15,cz)];   // blackened when it blows (depot.js)
+      const top=addMesh(new T.SphereGeometry(r,28,8,0,Math.PI*2,0,Math.PI/2),new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.35}),cx,30,cz);top.scale.y=.22;o.meshes.push(top);
       addMesh(new T.CylinderGeometry(r+.15,r+.15,3,28),new T.MeshStandardMaterial({color:0x9c2a1e,roughness:.6}),cx,22,cz);
       addMesh(new T.BoxGeometry(1,30,4),darkMetal,cx,15,cz+r+.6);
       addMesh(new T.BoxGeometry(14,2,2),darkMetal,cx-r-6,3,cz);

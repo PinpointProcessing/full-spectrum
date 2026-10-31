@@ -10,7 +10,7 @@ function wavePhase(...ps){return ps.includes(wave.phase);}
 function resetWaves(){
   if(wave.jeep){scene.remove(wave.jeep.m.g);if(wave.jeep.obj)removeObstacle(wave.jeep.obj,wave.jeep.gone);}
   if(jeepLight)jeepLight.intensity=0;
-  wave={phase:'fight1',t:0};bigText(null);cdShown=-1;hq=null;camPan=null;lockArea();
+  wave={phase:'fight1',t:0};bigText(null);cdShown=-1;hq=null;camPan=null;lockArea();resetDepot();
 }
 function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){
@@ -19,7 +19,8 @@ function waveTick(dt){
   else if(wave.phase==='clear'&&el>=CLEAR_T)goWave('count');
   else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnJeep();goWave('drive');}
   else if(wave.phase==='drive')driveJeep(dt);
-  else if(wave.phase==='hq')hqTick(dt);
+  else if(wave.phase==='hq'||wave.phase==='hq2')hqTick(dt);
+  else if(wave.phase==='depot'||wave.phase==='depotdone'){hqTick(dt);depotTick(dt);}
   else if(wave.phase==='fight2'&&enemies.every(e=>e.dead)){goWave('done');bigText('All clear!','clear');endAt=performance.now()+CLEAR_T*1000;}
 }
 

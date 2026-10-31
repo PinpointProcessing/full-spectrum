@@ -41,9 +41,9 @@ function statLine(u){
 
 /* ---------- after-action report ---------- */
 function showAAR(){
-  const t=Math.floor(simT),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
+  const t=Math.floor(simT-mission.t0),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
   const kills=players.reduce((n,p)=>n+p.stats.kills,0),kia=players.filter(p=>p.dead).length;
-  $('#aarSum').textContent=`Warehouse and yard cleared in ${mm}:${ss}. ${kills} hostiles down, ${kia?`${kia} of ours killed in action`:'no one lost'}.`;
+  $('#aarSum').textContent=`${mission.name==='checkpoint'?'Checkpoint taken':'Warehouse and yard cleared'} in ${mm}:${ss}. ${kills} hostiles down, ${kia?`${kia} of ours killed in action`:'no one lost'}.`;
   const rows=$('#aarRows');rows.innerHTML='';
   players.forEach((u,i)=>{
     const before=xpOf(u.id),gain=missionXP(u).reduce((n,p)=>n+p[0],0),after=before+gain;

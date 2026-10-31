@@ -61,7 +61,7 @@ function hqTick(dt){
     if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;
     if(z&&z.k==='sup'&&p.grenade<1){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;p.restock=0;callout(p,'Restocked',C.good);}}else p.restock=0;
   }
-  if(!hq.arrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Move out when you\'re ready.',4000);}
+  if(!hq.arrow&&!hq.noArrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Move out when you\'re ready.',4000);}
 }
 /* ---------- the depot: locked behind the yard's east gate until the jeep patrol is beaten ---------- */
 let area={open:false,gone:[],slide:0};
@@ -74,6 +74,7 @@ function openArea(){
   if(area.open)return;
   removeObstacle(depotGate,area.gone);area.gone=[];area.open=true;area.slide=0.001;
   VB={x0:0,z0:0,x1:W,z1:H};
+  startDepot();   // the checkpoint's garrison takes its posts (depot.js)
 }
 function gateTick(rdt){   // the gate slides open along the fence (every frame)
   if(area.slide>0&&area.slide<1){area.slide=Math.min(1,area.slide+rdt/1.6);depotGate.mesh.position.z=depotGate.y+depotGate.h/2-66*area.slide;}

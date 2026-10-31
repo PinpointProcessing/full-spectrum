@@ -5,7 +5,7 @@ function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classLis
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  if(wave.phase==='hq'){const on=hq&&hq.patrol==='on';s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
+  if(wave.phase==='hq'||wave.phase==='hq2'){const on=hq&&hq.patrol==='on';s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
 }
@@ -56,7 +56,7 @@ function hud(){
 // detection indicator, updated every frame
 let alertShown=-1;
 function alertMeter(){
-  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done','hq');if(el.hidden)return;   // the countdown takes its place
+  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done','hq','hq2','depotdone');if(el.hidden)return;   // the countdown takes its place
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);
@@ -82,7 +82,7 @@ function bindHud(){
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#startBtn').addEventListener('click',()=>{startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});
-  $('#aarBtn').addEventListener('click',startHQ);
+  $('#aarBtn').addEventListener('click',()=>mission.name==='checkpoint'?startHQ2():startHQ());
   $('#hqBtn').addEventListener('click',()=>{$('#hqPop').hidden=true;paused=false;hud();});
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
   $('#againBtn').addEventListener('click',()=>{startView();$('#end').hidden=true;reset();state='play';hud();});

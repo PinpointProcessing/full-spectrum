@@ -58,7 +58,7 @@ box(1110,240,110,34,2,2);box(1110,330,34,110,3);box(1200,360,34,110,4,2);
 box(1110,520,110,34,5);box(1140,620,110,34,6,2);box(1110,760,110,34,7);box(1244,700,34,110,0);
 // the checkpoint
 O('booth',958,66,30,30);                       // guard tower beside the gate, north of the road
-O('tower',1092,176,18,18);                     // watchtower on the south-east corner of the crossroads
+O('tower',1092,176,18,18,{cover:1});           // watchtower on the south-east corner of the crossroads
 O('sandbag',978,176,44,10);O('sandbag',978,186,10,22);O('sandbag',1012,186,10,22);   // firing position covering the road
 O('tank',1120,20,44,44,{col:'#c9c6bc'});O('tank',1180,20,44,44,{col:'#b9b4a6'});O('tank',1240,24,36,36,{col:'#c9c6bc'});   // fuel tanks
 O('barrel',1100,80,16,16,{col:'#8a2f22'});O('barrel',1118,82,16,16,{col:'#8a2f22'});O('crate',1150,88,26,20);
@@ -88,7 +88,9 @@ function segHitsRect(x1,y1,x2,y2,o,pad){
   }
   return true;
 }
-function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0))return false;}return true;}
+// a soldier inside a structure (a sentry in the guard tower, the watchtower lookout) sees out of it, and can be seen
+function inRect(x,y,o){return x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h;}
+function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0)&&!inRect(ax,ay,o)&&!inRect(bx,by,o))return false;}return true;}
 // 0 = open, 1 = half cover, 2 = heavy cover, for a target at (tx,ty) shot from (sx,sy)
 function coverAt(tx,ty,sx,sy){
   let best=0;
@@ -96,7 +98,7 @@ function coverAt(tx,ty,sx,sy){
     if(o.kind==='fence')continue;
     if(rectDist(tx,ty,o)>15)continue;
     if(rectDist(sx,sy,o)<15)continue;
-    if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.full?2:1;if(v>best)best=v;}
+    if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)
   }
   return best;
 }
