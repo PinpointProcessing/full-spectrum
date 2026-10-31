@@ -4,8 +4,8 @@
    in the medical box heals; in the supply box he gets his grenade back. After 30 s a red arrow pulses towards the
    north-east, where the next area will be. The jeep itself is in vehicle.js. */
 const HQ_ZONES=[
-  {k:'med',x:195,y:322,w:52,h:44,col:'255,74,64',label:'MEDICAL'},
-  {k:'sup',x:368,y:322,w:52,h:44,col:'232,186,84',label:'SUPPLY'},
+  {k:'med',x:186,y:322,w:90,h:70,col:'255,74,64',label:'MEDICAL'},
+  {k:'sup',x:344,y:322,w:90,h:70,col:'232,186,84',label:'SUPPLY'},
   {k:'motor',x:458,y:560,w:44,h:70,col:'255,206,64',label:'MOTOR POOL'},
 ];
 const UNLOCK_SHOW=3;   // s the camera stays on the jeep after the report before the HQ popup

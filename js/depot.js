@@ -143,7 +143,7 @@ function startHQ2(){
   $('#hqPop').hidden=false;setStatus();hud();
   saveGame('hq2');
 }
-function addHQ2Zones(){HQ_ZONES.push({k:'med',x:900,y:222,w:52,h:44,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:960,y:222,w:52,h:44,col:'232,186,84',label:'SUPPLY',hq2:true});}
+function addHQ2Zones(){HQ_ZONES.push({k:'med',x:874,y:212,w:72,h:64,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:952,y:212,w:70,h:64,col:'232,186,84',label:'SUPPLY',hq2:true});}
 
 /* ---------- drawn on the overlay ---------- */
 function drawDepot(rdt,now){
