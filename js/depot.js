@@ -8,7 +8,7 @@
    or hit by a grenade, rocket or another tank's blast, and burn afterwards. Clearing the garrison completes the mission:
    report, then the checkpoint becomes a second HQ with its own medical and supply points. */
 const RPG={aim:1.3,reload:8,speed:170,spread:[18,42],range:400,blast:40,dmg:85};   // blast: damage radius (smaller than a grenade's)
-const CK_ZONE={x0:930,x1:1290,y0:200,y1:450};   // where the garrison shifts between cover once alerted
+const CK_ZONE={x0:930,x1:1290,y0:-462,y1:-212};   // where the garrison shifts between cover once alerted
 let rockets=[],tankFires=[],tankQueue=[],garrison=[];
 let mission={name:'yard',t0:0};
 
@@ -17,11 +17,12 @@ function startDepot(){
   for(const p of players)p.stats={kills:0,streak:0,best:0,lastKill:-99,revives:0,items:0,downs:0};
   const S2=Math.PI/2;   // facing south, down the road the squad comes up
   const spec=[
-    ['Sentry',1000,355,S2,{post:true,elev:14}],['Lookout',1099,339,S2,{post:true,elev:41}],
-    ['Hostile',1036,378,S2,{}],['Hostile',1064,380,S2,{}],
-    ['Hostile',995,404,S2+0.3,{}],['Hostile',1046,418,S2,{}],
-    ['RPG',965,372,S2-0.2,{rpg:true}],   // beside the guard tower, covering the road
-    ['Patrol',1040,470,S2,{route:[{x:1040,y:680},{x:1040,y:470}]}],['Patrol',1062,486,S2,{route:[{x:1062,y:696},{x:1062,y:486}]}],
+    ['Sentry',1000,-307,S2,{post:true,elev:14}],['Lookout',1099,-323,S2,{post:true,elev:41}],
+    ['Hostile',1036,-284,S2,{}],['Hostile',1064,-282,S2,{}],
+    ['Hostile',995,-258,S2+0.3,{}],['Hostile',1046,-244,S2,{}],
+    ['RPG',965,-290,S2-0.2,{rpg:true}],   // beside the guard tower, covering the road
+    // down the main road past where the curving road joins it, and back
+    ['Patrol',1040,-192,S2,{route:[{x:1040,y:18},{x:1040,y:-192}]}],['Patrol',1062,-176,S2,{route:[{x:1062,y:34},{x:1062,y:-176}]}],
   ];
   garrison=spec.map(([name,x,y,ang,extra],i)=>{
     const u=mk('E','E','E'+(20+i),name,x,y,ang);
@@ -136,14 +137,14 @@ function startHQ2(){
   state='play';endAt=0;contact=false;paused=true;wave.phase='hq2';hq.arrow=false;hq.noArrow=true;
   for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;p.focusTank=null;}
   addHQ2Zones();
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:960,z:260,zoom:2.2},t:0,dur:1.4};
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:960,z:-402,zoom:2.2},t:0,dur:1.4};
   $('#hqPop .eyebrow').textContent='Second temporary HQ';$('#hqPop h1').textContent='Checkpoint secured';
   $('#hqPop p').textContent='The checkpoint is now a temporary HQ. Heal and resupply here before you push on. Hold enough of these and you can establish a permanent HQ.';
   $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>That\'s the end of this demo area for now.</li>';
   $('#hqPop').hidden=false;setStatus();hud();
   saveGame('hq2');
 }
-function addHQ2Zones(){HQ_ZONES.push({k:'med',x:874,y:212,w:72,h:64,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:952,y:212,w:70,h:64,col:'232,186,84',label:'SUPPLY',hq2:true});}
+function addHQ2Zones(){HQ_ZONES.push({k:'med',x:874,y:-450,w:72,h:64,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:952,y:-450,w:70,h:64,col:'232,186,84',label:'SUPPLY',hq2:true});}
 
 /* ---------- drawn on the overlay ---------- */
 function drawDepot(rdt,now){

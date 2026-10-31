@@ -25,7 +25,7 @@ function initGL(){
 
 /* camera: angled, like a tactics game; from the south when yaw is 0 (a two-finger twist turns it). zoom tilts it lower. */
 // The camera distance is fitted to the yard's size (FIT); VB is where it may roam: the yard, then the whole map once the depot opens.
-const FIT={w:YARD_W,h:H};let VB={x0:0,z0:0,x1:YARD_W,z1:H};
+const FIT={w:YARD_W,h:H};let VB={x0:0,z0:0,x1:YARD_W,z1:H};   // VB z runs TOP..H once the whole map is open
 const MAXZ=4;let zoom=1,camT={x:FIT.w/2,z:FIT.h/2},dist0=1200,yaw=0,tilt=0;
 const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH_MIN=14*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
 function basePitch(){return PITCH0+(PITCH1-PITCH0)*(zoom-1)/(MAXZ-1);}
@@ -99,20 +99,21 @@ function canvasTex(w,h,draw){
 function texMat(tex,rx,ry,opts){const t=tex.clone();t.needsUpdate=true;t.repeat.set(rx,ry);return new T.MeshStandardMaterial(Object.assign({map:t},opts));}
 
 /* ground: painted once, decals painted in as the fight happens */
-const gcan=document.createElement('canvas'),rcan=document.createElement('canvas'),GS=1.6;   // ground texture: 1.6 px per unit
+const gcan=document.createElement('canvas'),rcan=document.createElement('canvas'),GS=1.25;   // ground texture: 1.25 px per unit (the map is 1300 x 1750)
 function drawGround(){
-  gcan.width=Math.round(W*GS);gcan.height=Math.round(H*GS);rcan.width=W;rcan.height=H;
-  const g=gcan.getContext('2d'),q=rcan.getContext('2d');g.setTransform(GS,0,0,GS,0,0);
+  const MH=H-TOP;   // painted in world units: the canvas starts at y TOP
+  gcan.width=Math.round(W*GS);gcan.height=Math.round(MH*GS);rcan.width=W;rcan.height=MH;
+  const g=gcan.getContext('2d'),q=rcan.getContext('2d');g.setTransform(GS,0,0,GS,0,-TOP*GS);q.setTransform(1,0,0,1,0,-TOP);
   const r=rng(1337);
-  g.fillStyle='#4c4f52';g.fillRect(0,0,W,H);q.fillStyle='rgb(210,210,210)';q.fillRect(0,0,W,H);
-  for(let y=0;y<H;y+=75)for(let x=0;x<W;x+=75){g.fillStyle=(r()<.5?'rgba(255,255,255,':'rgba(0,0,0,')+(0.03+r()*0.07).toFixed(3)+')';g.fillRect(x,y,75,75);}
+  g.fillStyle='#4c4f52';g.fillRect(0,TOP,W,MH);q.fillStyle='rgb(210,210,210)';q.fillRect(0,TOP,W,MH);
+  for(let y=TOP;y<H;y+=75)for(let x=0;x<W;x+=75){g.fillStyle=(r()<.5?'rgba(255,255,255,':'rgba(0,0,0,')+(0.03+r()*0.07).toFixed(3)+')';g.fillRect(x,y,75,75);}
   g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=1;
-  for(let x=0;x<=W;x+=75){g.beginPath();g.moveTo(x+.5,0);g.lineTo(x+.5,H);g.stroke();}
-  for(let y=0;y<=H;y+=75){g.beginPath();g.moveTo(0,y+.5);g.lineTo(W,y+.5);g.stroke();}
-  for(let i=0;i<9000;i++){g.fillStyle=r()<.5?'rgba(255,255,255,.07)':'rgba(0,0,0,.22)';g.fillRect(r()*W,r()*H,r()*1.6+.4,r()*1.6+.4);}
-  for(let i=0;i<34;i++){const x=r()*W,y=r()*H,rad=8+r()*34,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.4)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
-  for(let i=0;i<16;i++){
-    const x=20+r()*(W-40),y=20+r()*(H-40),rx=10+r()*32,ry=6+r()*16,a=r()*Math.PI;
+  for(let x=0;x<=W;x+=75){g.beginPath();g.moveTo(x+.5,TOP);g.lineTo(x+.5,H);g.stroke();}
+  for(let y=TOP;y<=H;y+=75){g.beginPath();g.moveTo(0,y+.5);g.lineTo(W,y+.5);g.stroke();}
+  for(let i=0;i<15000;i++){g.fillStyle=r()<.5?'rgba(255,255,255,.07)':'rgba(0,0,0,.22)';g.fillRect(r()*W,TOP+r()*MH,r()*1.6+.4,r()*1.6+.4);}
+  for(let i=0;i<60;i++){const x=r()*W,y=TOP+r()*MH,rad=8+r()*34,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.4)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
+  for(let i=0;i<28;i++){
+    const x=20+r()*(W-40),y=TOP+20+r()*(MH-40),rx=10+r()*32,ry=6+r()*16,a=r()*Math.PI;
     for(const[c,fill]of[[g,'rgba(40,52,64,.2)'],[q,'rgb(30,30,30)']]){c.save();c.translate(x,y);c.rotate(a);c.fillStyle=fill;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.fill();c.restore();}
   }
   g.setLineDash([16,14]);g.strokeStyle='rgba(222,186,70,.55)';g.lineWidth=3;g.beginPath();g.moveTo(310,890);g.lineTo(310,585);g.stroke();g.setLineDash([]);
@@ -127,27 +128,35 @@ function drawGround(){
   for(let y=270;y<=550;y+=28){g.beginPath();g.moveTo(180,y+.5);g.lineTo(440,y+.5);g.stroke();}
   for(let i=0;i<8;i++){const x=190+r()*240,y=280+r()*260,rad=8+r()*18,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.45)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
   g.strokeStyle='rgba(225,185,60,.6)';g.lineWidth=2;g.strokeRect(194,284,232,252);
-  // the depot: wet asphalt roads (access road, main road north, the fork's two branches) with lane markings,
-  // a stop line south of the checkpoint, and container bays
+  // the depot: wet asphalt roads (the curve from the smashed gate, the main road north, the fork's two branches) with
+  // lane markings, a stop line south of the checkpoint, and container bays
   const branchQuad=(b,hw)=>{const dx=b.x-FORK.x,dy=b.y-FORK.y,l=hyp(dx,dy),nx=-dy/l*hw,ny=dx/l*hw;return[[FORK.x+nx,FORK.y+ny],[b.x+nx,b.y+ny],[b.x-nx,b.y-ny],[FORK.x-nx,FORK.y-ny]];};
+  const curve=c=>{c.beginPath();c.moveTo(CURVE.a.x-30,CURVE.a.y);c.lineTo(CURVE.a.x,CURVE.a.y);c.quadraticCurveTo(CURVE.c.x,CURVE.c.y,CURVE.b.x,CURVE.b.y);};
   for(const c of[g,q]){
-    c.fillStyle=c===g?'#2c2f33':'rgb(70,70,70)';
-    c.fillRect(YARD_W-80,ACCESS.y0,MAIN.x1-YARD_W+80,ACCESS.y1-ACCESS.y0);c.fillRect(MAIN.x0,MAIN.y0-10,MAIN.x1-MAIN.x0,H-8-MAIN.y0+10);
+    c.fillStyle=c.strokeStyle=c===g?'#2c2f33':'rgb(70,70,70)';
+    c.fillRect(MAIN.x0,MAIN.y0-10,MAIN.x1-MAIN.x0,H-8-MAIN.y0+10);
+    curve(c);c.lineWidth=CURVE.hw*2;c.lineCap='butt';c.stroke();
     for(const b of BRANCH){const p=branchQuad(b,25);c.beginPath();c.moveTo(...p[0]);for(const v of p)c.lineTo(...v);c.closePath();c.fill();}
     c.beginPath();c.arc(FORK.x,FORK.y,25,0,TAU);c.fill();
   }
   g.strokeStyle='rgba(222,186,70,.6)';g.lineWidth=2;g.setLineDash([14,12]);g.beginPath();
-  const mid=(ACCESS.y0+ACCESS.y1)/2,cx=(MAIN.x0+MAIN.x1)/2;
-  g.moveTo(YARD_W-70,mid);g.lineTo(MAIN.x0-4,mid);g.moveTo(cx,H-10);g.lineTo(cx,ACCESS.y1+4);g.moveTo(cx,ACCESS.y0-4);g.lineTo(cx,FORK.y+26);
+  const cx=(MAIN.x0+MAIN.x1)/2;
+  g.moveTo(cx,H-10);g.lineTo(cx,FORK.y+26);
   for(const b of BRANCH){const dx=b.x-FORK.x,dy=b.y-FORK.y,l=hyp(dx,dy);g.moveTo(FORK.x+dx/l*30,FORK.y+dy/l*30);g.lineTo(b.x,b.y);}
-  g.stroke();g.setLineDash([]);
+  g.stroke();g.beginPath();for(let t=0;t<=.8;t+=.02){const p=curvePt(t);t?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);}g.stroke();g.setLineDash([]);
   g.strokeStyle='rgba(235,235,235,.6)';g.lineWidth=3;g.beginPath();g.moveTo(MAIN.x0+3,CKPT.y+12);g.lineTo(MAIN.x1-3,CKPT.y+12);g.stroke();
-  g.strokeStyle='rgba(230,230,230,.1)';g.lineWidth=1;for(let y=300;y<880;y+=90)for(let x=625;x<990;x+=130)if(y+44<ACCESS.y0||y>ACCESS.y1)g.strokeRect(x,y,120,44);
-  for(const o of objs){if(o.kind==='fence')continue;g.fillStyle='rgba(0,0,0,.32)';g.fillRect(o.x-3,o.y-3,o.w+6,o.h+6);}
+  g.strokeStyle='rgba(230,230,230,.1)';g.lineWidth=1;for(let y=300;y<880;y+=90)for(let x=625;x<990;x+=130)g.strokeRect(x,y,120,44);
+  // tyre marks where the gun jeep came through the gate
+  g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=3;for(const o of[-8,8]){g.beginPath();g.moveTo(640,57+o);g.bezierCurveTo(560,57+o,520,90+o,500,140+o);g.stroke();}
+  // the dock: dark water (a lit plane over it, see buildWorld), a concrete quay edge and bollards
+  for(const c of[g,q]){c.fillStyle=c===g?'#0b1216':'rgb(20,20,20)';c.fillRect(0,DOCK.quay,175,H-DOCK.quay);}
+  g.fillStyle='#8a8b86';g.fillRect(0,DOCK.quay-6,178,6);g.fillRect(175,DOCK.quay-6,4,H-DOCK.quay+6);
+  g.fillStyle='rgba(228,182,40,.8)';g.fillRect(0,DOCK.quay-7,178,1.4);
+  for(const o of objs){if(o.kind==='fence'||o.kind==='water')continue;g.fillStyle='rgba(0,0,0,.32)';g.fillRect(o.x-3,o.y-3,o.w+6,o.h+6);}
   gtex.needsUpdate=true;rtex.needsUpdate=true;
 }
 function paintDecal(d){
-  const g=gcan.getContext('2d');g.setTransform(GS,0,0,GS,0,0);
+  const g=gcan.getContext('2d');g.setTransform(GS,0,0,GS,0,-TOP*GS);
   if(d.k==='scorch'){const gr=g.createRadialGradient(d.x,d.y,0,d.x,d.y,26);gr.addColorStop(0,'rgba(0,0,0,.75)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(d.x,d.y,26,0,7);g.fill();}
   else{g.fillStyle='rgba(80,8,6,.7)';g.beginPath();g.ellipse(d.x+2,d.y+1,9+d.r*4,6+d.r*3,d.r*3,0,7);g.fill();}
   gtex.needsUpdate=true;
@@ -161,10 +170,11 @@ const lamps=[
   {x:570,y:200,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},
   {x:560,y:870,h:40,c:0xffa860,i:2.4,d:280,pole:1},
   {x:310,y:410,h:30,c:0xffd9a8,i:2.4,d:260},
-  {x:1084,y:392,h:40,c:0xffa860,i:2.6,d:300,pole:1},   // depot: the checkpoint
-  {x:1002,y:690,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},   // depot: where the access road meets the main road
+  {x:150,y:846,h:14,c:0xffc27a,i:1.6,d:150,pole:1},   // the dock, at the pier
+  {x:1084,y:-270,h:40,c:0xffa860,i:2.6,d:300,pole:1},   // depot: the checkpoint
+  {x:1088,y:-150,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},   // depot: where the curving road meets the main road
 ];
-let hemi,muzzle=[],boomL,jeepLight;
+let hemi,muzzle=[],boomL,jeepLight,moon,dinghy;
 function buildWorld(){
   const corrTex=canvasTex(64,64,(g,w,h)=>{
     for(let x=0;x<w;x+=8){const gr=g.createLinearGradient(x,0,x+8,0);gr.addColorStop(0,'#8a8a8a');gr.addColorStop(.5,'#f0f0f0');gr.addColorStop(1,'#8a8a8a');g.fillStyle=gr;g.fillRect(x,0,8,h);}
@@ -179,10 +189,18 @@ function buildWorld(){
   const shelfTex=canvasTex(128,32,(g,w,h)=>{g.fillStyle='#2a2f34';g.fillRect(0,0,w,h);const r=rng(3);for(let x=2;x<w-8;x+=10+r()*6){const t=110+r()*80|0;g.fillStyle=`rgb(${t},${t*.75|0},${t*.5|0})`;g.fillRect(x,4,8+r()*4,h-8);}g.fillStyle='#55606a';g.fillRect(0,0,w,2);g.fillRect(0,h-2,w,2);});
   const linkTex=canvasTex(32,32,(g,w,h)=>{g.strokeStyle='#c8cdd2';g.lineWidth=1.6;g.beginPath();g.moveTo(0,0);g.lineTo(w,h);g.moveTo(w,0);g.lineTo(0,h);g.stroke();});
   drawGround();
-  const ground=new T.Mesh(new T.PlaneGeometry(W,H),new T.MeshStandardMaterial({map:gtex,roughnessMap:rtex,roughness:1,metalness:.18}));
-  ground.rotation.x=-Math.PI/2;ground.position.set(W/2,0,H/2);ground.receiveShadow=true;scene.add(ground);
-  const outer=new T.Mesh(new T.PlaneGeometry(4000,4000),new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}));
-  outer.rotation.x=-Math.PI/2;outer.position.set(W/2,-.3,H/2);scene.add(outer);
+  const ground=new T.Mesh(new T.PlaneGeometry(W,H-TOP),new T.MeshStandardMaterial({map:gtex,roughnessMap:rtex,roughness:1,metalness:.18}));
+  ground.rotation.x=-Math.PI/2;ground.position.set(W/2,0,(H+TOP)/2);ground.receiveShadow=true;scene.add(ground);
+  const outer=new T.Mesh(new T.PlaneGeometry(5000,5000),new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}));
+  outer.rotation.x=-Math.PI/2;outer.position.set(W/2,-.3,(H+TOP)/2);scene.add(outer);
+  // the dock: glossy black water running off the map's south-west corner, a wooden pier with bollards, and the dinghy the squad lands in (landing in state.js)
+  const water=new T.Mesh(new T.PlaneGeometry(420,330),new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7}));
+  water.rotation.x=-Math.PI/2;water.position.set(175-210,.15,DOCK.quay+165);water.receiveShadow=true;scene.add(water);
+  {const pr=DOCK.pier,wm=texMat(woodTex,1,2,{color:0x7a6248,roughness:.9});
+   addMesh(new T.BoxGeometry(pr.w,1.2,pr.h+4),wm,pr.x+pr.w/2,.6,pr.y+pr.h/2-2);
+   for(const sx of[pr.x+1.5,pr.x+pr.w-1.5])for(const sz of[pr.y+8,pr.y+pr.h-2])addMesh(new T.CylinderGeometry(1.4,1.4,6,8),wm,sx,-1.5,sz);
+   for(const bx of[30,80,165])addMesh(new T.CylinderGeometry(1.6,2,3,10),new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5}),bx,1.5,DOCK.quay-3);}
+  dinghy=makeDinghy();dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
 
   const wallMat=texMat(corrTex,1,1,{color:0x59616a,roughness:.65,metalness:.35});
   const concrete=new T.MeshStandardMaterial({color:0x8d8e8a,roughness:.95});
@@ -238,7 +256,7 @@ function buildWorld(){
         const lx=-len/2+c;
         bagList.push({x:cx+(hz?lx:0),z:cz+(hz?0:lx),y:1.7+L*3,sx:hz?bl/2+.6:th/2,sz:hz?th/2:bl/2+.6});
       }
-    }else if(o.kind==='gate'){   // sliding chain-link gate in a steel frame; slides open along the fence (hq.js)
+    }else if(o.kind==='gate'){   // chain-link gate in a steel frame; the wave-two gun jeep knocks it flat (smashGate in hq.js)
       const gg=new T.Group();gg.position.set(cx,0,cz);scene.add(gg);o.mesh=gg;
       const gm=texMat(linkTex,len/6,3,{color:0xb2b8bc,transparent:true,alphaTest:.35,side:T.DoubleSide,roughness:.6,metalness:.6});
       const pl=new T.Mesh(new T.PlaneGeometry(len,17),gm);pl.position.y=9.5;pl.rotation.y=ry;gg.add(pl);
@@ -259,7 +277,7 @@ function buildWorld(){
       const roof=addMesh(new T.ConeGeometry(18,7,4),new T.MeshStandardMaterial({color:0x2a2d30,roughness:.7,metalness:.4}),cx,53,cz);roof.rotation.y=Math.PI/4;
       addMesh(new T.BoxGeometry(1,40,5),darkMetal,cx-10.5,20,cz);
       const lamp=new T.Mesh(new T.CylinderGeometry(1.6,2.2,3,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx-6,46,cz+11);scene.add(lamp);
-      const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-6,46,cz+11);sl.target.position.set(CKPT.x,0,ACCESS.y0);scene.add(sl,sl.target);
+      const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-6,46,cz+11);sl.target.position.set(CKPT.x,0,CKPT.y+330);scene.add(sl,sl.target);
     }else if(o.kind==='tank'){   // fuel tank: white cylinder, domed top, a red band, a ladder and a pipe
       const r=o.w/2;
       o.meshes=[addMesh(new T.CylinderGeometry(r,r,30,28),new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.35}),cx,15,cz)];   // blackened when it blows (depot.js)
@@ -292,7 +310,7 @@ function buildWorld(){
 
   // lights
   hemi=new T.HemisphereLight(0x5a6e96,0x140f0b,.24);scene.add(hemi);
-  const moon=new T.DirectionalLight(0x9fb4ff,.32);moon.position.set(W/2-300,620,H/2-400);moon.target.position.set(W/2,0,H/2);
+  moon=new T.DirectionalLight(0x9fb4ff,.32);moon.position.set(FIT.w/2-300,620,FIT.h/2-400);moon.target.position.set(FIT.w/2,0,FIT.h/2);   // follows the camera (render)
   moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);
   Object.assign(moon.shadow.camera,{left:-620,right:620,top:620,bottom:-620,near:50,far:1900});moon.shadow.bias=-0.0008;
   scene.add(moon,moon.target);
@@ -345,6 +363,18 @@ function makeJeep(){
   for(const s of[-1,1])part(new T.BoxGeometry(3,2,.6),lamp,s*7,9.5,22.2);
   scene.add(g);return{g,tur};
 }
+// the squad's inflatable boat: two grey tubes meeting at a raised bow, a wooden floor, an outboard motor. Bow is -z (north).
+function makeDinghy(){
+  const g=new T.Group(),tube=new T.MeshStandardMaterial({color:0x34383a,roughness:.55,metalness:.1}),dark=new T.MeshStandardMaterial({color:0x151719,roughness:.6,metalness:.4});
+  const part=(geo,mat,x,y,z)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);return m;};
+  const tg=new T.CylinderGeometry(2.6,2.6,30,12);
+  for(const s of[-1,1]){const t=part(tg,tube,s*6,2.6,2);t.rotation.x=Math.PI/2;t.rotation.y=s*.07;}
+  const bow=part(new T.SphereGeometry(4.6,12,8),tube,0,3,-14);bow.scale.set(1.5,.62,1.1);
+  part(new T.BoxGeometry(10,1,30),new T.MeshStandardMaterial({color:0x5a4a38,roughness:.9}),0,1,2);
+  part(new T.BoxGeometry(14,4,1.4),tube,0,2.6,17);
+  part(new T.BoxGeometry(3.4,6,3.4),dark,0,6,19.5);part(new T.BoxGeometry(1.2,6,1.6),dark,0,1,20);
+  scene.add(g);return g;
+}
 function syncUnits(t){
   for(const u of units){
     const m=u.m;if(!m)continue;
@@ -355,7 +385,7 @@ function syncUnits(t){
     m.pose.rotation.z+=((lying?Math.PI/2:0)-m.pose.rotation.z)*.2;
     const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
     m.pose.position.y=lying?2.6:(u.path.length?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
-    const crouch=!lying&&!u.gunner&&(u.inVeh?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
+    const crouch=!lying&&!u.gunner&&(u.inVeh||u.inBoat?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
     m.pose.scale.y+=((crouch?.7:sneak?.8:1)-m.pose.scale.y)*.15;
     m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
     if(m.spot)m.spot.intensity=lying?0:2.6;
@@ -363,6 +393,8 @@ function syncUnits(t){
 }
 function render(rdt,now){
   updateCamera();syncUnits(now);
+  if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
+  moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);   // the shadow box follows the view: the map is bigger than one shadow map
   for(const L of lamps){let i=L.i;if(L.flick&&!reduced){const f=Math.sin(now*13.1)+Math.sin(now*7.3);if(f>1.85)i*=.3;}L.light.intensity=i;}
   hemi.intensity=.24+storm*1.6;
   const fl=flashes.slice(-2);

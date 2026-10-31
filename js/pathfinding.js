@@ -1,11 +1,13 @@
 "use strict";
 /* A* on a 10-unit grid with string-pulling, and the cover points generated around object edges. */
-const CS=10,GW=W/CS,GH=H/CS,blk=new Uint8Array(GW*GH);
-for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)blk[gy*GW+gx]=isFree(gx*CS+5,gy*CS+5)?0:1;
+// cell (gx,gy) covers x gx*CS.., y TOP+gy*CS.. (the map starts at y TOP, north of the yard)
+const CS=10,GW=W/CS,GH=(H-TOP)/CS,blk=new Uint8Array(GW*GH);
+const cx0=gx=>gx*CS+5,cy0=gy=>TOP+gy*CS+5;   // a cell's centre
+for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)blk[gy*GW+gx]=isFree(cx0(gx),cy0(gy))?0:1;
 // Foot soldiers use blk. Vehicles use vblk (built on demand, see buildVehGrid): free only where something jeep-sized fits.
 const vblk=new Uint8Array(GW*GH);
 const FOOT={blk,pad:6.5,end:7},VEH={blk:vblk,pad:15,end:16};
-function buildVehGrid(){for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)vblk[gy*GW+gx]=isFree(gx*CS+5,gy*CS+5,VEH.end)?0:1;}
+function buildVehGrid(){for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)vblk[gy*GW+gx]=isFree(cx0(gx),cy0(gy),VEH.end)?0:1;}
 function nearestFreeCell(gx,gy,b=blk){
   for(let r=0;r<7;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
     if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
@@ -14,7 +16,7 @@ function nearestFreeCell(gx,gy,b=blk){
   }
   return -1;
 }
-function cellOf(x,y,b=blk){const gx=clamp(Math.floor(x/CS),0,GW-1),gy=clamp(Math.floor(y/CS),0,GH-1);let i=gy*GW+gx;if(b[i])i=nearestFreeCell(gx,gy,b);return i;}
+function cellOf(x,y,b=blk){const gx=clamp(Math.floor(x/CS),0,GW-1),gy=clamp(Math.floor((y-TOP)/CS),0,GH-1);let i=gy*GW+gx;if(b[i])i=nearestFreeCell(gx,gy,b);return i;}
 function clearLine(ax,ay,bx,by,pad=6.5){for(const o of objs)if(segHitsRect(ax,ay,bx,by,o,pad))return false;return true;}
 const gS=new Float32Array(GW*GH),came=new Int32Array(GW*GH),seenSt=new Int32Array(GW*GH),closedSt=new Int32Array(GW*GH);let stampN=0;
 function findPath(sx,sy,tx,ty,nav=FOOT){
@@ -30,7 +32,7 @@ function findPath(sx,sy,tx,ty,nav=FOOT){
     const i=pop()[1];
     if(closedSt[i]===stampN)continue;closedSt[i]=stampN;
     if(i===g){found=true;break;}
-    if(++iter>20000)break;   // the map is 130 x 90 cells
+    if(++iter>40000)break;   // the map is 130 x 175 cells
     const x=i%GW,y=(i/GW)|0;
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy;
@@ -44,7 +46,7 @@ function findPath(sx,sy,tx,ty,nav=FOOT){
   if(!found)return null;
   const cells=[];for(let i=g;i!==-1;i=came[i])cells.push(i);cells.reverse();
   const pts=[{x:sx,y:sy}];
-  for(let k=1;k<cells.length;k++){const i=cells[k];pts.push({x:(i%GW)*CS+5,y:((i/GW)|0)*CS+5});}
+  for(let k=1;k<cells.length;k++){const i=cells[k];pts.push({x:cx0(i%GW),y:cy0((i/GW)|0)});}
   const end=isFree(tx,ty,nav.end)?{x:tx,y:ty}:pts[pts.length-1];
   if(pts.length>1)pts[pts.length-1]=end;else pts.push(end);
   const out=[];let a=0;
@@ -60,13 +62,13 @@ function addCoverPts(o){
   for(let i=0;i<nx;i++){const x=o.x+(i+.5)*o.w/nx;add(x,o.y-off);add(x,o.y+o.h+off);}
   for(let i=0;i<ny;i++){const y=o.y+(i+.5)*o.h/ny;add(o.x-off,y);add(o.x+o.w+off,y);}
 }
-for(const o of objs)if(o.kind!=='fence')addCoverPts(o);
+for(const o of objs)if(o.kind!=='fence'&&o.kind!=='water')addCoverPts(o);
 
 /* ---------- objects placed mid-battle (the parked jeep) ---------- */
 function regrid(o){   // re-mark the nav cells around o
   const g0=Math.max(0,Math.floor((o.x-12)/CS)),g1=Math.min(GW-1,Math.floor((o.x+o.w+12)/CS));
-  const h0=Math.max(0,Math.floor((o.y-12)/CS)),h1=Math.min(GH-1,Math.floor((o.y+o.h+12)/CS));
-  for(let gy=h0;gy<=h1;gy++)for(let gx=g0;gx<=g1;gx++)blk[gy*GW+gx]=isFree(gx*CS+5,gy*CS+5)?0:1;
+  const h0=Math.max(0,Math.floor((o.y-12-TOP)/CS)),h1=Math.min(GH-1,Math.floor((o.y+o.h+12-TOP)/CS));
+  for(let gy=h0;gy<=h1;gy++)for(let gx=g0;gx<=g1;gx++)blk[gy*GW+gx]=isFree(cx0(gx),cy0(gy))?0:1;
 }
 // returns the cover points it displaced, to hand back to removeObstacle
 function addObstacle(o){

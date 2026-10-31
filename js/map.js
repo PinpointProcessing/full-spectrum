@@ -4,11 +4,17 @@
 const objs=[];
 const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank']);
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
-O('fence',0,0,450,8);O('fence',500,0,100,8);O('fence',0,H-8,W,8);   // north gate 450-500 (reinforcements come through it)
-O('fence',0,0,8,H);O('fence',W-8,0,8,H);O('fence',YARD_W,0,W-YARD_W,8);
-// the yard's east fence, with a gate (y 700-770) to the depot road. Locked until the area opens (hq.js)
-O('fence',YARD_W-8,0,8,700);O('fence',YARD_W-8,770,8,H-770);
-const depotGate=objs[objs.push({kind:'gate',x:YARD_W-8,y:700,w:8,h:70,full:true})-1];
+// outer fence (open at the dock in the south-west corner, x 0-175, where the water is)
+O('fence',0,TOP,W,8);O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,TOP,8,H-TOP);
+O('fence',0,0,YARD_W,8);   // the yard's north fence
+// the yard's east fence, with a gate at its north end (y 22-92). Reinforcements smash through it in their gun jeep (waves.js);
+// beyond it a road curves onto the depot's main road. It stays an obstacle (the area is closed) until the depot opens (hq.js).
+O('fence',YARD_W-8,0,8,22);O('fence',YARD_W-8,92,8,H-92);
+const depotGate=objs[objs.push({kind:'gate',x:YARD_W-8,y:22,w:8,h:70,full:true})-1];
+// the dock in the south-west corner, where the squad comes ashore by dinghy: water either side of a short wooden pier
+// (x 120-142). Water blocks movement but not sight, and is never cover.
+O('water',0,852,120,48);O('water',142,852,33,48);
+const DOCK={pier:{x:120,y:852,w:22,h:40},moor:{x:96,y:872},quay:852};
 // warehouse shell (x170-450, y260-560)
 O('wall',170,260,115,10);O('wall',325,260,125,10);           // north, back door 285-325
 O('wall',170,550,90,10);O('wall',360,550,90,10);             // south, roll door 260-360
@@ -37,46 +43,46 @@ O('container',520,240,34,110,{col:'#2c4a63',tag:'OOLU 5519'});
 O('container',470,800,100,34,{col:'#4f565b',tag:'TGHU 3302'});
 O('barrel',300,808,16,16,{col:'#6b3a28'});
 
-/* ---------- the shipping depot (x 600-1300), same rainy night ----------
-   From the yard gate (south end of the yard's east fence) an access road runs east to the main road on the right side of the
-   map, which runs south to north (x 1025-1075). Up the main road is the checkpoint, facing south: a boom gate across the road,
-   a guard tower on its west side, a watchtower on its east side, a sandbagged firing position and fuel tanks behind it.
-   Past the checkpoint the road forks (at FORK): the left branch will lead to an office building and the right one to a
-   drawbridge (both to come; the ground beside the branches is kept clear for them). Rows of single and double-stacked
-   containers on both sides of the main road leave aisles for flanking. */
-const ACCESS={y0:710,y1:760},MAIN={x0:1025,x1:1075,y0:210},FORK={x:1050,y:210},BRANCH=[{x:880,y:8},{x:1220,y:8}],CKPT={x:1050,y:362};
+/* ---------- the shipping depot (east of the yard, and the strip north of it), same rainy night ----------
+   From the smashed gate at the yard's north-east corner a road (CURVE) runs east and bends north onto the main road on the
+   right side of the map, which runs south to north (x 1025-1075) from the south fence. Up the main road is the checkpoint,
+   facing south: a boom gate across the road, a guard tower on its west side, a watchtower on its east side, a sandbagged
+   firing position and fuel tanks behind it. Past the checkpoint the road forks (at FORK): the left branch will lead to an
+   office building and the right one to a drawbridge (both to come; the ground beside the branches is kept clear for them).
+   Rows of single and double-stacked containers on both sides of the main road leave aisles for flanking. */
+const MAIN={x0:1025,x1:1075,y0:-500},FORK={x:1050,y:-500},BRANCH=[{x:840,y:TOP+8},{x:1220,y:TOP+8}],CKPT={x:1050,y:-300};
+const CURVE={a:{x:YARD_W-4,y:57},c:{x:1050,y:57},b:{x:1050,y:-150},hw:25};   // quadratic curve from the gate to the main road
+function curvePt(t){const u=1-t;return{x:u*u*CURVE.a.x+2*u*t*CURVE.c.x+t*t*CURVE.b.x,y:u*u*CURVE.a.y+2*u*t*CURVE.c.y+t*t*CURVE.b.y};}
 const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
 const box=(x,y,w,h,k,stack=1)=>O('container',x,y,w,h,{col:CK[k%CK.length][0],tag:`${CK[k%CK.length][1]} ${(1000+k*397)%9000+1000}`,stack});
-// west of the main road, between the checkpoint's latitude and the access road
+// south of the curving road, west of the main road: the container yard
 box(640,215,110,34,3,2);box(780,215,34,70,4);
 box(640,300,34,110,6);box(700,330,110,34,7,2);box(860,320,34,110,0);
 box(640,470,110,34,1);box(790,450,110,34,2,2);box(930,450,34,110,3);
 box(660,560,34,110,4,2);box(740,590,110,34,5);box(880,600,110,34,6,2);
-// south of the access road
+box(700,700,110,34,2);box(900,690,34,90,5,2);
 box(640,790,110,34,7);box(800,780,34,100,0,2);box(880,800,110,34,1);
-// east of the main road
+box(700,120,34,70,1);box(820,110,110,34,5,2);
+// east of the main road, south to north
+box(1120,40,110,34,5);box(1200,140,34,110,1,2);box(1120,250,110,34,7);box(1230,330,34,100,2);
 box(1120,390,110,34,2,2);box(1130,470,34,110,3);box(1220,460,34,110,4,2);
 box(1120,620,110,34,5);box(1150,700,110,34,6,2);box(1120,800,110,34,7);box(1244,770,34,100,0);
+box(1150,-50,80,34,6);box(1250,-20,34,90,0,2);
+// north of the curving road: the approach to the checkpoint
+box(660,-102,34,110,4,2);box(740,-72,110,34,5);box(850,-96,100,34,6,2);
+box(640,-192,110,34,1);box(790,-212,110,34,2,2);box(930,-212,34,110,3);
+box(1120,-272,110,34,2,2);box(1130,-192,34,110,3);box(1220,-202,34,110,4,2);
+box(640,-447,110,34,3,2);box(780,-447,34,70,4);
+box(640,-362,34,110,6);box(700,-332,110,34,7,2);box(860,-342,34,110,0);
 // the checkpoint, across the main road and facing south
-O('booth',985,340,30,30);                      // guard tower on the west side of the gate
-O('tower',1090,330,18,18,{cover:1});           // watchtower on the east side (the open platform is half cover)
-O('sandbag',972,414,46,10);O('sandbag',972,392,10,22);O('sandbag',1008,392,10,22);   // firing position covering the road south
-O('tank',1120,250,44,44,{col:'#c9c6bc'});O('tank',1180,250,44,44,{col:'#b9b4a6'});O('tank',1240,256,36,36,{col:'#c9c6bc'});   // fuel tanks behind it
-O('barrel',1135,312,16,16,{col:'#8a2f22'});O('barrel',1153,314,16,16,{col:'#8a2f22'});O('crate',1185,316,26,20);
-O('crate',985,480,26,26);O('pallet',985,560,30,20);O('barrel',996,660,16,16,{col:'#3a5160'});
+O('booth',985,-322,30,30);                     // guard tower on the west side of the gate
+O('tower',1090,-332,18,18,{cover:1});          // watchtower on the east side (the open platform is half cover)
+O('sandbag',972,-248,46,10);O('sandbag',972,-270,10,22);O('sandbag',1008,-270,10,22);   // firing position covering the road south
+O('tank',1120,-412,44,44,{col:'#c9c6bc'});O('tank',1180,-412,44,44,{col:'#b9b4a6'});O('tank',1240,-406,36,36,{col:'#c9c6bc'});   // fuel tanks behind it
+O('barrel',1135,-350,16,16,{col:'#8a2f22'});O('barrel',1153,-348,16,16,{col:'#8a2f22'});O('crate',1185,-346,26,20);
+O('crate',985,-182,26,26);O('pallet',1095,-110,30,20);O('barrel',1100,-30,16,16,{col:'#3a5160'});
 // decoration that doesn't block anything: the boom barrier arm across the main road
 const decor=[{kind:'boom',x:MAIN.x0+2,y:CKPT.y,len:MAIN.x1-MAIN.x0-4,dir:'x'}];
-
-const posts=[{x:30,y:560},{x:570,y:200},{x:560,y:870}];
-const lights=[
-  {x:310,y:574,r:175,a:.88,warm:1,flick:1},
-  {x:30,y:560,r:190,a:.62,warm:1},
-  {x:570,y:200,r:210,a:.66},
-  {x:560,y:870,r:190,a:.56,warm:1},
-  {x:245,y:345,r:115,a:.5},
-  {x:375,y:345,r:115,a:.5},
-  {x:310,y:470,r:95,a:.42,warm:1},
-];
 
 function rectDist(x,y,o){const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
 function segHitsRect(x1,y1,x2,y2,o,pad){
@@ -96,14 +102,14 @@ function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,b
 function coverAt(tx,ty,sx,sy){
   let best=0;
   for(const o of objs){
-    if(o.kind==='fence')continue;
+    if(o.kind==='fence'||o.kind==='water')continue;
     if(rectDist(tx,ty,o)>15)continue;
     if(rectDist(sx,sy,o)<15)continue;
     if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)
   }
   return best;
 }
-function isFree(x,y,pad=7.5){if(x<10||y<10||x>W-10||y>H-10)return false;for(const o of objs)if(rectDist(x,y,o)<pad)return false;return true;}
+function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(const o of objs)if(rectDist(x,y,o)<pad)return false;return true;}
 // How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
@@ -119,7 +125,7 @@ function leanPts(x,y,tx,ty){
   const d=hyp(tx-x,ty-y)||1,px=(y-ty)/d,py=(tx-x)/d,out=[];
   for(const r of PEEK_REACH)for(const s of[1,-1]){
     const lx=x+px*r*s,ly=y+py*r*s;
-    if(lx<10||ly<10||lx>W-10||ly>H-10)continue;
+    if(lx<10||ly<TOP+10||lx>W-10||ly>H-10)continue;
     if(objs.some(o=>rectDist(lx,ly,o)<3))continue;
     if(los(x,y,lx,ly))out.push({x:lx,y:ly});
   }

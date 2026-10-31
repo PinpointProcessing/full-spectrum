@@ -65,6 +65,7 @@ function statusText(u){
   if(u.downed)return[u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
   if(u.inVeh)return[{driver:'Driving',gunner:'On the gun',pass:'Riding'}[u.seat],''];
   if(u.boarding)return['Mounting up',''];
+  if(u.inBoat)return['In the boat',''];
   if(u.sup>0.65)return['Pinned','pin'];
   if(u.supT)return['Suppressing',''];
   if(u.path.length)return[u.gait==='sneak'?'Sneaking':'Running',''];

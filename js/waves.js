@@ -1,9 +1,12 @@
 "use strict";
 /* Second wave. When the warehouse is cleared: "All clear!" fades in and out, a 5 s "Incoming!" countdown takes the
-   detection ring's place, then "Enemy inbound!" flashes and a gun jeep drives in through the north gate. Its gunner
+   detection ring's place, then "Enemy inbound!" flashes and a gun jeep comes down the road from the depot and smashes
+   through the gate at the north end of the yard's east fence (it stays broken: later the squad drives out that way). Its gunner
    stays on the machine gun laying down cover fire while four hostiles dismount and push towards the squad.
    Clearing them ends the mission. Timings run on game time, so pause and slow-mo stretch them. */
-const JEEP={x:475,y0:-80,y1:190,w:24,l:46,speed:60};   // drives south through the gate and parks here (centre)
+// its route in (centre points): west along the road, through the gate, then turning south to park facing the yard
+const JEEP={route:[{x:720,y:57},{x:600,y:57},{x:545,y:72},{x:508,y:108},{x:500,y:150}],w:24,l:46,speed:60};
+JEEP.park=JEEP.route[JEEP.route.length-1];
 const CLEAR_T=2.6,COUNT_T=5;
 let wave={phase:'fight1',t:0};   // phases: fight1 → clear → count → drive → fight2 → done → hq (after the report)
 function wavePhase(...ps){return ps.includes(wave.phase);}
@@ -14,6 +17,7 @@ function resetWaves(){
 }
 function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){
+  if(landing)landTick(dt);
   const el=simT-wave.t;
   if(wave.phase==='fight1'&&enemies.every(e=>e.dead)){goWave('clear');bigText('All clear!','clear');}
   else if(wave.phase==='clear'&&el>=CLEAR_T)goWave('count');
@@ -24,29 +28,63 @@ function waveTick(dt){
   else if(wave.phase==='fight2'&&enemies.every(e=>e.dead)){goWave('done');bigText('All clear!','clear');endAt=performance.now()+CLEAR_T*1000;}
 }
 
+/* ---------- the landing: the squad comes ashore by dinghy at the dock in the south-west corner ----------
+   The boat motors in from off the map's south edge and pulls up at the quay beside the pier (LAND_T s, game time), the
+   squad sitting in it; then they hop out onto the quay and move up to the containers. No orders until they're ashore. */
+const LAND_T=4.5,LAND_SEATS=[[-3,-8],[3,-3],[-3,2],[3,7]];
+let landing=null;
+function startLanding(){
+  landing={t:0};
+  players.forEach((p,i)=>{p.start={x:p.x,y:p.y};p.inBoat=true;p.ang=-Math.PI/2;});
+  landTick(0);
+}
+function landTick(dt){
+  landing.t+=dt;const k=Math.min(1,landing.t/LAND_T),e=1-Math.pow(1-k,3);   // eases in to the quay
+  const bx=DOCK.moor.x,by=DOCK.moor.y+170*(1-e);
+  dinghy.position.set(bx,.2,by);
+  players.forEach((p,i)=>{p.x=bx+LAND_SEATS[i][0];p.y=by+LAND_SEATS[i][1];p.elev=1.2;p.path=[];});
+  if(k<1)return;
+  // ashore: each steps up onto the quay, then walks to his spot by the containers
+  landing=null;
+  players.forEach((p,i)=>{
+    p.inBoat=false;p.elev=0;const q={x:p.x,y:DOCK.quay-10},path=findPath(q.x,q.y,p.start.x,p.start.y);
+    p.path=[q,...(path||[p.start])];p.lastOrder=simT;
+  });
+  banner('Ashore. Move up: the warehouse is straight ahead.',3000);hud();
+}
+
 /* ---------- the jeep ---------- */
 function gunnerOf(){return enemies.find(e=>e.gunner);}
 function spawnJeep(){
-  const j={x:JEEP.x,y:JEEP.y0,m:makeJeep()};wave.jeep=j;
-  const g=mk('E','E','E5','Gunner',j.x,j.y-8,Math.PI/2);
+  const r=JEEP.route,j={x:r[0].x,y:r[0].y,heading:Math.PI,leg:1,m:makeJeep()};wave.jeep=j;
+  const g=mk('E','E','E5','Gunner',j.x+8,j.y,Math.PI);
   Object.assign(g,{gunner:true,elev:9,alerted:true,aware:1,cool:99});
   makeSoldier(g);enemies=units.filter(u=>u.side==='E');
   placeJeep();
 }
 function placeJeep(){
-  const j=wave.jeep;j.m.g.position.set(j.x,0,j.y);
-  jeepLight.intensity=3.2;jeepLight.position.set(j.x,10,j.y+22);jeepLight.target.position.set(j.x,0,j.y+140);
-  const g=gunnerOf();if(g&&!g.dead){g.x=j.x;g.y=j.y-8;}
+  const j=wave.jeep,c=Math.cos(j.heading),s=Math.sin(j.heading);
+  j.m.g.position.set(j.x,0,j.y);j.m.g.rotation.y=Math.PI/2-j.heading;
+  jeepLight.intensity=3.2;jeepLight.position.set(j.x+c*22,10,j.y+s*22);jeepLight.target.position.set(j.x+c*140,0,j.y+s*140);
+  const g=gunnerOf();if(g&&!g.dead){g.x=j.x-c*8;g.y=j.y-s*8;}
 }
 function driveJeep(dt){
-  const j=wave.jeep;j.y=Math.min(JEEP.y1,j.y+JEEP.speed*dt);placeJeep();
-  if(j.y<JEEP.y1)return;
+  const j=wave.jeep,r=JEEP.route;let step=JEEP.speed*dt;
+  while(step>0&&j.leg<r.length){
+    const p=r[j.leg],dx=p.x-j.x,dy=p.y-j.y,d=hyp(dx,dy);
+    if(d>.01){const want=Math.atan2(dy,dx);j.heading+=wrapA(want-j.heading)*Math.min(1,dt*6);}
+    if(d<=step){j.x=p.x;j.y=p.y;step-=d;j.leg++;}else{j.x+=dx/d*step;j.y+=dy/d*step;step=0;}
+  }
+  if(!area.smashed&&j.x-23<depotGate.x+depotGate.w)smashGate();   // the bumper hits the gate
+  if(j.leg>=r.length)j.heading=Math.PI/2;   // parked facing south, into the yard
+  placeJeep();
+  if(j.leg<r.length)return;
   // parked: it becomes half cover, the gunner opens up and the squad dismounts
-  j.obj={kind:'jeep',x:JEEP.x-JEEP.w/2,y:JEEP.y1-JEEP.l/2,w:JEEP.w,h:JEEP.l,full:false};
+  j.obj=jeepRect(j);
   j.gone=addObstacle(j.obj);
   const g=gunnerOf();if(g)g.cool=0.6;
   [[-22,-10],[22,-10],[-22,14],[22,14]].forEach(([dx,dy],i)=>{
-    const u=mk('E','E','E'+(6+i),'Hostile',JEEP.x+dx,JEEP.y1+dy,Math.PI/2);
+    const u=mk('E','E','E'+(6+i),'Hostile',JEEP.park.x+dx,JEEP.park.y+dy,Math.PI/2);
     Object.assign(u,{wave:2,alerted:true,aware:1,cool:0.8+Math.random(),moveCool:simT+0.4+i*0.5});
     makeSoldier(u);
   });

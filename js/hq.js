@@ -2,14 +2,14 @@
 /* Temporary HQ after the battle (free time, still the tutorial). The warehouse gets a medical point and a supply
    point inside, and the captured jeep sits on a motor-pool spot outside with a full repair bar. A soldier standing
    in the medical box heals; in the supply box he gets his grenade back. After 30 s a red arrow pulses towards the
-   north-east, where the next area will be. The jeep itself is in vehicle.js. */
+   north-east, at the smashed gate the reinforcements came through: the way to the next area. The jeep itself is in vehicle.js. */
 const HQ_ZONES=[
   {k:'med',x:186,y:322,w:90,h:70,col:'255,74,64',label:'MEDICAL'},
   {k:'sup',x:344,y:322,w:90,h:70,col:'232,186,84',label:'SUPPLY'},
   {k:'motor',x:458,y:560,w:44,h:70,col:'255,206,64',label:'MOTOR POOL'},
 ];
 const UNLOCK_SHOW=3;   // s the camera stays on the jeep after the report before the HQ popup
-const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:735};   // NEXT: where the arrow sits, pointing east at the depot gate
+const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:57};   // NEXT: where the arrow sits, pointing east at the smashed gate
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>z.k!=='motor'&&x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
 
@@ -39,15 +39,15 @@ function parkJeepAt(x,y){
   parkObstacle(j);
   const g=gunnerOf();if(g)g.elev=0;
 }
-// the first time the whole squad is aboard the jeep, a patrol of four comes through the north gate and attacks
+// the first time the whole squad is aboard the jeep, a patrol of four comes in through the smashed gate and attacks
 function startPatrol(){
   hq.patrol='on';contact=true;
-  [[465,22],[488,22],[470,48],[492,48]].forEach(([x,y],i)=>{
-    const u=mk('E','E','E'+(10+i),'Hostile',x,y,Math.PI/2);
+  [[572,40],[572,72],[548,46],[548,80]].forEach(([x,y],i)=>{
+    const u=mk('E','E','E'+(10+i),'Hostile',x,y,Math.PI);
     Object.assign(u,{wave:2,alerted:true,aware:1,cool:1+Math.random(),moveCool:simT+0.3+i*0.4});makeSoldier(u);
   });
   enemies=units.filter(u=>u.side==='E');
-  bigText('Enemy inbound!','inbound');banner('A patrol is coming through the north gate!',2600);setStatus();
+  bigText('Enemy inbound!','inbound');banner('A patrol is coming in through the smashed gate!',2600);setStatus();
 }
 function hqTick(dt){
   if(!hq)return;
@@ -65,32 +65,44 @@ function hqTick(dt){
   }
   if(!hq.arrow&&!hq.noArrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Move out when you\'re ready.',4000);}
 }
-/* ---------- the depot: locked behind the yard's east gate until the jeep patrol is beaten ---------- */
-let area={open:false,gone:[],slide:0};
+/* ---------- the depot: beyond the gate at the north end of the yard's east fence ----------
+   The wave-two gun jeep smashes the gate flat (smashGate). The gap stays closed to movement (the gate is still an obstacle,
+   just not one that blocks sight) and the camera stays over the yard until the jeep patrol is beaten; then the area opens. */
+let area={open:false,gone:[],smashed:false,fall:0};
+function gatePose(k){   // 0 standing, 1 lying flat in the yard where the jeep knocked it
+  const m=depotGate.mesh;if(!m)return;
+  m.position.set(depotGate.x+depotGate.w/2-12*k,.6*k,depotGate.y+depotGate.h/2+6*k);
+  m.rotation.set(0,-.25*k,k*Math.PI/2*.97);
+}
+function smashGate(instant){
+  area.smashed=true;depotGate.full=false;area.fall=instant?1:0.001;if(instant)gatePose(1);
+  if(!instant){const x=depotGate.x,y=depotGate.y+depotGate.h/2;for(let k=0;k<6;k++)sparks.push({x:x+Math.random()*6-3,y:y+Math.random()*50-25,t:0});}
+}
 function lockArea(){
   if(area.open){area.gone=addObstacle(depotGate);area.open=false;}
-  area.slide=0;if(depotGate.mesh)depotGate.mesh.position.z=depotGate.y+depotGate.h/2;
+  area.smashed=false;area.fall=0;depotGate.full=true;gatePose(0);
   VB={x0:0,z0:0,x1:YARD_W,z1:H};
 }
 function openArea(){
   if(area.open)return;
-  removeObstacle(depotGate,area.gone);area.gone=[];area.open=true;area.slide=0.001;
-  VB={x0:0,z0:0,x1:W,z1:H};
+  if(!area.smashed)smashGate(true);
+  removeObstacle(depotGate,area.gone);area.gone=[];area.open=true;
+  VB={x0:0,z0:TOP,x1:W,z1:H};
   startDepot();   // the checkpoint's garrison takes its posts (depot.js)
 }
-function gateTick(rdt){   // the gate slides open along the fence (every frame)
-  if(area.slide>0&&area.slide<1){area.slide=Math.min(1,area.slide+rdt/1.6);depotGate.mesh.position.z=depotGate.y+depotGate.h/2-66*area.slide;}
+function gateTick(rdt){   // the smashed gate falls over (every frame, real time)
+  if(area.fall>0&&area.fall<1){area.fall=Math.min(1,area.fall+rdt/0.35);gatePose(1-Math.pow(1-area.fall,2));}
 }
-// "New area unlocked!": the gate opens and the camera sweeps out to the checkpoint, then comes back
+// "New area unlocked!": the camera sweeps out up the road to the checkpoint, then comes back
 function revealArea(){
   openArea();paused=true;bigText('New area unlocked!','unlock');saveGame('depot');
   const back={x:camT.x,z:camT.z,zoom};
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1050,z:420,zoom:1.6},t:0,dur:1.8};
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1000,z:-200,zoom:1.4},t:0,dur:1.8};
   const mine=hq;
   setTimeout(()=>{
     if(hq!==mine||state!=='play')return;
     camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.6};paused=false;
-    banner('The depot is open. Take the road east, then north up the main road to the checkpoint.',4500);hud();
+    banner('The depot is open. Out through the smashed gate, follow the road onto the main road and north to the checkpoint.',5000);hud();
   },4200);
 }
 // smooth camera move to the warehouse when the HQ opens (real time, every frame)

@@ -46,7 +46,7 @@ function hud(){
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(wave.phase==='hq'&&jeepOf()&&jeepOf().state==='ok'&&act.length&&!preview)h='Tap the jeep to mount up: the first in drives, the second takes the gun.';
   else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box and restock in the supply box. The next area is to the north-east.';
-  else if(wave.phase==='count'&&!preview)h='Reinforcements are coming through the north gate. Get the squad into cover facing north.';
+  else if(wave.phase==='count'&&!preview)h='Reinforcements are coming in through the gate at the north-east corner. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
@@ -70,7 +70,7 @@ function alertMeter(){
   el.querySelector('svg').style.filter=c>0.02?`drop-shadow(0 0 ${(1+7*c).toFixed(1)}px rgba(255,45,30,${(.9*c).toFixed(2)}))`:'none';
   el.setAttribute('aria-label',a>=1?'Spotted':`Detection ${k}%`);
 }
-function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:700};clampCam();updateCamera();}
+function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:760};clampCam();updateCamera();}
 function bindHud(){
   // team tabs toggle: pressing the tab of the group that's already selected deselects it
   const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));select(on?[]:list);preview=null;mode=null;hud();};
@@ -83,11 +83,11 @@ function bindHud(){
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
-  $('#startBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();if(wave.phase!=='fight1')reset();startView();$('#intro').hidden=true;state='play';banner('Move up. The warehouse is straight ahead.',3000);hud();});
+  $('#startBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();if(wave.phase!=='fight1')reset();startView();$('#intro').hidden=true;state='play';startLanding();banner('Coming in to the dock…',2400);hud();});
   $('#aarBtn').addEventListener('click',()=>mission.name==='checkpoint'?startHQ2():startHQ());
   $('#hqBtn').addEventListener('click',()=>{$('#hqPop').hidden=true;paused=false;hud();});
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
-  $('#againBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();startView();$('#end').hidden=true;reset();state='play';hud();});
+  $('#againBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();startView();$('#end').hidden=true;reset();state='play';startLanding();hud();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}

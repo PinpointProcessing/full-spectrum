@@ -24,7 +24,7 @@ let inertia={vx:0,vy:0};
 function inLoop(x,y,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[a,b]=pts[i],[p,q]=pts[j];if((b>y)!==(q>y)&&x<(p-a)*(y-b)/(q-b)+a)c=!c;}return c;}
 // drawing a route: drag that starts on a soldier. Trail is in world coordinates.
 function addTrail(sx,sy){
-  const[wx,wy]=toW(sx,sy),p={x:clamp(wx,10,W-10),y:clamp(wy,10,H-10)},l=ptr.trail[ptr.trail.length-1];
+  const[wx,wy]=toW(sx,sy),p={x:clamp(wx,10,W-10),y:clamp(wy,TOP+10,H-10)},l=ptr.trail[ptr.trail.length-1];
   if(!l||hyp(p.x-l.x,p.y-l.y)>=6)ptr.trail.push(p);
 }
 // while drawing near the edge of the view, slide the camera that way so long routes fit
@@ -118,7 +118,7 @@ function bindInput(){
     ptr.cx=x;ptr.cy=y;
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind=ptr.unit&&alive(ptr.unit)?'draw':'pan';
+      ptr.kind=ptr.unit&&alive(ptr.unit)&&!landing?'draw':'pan';   // no orders while the dinghy is still coming in
       if(ptr.kind==='draw'){select([ptr.unit]);preview=null;mode=null;hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
@@ -154,7 +154,8 @@ function toggleGait(){
   else{const g=act.some(u=>autoGait(u)==='sneak')?'run':'sneak';for(const u of act)u.gaitForce=g;}
 }
 function tap(sx,sy){
-  const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=0&&wy>=0&&wx<=W&&wy<=H;
+  if(landing)return;   // the squad is still in the dinghy
+  const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)
   sel=sel.filter(alive);
   if(mode==='suppress'){
     if(!inMap){mode=null;return;}

@@ -25,14 +25,14 @@ function continueGame(){
   for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;}                         // the warehouse, cleared
   spawnJeep();const g=gunnerOf();if(g){Object.assign(g,{dead:true,hp:0,seen:false,gunner:false,elev:0});}   // its crew dealt with
   wave.phase='hq';hq={t0:simT,arrow:false,patrol:null};
-  parkJeepAt(MOTOR.x,MOTOR.y);
+  parkJeepAt(MOTOR.x,MOTOR.y);smashGate(true);   // the gun jeep came in through the gate
   if(s.stage!=='hq'){
-    hq.patrol='done';openArea();area.slide=1;depotGate.mesh.position.z=depotGate.y+depotGate.h/2-66;
+    hq.patrol='done';openArea();
     for(const e of enemies)if(e.wave===2&&!garrison.includes(e)){e.dead=true;e.seen=false;}
   }
   if(s.stage==='hq2'){for(const e of garrison){e.dead=true;e.hp=0;e.seen=false;}wave.phase='hq2';hq.arrow=false;hq.noArrow=true;addHQ2Zones();}
   // the squad: the dead stay gone, the living keep their wounds
-  const at={hq:{x:300,y:430},depot:{x:540,y:735},hq2:{x:930,y:290}}[s.stage],taken=[];
+  const at={hq:{x:300,y:430},depot:{x:540,y:110},hq2:{x:930,y:-372}}[s.stage],taken=[];
   for(const p of players){
     const d=s.squad[p.id];
     if(!d||d.dead){Object.assign(p,{dead:true,hp:0,gone:true});continue;}
