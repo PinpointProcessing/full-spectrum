@@ -21,8 +21,9 @@ function shotCover(L){return L.atPeek?1:coverAt(L.tx,L.ty,L.fx,L.fy);}
 function leanOut(u,L){if(L.lean)u.peek={x:L.fx,y:L.fy,until:simT+PEEK_T};}
 
 /* ---------- combat helpers ---------- */
-// the squad's weapons (Bryan: two shotguns, two assault rifles): one shotgun per fire team, A2 Kowalski and B2 Okafor
-const WEAPON={rifle:{label:'Rifle',range:380},shotgun:{label:'Shotgun',range:200}},SHOTGUNNERS=['A2','B2'];
+// the squad's weapons: everyone carries an assault rifle for now (Bryan). The shotgun is kept for later: list soldier IDs
+// in SHOTGUNNERS (e.g. ['A2','B2'], one per fire team) to hand them out again
+const WEAPON={rifle:{label:'Rifle',range:380},shotgun:{label:'Shotgun',range:200}},SHOTGUNNERS=[];
 function wRange(u){return u.gunner?440:WEAPON[u.weapon||'rifle'].range;}
 function hitChance(s,t,L){
   L=L||lineOf(s,t);
