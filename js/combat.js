@@ -393,7 +393,7 @@ function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Ma
 
 function update(dt){
   simT+=dt;
-  for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);resolveShot(s);}
+  for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}

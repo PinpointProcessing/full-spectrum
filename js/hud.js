@@ -46,7 +46,7 @@ function hud(){
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(wave.phase==='hq'&&jeepOf()&&jeepOf().state==='ok'&&act.length&&!preview)h='Tap the jeep to mount up: the first in drives, the second takes the gun.';
-  else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box and restock in the supply box. The next area is to the north-east.';
+  else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box, restock in the supply box, then put the whole squad in the jeep to move out.';
   else if(road&&road.phase==='count'&&!preview)h='Something heavy is coming. Restock rockets at the supply point and get into cover.';
   else if(wave.phase==='count'&&!preview)h='Reinforcements are coming in through the gate at the north-east corner. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
@@ -87,7 +87,7 @@ function bindHud(){
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();if(wave.phase!=='fight1')reset();startView();$('#intro').hidden=true;state='play';startLanding();banner('Coming in to the dock…',2400);hud();});
   $('#aarBtn').addEventListener('click',()=>mission.name==='checkpoint'?startHQ2():startHQ());
-  $('#hqBtn').addEventListener('click',()=>{$('#hqPop').hidden=true;paused=false;hud();});
+  $('#hqBtn').addEventListener('click',hqGotIt);
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
   $('#againBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();startView();$('#end').hidden=true;reset();state='play';startLanding();hud();});
   addEventListener('keydown',e=>{

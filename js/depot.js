@@ -146,7 +146,7 @@ function startHQ2(){
   $('#hqPop .eyebrow').textContent='Second temporary HQ';$('#hqPop h1').textContent='Checkpoint secured';
   $('#hqPop p').textContent='The checkpoint is now a temporary HQ. Heal and resupply here before you push on. Hold enough of these and you can establish a permanent HQ.';
   $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>If nobody has grabbed the RPG gunner\'s launcher yet, it\'s still lying where he fell (glowing). Walk a soldier over it to pick it up.</li>';
-  $('#hqPop').hidden=false;setStatus();hud();
+  $('#hqPop').hidden=false;hq.tour='hq2';setStatus();hud();
   saveGame('hq2');
 }
 function addHQ2Zones(){HQ_ZONES.push({k:'med',x:874,y:-450,w:72,h:64,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:952,y:-450,w:70,h:64,col:'232,186,84',label:'SUPPLY',hq2:true});}
@@ -219,7 +219,7 @@ function pickupTick(){
   if(!pickup||pickup.taken)return;
   const u=players.find(p=>alive(p)&&!p.inVeh&&hyp(p.x-pickup.x,p.y-pickup.y)<pickup.r);
   if(!u)return;
-  pickup.taken=true;scene.remove(pickup.m);u.launcher=LAUNCHER.ammo;callout(u,'Got the RPG!',C.good);
+  pickup.taken=true;scene.remove(pickup.m);u.launcher=LAUNCHER.ammo;callout(u,'Got the RPG!',C.good);sfxSting('pickup');
   select([u]);preview=null;mode=null;setTut({step:1,u});hud();
 }
 function spawnTrucks(){
@@ -261,12 +261,12 @@ function placeTank(){
   const g=t.gunner;if(g&&!g.dead){g.x=t.x-Math.cos(t.heading)*4;g.y=t.y-Math.sin(t.heading)*4;}
 }
 function tankArmorHit(by){
-  const t=tank;if(t.dead)return;t.hits++;sparks.push({x:t.x,y:t.y,t:0});
+  const t=tank;if(t.dead)return;t.hits++;sparks.push({x:t.x,y:t.y,t:0});sfxClang(t.x,t.y);
   if(t.hits<TANK.hits){callout(t.gunner&&!t.gunner.dead?t.gunner:(by||players[0]),`Hit! ${TANK.hits-t.hits} more`,C.warn);return;}
   t.dead=true;t.moving=false;t.aimAt=null;
   if(t.gunner&&!t.gunner.dead)damage(t.gunner,999,by);if(t.gunner)t.gunner.elev=0;
   if(by&&by.side==='P')creditKill(by);   // the crew inside
-  for(let k=0;k<5;k++)booms.push({x:t.x+(Math.random()-.5)*24,y:t.y+(Math.random()-.5)*30,t:-k*0.07});
+  for(let k=0;k<5;k++)booms.push({x:t.x+(Math.random()-.5)*24,y:t.y+(Math.random()-.5)*30,t:-k*0.07,size:k?1:1.8});
   paintDecal({k:'scorch',x:t.x,y:t.y,r:Math.random()});wreckLook(t);t.m.tur.rotation.z=.25;
   tankFires.push({x:t.x,y:t.y,r:16,t0:simT,puffs:[],emit:0});
   if(!t.obj){t.obj=armorRect(t);t.gone=addObstacle(t.obj);}

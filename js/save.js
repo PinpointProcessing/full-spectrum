@@ -28,7 +28,7 @@ function continueGame(){
   wave.phase='hq';hq={t0:simT,arrow:false,patrol:null};
   parkJeepAt(MOTOR.x,MOTOR.y);smashGate(true);   // the gun jeep came in through the gate
   if(s.stage!=='hq'){
-    hq.patrol='done';openArea();
+    hq.patrol='done';openArea(true);
     for(const e of enemies)if(e.wave===2&&!garrison.includes(e)){e.dead=true;e.seen=false;}
   }
   if(s.stage==='hq2'){for(const e of garrison){e.dead=true;e.hp=0;e.seen=false;}wave.phase='hq2';hq.arrow=false;hq.noArrow=true;addHQ2Zones();}

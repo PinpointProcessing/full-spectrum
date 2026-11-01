@@ -124,7 +124,7 @@ function assaultThink(e){
 /* ---------- on-screen ---------- */
 function bigText(text,cls){
   const el=$('#bigText');el.className='';el.textContent=text||'';
-  if(text){void el.offsetWidth;el.className=cls;}   // restart the fade
+  if(text){void el.offsetWidth;el.className=cls;sfxSting(cls);}   // restart the fade
 }
 let cdShown=-1;
 function waveHud(){
@@ -132,7 +132,7 @@ function waveHud(){
   cd.hidden=!on;if(!on){cdShown=-1;return;}
   const left=Math.max(0,tankCd?TANK_COUNT-(simT-road.t0):COUNT_T-(simT-wave.t)),n=Math.ceil(left);
   cd.querySelector('b').textContent=left.toFixed(2);   // counts down in hundredths
-  if(n===cdShown)return;cdShown=n;
+  if(n===cdShown)return;if(cdShown>=0)sfxSting('tick');cdShown=n;
   cd.setAttribute('aria-label',`Incoming in ${n}`);
   cd.classList.remove('tick');void cd.offsetWidth;cd.classList.add('tick');   // pulse on every whole second
 }

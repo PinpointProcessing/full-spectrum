@@ -15,7 +15,7 @@ function zoneAt(x,y){return HQ_ZONES.find(z=>z.k!=='motor'&&x>=z.x&&x<=z.x+z.w&&
 
 function startHQ(){
   $('#aar').hidden=true;
-  state='play';endAt=0;contact=false;paused=true;wave.phase='hq';hq={t0:simT,arrow:false};
+  state='play';endAt=0;contact=false;paused=true;wave.phase='hq';hq={t0:simT,arrow:false,tour:'hq'};
   for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;}
   parkJeepAt(MOTOR.x,MOTOR.y);
   // first the camera goes to the captured jeep: "New vehicle unlocked!"; then over to the warehouse with the HQ popup
@@ -39,32 +39,53 @@ function parkJeepAt(x,y){
   parkObstacle(j);
   const g=gunnerOf();if(g)g.elev=0;
 }
-// the first time the whole squad is aboard the jeep, a patrol of four comes in through the smashed gate and attacks
+// the whole squad aboard the jeep: the new area opens (revealArea) and then a patrol of four on the road beyond the gate attacks
 function startPatrol(){
   hq.patrol='on';contact=true;
-  [[572,40],[572,72],[548,46],[548,80]].forEach(([x,y],i)=>{
+  [[770,40],[770,72],[800,46],[800,78]].forEach(([x,y],i)=>{
     const u=mk('E','E','E'+(10+i),'Hostile',x,y,Math.PI);
     Object.assign(u,{wave:2,alerted:true,aware:1,cool:1+Math.random(),moveCool:simT+0.3+i*0.4});makeSoldier(u);
   });
   enemies=units.filter(u=>u.side==='E');
-  bigText('Enemy inbound!','inbound');banner('A patrol is coming in through the smashed gate!',2600);setStatus();
+  bigText('Enemy inbound!','inbound');banner('A patrol on the road ahead!',2600);setStatus();
 }
 function hqTick(dt){
   if(!hq)return;
   const j=jeepOf(),live=players.filter(alive);
-  if(!hq.patrol&&j&&j.state==='ok'&&live.length&&live.every(p=>p.inVeh===j))startPatrol();
+  if(!hq.patrol&&j&&j.state==='ok'&&live.length&&live.every(p=>p.inVeh===j)){hq.patrol='pending';revealArea();}   // the whole squad aboard: move out
   if(hq.patrol==='on'&&enemies.every(e=>e.dead)){
     hq.patrol='done';contact=false;bigText('All clear!','clear');setStatus();
-    const mine=hq;setTimeout(()=>{if(hq===mine&&state==='play')revealArea();},CLEAR_T*1000);   // then the depot opens
+    startDepot();saveGame('depot');banner('Road clear. Head up the main road to the checkpoint.',4000);   // the checkpoint's garrison takes its posts; milestone
   }
   for(const p of players){
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
     if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;
     const short=p.grenade<1||(p.launcher!=null&&p.launcher<LAUNCHER.ammo);   // a grenade, and rockets for the RPG (2 at a time)
-    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.launcher!=null)p.launcher=LAUNCHER.ammo;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
+    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.launcher!=null)p.launcher=LAUNCHER.ammo;p.restock=0;callout(p,'Restocked',C.good);sfxSting('restock');hud();}}else p.restock=0;
   }
-  if(!hq.arrow&&!hq.noArrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Move out when you\'re ready.',4000);}
+  if(!hq.arrow&&!hq.noArrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Put the whole squad in the jeep to move out.',4000);}
+}
+/* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes (and the jeep), say what they're for ---------- */
+const TOURS={
+  hq:[['med','<b>Medical.</b> Stand a wounded soldier in the red box to heal.'],['sup','<b>Supply.</b> Step inside to get your grenade back.'],['motor','<b>Motor pool.</b> Heal and restock first, then put the whole squad in the jeep to move out.']],
+  hq2:[['med','<b>Medical.</b> Heal up here.'],['sup','<b>Supply.</b> Restock grenades here, and RPG rockets once you carry the launcher.']],
+};
+function hqGotIt(){   // from the popup's button
+  $('#hqPop').hidden=true;
+  const steps=hq&&TOURS[hq.tour];if(!steps){paused=false;hud();return;}
+  hq.tour=null;paused=true;const mine=hq,back={x:camT.x,z:camT.z,zoom},tip=$('#tut');
+  const zs=HQ_ZONES.filter(z=>wave.phase==='hq2'?z.hq2:!z.hq2);
+  const show=i=>{
+    if(hq!==mine||state!=='play'){tip.hidden=true;return;}
+    if(i>=steps.length){tip.hidden=true;camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.2};paused=false;if(tut)setTut(tut);
+      banner(wave.phase==='hq'?'Heal and restock, then mount up in the jeep.':'Heal and restock before you push on.',3500);hud();return;}
+    const z=zs.find(q=>q.k===steps[i][0]);
+    if(z)camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:z.x+z.w/2,z:z.y+z.h/2+30,zoom:2.8},t:0,dur:1};
+    tip.innerHTML=`<small>Temporary HQ · ${i+1}/${steps.length}</small>${steps[i][1]}`;tip.hidden=false;
+    setTimeout(()=>show(i+1),3000);
+  };
+  show(0);
 }
 /* ---------- the depot: beyond the gate at the north end of the yard's east fence ----------
    The wave-two gun jeep smashes the gate flat (smashGate). The gap stays closed to movement (the gate is still an obstacle,
@@ -77,33 +98,33 @@ function gatePose(k){   // 0 standing, 1 lying flat in the yard where the jeep k
 }
 function smashGate(instant){
   area.smashed=true;depotGate.full=false;area.fall=instant?1:0.001;if(instant)gatePose(1);
-  if(!instant){const x=depotGate.x,y=depotGate.y+depotGate.h/2;for(let k=0;k<6;k++)sparks.push({x:x+Math.random()*6-3,y:y+Math.random()*50-25,t:0});}
+  if(!instant){const x=depotGate.x,y=depotGate.y+depotGate.h/2;for(let k=0;k<6;k++)sparks.push({x:x+Math.random()*6-3,y:y+Math.random()*50-25,t:0});sfxCrash(x,y);}
 }
 function lockArea(){
   if(area.open){area.gone=addObstacle(depotGate);area.open=false;}
   area.smashed=false;area.fall=0;depotGate.full=true;gatePose(0);
   VB={x0:0,z0:0,x1:YARD_W,z1:H};
 }
-function openArea(){
+function openArea(depot=true){   // depot: the checkpoint's garrison takes its posts too (a loaded save); the jeep move-out spawns it after the road patrol
   if(area.open)return;
   if(!area.smashed)smashGate(true);
   removeObstacle(depotGate,area.gone);area.gone=[];area.open=true;
   VB={x0:0,z0:TOP,x1:W,z1:H};
-  startDepot();   // the checkpoint's garrison takes its posts (depot.js)
+  if(depot)startDepot();   // depot.js
 }
 function gateTick(rdt){   // the smashed gate falls over (every frame, real time)
   if(area.fall>0&&area.fall<1){area.fall=Math.min(1,area.fall+rdt/0.35);gatePose(1-Math.pow(1-area.fall,2));}
 }
-// "New area unlocked!": the camera sweeps out up the road to the checkpoint, then comes back
+// "New area unlocked!" when the squad mounts up: the camera sweeps out up the road to the checkpoint, comes back, and the road patrol attacks
 function revealArea(){
-  openArea();paused=true;bigText('New area unlocked!','unlock');saveGame('depot');
+  openArea(false);paused=true;bigText('New area unlocked!','unlock');
   const back={x:camT.x,z:camT.z,zoom};
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1000,z:-200,zoom:1.4},t:0,dur:1.8};
   const mine=hq;
   setTimeout(()=>{
     if(hq!==mine||state!=='play')return;
     camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.6};paused=false;
-    banner('The depot is open. Out through the smashed gate, follow the road onto the main road and north to the checkpoint.',5000);hud();
+    startPatrol();hud();
   },4200);
 }
 // smooth camera move to the warehouse when the HQ opens (real time, every frame)
