@@ -87,9 +87,12 @@ function fitDist(){
   }
   dist0=hi;zoom=sz;yaw=sy;tilt=stl;camT=st;clampCam();updateCamera();
 }
+// a ground point under the screen point that's near enough to the view to anchor a zoom on (null for sky / far horizon,
+// where a tiny finger movement means a huge distance: that's what sent the camera flying off)
+function nearGround(sx,sy){const[x,z]=toW(sx,sy);return hyp(x-camT.x,z-camT.z)<=FIT.h/zoom?[x,z]:null;}
 function zoomAround(sx,sy,nz){
-  const[wx,wz]=toW(sx,sy);zoom=clamp(nz,1,MAXZ);updateCamera();
-  const[ax,az]=toW(sx,sy);camT.x+=wx-ax;camT.z+=wz-az;clampCam();updateCamera();
+  const w=nearGround(sx,sy);zoom=clamp(nz,1,MAXZ);updateCamera();
+  if(w){const a=nearGround(sx,sy);if(a){camT.x+=w[0]-a[0];camT.z+=w[1]-a[1];}}clampCam();updateCamera();
 }
 /* ---------- 3D scene ---------- */
 function canvasTex(w,h,draw){

@@ -60,7 +60,10 @@ function endPtr(ev,cancel){
     }else if(ptr.kind==='draw'){
       finishDraw();
     }else if(ptr.kind==='pan'){
-      if(performance.now()-ptr.lt<80){inertia.vx=ptr.vx*1000;inertia.vy=ptr.vy*1000;}
+      // the glide: the drag's speed over its last ~0.1 s (not between two touch events, which can come 1 ms apart and
+      // made the speed look huge: the camera flew off), capped, and only if the finger was still moving when it lifted
+      const h=ptr.hist||[],now=performance.now();
+      if(h.length>1&&now-ptr.lt<80){const a=h[0],b=h[h.length-1],dt=(b.t-a.t)/1000;if(dt>=.03){const mx=1400/zoom;inertia.vx=clamp((b.x-a.x)/dt,-mx,mx);inertia.vy=clamp((b.z-a.z)/dt,-mx,mx);}}
     }else if(!ptr.lp&&state==='play')tap(ptr.sx,ptr.sy);
   }
   ptr=null;hud();
@@ -75,7 +78,7 @@ function bindInput(){
     if(touches.size===2){
       if(ptr){clearTimeout(ptr.timer);ptr=null;}
       const i=pinchInfo(),[wx,wy]=toW(i.mx,i.my);
-      pinch={d0:i.d,z0:zoom,wx,wy,a0:i.a,yaw0:yaw,rot:false,mx0:i.mx,my0:i.my,t0:tilt,mode:null,s:[...touches.values()].map(q=>({...q}))};return;
+      pinch={d0:i.d,z0:zoom,wx,wy,anchor:!!nearGround(i.mx,i.my),a0:i.a,yaw0:yaw,rot:false,mx0:i.mx,my0:i.my,t0:tilt,mode:null,s:[...touches.values()].map(q=>({...q}))};return;
     }
     if(touches.size>2||pinch)return;
     if(ptr)return;
@@ -113,7 +116,7 @@ function bindInput(){
       if(!pinch.rot&&Math.abs(da)>TWIST_START){pinch.rot=true;pinch.a0=i.a;pinch.yaw0=yaw;}
       if(pinch.rot)yaw=wrapA(pinch.yaw0+wrapA(i.a-pinch.a0));   // the map turns with your fingers
       updateCamera();
-      const[nx,nz]=toW(i.mx,i.my);camT.x+=pinch.wx-nx;camT.z+=pinch.wy-nz;clampCam();updateCamera();return;
+      const n=pinch.anchor&&nearGround(i.mx,i.my);if(n){camT.x+=pinch.wx-n[0];camT.z+=pinch.wy-n[1];}clampCam();updateCamera();return;   // no anchor on sky or far horizon
     }
     if(!ptr||ev.pointerId!==ptr.id)return;
     ptr.cx=x;ptr.cy=y;
@@ -126,10 +129,13 @@ function bindInput(){
     if(ptr.kind==='draw')addTrail(x,y);
     if(ptr.kind==='lasso'){const l=ptr.loop[ptr.loop.length-1];if(hyp(x-l[0],y-l[1])>4)ptr.loop.push([x,y]);}
     if(ptr.kind==='pan'){
-      const now=performance.now(),dt=Math.max(1,now-ptr.lt);
-      const[ax,az]=toW(ptr.lx,ptr.ly),[bx,bz]=toW(x,y),dx=ax-bx,dy=az-bz;
+      const now=performance.now();
+      // measured at the middle of the screen (always ground, where the camera looks), so a drag near the horizon or the sky
+      // moves the map the same amount as anywhere else; capped per move
+      const[ax,az]=toW(cw/2,ch/2),[bx,bz]=toW(cw/2+x-ptr.lx,ch/2+y-ptr.ly),cap=160/zoom;
+      const dx=clamp(ax-bx,-cap,cap),dy=clamp(az-bz,-cap,cap);
       camT.x+=dx;camT.z+=dy;clampCam();updateCamera();
-      ptr.vx=ptr.vx*.6+dx/dt*.4;ptr.vy=ptr.vy*.6+dy/dt*.4;
+      (ptr.hist=ptr.hist||[]).push({t:now,x:camT.x,z:camT.z});while(ptr.hist.length>1&&now-ptr.hist[0].t>120)ptr.hist.shift();
       ptr.lx=x;ptr.ly=y;ptr.lt=now;
     }
   });
