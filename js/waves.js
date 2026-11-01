@@ -14,8 +14,8 @@ function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){
   if(landing)landTick(dt);
   const el=simT-wave.t;
-  if(wave.phase==='fight1'&&enemies.every(e=>e.dead)){goWave('clear');bigText('All clear!','clear');}
-  else if(wave.phase==='clear'&&el>=CLEAR_T)goWave('count');
+  if(wave.phase==='fight1'&&enemies.every(e=>e.dead)){goWave('clear');bigText('Location secured','clear');say(players.find(alive),'objective');}
+  else if(wave.phase==='clear'&&el>=CLEAR_T)startHQ();   // Bryan: a checkpoint and a rest, no counterattack (spawnCounter is kept for later)
   else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnCounter();goWave('fight2');}
   else if(wave.phase==='hq')hqTick(dt);
   else if(wave.phase==='fight2'&&enemies.every(e=>e.dead)){goWave('done');bigText('All clear!','clear');say(players.find(alive),'objective');endAt=performance.now()+CLEAR_T*1000;}

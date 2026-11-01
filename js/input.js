@@ -67,6 +67,7 @@ function endPtr(ev,cancel){
 }
 function bindInput(){
   ov.addEventListener('pointerdown',ev=>{
+    camPan=null;   // touching the map stops any camera move in progress
     const[sx,sy]=localXY(ev);
     touches.set(ev.pointerId,{x:sx,y:sy});
     try{ov.setPointerCapture(ev.pointerId);}catch(_){}

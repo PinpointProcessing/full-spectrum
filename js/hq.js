@@ -16,7 +16,6 @@ function startHQ(){
   state='play';endAt=0;contact=false;paused=true;wave.phase='hq';hq={t0:simT,tour:'hq'};
   for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;}
   if(!HQ_ZONES.length)addZones(WH_ZONES);
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:310,z:430,zoom:2.1},t:0,dur:1.4};
   $('#hqPop').hidden=false;
   setStatus();hud();
   saveGame('wh');   // milestone: warehouse taken (save.js)

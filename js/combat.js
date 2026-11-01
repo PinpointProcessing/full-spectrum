@@ -48,7 +48,7 @@ function threats(){
   return t;
 }
 // before anyone's seen at the later objectives: where previews judge cover from
-const OBJ_THREAT={1:{x:476,y:110},2:{x:800,y:-180},3:{x:245,y:-420},4:{x:850,y:-600},5:{x:850,y:-600}};
+const OBJ_THREAT={1:{x:476,y:30},2:{x:800,y:-180},3:{x:245,y:-420},4:{x:850,y:-600},5:{x:850,y:-600}};
 function protStats(p,th){
   let prot=0,see=0;
   for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l||sightFrom(p.x,p.y,t.x,t.y))see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}

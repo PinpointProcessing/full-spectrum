@@ -179,7 +179,7 @@ const lamps=[
   {x:560,y:870,h:40,c:0xffa860,i:2.4,d:280,pole:1},
   {x:310,y:410,h:30,c:0xffd9a8,i:2.4,d:260},
   {x:150,y:846,h:14,c:0xffc27a,i:1.6,d:150,pole:1},   // the dock, at the pier
-  {x:525,y:136,h:30,c:0xffa860,i:2.6,d:280,pole:1},   // the bridge's north end
+  {x:525,y:56,h:30,c:0xffa860,i:2.6,d:280,pole:1},    // the bridge's north end
   {x:840,y:-140,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},  // the fuel depot
   {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260},          // the data center's doors
   {x:300,y:-560,h:22,c:0x9fd8ff,i:2,d:220},            // inside the data center (the server room's cold light)

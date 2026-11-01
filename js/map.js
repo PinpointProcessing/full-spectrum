@@ -42,22 +42,24 @@ O('barrel',900,330,16,16,{col:'#3a5160'});O('crate',760,560,26,26);
 /* ---------- the canal and its crossings ---------- */
 // three ways over: the main bridge (defended, objective 2), a culvert to crawl through (slow, hidden) in the west and a
 // broken rail bridge (slow, exposed) in the east
-const CANAL={y0:150,y1:214},MAINBR={x0:440,x1:512},CULVERT={x0:146,x1:166},RAILBR={x0:850,x1:890};
+const CANAL={y0:70,y1:134},MAINBR={x0:440,x1:512},CULVERT={x0:146,x1:166},RAILBR={x0:850,x1:890};
 O('water',0,CANAL.y0,CULVERT.x0,64);O('water',CULVERT.x1,CANAL.y0,MAINBR.x0-CULVERT.x1,64);O('water',MAINBR.x1,CANAL.y0,RAILBR.x0-MAINBR.x1,64);O('water',RAILBR.x1,CANAL.y0,W-RAILBR.x1,64);
 const SLOW=[{x:CULVERT.x0,y:CANAL.y0-6,w:20,h:76,k:.4,hide:true},{x:RAILBR.x0,y:CANAL.y0-4,w:40,h:72,k:.5}];   // speed factor; the culvert also hides you
 function slowAt(x,y){return SLOW.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
 
 /* ---------- objective 2: the bridge's north end ---------- */
-O('booth',540,78,32,32);                                            // pillbox (a sentry inside, heavy cover)
-O('sandbag',456,130,40,10);O('sandbag',456,108,10,22);O('sandbag',486,108,10,22);   // MG nest covering the bridge
-O('sandbag',398,122,46,10);O('sandbag',596,128,44,10);O('barrier',360,70,52,12);O('crate',620,80,26,22);
-const BR_ZONE={x0:330,x1:660,y0:30,y1:142};
+// (Bryan: moved back north, away from the warehouse, so its guards don't engage you the moment you've taken it)
+O('booth',540,-2,32,32);                                            // pillbox (a sentry inside, heavy cover)
+O('sandbag',456,50,40,10);O('sandbag',456,28,10,22);O('sandbag',486,28,10,22);   // MG nest covering the bridge
+O('sandbag',398,42,46,10);O('sandbag',596,48,44,10);O('barrier',360,-10,52,12);O('crate',620,0,26,22);
+const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
 
 /* ---------- the container yard (between the bridge and the depot / data center) ---------- */
-box(280,0,110,34,1);box(430,-30,34,90,2,2);box(530,10,110,34,3);box(660,-70,34,110,4,2);
-box(300,-130,34,90,5,2);box(380,-150,110,34,6);box(550,-130,110,34,7,2);box(470,-240,34,80,0);box(300,-270,110,34,1,2);box(590,-260,34,90,2);
-O('pallet',350,-60,30,20);O('barrel',520,-80,16,16,{col:'#6b3a28'});O('crate',620,-180,26,26);
-const YARD2_ZONE={x0:270,x1:700,y0:-280,y1:40};
+box(280,-80,110,34,1);box(520,-80,110,34,3);box(430,-125,34,80,2,2);
+box(300,-175,34,70,5,2);box(560,-175,110,34,7,2);box(655,-125,34,70,4,2);
+box(380,-220,110,34,6);box(470,-285,34,60,0);box(300,-285,90,30,1,2);box(590,-275,34,80,2);
+O('pallet',350,-125,30,20);O('barrel',520,-110,16,16,{col:'#6b3a28'});O('crate',622,-222,26,26);
+const YARD2_ZONE={x0:270,x1:700,y0:-290,y1:-40};
 
 /* ---------- objective 3: the fuel depot (north-east) ---------- */
 O('fence',700,-300,280,6);O('fence',700,-300,6,100);O('fence',700,-160,6,100);O('fence',700,-66,100,6);O('fence',860,-66,132,6);   // chain-link round it: a gate on the west side, a gap in the south
@@ -97,7 +99,7 @@ O('panel',PANEL.x-6,PANEL.y-4,12,8);
 // decoration that doesn't block anything
 const decor=[{kind:'wire',x0:20,x1:110,y:-292},{kind:'wire',x0:190,x1:330,y:-292},{kind:'wire',x0:400,x1:540,y:-292},{kind:'flood',x:70,y:-436},{kind:'flood',x:420,y:-436}];
 // paths drawn on the ground (from the bridge north to the depot, the data center and the fortress)
-const PATHS=[[{x:476,y:140},{x:476,y:40},{x:640,y:-120},{x:700,y:-180}],[{x:476,y:40},{x:420,y:-200},{x:245,y:-300},{x:245,y:-432}],[{x:640,y:-120},{x:760,y:-360},{x:850,y:-500}]];
+const PATHS=[[{x:476,y:60},{x:476,y:-30},{x:510,y:-150},{x:640,y:-190},{x:700,y:-180}],[{x:476,y:-30},{x:420,y:-150},{x:245,y:-300},{x:245,y:-432}],[{x:640,y:-190},{x:760,y:-360},{x:850,y:-500}]];
 
 function rectDist(x,y,o){if(o.disk)return Math.max(0,Math.hypot(x-o.disk.cx,y-o.disk.cy)-o.disk.r);const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
 function segHitsRect(x1,y1,x2,y2,o,pad){

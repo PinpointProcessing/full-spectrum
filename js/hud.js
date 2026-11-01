@@ -86,7 +86,7 @@ function bindHud(){
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();if(wave.phase!=='fight1')reset();startView();$('#intro').hidden=true;state='play';startLanding();banner('Coming in to the dock…',2400);hud();});
-  $('#aarBtn').addEventListener('click',()=>{if(mission.name==='yard')startHQ();else{$('#aar').hidden=true;state='play';endAt=0;hud();}});
+  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;state='play';endAt=0;hud();});   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});

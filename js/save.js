@@ -7,7 +7,7 @@
 const SAVE_KEY='warehouseYard.save.v2';
 const STAGES={wh:'Warehouse taken',br:'Bridge taken',dep:'Fuel depot destroyed',dc:'Drawbridge down'};
 const STAGE_OBJ={wh:1,br:2,dep:3,dc:5};   // the objective that's current after each milestone
-const STAGE_AT={wh:{x:300,y:430},br:{x:620,y:70},dep:{x:760,y:-30},dc:{x:700,y:-470}};
+const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},dep:{x:760,y:-30},dc:{x:700,y:-470}};
 function readSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&STAGES[s.stage]?s:null;}catch(e){return null;}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 let savedTimer=0;
@@ -23,9 +23,9 @@ function continueGame(){
   const s=readSave();if(!s)return false;
   reset();state='play';contact=false;landing=null;
   for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;e.gone=true;}   // the warehouse, cleared
-  wave.phase='hq';hq={t0:simT,tour:null};mission={name:'north',t0:simT};addZones(WH_ZONES);
+  wave.phase='hq';hq={t0:simT,tour:null};addZones(WH_ZONES);
   const n=STAGE_OBJ[s.stage];
-  if(n>=2)addZones([{k:'med',x:590,y:22,w:56,h:44},{k:'sup',x:650,y:22,w:56,h:44}]);
+  if(n>=2)addZones([{k:'med',x:376,y:150,w:50,h:40},{k:'sup',x:526,y:150,w:50,h:40}]);
   if(n>=3){addZones([{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}]);
     for(const o of objs)if(o.kind==='tank'){o.burst=true;o.hp=0;if(o.meshes)for(const m of o.meshes){if(m.userData.c0==null)m.userData.c0=m.material.color.getHex();m.material.color.setHex(0x1a1816);}}}
   if(n>=5){CORE.done=true;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0);setBridge(1);addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);}
