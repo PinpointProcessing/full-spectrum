@@ -5,7 +5,7 @@ function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classLis
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  if(wave.phase==='hq'||wave.phase==='hq2'){const on=(hq&&hq.patrol==='on')||(road&&road.phase==='drive');s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
+  if(wave.phase==='hq'||wave.phase==='hq2'){const on=(hq&&hq.patrol==='on')||(road&&(road.phase==='trucks'||road.phase==='tank'));s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
 }
@@ -47,6 +47,7 @@ function hud(){
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(wave.phase==='hq'&&jeepOf()&&jeepOf().state==='ok'&&act.length&&!preview)h='Tap the jeep to mount up: the first in drives, the second takes the gun.';
   else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box and restock in the supply box. The next area is to the north-east.';
+  else if(road&&road.phase==='count'&&!preview)h='Something heavy is coming. Restock rockets at the supply point and get into cover.';
   else if(wave.phase==='count'&&!preview)h='Reinforcements are coming in through the gate at the north-east corner. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';

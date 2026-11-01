@@ -61,7 +61,8 @@ function hqTick(dt){
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
     if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;
-    if(z&&z.k==='sup'&&p.grenade<1){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;p.restock=0;callout(p,'Restocked',C.good);}}else p.restock=0;
+    const short=p.grenade<1||(p.launcher!=null&&p.launcher<LAUNCHER.ammo);   // a grenade, and rockets for the RPG (2 at a time)
+    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.launcher!=null)p.launcher=LAUNCHER.ammo;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
   }
   if(!hq.arrow&&!hq.noArrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Move out when you\'re ready.',4000);}
 }

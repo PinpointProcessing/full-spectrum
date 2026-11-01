@@ -2,7 +2,7 @@
 /* Map data (the yard and warehouse, and the shipping depot with the checkpoint to the east) plus geometry queries:
    line of sight, cover, free space. */
 const objs=[];
-const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank']);
+const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor']);   // armor: the enemy tank once it's in position
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
 // outer fence (open at the dock in the south-west corner, x 0-175, where the water is)
 O('fence',0,TOP,W,8);O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,TOP,8,H-TOP);
@@ -114,7 +114,7 @@ function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
-  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32}[o.kind]||0;
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20}[o.kind]||0;
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;

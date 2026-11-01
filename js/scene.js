@@ -363,6 +363,22 @@ function makeJeep(){
   for(const s of[-1,1])part(new T.BoxGeometry(3,2,.6),lamp,s*7,9.5,22.2);
   scene.add(g);return{g,tur};
 }
+// the enemy tank: hull, tracks with road wheels, a turret with a long gun (m.tur, turned to aim) and a pintle machine gun
+// on top for its exposed gunner (m.mg). Front is +z, like the jeep.
+function makeTank(){
+  const g=new T.Group(),hull=new T.MeshStandardMaterial({color:0x3d4332,roughness:.8,metalness:.35}),dark=new T.MeshStandardMaterial({color:0x17191a,roughness:.75,metalness:.4});
+  const part=(geo,mat,x,y,z,par=g)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;par.add(m);return m;};
+  for(const s of[-1,1]){part(new T.BoxGeometry(7,8,54),dark,s*12,4.5,0);for(let k=-2;k<=2;k++)part(new T.CylinderGeometry(3.2,3.2,7.4,12),dark,s*12,3.4,k*10).rotation.z=Math.PI/2;}
+  part(new T.BoxGeometry(18,7,50),hull,0,9,0);
+  const glacis=part(new T.BoxGeometry(18,2,10),hull,0,11.2,22);glacis.rotation.x=-.35;
+  const tur=new T.Group();tur.position.set(0,12.5,-3);g.add(tur);
+  part(new T.BoxGeometry(17,6,20),hull,0,3,0,tur);
+  part(new T.CylinderGeometry(1.3,1.6,30,10),dark,0,3.4,24,tur).rotation.x=Math.PI/2;
+  part(new T.CylinderGeometry(2,2,4,10),dark,0,3.4,10.5,tur).rotation.x=Math.PI/2;
+  const mg=new T.Group();mg.position.set(-4,6,-3);tur.add(mg);
+  part(new T.CylinderGeometry(.6,.6,3,6),dark,0,1.5,0,mg);part(new T.BoxGeometry(1.2,1.2,9),dark,0,3,3,mg);
+  scene.add(g);return{g,tur,mg};
+}
 // the squad's inflatable boat: two grey tubes meeting at a raised bow, a wooden floor, an outboard motor. Bow is -z (north).
 function makeDinghy(){
   const g=new T.Group(),tube=new T.MeshStandardMaterial({color:0x34383a,roughness:.55,metalness:.1}),dark=new T.MeshStandardMaterial({color:0x151719,roughness:.6,metalness:.4});

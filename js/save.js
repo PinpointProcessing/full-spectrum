@@ -13,6 +13,7 @@ function saveGame(stage){
   const j=wave.jeep;
   const data={v:1,stage,when:Date.now(),
     squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,launcher:p.launcher??null}])),
+    road:!!(road&&road.phase==='done'),   // the trucks and the tank beaten
     jeep:j&&j.owner==='P'?{x:Math.round(j.x),y:Math.round(j.y),heading:+j.heading.toFixed(3),hp:Math.round(j.hp),state:j.state==='broken'?'wreck':j.state}:null};
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
   const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
@@ -46,7 +47,7 @@ function continueGame(){
     if(s.jeep.state==='wreck'){j.state='wreck';j.hp=0;j.wreckT=simT-60;wreckLook(j);}
     parkObstacle(j);
   }
-  if(s.stage==='hq2')spawnPickup();   // still lying at the checkpoint unless someone already carries it
+  if(s.stage==='hq2'){if(s.road)road={phase:'done'};else if(!players.some(p=>p.launcher!=null))dropRPG(965,-290);}   // the launcher lies where the RPG gunner fell, unless someone carries it
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
   setStatus();buildCards();hud();banner(`Continuing: ${STAGES[s.stage]}.`,2400);

@@ -128,9 +128,9 @@ function bigText(text,cls){
 }
 let cdShown=-1;
 function waveHud(){
-  const cd=$('#countdown'),on=state==='play'&&wave.phase==='count';
+  const tankCd=road&&road.phase==='count',cd=$('#countdown'),on=state==='play'&&(wave.phase==='count'||tankCd);   // also before the tank
   cd.hidden=!on;if(!on){cdShown=-1;return;}
-  const left=Math.max(0,COUNT_T-(simT-wave.t)),n=Math.ceil(left);
+  const left=Math.max(0,tankCd?TANK_COUNT-(simT-road.t0):COUNT_T-(simT-wave.t)),n=Math.ceil(left);
   cd.querySelector('b').textContent=left.toFixed(2);   // counts down in hundredths
   if(n===cdShown)return;cdShown=n;
   cd.setAttribute('aria-label',`Incoming in ${n}`);
