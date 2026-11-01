@@ -37,6 +37,7 @@ function startDepot(){
 }
 function resetDepot(){
   rockets=[];tankFires=[];tankQueue=[];garrison=[];mission={name:'yard',t0:0};
+  resetRoad();
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
   for(let i=HQ_ZONES.length-1;i>=0;i--)if(HQ_ZONES[i].hq2)HQ_ZONES.splice(i,1);
 }
@@ -84,7 +85,9 @@ function rocketTick(dt){
     r.trail.push({x:r.x,y:r.y,t:0});if(r.trail.length>14)r.trail.shift();
     let hitX=null,hitY=null;
     if(!los(r.x,r.y,nx,ny)){hitX=r.x;hitY=r.y;}   // slammed into a container, wall or tank
-    const jv=jeepOf();if(hitX==null&&jv&&jv.state!=='wreck'&&hyp(jv.x-nx,jv.y-ny)<16){hitX=nx;hitY=ny;}
+    const jv=jeepOf(),mine=r.by&&r.by.side==='P';
+    if(hitX==null&&!mine&&jv&&jv.state!=='wreck'&&hyp(jv.x-nx,jv.y-ny)<16){hitX=nx;hitY=ny;}
+    if(hitX==null&&mine&&trucks.some(t=>!t.dead&&hyp(t.x-nx,t.y-ny)<16)){hitX=nx;hitY=ny;}   // our rocket slams into a gun truck
     r.x=nx;r.y=ny;r.left-=step;
     if(hitX==null&&r.left<=0){hitX=r.x;hitY=r.y;}
     if(hitX!=null){rockets.splice(i,1);rpgBlast(hitX,hitY,r.by);}
@@ -92,6 +95,7 @@ function rocketTick(dt){
 }
 function rpgBlast(x,y,by){
   const jv=jeepOf();if(jv&&jv.state!=='wreck'&&hyp(jv.x-x,jv.y-y)<30)vehDestroy(jv,'rpg');
+  for(const t of trucks)if(!t.dead&&hyp(t.x-x,t.y-y)<30)truckDestroy(t,by);
   booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});tankBlast(x,y,by);
   for(const v of units){
     if(v.dead||v.seat==='driver')continue;const d=hyp(v.x-x,v.y-y);if(d>RPG.blast||!los(x,y,v.x,v.y))continue;
@@ -140,14 +144,15 @@ function startHQ2(){
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:960,z:-402,zoom:2.2},t:0,dur:1.4};
   $('#hqPop .eyebrow').textContent='Second temporary HQ';$('#hqPop h1').textContent='Checkpoint secured';
   $('#hqPop p').textContent='The checkpoint is now a temporary HQ. Heal and resupply here before you push on. Hold enough of these and you can establish a permanent HQ.';
-  $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>That\'s the end of this demo area for now.</li>';
+  $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>Someone left an <b>RPG</b> in the middle of the checkpoint (it\'s glowing). Walk a soldier over it to pick it up.</li>';
   $('#hqPop').hidden=false;setStatus();hud();
-  saveGame('hq2');
+  saveGame('hq2');spawnPickup();
 }
 function addHQ2Zones(){HQ_ZONES.push({k:'med',x:874,y:-450,w:72,h:64,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:952,y:-450,w:70,h:64,col:'232,186,84',label:'SUPPLY',hq2:true});}
 
 /* ---------- drawn on the overlay ---------- */
 function drawDepot(rdt,now){
+  drawRoad(rdt,now);
   const pulse=(Math.sin(now*9)+1)/2;
   // RPG gunners taking aim: a red reticle where they're aiming (always shown, so you can react) and their aim line if seen
   for(const e of garrison){
@@ -176,4 +181,109 @@ function drawDepot(rdt,now){
         const gr=ox.createRadialGradient(fx,fy,0,fx,fy,r);gr.addColorStop(0,'rgba(255,240,190,.9)');gr.addColorStop(.45,'rgba(255,140,40,.6)');gr.addColorStop(1,'rgba(200,40,10,0)');ox.fillStyle=gr;ox.beginPath();ox.arc(fx,fy,r,0,TAU);ox.fill();}
       ox.globalCompositeOperation='source-over';}
   }
+}
+
+/* ---------- the captured RPG and the gun trucks (after the checkpoint falls; Bryan's design) ----------
+   A glowing RPG floats and spins in the middle of the checkpoint. The first soldier to walk over it carries it (u.launcher =
+   rockets left, LAUNCHER.ammo) and it shows on his card left of the grenade. The moment he picks it up, two gun trucks
+   drive up the main road from the south and a live tutorial runs at quarter speed: tap RPG on his card, then tap a truck.
+   A rocket within 30 of a truck destroys it and its gunner. Both gone: "All clear!" and the game saves. */
+const PICKUP={x:CKPT.x,y:CKPT.y-22,r:14},LAUNCHER={ammo:3,range:400,spread:9};
+const TRUCKS=[{x:1040,y0:150,y1:-40},{x:1062,y0:215,y1:20}],TRUCK_SPEED=60;
+let pickup=null,trucks=[],tut=null,road=null;
+function resetRoad(){
+  if(pickup&&pickup.m)scene.remove(pickup.m);pickup=null;
+  for(const t of trucks){scene.remove(t.m.g);if(t.obj)removeObstacle(t.obj,t.gone);}
+  trucks=[];road=null;setTut(null);
+}
+function spawnPickup(){
+  if(pickup||players.some(p=>p.launcher!=null))return;   // already taken (a continued save)
+  const g=new T.Group(),glow=new T.MeshBasicMaterial({color:0x4df3ff,toneMapped:false}),body=new T.MeshStandardMaterial({color:0x2d4a3a,emissive:0x1aa0b0,emissiveIntensity:.9,roughness:.5});
+  const tube=new T.Mesh(new T.CylinderGeometry(1.3,1.3,15,10),body);tube.rotation.z=Math.PI/2;g.add(tube);
+  const head=new T.Mesh(new T.ConeGeometry(2.6,6,10),glow);head.rotation.z=-Math.PI/2;head.position.x=10;g.add(head);
+  const grip=new T.Mesh(new T.BoxGeometry(1.4,3.4,1.4),body);grip.position.set(-1,-2.6,0);g.add(grip);
+  g.position.set(PICKUP.x,10,PICKUP.y);scene.add(g);pickup={m:g,taken:false};
+}
+function spawnTrucks(){
+  road={phase:'drive',t0:simT};contact=true;
+  trucks=TRUCKS.map((d,i)=>{
+    const t={x:d.x,y:d.y0,y1:d.y1,heading:-Math.PI/2,moving:true,dead:false,m:makeJeep()};
+    const g=mk('E','E','E'+(40+i),'Gunner',t.x,t.y+8,-Math.PI/2);
+    Object.assign(g,{gunner:true,elev:9,alerted:true,aware:1,cool:99,truck:t});makeSoldier(g);t.gunner=g;
+    placeTruck(t);return t;
+  });
+  enemies=units.filter(u=>u.side==='E');
+  bigText('Enemy inbound!','inbound');setStatus();
+}
+function placeTruck(t){
+  t.m.g.position.set(t.x,0,t.y);t.m.g.rotation.y=Math.PI/2-t.heading;
+  const g=t.gunner;if(g&&!g.dead){g.x=t.x;g.y=t.y+8;}
+}
+function truckDestroy(t,by){
+  if(t.dead)return;t.dead=true;t.moving=false;
+  if(t.gunner&&!t.gunner.dead)damage(t.gunner,999,by);
+  if(t.gunner)t.gunner.elev=0;
+  booms.push({x:t.x,y:t.y,t:0},{x:t.x+6,y:t.y-8,t:-0.08});paintDecal({k:'scorch',x:t.x,y:t.y,r:Math.random()});
+  wreckLook(t);tankFires.push({x:t.x,y:t.y,r:12,t0:simT,puffs:[],emit:0});
+  if(!t.obj){t.obj=jeepRect(t);t.gone=addObstacle(t.obj);}
+  callout(t.gunner||players[0],'Truck destroyed!',C.good);
+}
+// from waveTick while the second HQ is up
+function roadTick(dt){
+  if(pickup&&!pickup.taken){
+    const u=players.find(p=>alive(p)&&!p.inVeh&&hyp(p.x-PICKUP.x,p.y-PICKUP.y)<PICKUP.r);
+    if(u){
+      pickup.taken=true;scene.remove(pickup.m);u.launcher=LAUNCHER.ammo;callout(u,'Got the RPG!',C.good);
+      select([u]);preview=null;mode=null;spawnTrucks();setTut({step:1,u});hud();
+    }
+  }
+  for(const t of trucks){
+    if(t.dead){continue;}
+    if(t.moving){t.y=Math.max(t.y1,t.y-TRUCK_SPEED*dt);placeTruck(t);
+      if(t.y<=t.y1){t.moving=false;t.obj=jeepRect(t);t.gone=addObstacle(t.obj);t.gunner.cool=0.6;}}   // parked: half cover, the gunner opens up
+    if(t.gunner.dead&&!t.dead)t.dead=true;   // shot the gunner: the truck's out of the fight
+  }
+  if(road&&road.phase==='drive'&&trucks.every(t=>t.dead)){
+    road.phase='done';contact=false;bigText('All clear!','clear');banner('The road is clear.',2600);setStatus();
+    setTimeout(()=>{if(state==='play'&&wave.phase==='hq2')saveGame('hq2');},CLEAR_T*1000);
+  }
+  if(tut&&(tut.step===1||tut.step===2)&&!alive(tut.u))setTut(null);
+}
+// fire the RPG at (tx,ty): straight away, if he's in range and has a line (from a lean if need be)
+function fireRPG(u,tx,ty){
+  if(!u.launcher||!alive(u)||u.inVeh)return false;
+  const tr=trucks.find(t=>!t.dead&&hyp(t.x-tx,t.y-ty)<30);
+  if(tr){tx=tr.x;ty=tr.y;if(tr.moving){const lead=hyp(tx-u.x,ty-u.y)/RPG.speed;ty=Math.max(tr.y1,ty-TRUCK_SPEED*lead);}}   // leads a moving truck
+  if(hyp(tx-u.x,ty-u.y)>LAUNCHER.range){banner('Out of range. Get closer.',1600);return false;}
+  const f=sightOf(u,tx,ty);if(!f){banner(`${u.name} has no clear shot from there.`,1600);return false;}
+  const a=Math.random()*TAU,off=Math.random()*LAUNCHER.spread,ax=tx+Math.cos(a)*off,ay=ty+Math.sin(a)*off,d=hyp(ax-f.x,ay-f.y)||1;
+  rockets.push({x:f.x,y:f.y,dx:(ax-f.x)/d,dy:(ay-f.y)/d,left:d,by:u,trail:[]});
+  flashes.push({x:f.x,y:f.y,t:0});u.ang=Math.atan2(ay-f.y,ax-f.x);u.aimT=simT;leanOut(u,{lean:f.x!==u.x||f.y!==u.y,fx:f.x,fy:f.y});
+  u.launcher--;u.lastOrder=simT;callout(u,'RPG out!',C.warn);
+  if(!contact&&enemies.some(e=>!e.dead))alertAll('Contact. Weapons free.',true);
+  if(tut&&tut.u===u)setTut({step:3,u});
+  return true;
+}
+// the live tutorial box (steps: 1 tap RPG on the card, 2 tap a truck, 3 done); the game runs at quarter speed during 1-2
+function setTut(t){
+  tut=t;const el=$('#tut');if(!el)return;clearTimeout(setTut.timer);
+  if(!t){el.hidden=true;return;}
+  const n=t.u.name;
+  el.innerHTML=t.step===1?`<small>Tutorial · RPG</small>Two gun trucks are coming up the road from the south! <b>${n}</b> has the RPG. Tap <b>RPG</b> on his card, left of the grenade.`
+    :t.step===2?`<small>Tutorial · RPG</small>The cyan circle is his range. Now <b>tap a truck</b> to fire. He leads a moving target for you.`
+    :`<small>Tutorial · RPG</small>Rocket away! ${t.u.launcher} left. Take out the other truck the same way: RPG on his card, then tap it.`;
+  el.hidden=false;
+  if(t.step===3)setTut.timer=setTimeout(()=>{if(tut===t)setTut(null);},5000);
+  hud();
+}
+function tutSlow(){return !!tut&&tut.step<3;}
+// every frame: the floating pickup spins and bobs with a glow on the ground; truck turrets follow their gunners
+function drawRoad(rdt,now){
+  if(pickup&&!pickup.taken){
+    pickup.m.rotation.y+=rdt*2.2;pickup.m.position.y=10+Math.sin(now*2.4)*2;
+    const pulse=(Math.sin(now*4)+1)/2;gPath(PICKUP.x,PICKUP.y,PICKUP.r+pulse*5);
+    ox.fillStyle=`rgba(77,243,255,${(.1+pulse*.12).toFixed(3)})`;ox.fill();ox.strokeStyle=`rgba(77,243,255,${(.5+pulse*.5).toFixed(2)})`;ox.lineWidth=2;ox.stroke();
+    const[lx,ly]=below(PICKUP.x,PICKUP.y+PICKUP.r,6);label('RPG · PICK UP',lx,ly,'#4df3ff',10,700);
+  }
+  for(const t of trucks){const g=t.gunner;if(!t.dead&&g&&!g.dead)t.m.tur.rotation.y=-g.ang-t.m.g.rotation.y;}
 }

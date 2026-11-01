@@ -165,6 +165,10 @@ function tap(sx,sy){
     if(sel[0])callout(sel[0],'Suppressing!',C.warn);
     mode=null;return;
   }
+  if(mode==='rpg'){
+    const u=sel[0];if(!u){mode=null;return;}
+    if(fireRPG(u,wx,wy))mode=null;return;
+  }
   if(mode==='grenade'){
     const u=sel[0];if(!u){mode=null;return;}
     if(throwNade(u,wx,wy))mode=null;return;
@@ -190,6 +194,13 @@ function tap(sx,sy){
       return;
     }
     selectTeam(pu.team);return;
+  }
+  // the glowing RPG at the checkpoint: the nearest selected soldier on foot goes to pick it up
+  if(pickup&&!pickup.taken&&hyp(wx-PICKUP.x,wy-PICKUP.y)<22){
+    const foot=sel.filter(u=>!u.inVeh).sort((a,b)=>hyp(a.x-PICKUP.x,a.y-PICKUP.y)-hyp(b.x-PICKUP.x,b.y-PICKUP.y));
+    if(!foot.length){banner('Select a soldier, then tap the RPG to pick it up.');return;}
+    const path=findPath(foot[0].x,foot[0].y,PICKUP.x,PICKUP.y);if(path){foot[0].path=path;foot[0].lastOrder=simT;callout(foot[0],'Grabbing it',C.good);}
+    preview=null;return;
   }
   const en=enemyAtScreen(sx,sy);
   if(en&&sel.length){

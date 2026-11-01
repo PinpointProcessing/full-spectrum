@@ -45,18 +45,19 @@ function buildCards(){
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<canvas class="uc-ecg"></canvas>`+
-      `<div class="uc-bot"><span class="uc-hp">100</span><span class="uc-gun">Rifle</span><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
+      `<div class="uc-bot"><span class="uc-hp">100</span><span class="uc-gun">Rifle</span><button class="uc-rpg" aria-label="RPG" hidden>RPG<i>3</i></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
       preview=null;
-      if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
+      if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.launcher&&!u.inVeh){mode=mode==='rpg'?null:'rpg';if(tut&&tut.u===u&&tut.step<3)setTut({step:mode==='rpg'?2:1,u});}else{mode=null;banner(u.inVeh?'Get out of the jeep to fire the RPG.':`${u.name} is out of rockets.`,1600);}}
+      else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
       else{mode=null;if(sel.length===1&&sel[0]===u)select(cardGroup.filter(alive));else select([u]);}   // tap him again: back to the whole group on show
       hud();
     };
     el.addEventListener('click',act);
     el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act(null);}});
     box.appendChild(el);
-    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),ecg:el.querySelector('.uc-ecg'),buf:null,head:0,acc:0,phase:Math.random(),amp:1};
+    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),rpg:el.querySelector('.uc-rpg'),ecg:el.querySelector('.uc-ecg'),buf:null,head:0,acc:0,phase:Math.random(),amp:1};
     drawFace(el.querySelector('.uc-face'),u);
   }
 }
@@ -84,6 +85,8 @@ function updateCards(){
     c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)} HP`;c.hp.style.color=hpCol(u);
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
+    c.rpg.hidden=u.launcher==null;c.rpg.querySelector('i').textContent=u.launcher||0;c.rpg.disabled=!alive(u)||!u.launcher||!!u.inVeh;   // the captured RPG, left of the grenade
+    c.rpg.classList.toggle('on',mode==='rpg'&&sel[0]===u);c.rpg.classList.toggle('tut',!!tut&&tut.u===u&&tut.step===1);
   }
   $('#stage').style.setProperty('--cards-h',box.hidden?'0px':box.offsetHeight+6+'px');
   for(const tab of document.querySelectorAll('.tab')){

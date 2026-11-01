@@ -23,7 +23,8 @@ function waveTick(dt){
   else if(wave.phase==='clear'&&el>=CLEAR_T)goWave('count');
   else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnJeep();goWave('drive');}
   else if(wave.phase==='drive')driveJeep(dt);
-  else if(wave.phase==='hq'||wave.phase==='hq2')hqTick(dt);
+  else if(wave.phase==='hq')hqTick(dt);
+  else if(wave.phase==='hq2'){hqTick(dt);roadTick(dt);}
   else if(wave.phase==='depot'||wave.phase==='depotdone'){hqTick(dt);depotTick(dt);}
   else if(wave.phase==='fight2'&&enemies.every(e=>e.dead)){goWave('done');bigText('All clear!','clear');endAt=performance.now()+CLEAR_T*1000;}
 }

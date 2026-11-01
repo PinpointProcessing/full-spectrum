@@ -12,7 +12,7 @@ let savedTimer=0;
 function saveGame(stage){
   const j=wave.jeep;
   const data={v:1,stage,when:Date.now(),
-    squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade}])),
+    squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,launcher:p.launcher??null}])),
     jeep:j&&j.owner==='P'?{x:Math.round(j.x),y:Math.round(j.y),heading:+j.heading.toFixed(3),hp:Math.round(j.hp),state:j.state==='broken'?'wreck':j.state}:null};
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
   const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
@@ -37,7 +37,7 @@ function continueGame(){
     const d=s.squad[p.id];
     if(!d||d.dead){Object.assign(p,{dead:true,hp:0,gone:true});continue;}
     const spot=openSpot(at.x,at.y,taken)||at;taken.push(spot);
-    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade});
+    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade});if(d.launcher!=null)p.launcher=d.launcher;   // the captured RPG
   }
   const j=wave.jeep;
   if(s.jeep&&j){
@@ -46,6 +46,7 @@ function continueGame(){
     if(s.jeep.state==='wreck'){j.state='wreck';j.hp=0;j.wreckT=simT-60;wreckLook(j);}
     parkObstacle(j);
   }
+  if(s.stage==='hq2')spawnPickup();   // still lying at the checkpoint unless someone already carries it
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
   setStatus();buildCards();hud();banner(`Continuing: ${STAGES[s.stage]}.`,2400);

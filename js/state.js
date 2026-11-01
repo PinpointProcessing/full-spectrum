@@ -26,4 +26,4 @@ function reset(){
   landing=null;if(dinghy)dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
   resetWaves();setStatus();buildCards();
 }
-function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw'))?0.25:1;}
+function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw')||tutSlow())?0.25:1;}   // the RPG tutorial runs at quarter speed too

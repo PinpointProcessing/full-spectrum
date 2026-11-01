@@ -5,7 +5,7 @@ function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classLis
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  if(wave.phase==='hq'||wave.phase==='hq2'){const on=hq&&hq.patrol==='on';s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
+  if(wave.phase==='hq'||wave.phase==='hq2'){const on=(hq&&hq.patrol==='on')||(road&&road.phase==='drive');s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
 }
@@ -42,6 +42,7 @@ function hud(){
   if(ptr&&ptr.kind==='lasso')h='Draw a loop round the soldiers you want.';
   else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
+  else if(mode==='rpg')h='Tap a truck (or any target) to fire the RPG. Tap RPG on his card again to cancel.';
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(wave.phase==='hq'&&jeepOf()&&jeepOf().state==='ok'&&act.length&&!preview)h='Tap the jeep to mount up: the first in drives, the second takes the gun.';

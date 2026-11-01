@@ -73,6 +73,14 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .uc-nade{min-height:24px;padding:0 6px;display:inline-flex;align-items:center;gap:3px;font-size:11px}
 .uc-nade svg{width:13px;height:13px;fill:currentColor}
 .uc-nade.on{border-color:var(--warn);color:var(--warn)}
+.uc-rpg{min-height:24px;padding:0 6px;display:inline-flex;align-items:center;gap:3px;font-size:10px;font-family:var(--font-hud);font-weight:700;letter-spacing:.06em;color:#4df3ff;border-color:rgba(77,243,255,.5)}
+.uc-rpg i{font-style:normal;color:var(--text)}
+.uc-rpg.on{border-color:#4df3ff;background:rgba(77,243,255,.16)}
+.uc-rpg.tut{animation:tutPulse 1s ease-in-out infinite}
+@keyframes tutPulse{0%,100%{box-shadow:0 0 0 0 rgba(77,243,255,.7)}50%{box-shadow:0 0 0 6px rgba(77,243,255,0)}}
+#tut{position:absolute;top:92px;left:50%;transform:translateX(-50%);z-index:3;width:min(340px,calc(100% - 32px));padding:10px 12px;border-radius:6px;background:rgba(8,14,18,.92);border:1px solid rgba(77,243,255,.7);box-shadow:0 0 18px rgba(77,243,255,.25);color:var(--text);font-size:13px;line-height:1.4;pointer-events:none}
+#tut small{display:block;font-family:var(--font-hud);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#4df3ff;margin-bottom:3px}
+#tut b{color:#4df3ff}
 .ucard.downed .uc-face{filter:grayscale(.6) brightness(.7)}
 .ucard.kia{opacity:.6}.ucard.kia .uc-face{filter:grayscale(1) brightness(.45)}
 #stage{--cards-h:0px}
@@ -137,4 +145,4 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .aar-gain em{font-style:normal;color:var(--warn);text-transform:uppercase;letter-spacing:.12em;animation:alertPop .35s ease-out}
 .linkish{background:none;border:none;min-height:28px;color:var(--dim);font-size:11px;text-decoration:underline;text-underline-offset:3px;justify-self:center}
 @media (prefers-reduced-motion: reduce){.aar-xp i{transition:none}.aar-gain em{animation:none}}
-@media (prefers-reduced-motion: reduce){#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}
+@media (prefers-reduced-motion: reduce){.uc-rpg.tut{animation:none;box-shadow:0 0 0 2px #4df3ff}#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}

@@ -6,10 +6,10 @@
 const HQ_ZONES=[
   {k:'med',x:186,y:322,w:90,h:70,col:'255,74,64',label:'MEDICAL'},
   {k:'sup',x:344,y:322,w:90,h:70,col:'232,186,84',label:'SUPPLY'},
-  {k:'motor',x:458,y:560,w:44,h:70,col:'255,206,64',label:'MOTOR POOL'},
+  {k:'motor',x:398,y:34,w:74,h:46,col:'255,206,64',label:'MOTOR POOL'},   // north of the warehouse: a straight run east to the gate
 ];
 const UNLOCK_SHOW=3;   // s the camera stays on the jeep after the report before the HQ popup
-const MOTOR={x:480,y:595},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:57};   // NEXT: where the arrow sits, pointing east at the smashed gate
+const MOTOR={x:435,y:57},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:57};   // NEXT: where the arrow sits, pointing east at the smashed gate
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>z.k!=='motor'&&x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
 
@@ -19,7 +19,7 @@ function startHQ(){
   for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;}
   parkJeepAt(MOTOR.x,MOTOR.y);
   // first the camera goes to the captured jeep: "New vehicle unlocked!"; then over to the warehouse with the HQ popup
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:MOTOR.x,z:MOTOR.y-45,zoom:2.8},t:0,dur:1.4};
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:MOTOR.x,z:MOTOR.y+40,zoom:2.8},t:0,dur:1.4};
   bigText('New vehicle unlocked!','unlock');
   const mine=hq;
   setTimeout(()=>{
@@ -34,7 +34,7 @@ function startHQ(){
 function parkJeepAt(x,y){
   const j=wave.jeep;if(!j)return;
   unparkObstacle(j);
-  Object.assign(j,{x,y,heading:-Math.PI/2,owner:'P',hp:100,state:'ok',path:[],moving:false});   // it's ours now (vehicle.js); parked facing north
+  Object.assign(j,{x,y,heading:0,owner:'P',hp:100,state:'ok',path:[],moving:false});   // it's ours now (vehicle.js); parked facing east, at the gate
   j.m.g.position.set(x,0,y);j.m.g.rotation.y=Math.PI/2-j.heading;j.m.tur.rotation.y=-Math.PI/2;jeepLight.intensity=0;
   parkObstacle(j);
   const g=gunnerOf();if(g)g.elev=0;
