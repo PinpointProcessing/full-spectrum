@@ -77,8 +77,14 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .uc-ecg{width:100%;height:30px;display:block;border-radius:3px;background:#05080a}
 .uc-bot{display:flex;align-items:center;gap:6px;min-width:0}
 .uc-hp{font-family:var(--font-hud);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;margin-right:auto}
-#cards.narrow .uc-gun{display:none}   /* four across: no room for the weapon name */
-.uc-gun{font-family:var(--font-hud);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the weapon: its picture and name on a line under the heart monitor (four across: the picture only) */
+.uc-gun{display:flex;align-items:center;gap:6px;min-width:0;height:14px;font-family:var(--font-hud);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden}
+.uc-gun svg{width:40px;height:13px;flex:none;fill:#c9d2d8}
+.uc-gun b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+#cards.narrow .uc-gun b{display:none}
+.uc-hp::after{content:' HP'}.uc-hp.kia::after{content:''}
+#cards.narrow .uc-hp::after{content:''}
+#cards.narrow .uc-bot{gap:3px}#cards.narrow .uc-hp{font-size:10px}#cards.narrow .uc-nade,#cards.narrow .uc-rpg{padding:0 2px;gap:1px;font-size:9px;letter-spacing:0;min-height:22px}#cards.narrow .uc-nade svg{width:11px;height:11px}#cards.narrow .uc-rpg i{margin-left:2px}
 .uc-nade{min-height:24px;padding:0 6px;display:inline-flex;align-items:center;gap:3px;font-size:11px}
 .uc-nade svg{width:13px;height:13px;fill:currentColor}
 .uc-nade.on{border-color:var(--warn);color:var(--warn)}

@@ -7,6 +7,10 @@
    tapping his grenade readies a throw. */
 const ECG_SPEED=60;   // how fast the trace sweeps across, px per second
 const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy="10" rx="4.6" ry="5"/><rect x="5.8" y="2.6" width="3.4" height="2.6" rx=".6"/><path d="M9.2 3.6h2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
+// weapon silhouettes for the cards (our own drawings): an assault rifle with a curved magazine, a pump shotgun
+const GUN_SVG={
+  rifle:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.2 8.5 5H11v5H8.5L1 12.2z"/><path d="M11 4h19v5.2H11z"/><path d="M13 2.4h7.5v1.6H13z"/><path d="M15.5 9.2h3.4l-1 4.8h-3.3z"/><path d="M21 9.2h4.2l1.4 4.6-3.2 1.2z"/><path d="M30 4.6h8.5v3.6H30z"/><path d="M38.5 5.6H47v1.3h-8.5z"/><path d="M34.6 2.8h1.2v1.8h-1.2z"/></svg>',
+  shotgun:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.4 10 5h1v4.4h-1L1 12z"/><path d="M11 4.6h9.5v4.8H11z"/><path d="M13.8 9.4h3.2l-1 4.2h-3.1z"/><path d="M20.5 5h26.5v1.5H20.5z"/><path d="M20.5 7h19.5v1.5H20.5z"/><path d="M24 6.3h9.5v3.4H24z"/><path d="M45.6 3.9h1v1.1h-1z"/></svg>'};
 function hpCol(u){return u.dead?'#5b636a':u.downed?'#ff3b2a':u.hp>=70?C.good:u.hp>=35?C.warn:'#ff8a3d';}
 function bpmOf(u){
   if(u.dead)return 0;if(u.downed)return 150;
@@ -45,7 +49,8 @@ function buildCards(){
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<canvas class="uc-ecg"></canvas>`+
-      `<div class="uc-bot"><span class="uc-hp">100</span><span class="uc-gun">${WEAPON[u.weapon||'rifle'].label}</span><button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
+      `<div class="uc-gun" title="${WEAPON[u.weapon||'rifle'].label}">${GUN_SVG[u.weapon||'rifle']}<b>${WEAPON[u.weapon||'rifle'].label}</b></div>`+
+      `<div class="uc-bot"><span class="uc-hp">100</span><button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
       preview=null;
@@ -82,7 +87,7 @@ function updateCards(){
     c.el.hidden=!shown.includes(u);
     c.el.classList.toggle('sel',sel.includes(u));c.el.classList.toggle('downed',u.downed);c.el.classList.toggle('kia',u.dead);
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
-    c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)} HP`;c.hp.style.color=hpCol(u);
+    c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);c.hp.style.color=hpCol(u);
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
     c.rpg.querySelector('i').textContent=u.charges||0;c.rpg.disabled=!alive(u)||!u.charges||!!u.inVeh;c.rpg.classList.toggle('on',mode==='charge'&&sel[0]===u);   // the demolition charge, left of the grenade
