@@ -195,6 +195,7 @@ function tap(sx,sy){
     }
     selectTeam(pu.team);return;
   }
+  if(hyp(wx-PANEL.x,wy-PANEL.y)<16&&area.open){tapPanel();preview=null;return;}   // the drawbridge's control panel
   // the glowing RPG at the checkpoint: the nearest selected soldier on foot goes to pick it up
   if(pickup&&!pickup.taken&&hyp(wx-pickup.x,wy-pickup.y)<22){
     const foot=sel.filter(u=>!u.inVeh).sort((a,b)=>hyp(a.x-pickup.x,a.y-pickup.y)-hyp(b.x-pickup.x,b.y-pickup.y));

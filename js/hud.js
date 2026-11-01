@@ -5,7 +5,7 @@ function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classLis
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  if(wave.phase==='hq'||wave.phase==='hq2'){const on=(hq&&hq.patrol==='on')||(road&&(road.phase==='trucks'||road.phase==='tank'));s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
+  if(wave.phase==='hq'||wave.phase==='hq2'){const on=(hq&&hq.patrol==='on')||(road&&(road.phase==='trucks'||road.phase==='tank'))||(wave.phase==='hq2'&&contact);s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
 }

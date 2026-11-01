@@ -36,8 +36,8 @@ function startDepot(){
   setStatus();hud();
 }
 function resetDepot(){
-  rockets=[];tankFires=[];tankQueue=[];garrison=[];mission={name:'yard',t0:0};
-  resetRoad();
+  rockets=[];tankFires=[];tankQueue=[];garrison=[];nests=[];panelGo=null;mission={name:'yard',t0:0};
+  resetRoad();if(PANEL.button)PANEL.button.material.emissive.setHex(0);
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
   for(let i=HQ_ZONES.length-1;i>=0;i--)if(HQ_ZONES[i].hq2)HQ_ZONES.splice(i,1);
 }
@@ -149,9 +149,9 @@ function startHQ2(){
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:960,z:-402,zoom:2.2},t:0,dur:1.4};
   $('#hqPop .eyebrow').textContent='Second temporary HQ';$('#hqPop h1').textContent='Checkpoint secured';
   $('#hqPop p').textContent='The checkpoint is now a temporary HQ. Heal and resupply here before you push on. Hold enough of these and you can establish a permanent HQ.';
-  $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>That\'s the end of this demo area for now.</li>';
-  $('#hqPop').hidden=false;hq.tour='hq2';setStatus();hud();
-  saveGame('hq2');
+  $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>North of the checkpoint the road forks: left to the office building (machine-gun nests out front), right to the drawbridge.</li>';
+  $('#hqPop').hidden=false;setStatus();hud();
+  saveGame('hq2');spawnNests();
 }
 function addHQ2Zones(){HQ_ZONES.push({k:'med',x:874,y:-450,w:72,h:64,col:'255,74,64',label:'MEDICAL',hq2:true},{k:'sup',x:952,y:-450,w:70,h:64,col:'232,186,84',label:'SUPPLY',hq2:true});}
 
@@ -374,4 +374,40 @@ function drawRoad(rdt,now){
       ox.strokeStyle=`rgba(255,70,50,${(.6+pulse*.4).toFixed(2)})`;ox.lineWidth=2;ox.setLineDash([6,5]);ox.stroke();ox.setLineDash([]);
       const[rx,ry]=toS(a.x,a.y);label('TANK',rx,ry,'#ff5040',11,700);}
   }
+}
+
+/* ---------- north of the fork (Bryan): the office's machine-gun nests and the drawbridge panel ----------
+   Two gunners behind sandbags in front of the office, facing the forecourt. They open fire as soon as a soldier comes
+   within NEST_WAKE with a line of sight (or on anything that alerts them first). The building itself is solid for now.
+   The drawbridge's control panel: tap it with a soldier selected and he walks over; it tells you the power is off. */
+const NEST_WAKE=320;
+let nests=[],panelGo=null;
+function spawnNests(){
+  if(nests.length)return;
+  nests=NESTS.map((n,i)=>{
+    const u=mk('E','E','E'+(50+i),'Gunner',n.x,n.y,Math.PI/2);Object.assign(u,{gunner:true,post:true,jumpy:true,nest:true});makeSoldier(u);
+    const mg=new T.Group(),dm=new T.MeshStandardMaterial({color:0x1b1e1b,roughness:.7,metalness:.45});   // the gun on its tripod, in front of him
+    const barrel=new T.Mesh(new T.BoxGeometry(14,1.4,1.4),dm);barrel.position.set(9,9.5,0);mg.add(barrel);
+    for(const a of[0,2.1,4.2]){const leg=new T.Mesh(new T.CylinderGeometry(.35,.35,9,4),dm);leg.position.set(8+Math.cos(a)*2,4.5,Math.sin(a)*2);leg.rotation.z=Math.cos(a)*.3;leg.rotation.x=Math.sin(a)*.3;mg.add(leg);}
+    u.m.pose.add(mg);return u;
+  });
+  enemies=units.filter(u=>u.side==='E');
+}
+// every tick at the second HQ
+function northTick(){
+  if(nests.some(e=>!e.dead&&!e.alerted)&&players.some(p=>alive(p)&&nests.some(e=>!e.dead&&hyp(p.x-e.x,p.y-e.y)<NEST_WAKE&&los(e.x,e.y,p.x,p.y)))){
+    alertAll('The machine-gun nests open up!');for(const e of nests)if(!e.dead){e.alerted=true;e.cool=Math.min(e.cool,.4);}
+  }
+  if(nests.length&&!nests.done&&nests.every(e=>e.dead)){nests.done=true;contact=false;bigText('All clear!','clear');banner('Nests down. The way into the building is open (inside comes next).',4000);setStatus();}
+  if(panelGo){
+    const u=panelGo;
+    if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
+    else if(hyp(u.x-PANEL.x,u.y-PANEL.y)<=22){panelGo=null;banner('Turn on the power to access drawbridge controls',4000);callout(u,'No power',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
+  }
+}
+function tapPanel(){
+  const foot=sel.filter(u=>alive(u)&&!u.inVeh).sort((a,b)=>hyp(a.x-PANEL.x,a.y-PANEL.y)-hyp(b.x-PANEL.x,b.y-PANEL.y));
+  if(!foot.length){banner('Select a soldier, then tap the control panel.',2000);return;}
+  const u=foot[0],s=openSpot(PANEL.x,PANEL.y+14,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:PANEL.x,y:PANEL.y+14},p=findPath(u.x,u.y,s.x,s.y);
+  if(p){u.path=p;u.lastOrder=simT;callout(u,'Checking the controls',C.good);panelGo=u;}else banner('No way to reach the panel from here.',2000);
 }

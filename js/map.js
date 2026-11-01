@@ -2,7 +2,7 @@
 /* Map data (the yard and warehouse, and the shipping depot with the checkpoint to the east) plus geometry queries:
    line of sight, cover, free space. */
 const objs=[];
-const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor']);   // armor: the enemy tank once it's in position
+const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortcore','bridge','pylon']);   // armor: the enemy tank once it's in position
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
 // outer fence (open at the dock in the south-west corner, x 0-175, where the water is)
 O('fence',0,TOP,W,8);O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,TOP,8,H-TOP);
@@ -50,7 +50,7 @@ O('barrel',300,808,16,16,{col:'#6b3a28'});
    firing position and fuel tanks behind it. Past the checkpoint the road forks (at FORK): the left branch will lead to an
    office building and the right one to a drawbridge (both to come; the ground beside the branches is kept clear for them).
    Rows of single and double-stacked containers on both sides of the main road leave aisles for flanking. */
-const MAIN={x0:1025,x1:1075,y0:-500},FORK={x:1050,y:-500},BRANCH=[{x:840,y:TOP+8},{x:1220,y:TOP+8}],CKPT={x:1050,y:-300};
+const MAIN={x0:1025,x1:1075,y0:-500},FORK={x:1050,y:-500},CKPT={x:1050,y:-300};
 const CURVE={a:{x:YARD_W-4,y:57},c:{x:1050,y:57},b:{x:1050,y:-150},hw:25};   // quadratic curve from the gate to the main road
 function curvePt(t){const u=1-t;return{x:u*u*CURVE.a.x+2*u*t*CURVE.c.x+t*t*CURVE.b.x,y:u*u*CURVE.a.y+2*u*t*CURVE.c.y+t*t*CURVE.b.y};}
 const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
@@ -81,11 +81,33 @@ O('sandbag',972,-248,46,10);O('sandbag',972,-270,10,22);O('sandbag',1008,-270,10
 O('tank',1120,-412,44,44,{col:'#c9c6bc'});O('tank',1180,-412,44,44,{col:'#b9b4a6'});O('tank',1240,-406,36,36,{col:'#c9c6bc'});   // fuel tanks behind it
 O('barrel',1135,-350,16,16,{col:'#8a2f22'});O('barrel',1153,-348,16,16,{col:'#8a2f22'});O('crate',1185,-346,26,20);
 O('crate',985,-182,26,26);O('pallet',1095,-110,30,20);O('barrel',1100,-30,16,16,{col:'#3a5160'});
+/* ---------- north of the fork (Bryan) ----------
+   Left road: to the office / data building. Two machine-gun nests guard its front, containers stand front-left and a
+   long garage on the right of the entrance (the inside comes later: the building is solid for now, doors drawn on).
+   Right road: to a raised drawbridge. Across a bottomless moat (a ring-shaped pit) stands a round metal fort; a control
+   panel right of the bridge says the power is off. */
+const LEFT_RD={a:{x:1050,y:-500},c:{x:1000,y:-880},b:{x:620,y:-905},hw:25},RIGHT_RD={a:{x:1050,y:-500},c:{x:1090,y:-620},b:{x:1090,y:-992},hw:25};
+function quadPt(q,t){const u=1-t;return{x:u*u*q.a.x+2*u*t*q.c.x+t*t*q.b.x,y:u*u*q.a.y+2*u*t*q.c.y+t*t*q.b.y};}
+const PLAZA={x:440,y:-1010,w:380,h:130},OFFICE={x:420,y:-1290,w:360,h:280,door:{x:560,w:80}};
+const FORT={cx:1090,cy:-1170,r0:115,r1:178},BRIDGE={x:1065,y:FORT.cy+FORT.r1,w:50,len:66},PANEL={x:1145,y:-972};
+const NESTS=[{x:530,y:-952},{x:650,y:-952}];
+O('office',OFFICE.x,OFFICE.y,OFFICE.w,OFFICE.h);
+O('garage',820,-1190,70,270);                                     // long garage right of the entrance, roll-up doors facing the plaza
+for(const n of NESTS){O('sandbag',n.x-20,n.y+12,40,10);O('sandbag',n.x-20,n.y-10,10,22);O('sandbag',n.x+10,n.y-10,10,22);}   // MG nests facing south
+box(330,-985,110,34,3,2);box(340,-935,34,100,5);box(400,-900,110,34,6,2);   // containers front-left
+O('crate',470,-1000,26,22);O('barrel',790,-990,16,16,{col:'#3a5160'});O('barrel',790,-1010,16,16,{col:'#6b3a28'});
+// the moat: everything within FORT.r1 of the centre is a pit you can't enter (the fort's island is cut off with it); a
+// square inside the fort wall blocks sight; the raised drawbridge stands at the near edge between two pylons
+O('pit',FORT.cx-FORT.r1,FORT.cy-FORT.r1,FORT.r1*2,FORT.r1*2,{disk:{cx:FORT.cx,cy:FORT.cy,r:FORT.r1}});
+O('fortcore',FORT.cx-80,FORT.cy-80,160,160);
+O('bridge',BRIDGE.x,BRIDGE.y-8,BRIDGE.w,8);O('pylon',BRIDGE.x-12,BRIDGE.y-10,9,9);O('pylon',BRIDGE.x+BRIDGE.w+3,BRIDGE.y-10,9,9);
+O('panel',PANEL.x-6,PANEL.y-4,12,8);
 // decoration that doesn't block anything: the boom barrier arm across the main road
 const decor=[{kind:'boom',x:MAIN.x0+2,y:CKPT.y,len:MAIN.x1-MAIN.x0-4,dir:'x'}];
 
-function rectDist(x,y,o){const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
+function rectDist(x,y,o){if(o.disk)return Math.max(0,Math.hypot(x-o.disk.cx,y-o.disk.cy)-o.disk.r);const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
 function segHitsRect(x1,y1,x2,y2,o,pad){
+  if(o.disk){const d=o.disk,dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy||1,t=clamp(((d.cx-x1)*dx+(d.cy-y1)*dy)/l2,0,1);return Math.hypot(x1+dx*t-d.cx,y1+dy*t-d.cy)<=d.r+pad;}   // the round pit
   const rx=o.x-pad,ry=o.y-pad,rw=o.w+2*pad,rh=o.h+2*pad;
   let t0=0,t1=1;const dx=x2-x1,dy=y2-y1;
   const p=[-dx,dx,-dy,dy],q=[x1-rx,rx+rw-x1,y1-ry,ry+rh-y1];
@@ -102,7 +124,7 @@ function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,b
 function coverAt(tx,ty,sx,sy){
   let best=0;
   for(const o of objs){
-    if(o.kind==='fence'||o.kind==='water')continue;
+    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit')continue;
     if(rectDist(tx,ty,o)>15)continue;
     if(rectDist(sx,sy,o)<15)continue;
     if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)
@@ -114,7 +136,7 @@ function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
-  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20}[o.kind]||0;
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:60,garage:26,bridge:66,pylon:70,panel:12}[o.kind]||0;
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;

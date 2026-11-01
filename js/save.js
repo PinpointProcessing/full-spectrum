@@ -31,7 +31,7 @@ function continueGame(){
     hq.patrol='done';openArea(true);
     for(const e of enemies)if(e.wave===2&&!garrison.includes(e)){e.dead=true;e.seen=false;}
   }
-  if(s.stage==='hq2'){for(const e of garrison){e.dead=true;e.hp=0;e.seen=false;}wave.phase='hq2';hq.arrow=false;hq.noArrow=true;addHQ2Zones();}
+  if(s.stage==='hq2'){for(const e of garrison){e.dead=true;e.hp=0;e.seen=false;}wave.phase='hq2';hq.arrow=false;hq.noArrow=true;addHQ2Zones();spawnNests();}
   // the squad: the dead stay gone, the living keep their wounds
   const at={hq:{x:300,y:430},depot:{x:540,y:110},hq2:{x:930,y:-372}}[s.stage],taken=[];
   for(const p of players){
@@ -47,7 +47,7 @@ function continueGame(){
     if(s.jeep.state==='wreck'){j.state='wreck';j.hp=0;j.wreckT=simT-60;wreckLook(j);}
     parkObstacle(j);
   }
-  if(s.stage==='hq2'){if(s.road)road={phase:'done'};else if(!players.some(p=>p.launcher!=null))dropRPG(965,-290);}   // the launcher lies where the RPG gunner fell, unless someone carries it
+  if(s.stage==='hq2'&&RPG_PICKUP){if(s.road)road={phase:'done'};else if(!players.some(p=>p.launcher!=null))dropRPG(965,-290);}   // the launcher lies where the RPG gunner fell, unless someone carries it
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
   setStatus();buildCards();hud();banner(`Continuing: ${STAGES[s.stage]}.`,2400);

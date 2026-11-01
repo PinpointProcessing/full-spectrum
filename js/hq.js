@@ -1,7 +1,7 @@
 "use strict";
 /* Temporary HQ after the battle (free time, still the tutorial). The warehouse gets a medical point and a supply
    point inside, and the captured jeep sits on a motor-pool spot outside with a full repair bar. A soldier standing
-   in the medical box heals; in the supply box he gets his grenade back. After 30 s a red arrow pulses towards the
+   in the medical box heals; in the supply box he gets his grenade back. After 30 s a banner points towards the
    north-east, at the smashed gate the reinforcements came through: the way to the next area. The jeep itself is in vehicle.js. */
 const HQ_ZONES=[
   {k:'med',x:186,y:322,w:90,h:70,col:'255,74,64',label:'MEDICAL'},
@@ -9,7 +9,7 @@ const HQ_ZONES=[
   {k:'motor',x:398,y:34,w:74,h:46,col:'255,206,64',label:'MOTOR POOL'},   // north of the warehouse: a straight run east to the gate
 ];
 const UNLOCK_SHOW=3;   // s the camera stays on the jeep after the report before the HQ popup
-const MOTOR={x:435,y:57},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30,NEXT={x:552,y:57};   // NEXT: where the arrow sits, pointing east at the smashed gate
+const MOTOR={x:435,y:57},HEAL_RATE=8,SUPPLY_T=4,ARROW_T=30;   // ARROW_T: s before the "next area" banner (the red arrow itself is gone, Bryan)
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>z.k!=='motor'&&x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
 
@@ -69,7 +69,6 @@ function hqTick(dt){
 /* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes (and the jeep), say what they're for ---------- */
 const TOURS={
   hq:[['med','<b>Medical.</b> Stand a wounded soldier in the red box to heal.'],['sup','<b>Supply.</b> Step inside to get your grenade back.'],['motor','<b>Motor pool.</b> Heal and restock first, then put the whole squad in the jeep to move out.']],
-  hq2:[['med','<b>Medical.</b> Heal up here.'],['sup','<b>Supply.</b> Restock grenades here.']],
 };
 function hqGotIt(){   // from the popup's button
   $('#hqPop').hidden=true;
@@ -155,16 +154,4 @@ function drawHQ(now){
   }
   // supply progress over anyone restocking
   for(const p of players)if(alive(p)&&p.restock>0){gPath(p.x,p.y,14,-Math.PI/2,-Math.PI/2+p.restock/SUPPLY_T*TAU);ox.strokeStyle='rgba(232,186,84,.95)';ox.lineWidth=2.2;ox.stroke();}
-  // the way on: a pulsing red arrow on the ground in the north-east, pointing NE, and one at the screen edge if it's off view
-  if(hq.arrow){
-    const a=0,ca=Math.cos(a),sa=Math.sin(a),pts=[[34,0],[4,-22],[4,-9],[-28,-9],[-28,9],[4,9],[4,22]].map(([u,v])=>toS(NEXT.x+u*ca-v*sa,NEXT.y+u*sa+v*ca,.4));
-    ox.globalAlpha=.35+pulse*.6;ox.beginPath();ox.moveTo(...pts[0]);for(const p of pts)ox.lineTo(...p);ox.closePath();
-    ox.fillStyle='rgba(255,60,44,.85)';ox.fill();ox.strokeStyle='rgba(255,170,150,.9)';ox.lineWidth=1.5;ox.stroke();ox.globalAlpha=1;
-    const[nx,ny]=toS(NEXT.x,NEXT.y);
-    if(nx<0||ny<0||nx>cw||ny>ch){
-      const mx=clamp(nx,24,cw-24),my=clamp(ny,70,ch-24),ang=Math.atan2(ny-ch/2,nx-cw/2);
-      ox.save();ox.translate(mx,my);ox.rotate(ang);ox.globalAlpha=.4+pulse*.6;ox.fillStyle='#ff3b2a';
-      ox.beginPath();ox.moveTo(14,0);ox.lineTo(-8,-10);ox.lineTo(-3,0);ox.lineTo(-8,10);ox.closePath();ox.fill();ox.restore();ox.globalAlpha=1;
-    }
-  }
 }
