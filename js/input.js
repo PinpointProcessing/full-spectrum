@@ -122,7 +122,7 @@ function bindInput(){
     ptr.cx=x;ptr.cy=y;
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind=ptr.unit&&alive(ptr.unit)&&!landing?'draw':'pan';   // no orders while the dinghy is still coming in
+      ptr.kind=ptr.unit&&alive(ptr.unit)&&!landing&&!mode?'draw':'pan';   // no orders while the dinghy is still coming in; aiming a suppress/grenade/charge never starts a route
       if(ptr.kind==='draw'){select([ptr.unit]);preview=null;mode=null;hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
@@ -160,26 +160,29 @@ function toggleGait(){
   if(act.some(u=>u.gaitForce)){for(const u of act)u.gaitForce=null;}
   else{const g=act.some(u=>autoGait(u)==='sneak')?'run':'sneak';for(const u of act)u.gaitForce=g;}
 }
+let fireOrderAt=-1e9;   // when the last suppress/grenade/charge order was given (real ms)
 function tap(sx,sy){
   if(landing)return;   // the squad is still in the dinghy
   const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)
   sel=sel.filter(alive);
+  // aiming modes (Bryan: suppressing or throwing must never move anyone): a tap that misses keeps the mode and says why;
+  // one that lands gives the order and briefly guards against the next tap turning into a move (moveGuard below)
   if(mode==='suppress'){
-    if(!inMap){mode=null;return;}
     const en=enemyAtScreen(sx,sy),pt=en?{x:en.x,y:en.y}:{x:wx,y:wy};
-    if(!enemies.some(e=>!e.dead&&e.seen&&hyp((e.vis?e.x:e.last.x)-pt.x,(e.vis?e.y:e.last.y)-pt.y)<55)){banner('Tap an enemy you have seen.');return;}
+    if(!en&&!inMap){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
+    if(!enemies.some(e=>!e.dead&&e.seen&&hyp((e.vis?e.x:e.last.x)-pt.x,(e.vis?e.y:e.last.y)-pt.y)<55)){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
     for(const u of sel){u.supT={x:pt.x,y:pt.y};u.focus=null;u.noLine=0;u.lastOrder=simT;}
     if(sel[0])callout(sel[0],'Suppressing!',C.warn);
-    mode=null;return;
+    mode=null;preview=null;fireOrderAt=performance.now();return;
   }
   if(mode==='charge'){   // demolition charge: tap a fuel tank or the server core (mission.js)
     const u=sel[0];if(!u){mode=null;return;}
     const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
-    if(orderCharge(u,t.x,t.y))mode=null;return;
+    if(orderCharge(u,t.x,t.y)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   if(mode==='grenade'){
     const u=sel[0];if(!u){mode=null;return;}
-    if(throwNade(u,wx,wy))mode=null;return;
+    if(throwNade(u,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   // the jeep: with soldiers on foot selected, they board it; otherwise tapping it selects its crew
   if(jeepAtScreen(sx,sy)){
@@ -212,6 +215,8 @@ function tap(sx,sy){
   }
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}
+  const sinceFire=performance.now()-fireOrderAt;
+  if(sinceFire<1200)return;   // a second tap right after a suppress/grenade/charge order (thinking it didn't take) is not a move
   const tg=tapTarget(sx,sy);   // tapping a wall or crate means: stand against the side you tapped
   // tapping a fuel tank: everyone selected who can shoot opens up on it (mission.js)
   if(tg.obj&&tg.obj.kind==='tank'&&!tg.obj.burst){const sh=sel.filter(u=>u.seat!=='driver');for(const u of sh){u.focusTank=tg.obj;u.focus=null;u.supT=null;}if(sh[0])callout(sh[0],'Hit the tank!',C.warn);preview=null;return;}
@@ -228,7 +233,7 @@ function tap(sx,sy){
   }
   const movers=sel.filter(u=>!u.inVeh);   // anyone still in the jeep (a gunner covering) stays put
   if(!movers.length){banner('He stays on the gun until it\'s quiet. Select just him and press Dismount to pull him out.',2600);return;}
-  if(movers.length===1){
+  if(movers.length===1&&sinceFire>6000){   // shortly after a suppress/grenade order even one soldier needs the two-tap move
     const as=makeAssign(movers,tg.x,tg.y);
     if(!as.length){banner('Can’t get there.');return;}
     commit(as);return;

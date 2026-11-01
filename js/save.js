@@ -29,7 +29,7 @@ function continueGame(){
   if(n>=3){addZones([{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}]);
     for(const o of objs)if(o.kind==='tank'){o.burst=true;o.hp=0;if(o.meshes)for(const m of o.meshes){if(m.userData.c0==null)m.userData.c0=m.material.color.getHex();m.material.color.setHex(0x1a1816);}}}
   if(n>=5){CORE.done=true;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0);setBridge(1);addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);}
-  startObjective(n,true);
+  objDone={wh:1,br:2,dep:3,dc:4}[s.stage];startObjective(n,true);
   // the squad: the dead stay gone, the living keep their wounds
   const at=STAGE_AT[s.stage],taken=[];
   for(const p of players){

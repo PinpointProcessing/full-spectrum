@@ -256,7 +256,7 @@ function throwNade(u,tx,ty){
   const f=sightOf(u,tx,ty);
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
-  u.grenade=0;u.lastOrder=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
+  u.grenade=0;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
   nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u});u.stats.items++;
   callout(u,'Frag out!',C.warn);
   return true;
@@ -353,7 +353,7 @@ function enemyThink(e){
   }else e.moveCool=simT+2;
 }
 function playerThink(p){
-  if(!alive(p)||p.path.length||p.inVeh||!contact||p.sup>0.65){p.exposeT=0;return;}
+  if(!alive(p)||p.path.length||p.inVeh||!contact||p.sup>0.65||p.supT||simT-(p.nadeT??-99)<6){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
   if(simT-p.lastOrder<4)return;
   const vis=enemies.filter(e=>!e.dead&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
   const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);

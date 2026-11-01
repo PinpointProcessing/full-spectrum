@@ -50,7 +50,9 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #obj span{font-size:12px;font-weight:600;line-height:1.25}
 #obj ol{display:none;margin:4px 0 0;padding-left:16px;font-size:11.5px;line-height:1.45;color:var(--dim)}
 #obj.open ol{display:block}#obj.open span{display:none}
-#obj li.done{color:var(--good);text-decoration:line-through}#obj li.now{color:var(--text);font-weight:600}
+#obj li.done{color:var(--good);background:linear-gradient(currentColor,currentColor) no-repeat 0 58%/100% 1.5px}
+#obj li.justdone{animation:objStrike .7s ease-out .3s both}
+@keyframes objStrike{from{background-size:0% 1.5px;color:var(--text)}to{background-size:100% 1.5px}}#obj li.now{color:var(--text);font-weight:600}
 #fitBtn{position:absolute;right:8px;top:8px;z-index:2;min-height:32px;padding:0 10px;font-size:11px;background:rgba(10,14,18,.85)}
 .panel{display:grid;gap:7px;padding-block:8px 8px}
 .hint{font-size:12.5px;color:var(--dim);height:2.6em;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}

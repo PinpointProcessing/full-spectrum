@@ -16,9 +16,9 @@ function startHQ(){
   state='play';endAt=0;contact=false;paused=true;wave.phase='hq';hq={t0:simT,tour:'hq'};
   for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;}
   if(!HQ_ZONES.length)addZones(WH_ZONES);
-  $('#hqPop').hidden=false;
   setStatus();hud();
-  saveGame('wh');   // milestone: warehouse taken (save.js)
+  saveGame('wh');
+  hqGotIt();   // Bryan: no popup, just the tour of the boxes, then keep it moving   // milestone: warehouse taken (save.js)
 }
 // every tick once the warehouse is taken: healing and restocking in the boxes, then the mission's own tick
 function hqTick(dt){
@@ -36,7 +36,7 @@ function hqTick(dt){
 const TOURS={
   hq:[['med','<b>Medical.</b> Stand a wounded soldier in the red box to heal.'],['sup','<b>Supply.</b> Step inside to get your grenade and demolition charge back.']],
 };
-function hqGotIt(){   // from the popup's button
+function hqGotIt(){   // the tour of the boxes (straight after the warehouse; the old popup's button calls it too)
   $('#hqPop').hidden=true;
   const steps=hq&&TOURS[hq.tour];if(!steps){paused=false;hud();return;}
   hq.tour=null;paused=true;const mine=hq,back={x:camT.x,z:camT.z,zoom},tip=$('#tut');

@@ -12,7 +12,7 @@ const CHARGE={plant:3,fuse:8,away:130,coreAway:80};
 let rockets=[],tankFires=[],tankQueue=[],charges=[],obj=0,groups={},finished={},panelGo=null,bridgeDown=0;
 let mission={name:'yard',t0:0};
 function resetMission(){
-  rockets=[];tankFires=[];tankQueue=[];charges=[];obj=0;groups={};finished={};panelGo=null;mission={name:'yard',t0:0};
+  rockets=[];tankFires=[];tankQueue=[];charges=[];obj=0;objDone=0;groups={};finished={};panelGo=null;mission={name:'yard',t0:0};
   HQ_ZONES.length=0;
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
   CORE.done=false;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0x0a5a7a);
@@ -61,7 +61,7 @@ function startObjective(n,quiet){
 // a finished objective is a checkpoint and a rest (Bryan): "Location secured", heal/resupply boxes, a save; the next one's defenders
 // take their posts a few seconds later, unaware
 function finishObjective(msg,zones,stage,next,big='Location secured'){
-  if(finished[next-1])return;finished[next-1]=true;   // once only, while the next one waits to start
+  if(finished[next-1])return;finished[next-1]=true;objCompleted(next);   // once only, while the next one waits to start; crossed off the list
   contact=false;bigText(big,'clear');banner(msg,3200);say(players.find(alive),'objective');
   if(zones)addZones(zones);saveGame(stage);setStatus();
   setTimeout(()=>{if(state==='play'&&obj===next-1)startObjective(next);},3000);
@@ -85,7 +85,7 @@ function missionTick(dt){
       panelGo=null;
       if(obj<4){banner('Turn on the power to access drawbridge controls',4000);callout(u,'No power',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
       else if(obj===4){callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
-        bigText('Drawbridge down!','unlock');addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);saveGame('dc');updateObjUI();
+        bigText('Drawbridge down!','unlock');objCompleted(4);addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);saveGame('dc');updateObjUI();
         setTimeout(()=>{if(state==='play'&&obj===5){banner('Objective 5: take the Headquarters. That part comes next.',5000);endAt=performance.now()+600;}},2600);}
     }
   }
@@ -219,13 +219,17 @@ function shootTank(u){
 
 
 /* ---------- the objective tracker (top left; tap to see the whole list) ---------- */
-function updateObjUI(){
+const OBJ_LIST=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Sabotage the data center and lower the drawbridge','Take the Headquarters'];
+let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
+function objCompleted(n){
+  if(n<=objDone)return;objDone=n;updateObjUI(true);
+  const el=$('#obj');if(!el)return;el.classList.add('open');clearTimeout(objFlashT);objFlashT=setTimeout(()=>{el.classList.remove('open');el.setAttribute('aria-expanded','false');},4500);
+}
+function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  const shown=Math.min(obj,5),idx=obj>=4?3:obj,label=obj===4?OBJECTIVES[4]:OBJECTIVES[Math.min(obj,5)];
-  const num=obj<=3?obj+1:obj===4?4:5;
-  el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(obj===5?' (coming next)':'');
-  const list=el.querySelector('ol');list.innerHTML=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Sabotage the data center and lower the drawbridge','Take the Headquarters']
-    .map((t,i)=>`<li class="${i+1<num?'done':i+1===num?'now':''}">${t}</li>`).join('');
+  const num=Math.min(objDone+1,5),label=objDone===3&&CORE.done?'Lower the drawbridge':OBJ_LIST[num-1];
+  el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(num===5?' (coming next)':'');
+  el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
 }
 
