@@ -211,7 +211,7 @@ function tankExplode(o,by){
 function shootTank(u){
   const o=u.focusTank;if(o.burst){u.focusTank=null;return false;}
   const cx=o.x+o.w/2,cy=o.y+o.h/2,f=sightOf(u,cx,cy);
-  if(!f||hyp(cx-u.x,cy-u.y)>380)return false;
+  if(!f||hyp(cx-u.x,cy-u.y)>wRange(u))return false;
   u.ang=Math.atan2(cy-f.y,cx-f.x);u.aimT=simT;leanOut(u,{lean:f.x!==u.x||f.y!==u.y,fx:f.x,fy:f.y});
   for(let k=0;k<3;k++)tracers.push({x1:f.x,y1:f.y,x2:cx+(Math.random()-.5)*o.w*.6,y2:cy+(Math.random()-.5)*o.h*.6,t:0,col:'255,231,163'});
   flashes.push({x:f.x,y:f.y,t:0});

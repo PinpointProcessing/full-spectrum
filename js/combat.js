@@ -21,12 +21,16 @@ function shotCover(L){return L.atPeek?1:coverAt(L.tx,L.ty,L.fx,L.fy);}
 function leanOut(u,L){if(L.lean)u.peek={x:L.fx,y:L.fy,until:simT+PEEK_T};}
 
 /* ---------- combat helpers ---------- */
+// the squad's weapons (Bryan: two shotguns, two assault rifles): one shotgun per fire team, A2 Kowalski and B2 Okafor
+const WEAPON={rifle:{label:'Rifle',range:380},shotgun:{label:'Shotgun',range:200}},SHOTGUNNERS=['A2','B2'];
+function wRange(u){return u.gunner?440:WEAPON[u.weapon||'rifle'].range;}
 function hitChance(s,t,L){
   L=L||lineOf(s,t);
   const d=hyp(L.tx-L.fx,L.ty-L.fy);
-  let c=0.86-d/900;
+  const sg=s.weapon==='shotgun';
+  let c=sg?1-Math.max(0,d-80)/150:0.86-d/900;   // a shotgun: near-certain within 8 m, falling off fast beyond
   let cov=shotCover(L);if(t.inVeh)cov=Math.max(cov,1);   // inside the jeep: partial cover
-  if(cov===1)c-=0.28;else if(cov===2)c-=0.42;
+  if(cov===1)c-=sg?0.2:0.28;else if(cov===2)c-=sg?0.3:0.42;   // the pellet spread makes cover count for less
   c-=s.sup>0.65?0.25:s.sup*0.15;
   if(s.side==='P'&&ambushing())c+=AMBUSH_BONUS;
   if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=0.15;
@@ -188,7 +192,7 @@ function pickTarget(u){
   const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(alive);   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;
   for(const f of foes){
-    if(hyp(f.x-u.x,f.y-u.y)>(u.gunner?440:380))continue;
+    if(hyp(f.x-u.x,f.y-u.y)>wRange(u))continue;
     const L=fireLine(u,f);if(!L)continue;
     let c=hitChance(u,f,L);if(u.focus===f)c+=1;
     if(c>bs){bs=c;best={t:f,L};}
@@ -198,7 +202,7 @@ function pickTarget(u){
 function burst(u,t,L){
   u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
   const c=hitChance(u,t,L);
-  const n=u.gunner?5:3;   // the jeep's machine gun fires longer bursts
+  const n=u.gunner?5:u.weapon==='shotgun'?1:3;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun one blast
   for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner?0.07:0.08),u,t,L,hit:Math.random()<c});
   if(u.side==='P'&&t.alerted&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
 }
@@ -213,10 +217,12 @@ function resolveShot(s){
     if(cov&&Math.random()<.7){ex=fx+Math.cos(a)*(d-10);ey=fy+Math.sin(a)*(d-10);sparks.push({x:ex,y:ey,t:0});}
     else{const aa=a+(Math.random()-.5)*0.22,dd=d+Math.random()*40-8;ex=fx+Math.cos(aa)*dd;ey=fy+Math.sin(aa)*dd;}
   }
-  tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
+  const sg=u.weapon==='shotgun';   // a shotgun: a spread of pellets, hard hits close, less with range
+  if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
+  else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
   flashes.push({x:fx,y:fy,t:0});
-  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:0.06)*(t.side==='P'?rankNerve(t):1));   // machine-gun fire pins people down
-  if(s.hit){const dm=(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
+  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:sg?0.14:0.06)*(t.side==='P'?rankNerve(t):1));   // machine guns and shotgun blasts pin people down
+  if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true);
   else if(!t.alerted){}
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -391,7 +397,7 @@ function updateUnit(u,dt){
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank
     else if(u.supT)suppressShot(u);
-    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);u.cool=u.gunner?1.3+Math.random()*.5:1.6+Math.random()*.6;}else u.cool=.25;}
+    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);u.cool=u.gunner?1.3+Math.random()*.5:u.weapon==='shotgun'?1.1+Math.random()*.4:1.6+Math.random()*.6;}else u.cool=.25;}
   }
 }
 function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Math.min(1,k);}

@@ -18,6 +18,7 @@ function reset(){
   mk('E','E','E1','Hostile',273,459,Math.PI/2);mk('E','E','E2','Hostile',347,459,Math.PI/2);
   mk('E','E','E3','Hostile',222,494,Math.PI/2);mk('E','E','E4','Hostile',398,494,Math.PI/2);
   players=units.filter(u=>u.side==='P');enemies=units.filter(u=>u.side==='E');
+  for(const p of players)p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':'rifle';
   for(const p of players)p.level=levelOf(xpOf(p.id));
   for(const u of units)makeSoldier(u);
   drawGround();

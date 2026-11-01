@@ -10,7 +10,7 @@
    smashGate, sfxClang from the tank, sfxThunder from the lightning, audioFrame every frame (engines, muffling, and new
    explosions / rockets found in booms / rockets). */
 const SND_KEY='warehouseYard.sound',MAX_VOICES=40;
-const SAMPLE_FILES={shot:['shot-1','shot-2','shot-3','shot-4'],enemy:['enemy-1','enemy-2','enemy-3'],mg:['mg-1','mg-2','mg-3'],boom:['boom-1','boom-2'],launch:['launch']};
+const SAMPLE_FILES={shot:['shot-1','shot-2','shot-3','shot-4'],shotgun:['shotgun-1','shotgun-2'],enemy:['enemy-1','enemy-2','enemy-3'],mg:['mg-1','mg-2','mg-3'],boom:['boom-1','boom-2'],launch:['launch']};
 let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,noiseBuf=null,sndOn=true,voices=0,loops={},samples={};
 try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
 
@@ -89,8 +89,8 @@ function toneHit(out,t0,dur,type,f0,f1,peak,attack=.004){
 
 /* ---------- one-shots ---------- */
 function sfxShot(u){
-  const kind=u.gunner?'mg':u.side==='E'?'enemy':'shot',r=.95+Math.random()*.1;
-  if(playSample(kind,u.x,u.y,kind==='mg'?.75:.6,r))return;
+  const kind=u.gunner?'mg':u.side==='E'?'enemy':u.weapon==='shotgun'?'shotgun':'shot',r=.95+Math.random()*.1;
+  if(playSample(kind,u.x,u.y,kind==='mg'?.75:kind==='shotgun'?.8:.6,r))return;
   const out=voice(u.x,u.y,.45,.3);if(!out)return;const t=AC.currentTime;   // fallback: a sharp crack and a body
   noiseHit(out,t,.05,'highpass',2500,0,1);noiseHit(out,t,.18,'lowpass',2600*r,0,.8,.002,300);toneHit(out,t,.09,'sine',110,40,.5);
 }
