@@ -62,14 +62,14 @@ function hqTick(dt){
     const z=zoneAt(p.x,p.y);
     if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;
     const short=p.grenade<1||(p.launcher!=null&&p.launcher<LAUNCHER.ammo);   // a grenade, and rockets for the RPG (2 at a time)
-    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.launcher!=null)p.launcher=LAUNCHER.ammo;p.restock=0;callout(p,'Restocked',C.good);sfxSting('restock');hud();}}else p.restock=0;
+    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.launcher!=null)p.launcher=LAUNCHER.ammo;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
   }
   if(!hq.arrow&&!hq.noArrow&&simT-hq.t0>=ARROW_T){hq.arrow=true;banner('Next area: north-east. Put the whole squad in the jeep to move out.',4000);}
 }
 /* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes (and the jeep), say what they're for ---------- */
 const TOURS={
   hq:[['med','<b>Medical.</b> Stand a wounded soldier in the red box to heal.'],['sup','<b>Supply.</b> Step inside to get your grenade back.'],['motor','<b>Motor pool.</b> Heal and restock first, then put the whole squad in the jeep to move out.']],
-  hq2:[['med','<b>Medical.</b> Heal up here.'],['sup','<b>Supply.</b> Restock grenades here, and RPG rockets once you carry the launcher.']],
+  hq2:[['med','<b>Medical.</b> Heal up here.'],['sup','<b>Supply.</b> Restock grenades here.']],
 };
 function hqGotIt(){   // from the popup's button
   $('#hqPop').hidden=true;

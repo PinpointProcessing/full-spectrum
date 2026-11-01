@@ -24,7 +24,7 @@ function waveTick(dt){
   else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnJeep();goWave('drive');}
   else if(wave.phase==='drive')driveJeep(dt);
   else if(wave.phase==='hq')hqTick(dt);
-  else if(wave.phase==='hq2'){hqTick(dt);roadTick(dt);}
+  else if(wave.phase==='hq2'){hqTick(dt);if(RPG_PICKUP)roadTick(dt);}
   else if(wave.phase==='depot'||wave.phase==='depotdone'){hqTick(dt);depotTick(dt);}
   else if(wave.phase==='fight2'&&enemies.every(e=>e.dead)){goWave('done');bigText('All clear!','clear');endAt=performance.now()+CLEAR_T*1000;}
 }
@@ -124,15 +124,15 @@ function assaultThink(e){
 /* ---------- on-screen ---------- */
 function bigText(text,cls){
   const el=$('#bigText');el.className='';el.textContent=text||'';
-  if(text){void el.offsetWidth;el.className=cls;sfxSting(cls);}   // restart the fade
+  if(text){void el.offsetWidth;el.className=cls;}   // restart the fade
 }
 let cdShown=-1;
 function waveHud(){
   const tankCd=road&&road.phase==='count',cd=$('#countdown'),on=state==='play'&&(wave.phase==='count'||tankCd);   // also before the tank
   cd.hidden=!on;if(!on){cdShown=-1;return;}
-  const left=Math.max(0,tankCd?TANK_COUNT-(simT-road.t0):COUNT_T-(simT-wave.t)),n=Math.ceil(left);
+  const left=Math.max(0,tankCd?(road.dur||TANK_COUNT)-(simT-road.t0):COUNT_T-(simT-wave.t)),n=Math.ceil(left);
   cd.querySelector('b').textContent=left.toFixed(2);   // counts down in hundredths
-  if(n===cdShown)return;if(cdShown>=0)sfxSting('tick');cdShown=n;
+  if(n===cdShown)return;cdShown=n;
   cd.setAttribute('aria-label',`Incoming in ${n}`);
   cd.classList.remove('tick');void cd.offsetWidth;cd.classList.add('tick');   // pulse on every whole second
 }

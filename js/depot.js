@@ -56,9 +56,13 @@ function depotTick(dt){
     if(simT<e.waitT)continue;
     e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y);if(path)e.path=path;e.waitT=0;
   }
-  pickupTick();
-  if(wave.phase==='depot'&&garrison.length&&garrison.every(e=>e.dead)){
-    wave.phase='depotdone';bigText('All clear!','clear');endAt=performance.now()+CLEAR_T*1000;setStatus();
+  if(RPG_PICKUP)pickupTick();
+  // garrison down: "All clear!", then TRUCK_COUNT s later two gun trucks come up the road from the south (Bryan); both stopped: mission complete
+  if(wave.phase==='depot'&&!road&&garrison.length&&garrison.every(e=>e.dead)){road={phase:'count',t0:simT,dur:TRUCK_COUNT};contact=false;bigText('All clear!','clear');setStatus();}
+  if(wave.phase==='depot'&&road){
+    if(road.phase==='count'&&simT-road.t0>=road.dur)spawnTrucks();
+    truckTick(dt);
+    if(road.phase==='trucks'&&trucks.every(t=>t.dead)){road.phase='done';wave.phase='depotdone';contact=false;bigText('All clear!','clear');endAt=performance.now()+CLEAR_T*1000;setStatus();}
   }
 }
 
@@ -145,7 +149,7 @@ function startHQ2(){
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:960,z:-402,zoom:2.2},t:0,dur:1.4};
   $('#hqPop .eyebrow').textContent='Second temporary HQ';$('#hqPop h1').textContent='Checkpoint secured';
   $('#hqPop p').textContent='The checkpoint is now a temporary HQ. Heal and resupply here before you push on. Hold enough of these and you can establish a permanent HQ.';
-  $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>If nobody has grabbed the RPG gunner\'s launcher yet, it\'s still lying where he fell (glowing). Walk a soldier over it to pick it up.</li>';
+  $('#hqPop ul').innerHTML='<li><b>Medical (red +)</b> and <b>Supply</b> points are set up west of the road, behind the checkpoint.</li><li>That\'s the end of this demo area for now.</li>';
   $('#hqPop').hidden=false;hq.tour='hq2';setStatus();hud();
   saveGame('hq2');
 }
@@ -193,8 +197,9 @@ function drawDepot(rdt,now){
    from the north-west. It takes 3 rocket hits; its machine gunner on top can be shot like the truck gunners, but its crew
    only dies with the tank. Its main gun aims at a soldier for TANK.aim s (red reticle) and fires a fast shell.
    Tank down: "All clear!" and the game saves. */
+const RPG_PICKUP=false;   // Bryan: no player RPG (or tank) just yet; the trucks come straight after the checkpoint instead. true brings it all back
 const LAUNCHER={ammo:2,range:400,spread:9};
-const TRUCKS=[{x:1040,y0:150,y1:-40},{x:1062,y0:215,y1:20}],TRUCK_SPEED=60,TANK_COUNT=10;
+const TRUCKS=[{x:1040,y0:150,y1:-40},{x:1062,y0:215,y1:20}],TRUCK_SPEED=60,TANK_COUNT=10,TRUCK_COUNT=10;
 const TANK={route:[{x:846,y:-832},{x:930,y:-695},{x:978,y:-618}],speed:30,hits:3,w:30,l:54,aim:2,reload:6,speed2:320,spread:[10,34],blast:44,dmg:80,range:460};
 let pickup=null,trucks=[],tank=null,tut=null,tutDone=false,road=null;
 function resetRoad(){
@@ -219,7 +224,7 @@ function pickupTick(){
   if(!pickup||pickup.taken)return;
   const u=players.find(p=>alive(p)&&!p.inVeh&&hyp(p.x-pickup.x,p.y-pickup.y)<pickup.r);
   if(!u)return;
-  pickup.taken=true;scene.remove(pickup.m);u.launcher=LAUNCHER.ammo;callout(u,'Got the RPG!',C.good);sfxSting('pickup');
+  pickup.taken=true;scene.remove(pickup.m);u.launcher=LAUNCHER.ammo;callout(u,'Got the RPG!',C.good);
   select([u]);preview=null;mode=null;setTut({step:1,u});hud();
 }
 function spawnTrucks(){
@@ -231,8 +236,16 @@ function spawnTrucks(){
     placeTruck(t);return t;
   });
   enemies=units.filter(u=>u.side==='E');
-  bigText('Enemy inbound!','inbound');banner('Two gun trucks coming up the road from the south!',2600);setStatus();
+  bigText('Enemy inbound!','inbound');banner(RPG_PICKUP?'Two gun trucks coming up the road from the south!':'Two gun trucks coming up the road from the south! Take out the gunners.',3000);setStatus();
   const c=players.find(p=>alive(p)&&p.launcher!=null);if(c&&!tutDone&&!tut)setTut({step:1,u:c});
+}
+function truckTick(dt){
+  for(const t of trucks){
+    if(t.dead)continue;
+    if(t.moving){t.y=Math.max(t.y1,t.y-TRUCK_SPEED*dt);placeTruck(t);
+      if(t.y<=t.y1){t.moving=false;t.obj=jeepRect(t);t.gone=addObstacle(t.obj);t.gunner.cool=0.6;}}   // parked: half cover, the gunner opens up
+    if(t.gunner.dead){t.dead=true;t.moving=false;}   // gunner shot: the truck's out of the fight
+  }
 }
 function placeTruck(t){
   t.m.g.position.set(t.x,0,t.y);t.m.g.rotation.y=Math.PI/2-t.heading;
@@ -301,12 +314,7 @@ function tankTick(dt){
 function roadTick(dt){
   pickupTick();
   if(!road&&$('#hqPop').hidden&&players.some(p=>p.launcher!=null&&!p.dead))spawnTrucks();   // checkpoint secured and someone has the RPG
-  for(const t of trucks){
-    if(t.dead)continue;
-    if(t.moving){t.y=Math.max(t.y1,t.y-TRUCK_SPEED*dt);placeTruck(t);
-      if(t.y<=t.y1){t.moving=false;t.obj=jeepRect(t);t.gone=addObstacle(t.obj);t.gunner.cool=0.6;}}   // parked: half cover, the gunner opens up
-    if(t.gunner.dead)t.dead=true;   // shot the gunner: the truck's out of the fight
-  }
+  truckTick(dt);
   if(!road)return;
   if(road.phase==='trucks'&&trucks.every(t=>t.dead)){road.phase='count';road.t0=simT;contact=false;bigText('All clear!','clear');setStatus();}
   else if(road.phase==='count'&&simT-road.t0>=TANK_COUNT)spawnTank();

@@ -47,7 +47,7 @@ function hud(){
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(wave.phase==='hq'&&jeepOf()&&jeepOf().state==='ok'&&act.length&&!preview)h='Tap the jeep to mount up: the first in drives, the second takes the gun.';
   else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box, restock in the supply box, then put the whole squad in the jeep to move out.';
-  else if(road&&road.phase==='count'&&!preview)h='Something heavy is coming. Restock rockets at the supply point and get into cover.';
+  else if(road&&road.phase==='count'&&!preview)h='Vehicles coming up the road from the south. Get into cover facing south.';
   else if(wave.phase==='count'&&!preview)h='Reinforcements are coming in through the gate at the north-east corner. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
@@ -58,7 +58,7 @@ function hud(){
 // detection indicator, updated every frame
 let alertShown=-1;
 function alertMeter(){
-  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done','hq','hq2','depotdone');if(el.hidden)return;   // the countdown takes its place
+  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done','hq','hq2','depotdone')||!!road;if(el.hidden)return;   // the countdown takes its place
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);
