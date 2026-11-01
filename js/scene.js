@@ -99,7 +99,7 @@ function canvasTex(w,h,draw){
 function texMat(tex,rx,ry,opts){const t=tex.clone();t.needsUpdate=true;t.repeat.set(rx,ry);return new T.MeshStandardMaterial(Object.assign({map:t},opts));}
 
 /* ground: painted once, decals painted in as the fight happens */
-const gcan=document.createElement('canvas'),rcan=document.createElement('canvas'),acan=document.createElement('canvas'),GS=1;   // ground texture: 1 px per unit (the map is 1300 x 2350); acan: the ground's alpha (the moat is a hole)
+const gcan=document.createElement('canvas'),rcan=document.createElement('canvas'),acan=document.createElement('canvas'),GS=1.5;   // ground texture: 1.5 px per unit (the map is 1000 x 1660); acan: the ground's alpha (the moat is a hole)
 function drawGround(){
   const MH=H-TOP;   // painted in world units: the canvas starts at y TOP
   gcan.width=Math.round(W*GS);gcan.height=Math.round(MH*GS);rcan.width=W;rcan.height=MH;
@@ -128,33 +128,27 @@ function drawGround(){
   for(let y=270;y<=550;y+=28){g.beginPath();g.moveTo(180,y+.5);g.lineTo(440,y+.5);g.stroke();}
   for(let i=0;i<8;i++){const x=190+r()*240,y=280+r()*260,rad=8+r()*18,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.45)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
   g.strokeStyle='rgba(225,185,60,.6)';g.lineWidth=2;g.strokeRect(194,284,232,252);
-  // the depot: wet asphalt roads (the curve from the smashed gate, the main road north, the fork's two branches) with
-  // lane markings, a stop line south of the checkpoint, and container bays
-  const curve=c=>{c.beginPath();c.moveTo(CURVE.a.x-30,CURVE.a.y);c.lineTo(CURVE.a.x,CURVE.a.y);c.quadraticCurveTo(CURVE.c.x,CURVE.c.y,CURVE.b.x,CURVE.b.y);};
-  for(const c of[g,q]){
-    c.fillStyle=c.strokeStyle=c===g?'#2c2f33':'rgb(70,70,70)';
-    c.fillRect(MAIN.x0,MAIN.y0-10,MAIN.x1-MAIN.x0,H-8-MAIN.y0+10);
-    curve(c);c.lineWidth=CURVE.hw*2;c.lineCap='butt';c.stroke();
-    for(const rd of[LEFT_RD,RIGHT_RD]){c.beginPath();c.moveTo(rd.a.x,rd.a.y);c.quadraticCurveTo(rd.c.x,rd.c.y,rd.b.x,rd.b.y);c.lineWidth=rd.hw*2;c.stroke();}
-    c.beginPath();c.arc(FORK.x,FORK.y,25,0,TAU);c.fill();
-    c.fillRect(PLAZA.x,PLAZA.y,PLAZA.w,PLAZA.h);   // the office forecourt
-  }
-  g.strokeStyle='rgba(222,186,70,.6)';g.lineWidth=2;g.setLineDash([14,12]);g.beginPath();
-  const cx=(MAIN.x0+MAIN.x1)/2;
-  g.moveTo(cx,H-10);g.lineTo(cx,FORK.y+26);
-  g.stroke();for(const rd of[LEFT_RD,RIGHT_RD]){g.beginPath();for(let t=.08;t<=.95;t+=.02){const p=quadPt(rd,t);t>.09?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);}g.stroke();}g.beginPath();for(let t=0;t<=.8;t+=.02){const p=curvePt(t);t?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);}g.stroke();g.setLineDash([]);
-  g.strokeStyle='rgba(235,235,235,.6)';g.lineWidth=3;g.beginPath();g.moveTo(MAIN.x0+3,CKPT.y+12);g.lineTo(MAIN.x1-3,CKPT.y+12);g.stroke();
-  g.strokeStyle='rgba(230,230,230,.1)';g.lineWidth=1;for(let y=300;y<880;y+=90)for(let x=625;x<990;x+=130)g.strokeRect(x,y,120,44);
-  // tyre marks where the gun jeep came through the gate
-  g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=3;for(const o of[-8,8]){g.beginPath();g.moveTo(640,57+o);g.bezierCurveTo(560,57+o,520,90+o,500,140+o);g.stroke();}
+  // north of the warehouse: worn tracks from the bridge to the depot, the data center and the fortress
+  for(const c of[g,q]){c.strokeStyle=c===g?'#34373b':'rgb(90,90,90)';c.lineWidth=34;c.lineCap='round';c.lineJoin='round';
+    for(const pa of PATHS){c.beginPath();pa.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.stroke();}}
+  g.strokeStyle='rgba(0,0,0,.22)';g.lineWidth=2;for(const pa of PATHS)for(const o of[-7,7]){g.beginPath();pa.forEach((p,i)=>i?g.lineTo(p.x+o,p.y):g.moveTo(p.x+o,p.y));g.stroke();}
+  // the canal: dark water between concrete banks (a glossy plane over it, see buildWorld)
+  for(const c of[g,q]){c.fillStyle=c===g?'#0b1216':'rgb(20,20,20)';c.fillRect(0,CANAL.y0,W,CANAL.y1-CANAL.y0);}
+  g.fillStyle='#8a8b86';g.fillRect(0,CANAL.y0-5,W,5);g.fillRect(0,CANAL.y1,W,5);g.fillStyle='rgba(228,182,40,.7)';g.fillRect(0,CANAL.y1+5,W,1.2);g.fillRect(0,CANAL.y0-6,W,1.2);
+  // the fuel depot's concrete pad with bund lines, the container yard's painted bays
+  for(const c of[g,q]){c.fillStyle=c===g?'#55585a':'rgb(140,140,140)';c.fillRect(706,-296,286,230);}
+  g.strokeStyle='rgba(228,182,40,.5)';g.lineWidth=2;g.strokeRect(726,-290,232,140);
+  g.strokeStyle='rgba(230,230,230,.1)';g.lineWidth=1;for(let y=-270;y<40;y+=60)for(let x=280;x<700;x+=120)g.strokeRect(x,y,110,40);
+  // the data center: tiled floor inside, a painted apron and hazard stripes in front of the doors
+  g.fillStyle='#5e6266';g.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);q.fillStyle='rgb(150,150,150)';q.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);
+  g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=1;for(let x=DC.x+10;x<DC.x+DC.w-10;x+=20){g.beginPath();g.moveTo(x+.5,DC.y+10);g.lineTo(x+.5,DC.y+DC.h-10);g.stroke();}
+  for(let y=DC.y+10;y<DC.y+DC.h-10;y+=20){g.beginPath();g.moveTo(DC.x+10,y+.5);g.lineTo(DC.x+DC.w-10,y+.5);g.stroke();}
+  g.fillStyle='#3a3d40';g.fillRect(170,-610,280,80);   // the server room's raised floor
+  g.save();g.beginPath();g.rect(DC.x,DC.y+DC.h,DC.w,7);g.clip();g.fillStyle='rgba(228,182,40,.7)';for(let x=DC.x;x<DC.x+DC.w;x+=14){g.beginPath();g.moveTo(x,DC.y+DC.h+7);g.lineTo(x+7,DC.y+DC.h+7);g.lineTo(x+14,DC.y+DC.h);g.lineTo(x+7,DC.y+DC.h);g.fill();}g.restore();
   // the dock: dark water (a lit plane over it, see buildWorld), a concrete quay edge and bollards
   for(const c of[g,q]){c.fillStyle=c===g?'#0b1216':'rgb(20,20,20)';c.fillRect(0,DOCK.quay,175,H-DOCK.quay);}
   g.fillStyle='#8a8b86';g.fillRect(0,DOCK.quay-6,178,6);g.fillRect(175,DOCK.quay-6,4,H-DOCK.quay+6);
   g.fillStyle='rgba(228,182,40,.8)';g.fillRect(0,DOCK.quay-7,178,1.4);
-  // the office forecourt: a painted drop-off box at the doors, hazard stripes along the building, oil stains and tyre tracks
-  g.strokeStyle='rgba(222,186,70,.5)';g.lineWidth=2;g.strokeRect(OFFICE.door.x-10,PLAZA.y+8,OFFICE.door.w+20,44);
-  g.save();g.beginPath();g.rect(PLAZA.x,PLAZA.y,PLAZA.w,7);g.clip();g.fillStyle='rgba(228,182,40,.7)';for(let x=PLAZA.x;x<PLAZA.x+PLAZA.w;x+=14){g.beginPath();g.moveTo(x,PLAZA.y+7);g.lineTo(x+7,PLAZA.y+7);g.lineTo(x+14,PLAZA.y);g.lineTo(x+7,PLAZA.y);g.fill();}g.restore();
-  for(let i=0;i<14;i++){const x=PLAZA.x+r()*PLAZA.w,y=PLAZA.y+r()*PLAZA.h,rad=6+r()*16,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.45)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
   // the fortress approach: a concrete apron before the moat
   for(const c of[g,q]){c.fillStyle=c===g?'#57595a':'rgb(150,150,150)';c.beginPath();c.arc(FORT.cx,FORT.cy,FORT.r1+70,0,TAU);c.arc(FORT.cx,FORT.cy,FORT.r1,0,TAU,true);c.fill('evenodd');}
   // the fort's island: riveted steel deck plates
@@ -181,14 +175,15 @@ function addMesh(geo,mat,x,y,z,ry){const m=new T.Mesh(geo,mat);m.position.set(x,
 const lamps=[
   {x:310,y:566,h:22,c:0xffa860,i:3.4,d:260,flick:1},
   {x:30,y:560,h:40,c:0xffa860,i:2.8,d:300,pole:1},
-  {x:570,y:200,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},
+  {x:570,y:240,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},   // the yard's north end, by the canal
   {x:560,y:870,h:40,c:0xffa860,i:2.4,d:280,pole:1},
   {x:310,y:410,h:30,c:0xffd9a8,i:2.4,d:260},
   {x:150,y:846,h:14,c:0xffc27a,i:1.6,d:150,pole:1},   // the dock, at the pier
-  {x:1084,y:-270,h:40,c:0xffa860,i:2.6,d:300,pole:1},   // depot: the checkpoint
-  {x:1088,y:-150,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},   // depot: where the curving road meets the main road
-  {x:360,y:-870,h:26,c:0xffd9a8,i:3,d:300},              // north: the office entrance
-  {x:1166,y:-822,h:44,c:0xc4d6ff,i:2.4,d:300,pole:1},   // north: the drawbridge
+  {x:525,y:136,h:30,c:0xffa860,i:2.6,d:280,pole:1},   // the bridge's north end
+  {x:840,y:-140,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},  // the fuel depot
+  {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260},          // the data center's doors
+  {x:300,y:-560,h:22,c:0x9fd8ff,i:2,d:220},            // inside the data center (the server room's cold light)
+  {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
 let hemi,muzzle=[],boomL,jeepLight,moon,dinghy;
 function buildWorld(){
@@ -219,6 +214,20 @@ function buildWorld(){
    for(const sx of[pr.x+1.5,pr.x+pr.w-1.5])for(const sz of[pr.y+8,pr.y+pr.h-2])addMesh(new T.CylinderGeometry(1.4,1.4,6,8),wm,sx,-1.5,sz);
    for(const bx of[30,80,165])addMesh(new T.CylinderGeometry(1.6,2,3,10),new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5}),bx,1.5,DOCK.quay-3);}
   dinghy=makeDinghy();dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
+  // the canal: glossy water, the main bridge (a concrete deck with railings), the culvert (a pipe with a walkway) and
+  // the broken rail bridge (two rails on a twisted girder with gaps)
+  {const cw2=CANAL.y1-CANAL.y0,wm=new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7});
+   const cv=new T.Mesh(new T.PlaneGeometry(W+400,cw2),wm);cv.rotation.x=-Math.PI/2;cv.position.set(W/2,.15,(CANAL.y0+CANAL.y1)/2);cv.receiveShadow=true;scene.add(cv);
+   const bw=MAINBR.x1-MAINBR.x0,conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.9}),rail=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
+   addMesh(new T.BoxGeometry(bw,2,cw2+14),conc,(MAINBR.x0+MAINBR.x1)/2,1,(CANAL.y0+CANAL.y1)/2);
+   for(const x of[MAINBR.x0+1.5,MAINBR.x1-1.5]){addMesh(new T.BoxGeometry(1.5,6,cw2+14),rail,x,5,(CANAL.y0+CANAL.y1)/2);}
+   addMesh(new T.BoxGeometry(bw+8,8,6),conc,(MAINBR.x0+MAINBR.x1)/2,-3,(CANAL.y0+CANAL.y1)/2);
+   const cuw=CULVERT.x1-CULVERT.x0,pipe=new T.Mesh(new T.CylinderGeometry(cuw/2+3,cuw/2+3,cw2+10,16,1,true,0,Math.PI),new T.MeshStandardMaterial({color:0x4b4f52,roughness:.8,side:T.DoubleSide}));
+   pipe.rotation.x=Math.PI/2;pipe.rotation.y=Math.PI/2;pipe.rotation.z=0;pipe.position.set((CULVERT.x0+CULVERT.x1)/2,0,(CANAL.y0+CANAL.y1)/2);scene.add(pipe);
+   addMesh(new T.BoxGeometry(cuw,1,cw2+10),new T.MeshStandardMaterial({color:0x3a3c3e,roughness:.9}),(CULVERT.x0+CULVERT.x1)/2,.5,(CANAL.y0+CANAL.y1)/2);
+   const rw=RAILBR.x1-RAILBR.x0,steel=new T.MeshStandardMaterial({color:0x3d3a36,roughness:.7,metalness:.5});
+   for(let k=0;k<6;k++){if(k===2)continue;const z=CANAL.y0-4+k*(cw2+8)/6;const m=addMesh(new T.BoxGeometry(rw,2,(cw2+8)/6-2),steel,(RAILBR.x0+RAILBR.x1)/2,1+(k===3?-1.2:0),z+(cw2+8)/12);m.rotation.z=k===3?.12:0;}
+   for(const x of[RAILBR.x0+8,RAILBR.x1-8])addMesh(new T.BoxGeometry(1.4,1.4,cw2+8),rail,x,2.6,(CANAL.y0+CANAL.y1)/2);}
 
   const wallMat=texMat(corrTex,1,1,{color:0x59616a,roughness:.65,metalness:.35});
   const concrete=new T.MeshStandardMaterial({color:0x8d8e8a,roughness:.95});
@@ -341,11 +350,11 @@ function buildWorld(){
       addMesh(new T.CylinderGeometry(o.w/2+6,o.w/2+9,130,24),texMat(corrTex,14,2,{color:0x4a5056,roughness:.55,metalness:.55}),cx,65,cz);
       addMesh(new T.CylinderGeometry(o.w/2+10,o.w/2+10,8,24),darkMetal,cx,134,cz);
       const band=new T.Mesh(new T.CylinderGeometry(o.w/2+6.4,o.w/2+6.4,2.4,24,1,true),new T.MeshBasicMaterial({color:0xffc98a,toneMapped:false,side:T.DoubleSide}));band.position.set(cx,112,cz);scene.add(band);
-      const sl=new T.SpotLight(0xe8f0ff,1.6,520,.18,.6,1.2);sl.position.set(cx,136,cz+o.h/2);sl.target.position.set(1050,0,-640);scene.add(sl,sl.target);   // searchlights sweeping the approach (tilted, fixed)
+      const sl=new T.SpotLight(0xe8f0ff,1.6,520,.18,.6,1.2);sl.position.set(cx,136,cz+o.h/2);sl.target.position.set(850,0,-420);scene.add(sl,sl.target);   // searchlights sweeping the approach (tilted, fixed)
     }else if(o.kind==='bridge'){   // the drawbridge, raised: a steel deck standing up at the moat's edge, leaning back on its hinge
       const deck=canvasTex(64,128,(g,w,h)=>{g.fillStyle='#55595c';g.fillRect(0,0,w,h);g.strokeStyle='rgba(0,0,0,.45)';g.lineWidth=2;for(let y=0;y<h;y+=16){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();}
         g.fillStyle='rgba(222,186,70,.7)';for(let y=4;y<h;y+=24)g.fillRect(w/2-1.5,y,3,12);g.fillStyle='rgba(255,255,255,.05)';g.fillRect(0,0,6,h);g.fillRect(w-6,0,6,h);});
-      const grp=new T.Group();grp.position.set(cx,0,o.y+o.h);grp.rotation.x=-.12;scene.add(grp);
+      const grp=new T.Group();grp.position.set(cx,0,o.y+o.h);grp.rotation.x=-.12;scene.add(grp);BRIDGE.grp=grp;   // lowered by setBridge (mission.js)
       const slab=new T.Mesh(new T.BoxGeometry(o.w,BRIDGE.len,4),[darkMetal,darkMetal,darkMetal,darkMetal,texMat(deck,1,1,{roughness:.7,metalness:.5}),darkMetal]);slab.position.set(0,BRIDGE.len/2,-2);slab.castShadow=true;grp.add(slab);
       for(const y of[12,34,56]){const gd=new T.Mesh(new T.BoxGeometry(o.w+2,3,3),darkMetal);gd.position.set(0,y,-5);grp.add(gd);}
     }else if(o.kind==='pylon'){   // lifting tower with a counterweight and a warning light; cables to the raised deck
@@ -358,6 +367,12 @@ function buildWorld(){
       addMesh(new T.BoxGeometry(o.w,12,o.h),new T.MeshStandardMaterial({color:0x4a5155,roughness:.6,metalness:.5}),cx,6,cz);
       addMesh(new T.BoxGeometry(o.w-2,5,1),new T.MeshStandardMaterial({color:0x0b1216,roughness:.2,metalness:.4}),cx,10,cz+o.h/2+.3);
       const b=new T.Mesh(new T.CylinderGeometry(1.6,1.6,1.2,12),new T.MeshStandardMaterial({color:0x7a1510,emissive:0x000000,roughness:.4}));b.position.set(cx,12.6,cz);scene.add(b);PANEL.button=b;
+    }else if(o.kind==='desk'){   // office desk with a monitor
+      addMesh(new T.BoxGeometry(o.w,8,o.h),new T.MeshStandardMaterial({color:0x5a4c3e,roughness:.8}),cx,4,cz);
+      const mon=new T.Mesh(new T.BoxGeometry(8,5,1),new T.MeshBasicMaterial({color:0x6fb8e0,toneMapped:false}));mon.position.set(cx,11,cz);scene.add(mon);
+    }else if(o.kind==='core'){   // the server core: a glowing cabinet bank, the sabotage target
+      addMesh(new T.BoxGeometry(o.w,18,o.h),new T.MeshStandardMaterial({color:0x1d2328,roughness:.4,metalness:.6}),cx,9,cz);
+      const glow=new T.Mesh(new T.BoxGeometry(o.w+.4,3,o.h+.4),new T.MeshStandardMaterial({color:0x0b2a36,emissive:0x0a5a7a,emissiveIntensity:1.4,roughness:.3}));glow.position.set(cx,14,cz);scene.add(glow);o.mesh=glow;
     }else if(o.kind==='fence'){
       const fm=texMat(linkTex,len/6,3,{color:0x9aa2a8,transparent:true,alphaTest:.35,side:T.DoubleSide,roughness:.6,metalness:.6});
       const pl=new T.Mesh(new T.PlaneGeometry(len,18),fm);pl.position.set(cx,9,cz);pl.rotation.y=ry;scene.add(pl);

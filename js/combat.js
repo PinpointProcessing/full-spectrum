@@ -39,9 +39,11 @@ function hitChance(s,t,L){
 function threats(){
   const t=[];
   for(const e of enemies)if(!e.dead&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(wave.phase==='fight1'?{x:310,y:540}:wavePhase('depot','depotdone')?(road?{x:1050,y:0}:{x:CKPT.x,y:CKPT.y}):{x:JEEP.park.x,y:JEEP.park.y});   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
+  if(!t.length)t.push(wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:OBJ_THREAT[obj]||{x:476,y:100});   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
+// before anyone's seen at the later objectives: where previews judge cover from
+const OBJ_THREAT={1:{x:476,y:110},2:{x:800,y:-180},3:{x:245,y:-420},4:{x:850,y:-600},5:{x:850,y:-600}};
 function protStats(p,th){
   let prot=0,see=0;
   for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l||sightFrom(p.x,p.y,t.x,t.y))see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}
@@ -107,7 +109,7 @@ function makeAssign(list,tx,ty){
   });
   return res;
 }
-function commit(as){
+function commit(as){if(as&&as[0])say(as[0].u,'ack_move');
   for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;}
 }
 // Turn a finger-drawn trail into a walkable route that keeps its shape: skip points inside objects,
@@ -147,12 +149,12 @@ function routeFromTrail(u,trail){
   return{u,path:pts,x:end.x,y:end.y,cov:isCovered(end,th)};
 }
 
-function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});}
+function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});if(u.side==='P'&&CALLOUT_VOICE[text])say(u,CALLOUT_VOICE[text]);}   // soldiers say their callouts over the radio (voice.js)
 // Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
 // and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.
 const AMBUSH_T=1.5,AMBUSH_BONUS=0.15;
 function alertAll(msg,ambush){
-  if(contact)return;contact=true;
+  if(contact)return;contact=true;say(players.find(alive),ambush?'ack_attack':'contact');
   for(const e of enemies)if(!e.dead){e.alerted=true;e.aware=1;if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);}
   if(ambush){ambushT=simT+AMBUSH_T;msg='Ambush! They never saw it coming.';}
   banner(msg||'Contact. They know you are here.');setStatus();
@@ -171,10 +173,11 @@ function damage(t,dmg,src){
     if(t.side==='P'){
       t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=45;t.revive=0;t.path=[];t.supT=null;
       callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
+      {const m=players.filter(o=>o!==t&&alive(o)).sort((a,b)=>hyp(a.x-t.x,a.y-t.y)-hyp(b.x-t.x,b.y-t.y))[0];say(m,'man_down');}
       sel=sel.filter(x=>x!==t);preview=null;
     }else{
       t.dead=true;t.path=[];callout(t,'Tango down',C.good);
-      if(src&&src.side==='P')creditKill(src);
+      if(src&&src.side==='P'){creditKill(src);if(Math.random()<.6)say(src,'kill');}
       paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});
     }
   }
@@ -285,6 +288,7 @@ function sense(e,dt){
       if((cone||d<80)&&fireLine(e,p)){
         g=SEE_RATE*(1-d/330)*(cone?1:0.5);
         g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least
+        const sz=slowAt(p.x,p.y);if(sz&&sz.hide)g*=0.15;   // in the culvert: very hard to see
       }
     }
     if(p.path.length&&p.gait==='run'&&d<NOISE_R)g+=0.5*(1-d/NOISE_R);
@@ -366,12 +370,13 @@ function updateUnit(u,dt){
   if(u.dead)return;
   if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
+  if(u.side==='P'){if(u.sup>0.65&&!u.saidPinned&&alive(u)){u.saidPinned=true;say(u,'pinned');}else if(u.sup<0.4)u.saidPinned=false;}
   if(u.downed)return;
   if(u.seat==='driver')return;   // the driver drives; riders and the gunner fight from the jeep
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
-    const sp=(u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
-      (u.sup>0.65?0.7:1)*dt;
+    const sz=slowAt(u.x,u.y),sp=(u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
+      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the culvert and the broken rail bridge are slow going
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
     if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
   }else if(simT-u.aimT>2){
@@ -408,7 +413,7 @@ function update(dt){
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
   for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
   for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;
-  depotFx(dt);
+  missionFx(dt);
   if(state==='play'&&!endAt){
     vehTick(dt);waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;

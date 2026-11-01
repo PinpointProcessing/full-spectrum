@@ -1,7 +1,7 @@
 "use strict";
 /* Shared constants, DOM handles and small helpers. Loaded first; every other file uses these globals. */
-const W=1300,H=900,TOP=-1100;   // the map runs x 0–W, y TOP–H: the yard (x 0–YARD_W, y 0–H) is the south-west part; the shipping depot
-const YARD_W=600;              // (east of the yard and the whole strip north of it, y < 0) opens later. North is -y.
+const W=1000,H=900,TOP=-760;   // the map runs x 0–W, y TOP–H; north is -y. The warehouse yard is the south-west (x 0–600, y 220–900),
+const YARD_W=600;              // the canal crosses at y 150–214, the depot, data center and fortress gate are north of it. YARD_W sizes the camera fit.
 const C={alpha:'#5ec8ff',bravo:'#ffb547',enemy:'#ff5a48',good:'#5fe08e',warn:'#ffcf4a',bad:'#ff5a48'};
 const HUDFONT='"Chakra Petch","Rajdhani",ui-sans-serif,system-ui,sans-serif';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;

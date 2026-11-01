@@ -27,6 +27,7 @@
     <div id="countdown" role="timer" hidden><small>Incoming!</small><b>5.00</b></div>
     <div id="bigText" aria-live="assertive"></div>
     <div id="banner"></div>
+    <div id="obj" hidden role="button" tabindex="0" aria-expanded="false" aria-label="Objectives"><b>Objective 1/5</b><span>Take the warehouse</span><ol></ol></div>
     <div id="tut" hidden aria-live="polite"></div>
     <span class="chip slow" id="speed" hidden>Slow-mo</span>
     <span class="chip" id="savedChip" hidden>Saved</span>
@@ -48,9 +49,9 @@
 
 <div class="overlay" id="intro">
   <div class="card">
-    <div class="eyebrow">Night op · 4 vs 4</div>
+    <div class="eyebrow">Night op · one mission, five objectives</div>
     <h1>Warehouse Yard</h1>
-    <p>Take the warehouse. Four hostiles are dug in behind crates inside, watching the south door. You start by the containers in the southwest corner.</p>
+    <p>Take the warehouse, take the bridge, destroy the fuel tanks, sabotage the data center and lower the drawbridge, then take the Headquarters. First the warehouse: four hostiles are dug in behind crates inside, watching the south door. You come ashore at the dock in the southwest corner.</p>
     <ul>
       <li><b>Look around:</b> drag empty ground with one finger to move the map. Pinch with two to zoom.</li>
       <li><b>Select:</b> tap a team tab at the bottom, or tap a soldier to grab his fire team. Hold on a soldier, or tap his card, to take just him. To lasso, hold on empty ground and draw a loop round the soldiers you want.</li>
@@ -62,6 +63,7 @@
       <li><b>Sneak or run:</b> the button at the bottom right shows what the selected soldiers are doing. Press it to make them do the other. They go back to automatic the next time you select them. While you're undetected they hold fire. Tap a hostile to open fire, and a squad that strikes first gets an ambush bonus.</li>
       <li><b>Suppress:</b> pin an enemy so he barely shoots back, then flank him from the side windows or east door.</li>
       <li><b>Grenade:</b> one per soldier. Tap the grenade on his card, then tap inside the circle.</li>
+      <li><b>Demolition charge (C4):</b> one per soldier, for the fuel tanks and the server core. Tap C4 on his card, then the target: he plants it and runs clear.</li>
       <li><b>Corners:</b> a soldier at the edge of a wall or container leans out to shoot or throw round it. While he's leaned out, the enemy can hit him too.</li>
       <li><b>Downed men</b> bleed out. Park a teammate next to them to revive.</li>
     </ul>
@@ -93,8 +95,8 @@
     <p>This warehouse is now your temporary HQ. You can heal, resupply, and repair your troops and equipment. Continue pushing to control more temporary HQs and establish a permanent HQ.</p>
     <ul>
       <li><b>Medical (red +):</b> soldiers standing inside heal.</li>
-      <li><b>Supply:</b> soldiers standing inside get their grenade back.</li>
-      <li><b>Motor pool (yellow):</b> the captured jeep, fully repaired. Driving it comes next.</li>
+      <li><b>Supply:</b> soldiers standing inside get their grenade and demolition charge back.</li>
+      <li><b>Next:</b> take the bridge over the canal to the north. Every objective you take gets boxes like these.</li>
     </ul>
     <button class="go" id="hqBtn">Got it</button>
   </div>
@@ -120,7 +122,7 @@
 <script src="js/combat.js"></script>
 <script src="js/waves.js"></script>
 <script src="js/hq.js"></script>
-<script src="js/depot.js"></script>
+<script src="js/mission.js"></script>
 <script src="js/vehicle.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/input.js"></script>
@@ -129,4 +131,5 @@
 <script src="js/progress.js"></script>
 <script src="js/save.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/voice.js"></script>
 <script src="js/main.js"></script>

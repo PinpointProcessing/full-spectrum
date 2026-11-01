@@ -2,15 +2,16 @@
 /* DOM HUD: status chip, banner, squad rows, action buttons, keyboard, end screen. */
 let bannerTimer=0;
 function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
+const OBJ_HINT={1:'Next: take the bridge (north). The culvert and the rail bridge are other ways over.',2:'Next: destroy the fuel tanks (north-east): C4 on a soldier\'s card, or shoot them from a distance.',3:'Next: the data center (north-west). Get inside and blow the server core.',4:'Next: send a soldier to the drawbridge control panel (north-east).',5:'The drawbridge is down. The Headquarters comes next.'};
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  if(wave.phase==='hq'||wave.phase==='hq2'){const on=(hq&&hq.patrol==='on')||(road&&(road.phase==='trucks'||road.phase==='tank'))||(wave.phase==='hq2'&&contact);s.textContent=on?'Contact':'HQ secured';s.className='chip'+(on?' contact':'');return;}
+  if(wave.phase==='hq'){s.textContent=contact?'Contact':obj>=5?'Bridge down':'Undetected';s.className='chip'+(contact?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
 }
 function finish(){
-  const win=enemies.every(e=>e.dead);
+  const win=players.some(alive)&&(wave.phase==='hq'?obj>=5:enemies.every(e=>e.dead));
   state='end';setStatus();$('#status').textContent=win?'Secured':'Lost';
   if(win){bigText('Mission complete!','complete');setTimeout(showAAR,2600);return;}   // then the after-action report, then the HQ
   const t=Math.floor(simT),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
@@ -42,23 +43,22 @@ function hud(){
   if(ptr&&ptr.kind==='lasso')h='Draw a loop round the soldiers you want.';
   else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
-  else if(mode==='rpg')h='Tap a truck (or any target) to fire the RPG. Tap RPG on his card again to cancel.';
+  else if(mode==='charge')h='Tap a fuel tank or the server core. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
-  else if(wave.phase==='hq'&&jeepOf()&&jeepOf().state==='ok'&&act.length&&!preview)h='Tap the jeep to mount up: the first in drives, the second takes the gun.';
-  else if(wave.phase==='hq'&&!preview&&!act.length)h='Free time. Heal in the red + box, restock in the supply box, then put the whole squad in the jeep to move out.';
-  else if(road&&road.phase==='count'&&!preview)h='Vehicles coming up the road from the south. Get into cover facing south.';
-  else if(wave.phase==='count'&&!preview)h='Reinforcements are coming in through the gate at the north-east corner. Get the squad into cover facing it.';
+  else if(wave.phase==='hq'&&!preview&&!act.length)h=`${OBJ_HINT[obj]||''} Heal and restock in the red + and supply boxes.`;
+  else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';
   $('#hint').textContent=h;
+  {const ob=$('#obj');if(ob)ob.hidden=state!=='play';}
 }
 // detection indicator, updated every frame
 let alertShown=-1;
 function alertMeter(){
-  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done','hq','hq2','depotdone')||!!road;if(el.hidden)return;   // the countdown takes its place
+  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!e.dead));if(el.hidden)return;   // the countdown takes its place
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);
@@ -86,8 +86,9 @@ function bindHud(){
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();if(wave.phase!=='fight1')reset();startView();$('#intro').hidden=true;state='play';startLanding();banner('Coming in to the dock…',2400);hud();});
-  $('#aarBtn').addEventListener('click',()=>mission.name==='checkpoint'?startHQ2():startHQ());
+  $('#aarBtn').addEventListener('click',()=>{if(mission.name==='yard')startHQ();else{$('#aar').hidden=true;state='play';endAt=0;hud();}});
   $('#hqBtn').addEventListener('click',hqGotIt);
+  {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
   $('#againBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();startView();$('#end').hidden=true;reset();state='play';startLanding();hud();});
   addEventListener('keydown',e=>{

@@ -1,7 +1,7 @@
 "use strict";
 /* Sound. Recorded CC0 samples (sounds/, see sounds/CREDITS.md) for gunfire (squad rifles, enemy rifles, machine guns),
    explosions and the RPG launch; the rest is synthesised with Web Audio: engines built from individual combustion
-   pulses (jeep, gun trucks, the dinghy's outboard, the tank's diesel and track clatter), rain, rolling thunder with the
+   pulses (the dinghy's outboard; a jeep, trucks and a tank's diesel are kept for later), rain, rolling thunder with the
    lightning, the gate crash, and a low rumble under explosions. Everything goes through an outdoor echo (a generated
    impulse response); far-off sounds are quieter, duller and wetter, and panned to where they are on screen. Slow-mo and
    pause muffle the mix. No UI beeps or jingles (Bryan: too arcade). If the samples can't load (opened from file://),
@@ -170,15 +170,13 @@ function audioFrame(){
   sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:18000,t,.12);   // slow-mo and pause sound muffled
   // explosions and launches, picked up as they appear (grenades, rockets, tank shells, fuel tanks, vehicles)
   let n=0;for(const b of booms)if(!b.snd&&b.t>=0){b.snd=1;if(n++<2)sfxBoom(b.x,b.y,b.size||1);}
-  for(const r of rockets)if(!r.snd){r.snd=1;if(r.spec&&r.spec===TANK)sfxCannon(r.x,r.y);else sfxLaunch(r.x,r.y);}
+  for(const r of rockets)if(!r.snd){r.snd=1;sfxLaunch(r.x,r.y);}
   // engines: idle when stopped, revving when moving
   const jv=jeepOf(),wj=wave.jeep;
   if(jv&&jv.state==='ok'&&crewOf(jv).some(u=>u.seat==='driver'))setLoop('jeep',live?(jv.moving?.32:.16):0,jv.x,jv.y,jv.moving?1.9:1);
   else if(wj&&wave.phase==='drive')setLoop('jeep',live?.32:0,wj.x,wj.y,1.9);
   else setLoop('jeep',0,null,null);
   setLoop('boat',live&&landing?.26:0,DOCK.moor.x,DOCK.moor.y+100,landing&&landing.t>LAND_T*.7?1:1.5);
-  const tm=trucks.find(k=>!k.dead&&(k.moving||!k.gunner.dead));setLoop('truck',live&&tm?(tm.moving?.34:.16):0,tm&&tm.x,tm&&tm.y,tm&&tm.moving?1.8:1);
-  setLoop('tank',live&&tank&&!tank.dead?(tank.moving?.4:.18):0,tank&&tank.x,tank&&tank.y,tank&&tank.moving?1.5:1);
 }
 function bindAudio(){
   const wake=()=>audioInit();

@@ -165,9 +165,10 @@ function tap(sx,sy){
     if(sel[0])callout(sel[0],'Suppressing!',C.warn);
     mode=null;return;
   }
-  if(mode==='rpg'){
+  if(mode==='charge'){   // demolition charge: tap a fuel tank or the server core (mission.js)
     const u=sel[0];if(!u){mode=null;return;}
-    if(fireRPG(u,wx,wy))mode=null;return;
+    const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
+    if(orderCharge(u,t.x,t.y))mode=null;return;
   }
   if(mode==='grenade'){
     const u=sel[0];if(!u){mode=null;return;}
@@ -195,24 +196,17 @@ function tap(sx,sy){
     }
     selectTeam(pu.team);return;
   }
-  if(hyp(wx-PANEL.x,wy-PANEL.y)<16&&area.open){tapPanel();preview=null;return;}   // the drawbridge's control panel
-  // the glowing RPG at the checkpoint: the nearest selected soldier on foot goes to pick it up
-  if(pickup&&!pickup.taken&&hyp(wx-pickup.x,wy-pickup.y)<22){
-    const foot=sel.filter(u=>!u.inVeh).sort((a,b)=>hyp(a.x-pickup.x,a.y-pickup.y)-hyp(b.x-pickup.x,b.y-pickup.y));
-    if(!foot.length){banner('Select a soldier, then tap the RPG to pick it up.');return;}
-    const path=findPath(foot[0].x,foot[0].y,pickup.x,pickup.y);if(path){foot[0].path=path;foot[0].lastOrder=simT;callout(foot[0],'Grabbing it',C.good);}
-    preview=null;return;
-  }
+  if(hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
   const en=enemyAtScreen(sx,sy);
   if(en&&sel.length){
     for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}
     if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up
-    callout(en,contact?'Focus fire':'Open fire!',C.warn);return;
+    callout(en,contact?'Focus fire':'Open fire!',C.warn);say(sel[0],'ack_attack');return;
   }
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}
   const tg=tapTarget(sx,sy);   // tapping a wall or crate means: stand against the side you tapped
-  // tapping a fuel tank: everyone selected who can shoot opens up on it (depot.js)
+  // tapping a fuel tank: everyone selected who can shoot opens up on it (mission.js)
   if(tg.obj&&tg.obj.kind==='tank'&&!tg.obj.burst){const sh=sel.filter(u=>u.seat!=='driver');for(const u of sh){u.focusTank=tg.obj;u.focus=null;u.supT=null;}if(sh[0])callout(sh[0],'Hit the tank!',C.warn);preview=null;return;}
   // crew selected: it's a drive order, two taps like a squad move (anyone on foot in the selection goes there too)
   if(selCrew().length&&seatOf(jeepOf(),'driver')){   // with nobody at the wheel, taps move whoever's on foot

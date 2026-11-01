@@ -1,35 +1,30 @@
 "use strict";
-/* Map data (the yard and warehouse, and the shipping depot with the checkpoint to the east) plus geometry queries:
-   line of sight, cover, free space. */
+/* Map data and geometry queries (line of sight, cover, free space). One mission, five objectives, south to north
+   (Bryan): 1 take the warehouse, 2 take the bridge over the canal, 3 destroy the fuel depot's tanks, 4 sabotage the data
+   center (inside) and lower the fortress drawbridge, 5 take the Headquarters (to come). */
 const objs=[];
-const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortwall','gatehouse','gtower','bridge','pylon']);   // armor: the enemy tank once it's in position
+const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortwall','gatehouse','gtower','bridge','pylon']);
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
-// outer fence (open at the dock in the south-west corner, x 0-175, where the water is)
-O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,-850,8,H+850);   // no north fence: the office and the fortress fill the north edge; the east fence stops at the moat
-O('fence',0,0,YARD_W,8);   // the yard's north fence
-// the yard's east fence, with a gate at its north end (y 22-92). Reinforcements smash through it in their gun jeep (waves.js);
-// beyond it a road curves onto the depot's main road. It stays an obstacle (the area is closed) until the depot opens (hq.js).
-O('fence',YARD_W-8,0,8,22);O('fence',YARD_W-8,92,8,H-92);
-const depotGate=objs[objs.push({kind:'gate',x:YARD_W-8,y:22,w:8,h:70,full:true})-1];
+const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
+const box=(x,y,w,h,k,stack=1)=>O('container',x,y,w,h,{col:CK[k%CK.length][0],tag:`${CK[k%CK.length][1]} ${(1000+k*397)%9000+1000}`,stack});
+// perimeter fence (open at the dock in the south-west corner, where the water is; the fortress fills the north-east)
+O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,TOP+200,8,H-TOP-200);O('fence',0,TOP,460,8);
 // the dock in the south-west corner, where the squad comes ashore by dinghy: water either side of a short wooden pier
-// (x 120-142). Water blocks movement but not sight, and is never cover.
 O('water',0,852,120,48);O('water',142,852,33,48);
 const DOCK={pier:{x:120,y:852,w:22,h:40},moor:{x:96,y:872},quay:852};
+
+/* ---------- objective 1: the warehouse yard (south) ---------- */
 // warehouse shell (x170-450, y260-560)
 O('wall',170,260,115,10);O('wall',325,260,125,10);           // north, back door 285-325
 O('wall',170,550,90,10);O('wall',360,550,90,10);             // south, roll door 260-360
 O('wall',170,270,10,125);O('window',170,395,10,60);O('wall',170,455,10,95);   // west + window
 O('wall',440,270,10,110);O('window',440,380,10,40);O('wall',440,420,10,30);O('wall',440,500,10,50); // east + window, door 450-500
-// interior
 O('crate',258,470,30,14);O('crate',332,470,30,14);O('crate',210,505,24,14);O('crate',386,505,24,14);
 O('crate',300,382,20,20);O('rack',205,300,80,14);O('rack',335,300,80,14);
-// southwest start
 O('container',40,700,104,34,{col:'#2e5759',tag:'TCNU 4410'});
 O('container',184,742,34,104,{col:'#6a3324',tag:'MSKU 0927'});
-// sandbag nest + single bags
 O('sandbag',170,618,70,12);O('sandbag',170,630,12,30);O('sandbag',228,630,12,30);
 O('sandbag',140,622,22,12);O('sandbag',250,622,22,12);
-// yard
 O('barrier',290,712,52,12);
 O('truck',396,640,46,90,{col:'#3a4433'});
 O('barrel',474,428,16,16,{col:'#3a5160'});O('barrel',474,446,16,16,{col:'#6b3a28'});
@@ -37,82 +32,72 @@ O('crate',508,520,28,28);
 O('container',40,330,34,110,{col:'#4a5230',tag:'CMAU 7731'});
 O('pallet',100,410,30,20);
 O('barrel',110,520,16,16,{col:'#3a5160'});
-O('container',230,120,110,34,{col:'#5b2f2a',tag:'HLXU 2208'});
-O('crate',420,150,26,26);O('pallet',150,170,30,20);
 O('container',520,240,34,110,{col:'#2c4a63',tag:'OOLU 5519'});
 O('container',470,800,100,34,{col:'#4f565b',tag:'TGHU 3302'});
 O('barrel',300,808,16,16,{col:'#6b3a28'});
+// east of the yard: scattered containers on open ground
+box(680,300,34,100,4,2);box(760,420,110,34,6);box(880,520,34,100,1);box(700,640,110,34,3,2);box(820,760,110,34,7);box(640,520,34,70,5);
+O('barrel',900,330,16,16,{col:'#3a5160'});O('crate',760,560,26,26);
 
-/* ---------- the shipping depot (east of the yard, and the strip north of it), same rainy night ----------
-   From the smashed gate at the yard's north-east corner a road (CURVE) runs east and bends north onto the main road on the
-   right side of the map, which runs south to north (x 1025-1075) from the south fence. Up the main road is the checkpoint,
-   facing south: a boom gate across the road, a guard tower on its west side, a watchtower on its east side, a sandbagged
-   firing position and fuel tanks behind it. Past the checkpoint the road forks (at FORK): the left branch will lead to an
-   office building and the right one to a drawbridge (both to come; the ground beside the branches is kept clear for them).
-   Rows of single and double-stacked containers on both sides of the main road leave aisles for flanking. */
-const MAIN={x0:1025,x1:1075,y0:-500},FORK={x:1050,y:-500},CKPT={x:1050,y:-300};
-const CURVE={a:{x:YARD_W-4,y:57},c:{x:1050,y:57},b:{x:1050,y:-150},hw:25};   // quadratic curve from the gate to the main road
-function curvePt(t){const u=1-t;return{x:u*u*CURVE.a.x+2*u*t*CURVE.c.x+t*t*CURVE.b.x,y:u*u*CURVE.a.y+2*u*t*CURVE.c.y+t*t*CURVE.b.y};}
-const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
-const box=(x,y,w,h,k,stack=1)=>O('container',x,y,w,h,{col:CK[k%CK.length][0],tag:`${CK[k%CK.length][1]} ${(1000+k*397)%9000+1000}`,stack});
-// south of the curving road, west of the main road: the container yard
-box(640,215,110,34,3,2);box(780,215,34,70,4);
-box(640,300,34,110,6);box(700,330,110,34,7,2);box(860,320,34,110,0);
-box(640,470,110,34,1);box(790,450,110,34,2,2);box(930,450,34,110,3);
-box(660,560,34,110,4,2);box(740,590,110,34,5);box(880,600,110,34,6,2);
-box(700,700,110,34,2);box(900,690,34,90,5,2);
-box(640,790,110,34,7);box(800,780,34,100,0,2);box(880,800,110,34,1);
-box(700,120,34,70,1);box(820,110,110,34,5,2);
-// east of the main road, south to north
-box(1120,40,110,34,5);box(1200,140,34,110,1,2);box(1120,250,110,34,7);box(1230,330,34,100,2);
-box(1120,390,110,34,2,2);box(1130,470,34,110,3);box(1220,460,34,110,4,2);
-box(1120,620,110,34,5);box(1150,700,110,34,6,2);box(1120,800,110,34,7);box(1244,770,34,100,0);
-box(1150,-50,80,34,6);box(1250,-20,34,90,0,2);
-// north of the curving road: the approach to the checkpoint
-box(660,-102,34,110,4,2);box(740,-72,110,34,5);box(850,-96,100,34,6,2);
-box(640,-192,110,34,1);box(790,-212,110,34,2,2);box(930,-212,34,110,3);
-box(1120,-272,110,34,2,2);box(1130,-192,34,110,3);box(1220,-202,34,110,4,2);
-box(640,-447,110,34,3,2);box(780,-447,34,70,4);
-box(640,-362,34,110,6);box(700,-332,110,34,7,2);box(860,-342,34,110,0);
-// the checkpoint, across the main road and facing south
-O('booth',985,-322,30,30);                     // guard tower on the west side of the gate
-O('tower',1090,-332,18,18,{cover:1});          // watchtower on the east side (the open platform is half cover)
-O('sandbag',972,-248,46,10);O('sandbag',972,-270,10,22);O('sandbag',1008,-270,10,22);   // firing position covering the road south
-O('tank',1120,-412,44,44,{col:'#c9c6bc'});O('tank',1180,-412,44,44,{col:'#b9b4a6'});O('tank',1240,-406,36,36,{col:'#c9c6bc'});   // fuel tanks behind it
-O('barrel',1135,-350,16,16,{col:'#8a2f22'});O('barrel',1153,-348,16,16,{col:'#8a2f22'});O('crate',1185,-346,26,20);
-O('crate',985,-182,26,26);O('pallet',1095,-110,30,20);O('barrel',1100,-30,16,16,{col:'#3a5160'});
-/* ---------- north of the fork (Bryan) ----------
-   Two big bases whose entrances sit on this map's north edge; the rest of each runs off it (their insides will be
-   separate maps). Left road: the office / data complex, a huge building with a taller central block, and a busy
-   fortified entrance: two machine-gun nests, riflemen, zig-zag concrete barriers, sandbag walls, razor wire, a truck, a
-   burnt-out car, floodlights, containers front-left and a long garage on the right. Right road: a giant round fortress
-   behind a bottomless moat; you see a stretch of its wall, the gatehouse with two great towers, and the raised
-   drawbridge. A control panel right of the bridge says the power is off. */
-const LEFT_RD={a:{x:1050,y:-500},c:{x:760,y:-700},b:{x:340,y:-760},hw:28},RIGHT_RD={a:{x:1050,y:-500},c:{x:1100,y:-600},b:{x:1100,y:-830},hw:35};
-function quadPt(q,t){const u=1-t;return{x:u*u*q.a.x+2*u*t*q.c.x+t*t*q.b.x,y:u*u*q.a.y+2*u*t*q.c.y+t*t*q.b.y};}
-const OFFICE={x:60,y:-1300,w:620,h:400,door:{x:310,w:100},tower:{x:220,y:-1300,w:280,h:300}},PLAZA={x:60,y:-900,w:700,h:140};
-const OFFICE_ZONE={x0:60,x1:760,y0:-900,y1:-740};   // where the entrance guards shift between cover once alerted
-const FORT={cx:1100,cy:-1500,r0:600,r1:670},BRIDGE={x:1065,y:FORT.cy+FORT.r1,w:70,len:74},PANEL={x:1182,y:-812};
-const NESTS=[{x:290,y:-845},{x:430,y:-845}],GUARDS=[{x:230,y:-862},{x:470,y:-864},{x:175,y:-828},{x:525,y:-824}];
-O('office',OFFICE.x,OFFICE.y,OFFICE.w,OFFICE.h);
-O('garage',560,-890,170,48);                                              // long garage right of the entrance, roll-up doors facing south
-for(const n of NESTS){O('sandbag',n.x-20,n.y+12,40,10);O('sandbag',n.x-20,n.y-10,10,22);O('sandbag',n.x+10,n.y-10,10,22);}   // MG nests facing south
-box(70,-890,34,100,3,2);box(112,-880,110,34,5,2);   // containers front-left
-O('barrier',230,-790,60,12);O('barrier',350,-776,60,12);O('barrier',470,-790,60,12);   // zig-zag of concrete barriers in front of the doors
-O('sandbag',150,-815,50,10);O('sandbag',500,-810,50,10);
-O('truck',600,-830,46,90,{col:'#40463a'});O('car',250,-818,40,22);
-O('crate',380,-893,26,20);O('barrel',540,-880,16,16,{col:'#6b3a28'});O('barrel',236,-892,16,16,{col:'#3a5160'});O('pallet',690,-800,30,20);
-// the fortress: the moat (a ring-shaped pit; one disc object covers it and everything inside, so nobody can cross),
-// the wall (a disc that blocks sight), the gatehouse and its towers across the moat, and the raised drawbridge with its pylons
+/* ---------- the canal and its crossings ---------- */
+// three ways over: the main bridge (defended, objective 2), a culvert to crawl through (slow, hidden) in the west and a
+// broken rail bridge (slow, exposed) in the east
+const CANAL={y0:150,y1:214},MAINBR={x0:440,x1:512},CULVERT={x0:146,x1:166},RAILBR={x0:850,x1:890};
+O('water',0,CANAL.y0,CULVERT.x0,64);O('water',CULVERT.x1,CANAL.y0,MAINBR.x0-CULVERT.x1,64);O('water',MAINBR.x1,CANAL.y0,RAILBR.x0-MAINBR.x1,64);O('water',RAILBR.x1,CANAL.y0,W-RAILBR.x1,64);
+const SLOW=[{x:CULVERT.x0,y:CANAL.y0-6,w:20,h:76,k:.4,hide:true},{x:RAILBR.x0,y:CANAL.y0-4,w:40,h:72,k:.5}];   // speed factor; the culvert also hides you
+function slowAt(x,y){return SLOW.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
+
+/* ---------- objective 2: the bridge's north end ---------- */
+O('booth',540,78,32,32);                                            // pillbox (a sentry inside, heavy cover)
+O('sandbag',456,130,40,10);O('sandbag',456,108,10,22);O('sandbag',486,108,10,22);   // MG nest covering the bridge
+O('sandbag',398,122,46,10);O('sandbag',596,128,44,10);O('barrier',360,70,52,12);O('crate',620,80,26,22);
+const BR_ZONE={x0:330,x1:660,y0:30,y1:142};
+
+/* ---------- the container yard (between the bridge and the depot / data center) ---------- */
+box(280,0,110,34,1);box(430,-30,34,90,2,2);box(530,10,110,34,3);box(660,-70,34,110,4,2);
+box(300,-130,34,90,5,2);box(380,-150,110,34,6);box(550,-130,110,34,7,2);box(470,-240,34,80,0);box(300,-270,110,34,1,2);box(590,-260,34,90,2);
+O('pallet',350,-60,30,20);O('barrel',520,-80,16,16,{col:'#6b3a28'});O('crate',620,-180,26,26);
+const YARD2_ZONE={x0:270,x1:700,y0:-280,y1:40};
+
+/* ---------- objective 3: the fuel depot (north-east) ---------- */
+O('fence',700,-300,280,6);O('fence',700,-300,6,100);O('fence',700,-160,6,100);O('fence',700,-66,100,6);O('fence',860,-66,132,6);   // chain-link round it: a gate on the west side, a gap in the south
+O('tank',740,-280,48,48,{col:'#c9c6bc'});O('tank',815,-280,48,48,{col:'#b9b4a6'});O('tank',890,-280,48,48,{col:'#c9c6bc'});
+O('tank',770,-200,44,44,{col:'#b9b4a6'});O('tank',860,-195,44,44,{col:'#c9c6bc'});
+O('barrel',930,-180,16,16,{col:'#8a2f22'});O('barrel',948,-176,16,16,{col:'#8a2f22'});O('crate',760,-120,26,20);O('crate',900,-110,30,24);O('sandbag',820,-110,44,10);
+const DEP_ZONE={x0:706,x1:990,y0:-296,y1:-70};
+
+/* ---------- objective 4: the data center (north-west), inside and out ---------- */
+// outer walls with three ways in (the front doors, a west door and an east door), a lobby, an office and the server room
+const DC={x:30,y:-620,w:430,h:190};
+O('wall',30,-620,430,10);                                                         // north
+O('wall',30,-610,10,10);O('wall',30,-560,10,130);                                 // west, door y -600..-560 into the office
+O('wall',450,-610,10,95);O('wall',450,-475,10,45);                                // east, door y -515..-475 into the lobby
+O('wall',30,-440,60,10);O('window',90,-440,60,10);O('wall',150,-440,70,10);       // front (south), main doors x 220..270
+O('wall',270,-440,70,10);O('window',340,-440,60,10);O('wall',400,-440,60,10);
+O('wall',40,-530,75,10);O('wall',155,-530,170,10);O('wall',365,-530,85,10);       // corridor wall, doors x 115..155 (office) and 325..365 (server room)
+O('wall',160,-610,10,80);                                                         // office | server room
+O('rack',180,-603,80,12);O('rack',180,-562,80,12);O('rack',362,-603,78,12);O('rack',362,-562,78,12);   // server racks
+const CORE=objs[objs.push({kind:'core',x:295,y:-592,w:36,h:30,full:false})-1];   // the server core: plant the charge here
+O('desk',60,-592,44,16);O('desk',60,-558,44,16);O('desk',196,-492,90,16);O('crate',80,-482,20,20);O('rack',380,-508,50,12);
+const DC_IN={x0:40,x1:450,y0:-610,y1:-440};
+// the container wall across the approach, two openings (x 120..200, 330..410), each covered by a machine-gun nest just behind it
+box(30,-390,90,26,3,2);box(200,-390,70,26,5);box(270,-390,60,26,6,2);box(410,-390,60,26,1);box(470,-390,60,26,7,2);
+const DC_NESTS=[{x:145,y:-410},{x:355,y:-410}];
+for(const n of DC_NESTS){O('sandbag',n.x-20,n.y+12,40,10);O('sandbag',n.x-20,n.y-10,10,22);O('sandbag',n.x+10,n.y-10,10,22);}
+O('car',220,-330,40,22);O('barrier',60,-320,52,12);O('barrier',420,-325,52,12);
+const DC_OUT={x0:20,x1:540,y0:-432,y1:-300};
+
+/* ---------- objective 5 (to come): the fortress gate behind its moat (north-east) ---------- */
+const FORT={cx:850,cy:-1000,r0:380,r1:440},BRIDGE={x:815,y:FORT.cy+FORT.r1,w:70,len:74},PANEL={x:930,y:-548};
 O('pit',FORT.cx-FORT.r1,FORT.cy-FORT.r1,FORT.r1*2,FORT.r1*2,{disk:{cx:FORT.cx,cy:FORT.cy,r:FORT.r1}});
 O('fortwall',FORT.cx-FORT.r0,FORT.cy-FORT.r0,FORT.r0*2,FORT.r0*2,{disk:{cx:FORT.cx,cy:FORT.cy,r:FORT.r0}});
-O('gatehouse',1020,-945,160,50);O('gtower',982,-938,36,36);O('gtower',1182,-938,36,36);
+O('gatehouse',780,-656,140,46);O('gtower',742,-650,34,34);O('gtower',924,-650,34,34);
 O('bridge',BRIDGE.x,BRIDGE.y-8,BRIDGE.w,8);O('pylon',BRIDGE.x-14,BRIDGE.y-11,10,10);O('pylon',BRIDGE.x+BRIDGE.w+4,BRIDGE.y-11,10,10);
 O('panel',PANEL.x-6,PANEL.y-4,12,8);
-// decoration that doesn't block anything: the boom barrier arm across the main road
-const decor=[{kind:'boom',x:MAIN.x0+2,y:CKPT.y,len:MAIN.x1-MAIN.x0-4,dir:'x'},
-  {kind:'wire',x0:70,x1:300,y:-748},{kind:'wire',x0:385,x1:720,y:-748},   // razor wire across the office forecourt, a gap for the road
-  {kind:'flood',x:110,y:-902},{kind:'flood',x:540,y:-902},{kind:'flood',x:745,y:-860}];
+// decoration that doesn't block anything
+const decor=[{kind:'wire',x0:20,x1:110,y:-292},{kind:'wire',x0:190,x1:330,y:-292},{kind:'wire',x0:400,x1:540,y:-292},{kind:'flood',x:70,y:-436},{kind:'flood',x:420,y:-436}];
+// paths drawn on the ground (from the bridge north to the depot, the data center and the fortress)
+const PATHS=[[{x:476,y:140},{x:476,y:40},{x:640,y:-120},{x:700,y:-180}],[{x:476,y:40},{x:420,y:-200},{x:245,y:-300},{x:245,y:-432}],[{x:640,y:-120},{x:760,y:-360},{x:850,y:-500}]];
 
 function rectDist(x,y,o){if(o.disk)return Math.max(0,Math.hypot(x-o.disk.cx,y-o.disk.cy)-o.disk.r);const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
 function segHitsRect(x1,y1,x2,y2,o,pad){
@@ -145,7 +130,7 @@ function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
-  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12}[o.kind]||0;
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9}[o.kind]||0;
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;
