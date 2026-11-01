@@ -74,6 +74,7 @@ function statusText(u){
   if(u.inBoat)return['In the boat',''];
   if(u.sup>0.65)return['Pinned','pin'];
   if(u.supT)return['Suppressing',''];
+  if(u.vaultK)return['Vaulting',''];
   if(u.path.length)return[u.gait==='sneak'?'Sneaking':'Running',''];
   if(contact)return[peekOf(u)?'Peeking':u.covered?'In cover':'Exposed',''];
   return['Ready',''];

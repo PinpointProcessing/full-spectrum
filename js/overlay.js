@@ -11,6 +11,18 @@ function gPath(x,y,r,a0=0,a1=TAU,wedge=false){
   for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n,[p,q]=toS(x+Math.cos(a)*r,y+Math.sin(a)*r);if(i===0&&!wedge)ox.moveTo(p,q);else ox.lineTo(p,q);}
   if(wedge)ox.closePath();
 }
+// a vault on a route: a little arc over the window with an arrowhead, so you can see he'll climb through
+function vaultMark(a,b,col,alpha){
+  const w=b.vault,o=w.o,m=w.vert?{x:w.c,y:a.y+(b.y-a.y)*(w.c-a.x)/((b.x-a.x)||1)}:{x:a.x+(b.x-a.x)*(w.c-a.y)/((b.y-a.y)||1),y:w.c};
+  const ux=w.vert?Math.sign(b.x-a.x)||1:0,uy=w.vert?0:Math.sign(b.y-a.y)||1;
+  const[p0,q0]=toS(m.x-ux*12,m.y-uy*12,1),[p1,q1]=toS(m.x+ux*12,m.y+uy*12,1),[pc,qc]=toS(m.x,m.y,30);
+  ox.save();ox.globalAlpha=alpha;ox.strokeStyle=col;ox.lineWidth=2;ox.lineCap='round';ox.setLineDash([]);
+  ox.beginPath();ox.moveTo(p0,q0);ox.quadraticCurveTo(pc,qc,p1,q1);ox.stroke();
+  const ang=Math.atan2(q1-(qc+q1)/2,p1-(pc+p1)/2);   // arrowhead along the curve's end
+  ox.beginPath();ox.moveTo(p1,q1);ox.lineTo(p1-Math.cos(ang-.5)*6,q1-Math.sin(ang-.5)*6);ox.moveTo(p1,q1);ox.lineTo(p1-Math.cos(ang+.5)*6,q1-Math.sin(ang+.5)*6);ox.stroke();
+  ox.restore();
+}
+function vaultMarks(u,path,col,alpha){let a={x:u.x,y:u.y};for(const p of path){if(p.vault)vaultMark(a,p,col,alpha);a=p;}}
 // screen point under world (x,y), r world units lower on screen whichever way the camera faces
 function below(x,y,r){const[a,b]=toS(x,y),[c,d]=toS(x+r,y);return[a,b+hyp(c-a,d-b)];}
 function bar(x,y,w,frac,col){ox.fillStyle='rgba(0,0,0,.7)';ox.fillRect(x-1,y-1,w+2,5);ox.fillStyle=col;ox.fillRect(x,y,w*clamp(frac,0,1),3);}
@@ -49,14 +61,18 @@ function drawOverlay(rdt,now){
     ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of u.path){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}ox.stroke();
     ox.setLineDash([]);
     const d=u.path[u.path.length-1];gPath(d.x,d.y,5);ox.stroke();ox.globalAlpha=1;
+    vaultMarks(u,u.path,teamCol(u),isSel?.95:.5);
   }
   // preview ghosts
   if(preview){
     for(const a of preview.as){
-      const[ux,uy]=toS(a.u.x,a.u.y),[gx,gy]=toS(a.x,a.y),col=a.cov?C.good:C.bad;
-      ox.strokeStyle=teamCol(a.u);ox.globalAlpha=.5;ox.setLineDash([3,4]);ox.lineWidth=1.2;ox.beginPath();ox.moveTo(ux,uy);ox.lineTo(gx,gy);ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;
+      const[ux,uy]=toS(a.u.x,a.u.y),col=a.cov?C.good:C.bad;
+      ox.strokeStyle=teamCol(a.u);ox.globalAlpha=.5;ox.setLineDash([3,4]);ox.lineWidth=1.2;ox.beginPath();ox.moveTo(ux,uy);
+      for(const p of a.path||[{x:a.x,y:a.y}]){const[px,py]=toS(p.x,p.y);ox.lineTo(px,py);}   // the way he'll actually go (round by a window, say)
+      ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;
       gPath(a.x,a.y,8);ox.fillStyle=a.cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=col;ox.lineWidth=2;ox.stroke();
       const[lx,ly]=toS(a.x,a.y,18);label(a.u.id,lx,ly,teamCol(a.u),9,700);
+      vaultMarks(a.u,a.path,'#eef2f5',.9);   // he'll go through a window to get there
     }
     if(!preview.veh){   // a drive order draws its own ghost (vehicle.js)
       gPath(preview.x,preview.y,15+pulse*3);ox.strokeStyle='rgba(235,240,245,.9)';ox.lineWidth=1.6;ox.stroke();

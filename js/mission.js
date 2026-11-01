@@ -73,7 +73,7 @@ function missionTick(dt){
     if(e.dead||e.alerted||!e.route||e.path.length)continue;
     if(!e.waitT){e.waitT=simT+2.5;continue;}
     if(simT<e.waitT)continue;
-    e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y);if(path)e.path=path;e.waitT=0;
+    e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
   }
   if(obj===1&&groups[1]&&groups[1].every(e=>e.dead))finishObjective('Bridge taken. Medical and supply boxes at its south end: rest up before you push on.',[{k:'med',x:376,y:150,w:50,h:40},{k:'sup',x:526,y:150,w:50,h:40}],'br',2);
   else if(obj===2&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length)finishObjective('Fuel depot destroyed. Medical and supply boxes south of it.',[{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}],'dep',3,'Fuel depot destroyed');

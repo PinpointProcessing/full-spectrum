@@ -129,7 +129,7 @@ function routeFromTrail(u,trail){
     const k0=Math.max(0,pts.length-12),shared=len(pts.slice(0,k0));
     let best=null,bl=1e9;
     for(let k=pts.length;k>=k0;k--){
-      const head=pts.slice(0,k),from=k?head[k-1]:start,br=findPath(from.x,from.y,p.x,p.y);if(!br)continue;
+      const head=pts.slice(0,k),from=k?head[k-1]:start,br=findPath(from.x,from.y,p.x,p.y,TRAIL);if(!br)continue;
       const r=head.concat(br),l=(len(r)-shared)*(k===pts.length?0.85:1);if(l<bl){bl=l;best=r;}   // keep the drawn line unless cutting it saves 15% here
     }
     if(!best)continue;
@@ -148,7 +148,7 @@ function routeFromTrail(u,trail){
   if(snap){
     const prev=pts.length>1?pts[pts.length-2]:{x:u.x,y:u.y};
     if(clearLine(prev.x,prev.y,snap.x,snap.y))pts[pts.length-1]={x:snap.x,y:snap.y};
-    else{const br=findPath(end.x,end.y,snap.x,snap.y);if(br)pts.push(...br);}
+    else{const br=findPath(end.x,end.y,snap.x,snap.y,TRAIL);if(br)pts.push(...br);}
     end=pts[pts.length-1];
   }
   return{u,path:pts,x:end.x,y:end.y,cov:isCovered(end,th)};
@@ -348,7 +348,7 @@ function enemyThink(e){
     if(sc>bs){bs=sc;best=c;}
   }
   if(best&&hyp(best.x-e.x,best.y-e.y)>6){
-    const p=findPath(e.x,e.y,best.x,best.y);
+    const p=findPath(e.x,e.y,best.x,best.y,FOOT);
     if(p){e.path=p;e.moveCool=simT+5;e.exposeT=0;if(hurt)e.fell=true;if(e.vis)callout(e,hurt?'Falling back':'Shifting',C.bad);}
   }else e.moveCool=simT+2;
 }
@@ -378,11 +378,15 @@ function updateUnit(u,dt){
   if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
   if(u.side==='P'){if(u.sup>0.65&&!u.saidPinned&&alive(u)){u.saidPinned=true;say(u,'pinned');}else if(u.sup<0.4)u.saidPinned=false;}
+  // vaulting through a window (pathfinding.js): slow over the sill, a hop up and down, no shooting until he's through
+  const vw=u.path.length&&u.path[0].vault,vd=vw?Math.abs((vw.vert?u.x:u.y)-vw.c):99;
+  u.vaultK=vw&&vd<VAULT_HALF&&!u.downed?1-(vd/VAULT_HALF)**2:0;
+  if(u.side==='P'&&!u.inVeh&&!u.inBoat){const e0=u.elev||0;u.elev=e0+(VAULT_H*u.vaultK-e0)*Math.min(1,dt*16);}
   if(u.downed)return;
   if(u.seat==='driver')return;   // the driver drives; riders and the gunner fight from the jeep
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
-    const sz=slowAt(u.x,u.y),sp=(u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
+    const sz=slowAt(u.x,u.y),sp=(vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
       (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the culvert and the broken rail bridge are slow going
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
     if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
@@ -393,7 +397,7 @@ function updateUnit(u,dt){
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);
   if(u.rpg&&u.alerted&&u.aimAt)rpgThink(u);   // mid-aim: fire when ready
-  if(u.cool<=0){
+  if(u.cool<=0&&!u.vaultK){
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank

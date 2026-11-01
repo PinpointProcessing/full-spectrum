@@ -75,7 +75,7 @@ function assaultThink(e){
     const st=protStats(c,th),sc=st.prot/th.length*2+st.see*0.6+(d0-dt)/40-d/120;
     if(sc>bs){bs=sc;best=c;}
   }
-  const path=best&&findPath(e.x,e.y,best.x,best.y);
+  const path=best&&findPath(e.x,e.y,best.x,best.y,FOOT);
   if(path){e.path=path;e.moveCool=simT+3+Math.random()*2;if(e.vis)callout(e,'Moving!',C.bad);}
   else e.moveCool=simT+1.5;
 }

@@ -235,7 +235,6 @@ function buildWorld(){
   const wallMat=texMat(corrTex,1,1,{color:0x59616a,roughness:.65,metalness:.35});
   const concrete=new T.MeshStandardMaterial({color:0x8d8e8a,roughness:.95});
   const darkMetal=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
-  const glass=new T.MeshStandardMaterial({color:0x9fc4dd,transparent:true,opacity:.16,roughness:.1,metalness:.2,depthWrite:false});
   const bagGeo=new T.SphereGeometry(1,10,6),bagList=[];
 
   for(const o of objs){
@@ -256,7 +255,12 @@ function buildWorld(){
     }else if(o.kind==='window'){
       addMesh(new T.BoxGeometry(len,9,th),concrete,cx,4.5,cz,ry);
       addMesh(new T.BoxGeometry(len,5,th),wallMat,cx,21.5,cz,ry);
-      const gl=new T.Mesh(new T.BoxGeometry(len,10,1),glass);gl.position.set(cx,14,cz);gl.rotation.y=ry;scene.add(gl);
+      // the glass is broken out (they get shot and climbed through): a few jagged bits left in the frame
+      const shardM=new T.MeshStandardMaterial({color:0x9fc4dd,transparent:true,opacity:.32,roughness:.1,metalness:.2,depthWrite:false,side:T.DoubleSide}),rnd=rng(o.x*7+o.y);
+      for(let k=0;k<Math.round(len/7);k++){
+        const along=-len/2+3+rnd()*(len-6),top=rnd()<.5,hh=2+rnd()*3.2,sh=new T.Mesh(new T.ConeGeometry(1.4+rnd()*1.4,hh,3),shardM);
+        sh.scale.z=.18;sh.rotation.z=top?Math.PI:0;sh.position.set(hz?cx+along:cx,top?19-hh/2:9+hh/2,hz?cz:cz+along);sh.rotation.y=ry;scene.add(sh);
+      }
     }else if(o.kind==='crate'){
       const hh=o.w*o.h>=400?14:11;
       addMesh(new T.BoxGeometry(o.w,hh,o.h),texMat(woodTex,1,1,{color:0x9a7650,roughness:.9}),cx,hh/2,cz);
@@ -508,11 +512,12 @@ function syncUnits(t){
     m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
     m.g.visible=!u.gone&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||!!u.gunner);   // the jeep gunner is always in plain view; riders sit visible, the driver is hidden
     const lying=u.downed||u.dead;
-    m.pose.rotation.z+=((lying?Math.PI/2:0)-m.pose.rotation.z)*.2;
+    const vk=lying?0:u.vaultK||0;   // vaulting a window: leaning forward over the sill, tucked
+    m.pose.rotation.z+=((lying?Math.PI/2:-.55*vk)-m.pose.rotation.z)*.2;
     const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
-    m.pose.position.y=lying?2.6:(u.path.length?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
+    m.pose.position.y=lying?2.6:(u.path.length&&!vk?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
     const crouch=!lying&&!u.gunner&&(u.inVeh||u.inBoat?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
-    m.pose.scale.y+=((crouch?.7:sneak?.8:1)-m.pose.scale.y)*.15;
+    m.pose.scale.y+=((crouch?.7:vk?.78:sneak?.8:1)-m.pose.scale.y)*.15;
     m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
     if(m.spot)m.spot.intensity=lying?0:2.6;
   }
