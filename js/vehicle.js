@@ -45,20 +45,20 @@ function seatIn(u,j){
 }
 // force: everyone in list gets out (bailing out, or the gunner told to on his own). Otherwise, while the fight is on,
 // the gunner stays on the gun to cover the others and climbs down once it's been quiet for FIGHT_QUIET s.
-function dismount(list,force){
+// Bryan: Dismount empties the whole jeep, gunner included. They jump out on the side away from the enemy where they can,
+// using the jeep (now parked, half cover) as cover.
+function dismount(list){
   const j=list.length&&list[0].inVeh;if(!j)return[];
-  if(!force&&list.length>1&&simT-(j.lastFight??-99)<FIGHT_QUIET){
-    const g=list.find(u=>u.seat==='gunner');
-    if(g){list=list.filter(u=>u!==g);j.gunnerStays=true;callout(g,'Covering you!',C.warn);}
-  }
+  list=crewOf(j);j.gunnerStays=false;
   j.path=[];j.moving=false;j.engage=null;parkObstacle(j);
-  const taken=players.filter(p=>!p.inVeh&&!p.dead).map(destOf);
+  const taken=players.filter(p=>!p.inVeh&&!p.dead).map(destOf),th=threats(),spots=[];
+  for(const r of[22,30,38])for(let k=0;k<16;k++){const a=k/16*TAU,x=j.x+Math.cos(a)*r,y=j.y+Math.sin(a)*r;if(isFree(x,y))spots.push({x,y,r});}
+  const tc={x:th.reduce((a,p)=>a+p.x,0)/th.length,y:th.reduce((a,p)=>a+p.y,0)/th.length};
+  spots.forEach(s=>s.sc=(isCovered(s,th)?3:0)+hyp(s.x-tc.x,s.y-tc.y)/60-s.r/20);spots.sort((a,b)=>b.sc-a.sc);
   for(const u of list){
-    const s=openSpot(j.x,j.y,taken)||{x:j.x,y:j.y+30};taken.push(s);
+    const s=spots.find(q=>!taken.some(t=>hyp(t.x-q.x,t.y-q.y)<14))||openSpot(j.x,j.y,taken)||{x:j.x,y:j.y+30};taken.push(s);
     Object.assign(u,{inVeh:null,seat:null,slot:null,gunner:false,elev:0,x:s.x,y:s.y,path:[],focus:null,lastOrder:simT});
   }
-  const c=crewOf(j);   // whoever's left in the back takes the wheel (a gunner left alone stays on the gun: no driver, it can't move)
-  if(!seatOf(j,'driver')){const p=c.find(o=>o.seat==='pass');if(p){p.seat='driver';p.slot=null;p.elev=0;}}
   return list;   // who actually got out
 }
 

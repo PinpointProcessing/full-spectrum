@@ -158,6 +158,9 @@ function addHQ2Zones(){HQ_ZONES.push({k:'med',x:874,y:-450,w:72,h:64,col:'255,74
 /* ---------- drawn on the overlay ---------- */
 function drawDepot(rdt,now){
   drawRoad(rdt,now);
+  // the boom gate swings up once the checkpoint's garrison is down, and is down again after a restart
+  const up=wavePhase('depotdone','hq2')||(wave.phase==='depot'&&!!road);
+  for(const d of decor)if(d.arm){const want=up?1.35:0,k=d.dir==='x'?'z':'x';d.arm.rotation[k]+=(want-d.arm.rotation[k])*Math.min(1,rdt*3);}
   const pulse=(Math.sin(now*9)+1)/2;
   // RPG gunners taking aim: a red reticle where they're aiming (always shown, so you can react) and their aim line if seen
   for(const e of garrison){

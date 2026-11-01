@@ -78,7 +78,7 @@ function bindHud(){
   const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));select(on?[]:list);preview=null;mode=null;hud();};
   for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p))));
   $('#allBtn').addEventListener('click',()=>tabSelect(players.filter(alive)));
-  const gaitOrDismount=()=>{if(state!=='play')return;const c=selCrew();if(c.length){const out=dismount(c,c.length===1);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
+  const gaitOrDismount=()=>{if(state!=='play')return;const c=selCrew();if(c.length){const out=dismount(c);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
   $('#gaitBtn').addEventListener('click',gaitOrDismount);
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});

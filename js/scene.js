@@ -56,7 +56,7 @@ function tapTarget(sx,sy){
   const org=[_o.x,_o.y,_o.z],dir=[_d.x,_d.y,_d.z];
   let bt=_d.y<-1e-4?-_o.y/_d.y:1e9,best=null;
   for(const o of objs){
-    const h=objHeight(o);if(!h)continue;
+    const h=o.kind==='tower'?0:objHeight(o);if(!h)continue;   // the watchtower stands on open legs: taps go through to the road behind it
     const mn=[o.x,0,o.y],mx=[o.x+o.w,h,o.y+o.h];
     let t0=0,t1=bt,ax=-1,sg=0,miss=false;
     for(let k=0;k<3;k++){
@@ -305,7 +305,8 @@ function buildWorld(){
     const ax=d.dir==='x';   // the arm runs along x (across a north-south road) or along y
     addMesh(new T.BoxGeometry(3,11,3),darkMetal,ax?d.x-2:d.x,5.5,ax?d.y:d.y-2);
     addMesh(new T.BoxGeometry(ax?5:4,4,ax?4:5),darkMetal,ax?d.x-5:d.x,9,ax?d.y:d.y-5);
-    addMesh(new T.BoxGeometry(ax?d.len:1.4,1.4,ax?1.4:d.len),texMat(hazTex,d.len/12,1,{color:0xffd0c8,roughness:.6}),ax?d.x+d.len/2:d.x,9,ax?d.y:d.y+d.len/2);
+    const pv=new T.Group();pv.position.set(d.x,9,d.y);scene.add(pv);d.arm=pv;   // the arm swings up on this pivot once the checkpoint is taken (depot.js)
+    const arm=new T.Mesh(new T.BoxGeometry(ax?d.len:1.4,1.4,ax?1.4:d.len),texMat(hazTex,d.len/12,1,{color:0xffd0c8,roughness:.6}));arm.position.set(ax?d.len/2:0,0,ax?0:d.len/2);arm.castShadow=true;pv.add(arm);
   }
 
   // lights

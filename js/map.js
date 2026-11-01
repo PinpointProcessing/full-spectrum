@@ -109,7 +109,7 @@ function coverAt(tx,ty,sx,sy){
   }
   return best;
 }
-function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(const o of objs)if(rectDist(x,y,o)<pad)return false;return true;}
+function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(const o of objs)if(rectDist(x,y,o)<(o.kind==='jeep'&&pad<10?Math.min(pad,4):pad))return false;return true;}   // a parked jeep doesn't seal a gap: you can squeeze past it
 // How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
