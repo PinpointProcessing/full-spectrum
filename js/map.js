@@ -2,10 +2,10 @@
 /* Map data (the yard and warehouse, and the shipping depot with the checkpoint to the east) plus geometry queries:
    line of sight, cover, free space. */
 const objs=[];
-const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortcore','bridge','pylon']);   // armor: the enemy tank once it's in position
+const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortwall','gatehouse','gtower','bridge','pylon']);   // armor: the enemy tank once it's in position
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
 // outer fence (open at the dock in the south-west corner, x 0-175, where the water is)
-O('fence',0,TOP,W,8);O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,TOP,8,H-TOP);
+O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,-850,8,H+850);   // no north fence: the office and the fortress fill the north edge; the east fence stops at the moat
 O('fence',0,0,YARD_W,8);   // the yard's north fence
 // the yard's east fence, with a gate at its north end (y 22-92). Reinforcements smash through it in their gun jeep (waves.js);
 // beyond it a road curves onto the depot's main road. It stays an obstacle (the area is closed) until the depot opens (hq.js).
@@ -82,28 +82,37 @@ O('tank',1120,-412,44,44,{col:'#c9c6bc'});O('tank',1180,-412,44,44,{col:'#b9b4a6
 O('barrel',1135,-350,16,16,{col:'#8a2f22'});O('barrel',1153,-348,16,16,{col:'#8a2f22'});O('crate',1185,-346,26,20);
 O('crate',985,-182,26,26);O('pallet',1095,-110,30,20);O('barrel',1100,-30,16,16,{col:'#3a5160'});
 /* ---------- north of the fork (Bryan) ----------
-   Left road: to the office / data building. Two machine-gun nests guard its front, containers stand front-left and a
-   long garage on the right of the entrance (the inside comes later: the building is solid for now, doors drawn on).
-   Right road: to a raised drawbridge. Across a bottomless moat (a ring-shaped pit) stands a round metal fort; a control
-   panel right of the bridge says the power is off. */
-const LEFT_RD={a:{x:1050,y:-500},c:{x:1000,y:-880},b:{x:620,y:-905},hw:25},RIGHT_RD={a:{x:1050,y:-500},c:{x:1090,y:-620},b:{x:1090,y:-992},hw:25};
+   Two big bases whose entrances sit on this map's north edge; the rest of each runs off it (their insides will be
+   separate maps). Left road: the office / data complex, a huge building with a taller central block, and a busy
+   fortified entrance: two machine-gun nests, riflemen, zig-zag concrete barriers, sandbag walls, razor wire, a truck, a
+   burnt-out car, floodlights, containers front-left and a long garage on the right. Right road: a giant round fortress
+   behind a bottomless moat; you see a stretch of its wall, the gatehouse with two great towers, and the raised
+   drawbridge. A control panel right of the bridge says the power is off. */
+const LEFT_RD={a:{x:1050,y:-500},c:{x:760,y:-700},b:{x:340,y:-760},hw:28},RIGHT_RD={a:{x:1050,y:-500},c:{x:1100,y:-600},b:{x:1100,y:-830},hw:35};
 function quadPt(q,t){const u=1-t;return{x:u*u*q.a.x+2*u*t*q.c.x+t*t*q.b.x,y:u*u*q.a.y+2*u*t*q.c.y+t*t*q.b.y};}
-const PLAZA={x:440,y:-1010,w:380,h:130},OFFICE={x:420,y:-1290,w:360,h:280,door:{x:560,w:80}};
-const FORT={cx:1090,cy:-1170,r0:115,r1:178},BRIDGE={x:1065,y:FORT.cy+FORT.r1,w:50,len:66},PANEL={x:1145,y:-972};
-const NESTS=[{x:530,y:-952},{x:650,y:-952}];
+const OFFICE={x:60,y:-1300,w:620,h:400,door:{x:310,w:100},tower:{x:220,y:-1300,w:280,h:300}},PLAZA={x:60,y:-900,w:700,h:140};
+const OFFICE_ZONE={x0:60,x1:760,y0:-900,y1:-740};   // where the entrance guards shift between cover once alerted
+const FORT={cx:1100,cy:-1500,r0:600,r1:670},BRIDGE={x:1065,y:FORT.cy+FORT.r1,w:70,len:74},PANEL={x:1182,y:-812};
+const NESTS=[{x:290,y:-845},{x:430,y:-845}],GUARDS=[{x:230,y:-862},{x:470,y:-864},{x:175,y:-828},{x:525,y:-824}];
 O('office',OFFICE.x,OFFICE.y,OFFICE.w,OFFICE.h);
-O('garage',820,-1190,70,270);                                     // long garage right of the entrance, roll-up doors facing the plaza
+O('garage',560,-890,170,48);                                              // long garage right of the entrance, roll-up doors facing south
 for(const n of NESTS){O('sandbag',n.x-20,n.y+12,40,10);O('sandbag',n.x-20,n.y-10,10,22);O('sandbag',n.x+10,n.y-10,10,22);}   // MG nests facing south
-box(330,-985,110,34,3,2);box(340,-935,34,100,5);box(400,-900,110,34,6,2);   // containers front-left
-O('crate',470,-1000,26,22);O('barrel',790,-990,16,16,{col:'#3a5160'});O('barrel',790,-1010,16,16,{col:'#6b3a28'});
-// the moat: everything within FORT.r1 of the centre is a pit you can't enter (the fort's island is cut off with it); a
-// square inside the fort wall blocks sight; the raised drawbridge stands at the near edge between two pylons
+box(70,-890,34,100,3,2);box(112,-880,110,34,5,2);   // containers front-left
+O('barrier',230,-790,60,12);O('barrier',350,-776,60,12);O('barrier',470,-790,60,12);   // zig-zag of concrete barriers in front of the doors
+O('sandbag',150,-815,50,10);O('sandbag',500,-810,50,10);
+O('truck',600,-830,46,90,{col:'#40463a'});O('car',250,-818,40,22);
+O('crate',380,-893,26,20);O('barrel',540,-880,16,16,{col:'#6b3a28'});O('barrel',236,-892,16,16,{col:'#3a5160'});O('pallet',690,-800,30,20);
+// the fortress: the moat (a ring-shaped pit; one disc object covers it and everything inside, so nobody can cross),
+// the wall (a disc that blocks sight), the gatehouse and its towers across the moat, and the raised drawbridge with its pylons
 O('pit',FORT.cx-FORT.r1,FORT.cy-FORT.r1,FORT.r1*2,FORT.r1*2,{disk:{cx:FORT.cx,cy:FORT.cy,r:FORT.r1}});
-O('fortcore',FORT.cx-80,FORT.cy-80,160,160);
-O('bridge',BRIDGE.x,BRIDGE.y-8,BRIDGE.w,8);O('pylon',BRIDGE.x-12,BRIDGE.y-10,9,9);O('pylon',BRIDGE.x+BRIDGE.w+3,BRIDGE.y-10,9,9);
+O('fortwall',FORT.cx-FORT.r0,FORT.cy-FORT.r0,FORT.r0*2,FORT.r0*2,{disk:{cx:FORT.cx,cy:FORT.cy,r:FORT.r0}});
+O('gatehouse',1020,-945,160,50);O('gtower',982,-938,36,36);O('gtower',1182,-938,36,36);
+O('bridge',BRIDGE.x,BRIDGE.y-8,BRIDGE.w,8);O('pylon',BRIDGE.x-14,BRIDGE.y-11,10,10);O('pylon',BRIDGE.x+BRIDGE.w+4,BRIDGE.y-11,10,10);
 O('panel',PANEL.x-6,PANEL.y-4,12,8);
 // decoration that doesn't block anything: the boom barrier arm across the main road
-const decor=[{kind:'boom',x:MAIN.x0+2,y:CKPT.y,len:MAIN.x1-MAIN.x0-4,dir:'x'}];
+const decor=[{kind:'boom',x:MAIN.x0+2,y:CKPT.y,len:MAIN.x1-MAIN.x0-4,dir:'x'},
+  {kind:'wire',x0:70,x1:300,y:-748},{kind:'wire',x0:385,x1:720,y:-748},   // razor wire across the office forecourt, a gap for the road
+  {kind:'flood',x:110,y:-902},{kind:'flood',x:540,y:-902},{kind:'flood',x:745,y:-860}];
 
 function rectDist(x,y,o){if(o.disk)return Math.max(0,Math.hypot(x-o.disk.cx,y-o.disk.cy)-o.disk.r);const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
 function segHitsRect(x1,y1,x2,y2,o,pad){
@@ -136,7 +145,7 @@ function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
-  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:60,garage:26,bridge:66,pylon:70,panel:12}[o.kind]||0;
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12}[o.kind]||0;
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;

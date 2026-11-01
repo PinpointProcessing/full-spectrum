@@ -62,7 +62,7 @@ function addCoverPts(o){
   for(let i=0;i<nx;i++){const x=o.x+(i+.5)*o.w/nx;add(x,o.y-off);add(x,o.y+o.h+off);}
   for(let i=0;i<ny;i++){const y=o.y+(i+.5)*o.h/ny;add(o.x-off,y);add(o.x+o.w+off,y);}
 }
-for(const o of objs)if(o.kind!=='fence'&&o.kind!=='water'&&o.kind!=='pit'&&o.kind!=='fortcore')addCoverPts(o);
+for(const o of objs)if(o.kind!=='fence'&&o.kind!=='water'&&o.kind!=='pit'&&o.kind!=='fortwall')addCoverPts(o);
 
 /* ---------- objects placed mid-battle (the parked jeep) ---------- */
 function regrid(o){   // re-mark the nav cells around o

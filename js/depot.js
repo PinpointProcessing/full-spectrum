@@ -391,14 +391,15 @@ function spawnNests(){
     for(const a of[0,2.1,4.2]){const leg=new T.Mesh(new T.CylinderGeometry(.35,.35,9,4),dm);leg.position.set(8+Math.cos(a)*2,4.5,Math.sin(a)*2);leg.rotation.z=Math.cos(a)*.3;leg.rotation.x=Math.sin(a)*.3;mg.add(leg);}
     u.m.pose.add(mg);return u;
   });
+  GUARDS.forEach((g,i)=>{const u=mk('E','E','E'+(52+i),'Hostile',g.x,g.y,Math.PI/2);Object.assign(u,{zone:OFFICE_ZONE,jumpy:true,nest:true});makeSoldier(u);nests.push(u);});   // riflemen in cover round the entrance
   enemies=units.filter(u=>u.side==='E');
 }
 // every tick at the second HQ
 function northTick(){
   if(nests.some(e=>!e.dead&&!e.alerted)&&players.some(p=>alive(p)&&nests.some(e=>!e.dead&&hyp(p.x-e.x,p.y-e.y)<NEST_WAKE&&los(e.x,e.y,p.x,p.y)))){
-    alertAll('The machine-gun nests open up!');for(const e of nests)if(!e.dead){e.alerted=true;e.cool=Math.min(e.cool,.4);}
+    alertAll('The office entrance opens up!');for(const e of nests)if(!e.dead){e.alerted=true;e.cool=Math.min(e.cool,.4);}
   }
-  if(nests.length&&!nests.done&&nests.every(e=>e.dead)){nests.done=true;contact=false;bigText('All clear!','clear');banner('Nests down. The way into the building is open (inside comes next).',4000);setStatus();}
+  if(nests.length&&!nests.done&&nests.every(e=>e.dead)){nests.done=true;contact=false;bigText('All clear!','clear');banner('Entrance cleared. The inside comes next (its own map).',4000);setStatus();}
   if(panelGo){
     const u=panelGo;
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
