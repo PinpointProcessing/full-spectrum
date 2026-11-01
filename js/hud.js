@@ -2,7 +2,7 @@
 /* DOM HUD: status chip, banner, squad rows, action buttons, keyboard, end screen. */
 let bannerTimer=0;
 function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
-const OBJ_HINT={1:'Next: take the bridge (north). The culvert and the rail bridge are other ways over.',2:'Next: destroy the fuel tanks (north-east): C4 on a soldier\'s card, or shoot them from a distance.',3:'Next: the data center (north-west). Get inside and blow the server core.',4:'Next: send a soldier to the drawbridge control panel (north-east).',5:'The drawbridge is down. The Headquarters comes next.'};
+const OBJ_HINT={1:'Next: take the bridge (north). The tunnel in the far west and the rail bridge are other ways over.',2:'Next: destroy the fuel tanks (north-east): C4 on a soldier\'s card, or shoot them from a distance.',3:'Next: the data center (north-west). Get inside and blow the server core.',4:'Next: send a soldier to the drawbridge control panel (north-east).',5:'The drawbridge is down. The Headquarters comes next.'};
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
@@ -45,8 +45,10 @@ function hud(){
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='charge')h='Tap a fuel tank or the server core. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
+  else if(secure.state==='move'&&!preview)h=`All hostiles down. Move a soldier into ${LOCS[obj].name} to take it.`;
+  else if(secure.state==='hold'&&!preview)h=`Taking ${LOCS[obj].name}: it's yours after ${QUIET_T} quiet seconds (no shooting).`;
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
-  else if(wave.phase==='hq'&&!preview&&!act.length)h=`${OBJ_HINT[obj]||''} Heal and restock in the red + and supply boxes.`;
+  else if(wave.phase==='hq'&&!preview&&!act.length)h=`${OBJ_HINT[Math.max(obj,objDone)]||''} Heal and restock in the red + and supply boxes.`;   // objDone: right after a location's taken, before the next objective starts
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
@@ -58,7 +60,11 @@ function hud(){
 // detection indicator, updated every frame
 let alertShown=-1;
 function alertMeter(){
-  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!e.dead));if(el.hidden)return;   // the countdown takes its place
+  // taking a location: the securing ring takes the detection ring's place (mission.js)
+  const sc=$('#secure'),securing=state==='play'&&!!secure.state;sc.hidden=!securing;
+  if(securing){sc.classList.toggle('move',secure.state==='move');$('#secureArc').setAttribute('stroke-dashoffset',(94.25*(1-secure.t/QUIET_T)).toFixed(2));
+    sc.querySelector('small').textContent=secure.state==='move'?'Move in':'Securing';sc.setAttribute('aria-label',secure.state==='move'?'Area clear: move in to take it':`Securing ${Math.round(secure.t/QUIET_T*100)}%`);}
+  const el=$('#alert');el.hidden=securing||state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!e.dead));if(el.hidden)return;   // the countdown takes its place
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);

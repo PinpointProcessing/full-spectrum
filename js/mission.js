@@ -9,10 +9,11 @@ const OBJECTIVES=['Take the warehouse','Take the bridge','Destroy the fuel tanks
 // indexes into OBJECTIVES: 0 warehouse, 1 bridge, 2 fuel tanks, 3 data center, 4 drawbridge (still objective 4 for the player), 5 HQ
 const RPG={aim:1.3,reload:8,speed:170,spread:[18,42],range:400,blast:40,dmg:85};
 const CHARGE={plant:3,fuse:8,away:130,coreAway:80};
-let rockets=[],tankFires=[],tankQueue=[],charges=[],obj=0,groups={},finished={},panelGo=null,bridgeDown=0;
+let rockets=[],tankFires=[],tankQueue=[],charges=[],obj=0,groups={},finished={},panelGo=null,bridgeDown=0,pendingSpawns=[];
 let mission={name:'yard',t0:0};
 function resetMission(){
-  rockets=[];tankFires=[];tankQueue=[];charges=[];obj=0;objDone=0;groups={};finished={};panelGo=null;mission={name:'yard',t0:0};
+  rockets=[];tankFires=[];tankQueue=[];charges=[];obj=0;objDone=0;groups={};finished={};panelGo=null;mission={name:'yard',t0:0};pendingSpawns=[];
+  secure={t:0,state:null,said:false,left:-1};lastNoiseT=-99;spotBannerT=-99;
   HQ_ZONES.length=0;
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
   CORE.done=false;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0x0a5a7a);
@@ -29,26 +30,95 @@ function mgGunner(id,x,y){
   for(const a of[0,2.1,4.2]){const leg=new T.Mesh(new T.CylinderGeometry(.35,.35,9,4),dm);leg.position.set(8+Math.cos(a)*2,4.5,Math.sin(a)*2);leg.rotation.z=Math.cos(a)*.3;leg.rotation.x=Math.sin(a)*.3;mg.add(leg);}
   u.m.pose.add(mg);return u;
 }
-function spawnGroup(n){
+// Each objective's defenders: [x,y,make] for each post. They take their posts when the objective starts, but never in front
+// of the squad (Bryan: no troops turning up in the area you've just taken): a post a soldier could see (within 360, the
+// range he'd spot a man at) or that's within 100 of one waits (pendingSpawns) until it isn't; after SPAWN_WAIT s the man
+// turns up out of sight nearby instead and walks to his post.
+function groupSpecs(n){
   const g=[];
-  if(n===1){   // the bridge: an MG nest at its north end, a sentry in the pillbox, riflemen behind sandbags
-    g.push(mgGunner('E20',476,36),hostile('E21',556,14,{name:'Sentry',post:true,elev:14}));
-    for(const[i,[x,y]]of[[422,30],[614,38],[372,12]].entries())g.push(hostile('E'+(22+i),x,y,{zone:BR_ZONE}));
-    for(const e of g)e.jumpy=false;   // calm, not on edge: a rest after the warehouse
+  if(n===1){   // the bridge: an MG nest at its north end, a sentry in the pillbox, riflemen behind sandbags; calm, not on edge
+    g.push([476,20,()=>mgGunner('E20',476,20)],[556,14,()=>hostile('E21',556,14,{name:'Sentry',post:true,elev:14}),true]);   // true: inside the pillbox, he never walks in
+    for(const[i,[x,y]]of[[422,30],[614,38],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE})]);
+    for(const q of g){const make0=q[2];q[2]=()=>{const u=make0();u.jumpy=false;return u;};}
   }else if(n===2){   // the container yard: men posted in its aisles and a two-man patrol walking them; then the depot's guards and its RPG gunner
-    for(const[i,[x,y]]of[[410,-140],[450,-150],[600,-110],[345,-140],[500,-150],[620,-120],[440,-250],[550,-240],[340,-230]].entries())g.push(hostile('E'+(60+i),x,y,{zone:YARD2_ZONE,ang:Math.random()*TAU}));   // behind the first row of containers, looking every which way
-    g.push(hostile('E70',345,-235,{name:'Patrol',zone:YARD2_ZONE,route:[{x:660,y:-235},{x:345,y:-235}],ri:0,waitT:0}),hostile('E71',510,-150,{name:'Patrol',zone:YARD2_ZONE,route:[{x:510,y:-262},{x:510,y:-150}],ri:0,waitT:0}));
-    for(const[i,[x,y]]of[[730,-110],[880,-130],[955,-235],[836,-216]].entries())g.push(hostile('E'+(33+i),x,y,{zone:DEP_ZONE}));
-    const r=hostile('E37',742,-150,{name:'RPG',zone:DEP_ZONE,rpg:true,cool:1});
-    const tube=new T.Mesh(new T.CylinderGeometry(1,1,12,8),new T.MeshStandardMaterial({color:0x3b4a2e,roughness:.8}));tube.rotation.z=Math.PI/2;tube.position.set(1,15,-2.5);r.m.pose.add(tube);g.push(r);
+    // behind the first row of containers, looking every which way; none in sight of the rest spot at the bridge's south end
+    for(const[i,[x,y]]of[[437,-136],[450,-150],[600,-110],[345,-140],[560,-105],[620,-120],[440,-250],[550,-240],[340,-230]].entries())g.push([x,y,()=>hostile('E'+(60+i),x,y,{zone:YARD2_ZONE,ang:Math.random()*TAU})]);
+    g.push([345,-235,()=>hostile('E70',345,-235,{name:'Patrol',zone:YARD2_ZONE,route:[{x:660,y:-235},{x:345,y:-235}],ri:0,waitT:0})],[515,-220,()=>hostile('E71',515,-220,{name:'Patrol',zone:YARD2_ZONE,route:[{x:515,y:-290},{x:515,y:-220}],ri:0,waitT:0})]);
+    for(const[i,[x,y]]of[[730,-110],[880,-130],[955,-235],[836,-216]].entries())g.push([x,y,()=>hostile('E'+(33+i),x,y,{zone:DEP_ZONE})]);
+    g.push([742,-150,()=>{const r=hostile('E37',742,-150,{name:'RPG',zone:DEP_ZONE,rpg:true,cool:1});
+      const tube=new T.Mesh(new T.CylinderGeometry(1,1,12,8),new T.MeshStandardMaterial({color:0x3b4a2e,roughness:.8}));tube.rotation.z=Math.PI/2;tube.position.set(1,15,-2.5);r.m.pose.add(tube);return r;}]);
   }else if(n===3){   // the data center: MG nests behind the container wall, riflemen outside, more inside
-    for(const[i,p]of DC_NESTS.entries())g.push(mgGunner('E'+(40+i),p.x,p.y));
-    for(const[i,[x,y]]of[[60,-412],[255,-412],[490,-412]].entries())g.push(hostile('E'+(42+i),x,y,{zone:DC_OUT}));
-    for(const[i,[x,y]]of[[180,-466],[330,-466],[132,-575],[340,-540],[420,-577]].entries())g.push(hostile('E'+(45+i),x,y,{zone:DC_IN}));
+    for(const[i,p]of DC_NESTS.entries())g.push([p.x,p.y,()=>mgGunner('E'+(40+i),p.x,p.y)]);
+    for(const[i,[x,y]]of[[60,-412],[255,-412],[490,-412]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT})]);
+    for(const[i,[x,y]]of[[180,-466],[330,-466],[132,-575],[340,-540],[420,-577]].entries())g.push([x,y,()=>hostile('E'+(45+i),x,y,{zone:DC_IN})]);
   }
-  groups[n]=g;enemies=units.filter(u=>u.side==='E');
+  return g;
 }
-const OBJ_INTRO={1:'Objective 2: take the bridge. The culvert in the west and the broken rail bridge in the east are other ways over.',
+const SPAWN_WAIT=12;let spawnTick=0;
+function spawnGroup(n){
+  groups[n]=[];
+  for(const[x,y,make,stay]of groupSpecs(n))pendingSpawns.push({n,x,y,make,stay,t0:simT});
+  spawnPending();
+}
+function postSeen(x,y){return players.some(p=>{if(!alive(p))return false;const d=hyp(p.x-x,p.y-y);return d<100||(d<360&&los(p.x,p.y,x,y));});}
+// somewhere out of the squad's sight (and not close to it) within reach of a post, to walk in from
+function hiddenNear(x,y){
+  let best=null,bd=1e9;
+  for(const c of coverPts){const d=hyp(c.x-x,c.y-y);if(d>220||d>=bd||postSeen(c.x,c.y)||players.some(p=>alive(p)&&hyp(p.x-c.x,p.y-c.y)<140))continue;bd=d;best=c;}
+  return best;
+}
+function spawnPending(){
+  let any=false;
+  for(let i=0;i<pendingSpawns.length;i++){
+    const s=pendingSpawns[i];let u=null;
+    if(!postSeen(s.x,s.y))u=s.make();
+    else if(!s.stay&&simT-s.t0>SPAWN_WAIT){   // still in view: he turns up out of sight and walks to his post (the pillbox sentry keeps waiting)
+      const h=hiddenNear(s.x,s.y),p=h&&findPath(h.x,h.y,s.x,s.y,FOOT);
+      if(p){u=s.make();u.x=h.x;u.y=h.y;u.path=p;}
+    }
+    if(!u)continue;
+    groups[s.n].push(u);pendingSpawns.splice(i--,1);any=true;
+  }
+  if(any)enemies=units.filter(u=>u.side==='E');
+}
+function groupDone(n){return !!groups[n]&&groups[n].every(e=>e.dead)&&!pendingSpawns.some(s=>s.n===n);}
+function groupLeft(n){return (groups[n]||[]).filter(e=>!e.dead).length+pendingSpawns.filter(s=>s.n===n).length;}
+
+/* ---------- taking a location (Bryan): the whole place, then a quiet spell ---------- */
+// The warehouse, the bridge and the fuel depot are only secured once their defenders are all down (the depot's tanks gone
+// too), a soldier is inside the area and nothing has fired or blown up for QUIET_T s. A ring at the top fills meanwhile.
+const QUIET_T=5;
+const LOCS={
+  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(e=>e.dead),left:()=>enemies.filter(e=>!e.dead).length},
+  1:{zone:{x0:330,x1:660,y0:-40,y1:70},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},
+  2:{zone:DEP_ZONE,name:'the fuel depot',done:()=>groupDone(2)&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length,left:()=>groupLeft(2)},
+};
+let secure={t:0,state:null,said:false,left:-1},lastNoiseT=-99;
+function inZone(p,z){return p.x>=z.x0&&p.x<=z.x1&&p.y>=z.y0&&p.y<=z.y1;}
+function tanksGone(){return objs.every(o=>o.kind!=='tank'||o.burst);}
+// on the objective pill: how many hostiles are left once it's down to the last few (or the tanks are gone), or that it's being taken
+function locNote(){
+  if(!LOCS[obj]||objDone>obj||state!=='play')return '';
+  if(secure.state==='hold')return ' · securing';
+  if(secure.state==='move')return ' · move in';
+  const n=secure.left;return n>0&&(n<=3||(obj===2&&tanksGone()))?` · ${n} left`:'';
+}
+// every tick while location n is the objective; true once it's taken
+function secureTick(n,dt){
+  const L=LOCS[n];if(!L)return false;
+  const left=L.left();if(left!==secure.left){secure.left=left;updateObjUI();}
+  const st=!L.done()?null:players.some(p=>alive(p)&&inZone(p,L.zone))?'hold':'move';
+  if(st!==secure.state){secure.state=st;updateObjUI();}
+  if(st!=='hold'){
+    secure.t=0;
+    if(st==='move'&&!secure.said){secure.said=true;banner(`Area clear. Move a soldier into ${L.name} to take it.`,3500);}
+    return false;
+  }
+  secure.t=Math.min(secure.t+dt,simT-lastNoiseT);   // the quiet spell restarts with every shot or blast
+  if(secure.t<QUIET_T)return false;
+  secure={t:0,state:null,said:false,left:-1};updateObjUI();return true;
+}
+const OBJ_INTRO={1:'Objective 2: take the bridge. The tunnel in the far west (out of sight) and the broken rail bridge in the east are other ways over.',
   2:'Objective 3: destroy the fuel tanks. Plant a charge (on a soldier\'s card) or shoot them from a safe distance.',
   3:'Objective 4: get inside the data center and blow the server core. Three ways in: the front, the west door, the east door.',
   4:'Now lower the drawbridge: send a soldier to the control panel.'};
@@ -60,23 +130,25 @@ function startObjective(n,quiet){
 }
 // a finished objective is a checkpoint and a rest (Bryan): "Location secured", heal/resupply boxes, a save; the next one's defenders
 // take their posts a few seconds later, unaware
-function finishObjective(msg,zones,stage,next,big='Location secured'){
+// (Bryan: no box tutorial after the first; the next objective's message waits until the crossed-off list has closed)
+function finishObjective(zones,stage,next,big='Location secured'){
   if(finished[next-1])return;finished[next-1]=true;objCompleted(next);   // once only, while the next one waits to start; crossed off the list
-  contact=false;bigText(big,'clear');banner(msg,3200);say(players.find(alive),'objective');
+  contact=false;bigText(big,'clear');say(players.find(alive),'objective');
   if(zones)addZones(zones);saveGame(stage);setStatus();
-  setTimeout(()=>{if(state==='play'&&obj===next-1)startObjective(next);},3000);
+  setTimeout(()=>{if(state==='play'&&obj===next-1)startObjective(next);},OBJ_LIST_T+200);
 }
 // every tick once the warehouse is taken (from hqTick)
 function missionTick(dt){
   chargeTick(dt);
+  if(pendingSpawns.length&&(spawnTick-=dt)<=0){spawnTick=.5;spawnPending();}   // twice a second is plenty
   for(const e of enemies){   // patrols walk their route and back, pausing at each end, until they're alerted
     if(e.dead||e.alerted||!e.route||e.path.length)continue;
     if(!e.waitT){e.waitT=simT+2.5;continue;}
     if(simT<e.waitT)continue;
     e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
   }
-  if(obj===1&&groups[1]&&groups[1].every(e=>e.dead))finishObjective('Bridge taken. Medical and supply boxes at its south end: rest up before you push on.',[{k:'med',x:376,y:150,w:50,h:40},{k:'sup',x:526,y:150,w:50,h:40}],'br',2);
-  else if(obj===2&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length)finishObjective('Fuel depot destroyed. Medical and supply boxes south of it.',[{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}],'dep',3,'Fuel depot destroyed');
+  if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective([{k:'med',x:376,y:150,w:50,h:40},{k:'sup',x:526,y:150,w:50,h:40}],'br',2);
+  else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective([{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}],'dep',3,'Fuel depot destroyed');
   else if(obj===3&&CORE.done){obj=4;bigText('Server core destroyed','clear');banner(OBJ_INTRO[4],4500);updateObjUI();setStatus();}
   if(panelGo){
     const u=panelGo;
@@ -86,7 +158,7 @@ function missionTick(dt){
       if(obj<4){banner('Turn on the power to access drawbridge controls',4000);callout(u,'No power',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
       else if(obj===4){callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
         bigText('Drawbridge down!','unlock');objCompleted(4);addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);saveGame('dc');updateObjUI();
-        setTimeout(()=>{if(state==='play'&&obj===5){banner('Objective 5: take the Headquarters. That part comes next.',5000);endAt=performance.now()+600;}},2600);}
+        setTimeout(()=>{if(state==='play'&&obj===5){banner('Objective 5: take the Headquarters. That part comes next.',5000);endAt=performance.now()+600;}},OBJ_LIST_T+200);}
     }
   }
 }
@@ -220,15 +292,16 @@ function shootTank(u){
 
 /* ---------- the objective tracker (top left; tap to see the whole list) ---------- */
 const OBJ_LIST=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Sabotage the data center and lower the drawbridge','Take the Headquarters'];
+const OBJ_LIST_T=3400;   // how long the list stays open with the newly crossed-off objective (ms); the next messages wait for it
 let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
 function objCompleted(n){
   if(n<=objDone)return;objDone=n;updateObjUI(true);
-  const el=$('#obj');if(!el)return;el.classList.add('open');clearTimeout(objFlashT);objFlashT=setTimeout(()=>{el.classList.remove('open');el.setAttribute('aria-expanded','false');},4500);
+  const el=$('#obj');if(!el)return;el.classList.add('open');clearTimeout(objFlashT);objFlashT=setTimeout(()=>{el.classList.remove('open');el.setAttribute('aria-expanded','false');},OBJ_LIST_T);
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  const num=Math.min(objDone+1,5),label=objDone===3&&CORE.done?'Lower the drawbridge':OBJ_LIST[num-1];
-  el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(num===5?' (coming next)':'');
+  const num=Math.min(objDone+1,5),label=objDone===3&&CORE.done?'Lower the drawbridge':objDone===2&&tanksGone()?'Clear the fuel depot':OBJ_LIST[num-1];
+  el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(num===5?' (coming next)':locNote());
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
 }

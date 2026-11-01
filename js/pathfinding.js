@@ -24,17 +24,18 @@ function cellOf(x,y,b=blk){const gx=clamp(Math.floor(x/CS),0,GW-1),gy=clamp(Math
 function clearLine(ax,ay,bx,by,pad=6.5){for(const o of objs)if(segHitsRect(ax,ay,bx,by,o,pad))return false;return true;}
 const gS=new Float32Array(GW*GH),came=new Int32Array(GW*GH),cameW=new Int16Array(GW*GH),seenSt=new Int32Array(GW*GH),closedSt=new Int32Array(GW*GH);let stampN=0;
 
-/* ---------- windows: the squad vaults through them ---------- */
-// Each window gets vault links: pairs of free cells straight across it (where a body fits through the opening and nothing
-// else is in the way), which A* treats as a step costing the distance plus VAULT_EXTRA (the climb is slow: VAULT_SPEED
-// within VAULT_HALF of the window's middle, a hop of VAULT_H over the sill). Waypoints after a vault carry .vault.
-const VAULT_EXTRA=4.5,VAULT_HALF=13,VAULT_SPEED=20,VAULT_H=10;
-const WINDOWS=[],vaultLinks=new Map();   // cell -> [{j,len,w}]
+/* ---------- windows, sandbags and barriers: the squad vaults over them ---------- */
+// Each one gets vault links: pairs of free cells straight across it (where a body fits over it and nothing else is in the
+// way), which A* treats as a step costing the distance plus VAULT_EXTRA (the climb is slow: VAULT_SPEED within VAULT_HALF
+// of its middle line, a hop of VAULT_H over the sill or the bags). Waypoints after a vault carry .vault (an entry of WINDOWS,
+// which despite the name holds every vaultable object).
+const VAULT_EXTRA=4.5,VAULT_HALF=13,VAULT_SPEED=20,VAULT_H=10,VAULTABLE=new Set(['window','sandbag','barrier']);
+const WINDOWS=[],vaultLinks=new Map();   // cell -> [{j,len,w,mid}]
 function buildVaultLinks(){
   WINDOWS.length=0;vaultLinks.clear();
   for(const o of objs){
-    if(o.kind!=='window')continue;
-    const vert=o.h>o.w,w={o,vert,c:vert?o.x+o.w/2:o.y+o.h/2,id:WINDOWS.length};WINDOWS.push(w);   // vert: in a north-south wall, crossed east-west
+    if(!VAULTABLE.has(o.kind))continue;
+    const vert=o.h>o.w,w={o,vert,c:vert?o.x+o.w/2:o.y+o.h/2,id:WINDOWS.length};WINDOWS.push(w);   // vert: runs north-south, crossed east-west
     const a0=(vert?o.y:o.x)+6,a1=(vert?o.y+o.h:o.x+o.w)-6,mid=Math.floor((vert?w.c:w.c-TOP)/CS);   // the row or column of cells the window sits in
     for(let g=0;g<(vert?GH:GW);g++){
       const a=vert?cy0(g):cx0(g);if(a<a0||a>a1)continue;
@@ -48,12 +49,12 @@ function buildVaultLinks(){
     }
   }
 }
-// does the straight line a-b pass through window w's opening (clear of its ends) with nothing else in the way?
+// does the straight line a-b cross w (a window's opening, a run of sandbags) clear of its ends, with nothing else in the way?
 function throughOpening(a,b,w){
   const o=w.o,da=w.vert?b.x-a.x:b.y-a.y;if(!da)return false;
   const t=(w.c-(w.vert?a.x:a.y))/da;if(t<0||t>1)return false;
   const at=w.vert?a.y+(b.y-a.y)*t:a.x+(b.x-a.x)*t,lo=(w.vert?o.y:o.x)+6,hi=(w.vert?o.y+o.h:o.x+o.w)-6;
-  return at>=lo&&at<=hi&&!objs.some(q=>q!==o&&q.kind!=='window'&&segHitsRect(a.x,a.y,b.x,b.y,q,4));
+  return at>=lo&&at<=hi&&!objs.some(q=>q!==o&&segHitsRect(a.x,a.y,b.x,b.y,q,4));
 }
 buildVaultLinks();
 

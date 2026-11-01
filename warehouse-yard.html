@@ -24,13 +24,22 @@
       </svg>
       <b>!!</b>
     </div>
+    <div id="secure" role="img" aria-label="Securing" hidden>
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="ring" cx="18" cy="18" r="15"/>
+        <circle id="secureArc" cx="18" cy="18" r="15" transform="rotate(-90 18 18)" stroke-dasharray="94.25" stroke-dashoffset="94.25"/>
+      </svg>
+      <small>Securing</small>
+    </div>
     <div id="countdown" role="timer" hidden><small>Incoming!</small><b>5.00</b></div>
     <div id="bigText" aria-live="assertive"></div>
     <div id="banner"></div>
-    <div id="obj" hidden role="button" tabindex="0" aria-expanded="false" aria-label="Objectives"><b>Objective 1/5</b><span>Take the warehouse</span><ol></ol></div>
+    <div id="tl"><!-- top left: the objective box with the "Saved" chip stacked under it, so they never overlap -->
+      <div id="obj" hidden role="button" tabindex="0" aria-expanded="false" aria-label="Objectives"><b>Objective 1/5</b><span>Take the warehouse</span><ol></ol></div>
+      <span class="chip" id="savedChip" hidden>Saved</span>
+    </div>
     <div id="tut" hidden aria-live="polite"></div>
     <span class="chip slow" id="speed" hidden>Slow-mo</span>
-    <span class="chip" id="savedChip" hidden>Saved</span>
     <div id="cards" hidden></div>
     <button id="fitBtn" hidden>Fit map</button>
     <button id="gaitBtn" aria-pressed="false" disabled><small>Auto</small><span>Sneak</span></button>

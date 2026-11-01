@@ -4,7 +4,7 @@
    the main bridge and push towards the squad. Clearing them ends the warehouse with its report; then the mission goes on
    (hq.js, mission.js). Also the opening dinghy landing. Timings run on game time, so pause and slow-mo stretch them. */
 const COUNTER=[[466,40],[486,40],[466,70],[486,70],[476,100]],COUNTER_AT={x:476,y:260};   // where they come from, and where previews judge cover from while counting down
-const CLEAR_T=2.6,COUNT_T=5;
+const CLEAR_T=3.6,COUNT_T=5;   // CLEAR_T: after "Location secured", once the crossed-off objective list has closed (OBJ_LIST_T in mission.js)
 let wave={phase:'fight1',t:0};   // phases: fight1 → clear → count → fight2 → done → hq (after the report; the rest of the mission)
 function wavePhase(...ps){return ps.includes(wave.phase);}
 function resetWaves(){
@@ -14,7 +14,7 @@ function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){
   if(landing)landTick(dt);
   const el=simT-wave.t;
-  if(wave.phase==='fight1'&&enemies.every(e=>e.dead)){goWave('clear');bigText('Location secured','clear');objCompleted(1);say(players.find(alive),'objective');}
+  if(wave.phase==='fight1'&&secureTick(0,dt)){goWave('clear');bigText('Location secured','clear');objCompleted(1);say(players.find(alive),'objective');}   // all down, a soldier inside, then a quiet spell (mission.js)
   else if(wave.phase==='clear'&&el>=CLEAR_T)startHQ();   // Bryan: a checkpoint and a rest, no counterattack (spawnCounter is kept for later)
   else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnCounter();goWave('fight2');}
   else if(wave.phase==='hq')hqTick(dt);

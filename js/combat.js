@@ -5,8 +5,8 @@
 // After firing from a lean he stays leaned out for PEEK_T: enemies can see and hit him there, and he counts as half cover.
 const PEEK_T=1.2;
 function peekOf(u){return u.peek&&simT<u.peek.until&&alive(u)&&!u.path.length?u.peek:null;}
-// where u can fire at (tx,ty) from. Leaning out only when standing still.
-function sightOf(u,tx,ty){return u.path.length?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}
+// where u can fire at (tx,ty) from. Leaning out only when standing still. Nobody sees into or out of the tunnel.
+function sightOf(u,tx,ty){if(hideAt(u.x,u.y)!==hideAt(tx,ty))return null;return u.path.length?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}
 // line of fire from a to b: from a's spot or lean (fx,fy) to b, or to b's peek spot if b is leaned out. null if none.
 function fireLine(a,b){
   const pk=peekOf(b);
@@ -268,7 +268,7 @@ function explode(x,y,by,quiet){
   const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}
   for(const v of units){
     if(v.dead||v.seat==='driver')continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;   // the driver is shielded; riders and the gunner sit in the open
-    if(!los(x,y,v.x,v.y))continue;
+    if(!los(x,y,v.x,v.y)||hideAt(v.x,v.y)!==hideAt(x,y))continue;   // the tunnel shelters whoever's inside
     v.sup=Math.min(1.2,v.sup+0.8);
     if(!v.downed)damage(v,95*(1-d/62),by);
     if(v.side==='E')v.alerted=true;
@@ -294,8 +294,7 @@ function sense(e,dt){
       const cone=Math.abs(da)<1.08;
       if((cone||d<80)&&fireLine(e,p)){
         g=SEE_RATE*(1-d/330)*(cone?1:0.5);
-        g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least
-        const sz=slowAt(p.x,p.y);if(sz&&sz.hide)g*=0.15;   // in the culvert: very hard to see
+        g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least (in the tunnel nobody can see him at all: fireLine)
       }
     }
     if(p.path.length&&p.gait==='run'&&d<NOISE_R)g+=0.5*(1-d/NOISE_R);
@@ -312,12 +311,13 @@ function sense(e,dt){
 function detection(){if(contact)return 1;let a=0;for(const e of enemies)if(!e.dead)a=Math.max(a,e.aware);return a;}
 
 /* ---------- AI ---------- */
+let spotBannerT=-99;   // one "Hostile spotted" banner at a time, not one per man
 function computeVis(){
   for(const e of enemies){
     if(e.dead){e.vis=false;continue;}
     e.vis=players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=360&&fireLine(p,e));
     if(e.vis){
-      if(!e.seen){e.seen=true;callout(e,'Hostile!',C.bad);if(!contact)banner('Hostile spotted inside the warehouse.');}
+      if(!e.seen){e.seen=true;callout(e,'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(obj===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
       e.last={x:e.x,y:e.y};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
@@ -387,7 +387,7 @@ function updateUnit(u,dt){
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
     const sz=slowAt(u.x,u.y),sp=(vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
-      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the culvert and the broken rail bridge are slow going
+      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the tunnel and the broken rail bridge are slow going
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
     if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
   }else if(simT-u.aimT>2){
@@ -421,6 +421,7 @@ function update(dt){
   }
   for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);explode(n.x1,n.y1,n.by);}}
   for(const arr of [tracers,flashes,sparks,booms,callouts])for(const f of arr)f.t+=dt;
+  if(flashes.some(f=>f.t<=dt+1e-6)||booms.some(b=>b.t<=dt+1e-6))lastNoiseT=simT;   // a shot or a blast this tick: a location's quiet spell starts over (mission.js)
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
   for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
   for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;

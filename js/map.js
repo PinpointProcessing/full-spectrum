@@ -40,18 +40,22 @@ box(680,300,34,100,4,2);box(760,420,110,34,6);box(880,520,34,100,1);box(700,640,
 O('barrel',900,330,16,16,{col:'#3a5160'});O('crate',760,560,26,26);
 
 /* ---------- the canal and its crossings ---------- */
-// three ways over: the main bridge (defended, objective 2), a culvert to crawl through (slow, hidden) in the west and a
-// broken rail bridge (slow, exposed) in the east
-const CANAL={y0:70,y1:134},MAINBR={x0:440,x1:512},CULVERT={x0:146,x1:166},RAILBR={x0:850,x1:890};
+// three ways over: the main bridge (defended, objective 2), a covered tunnel in the far west (Bryan: way over on the left,
+// out of the bridge guards' sight; slow, and nobody sees or shoots into or out of it) and a broken rail bridge (slow,
+// exposed) in the east. CULVERT is the tunnel's walkway, TUNNEL the covered part from portal to portal.
+const CANAL={y0:70,y1:134},MAINBR={x0:440,x1:512},CULVERT={x0:26,x1:46},RAILBR={x0:850,x1:890};
+const TUNNEL={x0:CULVERT.x0,x1:CULVERT.x1,y0:CANAL.y0-6,y1:CANAL.y1+6};
 O('water',0,CANAL.y0,CULVERT.x0,64);O('water',CULVERT.x1,CANAL.y0,MAINBR.x0-CULVERT.x1,64);O('water',MAINBR.x1,CANAL.y0,RAILBR.x0-MAINBR.x1,64);O('water',RAILBR.x1,CANAL.y0,W-RAILBR.x1,64);
-const SLOW=[{x:CULVERT.x0,y:CANAL.y0-6,w:20,h:76,k:.4,hide:true},{x:RAILBR.x0,y:CANAL.y0-4,w:40,h:72,k:.5}];   // speed factor; the culvert also hides you
+const SLOW=[{x:TUNNEL.x0,y:TUNNEL.y0,w:TUNNEL.x1-TUNNEL.x0,h:TUNNEL.y1-TUNNEL.y0,k:.4,hide:true},{x:RAILBR.x0,y:CANAL.y0-4,w:40,h:72,k:.5}];   // speed factor; the tunnel also hides you
 function slowAt(x,y){return SLOW.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
+function hideAt(x,y){const z=slowAt(x,y);return z&&z.hide?z:null;}   // inside the tunnel
 
 /* ---------- objective 2: the bridge's north end ---------- */
 // (Bryan: moved back north, away from the warehouse, so its guards don't engage you the moment you've taken it)
 O('booth',540,-2,32,32);                                            // pillbox (a sentry inside, heavy cover)
-O('sandbag',456,50,40,10);O('sandbag',456,28,10,22);O('sandbag',486,28,10,22);   // MG nest covering the bridge
-O('sandbag',398,42,46,10);O('sandbag',596,48,44,10);O('barrier',360,-10,52,12);O('crate',620,0,26,22);
+// MG nest covering the bridge, set back from its end so you can walk round it on either side (Bryan), or hop the bags
+O('sandbag',456,34,40,10);O('sandbag',456,12,10,22);O('sandbag',486,12,10,22);
+O('sandbag',388,42,44,10);O('sandbag',596,48,44,10);O('barrier',360,-10,52,12);O('crate',620,0,26,22);
 const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
 
 /* ---------- the container yard (between the bridge and the depot / data center) ---------- */
