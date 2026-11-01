@@ -43,8 +43,6 @@ function seatIn(u,j){
   if(u.seat==='pass'){u.slot=crewOf(j).some(o=>o!==u&&o.seat==='pass'&&o.slot===0)?1:0;u.elev=4;}   // front passenger seat, then the back
   callout(u,u.seat==='driver'?'Driving':u.seat==='gunner'?'On the gun':'Riding',C.good);
 }
-// force: everyone in list gets out (bailing out, or the gunner told to on his own). Otherwise, while the fight is on,
-// the gunner stays on the gun to cover the others and climbs down once it's been quiet for FIGHT_QUIET s.
 // Bryan: Dismount empties the whole jeep, gunner included. They jump out on the side away from the enemy where they can,
 // using the jeep (now parked, half cover) as cover.
 function dismount(list){
