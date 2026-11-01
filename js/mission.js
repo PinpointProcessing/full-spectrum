@@ -34,8 +34,9 @@ function spawnGroup(n){
   if(n===1){   // the bridge: an MG nest at its north end, a sentry in the pillbox, riflemen behind sandbags
     g.push(mgGunner('E20',476,116),hostile('E21',556,94,{name:'Sentry',post:true,elev:14}));
     for(const[i,[x,y]]of[[422,110],[614,118],[372,92]].entries())g.push(hostile('E'+(22+i),x,y,{zone:BR_ZONE}));
-  }else if(n===2){   // sentries in the container yard, the depot's guards and its RPG gunner
-    for(const[i,[x,y]]of[[350,-90],[520,-170],[612,-30]].entries())g.push(hostile('E'+(30+i),x,y,{zone:YARD2_ZONE}));
+  }else if(n===2){   // the container yard: men posted in its aisles and a two-man patrol walking them; then the depot's guards and its RPG gunner
+    for(const[i,[x,y]]of[[350,-90],[520,-170],[612,-30],[410,-50],[500,-10],[580,-60],[440,-200],[660,-220],[330,-190]].entries())g.push(hostile('E'+(60+i),x,y,{zone:YARD2_ZONE,ang:Math.PI/2+(Math.random()-.5)*1.2}));
+    g.push(hostile('E70',360,-205,{name:'Patrol',zone:YARD2_ZONE,route:[{x:640,y:-205},{x:360,y:-205}],ri:0,waitT:0}),hostile('E71',515,-60,{name:'Patrol',zone:YARD2_ZONE,route:[{x:515,y:-255},{x:515,y:-60}],ri:0,waitT:0}));
     for(const[i,[x,y]]of[[730,-110],[880,-130],[955,-235],[836,-216]].entries())g.push(hostile('E'+(33+i),x,y,{zone:DEP_ZONE}));
     const r=hostile('E37',742,-150,{name:'RPG',zone:DEP_ZONE,rpg:true,cool:1});
     const tube=new T.Mesh(new T.CylinderGeometry(1,1,12,8),new T.MeshStandardMaterial({color:0x3b4a2e,roughness:.8}));tube.rotation.z=Math.PI/2;tube.position.set(1,15,-2.5);r.m.pose.add(tube);g.push(r);
@@ -70,6 +71,12 @@ function finishObjective(msg,zones,stage,next){
 // every tick once the warehouse is taken (from hqTick)
 function missionTick(dt){
   chargeTick(dt);
+  for(const e of enemies){   // patrols walk their route and back, pausing at each end, until they're alerted
+    if(e.dead||e.alerted||!e.route||e.path.length)continue;
+    if(!e.waitT){e.waitT=simT+2.5;continue;}
+    if(simT<e.waitT)continue;
+    e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y);if(path)e.path=path;e.waitT=0;
+  }
   if(obj===1&&groups[1]&&groups[1].every(e=>e.dead))finishObjective('Bridge taken. Medical and supply boxes set up at its north end.',[{k:'med',x:590,y:22,w:56,h:44},{k:'sup',x:650,y:22,w:56,h:44}],'br',2);
   else if(obj===2&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length)finishObjective('Fuel depot destroyed.',[{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}],'dep',3);
   else if(obj===3&&CORE.done){obj=4;bigText('Server core destroyed','clear');banner(OBJ_INTRO[4],4500);updateObjUI();setStatus();}
