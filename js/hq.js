@@ -4,7 +4,14 @@
    camera tour of the two boxes after its report; later objectives just add their boxes (mission.js). Also the smooth
    camera pans used by the HQ popup and the objective reveals, and the boxes drawn on the overlay. */
 const HQ_ZONES=[];   // {k:'med'|'sup',x,y,w,h,col,label}
-const WH_ZONES=[{k:'med',x:186,y:322,w:90,h:70},{k:'sup',x:344,y:322,w:90,h:70}];
+// each location's medical and supply boxes, big enough for the whole squad to stand in (Bryan); tapping inside one puts
+// everyone you've selected inside it (makeAssign)
+const REST_ZONES={
+  wh:[{k:'med',x:182,y:318,w:110,h:90},{k:'sup',x:328,y:318,w:110,h:90}],
+  br:[{k:'med',x:330,y:146,w:100,h:84},{k:'sup',x:522,y:146,w:100,h:84}],
+  dep:[{k:'med',x:700,y:-54,w:100,h:84},{k:'sup',x:806,y:-54,w:100,h:84}],
+  dc:[{k:'med',x:600,y:-546,w:100,h:84},{k:'sup',x:706,y:-546,w:100,h:84}],
+},WH_ZONES=REST_ZONES.wh;
 const HEAL_RATE=8,SUPPLY_T=4;
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
@@ -63,7 +70,7 @@ function drawHQ(now){
   if(!HQ_ZONES.length)return;
   const pulse=(Math.sin(now*4)+1)/2;
   for(const z of HQ_ZONES){
-    const c=[[z.x,z.y],[z.x+z.w,z.y],[z.x+z.w,z.y+z.h],[z.x,z.y+z.h]].map(([x,y])=>toS(x,y,.3));
+    toSBack=false;const c=[[z.x,z.y],[z.x+z.w,z.y],[z.x+z.w,z.y+z.h],[z.x,z.y+z.h]].map(([x,y])=>toS(x,y,.3));if(toSBack)continue;   // a corner behind the camera
     ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
     ox.fillStyle=`rgba(${z.col},${.08+pulse*.05})`;ox.fill();
     ox.setLineDash([6,5]);ox.lineDashOffset=-now*8;ox.strokeStyle=`rgba(${z.col},.9)`;ox.lineWidth=1.8;ox.stroke();ox.setLineDash([]);

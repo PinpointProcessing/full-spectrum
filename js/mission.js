@@ -76,6 +76,7 @@ function spawnPending(){
       const h=hiddenNear(s.x,s.y),p=h&&findPath(h.x,h.y,s.x,s.y,FOOT);
       if(p){u=s.make();u.x=h.x;u.y=h.y;u.path=p;}
     }
+    if(!u&&simT-s.t0>30)u=s.make();   // never hold one back for good: the location couldn't be cleared without him
     if(!u)continue;
     groups[s.n].push(u);pendingSpawns.splice(i--,1);any=true;
   }
@@ -149,8 +150,8 @@ function missionTick(dt){
     if(simT<e.waitT)continue;
     e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
   }
-  if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective([{k:'med',x:376,y:150,w:50,h:40},{k:'sup',x:526,y:150,w:50,h:40}],'br',2);
-  else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective([{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}],'dep',3,'Fuel depot destroyed');
+  if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective(REST_ZONES.br,'br',2);
+  else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective(REST_ZONES.dep,'dep',3,'Fuel depot destroyed');
   else if(obj===3&&CORE.done){obj=4;bigText('Server core destroyed','clear');banner(OBJ_INTRO[4],3500);updateObjUI();setStatus();}
   if(panelGo){
     const u=panelGo;
@@ -159,7 +160,7 @@ function missionTick(dt){
       panelGo=null;
       if(obj<4){banner('Turn on the power to access drawbridge controls',4000);callout(u,'No power',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
       else if(obj===4){callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
-        bigText('Drawbridge down!','unlock');objCompleted(4);addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);saveGame('dc');updateObjUI();
+        bigText('Drawbridge down!','unlock');objCompleted(4);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
         setTimeout(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3500);endAt=performance.now()+600;}},OBJ_LIST_T+200);}
     }
   }
@@ -313,7 +314,8 @@ function updateObjUI(flash){
 // dashed green outline with MOVE IN while nobody's in it; solid and filling up, with a bar, while the quiet spell runs
 function drawSecure(now){
   const st=secure.state,L=LOCS[obj];if(!st||!L||state!=='play')return;
-  const z=L.zone,c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4)),pulse=(Math.sin(now*4.5)+1)/2,k=clamp(secure.t/QUIET_T,0,1);
+  toSBack=false;const z=L.zone,c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4)),pulse=(Math.sin(now*4.5)+1)/2,k=clamp(secure.t/QUIET_T,0,1);
+  if(toSBack)return;   // a corner behind the camera: skip rather than paint the screen green
   ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
   if(st==='move'){
     ox.fillStyle=`rgba(95,224,142,${(.05+pulse*.09).toFixed(3)})`;ox.fill();
@@ -323,8 +325,31 @@ function drawSecure(now){
   label(st==='move'?'MOVE IN':'SECURING',lx,ly,'#5fe08e',13,700);
   if(st==='hold')bar(lx-26,ly+11,52,k,'#5fe08e');
 }
+// the last few defenders of the location you're taking are marked (Bryan couldn't find the depot's): once 4 or fewer are left
+// (or the depot's tanks are gone), a red ring where each one is, seen or not, and an arrow at the screen's edge for any off it
+function drawLastFoes(now){
+  const L=LOCS[obj];if(!L||objDone>obj||state!=='play'||secure.state)return;
+  const foes=(obj===0?enemies:groups[obj]||[]).filter(e=>!e.dead);
+  if(!foes.length||!(foes.length<=4||(obj===2&&tanksGone())))return;
+  const pulse=(Math.sin(now*5)+1)/2,[mx,my]=[cw/2,ch/2];
+  for(const e of foes){
+    toSBack=false;const[sx,sy]=toS(e.x,e.y,6);
+    if(!toSBack&&sx>18&&sy>18&&sx<cw-18&&sy<ch-18){   // on screen: a pulsing ring (the label already says where a seen one is)
+      gPath(e.x,e.y,12+pulse*3);ox.strokeStyle=`rgba(255,80,60,${(.6+pulse*.4).toFixed(2)})`;ox.lineWidth=2;ox.setLineDash(e.vis?[]:[4,3]);ox.stroke();ox.setLineDash([]);
+      if(!e.vis){const[lx,ly]=toS(e.x,e.y,22);label('HOSTILE',lx,ly,'#ff6a50',9,700);}
+      continue;
+    }
+    // off screen: which way he is, from the middle of the view (a step towards him stays in front of the camera)
+    const d=hyp(e.x-camT.x,e.y-camT.z)||1,[ax,ay]=toS(camT.x,camT.z),[bx,by]=toS(camT.x+(e.x-camT.x)/d*40,camT.z+(e.y-camT.z)/d*40);
+    let vx=bx-ax,vy=by-ay;const vl=hyp(vx,vy)||1;vx/=vl;vy/=vl;
+    const m=30,k=Math.min((vx>0?cw-m-mx:mx-m)/Math.abs(vx||1e-6),(vy>0?ch-m-my:my-m)/Math.abs(vy||1e-6)),px=mx+vx*k,py=my+vy*k,a=Math.atan2(vy,vx);
+    ox.save();ox.translate(px,py);ox.rotate(a);ox.beginPath();ox.moveTo(11,0);ox.lineTo(-7,-8);ox.lineTo(-3,0);ox.lineTo(-7,8);ox.closePath();
+    ox.fillStyle=`rgba(255,80,60,${(.7+pulse*.3).toFixed(2)})`;ox.fill();ox.lineWidth=1.5;ox.strokeStyle='rgba(0,0,0,.6)';ox.stroke();ox.restore();
+    label(`${Math.round(hyp(e.x-camT.x,e.y-camT.z)/10)} m`,px-vx*20,py-vy*20,'#ff8a70',9,700);
+  }
+}
 function drawMission(rdt,now){
-  drawSecure(now);
+  drawSecure(now);drawLastFoes(now);
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the server core, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};
@@ -349,13 +374,18 @@ function drawMission(rdt,now){
     ox.fillStyle=gr;ox.beginPath();ox.arc(hx,hy,12,0,TAU);ox.fill();ox.globalCompositeOperation='source-over';
   }
   for(const o of objs)if(o.kind==='tank'&&!o.burst&&o.hp<100){const[bx,by]=toS(o.x+o.w/2,o.y+o.h/2,36);bar(bx-14,by,28,o.hp/100,C.bad);}
+  // burning tanks and the server core: smoke and flames. Bryan saw these turn the whole screen orange-red and lag near the
+  // back of the map: a fire behind or under the camera made its blobs huge. Now a fire that's behind the camera or well off
+  // screen is skipped, and their size is capped.
   for(const f of tankFires){
     const age=simT-f.t0;if(age>45)continue;
-    const[ax,ay]=toS(f.x,f.y),[bx,by]=toS(f.x+10,f.y),k=hyp(bx-ax,by-ay)/10;
+    toSBack=false;const[ax,ay]=toS(f.x,f.y),[bx,by]=toS(f.x+10,f.y);
+    if(toSBack||ax<-150||ay<-150||ax>cw+150||ay>ch+150)continue;
+    const k=Math.min(7,hyp(bx-ax,by-ay)/10);
     f.emit-=rdt;if(f.emit<=0){f.emit=.08;f.puffs.push({x:f.x+(Math.random()-.5)*f.r,y:f.y+(Math.random()-.5)*f.r,t:0,life:2.5+Math.random()});}
-    for(let i=f.puffs.length-1;i>=0;i--){const p=f.puffs[i];p.t+=rdt;if(p.t>=p.life){f.puffs.splice(i,1);continue;}const q=p.t/p.life,[sx,sy]=toS(p.x,p.y,30+p.t*22);ox.fillStyle=`rgba(90,86,82,${(.45*(1-q)).toFixed(3)})`;ox.beginPath();ox.arc(sx,sy,k*(5+q*14),0,TAU);ox.fill();}
+    for(let i=f.puffs.length-1;i>=0;i--){const p=f.puffs[i];p.t+=rdt;if(p.t>=p.life){f.puffs.splice(i,1);continue;}toSBack=false;const q=p.t/p.life,[sx,sy]=toS(p.x,p.y,30+p.t*22);if(toSBack)continue;ox.fillStyle=`rgba(90,86,82,${(.45*(1-q)).toFixed(3)})`;ox.beginPath();ox.arc(sx,sy,k*(5+q*14),0,TAU);ox.fill();}
     if(age<30){ox.globalCompositeOperation='lighter';
-      for(let i=0;i<9;i++){const fl=Math.random(),[fx,fy]=toS(f.x+(Math.random()-.5)*f.r*1.4,f.y+(Math.random()-.5)*f.r*1.4,10+fl*24),r=k*(4+fl*7);
+      for(let i=0;i<9;i++){toSBack=false;const fl=Math.random(),[fx,fy]=toS(f.x+(Math.random()-.5)*f.r*1.4,f.y+(Math.random()-.5)*f.r*1.4,10+fl*24),r=k*(4+fl*7);if(toSBack)continue;
         const gr=ox.createRadialGradient(fx,fy,0,fx,fy,r);gr.addColorStop(0,'rgba(255,240,190,.9)');gr.addColorStop(.45,'rgba(255,140,40,.6)');gr.addColorStop(1,'rgba(200,40,10,0)');ox.fillStyle=gr;ox.beginPath();ox.arc(fx,fy,r,0,TAU);ox.fill();}
       ox.globalCompositeOperation='source-over';}
   }

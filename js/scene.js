@@ -10,7 +10,7 @@ function initGL(){
   catch(e){return false;}
   renderer.outputEncoding=T.sRGBEncoding;
   renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
-  renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;   // plain PCF: soft shadows cost too much on a phone
   scene=new T.Scene();
   scene.background=new T.Color(FOG);scene.fog=new T.FogExp2(FOG,0.00042);
   camera=new T.PerspectiveCamera(34,1,10,6000);
@@ -40,7 +40,10 @@ function clampCam(){
   camT.x=clamp(camT.x,VB.x0-CAM_OVER,VB.x1+CAM_OVER);camT.z=clamp(camT.z,VB.z0-CAM_OVER,VB.z1+CAM_OVER);
   const fb=$('#fitBtn');if(fb)fb.hidden=zoom<1.02&&Math.abs(yaw)<0.02&&tilt<0.02;
 }
-function toS(x,y,h=0){_v.set(x,h,y).project(camera);return[(_v.x+1)/2*cw,(1-_v.y)/2*ch];}
+// world -> screen. A point behind the camera can't be drawn: it comes back far off screen and sets toSBack, so shapes that
+// touch one (view cones, area outlines, fires) skip themselves instead of turning inside out across the whole screen
+let toSBack=false;
+function toS(x,y,h=0){_v.set(x,h,y).project(camera);if(_v.z>1){toSBack=true;return[-1e4,-1e4];}return[(_v.x+1)/2*cw,(1-_v.y)/2*ch];}
 function toW(sx,sy){
   _o.setFromMatrixPosition(camera.matrixWorld);
   _d.set(sx/cw*2-1,-(sy/ch)*2+1,0.5).unproject(camera).sub(_o).normalize();
@@ -188,7 +191,10 @@ const lamps=[
   {x:300,y:-560,h:22,c:0x9fd8ff,i:2,d:220},            // inside the data center (the server room's cold light)
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
-let hemi,muzzle=[],boomL,jeepLight,moon,dinghy,tunnelRoof=null;
+let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null;
+// Every light costs every pixel on screen (a phone feels it), so the street lamps share LAMP_POOL lights: each frame the lamps
+// nearest the middle of the view get them, the one at the edge of the set fading so nothing pops (lampLights in render)
+const LAMP_POOL=6,lampPool=[];
 function buildWorld(){
   const corrTex=canvasTex(64,64,(g,w,h)=>{
     for(let x=0;x<w;x+=8){const gr=g.createLinearGradient(x,0,x+8,0);gr.addColorStop(0,'#8a8a8a');gr.addColorStop(.5,'#f0f0f0');gr.addColorStop(1,'#8a8a8a');g.fillStyle=gr;g.fillRect(x,0,8,h);}
@@ -366,7 +372,10 @@ function buildWorld(){
       addMesh(new T.CylinderGeometry(o.w/2+6,o.w/2+9,130,24),texMat(corrTex,14,2,{color:0x4a5056,roughness:.55,metalness:.55}),cx,65,cz);
       addMesh(new T.CylinderGeometry(o.w/2+10,o.w/2+10,8,24),darkMetal,cx,134,cz);
       const band=new T.Mesh(new T.CylinderGeometry(o.w/2+6.4,o.w/2+6.4,2.4,24,1,true),new T.MeshBasicMaterial({color:0xffc98a,toneMapped:false,side:T.DoubleSide}));band.position.set(cx,112,cz);scene.add(band);
-      const sl=new T.SpotLight(0xe8f0ff,1.6,520,.18,.6,1.2);sl.position.set(cx,136,cz+o.h/2);sl.target.position.set(850,0,-420);scene.add(sl,sl.target);   // searchlights sweeping the approach (tilted, fixed)
+      {const from=new T.Vector3(cx,136,cz+o.h/2),to=new T.Vector3(850,0,-420),dir=to.clone().sub(from),L=dir.length(),R=L*.2;dir.normalize();   // searchlight beams onto the approach: a glowing cone and a pool of light, no real light (cheaper)
+       const beamM=new T.MeshBasicMaterial({color:0xdfe9ff,transparent:true,opacity:.07,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide});
+       const cg=new T.ConeGeometry(R,L,20,1,true);cg.translate(0,-L/2,0);const beam=new T.Mesh(cg,beamM);beam.position.copy(from);beam.quaternion.setFromUnitVectors(new T.Vector3(0,-1,0),dir);scene.add(beam);
+       const pool=new T.Mesh(new T.CircleGeometry(R,24),new T.MeshBasicMaterial({color:0xdfe9ff,transparent:true,opacity:.1,blending:T.AdditiveBlending,depthWrite:false}));pool.rotation.x=-Math.PI/2;pool.position.set(to.x,.6,to.z);scene.add(pool);}
     }else if(o.kind==='bridge'){   // the drawbridge, raised: a steel deck standing up at the moat's edge, leaning back on its hinge
       const deck=canvasTex(64,128,(g,w,h)=>{g.fillStyle='#55595c';g.fillRect(0,0,w,h);g.strokeStyle='rgba(0,0,0,.45)';g.lineWidth=2;for(let y=0;y<h;y+=16){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();}
         g.fillStyle='rgba(222,186,70,.7)';for(let y=4;y<h;y+=24)g.fillRect(w/2-1.5,y,3,12);g.fillStyle='rgba(255,255,255,.05)';g.fillRect(0,0,6,h);g.fillRect(w-6,0,6,h);});
@@ -434,18 +443,18 @@ function buildWorld(){
   // lights
   hemi=new T.HemisphereLight(0x5a6e96,0x140f0b,.24);scene.add(hemi);
   moon=new T.DirectionalLight(0x9fb4ff,.32);moon.position.set(FIT.w/2-300,620,FIT.h/2-400);moon.target.position.set(FIT.w/2,0,FIT.h/2);   // follows the camera (render)
-  moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);
+  const phone=matchMedia('(pointer:coarse)').matches;moon.castShadow=true;moon.shadow.mapSize.set(phone?1024:2048,phone?1024:2048);   // a smaller shadow map on phones
   Object.assign(moon.shadow.camera,{left:-620,right:620,top:620,bottom:-620,near:50,far:1900});moon.shadow.bias=-0.0008;
   scene.add(moon,moon.target);
   const poleM=new T.MeshStandardMaterial({color:0x1d2124,roughness:.6,metalness:.6});
-  for(const L of lamps){
-    const p=new T.PointLight(L.c,L.i,L.d,1.4);p.position.set(L.x,L.h,L.y);scene.add(p);L.light=p;
+  for(const L of lamps){   // the lamp heads and poles; their light comes from the shared pool (lampLights)
     const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);scene.add(hd);
     if(L.pole)addMesh(new T.CylinderGeometry(1.2,1.6,L.h+2,8),poleM,L.x,(L.h+2)/2,L.y);
   }
+  for(let k=0;k<LAMP_POOL;k++){const p=new T.PointLight(0xffffff,0,100,1.4);scene.add(p);lampPool.push(p);}
   for(let k=0;k<2;k++){const m=new T.PointLight(0xffcf8a,0,95,2);scene.add(m);muzzle.push(m);}
   boomL=new T.PointLight(0xffa050,0,280,1.6);scene.add(boomL);
-  jeepLight=new T.SpotLight(0xfff1d6,0,300,.5,.55,1.2);scene.add(jeepLight,jeepLight.target);   // jeep headlights, off until it arrives (made now so adding it later doesn't stall)
+  // (no jeep headlights while the jeep is out: every light, even switched off, costs every pixel)
 }
 
 /* soldiers */
@@ -531,12 +540,18 @@ function syncUnits(t){
     if(m.spot)m.spot.intensity=lying||cr?0:2.6;   // no torch while lying or crawling
   }
 }
+function lampLights(now){   // hand the pooled lights to the lamps nearest the view's centre
+  const by=lamps.map(L=>({L,d:hyp(L.x-camT.x,L.y-camT.z)})).sort((a,b)=>a.d-b.d),edge=by[LAMP_POOL]?by[LAMP_POOL].d:1e9;
+  lampPool.forEach((p,k)=>{const q=by[k];if(!q){p.intensity=0;return;}const L=q.L;let i=L.i*clamp((edge-q.d)/80,0,1);
+    if(L.flick&&!reduced){const f=Math.sin(now*13.1)+Math.sin(now*7.3);if(f>1.85)i*=.3;}
+    p.color.setHex(L.c);p.intensity=i;p.distance=L.d;p.position.set(L.x,L.h,L.y);});
+}
 function render(rdt,now){
   updateCamera();syncUnits(now);
   if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
   moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);   // the shadow box follows the view: the map is bigger than one shadow map
-  for(const L of lamps){let i=L.i;if(L.flick&&!reduced){const f=Math.sin(now*13.1)+Math.sin(now*7.3);if(f>1.85)i*=.3;}L.light.intensity=i;}
+  lampLights(now);
   hemi.intensity=.24+storm*1.6;
   const fl=flashes.slice(-2);
   for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=3.2*(1-f.t/.07);}else m.intensity=0;}

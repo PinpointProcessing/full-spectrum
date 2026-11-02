@@ -6,16 +6,18 @@ function initRain(){
   rain=[];for(let i=0;i<n;i++)rain.push({x:Math.random()*cw,y:Math.random()*ch,l:8+Math.random()*10,v:520+Math.random()*260});
 }
 function gPath(x,y,r,a0=0,a1=TAU,wedge=false){
-  ox.beginPath();const n=32;
-  if(wedge){const[p,q]=toS(x,y);ox.moveTo(p,q);}
-  for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n,[p,q]=toS(x+Math.cos(a)*r,y+Math.sin(a)*r);if(i===0&&!wedge)ox.moveTo(p,q);else ox.lineTo(p,q);}
+  const n=32,pts=[];toSBack=false;
+  if(wedge)pts.push(toS(x,y));
+  for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;pts.push(toS(x+Math.cos(a)*r,y+Math.sin(a)*r));}
+  ox.beginPath();if(toSBack)return;   // part of it is behind the camera: draw nothing rather than a shape turned inside out over the screen
+  ox.moveTo(...pts[0]);for(let i=1;i<pts.length;i++)ox.lineTo(...pts[i]);
   if(wedge)ox.closePath();
 }
 // a vault on a route: a little arc over the window with an arrowhead, so you can see he'll climb through
 function vaultMark(a,b,col,alpha){
   const w=b.vault,o=w.o,m=w.vert?{x:w.c,y:a.y+(b.y-a.y)*(w.c-a.x)/((b.x-a.x)||1)}:{x:a.x+(b.x-a.x)*(w.c-a.y)/((b.y-a.y)||1),y:w.c};
   const ux=w.vert?Math.sign(b.x-a.x)||1:0,uy=w.vert?0:Math.sign(b.y-a.y)||1;
-  const[p0,q0]=toS(m.x-ux*12,m.y-uy*12,1),[p1,q1]=toS(m.x+ux*12,m.y+uy*12,1),[pc,qc]=toS(m.x,m.y,30);
+  toSBack=false;const[p0,q0]=toS(m.x-ux*12,m.y-uy*12,1),[p1,q1]=toS(m.x+ux*12,m.y+uy*12,1),[pc,qc]=toS(m.x,m.y,30);if(toSBack)return;
   ox.save();ox.globalAlpha=alpha;ox.strokeStyle=col;ox.lineWidth=2;ox.lineCap='round';ox.setLineDash([]);
   ox.beginPath();ox.moveTo(p0,q0);ox.quadraticCurveTo(pc,qc,p1,q1);ox.stroke();
   const ang=Math.atan2(q1-(qc+q1)/2,p1-(pc+p1)/2);   // arrowhead along the curve's end
@@ -58,7 +60,7 @@ function drawOverlay(rdt,now){
   for(const u of players){
     if(!alive(u)||!u.path.length)continue;const isSel=sel.includes(u);
     ox.strokeStyle=teamCol(u);ox.globalAlpha=isSel?.7:.3;ox.setLineDash([4,5]);ox.lineWidth=1.4;
-    ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of u.path){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}ox.stroke();
+    toSBack=false;ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of u.path){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}if(!toSBack)ox.stroke();
     ox.setLineDash([]);
     const d=u.path[u.path.length-1];gPath(d.x,d.y,5);ox.stroke();ox.globalAlpha=1;
     vaultMarks(u,u.path,teamCol(u),isSel?.95:.5);
@@ -92,7 +94,7 @@ function drawOverlay(rdt,now){
   // tracers, flashes, sparks, blasts
   ox.globalCompositeOperation='lighter';
   for(const t of tracers){
-    const k=1-t.t/.12,[x1,y1]=toS(t.x1,t.y1,12),[x2,y2]=toS(t.x2,t.y2,10),s=Math.max(0,t.t/.12-.35);
+    toSBack=false;const k=1-t.t/.12,[x1,y1]=toS(t.x1,t.y1,12),[x2,y2]=toS(t.x2,t.y2,10),s=Math.max(0,t.t/.12-.35);if(toSBack)continue;
     ox.strokeStyle=`rgba(${t.col},${.9*k})`;ox.lineWidth=1.8;ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();
   }
   for(const f of flashes){const[sx,sy]=toS(f.x,f.y,12);ox.fillStyle=`rgba(255,220,150,${.95*(1-f.t/.07)})`;ox.beginPath();ox.arc(sx,sy,5,0,TAU);ox.fill();}
@@ -116,12 +118,20 @@ function drawOverlay(rdt,now){
       if(e.sup>0.65&&e.alerted)label('PINNED',hx,hy-14,C.warn,9,700);
       else if(e.sup>0.08&&e.alerted)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
       const stalked=players.some(p=>p.tk&&p.tk.e===e);
-      if(stalked||(act.length===1&&canTakedown(act[0],e)))pill('TAKEDOWN',fx,fy+16,C.good);   // his back is to your soldier: tap him to sneak up and take him out (and it stays while he does)
-      else if(act.length){
-        let best=0,bc=0,lean=false;
-        for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}
-        if(best>0){const pct=Math.round(best*100);pill(`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing()?' · ambush':''}`,fx,fy+16,pct>=60?C.good:pct>=35?C.warn:C.bad);}
-        else pill('no line',fx,fy+16,'#7d8a94');
+      if(stalked||act.length){   // his label: TAKEDOWN if his back is to the one soldier selected (and while he's stalked), else the best hit chance. Worked out ~7 times a second, not every frame
+        const key=act.map(u=>u.id).join(),nowMs=performance.now();let pc=e._pill;
+        if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150){
+          let text,col;
+          if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
+          else{
+            let best=0,bc=0,lean=false;
+            for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}
+            if(best>0){const pct=Math.round(best*100);text=`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing()?' · ambush':''}`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
+            else{text='no line';col='#7d8a94';}
+          }
+          pc=e._pill={t:nowMs,key,stalked,text,col};
+        }
+        pill(pc.text,fx,fy+16,pc.col);
       }
       if(act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
       if(stalked){gPath(vx,vy,11+Math.sin(now*6)*1.5);ox.strokeStyle=C.good;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);}   // being stalked for a takedown

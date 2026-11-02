@@ -87,6 +87,7 @@ function nearBank(tx,ty,list){
 }
 function makeAssign(list,tx,ty){
   ({x:tx,y:ty}=nearBank(tx,ty,list));
+  const box=zoneAt(tx,ty);if(box){const r=boxAssign(list,box,tx,ty);if(r)return r;}   // a medical or supply box: everyone inside it
   const th=threats(),n=list.length,R=ASSIGN_R[Math.min(n,4)];
   const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf);
   const cands=[];
@@ -121,6 +122,20 @@ function makeAssign(list,tx,ty){
     if(!path){c=openSpot(tx,ty,[...res,...others]);path=c&&findPath(u.x,u.y,c.x,c.y);if(c)c={x:c.x,y:c.y,cp:false,cov:isCovered(c,th)};}
     if(path)res.push({u,x:c.x,y:c.y,cp:!!c.cp,path,cov:c.cov});
   });
+  return res;
+}
+// spots inside a medical or supply box (hq.js) for everyone selected: a grid of free spots 20 apart, nearest the tap first
+function boxAssign(list,z,tx,ty){
+  const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf),slots=[];
+  for(let y=z.y+12;y<=z.y+z.h-12;y+=20)for(let x=z.x+12;x<=z.x+z.w-12;x+=20)if(isFree(x,y,8)&&!others.some(o=>hyp(o.x-x,o.y-y)<SPACE_OPEN))slots.push({x,y});
+  if(slots.length<list.length)return null;
+  slots.sort((a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty));
+  const take=slots.slice(0,list.length),res=[],th=threats();
+  for(const u of list.slice().sort((a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty))){   // the nearest soldier first, to the nearest spot left
+    let bi=0;for(let i=1;i<take.length;i++)if(hyp(take[i].x-u.x,take[i].y-u.y)<hyp(take[bi].x-u.x,take[bi].y-u.y))bi=i;
+    const c=take.splice(bi,1)[0],path=findPath(u.x,u.y,c.x,c.y);if(!path)return null;
+    res.push({u,x:c.x,y:c.y,cp:false,path,cov:isCovered(c,th)});
+  }
   return res;
 }
 function commit(as){if(as&&as[0])say(as[0].u,'ack_move');
@@ -368,7 +383,7 @@ function silentKill(e,u){   // like damage(), but quiet: nobody hears it
 }
 
 /* ---------- AI ---------- */
-let spotBannerT=-99;   // one "Hostile spotted" banner at a time, not one per man
+let spotBannerT=-99,coverTick=0;   // one "Hostile spotted" banner at a time, not one per man
 function computeVis(){
   for(const e of enemies){
     if(e.dead){e.vis=false;continue;}
@@ -481,7 +496,7 @@ function update(dt){
   for(const arr of [tracers,flashes,sparks,booms,callouts])for(const f of arr)f.t+=dt;
   if(flashes.some(f=>f.t<=dt+1e-6)||booms.some(b=>b.t<=dt+1e-6))lastNoiseT=simT;   // a shot or a blast this tick: a location's quiet spell starts over (mission.js)
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
-  for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
+  if((coverTick-=dt)<=0){coverTick=.25;for(const p of players)if(alive(p))p.covered=isCovered(p,threats());}   // four times a second is plenty (it was every tick)
   for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;
   takedownTick(dt);
   missionFx(dt);

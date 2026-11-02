@@ -92,7 +92,7 @@ function vehDestroy(j,cause){
 // charred and slumped (also used when loading a save with a wrecked jeep)
 function wreckLook(j){
   j.m.g.traverse(o=>{if(o.isMesh){o.material=o.material.clone();if(o.material.color)o.material.color.setHex(0x161616);if(o.material.emissive)o.material.emissive.setHex(0);}});
-  j.m.tur.rotation.z=0.35;jeepLight.intensity=0;
+  j.m.tur.rotation.z=0.35;if(jeepLight)jeepLight.intensity=0;
 }
 
 /* ---------- each game tick ---------- */
@@ -131,8 +131,8 @@ function vehTick(dt){
   if(j.state==='ok'&&!j.moving&&j.hp<100&&onMotorPool(j)&&simT-(j.lastFight??-99)>=FIGHT_QUIET)j.hp=Math.min(100,j.hp+REPAIR_RATE*dt);   // no repairs under fire
   if(j.state==='broken'){j.burnT-=dt;if(j.burnT<=0)vehDestroy(j,'burn');}
   j.m.g.position.set(j.x,0,j.y);j.m.g.rotation.y=Math.PI/2-j.heading;
-  if(j.state==='ok'&&drv){jeepLight.intensity=3.2;const c=Math.cos(j.heading),s=Math.sin(j.heading);jeepLight.position.set(j.x+c*22,10,j.y+s*22);jeepLight.target.position.set(j.x+c*140,0,j.y+s*140);}
-  else if(j.state==='ok')jeepLight.intensity=0;
+  if(!jeepLight){}else if(j.state==='ok'&&drv){jeepLight.intensity=3.2;const c=Math.cos(j.heading),s=Math.sin(j.heading);jeepLight.position.set(j.x+c*22,10,j.y+s*22);jeepLight.target.position.set(j.x+c*140,0,j.y+s*140);}
+  else if(j.state==='ok')jeepLight.intensity=0;   // (no headlights made while the jeep is out of the game)
 }
 // nearest spot 15–34 m from the target, with a clear line for the gun and room for the jeep
 function engageSpot(j,e){

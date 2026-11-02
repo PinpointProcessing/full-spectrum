@@ -25,10 +25,10 @@ function continueGame(){
   for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;e.gone=true;}   // the warehouse, cleared
   wave.phase='hq';hq={t0:simT,tour:null};addZones(WH_ZONES);
   const n=STAGE_OBJ[s.stage];
-  if(n>=2)addZones([{k:'med',x:376,y:150,w:50,h:40},{k:'sup',x:526,y:150,w:50,h:40}]);
-  if(n>=3){addZones([{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}]);
+  if(n>=2)addZones(REST_ZONES.br);
+  if(n>=3){addZones(REST_ZONES.dep);
     for(const o of objs)if(o.kind==='tank'){o.burst=true;o.hp=0;if(o.meshes)for(const m of o.meshes){if(m.userData.c0==null)m.userData.c0=m.material.color.getHex();m.material.color.setHex(0x1a1816);}}}
-  if(n>=5){CORE.done=true;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0);setBridge(1);addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);}
+  if(n>=5){CORE.done=true;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0);setBridge(1);addZones(REST_ZONES.dc);}
   objDone={wh:1,br:2,dep:3,dc:4}[s.stage];startObjective(n,true);
   // the squad: the dead stay gone, the living keep their wounds
   const at=STAGE_AT[s.stage],taken=[];
