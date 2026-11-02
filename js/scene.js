@@ -217,23 +217,25 @@ function buildWorld(){
    for(const sx of[pr.x+1.5,pr.x+pr.w-1.5])for(const sz of[pr.y+8,pr.y+pr.h-2])addMesh(new T.CylinderGeometry(1.4,1.4,6,8),wm,sx,-1.5,sz);
    for(const bx of[30,80,165])addMesh(new T.CylinderGeometry(1.6,2,3,10),new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5}),bx,1.5,DOCK.quay-3);}
   dinghy=makeDinghy();dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
-  // the canal: glossy water, the main bridge (a concrete deck with railings), the tunnel in the far west (a covered concrete
-  // box with dark portals; its roof fades while a soldier is inside, see render) and the broken rail bridge (two rails on a
-  // twisted girder with gaps)
+  // the canal: glossy water, the main bridge (a concrete deck with railings), the sewer pipe in the west (a crawl-sized
+  // concrete pipe with low headwalls; it fades while a soldier is inside, see render) and the broken rail bridge (two rails
+  // on a twisted girder with gaps)
   {const cw2=CANAL.y1-CANAL.y0,wm=new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7});
    const cv=new T.Mesh(new T.PlaneGeometry(W+400,cw2),wm);cv.rotation.x=-Math.PI/2;cv.position.set(W/2,.15,(CANAL.y0+CANAL.y1)/2);cv.receiveShadow=true;scene.add(cv);
    const bw=MAINBR.x1-MAINBR.x0,conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.9}),rail=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
    addMesh(new T.BoxGeometry(bw,2,cw2+14),conc,(MAINBR.x0+MAINBR.x1)/2,1,(CANAL.y0+CANAL.y1)/2);
    for(const x of[MAINBR.x0+1.5,MAINBR.x1-1.5]){addMesh(new T.BoxGeometry(1.5,6,cw2+14),rail,x,5,(CANAL.y0+CANAL.y1)/2);}
    addMesh(new T.BoxGeometry(bw+8,8,6),conc,(MAINBR.x0+MAINBR.x1)/2,-3,(CANAL.y0+CANAL.y1)/2);
-   {const tw=TUNNEL.x1-TUNNEL.x0,tl=TUNNEL.y1-TUNNEL.y0,tx=(TUNNEL.x0+TUNNEL.x1)/2,tz=(TUNNEL.y0+TUNNEL.y1)/2,H=17;
+   {const tw=TUNNEL.x1-TUNNEL.x0,tl=TUNNEL.y1-TUNNEL.y0,tx=(TUNNEL.x0+TUNNEL.x1)/2,tz=(TUNNEL.y0+TUNNEL.y1)/2,R=tw/2-.5,cy=R-3.5;   // a crawl-sized pipe, half sunk
     const tc=new T.MeshStandardMaterial({color:0x6f716d,roughness:.95}),dark=new T.MeshBasicMaterial({color:0x050607});
-    addMesh(new T.BoxGeometry(tw,1,tl),new T.MeshStandardMaterial({color:0x2e3032,roughness:.9}),tx,.5,tz);            // the walkway
-    for(const x of[TUNNEL.x0-3,TUNNEL.x1+3])addMesh(new T.BoxGeometry(6,H,tl),tc,x,H/2,tz);                         // side walls
-    tunnelRoof=addMesh(new T.BoxGeometry(tw+12,3,tl),new T.MeshStandardMaterial({color:0x7a7c78,roughness:.95,transparent:true,opacity:1}),tx,H+1.5,tz);
-    for(const z of[TUNNEL.y0,TUNNEL.y1]){   // portals: a headwall over a dark opening
-      addMesh(new T.BoxGeometry(tw+20,6,4),tc,tx,H+3,z);
-      const p=new T.Mesh(new T.PlaneGeometry(tw,H-1),dark);p.position.set(tx,(H-1)/2+.5,z+(z===TUNNEL.y0?2.2:-2.2));p.rotation.y=z===TUNNEL.y0?Math.PI:0;scene.add(p);   // the dark inside, seen through the mouth
+    addMesh(new T.BoxGeometry(tw-3,.5,tl),new T.MeshStandardMaterial({color:0x26282a,roughness:.9}),tx,.3,tz);         // the wet floor inside
+    const pipe=new T.Mesh(new T.CylinderGeometry(R,R,tl,20,1,true),new T.MeshStandardMaterial({color:0x6a6c68,roughness:.95,side:T.DoubleSide,transparent:true,opacity:1}));
+    pipe.rotation.x=Math.PI/2;pipe.position.set(tx,cy,tz);pipe.castShadow=pipe.receiveShadow=true;scene.add(pipe);tunnelRoof=pipe;
+    for(let k=1;k<5;k++){const ring=new T.Mesh(new T.TorusGeometry(R+.4,.7,6,20),tc);ring.position.set(tx,cy,TUNNEL.y0+tl*k/5);scene.add(ring);}   // the joints between pipe sections
+    for(const z of[TUNNEL.y0,TUNNEL.y1]){   // the mouths: a low concrete headwall round a dark opening
+      const out=z===TUNNEL.y0?-1:1;
+      addMesh(new T.BoxGeometry(tw+16,cy+R+3,3),tc,tx,(cy+R+3)/2,z+out*1.5);
+      const m=new T.Mesh(new T.CircleGeometry(R-.6,20),dark);m.position.set(tx,cy,z+out*3.1);m.rotation.y=out<0?Math.PI:0;scene.add(m);
     }}
    const rw=RAILBR.x1-RAILBR.x0,steel=new T.MeshStandardMaterial({color:0x3d3a36,roughness:.7,metalness:.5});
    for(let k=0;k<6;k++){if(k===2)continue;const z=CANAL.y0-4+k*(cw2+8)/6;const m=addMesh(new T.BoxGeometry(rw,2,(cw2+8)/6-2),steel,(RAILBR.x0+RAILBR.x1)/2,1+(k===3?-1.2:0),z+(cw2+8)/12);m.rotation.z=k===3?.12:0;}
@@ -519,19 +521,19 @@ function syncUnits(t){
     m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
     m.g.visible=!u.gone&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||!!u.gunner);   // the jeep gunner is always in plain view; riders sit visible, the driver is hidden
     const lying=u.downed||u.dead;
-    const vk=lying?0:u.vaultK||0;   // vaulting a window: leaning forward over the sill, tucked
-    m.pose.rotation.z+=((lying?Math.PI/2:-.55*vk)-m.pose.rotation.z)*.2;
+    const vk=lying?0:u.vaultK||0,cr=!lying&&u.crawl;   // vaulting a window: leaning forward over the sill, tucked; in the sewer pipe: flat on his front
+    m.pose.rotation.z+=((lying?Math.PI/2:cr?-Math.PI/2:-.55*vk)-m.pose.rotation.z)*.2;
     const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
-    m.pose.position.y=lying?2.6:(u.path.length&&!vk?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
-    const crouch=!lying&&!u.gunner&&(u.inVeh||u.inBoat?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
-    m.pose.scale.y+=((crouch?.7:vk?.78:sneak?.8:1)-m.pose.scale.y)*.15;
+    m.pose.position.y=lying?2.6:cr?2+(u.path.length?Math.abs(Math.sin(t*5+u.y))*.35:0):(u.path.length&&!vk?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
+    const crouch=!lying&&!cr&&!u.gunner&&(u.inVeh||u.inBoat?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
+    m.pose.scale.y+=((crouch?.7:vk?.78:sneak&&!cr?.8:1)-m.pose.scale.y)*.15;
     m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
-    if(m.spot)m.spot.intensity=lying?0:2.6;
+    if(m.spot)m.spot.intensity=lying||cr?0:2.6;   // no torch while lying or crawling
   }
 }
 function render(rdt,now){
   updateCamera();syncUnits(now);
-  if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the tunnel
+  if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
   moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);   // the shadow box follows the view: the map is bigger than one shadow map
   for(const L of lamps){let i=L.i;if(L.flick&&!reduced){const f=Math.sin(now*13.1)+Math.sin(now*7.3);if(f>1.85)i*=.3;}L.light.intensity=i;}

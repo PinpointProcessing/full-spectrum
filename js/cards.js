@@ -72,6 +72,7 @@ function statusText(u){
   if(u.inVeh)return[{driver:'Driving',gunner:'On the gun',pass:'Riding'}[u.seat],''];
   if(u.boarding)return['Mounting up',''];
   if(u.inBoat)return['In the boat',''];
+  if(u.crawl)return[u.path.length?'Crawling':'In the pipe',''];
   if(u.sup>0.65)return['Pinned','pin'];
   if(u.supT)return['Suppressing',''];
   if(u.vaultK)return['Vaulting',''];

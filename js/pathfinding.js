@@ -59,10 +59,13 @@ function throughOpening(a,b,w){
 buildVaultLinks();
 
 /* ---------- keeping out of sight ---------- */
-// A cell in sight of a known enemy (one the squad has seen, where it was last seen; within rifle range) costs more to walk
-// through, up to x(1+SAFE_W*3). Sight here is a quick check on a grid of the sight-blocking objects (sightBlk), cached
-// until the known enemies move. The safe route is only taken if it's at most SAFE_DETOUR longer than the quickest.
-const SAFE_W=1,SAFE_R=380,SAFE_DETOUR=[1.5,40];
+// A cell a known enemy (one the squad has seen, where it was last seen) could see you in costs more to walk through, up
+// to x(1+SAFE_W*3). What he can see is what he'd really spot you in (Bryan found the old "anything in his line of sight
+// within 38 m" made funny detours): unaware, his view cone (the red wedge on the map: +-62 deg, 300) or anywhere within 80;
+// alerted, all round within rifle range, counting less the further off. Sight itself is a quick check on a grid of the
+// sight-blocking objects (sightBlk), cached until the known enemies move or turn. The safe route is only taken if it's at
+// most SAFE_DETOUR longer than the quickest.
+const SAFE_W=1,SAFE_R=380,SAFE_DETOUR=[1.3,30];
 const sightBlk=new Uint8Array(GW*GH),dVal=new Float32Array(GW*GH),dSt=new Int32Array(GW*GH);let dEpoch=0,dKey='',dThreats=[];
 for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){const x=cx0(gx),y=cy0(gy);sightBlk[gy*GW+gx]=objs.some(o=>o.full&&(o.disk?rectDist(x,y,o)<=0:inRect(x,y,o)))?1:0;}
 function gridSight(ax,ay,bx,by){   // can a soldier at a see b? (ignoring what's right next to a: a sentry in his pillbox sees out)
@@ -74,17 +77,21 @@ function gridSight(ax,ay,bx,by){   // can a soldier at a see b? (ignoring what's
   }
   return true;
 }
-function routeThreats(){   // the enemies the squad knows about, where it last saw them
+function routeThreats(){   // the enemies the squad knows about, where it last saw them, which way they face, and whether they're alerted
   const t=[];
-  for(const e of enemies)if(!e.dead&&e.seen&&(e.vis||e.last)){const p=e.vis?e:e.last;t.push({x:p.x,y:p.y,w:e.gunner?1.5:1});}
-  const key=t.map(q=>Math.round(q.x/10)+','+Math.round(q.y/10)).join(';');   // re-work the costs once they've moved a metre
+  for(const e of enemies)if(!e.dead&&e.seen&&(e.vis||e.last)){const p=e.vis?e:e.last;t.push({x:p.x,y:p.y,w:e.gunner?1.5:1,alert:!!e.alerted,ang:e.ang});}
+  const key=t.map(q=>Math.round(q.x/10)+','+Math.round(q.y/10)+(q.alert?'!':','+Math.round(q.ang*5))).join(';');   // re-work the costs once they've moved a metre or turned
   if(key!==dKey){dKey=key;dEpoch++;dThreats=t;}
   return t;
 }
 function dangerAt(i){
   if(dSt[i]===dEpoch)return dVal[i];
   const x=cx0(i%GW),y=cy0((i/GW)|0);let d=0;
-  for(const t of dThreats){const r=hyp(t.x-x,t.y-y);if(r<=SAFE_R&&gridSight(t.x,t.y,x,y))d+=t.w;}
+  for(const t of dThreats){
+    const r=hyp(t.x-x,t.y-y);if(r>(t.alert?SAFE_R:300))continue;
+    if(!t.alert&&r>80){let da=Math.atan2(y-t.y,x-t.x)-t.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)continue;}   // behind an unaware man: he won't see you
+    if(gridSight(t.x,t.y,x,y))d+=t.w*(t.alert?1-.6*r/SAFE_R:1);
+  }
   dSt[i]=dEpoch;return dVal[i]=Math.min(3,d);
 }
 

@@ -77,7 +77,16 @@ function openSpot(x,y,taken){
 // cover, closeness to the tap, how far each man walks and how spread out the team is, so nobody runs off on his own.
 // On open ground the slots form a short line across the enemy's line of sight, with a second row behind.
 const ASSIGN_R=[0,14,32,45,45];   // how far from the tap a spot may be, by group size
+// a tap on water (the canal, the dock) means the bank on the soldiers' side, not across it
+function nearBank(tx,ty,list){
+  if(!objs.some(o=>o.kind==='water'&&rectDist(tx,ty,o)<=0))return{x:tx,y:ty};
+  let cx=0,cy=0;for(const u of list){cx+=u.x/list.length;cy+=u.y/list.length;}
+  const d=hyp(cx-tx,cy-ty);
+  for(let k=4;k<d;k+=4){const x=tx+(cx-tx)*k/d,y=ty+(cy-ty)*k/d;if(isFree(x,y,8))return{x,y};}
+  return{x:tx,y:ty};
+}
 function makeAssign(list,tx,ty){
+  ({x:tx,y:ty}=nearBank(tx,ty,list));
   const th=threats(),n=list.length,R=ASSIGN_R[Math.min(n,4)];
   const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf);
   const cands=[];
@@ -278,7 +287,7 @@ function explode(x,y,by,quiet){
 
 /* ---------- stealth ---------- */
 // Gait is automatic: sneak while undetected with a live enemy within SNEAK_R, otherwise run. The gait button flips it (gaitForce).
-const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24;
+const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24,CRAWL_SPEED=13;   // crawling through the sewer pipe: about 6 s end to end
 function gaitOf(p){return p.gaitForce||autoGait(p);}
 function autoGait(p){return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';}
 // An unaware enemy builds awareness (0..1) instead of spotting the squad instantly. Seeing a soldier in his cone
@@ -380,14 +389,15 @@ function updateUnit(u,dt){
   if(u.side==='P'){if(u.sup>0.65&&!u.saidPinned&&alive(u)){u.saidPinned=true;say(u,'pinned');}else if(u.sup<0.4)u.saidPinned=false;}
   // vaulting through a window (pathfinding.js): slow over the sill, a hop up and down, no shooting until he's through
   const vw=u.path.length&&u.path[0].vault,vd=vw?Math.abs((vw.vert?u.x:u.y)-vw.c):99;
+  {const z=slowAt(u.x,u.y);u.crawl=!!(z&&z.crawl)&&!u.inVeh;}   // in the sewer pipe: prone, crawling
   u.vaultK=vw&&vd<VAULT_HALF&&!u.downed?1-(vd/VAULT_HALF)**2:0;
   if(u.side==='P'&&!u.inVeh&&!u.inBoat){const e0=u.elev||0;u.elev=e0+(VAULT_H*u.vaultK-e0)*Math.min(1,dt*16);}
   if(u.downed)return;
   if(u.seat==='driver')return;   // the driver drives; riders and the gunner fight from the jeep
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
-    const sz=slowAt(u.x,u.y),sp=(vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
-      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the tunnel and the broken rail bridge are slow going
+    const sz=slowAt(u.x,u.y),sp=(u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
+      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
     if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
   }else if(simT-u.aimT>2){
