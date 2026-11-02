@@ -45,7 +45,7 @@ function hud(){
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='charge')h='Tap a fuel tank or the server core. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
-  else if(secure.state==='move'&&!preview)h=`All hostiles down. Move a soldier into ${LOCS[obj].name} to take it.`;
+  else if(secure.state==='move'&&!preview)h=`All hostiles down. Move a soldier into the green area to take ${LOCS[obj].name}.`;
   else if(secure.state==='hold'&&!preview)h=`Taking ${LOCS[obj].name}: it's yours after ${QUIET_T} quiet seconds (no shooting).`;
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(wave.phase==='hq'&&!preview&&!act.length)h=`${OBJ_HINT[Math.max(obj,objDone)]||''} Heal and restock in the red + and supply boxes.`;   // objDone: right after a location's taken, before the next objective starts

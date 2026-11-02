@@ -86,15 +86,19 @@ function groupLeft(n){return (groups[n]||[]).filter(e=>!e.dead).length+pendingSp
 
 /* ---------- taking a location (Bryan): the whole place, then a quiet spell ---------- */
 // The warehouse, the bridge and the fuel depot are only secured once their defenders are all down (the depot's tanks gone
-// too), a soldier is inside the area and nothing has fired or blown up for QUIET_T s. A ring at the top fills meanwhile.
+// too), a soldier is inside the area and nothing has fired or blown up for QUIET_T s. A ring at the top fills meanwhile, and
+// the area is marked on the ground (drawSecure). extra: spots that count as inside too (the warehouse's doorways and windows,
+// so a man fighting from the door needn't walk in).
 const QUIET_T=5;
 const LOCS={
-  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(e=>e.dead),left:()=>enemies.filter(e=>!e.dead).length},
-  1:{zone:{x0:330,x1:660,y0:-40,y1:70},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},
+  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(e=>e.dead),left:()=>enemies.filter(e=>!e.dead).length,
+    extra:[{x0:285,x1:325,y0:240,y1:276},{x0:260,x1:360,y0:548,y1:578},{x0:150,x1:182,y0:395,y1:455},{x0:438,x1:470,y0:380,y1:420},{x0:438,x1:470,y0:450,y1:500}]},
+  1:{zone:{x0:330,x1:660,y0:-40,y1:100},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},   // its north end and the north half of the bridge
   2:{zone:DEP_ZONE,name:'the fuel depot',done:()=>groupDone(2)&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length,left:()=>groupLeft(2)},
 };
 let secure={t:0,state:null,said:false,left:-1},lastNoiseT=-99;
 function inZone(p,z){return p.x>=z.x0&&p.x<=z.x1&&p.y>=z.y0&&p.y<=z.y1;}
+function inLoc(p,L){return inZone(p,L.zone)||!!L.extra&&L.extra.some(z=>inZone(p,z));}
 function tanksGone(){return objs.every(o=>o.kind!=='tank'||o.burst);}
 // on the objective pill: how many hostiles are left once it's down to the last few (or the tanks are gone), or that it's being taken
 function locNote(){
@@ -107,11 +111,11 @@ function locNote(){
 function secureTick(n,dt){
   const L=LOCS[n];if(!L)return false;
   const left=L.left();if(left!==secure.left){secure.left=left;updateObjUI();}
-  const st=!L.done()?null:players.some(p=>alive(p)&&inZone(p,L.zone))?'hold':'move';
+  const st=!L.done()?null:players.some(p=>alive(p)&&inLoc(p,L))?'hold':'move';
   if(st!==secure.state){secure.state=st;updateObjUI();}
   if(st!=='hold'){
     secure.t=0;
-    if(st==='move'&&!secure.said){secure.said=true;banner(`Area clear. Move a soldier into ${L.name} to take it.`,3500);}
+    if(st==='move'&&!secure.said){secure.said=true;banner(`Area clear. Move a soldier into the green area to take ${L.name}.`,3500);}
     return false;
   }
   secure.t=Math.min(secure.t+dt,simT-lastNoiseT);   // the quiet spell restarts with every shot or blast
@@ -307,7 +311,22 @@ function updateObjUI(flash){
 }
 
 /* ---------- drawn on the overlay ---------- */
+// the area to take, marked on the ground once its defenders are down (Bryan: new players wouldn't know to go in): a pulsing
+// dashed green outline with MOVE IN while nobody's in it; solid and filling up, with a bar, while the quiet spell runs
+function drawSecure(now){
+  const st=secure.state,L=LOCS[obj];if(!st||!L||state!=='play')return;
+  const z=L.zone,c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4)),pulse=(Math.sin(now*4.5)+1)/2,k=clamp(secure.t/QUIET_T,0,1);
+  ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
+  if(st==='move'){
+    ox.fillStyle=`rgba(95,224,142,${(.05+pulse*.09).toFixed(3)})`;ox.fill();
+    ox.setLineDash([12,8]);ox.lineDashOffset=-now*16;ox.strokeStyle=`rgba(95,224,142,${(.55+pulse*.45).toFixed(2)})`;ox.lineWidth=2.6;ox.stroke();ox.setLineDash([]);
+  }else{ox.fillStyle=`rgba(95,224,142,${(.07+k*.17).toFixed(3)})`;ox.fill();ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.8;ox.stroke();}
+  const[lx,ly]=toS((z.x0+z.x1)/2,(z.y0+z.y1)/2,.4);
+  label(st==='move'?'MOVE IN':'SECURING',lx,ly,'#5fe08e',13,700);
+  if(st==='hold')bar(lx-26,ly+11,52,k,'#5fe08e');
+}
 function drawMission(rdt,now){
+  drawSecure(now);
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the server core, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};
