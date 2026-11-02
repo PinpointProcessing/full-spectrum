@@ -12,6 +12,7 @@ let MAPID='out',curFloor='GF',hasKey=false,dcTaken=false,fading=false;
 let IN=null;            // the interior once built: {L,floors,objs,lamps,hq,units,scene,lights,canvas,tex}
 const STASH={};         // the map that isn't in play
 const IN_HEAR_OPEN=260,IN_HEAR_WALL=110,IN_QUIET=8;   // how far gunfire carries inside, in sight and through walls; s unseen before contact ends
+const IN_OPEN=['GF'];   // the floors the built steps use (docs/office-building.md: B1 with step 3, 1F with step 4); the others are built but empty and off the floor chip
 
 /* ---------- building it ---------- */
 // the frame minus the floors: invisible full blocks, so nothing between the floors is walkable or gives cover points
@@ -28,9 +29,10 @@ function voidRects(bs){
   }
   return out;
 }
+const offFloor=u=>MAPID==='in'&&!!IN&&floorOf(u.x,u.y)!==curFloor;   // on another floor of the building than the one on screen: not drawn
 function roomAt(f,x,y){return (f.rooms||[]).find(r=>x>=r.x0&&x<=r.x1&&y>=r.y0&&y<=r.y1);}
 function floorOf(x,y){if(!IN)return null;for(const f of IN.L.floors){const b=f.bounds;if(x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1)return f.id;}return null;}
-const IN_FLOOR_COL={lobby:'#4b4f53',hall:'#3d4246',office:'#2e3842',meeting:'#33302c',shared:'#43464a',store:'#3a3b3c',stair:'#38393b',lift:'#3a3d40',cell:'#2a2c2e',basement:'#2c2e30',turret:'#3b3e41',lab:'#596067',science:'#596067',security:'#30363d'};
+const IN_FLOOR_COL={lobby:'#565b60',hall:'#464b50',office:'#36414c',meeting:'#3d3933',shared:'#4b4e52',store:'#414244',stair:'#404144',lift:'#43464a',cell:'#323436',basement:'#343638',turret:'#434649',lab:'#61686f',science:'#61686f',security:'#38404a'};
 function roomCol(name){const n=(name||'').toLowerCase();for(const k in IN_FLOOR_COL)if(n.includes(k))return IN_FLOOR_COL[k];return '#35393d';}
 // the floors: each room's own finish (polished tiles in the lobby and labs, carpet tiles in offices, worn vinyl in the
 // halls, concrete elsewhere), grime toward the corners, then soft dark edges along every wall and under the furniture
@@ -72,39 +74,45 @@ function buildInterior(){
   IN.objs.push(...voidRects(L.floors.map(f=>f.bounds)));
   // a ceiling light in every room, and one every 12 m along anything long (they share the lamp pool like the street lamps)
   for(const f of L.floors)for(const r of f.rooms||[]){
-    const w=r.x1-r.x0,h=r.y1-r.y0,n=Math.max(1,Math.round(Math.max(w,h)/120));
-    for(let k=0;k<n;k++){const t=(k+.5)/n;IN.lamps.push({x:w>=h?r.x0+w*t:(r.x0+r.x1)/2,y:w>=h?(r.y0+r.y1)/2:r.y0+h*t,h:32,c:/cell|basement/i.test(r.name)?0xffd39a:/lab|science/i.test(r.name)?0xe4f0ff:/office|meeting/i.test(r.name)?0xffe9c8:0xf0f2f4,i:1.5,d:190,ceil:1});}
+    const w=r.x1-r.x0,h=r.y1-r.y0,n=Math.max(1,Math.round(Math.max(w,h)/120)),floor=f.id;
+    for(let k=0;k<n;k++){const t=(k+.5)/n;IN.lamps.push({x:w>=h?r.x0+w*t:(r.x0+r.x1)/2,y:w>=h?(r.y0+r.y1)/2:r.y0+h*t,h:32,c:/cell|basement/i.test(r.name)?0xffd39a:/lab|science/i.test(r.name)?0xe4f0ff:/office|meeting/i.test(r.name)?0xffe9c8:0xf0f2f4,i:1.5,d:190,ceil:1,floor});}
   }
-  for(const f of L.floors)for(const o of f.objects)if(o.kind==='steeldoor')IN.lamps.push({x:o.x+o.w/2,y:o.y+o.h/2+(o.w>o.h?18:0),h:20,c:0xff3a22,i:1.3,d:80});   // a red warning light over a steel door
+  for(const f of L.floors)for(const o of f.objects)if(o.kind==='steeldoor')IN.lamps.push({x:o.x+o.w/2,y:o.y+o.h/2+(o.w>o.h?18:0),h:20,c:0xff3a22,i:1.3,d:80,floor:f.id});   // a red warning light over a steel door
   for(const f of L.floors)for(const z of f.zones||[])if(z.kind==='rest-med'||z.kind==='rest-sup')IN.hq.push(hqZone({k:z.kind==='rest-med'?'med':'sup',x:z.x0,y:z.y0,w:z.x1-z.x0,h:z.y1-z.y0}));
   // the 3D scene: a floor canvas (1 px per unit; decals paint into it too), the furniture, the lights
-  const sc=new T.Scene();sc.background=new T.Color(0x030405);sc.fog=new T.FogExp2(0x030405,0.0006);IN.scene=sc;
+  const sc=new T.Scene();sc.background=new T.Color(0x030405);sc.fog=new T.FogExp2(0x030405,0.00022);IN.scene=sc;
   const fc=document.createElement('canvas');fc.width=W;fc.height=H-TOP;const g=fc.getContext('2d');g.setTransform(1,0,0,1,0,-TOP);IN.canvas=fc;
   paintFloors(g,L);
   const tex=new T.CanvasTexture(fc);tex.encoding=T.sRGBEncoding;IN.tex=tex;
-  const ground=new T.Mesh(new T.PlaneGeometry(W,H-TOP),new T.MeshStandardMaterial({map:tex,roughness:.82,metalness:.06}));ground.rotation.x=-Math.PI/2;ground.position.set(W/2,0,(TOP+H)/2);sc.add(ground);
+  // one group per floor (its floor tiles, walls and furniture): only the floor on screen is shown (setFloor)
+  const gmat=new T.MeshStandardMaterial({map:tex,roughness:.82,metalness:.06}),V=y=>1-(y-TOP)/(H-TOP);IN.groups={};
+  for(const f of L.floors){
+    const b=f.bounds,grp=new T.Group();grp.visible=false;sc.add(grp);IN.groups[f.id]=grp;
+    const geo=new T.PlaneGeometry(b.x1-b.x0,b.y1-b.y0);geo.setAttribute('uv',new T.Float32BufferAttribute([b.x0/W,V(b.y0),b.x1/W,V(b.y0),b.x0/W,V(b.y1),b.x1/W,V(b.y1)],2));
+    const gr=new T.Mesh(geo,gmat);gr.rotation.x=-Math.PI/2;gr.position.set((b.x0+b.x1)/2,0,(b.y0+b.y1)/2);grp.add(gr);
+  }
   // matte (Lambert) for walls and furniture: no glare off the faces the lamps and torches hit, and cheaper on phones; metal keeps a sheen
   const M=(c,o={})=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.8,metalness:.1},o)),ML=c=>new T.MeshLambertMaterial({color:c});
-  const mat={wall:ML(0x2a2f35),owall:ML(0x202429),cap:ML(0x0b0d0f),wood:ML(0x5c4a38),light:ML(0x8f897e),metal:M(0x4d5359,{metalness:.5,roughness:.5}),dark:M(0x23272b,{metalness:.4,roughness:.5}),steel:M(0x3a4046,{metalness:.7,roughness:.35}),
+  const mat={wall:ML(0x2a2f35),owall:ML(0x202429),cap:ML(0x7a8087),wood:ML(0x5c4a38),light:ML(0x8f897e),metal:M(0x4d5359,{metalness:.5,roughness:.5}),dark:M(0x23272b,{metalness:.4,roughness:.5}),steel:M(0x3a4046,{metalness:.7,roughness:.35}),
     sofa:ML(0x2c3440),leaf:ML(0x2f5a34),bag:ML(0x8a7a5a),screen:new T.MeshBasicMaterial({color:0x5fb8e8,toneMapped:false}),led:new T.MeshBasicMaterial({color:0x37e08a,toneMapped:false}),glow:new T.MeshBasicMaterial({color:0xa8e6ff,toneMapped:false}),
     bars:M(0x2c3034,{metalness:.7,roughness:.4}),hazard:M(0xc8a02a)};
-  const box=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);sc.add(b);return b;};
+  let tgt=sc;const box=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);tgt.add(b);return b;};
   for(const o of IN.objs){
-    if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);
+    if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);tgt=IN.groups[o.floor]||sc;
     if(o.kind==='owall'||o.kind==='iwall'||o.kind==='pillar'||o.kind==='liftwall'){   // cut away at waist height with a dark top, like Dark Descent
       box(o.w,hgt,o.h,o.kind==='liftwall'?mat.metal:o.kind==='owall'?mat.owall:mat.wall,cx,hgt/2,cz);box(o.w+.2,1.2,o.h+.2,mat.cap,cx,hgt+.6,cz);
     }else if(o.kind==='steeldoor'){box(o.w,hgt,o.h,mat.steel,cx,hgt/2,cz);for(let k=0;k<3;k++)box(o.w>o.h?o.w:1.2,1.4,o.w>o.h?1.2:o.h,mat.hazard,cx,3+k*4,cz);}
     else if(o.kind==='cabinet'){box(o.w,hgt,o.h,mat.metal,cx,hgt/2,cz);}
-    else if(o.kind==='rack'){box(o.w,hgt,o.h,mat.dark,cx,hgt/2,cz);const r=rng(o.x+o.y);for(let k=0;k<6;k++){const l=new T.Mesh(new T.BoxGeometry(1,1,1),mat.led);l.position.set(o.x+2+r()*(o.w-4),3+r()*(hgt-6),o.w>o.h?o.y-.3:cz);sc.add(l);}}
+    else if(o.kind==='rack'){box(o.w,hgt,o.h,mat.dark,cx,hgt/2,cz);const r=rng(o.x+o.y);for(let k=0;k<6;k++){const l=new T.Mesh(new T.BoxGeometry(1,1,1),mat.led);l.position.set(o.x+2+r()*(o.w-4),3+r()*(hgt-6),o.w>o.h?o.y-.3:cz);tgt.add(l);}}
     else if(o.kind==='desk'||o.kind==='terminal'){box(o.w,hgt,o.h,mat.wood,cx,hgt/2,cz);const s=box(Math.min(10,o.w*.4),5,1,o.kind==='terminal'?mat.screen:mat.dark,cx,hgt+2.5,cz);if(o.kind==='terminal')s.scale.set(1.4,1.2,1);}
     else if(o.kind==='counter'){box(o.w,hgt,o.h,mat.light,cx,hgt/2,cz);box(o.w,1,o.h+2,mat.wood,cx,hgt+.5,cz);}
     else if(o.kind==='copier'){box(o.w,hgt,o.h,mat.light,cx,hgt/2,cz);}
     else if(o.kind==='sofa'){box(o.w,hgt,o.h,mat.sofa,cx,hgt/2,cz);}
-    else if(o.kind==='planter'){box(o.w,hgt*.6,o.h,mat.dark,cx,hgt*.3,cz);const p=new T.Mesh(new T.SphereGeometry(Math.min(o.w,o.h)*.55,8,6),mat.leaf);p.position.set(cx,hgt*.8,cz);sc.add(p);}
+    else if(o.kind==='planter'){box(o.w,hgt*.6,o.h,mat.dark,cx,hgt*.3,cz);const p=new T.Mesh(new T.SphereGeometry(Math.min(o.w,o.h)*.55,8,6),mat.leaf);p.position.set(cx,hgt*.8,cz);tgt.add(p);}
     else if(o.kind==='crate'){box(o.w,hgt,o.h,mat.wood,cx,hgt/2,cz);}
     else if(o.kind==='sandbag'){box(o.w,hgt,o.h,mat.bag,cx,hgt/2,cz);}
-    else if(o.kind==='lab'){o.mesh=box(o.w,hgt,o.h,mat.light,cx,hgt/2,cz);for(let k=0;k<3;k++){const v=new T.Mesh(new T.CylinderGeometry(1.2,1.2,4,8),mat.glow);v.position.set(o.x+o.w*(k+1)/4,hgt+2,cz);sc.add(v);}}
-    else if(o.kind==='bars'){const n=Math.max(2,Math.round(Math.max(o.w,o.h)/4));for(let k=0;k<=n;k++){const t=k/n,b=new T.Mesh(new T.CylinderGeometry(.5,.5,hgt,5),mat.bars);b.position.set(o.w>=o.h?o.x+o.w*t:cx,hgt/2,o.w>=o.h?cz:o.y+o.h*t);sc.add(b);}box(o.w>=o.h?o.w:1,1,o.w>=o.h?1:o.h,mat.bars,cx,hgt,cz);}
+    else if(o.kind==='lab'){o.mesh=box(o.w,hgt,o.h,mat.light,cx,hgt/2,cz);for(let k=0;k<3;k++){const v=new T.Mesh(new T.CylinderGeometry(1.2,1.2,4,8),mat.glow);v.position.set(o.x+o.w*(k+1)/4,hgt+2,cz);tgt.add(v);}}
+    else if(o.kind==='bars'){const n=Math.max(2,Math.round(Math.max(o.w,o.h)/4));for(let k=0;k<=n;k++){const t=k/n,b=new T.Mesh(new T.CylinderGeometry(.5,.5,hgt,5),mat.bars);b.position.set(o.w>=o.h?o.x+o.w*t:cx,hgt/2,o.w>=o.h?cz:o.y+o.h*t);tgt.add(b);}box(o.w>=o.h?o.w:1,1,o.w>=o.h?1:o.h,mat.bars,cx,hgt,cz);}
     else box(o.w,Math.max(4,hgt),o.h,mat.light,cx,Math.max(4,hgt)/2,cz);
   }
   const hemi2=new T.HemisphereLight(0x7d8aa0,0x120e0a,.3);hemi2.userData.base=.3;sc.add(hemi2);
@@ -113,13 +121,13 @@ function buildInterior(){
   const bl=new T.PointLight(0xffa050,0,280,1.6);sc.add(bl);
   IN.lights={hemi:hemi2,moon:null,lampPool:pool,muzzle:mz,boomL:bl};
   // the things to use, from the layout (more kinds join in the next steps)
-  for(const f of L.floors)for(const it of f.interact||[]){
+  for(const f of L.floors)if(IN_OPEN.includes(f.id))for(const it of f.interact||[]){
     if(it.kind==='key')ACTS.push({id:'key',map:'in',floor:f.id,x:it.x,y:it.y,r:16,label:'DECRYPTION KEY',pickup:true,avail:()=>!hasKey,act:u=>takeKey(u)});
   }
 }
 function spawnInterior(){   // the guards at their posts, unaware (ambushers, prisoners, scientists come with their own steps)
   let n=0;
-  for(const f of IN.L.floors)for(const p of f.posts||[]){
+  for(const f of IN.L.floors)if(IN_OPEN.includes(f.id))for(const p of f.posts||[]){
     if(p.role!=='rifleman'&&p.role!=='mg')continue;
     const r=roomAt(f,p.x,p.y),zone=r?{x0:r.x0+8,x1:r.x1-8,y0:r.y0+8,y1:r.y1-8}:{x0:f.bounds.x0,x1:f.bounds.x1,y0:f.bounds.y0,y1:f.bounds.y1},id='I'+(++n);
     const u=p.role==='mg'?mgGunner(id,p.x,p.y):hostile(id,p.x,p.y,{zone,ang:p.ang});
@@ -209,13 +217,14 @@ function leaveInteriorNow(){
 /* ---------- floors ---------- */
 function setFloor(id,at){
   if(!IN||!IN.floors[id])return;curFloor=id;const b=IN.floors[id].bounds;
+  for(const k in IN.groups)IN.groups[k].visible=k===id;
   VB={x0:b.x0,z0:b.y0,x1:b.x1,z1:b.y1};FIT.w=b.x1-b.x0+40;FIT.h=b.y1-b.y0+40;fitDist();
   camT=at?{x:at.x,z:at.y}:{x:(b.x0+b.x1)/2,z:(b.y0+b.y1)/2};clampCam();updateCamera();floorChip();
 }
 const FLOOR_NAMES={'1F':'1F','GF':'GF','B1':'B1'};
 function floorChip(){   // the floor switcher, right side: which floor you're looking at, and dots for who's on each
   const el=$('#floors');if(!el)return;el.hidden=MAPID!=='in';if(el.hidden)return;
-  const ids=['1F','GF','B1'].filter(id=>IN.floors[id]);
+  const ids=['1F','GF','B1'].filter(id=>IN.floors[id]&&IN_OPEN.includes(id));
   if(el.children.length!==ids.length)el.innerHTML=ids.map(id=>`<button data-f="${id}"><b>${FLOOR_NAMES[id]}</b><i></i></button>`).join('');
   for(const b of el.children){const id=b.dataset.f;b.classList.toggle('on',id===curFloor);
     b.querySelector('i').innerHTML=players.filter(p=>!p.dead&&!p.offMap&&floorOf(p.x,p.y)===id).map(p=>`<span style="background:${teamCol(p)}"></span>`).join('');}
@@ -228,12 +237,15 @@ function bindFloors(){
 }
 
 /* ---------- noise and contact inside ---------- */
-// a shot or a blast at (x,y) alerts the hostiles on that floor who'd hear it: in sight within IN_HEAR_OPEN, through walls within IN_HEAR_WALL
-function alertNear(x,y,msg,ambush){
-  const f=floorOf(x,y);let any=false;
+// a shot or a blast at (x,y) (and where it lands, x2,y2) alerts the hostiles on that floor who'd hear it: anyone in the
+// same room, in sight within IN_HEAR_OPEN, through walls within IN_HEAR_WALL
+function alertNear(x,y,msg,ambush,x2,y2){
+  const f=floorOf(x,y),fl=IN.floors[f];let any=false;
+  const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]],rooms=fl?pts.map(([px,py])=>roomAt(fl,px,py)).filter(Boolean):[];
+  const hears=e=>{if(fl&&rooms.includes(roomAt(fl,e.x,e.y)))return true;
+    for(const[px,py]of pts){const d=hyp(e.x-px,e.y-py);if(d<=IN_HEAR_WALL||(d<=IN_HEAR_OPEN&&gridSight(px,py,e.x,e.y)))return true;}return false;};
   for(const e of enemies){
-    if(e.dead||e.alerted||e.floor!==f)continue;
-    const d=hyp(e.x-x,e.y-y);if(d>IN_HEAR_OPEN||(d>IN_HEAR_WALL&&!gridSight(x,y,e.x,e.y)))continue;
+    if(e.dead||e.alerted||e.floor!==f||!hears(e))continue;
     e.alerted=true;e.aware=1;e.jumpy=true;e.sawT=simT;if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);any=true;
   }
   if(!contact){const amb=ambush&&any;contact=true;say(players.find(alive),amb?'ack_attack':'contact');if(amb)ambushT=simT+AMBUSH_T;banner(amb?'Ambush! They never saw it coming.':msg||'Contact. They know you are here.',2200);setStatus();}   // an ambush only if it caught someone unaware
@@ -276,6 +288,7 @@ function takeKey(u){hasKey=true;callout(u,'Got the key',C.good);say(u,'objective
 function drawActs(now){
   const pulse=(Math.sin(now*3)+1)/2,act=sel.some(alive);
   for(const a of actsHere()){
+    if(a.floor&&a.floor!==curFloor)continue;
     gPath(a.x,a.y,a.r+pulse*3);ox.strokeStyle=a.pickup?'#7ff0ff':'#ffcf4a';ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);
     const[lx,ly]=below(a.x,a.y+a.r,6);if(act&&!a.pickup)pill(a.label,lx,ly,C.good);else label(a.label,lx,ly,a.pickup?'#7ff0ff':'#ffcf4a',9,700);
   }

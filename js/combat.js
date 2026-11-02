@@ -182,8 +182,8 @@ function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',
 // Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
 // and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.
 const AMBUSH_T=1.5,AMBUSH_BONUS=0.15;
-function alertAll(msg,ambush,x,y){
-  if(MAPID==='in'){if(x!=null)alertNear(x,y,msg,ambush);return;}   // inside the office building noise only carries to nearby rooms (interior.js)
+function alertAll(msg,ambush,x,y,x2,y2){
+  if(MAPID==='in'){if(x!=null)alertNear(x,y,msg,ambush,x2,y2);return;}   // inside the office building noise only carries to nearby rooms (interior.js)
   if(contact)return;contact=true;say(players.find(alive),ambush?'ack_attack':'contact');
   for(const e of enemies)if(!e.dead){e.alerted=true;e.aware=1;if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);}
   if(ambush){ambushT=simT+AMBUSH_T;msg='Ambush! They never saw it coming.';}
@@ -249,8 +249,8 @@ function resolveShot(s){
   flashes.push({x:fx,y:fy,t:0});
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:sg?0.14:0.06)*(t.side==='P'?rankNerve(t):1));   // machine guns and shotgun blasts pin people down
   if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
-  if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy);
-  else if(MAPID==='in')alertNear(fx,fy,null,false);   // inside, their gunfire is heard in the next rooms too
+  if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey);
+  else if(MAPID==='in')alertNear(fx,fy,null,false,ex,ey);   // inside, their gunfire is heard in the next rooms too
   if(t.side==='E'&&!t.alerted)t.alerted=true;
 }
 function suppressShot(u){
@@ -273,7 +273,7 @@ function suppressShot(u){
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
   for(const{e}of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
   if(hit)damage(t,12,u);
-  alertAll('Contact. Weapons free.',true,u.x,u.y);
+  alertAll('Contact. Weapons free.',true,u.x,u.y,ex,ey);
   u.cool=.42+Math.random()*.12;
 }
 function throwNade(u,tx,ty){

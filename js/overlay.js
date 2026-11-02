@@ -57,7 +57,7 @@ function drawOverlay(rdt,now){
   const pulse=(Math.sin(now*4)+1)/2;
   // enemy view cones (unaware, seen)
   for(const e of enemies){
-    if(e.dead||e.alerted||!e.vis)continue;
+    if(e.dead||e.alerted||!e.vis||offFloor(e))continue;
     if(MAPID==='in')conePath(e);else gPath(e.x,e.y,300,e.ang-1.08,e.ang+1.08,true);   // indoors the cone stops at walls
     ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
   }
@@ -122,7 +122,7 @@ function drawOverlay(rdt,now){
   // enemy info
   const act=sel.filter(alive);
   for(const e of enemies){
-    if(e.dead)continue;
+    if(e.dead||offFloor(e))continue;
     if(e.vis){
       const vx=e.x+e.lx,vy=e.y+e.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
       if(e.hp<100)bar(hx-9,hy-6,18,e.hp/100,e.hp>60?C.good:e.hp>30?C.warn:C.bad);
@@ -153,7 +153,7 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
-    if(u.seat==='driver'||u.offMap)continue;   // behind the wheel: the jeep's own label covers him; left outside the office building: not on this map
+    if(u.seat==='driver'||u.offMap||offFloor(u))continue;   // behind the wheel: the jeep's own label covers him; left outside the office building: not on this map
     // shoulder to shoulder with an earlier teammate: lift this one's bar so the two don't overlap
     const crowd=players.filter((o,i)=>i<players.indexOf(u)&&!o.dead&&o.seat!=='driver'&&hyp(o.x-u.x,o.y-u.y)<16).length;
     const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy0]=toS(vx,vy,24),hy=hy0-crowd*10,[fx,fy]=toS(vx,vy);
@@ -172,7 +172,7 @@ function drawOverlay(rdt,now){
     if(u.sup>0.65)label('PINNED',hx,hy-15,C.warn,9,700);
     else if(u.sup>0.08)bar(hx-9,hy-1,18,u.sup/0.65,C.warn);
   }
-  for(const c of callouts){const[sx,sy]=toS(c.x,c.y,30),k=c.t/1.7;ox.globalAlpha=1-Math.max(0,k-.6)/.4;label(c.text,sx,sy-k*16,c.col,11,700);ox.globalAlpha=1;}
+  for(const c of callouts){if(offFloor(c))continue;const[sx,sy]=toS(c.x,c.y,30),k=c.t/1.7;ox.globalAlpha=1-Math.max(0,k-.6)/.4;label(c.text,sx,sy-k*16,c.col,11,700);ox.globalAlpha=1;}
   if(ptr&&ptr.kind==='lasso'&&ptr.loop.length>1){   // lasso loop, closed back to its start
     ox.beginPath();ox.moveTo(...ptr.loop[0]);for(const p of ptr.loop)ox.lineTo(...p);ox.closePath();
     ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);

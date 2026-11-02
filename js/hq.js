@@ -71,6 +71,7 @@ function drawHQ(now){
   if(!HQ_ZONES.length)return;
   const pulse=(Math.sin(now*4)+1)/2;
   for(const z of HQ_ZONES){
+    if(offFloor({x:z.x+z.w/2,y:z.y+z.h/2}))continue;   // a box on another floor of the office building
     toSBack=false;const c=[[z.x,z.y],[z.x+z.w,z.y],[z.x+z.w,z.y+z.h],[z.x,z.y+z.h]].map(([x,y])=>toS(x,y,.3));if(toSBack)continue;   // a corner behind the camera
     ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
     ox.fillStyle=`rgba(${z.col},${.08+pulse*.05})`;ox.fill();
