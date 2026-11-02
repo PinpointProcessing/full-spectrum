@@ -52,6 +52,7 @@ function hud(){
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
+  else if(act.length===1&&enemies.some(e=>canTakedown(act[0],e)))h=`A hostile has his back to ${act[0].name}: tap him (TAKEDOWN) to sneak up and take him out silently.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';
   $('#hint').textContent=h;

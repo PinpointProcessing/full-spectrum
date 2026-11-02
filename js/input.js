@@ -208,6 +208,7 @@ function tap(sx,sy){
   }
   if(hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
   const en=enemyAtScreen(sx,sy);
+  if(en&&sel.length===1&&canTakedown(sel[0],en)){if(orderTakedown(sel[0],en))preview=null;return;}   // his back is to the one soldier selected: a silent takedown (combat.js)
   if(en&&sel.length){
     for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}
     if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up

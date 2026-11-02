@@ -302,8 +302,9 @@ function sense(e,dt){
       let da=Math.atan2(p.y-e.y,p.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
       const cone=Math.abs(da)<1.08;
       if((cone||d<80)&&fireLine(e,p)){
-        g=SEE_RATE*(1-d/330)*(cone?1:0.5);
-        g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least (in the tunnel nobody can see him at all: fireLine)
+        g=SEE_RATE*(1-d/330);
+        if(cone)g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least (in the sewer pipe nobody can see him at all: fireLine)
+        else g*=p.path.length?(p.gait==='sneak'?0.04:0.65):0.03;   // close behind him: a man creeping up is hard to notice (takedowns), one running up isn't
       }
     }
     if(p.path.length&&p.gait==='run'&&d<NOISE_R)g+=0.5*(1-d/NOISE_R);
@@ -319,6 +320,53 @@ function sense(e,dt){
 // detection meter for the HUD: the most suspicious live enemy, full once there's contact
 function detection(){if(contact)return 1;let a=0;for(const e of enemies)if(!e.dead)a=Math.max(a,e.aware);return a;}
 
+/* ---------- takedowns (Bryan: silently kill a man you get behind unseen) ---------- */
+// One soldier selected and a hostile who hasn't noticed anyone, within TK_RANGE, with his back to him (the soldier is
+// outside his view cone): the hostile's label says TAKEDOWN and tapping him sends the soldier sneaking up behind him
+// (forced sneak; he follows if the man moves). Close behind him he grabs him (TK_TIME s, the man frozen) and kills him
+// silently: no shot, no blast, no alarm; it counts as a kill. If the man is alerted on the way in, it's off and the
+// soldier stops where he is. Not a sentry inside a structure (the pillbox).
+const TK_RANGE=140,TK_REACH=10,TK_TIME=.6;
+function behindSpot(e){   // a free spot at his back: straight behind first, then round to either side, still outside his cone (his back may be to a wall)
+  for(const r of[TK_REACH,TK_REACH+4])for(const da of[0,.6,-.6,1.1,-1.1,1.5,-1.5]){const a=e.ang+Math.PI+da,x=e.x+Math.cos(a)*r,y=e.y+Math.sin(a)*r;if(isFree(x,y,7)&&los(e.x,e.y,x,y))return{x,y};}
+  return null;
+}
+function canTakedown(u,e){
+  if(!u||!e||!alive(u)||u.inVeh||u.crawl||u.tk||e.dead||e.alerted||contact||!e.vis||e.elev||e.grabbed)return false;
+  const d=hyp(u.x-e.x,u.y-e.y);if(d>TK_RANGE)return false;
+  let da=Math.atan2(u.y-e.y,u.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
+  return Math.abs(da)>1.08&&!!behindSpot(e);   // he's not looking his way
+}
+function orderTakedown(u,e){
+  const sp=behindSpot(e),p=sp&&findPath(u.x,u.y,sp.x,sp.y);
+  if(!p||pathTime(p,u.x,u.y)>TK_RANGE*1.7){banner('Can\u2019t get behind him from here.',1800);return false;}
+  u.path=p;u.lastOrder=simT;u.focus=null;u.supT=null;u.focusTank=null;u.plant=null;u.gaitForce='sneak';u.tk={e,spot:sp,t:simT,re:simT};
+  callout(u,'Moving in',C.good);return true;
+}
+function takedownTick(dt){
+  for(const u of players){
+    const k=u.tk;if(!k)continue;const e=k.e;
+    const end=u.path.length?u.path[u.path.length-1]:null;
+    if(!alive(u)||e.dead||(end&&!k.strike&&hyp(end.x-k.spot.x,end.y-k.spot.y)>4)){endTakedown(u,false);continue;}   // down, he's gone, or ordered elsewhere
+    if(e.alerted&&!k.strike){endTakedown(u,false);u.path=[];continue;}   // spotted on the way in: off, and he stops where he is
+    if(k.strike){if(simT-k.strike>=TK_TIME){silentKill(e,u);endTakedown(u,true);}continue;}
+    const d=hyp(u.x-e.x,u.y-e.y);
+    if(d<=TK_REACH+6){   // right behind him: grab
+      k.strike=simT;e.grabbed=true;u.path=[];u.ang=Math.atan2(e.y-u.y,e.x-u.x);u.aimT=simT;callout(u,'Takedown',C.good);continue;
+    }
+    if(simT-k.re>.3){   // he's moved or turned: follow him round to his back
+      k.re=simT;const sp=behindSpot(e);
+      if(sp&&hyp(sp.x-k.spot.x,sp.y-k.spot.y)>12){const p=findPath(u.x,u.y,sp.x,sp.y);if(p){u.path=p;k.spot=sp;}}
+      else if(!u.path.length&&sp){const p=findPath(u.x,u.y,sp.x,sp.y);if(p){u.path=p;k.spot=sp;}}
+    }
+  }
+}
+function endTakedown(u,done){const e=u.tk&&u.tk.e;if(e&&!done)e.grabbed=false;u.tk=null;if(u.gaitForce==='sneak')u.gaitForce=null;}
+function silentKill(e,u){   // like damage(), but quiet: nobody hears it
+  e.grabbed=false;e.hp=0;e.dead=true;e.path=[];callout(e,'Silent kill',C.good);creditKill(u);
+  paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});if(Math.random()<.6)say(u,'kill');
+}
+
 /* ---------- AI ---------- */
 let spotBannerT=-99;   // one "Hostile spotted" banner at a time, not one per man
 function computeVis(){
@@ -330,7 +378,7 @@ function computeVis(){
       e.last={x:e.x,y:e.y};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
-    if(!e.alerted)sense(e,0.1);
+    if(!e.alerted&&!e.grabbed)sense(e,0.1);
   }
 }
 // where an alerted enemy may shift between cover: inside the warehouse, unless he has his own zone (the checkpoint garrison)
@@ -383,7 +431,7 @@ function playerThink(p){
 
 /* ---------- update ---------- */
 function updateUnit(u,dt){
-  if(u.dead)return;
+  if(u.dead||u.grabbed)return;   // grabbed from behind (a takedown): he's done
   if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
   if(u.side==='P'){if(u.sup>0.65&&!u.saidPinned&&alive(u)){u.saidPinned=true;say(u,'pinned');}else if(u.sup<0.4)u.saidPinned=false;}
@@ -435,6 +483,7 @@ function update(dt){
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
   for(const p of players){if(alive(p)){p.covered=isCovered(p,threats());}}
   for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;
+  takedownTick(dt);
   missionFx(dt);
   if(state==='play'&&!endAt){
     vehTick(dt);waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete

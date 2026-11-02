@@ -115,13 +115,16 @@ function drawOverlay(rdt,now){
       if(e.hp<100)bar(hx-9,hy-6,18,e.hp/100,e.hp>60?C.good:e.hp>30?C.warn:C.bad);
       if(e.sup>0.65&&e.alerted)label('PINNED',hx,hy-14,C.warn,9,700);
       else if(e.sup>0.08&&e.alerted)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
-      if(act.length){
+      const stalked=players.some(p=>p.tk&&p.tk.e===e);
+      if(stalked||(act.length===1&&canTakedown(act[0],e)))pill('TAKEDOWN',fx,fy+16,C.good);   // his back is to your soldier: tap him to sneak up and take him out (and it stays while he does)
+      else if(act.length){
         let best=0,bc=0,lean=false;
         for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}
         if(best>0){const pct=Math.round(best*100);pill(`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing()?' · ambush':''}`,fx,fy+16,pct>=60?C.good:pct>=35?C.warn:C.bad);}
         else pill('no line',fx,fy+16,'#7d8a94');
       }
       if(act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
+      if(stalked){gPath(vx,vy,11+Math.sin(now*6)*1.5);ox.strokeStyle=C.good;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);}   // being stalked for a takedown
     }else if(e.seen&&e.last){
       gPath(e.last.x,e.last.y,7);ox.setLineDash([3,3]);ox.strokeStyle='rgba(255,90,72,.7)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);
       const[sx,sy]=toS(e.last.x,e.last.y,6);label('?',sx,sy,'rgba(255,110,90,.95)',11,700);

@@ -73,6 +73,7 @@ function statusText(u){
   if(u.boarding)return['Mounting up',''];
   if(u.inBoat)return['In the boat',''];
   if(u.crawl)return[u.path.length?'Crawling':'In the pipe',''];
+  if(u.tk)return[u.tk.strike?'Takedown':'Sneaking up',''];
   if(u.sup>0.65)return['Pinned','pin'];
   if(u.supT)return['Suppressing',''];
   if(u.vaultK)return['Vaulting',''];
