@@ -122,15 +122,13 @@ function secureTick(n,dt){
   if(secure.t<QUIET_T)return false;
   secure={t:0,state:null,said:false,left:-1};updateObjUI();return true;
 }
-const OBJ_INTRO={1:'Objective 2: take the bridge. The tunnel in the far west (out of sight) and the broken rail bridge in the east are other ways over.',
-  2:'Objective 3: destroy the fuel tanks. Plant a charge (on a soldier\'s card) or shoot them from a safe distance.',
-  3:'Objective 4: get inside the data center and blow the server core. Three ways in: the front, the west door, the east door.',
-  4:'Now lower the drawbridge: send a soldier to the control panel.'};
+// when an objective starts: one short line, the next thing on the list (Bryan); the details stay in the hint line (OBJ_HINT)
+const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Destroy the fuel tanks to the north-east',3:'Sabotage the data center to the north-west',4:'Lower the drawbridge to the north-east'};
 function startObjective(n,quiet){
   obj=n;if(n<=3&&!groups[n])spawnGroup(n);
   updateObjUI();setStatus();hud();
   if(quiet||!OBJ_INTRO[n])return;
-  banner(OBJ_INTRO[n],5000);   // no camera fly-over (Bryan: the map jumping elsewhere was disorienting)
+  banner(OBJ_INTRO[n],3500);   // no camera fly-over (Bryan: the map jumping elsewhere was disorienting)
 }
 // a finished objective is a checkpoint and a rest (Bryan): "Location secured", heal/resupply boxes, a save; the next one's defenders
 // take their posts a few seconds later, unaware
@@ -153,7 +151,7 @@ function missionTick(dt){
   }
   if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective([{k:'med',x:376,y:150,w:50,h:40},{k:'sup',x:526,y:150,w:50,h:40}],'br',2);
   else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective([{k:'med',x:716,y:-44,w:56,h:40},{k:'sup',x:780,y:-44,w:56,h:40}],'dep',3,'Fuel depot destroyed');
-  else if(obj===3&&CORE.done){obj=4;bigText('Server core destroyed','clear');banner(OBJ_INTRO[4],4500);updateObjUI();setStatus();}
+  else if(obj===3&&CORE.done){obj=4;bigText('Server core destroyed','clear');banner(OBJ_INTRO[4],3500);updateObjUI();setStatus();}
   if(panelGo){
     const u=panelGo;
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
@@ -162,7 +160,7 @@ function missionTick(dt){
       if(obj<4){banner('Turn on the power to access drawbridge controls',4000);callout(u,'No power',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
       else if(obj===4){callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
         bigText('Drawbridge down!','unlock');objCompleted(4);addZones([{k:'med',x:640,y:-520,w:56,h:44},{k:'sup',x:700,y:-520,w:56,h:44}]);saveGame('dc');updateObjUI();
-        setTimeout(()=>{if(state==='play'&&obj===5){banner('Objective 5: take the Headquarters. That part comes next.',5000);endAt=performance.now()+600;}},OBJ_LIST_T+200);}
+        setTimeout(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3500);endAt=performance.now()+600;}},OBJ_LIST_T+200);}
     }
   }
 }
