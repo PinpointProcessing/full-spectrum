@@ -175,7 +175,7 @@ function tap(sx,sy){
     if(sel[0])callout(sel[0],'Suppressing!',C.warn);
     mode=null;preview=null;fireOrderAt=performance.now();return;
   }
-  if(mode==='charge'){   // demolition charge: tap a fuel tank or the server core (mission.js)
+  if(mode==='charge'){   // demolition charge: tap a fuel tank (mission.js)
     const u=sel[0];if(!u){mode=null;return;}
     const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
     if(orderCharge(u,t.x,t.y)){mode=null;preview=null;fireOrderAt=performance.now();}return;
@@ -206,7 +206,8 @@ function tap(sx,sy){
     }
     selectTeam(pu.team);return;
   }
-  if(hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
+  if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
+  if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
   const en=enemyAtScreen(sx,sy);
   if(en&&sel.length===1&&canTakedown(sel[0],en)){if(orderTakedown(sel[0],en))preview=null;return;}   // his back is to the one soldier selected: a silent takedown (combat.js)
   if(en&&sel.length){

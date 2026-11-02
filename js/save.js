@@ -5,9 +5,9 @@
    dead unless the game is restarted, and wounds are kept. A soldier who is down when it saves is stored badly wounded
    (5 HP) rather than bleeding out. XP and ranks are saved separately (progress.js) and survive a New game. */
 const SAVE_KEY='warehouseYard.save.v2';
-const STAGES={wh:'Warehouse taken',br:'Bridge taken',dep:'Fuel depot destroyed',dc:'Drawbridge down'};
-const STAGE_OBJ={wh:1,br:2,dep:3,dc:5};   // the objective that's current after each milestone
-const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},dep:{x:760,y:-30},dc:{x:700,y:-470}};
+const STAGES={wh:'Warehouse taken',br:'Bridge taken',dep:'Fuel depot destroyed',dco:'Data center yard taken',key:'Decryption key taken',dc:'Drawbridge down'};
+const STAGE_OBJ={wh:1,br:2,dep:3,dco:3,key:4,dc:5};   // the objective that's current after each milestone
+const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},dep:{x:760,y:-30},dco:{x:245,y:-410},key:{x:245,y:-410},dc:{x:700,y:-470}};
 function readSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&STAGES[s.stage]?s:null;}catch(e){return null;}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 let savedTimer=0;
@@ -28,8 +28,10 @@ function continueGame(){
   if(n>=2)addZones(REST_ZONES.br);
   if(n>=3){addZones(REST_ZONES.dep);
     for(const o of objs)if(o.kind==='tank'){o.burst=true;o.hp=0;if(o.meshes)for(const m of o.meshes){if(m.userData.c0==null)m.userData.c0=m.material.color.getHex();m.material.color.setHex(0x1a1816);}}}
-  if(n>=5){CORE.done=true;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0);setBridge(1);addZones(REST_ZONES.dc);}
-  objDone={wh:1,br:2,dep:3,dc:4}[s.stage];startObjective(n,true);
+  if(s.stage==='dco'||n>=4)dcTaken=true;   // the data center's yard was taken: its guards don't come back, the front doors are open
+  if(n>=4)hasKey=true;
+  if(n>=5){setBridge(1);addZones(REST_ZONES.dc);}
+  objDone={wh:1,br:2,dep:3,dco:3,key:3,dc:4}[s.stage];startObjective(n,true);
   // the squad: the dead stay gone, the living keep their wounds
   const at=STAGE_AT[s.stage],taken=[];
   for(const p of players){

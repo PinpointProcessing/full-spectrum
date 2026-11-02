@@ -1,6 +1,6 @@
 # The office building (objective 4): Bryan's design and the review
 
-Status: design agreed in outline, waiting on Bryan's answers to the decisions below before building.
+Status: Bryan answered the decisions (below). Step 1 of the build plan is in (the interior map, going in and out, local noise, the use system; the ground floor is a placeholder layout until the floor plans are settled).
 
 ## Bryan's design (his words, lightly tidied)
 
@@ -47,13 +47,15 @@ Status: design agreed in outline, waiting on Bryan's answers to the decisions be
 - Farewell versions for what happened; none if the prisoners were never freed.
 - Game-scale rooms (about 3 m doors, 4 m corridors), as the current movement and cover grid needs.
 
-### Decisions for Bryan
-1. Turret: manned machine gun (gunner can be taken from behind; recommended) or automatic sentry gun?
-2. Is the basement optional (the access card also unlocks the stairs and elevator; the cries behind the steel door pull players in; recommended), or required before going up?
-3. Can the teams split between floors (one in the elevator as bait, one up the stairs)? Recommended: not yet; everyone changes floor together.
-4. Room doors: open doorways (cheaper) or real doors with breaching and flashbangs (tenser, about 2–3 more days)?
-5. Do the freed men stay for good (XP and ranks kept, rejoining at the HQ)?
-6. Scientists when the shooting starts: cower where they are (recommended) or run for an exit?
+### Decisions (Bryan's answers)
+1. Turret: a manned machine gun (the gunner can be taken from behind).
+2. The basement is optional, but pull players in (cries behind the steel door; the access card also unlocks the way up).
+3. The teams can split between floors if they want (every floor runs at once; the floor chip switches the view).
+4. Doorways first (open gaps; real doors with breaching and flashbangs maybe later).
+5. Yes: the freed men stay for good (XP and ranks kept, rejoining at the HQ).
+6. Scientists cower where they are when the shooting starts.
+
+Defaults taken where Bryan didn't say otherwise: those under "Gaps" above.
 
 ### Build plan (each step playable)
 1. Going in: the interior map (floors side by side, one on screen), entering and leaving through the front doors, cutaway walls, indoor lights from the shared pool (no rain inside), local alerts, the use-labels, the lobby and hallway rooms. Large.

@@ -13,6 +13,16 @@ function gPath(x,y,r,a0=0,a1=TAU,wedge=false){
   ox.moveTo(...pts[0]);for(let i=1;i<pts.length;i++)ox.lineTo(...pts[i]);
   if(wedge)ox.closePath();
 }
+// an unaware man's view cone cut off by walls: 25 rays, each stopping at the first sight-blocking cell (indoors)
+function conePath(e){
+  const n=24,pts=[toS(e.x,e.y)];toSBack=false;
+  for(let i=0;i<=n;i++){
+    const a=e.ang-1.08+2.16*i/n,dx=Math.cos(a),dy=Math.sin(a);let r=12;
+    for(;r<300;r+=6){const x=e.x+dx*r,y=e.y+dy*r,gx=Math.floor(x/CS),gy=Math.floor((y-TOP)/CS);if(gx<0||gy<0||gx>=GW||gy>=GH||sightBlk[gy*GW+gx])break;}
+    pts.push(toS(e.x+dx*r,e.y+dy*r));
+  }
+  ox.beginPath();if(toSBack)return;ox.moveTo(...pts[0]);for(let i=1;i<pts.length;i++)ox.lineTo(...pts[i]);ox.closePath();
+}
 // a vault on a route: a little arc over the window with an arrowhead, so you can see he'll climb through
 function vaultMark(a,b,col,alpha){
   const w=b.vault,o=w.o,m=w.vert?{x:w.c,y:a.y+(b.y-a.y)*(w.c-a.x)/((b.x-a.x)||1)}:{x:a.x+(b.x-a.x)*(w.c-a.y)/((b.y-a.y)||1),y:w.c};
@@ -48,7 +58,8 @@ function drawOverlay(rdt,now){
   // enemy view cones (unaware, seen)
   for(const e of enemies){
     if(e.dead||e.alerted||!e.vis)continue;
-    gPath(e.x,e.y,300,e.ang-1.08,e.ang+1.08,true);ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
+    if(MAPID==='in')conePath(e);else gPath(e.x,e.y,300,e.ang-1.08,e.ang+1.08,true);   // indoors the cone stops at walls
+    ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
   }
   // suppression zones
   const zones=new Map();for(const p of players)if(alive(p)&&p.supT)zones.set(p.supT.x+','+p.supT.y,p.supT);
@@ -142,7 +153,7 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
-    if(u.seat==='driver')continue;   // behind the wheel: the jeep's own label covers him
+    if(u.seat==='driver'||u.offMap)continue;   // behind the wheel: the jeep's own label covers him; left outside the office building: not on this map
     // shoulder to shoulder with an earlier teammate: lift this one's bar so the two don't overlap
     const crowd=players.filter((o,i)=>i<players.indexOf(u)&&!o.dead&&o.seat!=='driver'&&hyp(o.x-u.x,o.y-u.y)<16).length;
     const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy0]=toS(vx,vy,24),hy=hy0-crowd*10,[fx,fy]=toS(vx,vy);
@@ -166,7 +177,8 @@ function drawOverlay(rdt,now){
     ox.beginPath();ox.moveTo(...ptr.loop[0]);for(const p of ptr.loop)ox.lineTo(...p);ox.closePath();
     ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);
   }
-  // rain
+  // rain (outdoors only)
+  if(MAPID==='out'){
   const rts=state==='play'?timeScale():1;
   ox.strokeStyle='rgba(170,195,220,.2)';ox.lineWidth=1;ox.beginPath();
   for(const d of rain){
@@ -175,5 +187,6 @@ function drawOverlay(rdt,now){
     ox.moveTo(d.x,d.y);ox.lineTo(d.x-d.l*.16,d.y-d.l);
   }
   ox.stroke();
+  }
   if(storm>0){ox.fillStyle=`rgba(200,215,235,${storm*.1})`;ox.fillRect(0,0,cw,ch);}
 }

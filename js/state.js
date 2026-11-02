@@ -11,7 +11,8 @@ function mk(side,team,id,name,x,y,ang){
   units.push(u);return u;
 }
 function reset(){
-  for(const u of units)if(u.m)scene.remove(u.m.g);
+  leaveInteriorNow();   // a new game or Continue from inside the office building: back to the outdoor map first
+  for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   units=[];
   mk('P','A','A1','Reyes',70,775,-0.8);mk('P','A','A2','Kowalski',102,772,-0.8);
   mk('P','B','B1','Hayes',78,808,-0.8);mk('P','B','B2','Okafor',114,812,-0.8);

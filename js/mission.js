@@ -1,14 +1,14 @@
 "use strict";
-/* The mission after the warehouse (Bryan): 2 take the bridge, 3 destroy the fuel tanks, 4 sabotage the data center
-   and lower the drawbridge, 5 take the Headquarters (to come). Each objective's defenders spawn when it becomes the
-   current one (so a fight at one doesn't alert the next); a finished objective gets a medical and a supply box (hq.js)
-   and the game saves. Also: demolition charges (one per soldier, restocked at supply boxes) for the fuel tanks and the
-   server core, the enemy RPG gunner and his rockets, fuel tanks that chain-explode, the drawbridge and its panel, the
-   objective tracker, and their overlay drawing. */
+/* The mission after the warehouse (Bryan): 2 take the bridge, 3 destroy the fuel tanks, 4 take the data center's front
+   yard, go inside for the decryption key (interior.js) and lower the drawbridge with it, 5 take the Headquarters (to
+   come). Each objective's defenders spawn when it becomes the current one (so a fight at one doesn't alert the next); a
+   finished objective gets a medical and a supply box (hq.js) and the game saves. Also: demolition charges (one per
+   soldier, restocked at supply boxes) for the fuel tanks, the enemy RPG gunner and his rockets, fuel tanks that
+   chain-explode, the drawbridge and its panel, the objective tracker, and their overlay drawing. */
 const OBJECTIVES=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Sabotage the data center','Lower the drawbridge','Take the Headquarters'];
 // indexes into OBJECTIVES: 0 warehouse, 1 bridge, 2 fuel tanks, 3 data center, 4 drawbridge (still objective 4 for the player), 5 HQ
 const RPG={aim:1.3,reload:8,speed:170,spread:[18,42],range:400,blast:40,dmg:85};
-const CHARGE={plant:3,fuse:8,away:130,coreAway:80};
+const CHARGE={plant:3,fuse:8,away:130};
 let rockets=[],tankFires=[],tankQueue=[],charges=[],obj=0,groups={},finished={},panelGo=null,bridgeDown=0,pendingSpawns=[];
 let mission={name:'yard',t0:0};
 function resetMission(){
@@ -16,7 +16,7 @@ function resetMission(){
   secure={t:0,state:null,said:false,left:-1};lastNoiseT=-99;spotBannerT=-99;
   HQ_ZONES.length=0;
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
-  CORE.done=false;if(CORE.mesh)CORE.mesh.material.emissive.setHex(0x0a5a7a);
+  dcTaken=false;hasKey=false;
   setBridge(0);if(PANEL.button)PANEL.button.material.emissive.setHex(0);
   updateObjUI();
 }
@@ -50,7 +50,6 @@ function groupSpecs(n){
   }else if(n===3){   // the data center: MG nests behind the container wall, riflemen outside, more inside
     for(const[i,p]of DC_NESTS.entries())g.push([p.x,p.y,()=>mgGunner('E'+(40+i),p.x,p.y)]);
     for(const[i,[x,y]]of[[60,-412],[255,-412],[490,-412]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT})]);
-    for(const[i,[x,y]]of[[180,-466],[330,-466],[132,-575],[340,-540],[420,-577]].entries())g.push([x,y,()=>hostile('E'+(45+i),x,y,{zone:DC_IN})]);
   }
   return g;
 }
@@ -96,6 +95,7 @@ const LOCS={
     extra:[{x0:285,x1:325,y0:240,y1:276},{x0:260,x1:360,y0:548,y1:578},{x0:150,x1:182,y0:395,y1:455},{x0:438,x1:470,y0:380,y1:420},{x0:438,x1:470,y0:450,y1:500}]},
   1:{zone:{x0:330,x1:660,y0:-40,y1:100},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},   // its north end and the north half of the bridge
   2:{zone:DEP_ZONE,name:'the fuel depot',done:()=>groupDone(2)&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length,left:()=>groupLeft(2)},
+  3:{zone:DC_OUT,name:'the data center\'s front yard',done:()=>groupDone(3),left:()=>groupLeft(3)},   // then the squad goes in (interior.js)
 };
 let secure={t:0,state:null,said:false,left:-1},lastNoiseT=-99;
 function inZone(p,z){return p.x>=z.x0&&p.x<=z.x1&&p.y>=z.y0&&p.y<=z.y1;}
@@ -124,9 +124,9 @@ function secureTick(n,dt){
   secure={t:0,state:null,said:false,left:-1};updateObjUI();return true;
 }
 // when an objective starts: one short line, the next thing on the list (Bryan); the details stay in the hint line (OBJ_HINT)
-const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Destroy the fuel tanks to the north-east',3:'Sabotage the data center to the north-west',4:'Lower the drawbridge to the north-east'};
+const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Destroy the fuel tanks to the north-east',3:'Take the data center to the north-west',4:'Lower the drawbridge to the north-east'};
 function startObjective(n,quiet){
-  obj=n;if(n<=3&&!groups[n])spawnGroup(n);
+  obj=n;if(n<=3&&!groups[n]&&!(n===3&&dcTaken))spawnGroup(n);   // (the data center's yard, once taken, stays taken)
   updateObjUI();setStatus();hud();
   if(quiet||!OBJ_INTRO[n])return;
   banner(OBJ_INTRO[n],3500);   // no camera fly-over (Bryan: the map jumping elsewhere was disorienting)
@@ -143,7 +143,8 @@ function finishObjective(zones,stage,next,big='Location secured'){
 // every tick once the warehouse is taken (from hqTick)
 function missionTick(dt){
   chargeTick(dt);
-  if(pendingSpawns.length&&(spawnTick-=dt)<=0){spawnTick=.5;spawnPending();}   // twice a second is plenty
+  if(MAPID==='in')interiorTick(dt);   // inside the office building (interior.js)
+  else if(pendingSpawns.length&&(spawnTick-=dt)<=0){spawnTick=.5;spawnPending();}   // twice a second is plenty
   for(const e of enemies){   // patrols walk their route and back, pausing at each end, until they're alerted
     if(e.dead||e.alerted||!e.route||e.path.length)continue;
     if(!e.waitT){e.waitT=simT+2.5;continue;}
@@ -152,13 +153,15 @@ function missionTick(dt){
   }
   if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective(REST_ZONES.br,'br',2);
   else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective(REST_ZONES.dep,'dep',3,'Fuel depot destroyed');
-  else if(obj===3&&CORE.done){obj=4;bigText('Server core destroyed','clear');banner(OBJ_INTRO[4],3500);updateObjUI();setStatus();}
+  else if(obj===3&&!dcTaken&&MAPID==='out'&&secureTick(3,dt)){   // the front yard taken: a save, and the front doors open (interior.js)
+    dcTaken=true;contact=false;bigText('Location secured','clear');say(players.find(alive),'objective');saveGame('dco');setStatus();updateObjUI();
+    setTimeout(()=>{if(state==='play'&&obj===3&&MAPID==='out')banner('Gather at the front doors to go in',3500);},OBJ_LIST_T);}
   if(panelGo){
     const u=panelGo;
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
     else if(hyp(u.x-PANEL.x,u.y-PANEL.y)<=22){
       panelGo=null;
-      if(obj<4){banner('Turn on the power to access drawbridge controls',4000);callout(u,'No power',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
+      if(obj<4){banner('The drawbridge needs the decryption key from inside the data center',4000);callout(u,'Locked',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
       else if(obj===4){callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
         bigText('Drawbridge down!','unlock');objCompleted(4);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
         setTimeout(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3500);endAt=performance.now()+600;}},OBJ_LIST_T+200);}
@@ -180,14 +183,14 @@ function tapPanel(){
 }
 
 /* ---------- demolition charges ---------- */
-// tap the charge on a soldier's card, then a fuel tank or the server core: he walks up, plants it (CHARGE.plant s),
+// tap the charge on a soldier's card, then a fuel tank: he walks up, plants it (CHARGE.plant s),
 // runs clear by himself, and it goes off CHARGE.fuse s later. Quiet until it blows.
 function chargeTargetAt(x,y){
   const t=objs.find(o=>o.kind==='tank'&&!o.burst&&rectDist(x,y,o)<26);if(t)return t;
-  if(!CORE.done&&rectDist(x,y,CORE)<26)return CORE;return null;
+  return null;
 }
 function orderCharge(u,x,y){
-  const t=chargeTargetAt(x,y);if(!t){banner(obj===2||obj===3?'Tap a fuel tank or the server core.':'Charges are for the fuel tanks and the server core.',2000);return false;}
+  const t=chargeTargetAt(x,y);if(!t){banner(obj===2?'Tap a fuel tank.':'Charges are for the fuel tanks.',2000);return false;}
   if(!u.charges){banner(`${u.name} has no charge left. Restock at a supply box.`,2000);return false;}
   const cx=t.x+t.w/2,cy=t.y+t.h/2;let best=null,bd=1e9;
   for(let a=0;a<TAU;a+=TAU/16){const r=Math.max(t.w,t.h)/2+11,px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;if(!isFree(px,py))continue;const d=hyp(px-u.x,py-u.y);if(d<bd){bd=d;best={x:px,y:py};}}
@@ -206,7 +209,7 @@ function chargeTick(dt){
       charges.push({t,x:(u.x+t.x+t.w/2)/2,y:(u.y+t.y+t.h/2)/2,at:simT+CHARGE.fuse,by:u});
       callout(u,'Charge set! Get clear!',C.warn);
       // run clear by himself: the nearest cover point far enough away, out of the blast's sight if possible
-      const away=t===CORE?CHARGE.coreAway:CHARGE.away,cx=t.x+t.w/2,cy=t.y+t.h/2;let best=null,bs=-1e9;
+      const away=CHARGE.away,cx=t.x+t.w/2,cy=t.y+t.h/2;let best=null,bs=-1e9;
       for(const c of coverPts){const d=hyp(c.x-cx,c.y-cy);if(d<away||d>away+120)continue;const sc=(los(cx,cy,c.x,c.y)?0:2)-hyp(c.x-u.x,c.y-u.y)/80;if(sc>bs){bs=sc;best=c;}}
       const p=best&&findPath(u.x,u.y,best.x,best.y);if(p){u.path=p;u.lastOrder=simT;u.gaitForce='run';}
       for(const o of players)if(o!==u&&alive(o)&&!o.path.length&&hyp(o.x-cx,o.y-cy)<away)callout(o,'Too close!',C.bad);
@@ -214,8 +217,7 @@ function chargeTick(dt){
   }
   for(let i=charges.length-1;i>=0;i--){
     const c=charges[i];if(simT<c.at)continue;charges.splice(i,1);
-    if(c.t===CORE){CORE.done=true;explode(c.x,c.y,c.by);if(CORE.mesh)CORE.mesh.material.emissive.setHex(0);for(let k=0;k<8;k++)sparks.push({x:CORE.x+Math.random()*CORE.w,y:CORE.y+Math.random()*CORE.h,t:0});tankFires.push({x:CORE.x+CORE.w/2,y:CORE.y+CORE.h/2,r:10,t0:simT,puffs:[],emit:0});}
-    else{booms.push({x:c.x,y:c.y,t:0});tankExplode(c.t,c.by);}
+    booms.push({x:c.x,y:c.y,t:0});tankExplode(c.t,c.by);
     if(c.by&&c.by.gaitForce==='run')c.by.gaitForce=null;
   }
 }
@@ -294,7 +296,7 @@ function shootTank(u){
 
 
 /* ---------- the objective tracker (top left; tap to see the whole list) ---------- */
-const OBJ_LIST=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Sabotage the data center and lower the drawbridge','Take the Headquarters'];
+const OBJ_LIST=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Get the decryption key and lower the drawbridge','Take the Headquarters'];
 const OBJ_LIST_T=3400;   // how long the list stays open with the newly crossed-off objective (ms); the next messages wait for it
 let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
 function objCompleted(n){
@@ -303,7 +305,7 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  const num=Math.min(objDone+1,5),label=objDone===3&&CORE.done?'Lower the drawbridge':objDone===2&&tanksGone()?'Clear the fuel depot':OBJ_LIST[num-1];
+  const num=Math.min(objDone+1,5),label=objDone===3?(hasKey?'Lower the drawbridge':MAPID==='in'?'Get the decryption key':dcTaken?'Go into the data center':'Take the data center'):objDone===2&&tanksGone()?'Clear the fuel depot':OBJ_LIST[num-1];
   el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(num===5?' (coming next)':locNote());
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
@@ -349,16 +351,15 @@ function drawLastFoes(now){
   }
 }
 function drawMission(rdt,now){
-  drawSecure(now);drawLastFoes(now);
+  drawSecure(now);if(MAPID==='out')drawLastFoes(now);drawGather(now);drawActs(now);   // (the last two: interior.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
-  // objective markers: the tanks while they're the target, the server core, the panel once it works
+  // objective markers: the tanks while they're the target, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};
   if(obj===2)for(const o of objs)if(o.kind==='tank'&&!o.burst)mark(o.x+o.w/2,o.y+o.h/2,o.w/2+6,'DESTROY','#ffcf4a');
-  if(obj===3&&!CORE.done)mark(CORE.x+CORE.w/2,CORE.y+CORE.h/2,24,'SERVER CORE','#ffcf4a');
   if(obj===4)mark(PANEL.x,PANEL.y,14,'CONTROL PANEL','#5fe08e');
   // charges: planting progress, then a countdown on the charge itself
   for(const u of players)if(u.plant&&!u.path.length&&alive(u)){gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+u.plant.prog/CHARGE.plant*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
-  for(const c of charges){const left=Math.max(0,c.at-simT),[sx,sy]=toS(c.x,c.y,4);ox.fillStyle=pulse>.5?'#ff3b2a':'#7a1510';ox.beginPath();ox.arc(sx,sy,4,0,TAU);ox.fill();label(left.toFixed(1),sx,sy-12,'#ff6a50',10,700);gPath(c.x,c.y,c.t===CORE?58:100);ox.strokeStyle='rgba(255,70,50,.35)';ox.setLineDash([4,6]);ox.lineWidth=1.2;ox.stroke();ox.setLineDash([]);}
+  for(const c of charges){const left=Math.max(0,c.at-simT),[sx,sy]=toS(c.x,c.y,4);ox.fillStyle=pulse>.5?'#ff3b2a':'#7a1510';ox.beginPath();ox.arc(sx,sy,4,0,TAU);ox.fill();label(left.toFixed(1),sx,sy-12,'#ff6a50',10,700);gPath(c.x,c.y,100);ox.strokeStyle='rgba(255,70,50,.35)';ox.setLineDash([4,6]);ox.lineWidth=1.2;ox.stroke();ox.setLineDash([]);}
   // RPG gunners taking aim: a red reticle where they're aiming (always shown, so you can react)
   for(const e of enemies){
     if(e.dead||!e.aimAt||!e.rpg)continue;
@@ -374,7 +375,7 @@ function drawMission(rdt,now){
     ox.fillStyle=gr;ox.beginPath();ox.arc(hx,hy,12,0,TAU);ox.fill();ox.globalCompositeOperation='source-over';
   }
   for(const o of objs)if(o.kind==='tank'&&!o.burst&&o.hp<100){const[bx,by]=toS(o.x+o.w/2,o.y+o.h/2,36);bar(bx-14,by,28,o.hp/100,C.bad);}
-  // burning tanks and the server core: smoke and flames. Bryan saw these turn the whole screen orange-red and lag near the
+  // burning tanks: smoke and flames. Bryan saw these turn the whole screen orange-red and lag near the
   // back of the map: a fire behind or under the camera made its blobs huge. Now a fire that's behind the camera or well off
   // screen is skipped, and their size is capped.
   for(const f of tankFires){

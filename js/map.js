@@ -3,7 +3,8 @@
    (Bryan): 1 take the warehouse, 2 take the bridge over the canal, 3 destroy the fuel depot's tanks, 4 sabotage the data
    center (inside) and lower the fortress drawbridge, 5 take the Headquarters (to come). */
 const objs=[];
-const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortwall','gatehouse','gtower','bridge','pylon']);
+const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortwall','gatehouse','gtower','bridge','pylon','dcblock',
+  'owall','iwall','cabinet','pillar','liftwall','steeldoor','void']);   // (the second line: the office building's inside, interior.js)
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
 const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
 const box=(x,y,w,h,k,stack=1)=>O('container',x,y,w,h,{col:CK[k%CK.length][0],tag:`${CK[k%CK.length][1]} ${(1000+k*397)%9000+1000}`,stack});
@@ -73,20 +74,13 @@ O('tank',770,-200,44,44,{col:'#b9b4a6'});O('tank',860,-195,44,44,{col:'#c9c6bc'}
 O('barrel',930,-180,16,16,{col:'#8a2f22'});O('barrel',948,-176,16,16,{col:'#8a2f22'});O('crate',760,-120,26,20);O('crate',900,-110,30,24);O('sandbag',820,-110,44,10);
 const DEP_ZONE={x0:706,x1:990,y0:-296,y1:-70};
 
-/* ---------- objective 4: the data center (north-west), inside and out ---------- */
-// outer walls with three ways in (the front doors, a west door and an east door), a lobby, an office and the server room
-const DC={x:30,y:-620,w:430,h:190};
-O('wall',30,-620,430,10);                                                         // north
-O('wall',30,-610,10,10);O('wall',30,-560,10,130);                                 // west, door y -600..-560 into the office
-O('wall',450,-610,10,95);O('wall',450,-475,10,45);                                // east, door y -515..-475 into the lobby
-O('wall',30,-440,60,10);O('window',90,-440,60,10);O('wall',150,-440,70,10);       // front (south), main doors x 220..270
-O('wall',270,-440,70,10);O('window',340,-440,60,10);O('wall',400,-440,60,10);
-O('wall',40,-530,75,10);O('wall',155,-530,170,10);O('wall',365,-530,85,10);       // corridor wall, doors x 115..155 (office) and 325..365 (server room)
-O('wall',160,-610,10,80);                                                         // office | server room
-O('rack',180,-603,80,12);O('rack',180,-562,80,12);O('rack',362,-603,78,12);O('rack',362,-562,78,12);   // server racks
-const CORE=objs[objs.push({kind:'core',x:295,y:-592,w:36,h:30,full:false})-1];   // the server core: plant the charge here
-O('desk',60,-592,44,16);O('desk',60,-558,44,16);O('desk',196,-492,90,16);O('crate',80,-482,20,20);O('rack',380,-508,50,12);
-const DC_IN={x0:40,x1:450,y0:-610,y1:-440};
+/* ---------- objective 4: the data center (north-west): its front yard is taken, then the squad goes in ---------- */
+// (Bryan) a closed office building: you take the yard in front like the other locations, then the whole squad goes in
+// through the front doors to a separate map with three floors (interior.js; design in docs/office-building.md). The old
+// open-roofed rooms and server core are gone: the decryption key from inside now opens the drawbridge.
+const DC={x:30,y:-620,w:430,h:190},DC_DOOR={x:220,w:50};
+O('dcblock',DC.x,DC.y,DC.w,DC.h);
+const DC_ENTER={x0:DC_DOOR.x-15,x1:DC_DOOR.x+DC_DOOR.w+15,y0:DC.y+DC.h,y1:DC.y+DC.h+40};   // gather the squad here to go in
 // the container wall across the approach, two openings (x 120..200, 330..410), each covered by a machine-gun nest just behind it
 box(30,-390,90,26,3,2);box(200,-390,70,26,5);box(270,-390,60,26,6,2);box(410,-390,60,26,1);box(470,-390,60,26,7,2);
 const DC_NESTS=[{x:145,y:-410},{x:355,y:-410}];
@@ -125,7 +119,7 @@ function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,b
 function coverAt(tx,ty,sx,sy){
   let best=0;
   for(const o of objs){
-    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit')continue;
+    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit'||o.kind==='bars'||o.kind==='void')continue;   // cell bars and the void between floors are never cover
     if(rectDist(tx,ty,o)>15)continue;
     if(rectDist(sx,sy,o)<15)continue;
     if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)
@@ -137,7 +131,8 @@ function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
-  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9}[o.kind]||0;
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9,dcblock:60,
+    owall:14,iwall:12,cabinet:14,pillar:14,liftwall:14,steeldoor:14,counter:10,copier:9,sofa:6,planter:8,terminal:9,lab:9,bars:14}[o.kind]||0;   // inside walls are drawn cut away at waist height
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;

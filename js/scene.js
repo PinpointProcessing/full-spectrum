@@ -37,7 +37,8 @@ function updateCamera(){
 }
 function clampCam(){
   // Bryan: the view may go past the map's edge; the centre stays within CAM_OVER of the area that's open
-  camT.x=clamp(camT.x,VB.x0-CAM_OVER,VB.x1+CAM_OVER);camT.z=clamp(camT.z,VB.z0-CAM_OVER,VB.z1+CAM_OVER);
+  const over=MAPID==='in'?40:CAM_OVER;   // inside, the view stays on the floor you're looking at
+  camT.x=clamp(camT.x,VB.x0-over,VB.x1+over);camT.z=clamp(camT.z,VB.z0-over,VB.z1+over);
   const fb=$('#fitBtn');if(fb)fb.hidden=zoom<1.02&&Math.abs(yaw)<0.02&&tilt<0.02;
 }
 // world -> screen. A point behind the camera can't be drawn: it comes back far off screen and sets toSBack, so shapes that
@@ -170,10 +171,10 @@ function drawGround(){
   gtex.needsUpdate=true;rtex.needsUpdate=true;
 }
 function paintDecal(d){
-  const g=gcan.getContext('2d');g.setTransform(GS,0,0,GS,0,-TOP*GS);
+  const inside=MAPID==='in'&&IN,s=inside?1:GS,g=(inside?IN.canvas:gcan).getContext('2d');g.setTransform(s,0,0,s,0,-TOP*s);   // inside, onto the building's own floor
   if(d.k==='scorch'){const gr=g.createRadialGradient(d.x,d.y,0,d.x,d.y,26);gr.addColorStop(0,'rgba(0,0,0,.75)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(d.x,d.y,26,0,7);g.fill();}
   else{g.fillStyle='rgba(80,8,6,.7)';g.beginPath();g.ellipse(d.x+2,d.y+1,9+d.r*4,6+d.r*3,d.r*3,0,7);g.fill();}
-  gtex.needsUpdate=true;
+  if(inside){IN.tex.needsUpdate=true;IN.marked=true;}else gtex.needsUpdate=true;
 }
 
 const HGT={container:26,wall:24,crate:11,barrel:10,truck:22,pallet:7,barrier:8,rack:20};
@@ -188,13 +189,12 @@ const lamps=[
   {x:525,y:56,h:30,c:0xffa860,i:2.6,d:280,pole:1},    // the bridge's north end
   {x:840,y:-140,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},  // the fuel depot
   {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260},          // the data center's doors
-  {x:300,y:-560,h:22,c:0x9fd8ff,i:2,d:220},            // inside the data center (the server room's cold light)
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
 let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null;
 // Every light costs every pixel on screen (a phone feels it), so the street lamps share LAMP_POOL lights: each frame the lamps
 // nearest the middle of the view get them, the one at the edge of the set fading so nothing pops (lampLights in render)
-const LAMP_POOL=6,lampPool=[];
+const LAMP_POOL=6;let lampPool=[];   // (the interior has its own pool and lights: interior.js swaps these)
 function buildWorld(){
   const corrTex=canvasTex(64,64,(g,w,h)=>{
     for(let x=0;x<w;x+=8){const gr=g.createLinearGradient(x,0,x+8,0);gr.addColorStop(0,'#8a8a8a');gr.addColorStop(.5,'#f0f0f0');gr.addColorStop(1,'#8a8a8a');g.fillStyle=gr;g.fillRect(x,0,8,h);}
@@ -357,6 +357,18 @@ function buildWorld(){
       addMesh(new T.BoxGeometry(o.w+6,2,o.h+6),darkMetal,cx,27,cz);
       const shutter=canvasTex(32,32,(g,w,h)=>{g.fillStyle='#8c9296';g.fillRect(0,0,w,h);g.fillStyle='rgba(0,0,0,.35)';for(let y=0;y<h;y+=4)g.fillRect(0,y,w,1.2);});
       for(let k=0;k<4;k++)addMesh(new T.BoxGeometry(34,19,1),texMat(shutter,1,4,{roughness:.6,metalness:.5}),o.x+22+k*42,9.5,o.y+o.h+.6);
+    }else if(o.kind==='dcblock'){   // the data center from outside: a closed block with lit and dark windows, a flat roof and glass front doors (you go in there: interior.js)
+      const winTex=canvasTex(128,64,(g,w,h)=>{g.fillStyle='#3f4448';g.fillRect(0,0,w,h);const r=rng(41);
+        for(let y=0;y<3;y++)for(let x=0;x<8;x++){const lit=r()<.25;g.fillStyle=lit?(r()<.5?'#e8d3a0':'#a9cbe6'):'#11171c';g.fillRect(x*16+3,y*20+6,10,10);g.fillStyle='rgba(255,255,255,.05)';g.fillRect(x*16+3,y*20+6,10,2);}
+        g.fillStyle='rgba(0,0,0,.28)';for(let y=0;y<3;y++)g.fillRect(0,y*20+18,w,2);});
+      const roof=new T.MeshStandardMaterial({color:0x24282b,roughness:.9}),side=len=>texMat(winTex,len/96,1,{roughness:.6,metalness:.25});
+      addMesh(new T.BoxGeometry(o.w,60,o.h),[side(o.h),side(o.h),roof,roof,side(o.w),side(o.w)],cx,30,cz);
+      addMesh(new T.BoxGeometry(o.w+4,3,o.h+4),new T.MeshStandardMaterial({color:0x1a1d1f,roughness:.8}),cx,61,cz);   // roof edge
+      const front=o.y+o.h,dx=DC_DOOR.x+DC_DOOR.w/2;
+      addMesh(new T.BoxGeometry(DC_DOOR.w,22,1.4),new T.MeshStandardMaterial({color:0x1d2a30,roughness:.1,metalness:.6,emissive:0x0b1a20}),dx,11,front+.7);   // the glass front doors
+      addMesh(new T.BoxGeometry(DC_DOOR.w+30,2.5,22),concrete,dx,25,front+11);                                                   // canopy
+      for(const sx of[-1,1])addMesh(new T.BoxGeometry(2.4,24,2.4),concrete,dx+sx*(DC_DOOR.w/2+12),12,front+20);
+      const strip=new T.Mesh(new T.BoxGeometry(DC_DOOR.w-6,1,3),new T.MeshBasicMaterial({color:0xffe2b0,toneMapped:false}));strip.position.set(dx,23.6,front+6);scene.add(strip);
     }else if(o.kind==='car'){   // burnt-out car
       const burnt=new T.MeshStandardMaterial({color:0x1d1b19,roughness:.95,metalness:.2});
       addMesh(new T.BoxGeometry(o.w,7,o.h),burnt,cx,5,cz);addMesh(new T.BoxGeometry(o.w*.5,6,o.h-4),burnt,cx-2,11,cz);
@@ -441,7 +453,7 @@ function buildWorld(){
   }
 
   // lights
-  hemi=new T.HemisphereLight(0x5a6e96,0x140f0b,.24);scene.add(hemi);
+  hemi=new T.HemisphereLight(0x5a6e96,0x140f0b,.24);hemi.userData.base=.24;scene.add(hemi);
   moon=new T.DirectionalLight(0x9fb4ff,.32);moon.position.set(FIT.w/2-300,620,FIT.h/2-400);moon.target.position.set(FIT.w/2,0,FIT.h/2);   // follows the camera (render)
   const phone=matchMedia('(pointer:coarse)').matches;moon.castShadow=true;moon.shadow.mapSize.set(phone?1024:2048,phone?1024:2048);   // a smaller shadow map on phones
   Object.assign(moon.shadow.camera,{left:-620,right:620,top:620,bottom:-620,near:50,far:1900});moon.shadow.bias=-0.0008;
@@ -550,9 +562,9 @@ function render(rdt,now){
   updateCamera();syncUnits(now);
   if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
-  moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);   // the shadow box follows the view: the map is bigger than one shadow map
+  if(moon){moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);}   // the shadow box follows the view: the map is bigger than one shadow map (no moon indoors)
   lampLights(now);
-  hemi.intensity=.24+storm*1.6;
+  hemi.intensity=(hemi.userData.base??.24)+storm*1.6+(MAPID==='in'?Math.max(0,2.2-zoom)*.16:0);   // inside: more ambient light zoomed out, where the pooled lamps can't reach every room
   const fl=flashes.slice(-2);
   for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=3.2*(1-f.t/.07);}else m.intensity=0;}
   const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18,b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;

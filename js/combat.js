@@ -44,7 +44,7 @@ function hitChance(s,t,L){
 function threats(){
   const t=[];
   for(const e of enemies)if(!e.dead&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:OBJ_THREAT[obj]||{x:476,y:100});   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
+  if(!t.length)t.push(MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:OBJ_THREAT[obj]||{x:476,y:100});   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
 // before anyone's seen at the later objectives: where previews judge cover from
@@ -182,7 +182,8 @@ function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',
 // Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
 // and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.
 const AMBUSH_T=1.5,AMBUSH_BONUS=0.15;
-function alertAll(msg,ambush){
+function alertAll(msg,ambush,x,y){
+  if(MAPID==='in'){if(x!=null)alertNear(x,y,msg,ambush);return;}   // inside the office building noise only carries to nearby rooms (interior.js)
   if(contact)return;contact=true;say(players.find(alive),ambush?'ack_attack':'contact');
   for(const e of enemies)if(!e.dead){e.alerted=true;e.aware=1;if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);}
   if(ambush){ambushT=simT+AMBUSH_T;msg='Ambush! They never saw it coming.';}
@@ -248,8 +249,8 @@ function resolveShot(s){
   flashes.push({x:fx,y:fy,t:0});
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:sg?0.14:0.06)*(t.side==='P'?rankNerve(t):1));   // machine guns and shotgun blasts pin people down
   if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
-  if(u.side==='P')alertAll('Contact. Weapons free.',true);
-  else if(!t.alerted){}
+  if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy);
+  else if(MAPID==='in')alertNear(fx,fy,null,false);   // inside, their gunfire is heard in the next rooms too
   if(t.side==='E'&&!t.alerted)t.alerted=true;
 }
 function suppressShot(u){
@@ -272,7 +273,7 @@ function suppressShot(u){
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
   for(const{e}of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
   if(hit)damage(t,12,u);
-  alertAll('Contact. Weapons free.',true);
+  alertAll('Contact. Weapons free.',true,u.x,u.y);
   u.cool=.42+Math.random()*.12;
 }
 function throwNade(u,tx,ty){
@@ -297,14 +298,17 @@ function explode(x,y,by,quiet){
     if(!v.downed)damage(v,95*(1-d/62),by);
     if(v.side==='E')v.alerted=true;
   }
-  if(!quiet)alertAll('Contact. Weapons free.',true);
+  if(!quiet)alertAll('Contact. Weapons free.',true,x,y);
 }
 
 /* ---------- stealth ---------- */
 // Gait is automatic: sneak while undetected with a live enemy within SNEAK_R, otherwise run. The gait button flips it (gaitForce).
 const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24,CRAWL_SPEED=13;   // crawling through the sewer pipe: about 6 s end to end
 function gaitOf(p){return p.gaitForce||autoGait(p);}
-function autoGait(p){return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';}
+function autoGait(p){
+  if(MAPID==='in'){const f=floorOf(p.x,p.y);return !contact&&enemies.some(e=>!e.dead&&e.floor===f&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R&&(hyp(e.x-p.x,e.y-p.y)<120||gridSight(p.x,p.y,e.x,e.y)))?'sneak':'run';}   // indoors there's always someone behind a wall: sneak when one's close or in sight
+  return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';
+}
 // An unaware enemy builds awareness (0..1) instead of spotting the squad instantly. Seeing a soldier in his cone
 // (or very close) raises it faster the closer, faster and more exposed the soldier is; running is also heard through walls.
 // It fades slowly when there's nothing to notice. Past AWARE_LOOK he turns towards what he noticed; at 1 he raises the alarm.
@@ -330,7 +334,7 @@ function sense(e,dt){
   else e.aware=Math.max(0,e.aware-AWARE_FADE*dt);
   if(e.aware>=AWARE_LOOK&&!e.wary){e.wary=true;if(e.vis)callout(e,'?',C.warn);}
   else if(e.aware<0.2)e.wary=false;
-  if(e.aware>=1){callout(src,'Spotted!',C.bad);alertAll('Contact. You have been spotted.');}
+  if(e.aware>=1){callout(src,'Spotted!',C.bad);alertAll('Contact. You have been spotted.',false,e.x,e.y);}
 }
 // detection meter for the HUD: the most suspicious live enemy, full once there's contact
 function detection(){if(contact)return 1;let a=0;for(const e of enemies)if(!e.dead)a=Math.max(a,e.aware);return a;}
@@ -394,6 +398,7 @@ function computeVis(){
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
     if(!e.alerted&&!e.grabbed)sense(e,0.1);
+    else if(MAPID==='in'&&e.alerted&&players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=380&&fireLine(e,p))){e.sawT=simT;if(!contact){contact=true;setStatus();}}   // inside: an alerted man who sees the squad keeps contact going (it ends when none has for a while)
   }
 }
 // where an alerted enemy may shift between cover: inside the warehouse, unless he has his own zone (the checkpoint garrison)
@@ -487,7 +492,7 @@ function update(dt){
   for(const u of units)updateUnit(u,dt);
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
-    if(!p.downed||p.dead)continue;
+    if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
     const helper=players.find(o=>alive(o)&&!o.path.length&&!o.inVeh&&hyp(o.x-p.x,o.y-p.y)<24);
     if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;callout(p,'Back in it',C.good);helper.stats.revives++;}}
     else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.dead=true;p.downed=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}}

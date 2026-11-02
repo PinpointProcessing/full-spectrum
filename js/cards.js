@@ -68,6 +68,7 @@ function buildCards(){
 }
 function statusText(u){
   if(u.dead)return['KIA','down'];
+  if(u.offMap)return['Outside','down'];   // left downed outside the office building: frozen until the squad comes back out
   if(u.downed)return[u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
   if(u.inVeh)return[{driver:'Driving',gunner:'On the gun',pass:'Riding'}[u.seat],''];
   if(u.boarding)return['Mounting up',''];

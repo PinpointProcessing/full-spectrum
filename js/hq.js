@@ -15,7 +15,8 @@ const REST_ZONES={
 const HEAL_RATE=8,SUPPLY_T=4;
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
-function addZones(list){for(const z of list)HQ_ZONES.push(Object.assign({col:z.k==='med'?'255,74,64':'232,186,84',label:z.k==='med'?'MEDICAL':'SUPPLY'},z));}
+const hqZone=z=>Object.assign({col:z.k==='med'?'255,74,64':'232,186,84',label:z.k==='med'?'MEDICAL':'SUPPLY'},z);   // a box with its colour and label
+function addZones(list){for(const z of list)HQ_ZONES.push(hqZone(z));}
 
 // after the warehouse's report: its HQ boxes, the popup, then the tour; objective 2 starts when the tour ends
 function startHQ(){

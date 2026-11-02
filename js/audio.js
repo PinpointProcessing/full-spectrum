@@ -11,7 +11,7 @@
    explosions / rockets found in booms / rockets). */
 const SND_KEY='warehouseYard.sound',MAX_VOICES=40;
 const SAMPLE_FILES={shot:['shot-1','shot-2','shot-3','shot-4'],shotgun:['shotgun-1','shotgun-2'],enemy:['enemy-1','enemy-2','enemy-3'],mg:['mg-1','mg-2','mg-3'],boom:['boom-1','boom-2'],launch:['launch']};
-let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,noiseBuf=null,sndOn=true,voices=0,loops={},samples={};
+let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,noiseBuf=null,sndOn=true,voices=0,loops={},samples={},rainG=[];
 try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
 
 function audioInit(){
@@ -26,7 +26,7 @@ function audioInit(){
   sndVerb=AC.createConvolver();sndVerb.buffer=makeImpulse(2.2);const vg=AC.createGain();vg.gain.value=.55;sndVerb.connect(vg);vg.connect(sndMuffle);
   // rain: a soft hiss plus a lower patter
   for(const[type,f,q,gain]of[['highpass',900,0,.035],['lowpass',700,0,.03]]){
-    const s=loopNoise(),flt=AC.createBiquadFilter(),g=AC.createGain();flt.type=type;flt.frequency.value=f;g.gain.value=gain;
+    const s=loopNoise(),flt=AC.createBiquadFilter(),g=AC.createGain();flt.type=type;flt.frequency.value=f;g.gain.value=gain;rainG.push([g,gain]);
     s.connect(flt);flt.connect(g);g.connect(sndMuffle);s.start(0,Math.random()*2);
   }
   // recorded samples, if they can be fetched (not from file://)
@@ -168,6 +168,7 @@ function audioFrame(){
   if(!AC||!sndOn)return;
   const t=AC.currentTime,live=state==='play'&&!paused;
   sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:18000,t,.12);   // slow-mo and pause sound muffled
+  for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='in'?.25:1),t,.4);   // indoors the rain is just a hiss on the roof
   // explosions and launches, picked up as they appear (grenades, rockets, tank shells, fuel tanks, vehicles)
   let n=0;for(const b of booms)if(!b.snd&&b.t>=0){b.snd=1;if(n++<2)sfxBoom(b.x,b.y,b.size||1);}
   for(const r of rockets)if(!r.snd){r.snd=1;sfxLaunch(r.x,r.y);}
