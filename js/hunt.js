@@ -33,7 +33,7 @@ function alertOne(e,lk,ambush){
 }
 function startContact(msg,amb){
   if(contact)return;contact=true;
-  say(players.find(alive),amb?'ack_attack':'contact');
+  chatContact(amb);   // "Contact, two o'clock!" ... "Return fire!" (chatter.js)
   if(amb)ambushT=simT+AMBUSH_T;
   banner(amb?'Ambush! They never saw it coming.':msg||'Contact. They know you are here.',2200);setStatus();
 }
@@ -130,7 +130,7 @@ function radioTick(dt){
   for(const e of enemies){
     if(!e.radio)continue;
     if(e.dead){if(e.call){e.call=null;banner('Radio call cut off.',2000);}continue;}
-    if(!e.call&&!e.called&&e.alerted&&!e.grabbed){e.call={t:0};bark(e,'radio',true);if(typeof sfxRadio==='function')sfxRadio(e.x,e.y);}
+    if(!e.call&&!e.called&&e.alerted&&!e.grabbed){e.call={t:0};bark(e,'radio',true);if(typeof sfxRadio==='function')sfxRadio(e.x,e.y);chatRadio(e);}
     if(e.call){if(e.sup<=PINNED&&!e.grabbed)e.call.t+=dt;if(e.call.t>=CALL_T){e.call=null;e.called=true;callIn(e);}}
   }
 }
@@ -161,7 +161,7 @@ function reinfTick(){
     if(groups[obj])groups[obj].push(u);first=first||u;
   }
   enemies=units.filter(u=>u.side==='E');
-  banner('Enemy reinforcements!',2200);bark(first,'backup',true);
+  banner('Enemy reinforcements!',2200);bark(first,'backup',true);chatReinf();
   reinf=null;
 }
 
@@ -218,7 +218,7 @@ function dogTick(dt){
     const h=d.handler&&!d.handler.dead?d.handler:null;
     if(!d.alerted){
       if(d.handler&&!h&&hyp(d.x-d.handler.x,d.y-d.handler.y)<80){alertOne(d,{x:d.x,y:d.y},false);continue;}   // his handler dropped beside him
-      if(h&&h.alerted){alertOne(d,h.lkp,false);bark(h,'dog',true);continue;}   // let loose
+      if(h&&h.alerted){alertOne(d,h.lkp,false);bark(h,'dog',true);chatDog(d);continue;}   // let loose
       if(h&&!d.path.length&&hyp(d.x-h.x,d.y-h.y)>26){const p=findPath(d.x,d.y,h.x+Math.cos(h.ang+2)*12,h.y+Math.sin(h.ang+2)*12,FOOT);if(p)d.path=p;}
       if(h&&!d.path.length)d.ang=turn(d.ang,h.ang,dt*3);
       continue;
@@ -258,7 +258,7 @@ function huntTick(dt){
     const floors=inside?new Set(players.filter(p=>alive(p)&&!p.offMap).map(p=>floorOf(p.x,p.y))):null;
     const seen=enemies.some(e=>!e.dead&&e.alerted&&(!floors||floors.has(e.floor))&&simT-(e.sawT??-99)<quiet);
     if(!seen&&simT-lastNoiseT>3&&!reinf){
-      contact=false;setStatus();
+      contact=false;setStatus();setTimeout(()=>{if(!contact)chatStatus();},1800);   // the lead checks on whoever's hurt (chatter.js)
       if(enemies.some(e=>!e.dead&&e.alerted))banner('They lost you. They are searching.',2400);   // (nobody left looking: no message, the location's own messages take over)
     }
   }

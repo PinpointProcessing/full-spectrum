@@ -153,7 +153,7 @@ function startObjective(n,quiet){
 // (Bryan: no box tutorial after the first; the next objective's message waits until the crossed-off list has closed)
 function finishObjective(zones,stage,next,big='Location secured'){
   if(finished[next-1])return;finished[next-1]=true;objCompleted(next);   // once only, while the next one waits to start; crossed off the list
-  contact=false;bigText(big,'clear');say(players.find(alive),'objective');
+  contact=false;bigText(big,'clear');chatSecured();
   if(zones)addZones(zones);saveGame(stage);setStatus();
   setTimeout(()=>{if(state==='play'&&obj===next-1)startObjective(next);},OBJ_LIST_T+200);
 }
@@ -172,7 +172,7 @@ function missionTick(dt){
   if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective(REST_ZONES.br,'br',2);
   else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective(REST_ZONES.dep,'dep',3);
   else if(obj===3&&!dcTaken&&MAPID==='out'&&secureTick(3,dt)){   // the front yard taken: a save, and the front doors open (interior.js)
-    dcTaken=true;contact=false;bigText('Location secured','clear');say(players.find(alive),'objective');saveGame('dco');setStatus();updateObjUI();
+    dcTaken=true;contact=false;bigText('Location secured','clear');chatSecured();saveGame('dco');setStatus();updateObjUI();
     setTimeout(()=>{if(state==='play'&&obj===3&&MAPID==='out')banner('Gather at the front doors to go in',3500);},OBJ_LIST_T);}
   if(panelGo){
     const u=panelGo;

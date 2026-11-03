@@ -32,6 +32,12 @@ function audioInit(){
     const s=loopNoise(),flt=AC.createBiquadFilter(),g=AC.createGain();flt.type=type;flt.frequency.value=f;g.gain.value=gain;rainG.push([g,gain]);
     s.connect(flt);flt.connect(g);g.connect(sndMuffle);s.start(0,Math.random()*2);
   }
+  // the recorded effects (sounds/sfx: one mp3 per kind, cut from CC0 packs, see sounds/CREDITS.md and tools/sfx): each kind's file is
+  // sliced into its clips once decoded, and they join the samples below
+  fetch('sounds/sfx/manifest.json').then(r=>r.ok?r.json():Promise.reject()).then(m=>{
+    for(const[k,spans]of Object.entries(m))fetch(`sounds/sfx/${k}.mp3`).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no)))
+      .then(buf=>{samples[k]=spans.map(([t,d])=>sliceBuf(buf,t,d));}).catch(()=>{});
+  }).catch(()=>{});
   // recorded samples, if they can be fetched (not from file://)
   for(const[k,names]of Object.entries(SAMPLE_FILES)){
     samples[k]=[];
@@ -126,7 +132,10 @@ function sfxBoom(x,y,size=1){
 }
 function sfxLaunch(x,y){if(playSample('launch',x,y,.75))return;const out=voice(x,y,.5,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.08,'lowpass',1500,0,.8);noiseHit(out,t,.9,'bandpass',700,1.2,.6,.05,250);}
 function sfxCannon(x,y){if(!playSample('boom',x,y,1.3,.7)){const out=voice(x,y,1,1.6);if(out){const t=AC.currentTime;noiseHit(out,t,1.2,'lowpass',900,0,.9,.004,60);}}rumble(x,y,1.3);}
-function sfxBark(x,y){   // a big dog: two hoarse barks
+function sliceBuf(buf,t,d){const sr=buf.sampleRate,a=Math.floor(t*sr),n=Math.max(1,Math.min(buf.length-a,Math.floor(d*sr))),o=AC.createBuffer(1,n,sr);o.getChannelData(0).set(buf.getChannelData(0).subarray(a,a+n));return o;}
+const varied=(lo=.94,hi=1.06)=>lo+Math.random()*(hi-lo);   // a little pitch and speed difference each time, so repeats don't sound canned
+function sfxBark(x,y){   // a big dog barking (recorded); synthesised if the recording isn't loaded
+  if(playSample('dog',x,y,.85,varied(.92,1.04)))return;
   const out=voice(x,y,.55,1);if(!out)return;const t=AC.currentTime;
   for(const dt of[0,.22]){toneHit(out,t+dt,.12,'sawtooth',420,260,.35,.004);noiseHit(out,t+dt,.1,'bandpass',900,2.5,.4,.003);}
 }
@@ -134,7 +143,8 @@ function sfxRadio(x,y){   // a radio keyed up: a squelch and garbled static
   const out=voice(x,y,.4,1.6);if(!out)return;const t=AC.currentTime;
   noiseHit(out,t,.06,'highpass',3000,0,.5,.002);noiseHit(out,t+.05,1.2,'bandpass',1800,3,.18,.02);toneHit(out,t+.02,.05,'square',1200,0,.12,.002);
 }
-function sfxSiren(x,y){   // the call went out: an alarm wailing across the base
+function sfxSiren(x,y){   // the call went out: an alarm wailing across the base (recorded; synthesised if it isn't loaded)
+  if(playSample('siren',null,null,.5))return;
   const out=voice(null,null,.28,3.2);if(!out)return;const t=AC.currentTime;
   const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(520,t);for(let k=0;k<3;k++){o.frequency.linearRampToValueAtTime(860,t+k*1+.5);o.frequency.linearRampToValueAtTime(520,t+k*1+1);}
   const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=1600;const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.1);g.gain.setValueAtTime(.5,t+2.8);g.gain.exponentialRampToValueAtTime(0.0001,t+3.1);
@@ -154,10 +164,46 @@ function sfxCrash(x,y){   // chain-link gate and its steel frame going down
   for(let k=0;k<6;k++)noiseHit(out,t+.05+Math.random()*.5,.04,'highpass',3000,0,.15);
 }
 function sfxClang(x,y){const out=voice(x,y,.6,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.05,'highpass',2500,0,.6);noiseHit(out,t,.7,'bandpass',420,12,.6,.002);noiseHit(out,t,.5,'bandpass',1130,14,.3,.002);}
-function sfxThunder(){   // a crack, then a long roll that comes and goes
+function sfxThunder(){   // a crack, then a long roll that comes and goes (recorded; synthesised if it isn't loaded)
+  if(samples.thunder&&samples.thunder.length){setTimeout(()=>playSample('thunder',null,null,.75,varied(.9,1.02)),300+Math.random()*1500);return;}
   const out=voice(null,null,.7,6);if(!out)return;const t=AC.currentTime+.3+Math.random()*1.5;
   noiseHit(out,t,.6,'lowpass',1400,0,.35,.01,200);
   for(let k=0;k<4;k++)noiseHit(out,t+.2+k*(.5+Math.random()*.5),2+Math.random()*1.5,'lowpass',260+Math.random()*120,0,.5+Math.random()*.4,.25,45);
+}
+
+/* ---------- recorded effects (sounds/sfx) ---------- */
+// what a bullet that hits something sounds like, by what it hit
+const MAT_METAL=/container|truck|tank|booth|armor|rack|liftwall|liftdoor|steeldoor|cabinet|bars|terminal|copier|pylon|gatehouse/,MAT_WOOD=/crate|pallet|desk|counter|sofa|plank|wood|lab/;
+function matAt(x,y){let o=null,bd=14;for(const q of objs){if(q.kind==='void')continue;const dx=Math.max(q.x-x,0,x-(q.x+q.w)),dy=Math.max(q.y-y,0,y-(q.y+q.h)),d=hyp(dx,dy);if(d<bd){bd=d;o=q;}}
+  return !o?'ground':MAT_METAL.test(o.kind)?'metal':MAT_WOOD.test(o.kind)?'wood':'ground';}
+function sfxImpact(x,y,mat){playSample('hit_'+(mat||matAt(x,y)),x,y,.55,varied());}
+function sfxFlesh(x,y){playSample('flesh',x,y,.45,varied(.85,1));}
+function sfxGrunt(u,big){if(u&&!u.dog)playSample(big?'grunt_down':'grunt',u.x,u.y,big?.8:.6,varied(u.side==='E'?.86:.96,u.side==='E'?.96:1.06));}
+function sfxBodyFall(x,y){playSample('bodyfall',x,y,.7,varied(.9,1.02));}
+function sfxPin(x,y){playSample('pin',x,y,.5,varied());}
+function sfxReload(x,y){playSample('reload',x,y,.6,varied());}
+function sfxCloth(x,y){playSample('cloth',x,y,.5,varied());}
+function sfxZip(x,y){playSample('zip',x,y,.55,varied(1.4,1.6));}
+function sfxComputer(x,y){playSample('computer',x,y,.45,varied());}
+function sfxScan(x,y){playSample('scan',x,y,.55);}
+function sfxGrind(x,y){playSample('steel',x,y,.8,.8);setTimeout(()=>playSample('steel',x,y,.6,.7),900);setTimeout(()=>playSample('slam',x,y,.85),2300);}   // the steel door grinding down into the floor
+function sfxLift(x,y,what){playSample(what==='ding'?'lift_ding':'lift_door',x,y,.6);}
+function sfxCell(x,y){playSample('cell',x,y,.75,varied());}
+function sfxSparks(x,y){playSample('smash',x,y,.8,varied());setTimeout(()=>playSample('glass',x,y,.7,varied()),120);}   // a lab bench wrecked
+// footsteps: anyone moving near the middle of the view, a step every stride (sneaking: soft and slow), the squad's gear rattling
+// when they run; carpet and concrete inside, wet ground and gravel outside
+function footsteps(dt){
+  if(!AC||!samples.foot_out||!samples.foot_out.length)return;let n=0;
+  for(const u of units){
+    if(u.dead||u.downed||u.carriedBy||u.inBoat||offFloor(u))continue;
+    const px=u.fx??u.x,py=u.fy??u.y;u.fx=u.x;u.fy=u.y;if(!u.path.length){u.stepAcc=0;continue;}
+    if(u.side==='E'&&!u.vis&&!u.alerted)continue;   // (an unseen patrol: the contact sensor gives him away, not his boots)
+    const d=hyp(u.x-px,u.y-py);if(d>20||d<.01)continue;
+    const sneak=u.side==='P'?u.gait==='sneak':!u.alerted,stride=sneak?12:18;   // about two steps a second sneaking, three runningu.stepAcc=(u.stepAcc||0)+d;if(u.stepAcc<stride)continue;u.stepAcc=0;
+    if(hyp(u.x-camT.x,u.y-camT.z)>420/Math.max(1,zoom*.6)||++n>4)continue;
+    playSample(MAPID==='in'?'foot_in':'foot_out',u.x,u.y,(sneak?.22:.42)*(u.side==='E'?.85:1),varied(.9,1.1));
+    if(u.side==='P'&&!sneak&&Math.random()<.3)playSample('gear',u.x,u.y,.16,varied());
+  }
 }
 
 /* ---------- engines: loops built from combustion pulses ---------- */
@@ -207,6 +253,8 @@ function setLoop(id,level,x,y,rev=1){
 function audioFrame(){
   if(!AC||!sndOn)return;
   const t=AC.currentTime,live=state==='play'&&!paused;
+  if(live)footsteps();
+  if(typeof chatTick==='function')chatTick();   // the squad's conversations (chatter.js)
   sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:18000,t,.12);   // slow-mo and pause sound muffled
   for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='in'?.25:1),t,.4);   // indoors the rain is just a hiss on the roof
   if(amb){

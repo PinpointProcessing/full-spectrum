@@ -64,7 +64,7 @@ function bodyAlarm(e,b){
     if(o.dead||o.surr||o.alerted||(MAPID==='in'&&o.floor!==e.floor))continue;
     const d=hyp(o.x-e.x,o.y-e.y);if(o===e||d<=R*.5||(d<=R&&gridSight(e.x,e.y,o.x,o.y))){alertOne(o,lk,false);o.sawT=-99;}   // (-99: nobody's seen the squad, they search straight away)
   }
-  bark(e,'body',true);setStatus();raiseAlert(2,'body','They found a body. They are searching.');
+  bark(e,'body',true);setStatus();raiseAlert(2,'body','They found a body. They are searching.');chatBodyFound();
 }
 // an unaware hostile who sees a body walks over to it (one on a post or a gun raises the alarm from where he is)
 function seeBodies(e){
@@ -125,7 +125,7 @@ function zipTick(dt){
   const z=zipGo;if(!z)return;const{u,e}=z;
   if(!alive(u)||e.dead||e.tied||e.detained||(u.path.length&&hyp(destOf(u).x-e.x,destOf(u).y-e.y)>30)){zipGo=null;return;}
   if(u.path.length)return;if(hyp(u.x-e.x,u.y-e.y)>28){zipGo=null;return;}
-  z.prog+=dt;if(z.prog>=ZIP_T){zipGo=null;u.stats.ties=(u.stats.ties||0)+1;callout(u,e.sci?'Detained':'Zip-tied',C.good);if(e.sci)sciTied(e,u);else e.tied=true;}   // (a scientist follows him from now on: office.js)
+  z.prog+=dt;if(z.prog>=ZIP_T){zipGo=null;if(typeof sfxZip==='function')sfxZip(e.x,e.y);u.stats.ties=(u.stats.ties||0)+1;callout(u,e.sci?'Detained':'Zip-tied',C.good);if(e.sci)sciTied(e,u);else e.tied=true;}   // (a scientist follows him from now on: office.js)
 }
 
 /* ---------- enemy grenades ---------- */
@@ -134,7 +134,7 @@ function enemyNade(e){
   const tg=players.filter(p=>alive(p)&&!p.offMap&&!p.path.length&&simT-(p.stillT??simT)>=ENADE.camp&&hyp(p.x-e.x,p.y-e.y)<=ENADE.range&&los(e.x,e.y,p.x,p.y))[0];
   if(!tg)return false;
   e.nade=0;e.nadeT=simT+20;const tx=tg.x+(Math.random()-.5)*20,ty=tg.y+(Math.random()-.5)*20;
-  nades.push({x0:e.x,y0:e.y,x1:tx,y1:ty,t:0,dur:ENADE.warn,by:e,enemy:true});bark(e,'grenade',true);callout(tg,'Grenade!',C.bad);
+  nades.push({x0:e.x,y0:e.y,x1:tx,y1:ty,t:0,dur:ENADE.warn,by:e,enemy:true});bark(e,'grenade',true);callout(tg,'Grenade!',C.bad);chatFrag(tg);
   return true;
 }
 // soldiers inside an incoming grenade's circle who haven't just been given an order get out

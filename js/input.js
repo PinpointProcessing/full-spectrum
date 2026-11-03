@@ -172,7 +172,7 @@ function tap(sx,sy){
     if(!en&&!inMap){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
     if(!enemies.some(e=>!e.dead&&e.seen&&hyp((e.vis?e.x:e.last.x)-pt.x,(e.vis?e.y:e.last.y)-pt.y)<55)){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
     for(const u of sel){u.supT={x:pt.x,y:pt.y};u.focus=null;u.noLine=0;u.lastOrder=simT;u.watch=null;}
-    if(sel[0])callout(sel[0],'Suppressing!',C.warn);
+    if(sel[0]){callout(sel[0],'Suppressing!',C.warn);chatSuppress(sel[0]);}
     mode=null;preview=null;fireOrderAt=performance.now();return;
   }
   if(mode==='charge'){   // demolition charge: tap a fuel tank (mission.js)

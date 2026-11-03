@@ -12,17 +12,17 @@
    matching line for a soldier's callouts; voiceClip(speaker,clip,opts) for everyone else. */
 const VOICE={A1:{pitch:.92,rate:1.02,pick:0},A2:{pitch:.72,rate:.94,pick:1},B1:{pitch:1.18,rate:1.12,pick:2},B2:{pitch:.84,rate:.98,pick:3}};
 const VOICE_LINES={
-  ack_move:  ['Moving.','On it.','Copy, moving.'],
-  ack_attack:['Engaging!','Target, firing!','On him!'],
-  contact:   ['Contact!','Contact front!','We\'re spotted!'],
+  ack_move:  ['Moving.','On it.','Copy, moving.','Moving up.','On my way.'],
+  ack_attack:['Engaging!','Target, firing!','On him!','Taking the shot!','Firing!'],
+  contact:   ['Contact!','Contact front!','We\'re spotted!','They\'ve seen us!'],
   man_down:  ['Man down!','He\'s down, he\'s down!','Medic! Man down!'],
   hit_down:  ['I\'m hit!','I\'m down!','Argh, I\'m hit!'],
   revive:    ['I\'ve got you.','Hang on, coming to you.','Moving to him.'],
   revived:   ['I\'m good, I\'m back in.','Back in it.','Thanks. Let\'s go.'],
   frag:      ['Frag out!','Grenade out!','Frag!'],
-  kill:      ['Tango down.','Got him.','Hostile down.'],
+  kill:      ['Tango down.','Got him.','Hostile down.','Target down.','He\'s done.'],
   suppress:  ['Suppressing!','Keep their heads down!','Laying it on!'],
-  pinned:    ['I\'m pinned!','Can\'t move, I\'m pinned!','Taking heavy fire!'],
+  pinned:    ['I\'m pinned!','Can\'t move, I\'m pinned!','Taking heavy fire!','Need covering fire!'],
   charge:    ['Charge set! Get clear!','Fire in the hole!','Charge is live, move!'],
   rpg:       ['RPG!','Rocket! Move!','RPG, get down!'],
   objective: ['Objective secure.','Area clear.','That\'s done. Moving on.'],
@@ -37,7 +37,7 @@ const VOICE_LINES={
   lab:       ['Equipment\'s wrecked.','One less lab.','Smashed it.'],
 };
 const URGENT=new Set(['man_down','hit_down','rpg','contact','charge']);
-const CALLOUT_VOICE={'Frag out!':'frag','On my way':'revive','Back in it':'revived','Suppressing!':'suppress','Healing':'heal','Restocked':'restock','Charge set! Get clear!':'charge','Open fire!':'ack_attack','Focus fire':'ack_attack',
+const CALLOUT_VOICE={'Frag out!':'frag','On my way':'revive','Suppressing!':'suppress','Healing':'heal','Restocked':'restock','Charge set! Get clear!':'charge','Open fire!':'ack_attack','Focus fire':'ack_attack',
   'Taking aim':'silent','Moving in':'takedown','Watching':'watch','Breach! Breach!':'breach','Hands where I can see them!':'zip','Got the access card':'card','Smashed it':'lab'};
 let voiceBusyTill=0,voiceLast={},VSPR=null,vBuf={},vLoad={},sysVoices=[];
 function bindVoice(){
@@ -49,8 +49,29 @@ function bindVoice(){
 function spriteBuf(sp){
   if(vBuf[sp])return vBuf[sp];
   const S=VSPR&&VSPR.speakers[sp];if(!S||!AC||vLoad[sp])return null;
-  vLoad[sp]=fetch('sounds/voice/'+S.file).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(buf=>{vBuf[sp]=buf;}).catch(()=>{});
+  vLoad[sp]=fetch('sounds/voice/'+S.file).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(decodeVoice).then(buf=>{vBuf[sp]=buf;}).catch(()=>{});
   return null;
+}
+// Decoded at the file's own low rate, not the device's (48 kHz on most phones): a soldier's five minutes of lines take 19 MB
+// instead of 59. The squad's files (16 and 22 kHz, the encoder already cut everything above 8 kHz) at 16 kHz, the rest at their
+// own 24 kHz. The browser resamples as it plays.
+function mp3Rate(b){
+  const u=new Uint8Array(b,0,Math.min(b.byteLength,8192));let i=0;
+  if(u[0]===73&&u[1]===68&&u[2]===51)i=10+((u[6]&127)<<21|(u[7]&127)<<14|(u[8]&127)<<7|(u[9]&127));   // an ID3 tag first
+  for(;i<u.length-3;i++)if(u[i]===255&&(u[i+1]&0xE6)===0xE2){   // frame sync, layer III
+    const v=(u[i+1]>>3)&3,r=(u[i+2]>>2)&3;
+    if(v!==1&&r!==3&&(u[i+2]>>4)!==15)return[44100,48000,32000][r]/(v===3?1:v===2?2:4);
+  }
+  return 0;
+}
+function decodeVoice(b){
+  const r=mp3Rate(b),want=r>22050?r:Math.min(r,16000),OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  if(want&&OAC&&want<AC.sampleRate){
+    try{const oc=new OAC(1,1,want),copy=b.slice(0);
+      return new Promise((ok,no)=>oc.decodeAudioData(b,ok,no)).catch(()=>new Promise((ok,no)=>AC.decodeAudioData(copy,ok,no)));
+    }catch(e){}   // an old browser that won't make a context at that rate: decode the usual way
+  }
+  return new Promise((ok,no)=>AC.decodeAudioData(b,ok,no));
 }
 // who's fetched when: the squad and the hostiles once sound has started (audio.js); the prisoners and scientists on the way into
 // the office building (interior.js) or when a save brings them back (office.js)
@@ -60,18 +81,21 @@ function preloadVoices(list=VOICE_OUT){if(VSPR&&AC)for(const sp of list)if(VSPR.
 // it isn't there or isn't loaded yet
 function voiceClip(sp,clip,o={}){
   if(!AC||!sndOn||!VSPR)return 0;const S=VSPR.speakers[sp],c=S&&S.clips[clip];if(!c)return 0;const buf=spriteBuf(sp);if(!buf)return 0;
-  const[t0,d]=c,s=AC.createBufferSource();s.buffer=buf;
+  const[t0,d]=c,s=AC.createBufferSource();s.buffer=buf;s.playbackRate.value=o.rate||(.97+Math.random()*.06);   // a touch of difference each time
   if(o.radio){
     const hp=AC.createBiquadFilter(),lp=AC.createBiquadFilter(),sh=AC.createWaveShaper(),g=AC.createGain();
     hp.type='highpass';hp.frequency.value=380;lp.type='lowpass';lp.frequency.value=3200;
-    const cv=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;cv[i]=Math.tanh(x*2.2);}sh.curve=cv;g.gain.value=.85;
+    const cv=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;cv[i]=Math.tanh(x*2.2);}sh.curve=cv;g.gain.value=.85*(o.gain??1);
     s.connect(hp);hp.connect(lp);lp.connect(sh);sh.connect(g);g.connect(sndMaster);
   }else{
     const out=voice(o.x,o.y,o.vol??.9,d+.4);if(!out)return 0;
     if(o.muffle){const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=650;s.connect(lp);lp.connect(out);}else s.connect(out);
   }
-  s.start(AC.currentTime+.03,t0,d);return d;
+  s.start(AC.currentTime+.03,t0,d);return d/s.playbackRate.value;
 }
+// which of a line's versions next: each soldier goes through them all, shuffled, before any comes round again
+const vOrder={};
+function nextVariant(id,key,n){const k=id+key;let q=vOrder[k];if(!q||!q.length){q=vOrder[k]=[...Array(n).keys()].map(i=>i+1).sort(()=>Math.random()-.5);}return q.shift();}
 // speak line `key` as soldier u (urgent lines cut in; others wait their turn or are dropped)
 function say(u,key){
   if(!u||u.side!=='P'||!sndOn||!VOICE_LINES[key]||state!=='play')return;
@@ -79,7 +103,7 @@ function say(u,key){
   if(voiceLast[k]&&now-voiceLast[k]<6)return;
   if(now<voiceBusyTill&&!URGENT.has(key))return;
   voiceLast[k]=now;
-  const n=1+Math.floor(Math.random()*VOICE_LINES[key].length),text=VOICE_LINES[key][n-1],radio=!u.joined;   // the freed prisoners have no radios: they say it out loud
+  const n=nextVariant(u.id,key,VOICE_LINES[key].length),text=VOICE_LINES[key][n-1],radio=!u.joined;   // the freed prisoners have no radios: they say it out loud
   const d=voiceClip(u.id,`${key}_${n}`,{radio,x:u.x,y:u.y});
   if(d){voiceBusyTill=now+d+.3;if(radio){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}return;}
   voiceBusyTill=now+1.8;if(radio){squelch(0);speakSystem(u.id,text);}   // not loaded (or opened from a file): the browser's voice stands in
@@ -98,4 +122,6 @@ function squelch(delay){
   if(!AC||!sndOn)return;
   const t=AC.currentTime+delay,g=AC.createGain();g.connect(sndMaster);
   noiseHit(g,t,.12,'bandpass',2400,1.5,.12,.003);toneHit(g,t,.03,'square',1400,null,.04,.002);
+  if(samples.static&&samples.static.length){const s=AC.createBufferSource(),b=samples.static[(Math.random()*samples.static.length)|0],f=AC.createBiquadFilter(),v=AC.createGain();   // and a breath of recorded static
+    s.buffer=b;f.type='bandpass';f.frequency.value=1800;f.Q.value=.8;v.gain.value=.09;s.connect(f);f.connect(v);v.connect(sndMaster);s.start(t,0,.18+Math.random()*.1);}
 }

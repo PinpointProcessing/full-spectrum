@@ -15,6 +15,7 @@ const out={
   squad:grab('voice.js','VOICE_LINES'),
   barks:grab('hunt.js','BARKS'),
   sci:{plead:grab('office.js','SCI_PLEAD'),escort:grab('office.js','SCI_ESCORT'),scan:grab('office.js','SCI_SCAN'),lab:grab('office.js','SCI_LAB'),end:grab('office.js','SCI_END')},
+  chatter:{names:grab('chatter.js','SQUAD_NAME'),named:grab('chatter.js','NAMED'),chat:grab('chatter.js','CHAT'),quiet:Array.from(grab('chatter.js','QUIET')),clock:grab('chatter.js','CLOCK'),cdir:grab('chatter.js','CDIR'),banter:grab('chatter.js','BANTER')},
   prison:{cry:grab('office.js','PRISON_CRY'),loot:grab('office.js','LOOT_LINES'),freed:grab('office.js','FREED_LINES'),bye:grab('office.js','FAREWELL'),up:grab('office.js','MARSH_UP')},
 };
 fs.writeFileSync(__dirname+'/lines.json',JSON.stringify(out,null,1));

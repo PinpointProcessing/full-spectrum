@@ -137,6 +137,7 @@ function liftTick(){
     if(simT-office.ride.t<LIFT_RIDE)return;
     const R=office.ride;office.ride=null;const to=R.tr.to,dz=zoneOf(IN.floors[to],'lift-car'),fz=R.z,taken=[];
     for(const u of R.units){if(!alive(u)&&!u.carriedBy)continue;const s={x:dz.x0+(u.x-fz.x0)*(dz.x1-dz.x0)/(fz.x1-fz.x0),y:dz.y0+(u.y-fz.y0)*(dz.y1-dz.y0)/(fz.y1-fz.y0)};transit(u,to,s,taken);}
+    if(typeof sfxLift==='function')sfxLift(dz.x0+30,(dz.y0+dz.y1)/2,'ding');
     office.liftUp=to==='1F';if(to==='1F'&&!office.liftDoor)banner('The doors stay shut until you tap OPEN. Put men against the walls beside them first.',3200);
     afterTransit(to,R.units);return;
   }
@@ -147,7 +148,7 @@ function liftTick(){
   if(set.some(u=>u.path.length||!inZone(u,{x0:z.x0-6,x1:z.x1+6,y0:z.y0-6,y1:z.y1+6})))return;
   const carried=set.map(u=>u.carry).filter(Boolean);
   office.ride={t:simT,tr,z,units:[...set,...carried]};for(const u of set)u.lift=null;
-  callout(set[0],tr.to==='1F'?'Going up':'Going down',C.good);if(typeof sfxClang==='function')sfxClang(set[0].x,set[0].y);
+  callout(set[0],tr.to==='1F'?'Going up':'Going down',C.good);if(typeof sfxLift==='function')sfxLift(set[0].x,set[0].y,'door');
 }
 function stairsTick(){
   const moved=[];
@@ -160,7 +161,7 @@ function stairsTick(){
   if(moved.length)afterTransit(floorOf(moved[0].x,moved[0].y),moved);
 }
 function openLiftDoor(){
-  const o=IN.objs.find(q=>q.kind==='liftdoor');office.liftDoor=true;if(typeof sfxClang==='function')sfxClang(86,-220);
+  const o=IN.objs.find(q=>q.kind==='liftdoor');office.liftDoor=true;if(typeof sfxLift==='function')sfxLift(86,-220,'door');
   if(o){removeObj(o);}
 }
 // a door or gate out of the way: off the map's objects (nav, sight and cover rebuilt) and out of view
@@ -173,9 +174,9 @@ function restoreObjs(){   // a fresh visit: the doors and gates back where they 
 }
 
 /* ---------- the shared room, the card and the steel door ---------- */
-function takeCard(u){office.card=true;callout(u,'Got the access card',C.good);say(u,'objective');banner('Access card. It opens the steel door from the computer, and works the stairs and the lift.',3400);hud();}
+function takeCard(u){office.card=true;callout(u,'Got the access card',C.good);banner('Access card. It opens the steel door from the computer, and works the stairs and the lift.',3400);hud();}
 function openSteel(u){
-  if(office.door)return;office.door=1;office.doorT=simT;callout(u,'Door’s opening',C.warn);
+  if(office.door)return;office.door=1;office.doorT=simT;callout(u,'Door’s opening',C.warn);if(typeof sfxComputer==='function')sfxComputer(u.x,u.y);
   if(typeof sfxGrind==='function')sfxGrind(370,145);
   const loud=contact||enemies.some(e=>!e.dead&&e.floor==='GF'&&e.area!=='ambush'&&e.alerted);   // the landing heard the fight: they're waiting
   for(const e of enemies)if(!e.dead&&e.area==='ambush'){if(loud)alertOne(e,{x:u.x,y:u.y},false);bark(e,loud?'spot':'what',true);}
@@ -206,11 +207,11 @@ function cryTick(){
 /* ---------- the basement ---------- */
 function openCell(u,c){
   const p=civs.find(v=>v.cell===c&&!v.freed);if(!p)return;
-  const g=IN.objs.find(o=>o.gate===c);if(g)removeObj(g);if(typeof sfxClang==='function')sfxClang(p.x,p.y);
+  const g=IN.objs.find(o=>o.gate===c);if(g)removeObj(g);if(typeof sfxCell==='function')sfxCell(p.x,p.y);chatFree(u);
   joinPrisoner(p);if(FREED_LINES[p.name])line(p,'freed',[FREED_LINES[p.name]],0,3,C.good);
 }
 function cutDown(u){
-  const m=wallMan();if(!m)return;Object.assign(m,{strapped:false,x:m.x,y:m.y+10,ang:Math.PI/2});
+  const m=wallMan();if(!m)return;Object.assign(m,{strapped:false,x:m.x,y:m.y+10,ang:Math.PI/2});chatFree(u);
   joinPrisoner(m,{downed:true});callout(u,'Got him. He needs a medic kit, or carrying to a medical box.',C.warn);
 }
 // a freed man becomes a soldier of his fire team (Bryan: two join Alpha, two Bravo): no armour, no gear, no rifle yet
@@ -284,7 +285,7 @@ function civTap(c){
   if(c.sci){
     if(c.detained){banner('Detained: he follows the soldier who tied him.',1800);return true;}
     if(!sel.some(alive)){banner('Select a soldier, then tap the scientist to zip-tie him.',2000);return true;}
-    orderZip(sel,c);return true;
+    if(orderZip(sel,c)&&zipGo)chatSci(zipGo.u);return true;
   }
   const a=ACTS.find(q=>q.id===(c.strapped?'cutdown':'cell-'+c.cell));
   if(a&&a.avail()){if(!sel.some(alive)){banner('Select a soldier first.',1600);return true;}orderUse(a);return true;}
@@ -300,14 +301,14 @@ function startScan(u){
   const s=detained().filter(c=>hyp(c.x-PANEL.x,c.y-PANEL.y)<140).sort((a,b)=>hyp(a.x-PANEL.x,a.y-PANEL.y)-hyp(b.x-PANEL.x,b.y-PANEL.y))[0];
   if(!s){banner('The bio scanner only opens for one of the scientists. Bring one here: they follow the soldier who tied them.',3800);callout(u,'Needs a scientist',C.warn);return false;}
   const spot={x:PANEL.x-14,y:PANEL.y+8},p=findPath(s.x,s.y,spot.x,spot.y,FOOT);
-  s.scanning=true;s.path=p||[];s.pleadT=simT;scanGo={u,s,spot,t:0};callout(u,'Hand on the scanner',C.warn);return true;
+  s.scanning=true;s.path=p||[];s.pleadT=simT;scanGo={u,s,spot,t:0};chatScan(u);return true;
 }
 function scanTick(dt){
   const g=scanGo;if(!g)return;const s=g.s;
   if(!alive(g.u)){s.scanning=false;scanGo=null;return;}
   if(s.path.length)return;
   if(hyp(s.x-g.spot.x,s.y-g.spot.y)>16){s.path=findPath(s.x,s.y,g.spot.x,g.spot.y,FOOT)||[];if(!s.path.length){s.scanning=false;scanGo=null;}return;}
-  s.ang=Math.atan2(PANEL.y-s.y,PANEL.x-s.x);g.t+=dt;
+  s.ang=Math.atan2(PANEL.y-s.y,PANEL.x-s.x);if(!g.t&&typeof sfxScan==='function')sfxScan(PANEL.x,PANEL.y);g.t+=dt;
   if(g.t>=3){s.scanning=false;scanGo=null;lowerBridge(g.u);line(s,'end',SCI_END,0);}
 }
 

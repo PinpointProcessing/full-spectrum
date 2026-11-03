@@ -49,8 +49,9 @@ function putDown(u){const t=u.carry;if(!t)return;t.carriedBy=null;u.carry=null;c
 function reviveUp(p,hp,by){
   if(p.carriedBy)putDown(p.carriedBy);
   Object.assign(p,{downed:false,critical:false,hp,revive:0,boxRev:0,bleed:BLEED_T,sup:.3,shyT:simT+SHY_T+1});
-  callout(p,'Back in it',C.good);if(by)by.stats.revives++;
+  if(by)by.stats.revives++;
   if(typeof onRevive==='function')onRevive(p);   // (Marsh's first time up: office.js)
+  if(!chatRevived(p,by))callout(p,'Back in it',C.good);   // he thanks whoever got him up (chatter.js), or just this
 }
 function medTick(dt){   // medic kits being used, men being picked up, and carried men riding along
   for(const u of players){
@@ -60,7 +61,7 @@ function medTick(dt){   // medic kits being used, men being picked up, and carri
       if(u.path.length)continue;
       if(hyp(u.x-t.x,u.y-t.y)>28){u[k]=null;continue;}
       if(k==='medGo'){if(u.sup>PINNED)continue;g.prog+=dt;if(g.prog>=MEDKIT_T){u.medGo=null;u.specN--;u.stats.items++;reviveUp(t,50,u);callout(u,'Patched up',C.good);}}
-      else{g.prog+=dt;if(g.prog>=PICKUP_T){u.carryGo=null;u.carry=t;t.carriedBy=u;callout(u,'Got him',C.good);}}
+      else{g.prog+=dt;if(g.prog>=PICKUP_T){u.carryGo=null;u.carry=t;t.carriedBy=u;callout(u,'Got him',C.good);if(typeof sfxCloth==='function')sfxCloth(u.x,u.y);}}
     }
     if(u.carry){
       const t=u.carry;if(!alive(u)||t.dead||!t.downed){putDown(u);continue;}
@@ -194,7 +195,7 @@ function boxAssign(list,z,tx,ty){
   }
   return res;
 }
-function commit(as){if(as&&as[0])say(as[0].u,'ack_move');
+function commit(as){if(as&&as[0]&&!chatMove(as))say(as[0].u,'ack_move');   // (a group move: often the lead calls his partner instead: chatter.js)
   for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;a.u.watch=null;}   // (a move ends a Watch: orders.js)
 }
 // Turn a finger-drawn trail into a walkable route that keeps its shape: skip points inside objects,
@@ -260,14 +261,15 @@ function damage(t,dmg,src){
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
+      if(typeof sfxGrunt==='function'){sfxGrunt(t,true);sfxBodyFall(t.x,t.y);}
       t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.critical=false;t.noBleed=false;t.revive=0;t.boxRev=0;t.path=[];t.supT=null;t.medGo=null;t.carryGo=null;if(t.carry)putDown(t);
       callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
-      {const m=players.filter(o=>o!==t&&alive(o)).sort((a,b)=>hyp(a.x-t.x,a.y-t.y)-hyp(b.x-t.x,b.y-t.y))[0];say(m,'man_down');}
+      chatDown(t);   // "Hayes is down!" ... "Hang on, Hayes, I've got you." (chatter.js)
       sel=sel.filter(x=>x!==t);preview=null;
     }else{
-      t.dead=true;t.path=[];callout(t,'Tango down',C.good);
+      t.dead=true;t.path=[];callout(t,'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog&&Math.random()<.5)sfxGrunt(t,true);}
       {const o=enemies.find(q=>q!==t&&!q.dead&&!q.dog&&q.alerted&&hyp(q.x-t.x,q.y-t.y)<220);if(o)bark(o,'down');}
-      if(src&&src.side==='P'){creditKill(src);if(Math.random()<.6)say(src,'kill');}
+      if(src&&src.side==='P'){creditKill(src);if(Math.random()<.6)say(src,'kill');chatKill(src);}
       paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);   // (a body someone may find: layers.js)
     }
   }
@@ -287,7 +289,7 @@ function pickTarget(u){
 }
 function burst(u,t,L){
   if(u.gunner&&hyp(u.x-camT.x,u.y-camT.z)<260)shake(.14);
-  if(u.heavy&&++u.rounds>=HEAVY.bursts){u.rounds=0;u.reloadT=simT+HEAVY.reload+1;bark(u,'reload',true);}   // the run's heavy gun: a reload after this burst
+  if(u.heavy&&++u.rounds>=HEAVY.bursts){u.rounds=0;u.reloadT=simT+HEAVY.reload+1;bark(u,'reload',true);if(typeof sfxReload==='function')setTimeout(()=>sfxReload(u.x,u.y),600);}   // the run's heavy gun: a reload after this burst
   u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
   const c=hitChance(u,t,L);
   const n=u.gunner?5:u.weapon==='shotgun'?1:3;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun one blast
@@ -303,7 +305,8 @@ function resolveShot(s){
   if(!s.hit){
     const cov=shotCover({fx,fy,tx,ty,atPeek:L.atPeek});
     const a=Math.atan2(ty-fy,tx-fx),d=hyp(tx-fx,ty-fy);
-    if(cov&&Math.random()<.7){ex=fx+Math.cos(a)*(d-10);ey=fy+Math.sin(a)*(d-10);sparks.push({x:ex,y:ey,t:0});}
+    if(cov&&Math.random()<.7){ex=fx+Math.cos(a)*(d-10);ey=fy+Math.sin(a)*(d-10);sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}   // it hit his cover: what it sounds like depends on what it is
+    else if(t.side==='P'&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey,'ground');   // incoming: the near misses smack the ground round him
     else{const aa=a+(Math.random()-.5)*0.22,dd=d+Math.random()*40-8;ex=fx+Math.cos(aa)*dd;ey=fy+Math.sin(aa)*dd;}
   }
   const sg=u.weapon==='shotgun';   // a shotgun: a spread of pellets, hard hits close, less with range
@@ -311,6 +314,7 @@ function resolveShot(s){
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
   if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0});   // a silencer hides the flash
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:sg?0.14:0.06)*(t.side==='P'?rankNerve(t):1));   // machine guns and shotgun blasts pin people down
+  if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(Math.random()<(t.side==='P'?.45:.3))sfxGrunt(t,false);}   // a hit: the thud, and often a grunt
   if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet);   // they'll think the squad is where the shot came from (a silenced shot: only close by)
   else alertAll(null,false,fx,fy,ex,ey,{x:t.x,y:t.y});   // their own gunfire is heard nearby too
@@ -347,7 +351,7 @@ function throwNade(u,tx,ty){
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.grenade=0;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
-  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u});u.stats.items++;
+  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u});u.stats.items++;if(typeof sfxPin==='function')sfxPin(u.x,u.y);
   callout(u,'Frag out!',C.warn);
   return true;
 }
@@ -359,7 +363,7 @@ function throwSmoke(u,tx,ty){
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
-  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u,smoke:true});u.stats.items++;
+  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u,smoke:true});u.stats.items++;if(typeof sfxPin==='function')sfxPin(u.x,u.y);
   callout(u,'Smoke out!',C.warn);
   return true;
 }
@@ -414,8 +418,8 @@ function sense(e,dt){
   if(e.heavy)gain*=1.5;   // the run's searchlight
   if(gain>0){e.aware=Math.min(1,e.aware+gain*dt);e.susp={x:src.x,y:src.y};}
   else e.aware=Math.max(0,e.aware-AWARE_FADE*dt);
-  if(e.aware>=AWARE_LOOK&&!e.wary){e.wary=true;if(e.vis)callout(e,'?',C.warn);}
-  else if(e.aware<0.2)e.wary=false;
+  if(e.aware>=AWARE_LOOK&&!e.wary){e.wary=true;if(e.vis)callout(e,'?',C.warn);chatHush(e);}   // ("Freeze. He heard something.": chatter.js)
+  else if(e.aware<0.2&&e.wary){e.wary=false;chatClear();}
   if(e.aware>=1){callout(src,'Spotted!',C.bad);shout(e,src);}   // he shouts: those near him know too (hunt.js)
 }
 // detection meter for the HUD: the most suspicious live enemy, full once there's contact
@@ -499,8 +503,8 @@ function silentTick(){
   }
 }
 function silentKill(e,u){   // like damage(), but quiet: nobody hears it
-  e.grabbed=false;e.hp=0;e.dead=true;e.path=[];callout(e,'Silent kill',C.good);creditKill(u);
-  paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});addBody(e);if(Math.random()<.6)say(u,'kill');   // nobody heard it, but someone may find him (layers.js)
+  e.grabbed=false;e.hp=0;e.dead=true;e.path=[];callout(e,'Silent kill',C.good);creditKill(u);if(typeof sfxCloth==='function'){sfxCloth(e.x,e.y);sfxBodyFall(e.x,e.y);}
+  paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});addBody(e);chatTakedown(u);   // nobody heard it, but someone may find him (layers.js)
 }
 
 /* ---------- AI ---------- */
@@ -617,7 +621,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u,s.quiet);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);officeEvery(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
+  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);officeEvery(dt);banterTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)

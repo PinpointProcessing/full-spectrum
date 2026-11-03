@@ -50,6 +50,10 @@ All lines: spoken as if into a radio handset, close to the mic, no echo or effec
 
 That's 23 lines × 3 variants = 69 per soldier. The four freed prisoners (Abara, Brennan, Lindqvist, Marsh) have the same set (they shout them, no radio), plus their own lines in `js/office.js` (freed, a rifle picked up, cries for help, Marsh back on his feet, goodbye).
 
+## Conversations
+
+The squad also talks to each other (`js/chatter.js`): name-to-name exchanges ("Kowalski, on me." / "Right behind you, Reyes."), contact calls by the clock, stealth whispers, check-ins and banter in quiet spells. Those lines are in that file (`NAMED`, `CHAT`, `CDIR`, `BANTER`); recording them for real would follow the same pattern, one file per line.
+
 ## Later
 
 - Enemy shouts and the scientists' lines are voiced now (their text is in `js/hunt.js` and `js/office.js`); a sheet for recording them would follow the same pattern.
