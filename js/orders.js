@@ -14,7 +14,7 @@ function resetOrders(){breach=null;}
 
 /* ---------- watch ---------- */
 function inWatch(u,e){
-  const w=u.watch;if(!w||e.dead)return false;const d=hyp(e.x-u.x,e.y-u.y);if(d>WATCH.range)return false;
+  const w=u.watch;if(!w||beaten(e))return false;const d=hyp(e.x-u.x,e.y-u.y);if(d>WATCH.range)return false;
   let da=Math.atan2(e.y-u.y,e.x-u.x)-w.ang;da=Math.atan2(Math.sin(da),Math.cos(da));return Math.abs(da)<=WATCH.half;
 }
 function orderWatch(list,wx,wy){

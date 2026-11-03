@@ -18,7 +18,7 @@ function conePath(e){
   const n=24,pts=[toS(e.x,e.y)];toSBack=false;
   for(let i=0;i<=n;i++){
     const a=e.ang-1.08+2.16*i/n,dx=Math.cos(a),dy=Math.sin(a);let r=12;
-    for(;r<300;r+=6){const x=e.x+dx*r,y=e.y+dy*r,gx=Math.floor(x/CS),gy=Math.floor((y-TOP)/CS);if(gx<0||gy<0||gx>=GW||gy>=GH||sightBlk[gy*GW+gx])break;}
+    for(const R=eyeR();r<R;r+=6){const x=e.x+dx*r,y=e.y+dy*r,gx=Math.floor(x/CS),gy=Math.floor((y-TOP)/CS);if(gx<0||gy<0||gx>=GW||gy>=GH||sightBlk[gy*GW+gx])break;}
     pts.push(toS(e.x+dx*r,e.y+dy*r));
   }
   ox.beginPath();if(toSBack)return;ox.moveTo(...pts[0]);for(let i=1;i<pts.length;i++)ox.lineTo(...pts[i]);ox.closePath();
@@ -70,8 +70,8 @@ function drawOverlay(rdt,now){
   const pulse=(Math.sin(now*4)+1)/2;
   // enemy view cones (unaware, seen)
   for(const e of enemies){
-    if(e.dead||e.alerted||!e.vis||offFloor(e))continue;
-    if(MAPID==='in')conePath(e);else gPath(e.x,e.y,300,e.ang-1.08,e.ang+1.08,true);   // indoors the cone stops at walls
+    if(e.dead||e.alerted||e.surr||!e.vis||offFloor(e))continue;
+    if(MAPID==='in')conePath(e);else gPath(e.x,e.y,eyeR(),e.ang-1.08,e.ang+1.08,true);   // indoors the cone stops at walls
     ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
   }
   // suppression zones
@@ -133,7 +133,7 @@ function drawOverlay(rdt,now){
     const[sx,sy]=toS(x,y),[bx,by]=toS(x,y,h);ox.fillStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(sx,sy,2.5,0,TAU);ox.fill();
     ox.fillStyle=n.smoke?'#b9c0c6':'#c9d1a0';ox.beginPath();ox.arc(bx,by,3,0,TAU);ox.fill();
   }
-  drawSmoke();drawOrders(now);
+  drawSmoke();drawOrders(now);drawLayers(now);   // (orders.js, layers.js)
 
   drawHQ(now);drawVehicle(rdt,now);drawMission(rdt,now);
   // where the hunters think the squad is (hunt.js): a faint ring where they're searching
@@ -143,6 +143,7 @@ function drawOverlay(rdt,now){
   const act=sel.filter(alive);
   for(const e of enemies){
     if(e.dead||offFloor(e))continue;
+    if(e.surr){if(e.vis&&!e.tied&&act.length&&!(zipGo&&zipGo.e===e)){const[fx,fy]=toS(e.x,e.y);pill('ZIP-TIE',fx,fy+16,C.good);}continue;}   // he gave up: tap him (layers.js draws his label)
     if(e.vis){
       const vx=e.x+e.lx,vy=e.y+e.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
       if(e.hitFlash>0){gPath(vx,vy,7+(.25-e.hitFlash)*30);ox.strokeStyle=`rgba(255,60,40,${(e.hitFlash*3).toFixed(2)})`;ox.lineWidth=2;ox.stroke();}   // hit: a red pulse

@@ -26,7 +26,8 @@ function resetHunt(){huntTickT=0;barkAllT=0;reinf=null;reinfLeft={};reinfN=0;sea
 
 /* ---------- who hears what ---------- */
 function alertOne(e,lk,ambush){
-  e.alerted=true;e.aware=1;e.jumpy=true;e.hunt=null;e.huntT0=0;e.wary=false;e.sawT=simT;   // (what he heard counts as a sighting for now: he hunts LOST_T s later)
+  if(e.surr)return;   // he gave up (layers.js)
+  e.alerted=true;e.alertAt=simT;e.aware=1;e.jumpy=true;e.hunt=null;e.huntT0=0;e.wary=false;e.sawT=simT;   // (what he heard counts as a sighting for now: he hunts LOST_T s later)
   if(lk)e.lkp={x:lk.x,y:lk.y,t:simT};
   if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);
 }
@@ -40,7 +41,7 @@ function startContact(msg,amb){
 function alertOut(x,y,msg,ambush,x2,y2,lk,open=OUT_HEAR_OPEN,wall=OUT_HEAR_WALL){
   const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]];let any=false;
   for(const e of enemies){
-    if(e.dead||e.alerted)continue;
+    if(e.dead||e.alerted||e.surr)continue;
     if(!pts.some(([px,py])=>{const d=hyp(e.x-px,e.y-py);return d<=wall||(d<=open&&gridSight(px,py,e.x,e.y));}))continue;
     alertOne(e,lk||{x,y},ambush);any=true;
   }
@@ -137,11 +138,11 @@ function callIn(e){
   const lk=e.lkp||{x:e.x,y:e.y};
   for(const o of enemies)if(!o.dead&&!o.alerted&&(MAPID!=='in'||o.floor===e.floor))alertOne(o,lk,false);
   startContact(null,false);
-  if(typeof raiseAlert==='function')raiseAlert(5,'radio');
   if(typeof sfxSiren==='function')sfxSiren(e.x,e.y);
   const left=reinfLeft[obj]??REINF_MAX;
   if(MAPID==='out'&&left>0&&!reinf){reinfLeft[obj]=left-1;reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:e.x,y:e.y},obj};banner('They called it in. Reinforcements are coming.',3000);}
   else banner('They called it in. Everyone knows you are here.',2600);
+  raiseAlert(5,'radio',false);   // a whole stage of the base's alert (layers.js); its own banner above says enough
 }
 const reinfPending=n=>!!reinf&&reinf.obj===n;
 function reinfTick(){
@@ -167,7 +168,8 @@ function reinfTick(){
 /* ---------- barks ---------- */
 const BARKS={spot:['There!','Contact!','Over there!'],lost:['Lost him!','Where did they go?','Where are they?'],search:['Spread out!','Check the corners!','Keep looking!'],
   flank:['Flanking!','Moving round!','Going wide!'],pinned:["I'm pinned!",'Covering fire!'],down:['Man down!','We lost one!'],radio:['Calling it in!','Command, we have contact!'],
-  backup:["Backup's here!",'Reinforcements in!'],reload:['Reloading!','Changing belts!'],giveup:['Nothing here.','They are gone.','Back to your posts.'],dog:['Release the dog!','Go get them!']};
+  backup:["Backup's here!",'Reinforcements in!'],reload:['Reloading!','Changing belts!'],giveup:['Nothing here.','They are gone.','Back to your posts.'],dog:['Release the dog!','Go get them!'],
+  body:['Man down here!','Body! Over here!','We have a body!'],what:['What was that?','Hey... what is that?','Something over there.'],grenade:['Grenade out!','Frag out!','Fire in the hole!']};   // (the last three: layers.js)
 function bark(e,k,force){
   if(!e||e.dead||e.dog)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;
   if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-e.x,p.y-e.y)<340))return;   // out of earshot

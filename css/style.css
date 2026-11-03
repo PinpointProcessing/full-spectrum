@@ -153,6 +153,13 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #bigText.inbound{color:#ff4a3a;text-shadow:0 0 2px #000,0 0 3px #000,0 2px 10px rgba(0,0,0,.9),0 0 22px rgba(255,60,40,.7);animation:bigFade 2.6s ease-in-out forwards}
 @keyframes bigFade{0%{opacity:0;transform:scale(.96)}18%{opacity:1;transform:scale(1)}68%{opacity:1}100%{opacity:0}}
 /* reinforcement countdown, where the detection ring sits */
+/* the base's alert level (layers.js): under the detection ring, a word and three segments filling towards Alert I, II and lockdown */
+#alertLvl{position:absolute;top:48px;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:6px;pointer-events:none;--c:#c9d1d6}
+#alertLvl b{font-family:var(--font-hud);font-weight:700;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--c);white-space:nowrap;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
+#alertLvl span{display:flex;gap:2px}
+#alertLvl i{display:block;width:10px;height:3px;border-radius:1px;background:rgba(255,255,255,.16);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+#alertLvl i::after{content:'';position:absolute;inset:0;background:var(--c);transform-origin:left center;transform:scaleX(var(--k,0));transition:transform .4s}
+#alertLvl.s1{--c:#ffcf4a}#alertLvl.s2{--c:#ff8a3a}#alertLvl.s3{--c:#ff3b2a}
 #countdown{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:2;display:grid;justify-items:center;pointer-events:none;color:#ff3b2a;font-family:var(--font-hud);text-shadow:0 0 10px rgba(255,45,30,.8),0 1px 2px #000}
 #countdown small{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
 #countdown b{font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}

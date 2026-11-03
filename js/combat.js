@@ -91,7 +91,7 @@ function hitChance(s,t,L){
 }
 function threats(){
   const t=[];
-  for(const e of enemies)if(!e.dead&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
+  for(const e of enemies)if(!beaten(e)&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
   if(!t.length)t.push(MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:OBJ_THREAT[obj]||{x:476,y:100});   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
@@ -239,6 +239,7 @@ function alertAll(msg,ambush,x,y,x2,y2,lk){   // noise is local everywhere (hunt
   if(MAPID==='in')alertNear(x,y,msg,ambush,x2,y2,lk);else alertOut(x,y,msg,ambush,x2,y2,lk);
 }
 function ambushing(){return!contact||simT<ambushT;}
+const beaten=e=>e.dead||e.surr;   // out of the fight: dead, or he gave up (layers.js)
 
 // a kill streak is kills no more than STREAK_GAP s apart
 const STREAK_GAP=8;
@@ -246,6 +247,7 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 // src: who did it (credited with the kill for the after-action report)
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
+  if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
   t.hp-=dmg;t.hitFlash=.25;
   if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
@@ -260,14 +262,14 @@ function damage(t,dmg,src){
       t.dead=true;t.path=[];callout(t,'Tango down',C.good);
       {const o=enemies.find(q=>q!==t&&!q.dead&&!q.dog&&q.alerted&&hyp(q.x-t.x,q.y-t.y)<220);if(o)bark(o,'down');}
       if(src&&src.side==='P'){creditKill(src);if(Math.random()<.6)say(src,'kill');}
-      paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});
+      paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);   // (a body someone may find: layers.js)
     }
   }
 }
 
 function pickTarget(u){
   // undetected, the squad holds fire except at a hostile you've told them to shoot (or into a room they're breaching)
-  const foes=u.side==='P'?(contact||simT<(u.breachT||0)?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(alive);   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
+  const foes=u.side==='P'?(contact||simT<(u.breachT||0)?enemies.filter(e=>!beaten(e)):u.focus&&!beaten(u.focus)?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(alive);   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>wRange(u))continue;
@@ -309,9 +311,9 @@ function resolveShot(s){
 }
 function suppressShot(u){
   const a=u.supT;
-  if(!enemies.some(e=>!e.dead&&hyp(e.x-a.x,e.y-a.y)<55)){u.supT=null;callout(u,'Area clear',C.good);return;}
+  if(!enemies.some(e=>!beaten(e)&&hyp(e.x-a.x,e.y-a.y)<55)){u.supT=null;callout(u,'Area clear',C.good);return;}
   const tg=[];
-  for(const e of enemies){if(e.dead||hyp(e.x-a.x,e.y-a.y)>=55)continue;const L=fireLine(u,e);if(L)tg.push({e,L});}
+  for(const e of enemies){if(beaten(e)||hyp(e.x-a.x,e.y-a.y)>=55)continue;const L=fireLine(u,e);if(L)tg.push({e,L});}
   let L=null,t=null;
   if(tg.length){const k=tg[(Math.random()*tg.length)|0];t=k.e;L=k.L;}
   else{
@@ -363,9 +365,11 @@ function explode(x,y,by,quiet){
     if(!los(x,y,v.x,v.y)||hideAt(v.x,v.y)!==hideAt(x,y))continue;   // the tunnel shelters whoever's inside
     v.sup=Math.min(1.2,v.sup+0.8);
     if(!v.downed)damage(v,95*(1-d/62),by);
-    if(v.side==='E')v.alerted=true;
+    if(v.side==='E'&&!v.surr)v.alerted=true;
   }
-  if(!quiet)alertAll('Contact. Weapons free.',true,x,y,null,null,{x,y});
+  const theirs=!!by&&by.side==='E';   // an enemy grenade (layers.js): no ambush for the squad, and the base doesn't count its own
+  if(!quiet)alertAll('Contact. Weapons free.',!theirs,x,y,null,null,{x,y});
+  if(by&&by.side==='P')raiseAlert(1,'blast',false);
 }
 
 /* ---------- stealth ---------- */
@@ -373,8 +377,8 @@ function explode(x,y,by,quiet){
 const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24,CRAWL_SPEED=13;   // crawling through the sewer pipe: about 6 s end to end
 function gaitOf(p){return p.carry?'sneak':p.gaitForce||autoGait(p);}   // carrying a man: always at sneaking speed
 function autoGait(p){
-  if(MAPID==='in'){const f=floorOf(p.x,p.y);return !contact&&enemies.some(e=>!e.dead&&e.floor===f&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R&&(hyp(e.x-p.x,e.y-p.y)<120||gridSight(p.x,p.y,e.x,e.y)))?'sneak':'run';}   // indoors there's always someone behind a wall: sneak when one's close or in sight
-  return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';
+  if(MAPID==='in'){const f=floorOf(p.x,p.y);return !contact&&enemies.some(e=>!beaten(e)&&e.floor===f&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R&&(hyp(e.x-p.x,e.y-p.y)<120||gridSight(p.x,p.y,e.x,e.y)))?'sneak':'run';}   // indoors there's always someone behind a wall: sneak when one's close or in sight
+  return !contact&&enemies.some(e=>!beaten(e)&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';
 }
 // An unaware enemy builds awareness (0..1) instead of spotting the squad instantly. Seeing a soldier in his cone
 // (or very close) raises it faster the closer, faster and more exposed the soldier is; running is also heard through walls.
@@ -382,14 +386,14 @@ function autoGait(p){
 const SEE_RATE=1.6,NOISE_R=110,AWARE_FADE=0.15,AWARE_LOOK=0.35;
 function sense(e,dt){
   if(e.dog){dogSense(e,dt);return;}
-  let gain=0,best=0,src=null;
+  let gain=0,best=0,src=null;const R=eyeR();   // on alert their eyes reach further (layers.js)
   for(const p of players){
     if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);let g=0;
-    if(d<=300){
+    if(d<=R){
       let da=Math.atan2(p.y-e.y,p.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
       const cone=Math.abs(da)<1.08;
       if((cone||d<80)&&fireLine(e,p)){
-        g=SEE_RATE*(1-d/330);
+        g=SEE_RATE*(1-d/(R*1.1));
         if(cone)g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least (in the sewer pipe nobody can see him at all: fireLine)
         else g*=p.path.length?(p.gait==='sneak'?0.04:0.65):0.03;   // close behind him: a man creeping up is hard to notice (takedowns), one running up isn't
       }
@@ -406,7 +410,7 @@ function sense(e,dt){
   if(e.aware>=1){callout(src,'Spotted!',C.bad);shout(e,src);}   // he shouts: those near him know too (hunt.js)
 }
 // detection meter for the HUD: the most suspicious live enemy, full once there's contact
-function detection(){if(contact)return 1;let a=0;for(const e of enemies)if(!e.dead)a=Math.max(a,e.alerted?.85:e.aware);return a;}   // hunting you without contact: high, but not spotted
+function detection(){if(contact)return 1;let a=0;for(const e of enemies)if(!beaten(e))a=Math.max(a,e.alerted?.85:e.aware);return a;}   // hunting you without contact: high, but not spotted
 
 /* ---------- takedowns (Bryan: silently kill a man you get behind unseen) ---------- */
 // One soldier selected and a hostile who hasn't noticed anyone, within TK_RANGE, with his back to him (the soldier is
@@ -452,7 +456,7 @@ function takedownTick(dt){
 function endTakedown(u,done){const e=u.tk&&u.tk.e;if(e&&!done)e.grabbed=false;u.tk=null;if(u.gaitForce==='sneak')u.gaitForce=null;}
 function silentKill(e,u){   // like damage(), but quiet: nobody hears it
   e.grabbed=false;e.hp=0;e.dead=true;e.path=[];callout(e,'Silent kill',C.good);creditKill(u);
-  paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});if(Math.random()<.6)say(u,'kill');
+  paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});addBody(e);if(Math.random()<.6)say(u,'kill');   // nobody heard it, but someone may find him (layers.js)
 }
 
 /* ---------- AI ---------- */
@@ -466,15 +470,17 @@ function computeVis(){
       e.last={x:e.x,y:e.y};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
-    if(!e.alerted&&!e.grabbed)sense(e,0.1);
+    if(e.surr)continue;   // he gave up (layers.js)
+    if(!e.alerted&&!e.grabbed){sense(e,0.1);seeBodies(e);}   // (a body he didn't know about: layers.js)
     else if(e.alerted&&!e.grabbed){const p=seenBy(e);if(p){e.sawT=simT;e.lkp={x:p.x,y:p.y,t:simT};if(e.hunt){e.hunt=null;e.huntT0=0;e.path=[];bark(e,'spot');}startContact('Contact.',false);}}   // an alerted man who sees the squad: contact goes on, and he knows where they are (it ends when nobody has for a while: hunt.js)
   }
 }
 // where an alerted enemy may shift between cover: inside the warehouse, unless he has his own zone (the checkpoint garrison)
 const WH_ZONE={x0:182,x1:438,y0:272,y1:548};
 function enemyThink(e){
-  if(e.dead||e.dog||!e.alerted||e.path.length||e.gunner||e.post)return;   // posts (tower sentries) never move; dogs: hunt.js
-  if(e.sup>0.65){e.exposeT=0;if(Math.random()<.15)bark(e,'pinned');return;}
+  if(e.dead||e.dog||e.surr||!e.alerted||e.path.length||e.gunner||e.post)return;   // posts (tower sentries) never move; dogs: hunt.js
+  if(e.sup>0.65){e.exposeT=0;if(moraleBreak(e))return;if(Math.random()<.15)bark(e,'pinned');return;}   // hurt, pinned and alone, he may give up (layers.js)
+  if(enemyNade(e))return;   // a soldier who's sat in one spot too long gets a grenade (layers.js)
   if(e.wave===2){assaultThink(e);return;}
   if(e.lkp&&simT-(e.sawT??-99)>LOST_T){huntThink(e);return;}   // they've lost you: the hunt (hunt.js)
   e.hunt=null;e.huntT0=0;
@@ -524,6 +530,7 @@ function playerThink(p){
 /* ---------- update ---------- */
 function updateUnit(u,dt){
   if(u.dead||u.grabbed)return;   // grabbed from behind (a takedown): he's done
+  if(u.surr){u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);u.path=[];return;}   // he gave up: kneeling, hands up (layers.js)
   if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
   if(u.side==='P'){if(u.sup>0.65&&!u.saidPinned&&alive(u)){u.saidPinned=true;say(u,'pinned');}else if(u.sup<0.4)u.saidPinned=false;}
@@ -564,7 +571,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);watchTick();breachTick();
+  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
@@ -584,7 +591,7 @@ function update(dt){
   if(flashes.some(f=>f.t<=dt+1e-6)||booms.some(b=>b.t<=dt+1e-6))lastNoiseT=simT;   // a shot or a blast this tick: a location's quiet spell starts over (mission.js)
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
   if((coverTick-=dt)<=0){coverTick=.25;for(const p of players)if(alive(p))p.covered=isCovered(p,threats());}   // four times a second is plenty (it was every tick)
-  for(const u of units)if(u.focus&&u.focus.dead)u.focus=null;
+  for(const u of units)if(u.focus&&beaten(u.focus))u.focus=null;
   takedownTick(dt);
   missionFx(dt);
   if(state==='play'&&!endAt){

@@ -264,7 +264,7 @@ function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL){
   const hears=e=>{if(fl&&rooms.includes(roomAt(fl,e.x,e.y)))return true;
     for(const[px,py]of pts){const d=hyp(e.x-px,e.y-py);if(d<=wall||(d<=open&&gridSight(px,py,e.x,e.y)))return true;}return false;};
   for(const e of enemies){
-    if(e.dead||e.alerted||e.floor!==f||!hears(e))continue;
+    if(e.dead||e.alerted||e.surr||e.floor!==f||!hears(e))continue;
     alertOne(e,lk||{x,y},ambush);any=true;   // (hunt.js: he'll come looking where the noise was)
   }
   if(any)startContact(msg,ambush);   // an ambush only if it caught someone unaware

@@ -137,6 +137,10 @@ function sfxSiren(x,y){   // the call went out: an alarm wailing across the base
   const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=1600;const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.1);g.gain.setValueAtTime(.5,t+2.8);g.gain.exponentialRampToValueAtTime(0.0001,t+3.1);
   o.connect(f);f.connect(g);g.connect(out);o.start(t);o.stop(t+3.2);
 }
+function sfxPing(k){   // the contact sensor (layers.js): a soft, muffled tock, a little louder and higher as the nearest mover closes in
+  const out=voice(null,null,.05+.1*k,.5);if(!out)return;const t=AC.currentTime;
+  toneHit(out,t,.2,'sine',480+240*k,400+200*k,.5,.008);noiseHit(out,t,.035,'bandpass',1300,4,.1,.002);
+}
 function sfxSmoke(x,y){   // a smoke grenade popping: a soft thump, then a long hiss that tails off
   const out=voice(x,y,.5,3);if(!out)return;const t=AC.currentTime;
   noiseHit(out,t,.12,'lowpass',700,0,.7,.003,150);noiseHit(out,t+.05,2.6,'bandpass',2600,1.4,.35,.08,1400);noiseHit(out,t+.05,2.2,'highpass',4500,0,.12,.1);

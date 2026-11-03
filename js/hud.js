@@ -12,7 +12,7 @@ function setStatus(){
   s.textContent=contact?'Contact':quiet;s.className='chip'+(contact?' contact':'');
 }
 function finish(){
-  const win=players.some(alive)&&(wave.phase==='hq'?obj>=5:enemies.every(e=>e.dead));
+  const win=players.some(alive)&&(wave.phase==='hq'?obj>=5:enemies.every(beaten));
   state='end';setStatus();$('#status').textContent=win?'Secured':'Lost';
   if(win){bigText('Mission complete!','complete');setTimeout(showAAR,2600);return;}   // then the after-action report, then the HQ
   const t=Math.floor(simT),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
@@ -30,7 +30,7 @@ function hitCue(k){const el=$('#hitFlash');if(!el)return;el.style.transition='no
 function hud(){
   updateCards();
   const act=sel.filter(alive);
-  $('#supBtn').disabled=!act.length||!enemies.some(e=>!e.dead&&e.seen);
+  $('#supBtn').disabled=!act.length||!enemies.some(e=>!beaten(e)&&e.seen);
   {const wb=$('#watchBtn'),bb=$('#breachBtn');wb.disabled=!act.length;wb.classList.toggle('on',mode==='watch'||act.some(u=>u.watch));bb.hidden=!(MAPID==='in'||obj===0);bb.disabled=!act.length;bb.classList.toggle('on',mode==='breach'||!!breach);}
   $('#supBtn').classList.toggle('on',mode==='suppress');
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
@@ -59,6 +59,7 @@ function hud(){
   else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medical box (the red +). He moves slowly and can't shoot. Put down is bottom right.`;
   else if(act.length===1&&!preview&&inSupply(act[0]))h=`In the supply box: tap ${act[0].name}'s special item on his card to swap smoke and medic kit.`;
   else if(act.length&&!preview&&players.some(p=>p.critical&&!p.dead&&!p.carriedBy&&!p.offMap))h='A soldier is critical: tap him with a medic (the red kit on a card) selected, or anyone to carry him to a medical box.';
+  else if(!preview&&enemies.some(e=>e.surr&&!e.tied&&!e.dead&&e.vis&&!offFloor(e)))h=act.length?'A hostile has surrendered: tap him to zip-tie him (2 s beside him).':'A hostile has surrendered: select a soldier, then tap him to zip-tie him.';   // (layers.js)
   else if(secure.state==='move'&&!preview)h=`All hostiles down. Move a soldier into the green area to take ${LOCS[obj].name}.`;
   else if(secure.state==='hold'&&!preview)h=`Taking ${LOCS[obj].name}: it's yours after ${QUIET_T} quiet seconds (no shooting).`;
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
@@ -81,7 +82,7 @@ function alertMeter(){
   const sc=$('#secure'),securing=state==='play'&&!!secure.state;sc.hidden=!securing;
   if(securing){sc.classList.toggle('move',secure.state==='move');$('#secureArc').setAttribute('stroke-dashoffset',(94.25*(1-secure.t/QUIET_T)).toFixed(2));
     sc.querySelector('small').textContent=secure.state==='move'?'Move in':'Securing';sc.setAttribute('aria-label',secure.state==='move'?'Area clear: move in to take it':`Securing ${Math.round(secure.t/QUIET_T*100)}%`);}
-  const el=$('#alert');el.hidden=securing||state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!e.dead))||threatOn();if(el.hidden)return;   // the countdown takes its place (and a radio call or reinforcements: hunt.js)
+  const el=$('#alert');el.hidden=securing||state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!beaten(e)))||threatOn();if(el.hidden)return;   // the countdown takes its place (and a radio call or reinforcements: hunt.js)
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);

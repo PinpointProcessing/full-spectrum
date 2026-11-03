@@ -22,21 +22,27 @@ The research behind it (Dark Descent's systems and presentation, how other games
 
 ## The order of work
 1. **Quick fixes (done).** See-through fences; C4 off for this level and a special item in its place (smoke or a medic kit); the healthiest soldier takes the exposed spot and the hurt or just-revived keep their heads down; no reviving while pinned and a 60 s window; tapping one soldier of a selected group selects just him; the two marker bugs.
-2. **Enemies that hunt and call it in.** The biggest change to the feel.
+2. **Enemies that hunt and call it in (built).** The biggest change to the feel.
    - Being spotted no longer wakes the whole map: a shout reaches about 25 m, gunfire further; contact can end outdoors too (as it already does inside the office).
    - Hunters go to the squad's last known position, search nearby hiding places and flank; they give up after 30–40 s and take new posts nearer where they lost you.
-   - Radio men call for help (about 5 s, a ring over his head); killing or pinning him stops the call. Alarm panels where there's no radio man.
+   - Radio men call for help (about 5 s, a ring over his head); killing him stops the call, pinning him pauses it. Alarm panels where there's no radio man (not built: every area has a radio man for now).
    - Reinforcements come with a warning and a countdown, from a place you can empty first, and they're capped. An alarm never loses the mission; it brings reinforcements (Bryan).
    - Enemies shout to each other ("There!", "Lost him!", "Flanking left!").
-   - Guard dogs with handlers count as human and belong in level 1 (Bryan). A dog follows the squad's trail and barks to alert its handler.
-3. **The dark, sound and weight.** Darker nights; visible torch beams; inside: dark empty rooms, lit occupied ones, flickering and emergency lights, clutter and small story scenes; background hum, a tighter echo inside, a low drone that swells as you're being spotted; flinches, muzzle flashes, camera shake, a red edge flash when hit; labels only when they matter.
-4. **The container maze and the run** (replaces the fuel depot; Bryan). A container maze about 2.5 times bigger, and a straight lane of about 37 m to the data center covered by a manned heavy machine gun (Bryan: manned) with a sweeping searchlight. Ways past: run for it, pin the gunner with one team while the other runs, flank him through the maze, dash while he reloads, or smoke.
-5. **Later layers.** An alert level for the base that only goes up (helmets, searchlights, flares); dead guards that get found and missed radio check-ins; enemies who surrender (zip ties); enemy grenades that flush out campers; a contact sensor that pings, our own take on the motion tracker.
+   - Guard dogs with handlers count as human and belong in level 1 (Bryan). A dog follows the squad's trail and barks to alert its handler. (Built: one handler and dog in the container yard; the dog smells and hears all round, runs you down and bites.)
+3. **The dark, sound and weight (built).** Darker nights; visible torch beams; inside: dark empty rooms, lit occupied ones, flickering and emergency lights, clutter and small story scenes; background hum, a tighter echo inside, a low drone that swells as you're being spotted; flinches, muzzle flashes, camera shake, a red edge flash when hit; labels only when they matter.
+4. **The container maze and the run (built)** (replaces the fuel depot; Bryan). A container maze about 2.5 times bigger, and a straight lane of about 37 m to the data center covered by a manned heavy machine gun (Bryan: manned) with a sweeping searchlight. Ways past: run for it, pin the gunner with one team while the other runs, flank him through the maze, dash while he reloads, or smoke.
+5. **Later layers (built).** An alert level for the base that only goes up; dead guards that get found and missed radio check-ins; enemies who surrender (zip ties); enemy grenades that flush out campers; a contact sensor that pings, our own take on the motion tracker.
+   - As built: four stages (Calm, Alert I, Alert II, Lockdown), shown under the detection ring. A radio call that goes out is a whole stage; a body found, each 15 s of fighting and each of our explosions add a little. Alert I: their eyes reach 15 % further. Alert II: helmets and vests (20 % less damage). Lockdown: a hunter team. Searchlights and flares are not in yet.
+   - A body takes a guard a moment to take in; he walks over and the men near him search round it without knowing where the squad is. The radio net checks in every 45–65 s and misses a man nobody knew was dead.
+   - Surrender: hurt, pinned and alone, a hostile may give up; he counts as down, and a soldier can zip-tie him for XP.
+   - Enemy grenades: thrown at a soldier who sits in one spot in their sight for 8 s; a red circle shows where, and soldiers who weren't just given an order get out by themselves.
+   - Contact sensor: blips for hostiles moving out of sight within 45 m, a ring and a soft ping only when something moves (Bryan to judge the sound: he had all UI beeps taken out).
+   - The after-action report gives a bonus for a quiet run and says how far the alert went.
 
-## Squad orders
-- **Watch** (Full Spectrum Warrior's fire sector): drag a cone from a fire team; the team takes the nearest cover that still covers the cone and fires first at anything that enters it, with a small aim bonus. The main answer to anything that rushes the squad, and useful against humans.
-- **Breach room** (Bryan: after Watch, a similar order): the team stacks up at a doorway and clears the room.
-- **The breach pair** (asked, waiting on Bryan's yes or no): two enemies who push together, a shield man in front (shots from the front hit the shield) and a shotgunner behind. Beaten by flanking, a grenade behind them, or pinning them. They'd fit the ambush behind the steel door and the response team after an alarm.
+## Squad orders (both built)
+- **Watch** (Full Spectrum Warrior's fire sector; built as: press Watch, then tap where to watch):  each soldier takes the nearest cover that still covers the cone (Bryan: if it's there) and fires first at anything that enters it, with a small aim bonus. The main answer to anything that rushes the squad, and useful against humans.
+- **Breach room** (Bryan: after Watch, a similar order): press Breach, tap a room; the team stacks up at its nearest doorway and goes in together, with a short aim bonus while anyone inside who hadn't seen them is slow to react.
+- **The breach pair** (Bryan: it will come; level 1 only introduces the basics): two enemies who push together, a shield man in front (shots from the front hit the shield) and a shotgunner behind. Beaten by flanking, a grenade behind them, or pinning them. They'd fit the ambush behind the steel door and the response team after an alarm.
 
 ## Special items and downed soldiers (Bryan; built)
 - Every soldier carries a grenade and one special item: smoke or a medic kit (C4 and others can join later). One medic kit per fire team to start (A2, B2). In a supply box, tapping the item swaps it for the other kind, refilled.

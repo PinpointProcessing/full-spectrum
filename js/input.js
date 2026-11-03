@@ -228,6 +228,11 @@ function tap(sx,sy){
   if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
   if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
   const en=enemyAtScreen(sx,sy);
+  if(en&&en.surr){   // he gave up: the nearest selected soldier zip-ties him (layers.js)
+    if(en.tied){banner('He is tied up.',1400);return;}
+    if(!sel.length){banner('Select a soldier, then tap him to zip-tie him.',2000);return;}
+    if(orderZip(sel,en))preview=null;return;
+  }
   if(en&&sel.length===1&&canTakedown(sel[0],en)){if(orderTakedown(sel[0],en))preview=null;return;}   // his back is to the one soldier selected: a silent takedown (combat.js)
   if(en&&sel.length){
     for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}

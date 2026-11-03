@@ -98,8 +98,8 @@ function spawnPending(){
   }
   if(any)enemies=units.filter(u=>u.side==='E');
 }
-function groupDone(n){return !!groups[n]&&groups[n].every(e=>e.dead)&&!pendingSpawns.some(s=>s.n===n)&&!reinfPending(n);}   // (and no reinforcements on the way: hunt.js)
-function groupLeft(n){return (groups[n]||[]).filter(e=>!e.dead).length+pendingSpawns.filter(s=>s.n===n).length;}
+function groupDone(n){return !!groups[n]&&groups[n].every(beaten)&&!pendingSpawns.some(s=>s.n===n)&&!reinfPending(n);}   // (and no reinforcements on the way: hunt.js)
+function groupLeft(n){return (groups[n]||[]).filter(e=>!beaten(e)).length+pendingSpawns.filter(s=>s.n===n).length;}
 
 /* ---------- taking a location (Bryan): the whole place, then a quiet spell ---------- */
 // The warehouse, the bridge and the container yard are only secured once their defenders are all down (the old depot's tanks gone
@@ -108,7 +108,7 @@ function groupLeft(n){return (groups[n]||[]).filter(e=>!e.dead).length+pendingSp
 // so a man fighting from the door needn't walk in).
 const QUIET_T=5;
 const LOCS={
-  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(e=>e.dead)&&!reinfPending(0),left:()=>enemies.filter(e=>!e.dead).length,
+  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(beaten)&&!reinfPending(0),left:()=>enemies.filter(e=>!beaten(e)).length,
     extra:[{x0:285,x1:325,y0:240,y1:276},{x0:260,x1:360,y0:548,y1:578},{x0:150,x1:182,y0:395,y1:455},{x0:438,x1:470,y0:380,y1:420},{x0:438,x1:470,y0:450,y1:500}]},
   1:{zone:{x0:330,x1:660,y0:-40,y1:100},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},   // its north end and the north half of the bridge
   2:{zone:YARD2_ZONE,name:'the container yard',done:()=>groupDone(2),left:()=>groupLeft(2)},
@@ -164,7 +164,7 @@ function missionTick(dt){
   if(MAPID==='in')interiorTick(dt);   // inside the office building (interior.js)
   else if(pendingSpawns.length&&(spawnTick-=dt)<=0){spawnTick=.5;spawnPending();}   // twice a second is plenty
   for(const e of enemies){   // patrols walk their route and back, pausing at each end, until they're alerted
-    if(e.dead||e.alerted||!e.route||e.path.length)continue;
+    if(e.dead||e.alerted||e.surr||e.bodyGo||!e.route||e.path.length)continue;   // (gone to look at a body: layers.js)
     if(!e.waitT){e.waitT=simT+2.5;continue;}
     if(simT<e.waitT)continue;
     e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
@@ -349,7 +349,7 @@ function drawSecure(now){
 // group is down and 3 or fewer are left (or the depot's tanks are gone), a red ring where each one is, seen or not, and an arrow at the screen's edge for any off it
 function drawLastFoes(now){
   const L=LOCS[obj];if(!L||objDone>obj||state!=='play'||secure.state)return;
-  const all=obj===0?enemies:groups[obj]||[],foes=all.filter(e=>!e.dead);   // only once at least half the group is down and 3 or fewer are left (the warehouse has only 4: they were marked from the start)
+  const all=obj===0?enemies:groups[obj]||[],foes=all.filter(e=>!beaten(e));   // only once at least half the group is down and 3 or fewer are left (the warehouse has only 4: they were marked from the start)
   if(!foes.length||!(foes.length<=3&&foes.length*2<=all.length))return;
   const pulse=(Math.sin(now*5)+1)/2,[mx,my]=[cw/2,ch/2];
   for(const e of foes){

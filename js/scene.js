@@ -549,13 +549,19 @@ function syncUnits(t){
     m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
     m.g.visible=!u.gone&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P'));   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)
+    if(u.surr&&!m.arms){   // he gave up (layers.js): rifle down, hands up; tied, his hands go behind his back
+      const mat=m.pose.children[1].material;
+      m.arms=[-1,1].map(sd=>{const a=new T.Mesh(new T.BoxGeometry(1.6,7,1.6),mat);a.position.set(.4,20,sd*2.7);a.rotation.x=sd*.22;a.castShadow=true;m.pose.add(a);return a;});
+      if(m.pose.children[6])m.pose.children[6].visible=false;
+    }
+    if(m.arms){const up=!!u.surr&&!u.tied&&!u.dead;for(const a of m.arms)a.visible=up;}
     const lying=u.downed||u.dead||simT<(u.stunT||0);   // (knocked down by a dog: on the ground for a moment)
     const vk=lying?0:u.vaultK||0,cr=!lying&&u.crawl;   // vaulting a window: leaning forward over the sill, tucked; in the sewer pipe: flat on his front
     m.pose.rotation.z+=((lying?Math.PI/2:cr?-Math.PI/2:-.55*vk+(u.hitFlash>0?u.hitFlash*1.5:0))-m.pose.rotation.z)*.25;   // (a hit: he jerks back a moment)
     const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
     m.pose.position.y=lying?2.6:cr?2+(u.path.length?Math.abs(Math.sin(t*5+u.y))*.35:0):(u.path.length&&!vk?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
     const crouch=!lying&&!cr&&!u.gunner&&(u.inVeh||u.inBoat?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
-    m.pose.scale.y+=((crouch?.7:vk?.78:sneak&&!cr?.8:1)-m.pose.scale.y)*.15;
+    m.pose.scale.y+=((u.surr&&!lying?.62:crouch?.7:vk?.78:sneak&&!cr?.8:1)-m.pose.scale.y)*.15;   // (on his knees once he's given up)
     m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
     if(m.spot)m.spot.intensity=lying||cr?0:2.6;   // no torch while lying or crawling
     if(m.beam)m.beam.visible=!(lying||cr);

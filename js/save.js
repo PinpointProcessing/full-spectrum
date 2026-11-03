@@ -14,6 +14,7 @@ function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 let savedTimer=0;
 function saveGame(stage){
   const data={v:2,stage,when:Date.now(),
+    alert:{t:alertT,max:alertMax},   // the base's alert level only goes up within the mission (layers.js)
     squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges}]))};
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
   const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
@@ -23,6 +24,7 @@ function saveGame(stage){
 function continueGame(){
   const s=readSave();if(!s)return false;
   reset();state='play';contact=false;landing=null;
+  if(s.alert){alertT=s.alert.t||0;alertMax=s.alert.max||0;}
   for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;e.gone=true;}   // the warehouse, cleared
   wave.phase='hq';hq={t0:simT,tour:null};addZones(WH_ZONES);
   const n=STAGE_OBJ[s.stage];
