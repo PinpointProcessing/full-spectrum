@@ -166,6 +166,7 @@ function drawOverlay(rdt,now){
         pill(pc.text,fx,fy+16,pc.col);
       }
       if(act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
+      if(e.reloadT>simT)label('RELOADING',fx,fy+29,C.good,9,700);   // the run's heavy gun: dash now
       if(e.radio){label(e.call?'CALLING IT IN':'RADIO',fx,fy+29,e.call?'#ff5a48':'#ffb0a0',8,700);   // the radio man (hunt.js): kill or pin him before the call goes out
         if(e.call){gPath(vx,vy,15,-Math.PI/2,-Math.PI/2+e.call.t/CALL_T*TAU);ox.strokeStyle='#ff3b2a';ox.lineWidth=2.6;ox.stroke();}}
       if(stalked){gPath(vx,vy,11+Math.sin(now*6)*1.5);ox.strokeStyle=C.good;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);}   // being stalked for a takedown

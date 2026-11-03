@@ -1,6 +1,7 @@
 "use strict";
 /* Map data and geometry queries (line of sight, cover, free space). One mission, five objectives, south to north
-   (Bryan): 1 take the warehouse, 2 take the bridge over the canal, 3 destroy the fuel depot's tanks, 4 get the decryption
+   (Bryan): 1 take the warehouse, 2 take the bridge over the canal, 3 take the container yard (a maze with a straight run under
+   a heavy machine gun), 4 get the decryption
    key from inside the data center and lower the fortress drawbridge, 5 take the Headquarters (to come). */
 const objs=[];
 // FULL objects block sight, shots, throws and blasts. Chain-link fences and gates aren't in it (Bryan: you can see and throw
@@ -62,19 +63,24 @@ O('sandbag',456,34,40,10);O('sandbag',456,12,10,22);O('sandbag',486,12,10,22);
 O('sandbag',388,42,44,10);O('sandbag',596,48,44,10);O('barrier',360,-10,52,12);O('crate',620,0,26,22);
 const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
 
-/* ---------- the container yard (between the bridge and the depot / data center) ---------- */
-box(280,-80,110,34,1);box(520,-80,110,34,3);box(430,-125,34,80,2,2);
-box(300,-175,34,70,5,2);box(560,-175,110,34,7,2);box(655,-125,34,70,4,2);
-box(380,-220,110,34,6);box(470,-285,34,60,0);box(300,-285,90,30,1,2);box(590,-275,34,80,2);
-O('pallet',350,-125,30,20);O('barrel',520,-110,16,16,{col:'#6b3a28'});O('crate',622,-222,26,26);
-const YARD2_ZONE={x0:270,x1:700,y0:-290,y1:-40};
-
-/* ---------- objective 3: the fuel depot (north-east) ---------- */
-O('fence',700,-300,280,6);O('fence',700,-300,6,100);O('fence',700,-160,6,100);O('fence',700,-66,100,6);O('fence',860,-66,132,6);   // chain-link round it: a gate on the west side, a gap in the south
-O('tank',740,-280,48,48,{col:'#c9c6bc'});O('tank',815,-280,48,48,{col:'#b9b4a6'});O('tank',890,-280,48,48,{col:'#c9c6bc'});
-O('tank',770,-200,44,44,{col:'#b9b4a6'});O('tank',860,-195,44,44,{col:'#c9c6bc'});
-O('barrel',930,-180,16,16,{col:'#8a2f22'});O('barrel',948,-176,16,16,{col:'#8a2f22'});O('crate',760,-120,26,20);O('crate',900,-110,30,24);O('sandbag',820,-110,44,10);
-const DEP_ZONE={x0:706,x1:990,y0:-296,y1:-70};
+/* ---------- objective 3: the container yard, a maze between the bridge and the data center (Bryan: scrap the fuel depot,
+   "make the container maze larger and more challenging with a straight shot to the office through turret fire") ----------
+   Two blocks of stacked containers with aisles about 4 m wide and dead ends, and between them THE RUN: a straight lane 6 m
+   wide from the bridge's north end to the data center wall's east opening, covered by a manned heavy machine gun at its far
+   end (sandbags on the lane side only, so a team that works round through the maze's side openings takes him from behind;
+   smoke, pinning him while the other team runs, or his reload window are the other ways past). */
+// the lane's walls (double stacked), each with a side opening into the maze
+box(311,-310,34,120,1,2);box(311,-150,34,95,4,2);box(405,-310,34,100,2,2);box(405,-170,34,115,6,2);
+const RUN={x0:345,x1:405,y0:-320,y1:-50,nest:{x:386,y:-328}};
+O('sandbag',366,-316,39,10);O('crate',392,-358,22,16);   // the nest on the lane's east side: sandbags facing down it, ammo crates behind; the west side stays open through to the data center wall's gap
+// the west block
+box(110,-330,34,110,0,2);box(184,-330,90,34,3,3);box(184,-256,34,90,5,2);box(258,-256,34,60,7,1);
+box(110,-180,74,34,2,2);box(232,-150,60,34,1,2);box(110,-106,34,56,4,1);box(184,-106,34,56,6,2);
+// the east block
+box(479,-330,110,34,4,2);box(629,-330,34,110,1,3);box(703,-330,97,34,5,2);box(479,-256,34,96,3,2);box(553,-256,36,70,7,2);
+box(703,-256,34,110,2,2);box(553,-146,110,34,0,2);box(479,-120,34,70,6,1);box(703,-106,97,34,4,2);
+O('pallet',240,-60,30,20);O('barrel',600,-80,16,16,{col:'#6b3a28'});O('crate',760,-180,26,26);
+const YARD2_ZONE={x0:110,x1:800,y0:-345,y1:-45};   // the maze (the yard's men keep to it until they hunt)
 
 /* ---------- objective 4: the data center (north-west): its front yard is taken, then the squad goes in ---------- */
 // (Bryan) a closed office building: you take the yard in front like the other locations, then the whole squad goes in
@@ -88,7 +94,7 @@ box(30,-390,90,26,3,2);box(200,-390,70,26,5);box(270,-390,60,26,6,2);box(410,-39
 const DC_NESTS=[{x:145,y:-410},{x:355,y:-410}];
 for(const n of DC_NESTS){O('sandbag',n.x-20,n.y+12,40,10);O('sandbag',n.x-20,n.y-10,10,22);O('sandbag',n.x+10,n.y-10,10,22);}
 O('car',220,-330,40,22);O('barrier',60,-320,52,12);O('barrier',420,-325,52,12);
-const DC_OUT={x0:20,x1:540,y0:-432,y1:-300};
+const DC_OUT={x0:20,x1:540,y0:-432,y1:-345};
 
 /* ---------- objective 5 (to come): the fortress gate behind its moat (north-east) ---------- */
 const FORT={cx:850,cy:-1000,r0:380,r1:440},BRIDGE={x:815,y:FORT.cy+FORT.r1,w:70,len:74},PANEL={x:930,y:-548};

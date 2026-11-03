@@ -2,7 +2,7 @@
 /* DOM HUD: status chip, banner, squad rows, action buttons, keyboard, end screen. */
 let bannerTimer=0;
 function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
-const OBJ_HINT={1:'Next: take the bridge (north). Or crawl through the sewer pipe to the west, or cross the broken rail bridge in the east.',2:'Next: destroy the fuel tanks (north-east): shoot them from a distance.',3:'Next: the data center (north-west). Take its front yard, then the whole squad goes in through the front doors.',4:'Next: send a soldier to the drawbridge control panel (north-east).',5:'The drawbridge is down. The Headquarters comes next.'};
+const OBJ_HINT={1:'Next: take the bridge (north). Or crawl through the sewer pipe to the west, or cross the broken rail bridge in the east.',2:'Next: the container yard (north), a maze. The straight lane is the quick way through, but a heavy machine gun covers it: smoke it, pin the gunner while the other team runs, wait for his reload, or work round through the maze and take him from behind.',3:'Next: the data center (north-west). Take its front yard, then the whole squad goes in through the front doors.',4:'Next: send a soldier to the drawbridge control panel (north-east).',5:'The drawbridge is down. The Headquarters comes next.'};
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}

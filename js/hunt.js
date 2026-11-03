@@ -167,7 +167,7 @@ function reinfTick(){
 /* ---------- barks ---------- */
 const BARKS={spot:['There!','Contact!','Over there!'],lost:['Lost him!','Where did they go?','Where are they?'],search:['Spread out!','Check the corners!','Keep looking!'],
   flank:['Flanking!','Moving round!','Going wide!'],pinned:["I'm pinned!",'Covering fire!'],down:['Man down!','We lost one!'],radio:['Calling it in!','Command, we have contact!'],
-  backup:["Backup's here!",'Reinforcements in!'],giveup:['Nothing here.','They are gone.','Back to your posts.'],dog:['Release the dog!','Go get them!']};
+  backup:["Backup's here!",'Reinforcements in!'],reload:['Reloading!','Changing belts!'],giveup:['Nothing here.','They are gone.','Back to your posts.'],dog:['Release the dog!','Go get them!']};
 function bark(e,k,force){
   if(!e||e.dead||e.dog)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;
   if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-e.x,p.y-e.y)<340))return;   // out of earshot

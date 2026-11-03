@@ -1,12 +1,13 @@
 "use strict";
-/* The mission after the warehouse (Bryan): 2 take the bridge, 3 destroy the fuel tanks, 4 take the data center's front
+/* The mission after the warehouse (Bryan): 2 take the bridge, 3 take the container yard (a maze with a straight run under a
+   heavy machine gun; the fuel depot is scrapped, its tank code kept for later), 4 take the data center's front
    yard, go inside for the decryption key (interior.js) and lower the drawbridge with it, 5 take the Headquarters (to
    come). Each objective's defenders spawn when it becomes the current one (so a fight at one doesn't alert the next); a
    finished objective gets a medical and a supply box (hq.js) and the game saves. Also: demolition charges (one per
    soldier, restocked at supply boxes) for the fuel tanks, the enemy RPG gunner and his rockets, fuel tanks that
    chain-explode, the drawbridge and its panel, the objective tracker, and their overlay drawing. */
-const OBJECTIVES=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Sabotage the data center','Lower the drawbridge','Take the Headquarters'];
-// indexes into OBJECTIVES: 0 warehouse, 1 bridge, 2 fuel tanks, 3 data center, 4 drawbridge (still objective 4 for the player), 5 HQ
+const OBJECTIVES=['Take the warehouse','Take the bridge','Take the container yard','Sabotage the data center','Lower the drawbridge','Take the Headquarters'];
+// indexes into OBJECTIVES: 0 warehouse, 1 bridge, 2 container yard, 3 data center, 4 drawbridge (still objective 4 for the player), 5 HQ
 const RPG={aim:1.3,reload:8,speed:170,spread:[18,42],range:400,blast:40,dmg:85};
 const CHARGE={plant:3,fuse:8,away:130};
 let rockets=[],tankFires=[],tankQueue=[],charges=[],obj=0,groups={},finished={},panelGo=null,bridgeDown=0,pendingSpawns=[];
@@ -30,6 +31,21 @@ function mgGunner(id,x,y){
   for(const a of[0,2.1,4.2]){const leg=new T.Mesh(new T.CylinderGeometry(.35,.35,9,4),dm);leg.position.set(8+Math.cos(a)*2,4.5,Math.sin(a)*2);leg.rotation.z=Math.cos(a)*.3;leg.rotation.x=Math.sin(a)*.3;mg.add(leg);}
   u.m.pose.add(mg);return u;
 }
+// the run's heavy machine gun (Bryan: manned): hits harder than the other guns, sweeps the lane with a searchlight while he
+// hasn't seen you (spotting faster in it), and reloads after every HEAVY.bursts bursts (HEAVY.reload s, RELOADING over him):
+// the window to dash. The searchlight is its own mesh in the scene, so you see it even when you can't see him.
+const HEAVY={bursts:6,reload:3,dmg:.8,sweep:.42};
+function addSearchlight(u){
+  const L=230,g=new T.ConeGeometry(L*Math.tan(.2),L,20,1,true);g.rotateZ(Math.PI/2);g.translate(L/2,0,0);
+  const c=document.createElement('canvas');c.width=4;c.height=128;const x=c.getContext('2d'),gr=x.createLinearGradient(0,0,0,128);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(255,255,255,.4)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,4,128);
+  const m=new T.Mesh(g,new T.MeshBasicMaterial({map:new T.CanvasTexture(c),color:0xfff1c8,transparent:true,opacity:.3,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide,toneMapped:false}));
+  m.renderOrder=2;scene.add(m);u.slight=m;heavyPose(u);
+}
+function heavyPose(u){const m=u.slight;if(!m)return;m.visible=!u.dead;m.position.set(u.x,17,u.y);m.rotation.set(0,-u.ang,-.1);}
+function heavyTick(){   // sweep the lane while unaware; keep the light on him
+  for(const u of enemies){if(!u.heavy)continue;if(!u.dead&&!u.alerted)u.ang=Math.PI/2+Math.sin(simT*.55)*HEAVY.sweep;heavyPose(u);}
+}
 // Each objective's defenders: [x,y,make] for each post. They take their posts when the objective starts, but never in front
 // of the squad (Bryan: no troops turning up in the area you've just taken): a post a soldier could see (within 360, the
 // range he'd spot a man at) or that's within 100 of one waits (pendingSpawns) until it isn't; after SPAWN_WAIT s the man
@@ -40,20 +56,20 @@ function groupSpecs(n){
     g.push([476,20,()=>mgGunner('E20',476,20)],[556,14,()=>hostile('E21',556,14,{name:'Sentry',post:true,elev:14}),true]);   // true: inside the pillbox, he never walks in
     for(const[i,[x,y]]of[[422,30],[614,38],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE,radio:i===0})]);   // E22 carries the radio
     for(const q of g){const make0=q[2];q[2]=()=>{const u=make0();u.jumpy=false;return u;};}
-  }else if(n===2){   // the container yard: men posted in its aisles and a two-man patrol walking them; then the depot's guards and its RPG gunner
-    // behind the first row of containers, looking every which way; none in sight of the rest spot at the bridge's south end
-    for(const[i,[x,y]]of[[437,-136],[450,-150],[600,-110],[345,-140],[560,-105],[620,-120],[440,-250],[550,-240],[340,-230]].entries())g.push([x,y,()=>hostile('E'+(60+i),x,y,{zone:YARD2_ZONE,ang:Math.random()*TAU,radio:i===4})]);   // E64 carries the radio
-    // the east-west patrol has a guard dog with him (hunt.js)
-    g.push([345,-235,()=>{const h=hostile('E70',345,-235,{name:'Handler',zone:YARD2_ZONE,route:[{x:660,y:-235},{x:345,y:-235}],ri:0,waitT:0});groups[2].push(dog('E72',h.x-12,h.y+10,{handler:h,zone:YARD2_ZONE}));return h;}],[515,-220,()=>hostile('E71',515,-220,{name:'Patrol',zone:YARD2_ZONE,route:[{x:515,y:-290},{x:515,y:-220}],ri:0,waitT:0})]);
-    for(const[i,[x,y]]of[[730,-110],[880,-130],[955,-235],[836,-216]].entries())g.push([x,y,()=>hostile('E'+(33+i),x,y,{zone:DEP_ZONE})]);
-    g.push([742,-150,()=>{const r=hostile('E37',742,-150,{name:'RPG',zone:DEP_ZONE,rpg:true,cool:1});
-      const tube=new T.Mesh(new T.CylinderGeometry(1,1,12,8),new T.MeshStandardMaterial({color:0x3b4a2e,roughness:.8}));tube.rotation.z=Math.PI/2;tube.position.set(1,15,-2.5);r.m.pose.add(tube);return r;}]);
+  }else if(n===2){   // the container yard (a maze): men posted in its aisles facing every which way, two patrols (one with a guard dog), a radio man, and the heavy machine gun at the end of the run
+    g.push([RUN.nest.x,RUN.nest.y,()=>{const u=mgGunner('E60',RUN.nest.x,RUN.nest.y);Object.assign(u,{ang:Math.PI/2,heavy:true,name:'Heavy MG'});addSearchlight(u);return u;},true]);
+    for(const[i,[x,y,a]]of YARD_POSTS.entries())g.push([x,y,()=>hostile('E'+(61+i),x,y,{zone:YARD2_ZONE,ang:a,radio:i===YARD_RADIO})]);
+    g.push([768,-260,()=>{const h=hostile('E70',768,-260,{name:'Handler',zone:YARD2_ZONE,route:[{x:768,y:-140},{x:768,y:-270}],ri:0,waitT:0});groups[2].push(dog('E72',h.x-10,h.y+12,{handler:h,zone:YARD2_ZONE}));return h;}],   // a patrol with a guard dog, in the east aisle (out of sight of the bridge's rest spot)
+      [164,-120,()=>hostile('E71',164,-120,{name:'Patrol',zone:YARD2_ZONE,route:[{x:164,y:-276},{x:164,y:-62}],ri:0,waitT:0})]);
   }else if(n===3){   // the data center: MG nests behind the container wall, riflemen outside, more inside
     for(const[i,p]of DC_NESTS.entries())g.push([p.x,p.y,()=>mgGunner('E'+(40+i),p.x,p.y)]);
     for(const[i,[x,y]]of[[60,-412],[255,-412],[490,-412]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT,radio:i===0})]);   // E42 carries the radio
   }
   return g;
 }
+// the yard's posted men: [x,y,facing] in the maze's aisles (checked by script: all free and reachable), none in sight of the
+// bridge's rest spot; YARD_RADIO is the one with the radio
+const YARD_POSTS=[[164,-292,0],[238,-216,Math.PI/2],[264,-90,-Math.PI/2],[128,-200,-.6],[533,-210,Math.PI],[683,-196,Math.PI/2],[640,-70,0],[600,-180,Math.PI/2],[606,-276,-Math.PI/2],[520,-140,.8]],YARD_RADIO=8;
 const SPAWN_WAIT=12;let spawnTick=0;
 function spawnGroup(n){
   groups[n]=[];
@@ -86,7 +102,7 @@ function groupDone(n){return !!groups[n]&&groups[n].every(e=>e.dead)&&!pendingSp
 function groupLeft(n){return (groups[n]||[]).filter(e=>!e.dead).length+pendingSpawns.filter(s=>s.n===n).length;}
 
 /* ---------- taking a location (Bryan): the whole place, then a quiet spell ---------- */
-// The warehouse, the bridge and the fuel depot are only secured once their defenders are all down (the depot's tanks gone
+// The warehouse, the bridge and the container yard are only secured once their defenders are all down (the old depot's tanks gone
 // too), a soldier is inside the area and nothing has fired or blown up for QUIET_T s. A ring at the top fills meanwhile, and
 // the area is marked on the ground (drawSecure). extra: spots that count as inside too (the warehouse's doorways and windows,
 // so a man fighting from the door needn't walk in).
@@ -95,7 +111,7 @@ const LOCS={
   0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(e=>e.dead)&&!reinfPending(0),left:()=>enemies.filter(e=>!e.dead).length,
     extra:[{x0:285,x1:325,y0:240,y1:276},{x0:260,x1:360,y0:548,y1:578},{x0:150,x1:182,y0:395,y1:455},{x0:438,x1:470,y0:380,y1:420},{x0:438,x1:470,y0:450,y1:500}]},
   1:{zone:{x0:330,x1:660,y0:-40,y1:100},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},   // its north end and the north half of the bridge
-  2:{zone:DEP_ZONE,name:'the fuel depot',done:()=>groupDone(2)&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length,left:()=>groupLeft(2)},
+  2:{zone:YARD2_ZONE,name:'the container yard',done:()=>groupDone(2),left:()=>groupLeft(2)},
   3:{zone:DC_OUT,name:'the data center\'s front yard',done:()=>groupDone(3),left:()=>groupLeft(3)},   // then the squad goes in (interior.js)
 };
 let secure={t:0,state:null,said:false,left:-1},lastNoiseT=-99;
@@ -107,7 +123,7 @@ function locNote(){
   if(!LOCS[obj]||objDone>obj||state!=='play')return '';
   if(secure.state==='hold')return ' · securing';
   if(secure.state==='move')return ' · move in';
-  const n=secure.left;return n>0&&(n<=3||(obj===2&&tanksGone()))?` · ${n} left`:'';
+  const n=secure.left;return n>0&&n<=3?` · ${n} left`:'';
 }
 // every tick while location n is the objective; true once it's taken
 function secureTick(n,dt){
@@ -125,7 +141,7 @@ function secureTick(n,dt){
   secure={t:0,state:null,said:false,left:-1};updateObjUI();return true;
 }
 // when an objective starts: one short line, the next thing on the list (Bryan); the details stay in the hint line (OBJ_HINT)
-const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Destroy the fuel tanks to the north-east',3:'Take the data center to the north-west',4:'Lower the drawbridge to the north-east'};
+const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Take the container yard to the north',3:'Take the data center to the north-west',4:'Lower the drawbridge to the north-east'};
 function startObjective(n,quiet){
   obj=n;if(n<=3&&!groups[n]&&!(n===3&&dcTaken))spawnGroup(n);   // (the data center's yard, once taken, stays taken)
   updateObjUI();setStatus();hud();
@@ -143,6 +159,7 @@ function finishObjective(zones,stage,next,big='Location secured'){
 }
 // every tick once the warehouse is taken (from hqTick)
 function missionTick(dt){
+  heavyTick();
   chargeTick(dt);
   if(MAPID==='in')interiorTick(dt);   // inside the office building (interior.js)
   else if(pendingSpawns.length&&(spawnTick-=dt)<=0){spawnTick=.5;spawnPending();}   // twice a second is plenty
@@ -153,7 +170,7 @@ function missionTick(dt){
     e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
   }
   if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective(REST_ZONES.br,'br',2);
-  else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective(REST_ZONES.dep,'dep',3,'Fuel depot destroyed');
+  else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective(REST_ZONES.dep,'dep',3);
   else if(obj===3&&!dcTaken&&MAPID==='out'&&secureTick(3,dt)){   // the front yard taken: a save, and the front doors open (interior.js)
     dcTaken=true;contact=false;bigText('Location secured','clear');say(players.find(alive),'objective');saveGame('dco');setStatus();updateObjUI();
     setTimeout(()=>{if(state==='play'&&obj===3&&MAPID==='out')banner('Gather at the front doors to go in',3500);},OBJ_LIST_T);}
@@ -297,7 +314,7 @@ function shootTank(u){
 
 
 /* ---------- the objective tracker (top left; tap to see the whole list) ---------- */
-const OBJ_LIST=['Take the warehouse','Take the bridge','Destroy the fuel tanks','Get the decryption key and lower the drawbridge','Take the Headquarters'];
+const OBJ_LIST=['Take the warehouse','Take the bridge','Take the container yard','Get the decryption key and lower the drawbridge','Take the Headquarters'];
 const OBJ_LIST_T=3400;   // how long the list stays open with the newly crossed-off objective (ms); the next messages wait for it
 let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
 function objCompleted(n){
@@ -306,7 +323,7 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  const num=Math.min(objDone+1,5),label=objDone===3?(hasKey?'Lower the drawbridge':MAPID==='in'?'Get the decryption key':dcTaken?'Go into the data center':'Take the data center'):objDone===2&&tanksGone()?'Clear the fuel depot':OBJ_LIST[num-1];
+  const num=Math.min(objDone+1,5),label=objDone===3?(hasKey?'Lower the drawbridge':MAPID==='in'?'Get the decryption key':dcTaken?'Go into the data center':'Take the data center'):OBJ_LIST[num-1];
   el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(num===5?' (coming next)':locNote());
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
@@ -333,7 +350,7 @@ function drawSecure(now){
 function drawLastFoes(now){
   const L=LOCS[obj];if(!L||objDone>obj||state!=='play'||secure.state)return;
   const all=obj===0?enemies:groups[obj]||[],foes=all.filter(e=>!e.dead);   // only once at least half the group is down and 3 or fewer are left (the warehouse has only 4: they were marked from the start)
-  if(!foes.length||!((foes.length<=3&&foes.length*2<=all.length)||(obj===2&&tanksGone())))return;
+  if(!foes.length||!(foes.length<=3&&foes.length*2<=all.length))return;
   const pulse=(Math.sin(now*5)+1)/2,[mx,my]=[cw/2,ch/2];
   for(const e of foes){
     toSBack=false;const[sx,sy]=toS(e.x,e.y,6);

@@ -278,6 +278,7 @@ function pickTarget(u){
 }
 function burst(u,t,L){
   if(u.gunner&&hyp(u.x-camT.x,u.y-camT.z)<260)shake(.14);
+  if(u.heavy&&++u.rounds>=HEAVY.bursts){u.rounds=0;u.reloadT=simT+HEAVY.reload+1;bark(u,'reload',true);}   // the run's heavy gun: a reload after this burst
   u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
   const c=hitChance(u,t,L);
   const n=u.gunner?5:u.weapon==='shotgun'?1:3;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun one blast
@@ -300,7 +301,7 @@ function resolveShot(s){
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
   flashes.push({x:fx,y:fy,t:0});
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:sg?0.14:0.06)*(t.side==='P'?rankNerve(t):1));   // machine guns and shotgun blasts pin people down
-  if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
+  if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy});   // they'll think the squad is where the shot came from
   else alertAll(null,false,fx,fy,ex,ey,{x:t.x,y:t.y});   // their own gunfire is heard nearby too
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -396,6 +397,7 @@ function sense(e,dt){
     gain+=g;if(g>best){best=g;src=p;}
   }
   if(e.jumpy)gain*=1.3;   // the checkpoint garrison is on edge
+  if(e.heavy)gain*=1.5;   // the run's searchlight
   if(gain>0){e.aware=Math.min(1,e.aware+gain*dt);e.susp={x:src.x,y:src.y};}
   else e.aware=Math.max(0,e.aware-AWARE_FADE*dt);
   if(e.aware>=AWARE_LOOK&&!e.wary){e.wary=true;if(e.vis)callout(e,'?',C.warn);}
@@ -546,7 +548,7 @@ function updateUnit(u,dt){
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);
   if(u.rpg&&u.alerted&&u.aimAt)rpgThink(u);   // mid-aim: fire when ready
-  if(u.cool<=0&&!u.vaultK&&!u.carry&&!u.dog){   // (carrying a man: hands full)
+  if(u.cool<=0&&!u.vaultK&&!u.carry&&!u.dog&&!(u.reloadT>simT)){   // (carrying a man: hands full)
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank

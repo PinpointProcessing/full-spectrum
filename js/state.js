@@ -8,13 +8,13 @@ const DEFAULT_SPEC={A1:'smoke',A2:'medkit',B1:'smoke',B2:'medkit'};
 
 function mk(side,team,id,name,x,y,ang){
   const u={side,team,id,name,x,y,ang,hp:100,sup:0,cool:.4+Math.random()*1.2,path:[],downed:false,dead:false,bleed:BLEED_T,revive:0,
-    grenade:1,spec:'smoke',specN:1,charges:1,carry:null,carriedBy:null,critical:false,crit:0,medGo:null,carryGo:null,boxRev:0,plant:null,supT:null,focus:null,lastOrder:-99,exposeT:0,seen:false,vis:false,last:null,alerted:false,moveCool:0,hitFlash:0,aimT:-9,target:null,covered:false,fell:false,noLine:0,flankCD:0,wasDown:false,peek:null,lx:0,ly:0,gait:'run',gaitForce:null,inVeh:null,seat:null,boarding:null,aware:0,susp:null,wary:false,
+    rounds:0,reloadT:0,grenade:1,spec:'smoke',specN:1,charges:1,carry:null,carriedBy:null,critical:false,crit:0,medGo:null,carryGo:null,boxRev:0,plant:null,supT:null,focus:null,lastOrder:-99,exposeT:0,seen:false,vis:false,last:null,alerted:false,moveCool:0,hitFlash:0,aimT:-9,target:null,covered:false,fell:false,noLine:0,flankCD:0,wasDown:false,peek:null,lx:0,ly:0,gait:'run',gaitForce:null,inVeh:null,seat:null,boarding:null,aware:0,susp:null,wary:false,
     level:1,stats:{kills:0,streak:0,best:0,lastKill:-99,revives:0,items:0,downs:0}};
   units.push(u);return u;
 }
 function reset(){
   leaveInteriorNow();   // a new game or Continue from inside the office building: back to the outdoor map first
-  for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
+  for(const u of units){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);if(u.slight&&u.slight.parent)u.slight.parent.remove(u.slight);}
   units=[];
   mk('P','A','A1','Reyes',70,775,-0.8);mk('P','A','A2','Kowalski',102,772,-0.8);
   mk('P','B','B1','Hayes',78,808,-0.8);mk('P','B','B2','Okafor',114,812,-0.8);

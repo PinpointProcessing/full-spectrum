@@ -1,13 +1,14 @@
 "use strict";
-/* Saving the campaign. At each milestone (warehouse taken, bridge taken, fuel depot destroyed, drawbridge down) the game
+/* Saving the campaign. At each milestone (warehouse taken, bridge taken, container yard taken, the data center's yard, the
+   decryption key, drawbridge down) the game
    stores where you are, each soldier's health, grenade and charge, and who's dead. Continue on the intro screen (or
    Retry from last save after a lost fight) restores it; New game starts over with everyone alive. Bryan: the dead stay
    dead unless the game is restarted, and wounds are kept. A soldier who is down when it saves is stored badly wounded
    (5 HP) rather than bleeding out. XP and ranks are saved separately (progress.js) and survive a New game. */
 const SAVE_KEY='warehouseYard.save.v2';
-const STAGES={wh:'Warehouse taken',br:'Bridge taken',dep:'Fuel depot destroyed',dco:'Data center yard taken',key:'Decryption key taken',dc:'Drawbridge down'};
+const STAGES={wh:'Warehouse taken',br:'Bridge taken',dep:'Container yard taken',dco:'Data center yard taken',key:'Decryption key taken',dc:'Drawbridge down'};
 const STAGE_OBJ={wh:1,br:2,dep:3,dco:3,key:4,dc:5};   // the objective that's current after each milestone
-const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},dep:{x:760,y:-30},dco:{x:245,y:-410},key:{x:245,y:-410},dc:{x:700,y:-470}};
+const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},dep:{x:740,y:0},dco:{x:245,y:-410},key:{x:245,y:-410},dc:{x:700,y:-470}};
 function readSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&STAGES[s.stage]?s:null;}catch(e){return null;}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 let savedTimer=0;

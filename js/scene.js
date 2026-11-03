@@ -146,10 +146,10 @@ function drawGround(){
   // the canal: dark water between concrete banks (a glossy plane over it, see buildWorld)
   for(const c of[g,q]){c.fillStyle=c===g?'#0b1216':'rgb(20,20,20)';c.fillRect(0,CANAL.y0,W,CANAL.y1-CANAL.y0);}
   g.fillStyle='#8a8b86';g.fillRect(0,CANAL.y0-5,W,5);g.fillRect(0,CANAL.y1,W,5);g.fillStyle='rgba(228,182,40,.7)';g.fillRect(0,CANAL.y1+5,W,1.2);g.fillRect(0,CANAL.y0-6,W,1.2);
-  // the fuel depot's concrete pad with bund lines, the container yard's painted bays
-  for(const c of[g,q]){c.fillStyle=c===g?'#55585a':'rgb(140,140,140)';c.fillRect(706,-296,286,230);}
-  g.strokeStyle='rgba(228,182,40,.5)';g.lineWidth=2;g.strokeRect(726,-290,232,140);
-  g.strokeStyle='rgba(230,230,230,.1)';g.lineWidth=1;for(let y=-270;y<40;y+=60)for(let x=280;x<700;x+=120)g.strokeRect(x,y,110,40);
+  // the container yard (a maze): painted bays, and the run, a lane with worn tyre tracks and hazard stripes at both ends
+  g.strokeStyle='rgba(230,230,230,.08)';g.lineWidth=1;for(let y=-330;y<-50;y+=60)for(let x=110;x<800;x+=120)g.strokeRect(x,y,110,40);
+  g.fillStyle='rgba(0,0,0,.18)';g.fillRect(RUN.x0+8,RUN.y0,10,RUN.y1-RUN.y0);g.fillRect(RUN.x1-18,RUN.y0,10,RUN.y1-RUN.y0);
+  for(const yy of[RUN.y1-6,RUN.y0+30])for(let x=RUN.x0;x<RUN.x1;x+=12){g.fillStyle=(x/12|0)%2?'rgba(228,182,40,.7)':'rgba(20,20,20,.7)';g.fillRect(x,yy,12,5);}
   // the data center: tiled floor inside, a painted apron and hazard stripes in front of the doors
   g.fillStyle='#5e6266';g.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);q.fillStyle='rgb(150,150,150)';q.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);
   g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=1;for(let x=DC.x+10;x<DC.x+DC.w-10;x+=20){g.beginPath();g.moveTo(x+.5,DC.y+10);g.lineTo(x+.5,DC.y+DC.h-10);g.stroke();}
@@ -191,7 +191,8 @@ const lamps=[
   {x:310,y:410,h:30,c:0xffd9a8,i:2.4,d:260},
   {x:150,y:846,h:14,c:0xffc27a,i:1.6,d:150,pole:1},   // the dock, at the pier
   {x:525,y:56,h:30,c:0xffa860,i:2.6,d:280,pole:1},    // the bridge's north end
-  {x:840,y:-140,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},  // the fuel depot
+  {x:640,y:-190,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},  // the container yard's east block
+  {x:425,y:-338,h:30,c:0xffa860,i:2.4,d:240,pole:1},  // over the run's machine-gun nest
   {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260},          // the data center's doors
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
