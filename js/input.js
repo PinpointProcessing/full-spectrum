@@ -3,7 +3,7 @@
 let ptr=null;
 function unitAtScreen(sx,sy,activeOnly){
   let best=null,bd=26;
-  for(const u of players){if(u.dead||u.seat==='driver')continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
+  for(const u of players){if(u.dead||u.seat==='driver'||u.offMap||u.carriedBy)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
   return best;
 }
 function enemyAtScreen(sx,sy){
@@ -180,6 +180,12 @@ function tap(sx,sy){
     const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
     if(orderCharge(u,t.x,t.y)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
+  if(mode==='medkit'){   // a medic kit (his special item): tap a downed teammate
+    const u=sel[0];let pu=unitAtScreen(sx,sy,false);if(!u){mode=null;return;}
+    if(pu&&pu.carry)pu=pu.carry;   // tapping a carrier: the man he carries
+    if(!pu||!pu.downed||pu===u){banner('Tap a downed teammate to use the medic kit. Tap the kit on his card again to cancel.');return;}
+    if(orderMedkit(u,pu)){mode=null;preview=null;}return;
+  }
   if(mode==='grenade'||mode==='smoke'){
     const u=sel[0];if(!u){mode=null;return;}
     if((mode==='smoke'?throwSmoke:throwNade)(u,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
@@ -195,9 +201,10 @@ function tap(sx,sy){
   const pu=unitAtScreen(sx,sy,false);
   if(pu){
     if(pu.downed){
-      const helpers=sel.filter(u=>u!==pu&&!u.inVeh);
+      const helpers=sel.filter(u=>u!==pu&&!u.inVeh&&alive(u)&&!u.carry);
       if(!helpers.length){banner('Select a soldier, then tap the downed man.');return;}
       helpers.sort((a,b)=>hyp(a.x-pu.x,a.y-pu.y)-hyp(b.x-pu.x,b.y-pu.y));
+      if(pu.critical){const medic=helpers.find(hasKit);if(medic)orderMedkit(medic,pu);else orderCarry(helpers[0],pu);return;}   // past the 60 s (Bryan): a medic kit if one of them has it, else carry him out
       const h=helpers[0],spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));
       const path=spot&&findPath(h.x,h.y,spot.x,spot.y);
       if(path){h.path=path;h.lastOrder=simT;h.supT=null;callout(h,'On my way',C.good);}

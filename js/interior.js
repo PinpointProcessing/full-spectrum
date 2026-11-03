@@ -162,7 +162,7 @@ function enterBuilding(){
   if(fading||!enterReady())return;
   fadeThen(()=>{
     if(!IN)buildInterior();
-    const going=players.filter(alive);
+    const going=players.filter(alive);for(const c of going.slice())if(c.carry&&!going.includes(c.carry))going.push(c.carry);   // a man being carried goes in with his carrier
     stashOut(going);
     for(const p of players)p.offMap=!going.includes(p);
     useMap({objs:IN.objs,hq:IN.hq,slow:[],lamps:IN.lamps,scene:IN.scene,lights:IN.lights});
@@ -185,7 +185,7 @@ function enterBuilding(){
 function exitReady(){
   if(MAPID!=='in'||!hasKey||state!=='play')return false;
   const z=zoneOf(IN.floors.GF,'exit');if(!z)return false;
-  const ups=players.filter(p=>alive(p)&&!p.offMap);return ups.length>0&&ups.every(p=>inZone(p,z))&&!players.some(p=>p.downed&&!p.offMap);
+  const ups=players.filter(p=>alive(p)&&!p.offMap);return ups.length>0&&ups.every(p=>inZone(p,z))&&!players.some(p=>p.downed&&!p.offMap&&!p.carriedBy);   // (a man being carried goes out with his carrier)
 }
 function exitBuilding(){
   if(fading||!exitReady())return;

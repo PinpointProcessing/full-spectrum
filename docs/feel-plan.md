@@ -21,7 +21,7 @@ The research behind it (Dark Descent's systems and presentation, how other games
 - Downed marines there: no free revive in the field. A medic with a kit (an upgrade) can wake one; otherwise he's carried out to the extraction vehicle (slow, sidearm only). Creatures drag the downed away, and if the dragger isn't killed he's gone. No bleed-out countdown was found.
 
 ## The order of work
-1. **Quick fixes (done).** See-through fences; C4 off for this level and smoke grenades in its place; the healthiest soldier takes the exposed spot and the hurt or just-revived keep their heads down; no reviving while pinned and a 60 s window; tapping one soldier of a selected group selects just him; the two marker bugs.
+1. **Quick fixes (done).** See-through fences; C4 off for this level and a special item in its place (smoke or a medic kit); the healthiest soldier takes the exposed spot and the hurt or just-revived keep their heads down; no reviving while pinned and a 60 s window; tapping one soldier of a selected group selects just him; the two marker bugs.
 2. **Enemies that hunt and call it in.** The biggest change to the feel.
    - Being spotted no longer wakes the whole map: a shout reaches about 25 m, gunfire further; contact can end outdoors too (as it already does inside the office).
    - Hunters go to the squad's last known position, search nearby hiding places and flank; they give up after 30–40 s and take new posts nearer where they lost you.
@@ -38,9 +38,11 @@ The research behind it (Dark Descent's systems and presentation, how other games
 - **Breach room** (Bryan: after Watch, a similar order): the team stacks up at a doorway and clears the room.
 - **The breach pair** (asked, waiting on Bryan's yes or no): two enemies who push together, a shield man in front (shots from the front hit the shield) and a shotgunner behind. Beaten by flanking, a grenade behind them, or pinning them. They'd fit the ambush behind the steel door and the response team after an alarm.
 
-## Downed soldiers (Bryan)
-- For the first 60 s a teammate can revive him by hand (3 s beside him), not while that teammate is pinned. Built.
-- After 60 s he can be carried out (to a medical box: the carrier moves at sneaking speed and can't shoot or climb through windows) or revived with a medic kit (about 6 s, not while pinned). To finalise with the HQ work. Open: can he still die after that (a further countdown, or a blast), and how many medic kits (say one per fire team, restocked at supply boxes)? Until then he bleeds out at 60 s as before.
+## Special items and downed soldiers (Bryan; built)
+- Every soldier carries a grenade and one special item: smoke or a medic kit (C4 and others can join later). One medic kit per fire team to start (A2, B2). In a supply box, tapping the item swaps it for the other kind, refilled.
+- For the first 60 s a teammate can revive him by hand (3 s beside him), not while that teammate is pinned.
+- After 60 s he's critical: no hand revive. A medic kit (5 s beside him, not while pinned; up at 50 HP), or carrying him into a medical box (the carrier moves at sneaking speed and can't shoot or climb; back up 3 s after being set down there).
+- Default, for Bryan to confirm: a critical soldier dies 2 minutes later if he isn't saved (his earlier "2 minutes" idea). Later with the HQ: life support for fallen soldiers carried back (his idea).
 
 ## The other thing (creatures for the next levels)
 Bryan: a mix of all six concepts, brought in one at a time, and the list can grow. Level 1 stays human. Grabs are a rescue race you can lose, and sometimes the captured soldier has been turned into a trap: our own versions, for example an implant that takes over his mind and turns him on the squad unless it's jammed in time, or a brood that bursts out of him as crawlers if the timer runs out (not the films' stomach-burster).

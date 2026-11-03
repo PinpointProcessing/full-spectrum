@@ -8,6 +8,11 @@
 const ECG_SPEED=60;   // how fast the trace sweeps across, px per second
 const C4_ON=false;   // Bryan: no demolition charges in this level (the code stays for later); the smoke grenade takes its slot
 const SMOKE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.2" y="8" width="5.6" height="7" rx="1"/><circle cx="4.6" cy="5.4" r="2.3"/><circle cx="8.3" cy="3.6" r="2.7"/><circle cx="11.6" cy="5.6" r="2.1"/></svg>';
+const MEDKIT_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="4.6" width="12" height="9" rx="1.6"/><rect x="5.7" y="2.5" width="4.6" height="2.6" rx=".8" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 6.7v4.8M5.6 9.1h4.8" stroke="#10151a" stroke-width="1.9"/></svg>';
+// the special item each soldier carries beside his grenade (Bryan); swapped by tapping it in a supply box. C4 and others can join later
+const SPECIALS={smoke:{label:'Smoke',a:'smoke',svg:SMOKE_SVG,col:'#cfd6dc'},medkit:{label:'Medic kit',a:'a medic kit',svg:MEDKIT_SVG,col:'#ff8a7e'}},SPEC_ORDER=['smoke','medkit'];
+const fmtT=s=>{const t=Math.max(0,Math.ceil(s));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;};
+const inSupply=u=>{const z=alive(u)&&zoneAt(u.x,u.y);return !!(z&&z.k==='sup');};
 const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy="10" rx="4.6" ry="5"/><rect x="5.8" y="2.6" width="3.4" height="2.6" rx=".6"/><path d="M9.2 3.6h2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
 // weapon silhouettes for the cards (our own drawings): an assault rifle with a curved magazine, a pump shotgun
 const GUN_SVG={
@@ -52,12 +57,17 @@ function buildCards(){
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<canvas class="uc-ecg"></canvas>`+
       `<div class="uc-gun" title="${WEAPON[u.weapon||'rifle'].label}">${GUN_SVG[u.weapon||'rifle']}<b>${WEAPON[u.weapon||'rifle'].label}</b></div>`+
-      `<div class="uc-bot"><span class="uc-hp">100</span>${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-smk" aria-label="Smoke grenade">${SMOKE_SVG}<i>1</i></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
+      `<div class="uc-bot"><span class="uc-hp">100</span>${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
       preview=null;
       if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.charges&&!u.inVeh)mode=mode==='charge'?null:'charge';else{mode=null;banner(`${u.name} has no charge left. Restock at a supply box.`,1800);}}   // demolition charge
-      else if(ev&&ev.target.closest('.uc-smk')){select([u]);if(u.smoke&&!u.inVeh)mode=mode==='smoke'?null:'smoke';else{mode=null;banner(`${u.name} has no smoke left. Restock at a supply box.`,1800);}}
+      else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it, or in a supply box swap it for the other kind
+        select([u]);const sp=SPECIALS[u.spec];
+        if(inSupply(u)){u.spec=SPEC_ORDER[(SPEC_ORDER.indexOf(u.spec)+1)%SPEC_ORDER.length];u.specN=1;mode=null;callout(u,`Took ${SPECIALS[u.spec].a}`,C.good);}
+        else if(!u.specN||u.inVeh){mode=null;banner(`${u.name} has no ${sp.label.toLowerCase()} left. Restock at a supply box.`,1800);}
+        else{const m=u.spec==='medkit'?'medkit':'smoke';mode=mode===m?null:m;}
+      }
       else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
       else{mode=null;if(sel.length===1&&sel[0]===u)select(cardGroup.filter(alive));else select([u]);}   // tap him again: back to the whole group on show
       hud();
@@ -65,14 +75,17 @@ function buildCards(){
     el.addEventListener('click',act);
     el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act(null);}});
     box.appendChild(el);
-    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),smk:el.querySelector('.uc-smk'),rpg:el.querySelector('.uc-rpg'),ecg:el.querySelector('.uc-ecg'),buf:null,head:0,acc:0,phase:Math.random(),amp:1};
+    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),ecg:el.querySelector('.uc-ecg'),buf:null,head:0,acc:0,phase:Math.random(),amp:1};
     drawFace(el.querySelector('.uc-face'),u);
   }
 }
 function statusText(u){
   if(u.dead)return['KIA','down'];
   if(u.offMap)return['Outside','down'];   // left downed outside the office building: frozen until the squad comes back out
-  if(u.downed)return[u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
+  if(u.downed)return[u.carriedBy?'Carried':u.critical?`Critical ${fmtT(u.crit)}`:u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
+  if(u.carry)return['Carrying',''];
+  if(u.medGo)return[u.path.length?'To the wounded':'Medic kit',''];
+  if(u.carryGo)return['Getting him',''];
   if(u.inVeh)return[{driver:'Driving',gunner:'On the gun',pass:'Riding'}[u.seat],''];
   if(u.boarding)return['Mounting up',''];
   if(u.inBoat)return['In the boat',''];
@@ -97,7 +110,10 @@ function updateCards(){
     c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);c.hp.style.color=hpCol(u);
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
-    c.smk.querySelector('i').textContent=u.smoke||0;c.smk.disabled=!alive(u)||!u.smoke||!!u.inVeh;c.smk.classList.toggle('on',mode==='smoke'&&sel[0]===u);   // the smoke grenade, left of the frag
+    {const sp=SPECIALS[u.spec]||SPECIALS.smoke,sw=inSupply(u);   // his special item, left of the frag (in a supply box: tap to swap)
+     if(c.spec.dataset.k!==u.spec){c.spec.dataset.k=u.spec;c.spec.innerHTML=`${sp.svg}<i></i>`;c.spec.style.setProperty('--ic',sp.col);c.spec.setAttribute('aria-label',sp.label);}
+     c.spec.querySelector('i').textContent=u.specN||0;c.spec.disabled=!alive(u)||(!u.specN&&!sw)||!!u.inVeh;
+     c.spec.classList.toggle('on',(mode==='smoke'||mode==='medkit')&&sel[0]===u);c.spec.classList.toggle('swap',sw);}
     if(c.rpg){c.rpg.querySelector('i').textContent=u.charges||0;c.rpg.disabled=!alive(u)||!u.charges||!!u.inVeh;c.rpg.classList.toggle('on',mode==='charge'&&sel[0]===u);}   // the demolition charge (off in this level)
   }
   $('#stage').style.setProperty('--cards-h',box.hidden?'0px':box.offsetHeight+6+'px');

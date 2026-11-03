@@ -13,7 +13,7 @@ function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 let savedTimer=0;
 function saveGame(stage){
   const data={v:2,stage,when:Date.now(),
-    squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,smoke:p.smoke,charges:p.charges}]))};
+    squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges}]))};
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
   const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
 }
@@ -38,7 +38,7 @@ function continueGame(){
     const d=s.squad[p.id];
     if(!d||d.dead){Object.assign(p,{dead:true,hp:0,gone:true});continue;}
     const spot=openSpot(at.x,at.y,taken)||at;taken.push(spot);
-    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade,smoke:d.smoke??1,charges:d.charges??1,path:[]});
+    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade,spec:d.spec||DEFAULT_SPEC[p.id]||'smoke',specN:d.specN??d.smoke??1,charges:d.charges??1,path:[]});
   }
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;

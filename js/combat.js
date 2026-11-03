@@ -27,6 +27,47 @@ function leanOut(u,L){if(L.lean)u.peek={x:L.fx,y:L.fy,until:simT+PEEK_T};}
 // pinned above PINNED suppression; badly hurt below SHY_HP (keeps his head down SHY_T s after a hit); a downed soldier
 // bleeds out in BLEED_T s (Bryan: a 60 s window to get to him; carrying him out or a medic kit after that comes later)
 const PINNED=0.65,SHY_HP=40,SHY_T=4,BLEED_T=60;
+/* ---------- downed soldiers (Bryan): 60 s to revive him by hand, then critical ---------- */
+// For BLEED_T s a teammate standing beside him (not pinned) revives him. After that he's critical for CRIT_T s: no hand revive.
+// A medic kit (MEDKIT_T s beside him, not pinned; up at 50 HP) saves him, or carrying him into a medical box (up after
+// BOXREV_T s there). The carrier moves at sneaking speed and can't shoot or climb. Otherwise he's KIA.
+const CRIT_T=120,MEDKIT_T=5,PICKUP_T=1,BOXREV_T=3;
+const hasKit=u=>u.spec==='medkit'&&u.specN>0;
+function nearSpot(u,t){return openSpot(t.x,t.y,players.filter(o=>o!==u&&o!==t&&!o.dead).map(destOf))||{x:t.x,y:t.y};}
+function goBeside(u,t){const s=nearSpot(u,t);return hyp(u.x-t.x,u.y-t.y)<20?[]:findPath(u.x,u.y,s.x,s.y);}
+function orderMedkit(u,t){
+  if(!hasKit(u)){banner(`${u.name} has no medic kit.`,1600);return false;}
+  const p=goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
+  u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0};callout(u,'Medic kit, coming',C.good);return true;
+}
+function orderCarry(u,t){
+  if(u.carry){banner(`${u.name} is already carrying someone.`,1600);return false;}
+  const p=goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
+  u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.medGo=null;u.carryGo={t,prog:0};callout(u,'Getting him out',C.good);return true;
+}
+function putDown(u){const t=u.carry;if(!t)return;t.carriedBy=null;u.carry=null;callout(u,'Setting him down',C.good);}
+function reviveUp(p,hp,by){
+  if(p.carriedBy)putDown(p.carriedBy);
+  Object.assign(p,{downed:false,critical:false,hp,revive:0,boxRev:0,bleed:BLEED_T,sup:.3,shyT:simT+SHY_T+1});
+  callout(p,'Back in it',C.good);if(by)by.stats.revives++;
+}
+function medTick(dt){   // medic kits being used, men being picked up, and carried men riding along
+  for(const u of players){
+    for(const k of['medGo','carryGo']){
+      const g=u[k];if(!g)continue;const t=g.t,dd=destOf(u);
+      if(!alive(u)||!t.downed||t.dead||(k==='carryGo'&&t.carriedBy)||(u.path.length&&hyp(dd.x-t.x,dd.y-t.y)>30)){u[k]=null;continue;}
+      if(u.path.length)continue;
+      if(hyp(u.x-t.x,u.y-t.y)>28){u[k]=null;continue;}
+      if(k==='medGo'){if(u.sup>PINNED)continue;g.prog+=dt;if(g.prog>=MEDKIT_T){u.medGo=null;u.specN--;u.stats.items++;reviveUp(t,50,u);callout(u,'Patched up',C.good);}}
+      else{g.prog+=dt;if(g.prog>=PICKUP_T){u.carryGo=null;u.carry=t;t.carriedBy=u;callout(u,'Got him',C.good);}}
+    }
+    if(u.carry){
+      const t=u.carry;if(!alive(u)||t.dead||!t.downed){putDown(u);continue;}
+      t.x=u.x-Math.cos(u.ang)*4;t.y=u.y-Math.sin(u.ang)*4;t.ang=u.ang+Math.PI/2;t.path=[];
+      const z=zoneAt(u.x,u.y);if(z&&z.k==='med'){putDown(u);t.x=u.x;t.y=u.y;}   // into a medical box: set down there, up in BOXREV_T s
+    }
+  }
+}
 // the squad's weapons: everyone carries an assault rifle for now (Bryan). The shotgun is kept for later: list soldier IDs
 // in SHOTGUNNERS (e.g. ['A2','B2'], one per fire team) to hand them out again
 const WEAPON={rifle:{label:'Rifle',range:380},shotgun:{label:'Shotgun',range:200}},SHOTGUNNERS=[];
@@ -212,7 +253,7 @@ function damage(t,dmg,src){
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
-      t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.revive=0;t.path=[];t.supT=null;
+      t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.critical=false;t.revive=0;t.boxRev=0;t.path=[];t.supT=null;t.medGo=null;t.carryGo=null;if(t.carry)putDown(t);
       callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
       {const m=players.filter(o=>o!==t&&alive(o)).sort((a,b)=>hyp(a.x-t.x,a.y-t.y)-hyp(b.x-t.x,b.y-t.y))[0];say(m,'man_down');}
       sel=sel.filter(x=>x!==t);preview=null;
@@ -299,11 +340,12 @@ function throwNade(u,tx,ty){
 }
 // a smoke grenade: thrown like the frag, it pops a cloud that blocks sight both ways (SMOKE in map.js). Quiet: no alarm
 function throwSmoke(u,tx,ty){
+  if(u.spec!=='smoke'||!u.specN){banner(`${u.name} has no smoke.`,1600);return false;}
   if(hyp(tx-u.x,ty-u.y)>SMOKE.range){banner('Too far. Throw inside the circle.');return false;}
   const f=sightOf(u,tx,ty);
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
-  u.smoke--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
+  u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
   nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u,smoke:true});u.stats.items++;
   callout(u,'Smoke out!',C.warn);
   return true;
@@ -327,7 +369,7 @@ function explode(x,y,by,quiet){
 /* ---------- stealth ---------- */
 // Gait is automatic: sneak while undetected with a live enemy within SNEAK_R, otherwise run. The gait button flips it (gaitForce).
 const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24,CRAWL_SPEED=13;   // crawling through the sewer pipe: about 6 s end to end
-function gaitOf(p){return p.gaitForce||autoGait(p);}
+function gaitOf(p){return p.carry?'sneak':p.gaitForce||autoGait(p);}   // carrying a man: always at sneaking speed
 function autoGait(p){
   if(MAPID==='in'){const f=floorOf(p.x,p.y);return !contact&&enemies.some(e=>!e.dead&&e.floor===f&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R&&(hyp(e.x-p.x,e.y-p.y)<120||gridSight(p.x,p.y,e.x,e.y)))?'sneak':'run';}   // indoors there's always someone behind a wall: sneak when one's close or in sight
   return !contact&&enemies.some(e=>!e.dead&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R)?'sneak':'run';
@@ -482,9 +524,10 @@ function updateUnit(u,dt){
   const vw=u.path.length&&u.path[0].vault,vd=vw?Math.abs((vw.vert?u.x:u.y)-vw.c):99;
   {const z=slowAt(u.x,u.y);u.crawl=!!(z&&z.crawl)&&!u.inVeh;}   // in the sewer pipe: prone, crawling
   u.vaultK=vw&&vd<VAULT_HALF&&!u.downed?1-(vd/VAULT_HALF)**2:0;
-  if(u.side==='P'&&!u.inVeh&&!u.inBoat){const e0=u.elev||0;u.elev=e0+(VAULT_H*u.vaultK-e0)*Math.min(1,dt*16);}
+  if(u.side==='P'&&!u.inVeh&&!u.inBoat){const e0=u.elev||0;u.elev=e0+((u.carriedBy?6:VAULT_H*u.vaultK)-e0)*Math.min(1,dt*16);}   // carried: over his shoulder
   if(u.downed)return;
   if(u.seat==='driver')return;   // the driver drives; riders and the gunner fight from the jeep
+  if(u.carry&&u.path.some(q=>q.vault)){const d0=u.path[u.path.length-1],np=findPath(u.x,u.y,d0.x,d0.y,FOOT);u.path=np||[];if(!np)callout(u,"Can't climb with him",C.warn);}   // carrying a man: no vaulting, the long way round
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
     const sz=slowAt(u.x,u.y),sp=(u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.alerted?46:26)*   // an unaware patrol strolls
@@ -498,7 +541,7 @@ function updateUnit(u,dt){
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);
   if(u.rpg&&u.alerted&&u.aimAt)rpgThink(u);   // mid-aim: fire when ready
-  if(u.cool<=0&&!u.vaultK){
+  if(u.cool<=0&&!u.vaultK&&!u.carry){   // (carrying a man: hands full)
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank
@@ -513,12 +556,19 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
+  medTick(dt);
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
-    const helper=players.find(o=>alive(o)&&!o.path.length&&!o.inVeh&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED);   // Bryan: no reviving while pinned
-    if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;p.shyT=simT+SHY_T+1;callout(p,'Back in it',C.good);helper.stats.revives++;}}
-    else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.dead=true;p.downed=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}}
+    if(!p.carriedBy){const z=zoneAt(p.x,p.y);if(z&&z.k==='med'){p.boxRev+=dt;if(p.boxRev>=BOXREV_T){reviveUp(p,35,null);continue;}}else p.boxRev=0;}   // lying in a medical box: back up
+    if(!p.critical){
+      const helper=players.find(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED);   // Bryan: no reviving while pinned
+      if(helper){p.revive+=dt;if(p.revive>=3)reviveUp(p,35,helper);}
+      else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
+    }else{
+      p.crit-=dt;
+      if(p.crit<=0){if(p.carriedBy)putDown(p.carriedBy);p.dead=true;p.downed=false;p.critical=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}
+    }
   }
   for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);if(n.smoke)popSmoke(n.x1,n.y1);else explode(n.x1,n.y1,n.by);}}
   if(smokes.length)smokes=smokes.filter(c=>simT-c.t0<SMOKE.life);
