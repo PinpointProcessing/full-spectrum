@@ -64,13 +64,13 @@
 
 <div class="overlay" id="intro">
   <div class="card">
-    <div class="eyebrow">Night op · one mission, five objectives</div>
+    <div class="eyebrow">Night op · one mission</div>
     <h1>Warehouse Yard</h1>
-    <p>Take the warehouse, take the bridge, take the container yard, detain the scientists in the data center and make one open the drawbridge, then take the Headquarters. First the warehouse: four hostiles are dug in behind crates inside, watching the south door. You come ashore at the dock in the southwest corner.</p>
+    <p>Get into the data center across the canal, detain the scientists inside and make one open the drawbridge. Nothing on the way has to be cleared, but every area you clear becomes a checkpoint with a medic station and an ammo drop. You come ashore at the dock in the southwest corner; four hostiles hold the warehouse ahead.</p>
     <ul>
       <li><b>Look around:</b> drag empty ground with one finger to move the map. Pinch with two to zoom.</li>
       <li><b>Select:</b> tap a team tab at the bottom, or tap a soldier to grab his fire team. Hold on a soldier, or tap his card, to take just him. To lasso, hold on empty ground and draw a loop round the soldiers you want.</li>
-      <li><b>Cards:</b> each selected soldier's card shows his heart rate. It beats faster under fire, and turns yellow, then orange as he's hurt, red when he's down.</li>
+      <li><b>Cards:</b> each selected soldier's card shows his health (out of 100: green, then yellow, then orange as he's hurt, red when he's down), his weapon and his gear. Tap the gear to use it.</li>
       <li><b>Move a team:</b> tap the ground to preview where they'll stand. Tap the marker again to go. Time slows while you decide.</li>
       <li><b>Stay hidden:</b> near enemies your soldiers sneak on their own. The circle at the top fills as a hostile notices you, and turns into <b>!!</b> when you're spotted. Being close, in the open or in front of him gets you noticed faster. So does running near him, which he can hear through walls. Gunfire gives you away at once.</li>
       <li><b>Draw a route:</b> drag from any soldier and he follows your finger. Lift to go. Lines through walls get routed round them, and the end settles on cover nearby.</li>
@@ -87,6 +87,7 @@
       <span><i class="dot" style="color:var(--bad)"></i>Exposed</span>
       <span>% = hit chance per shot</span>
     </div>
+    <p class="crash" id="crashNote" hidden></p>
     <button class="go" id="continueBtn" hidden>Continue</button>
     <button class="go" id="startBtn">Deploy</button>
     <button class="linkish" id="resetXpBtn" type="button">Reset squad XP and ranks</button>

@@ -1,40 +1,34 @@
 "use strict";
-/* Captured objectives become temporary HQ points (Bryan): a medical box (stand inside to heal) and a supply box (stand
-   inside a few seconds to get your grenade and special item back, or swap it). The warehouse's come with a popup and a short
-   camera tour of the two boxes after its report; later objectives just add their boxes (mission.js). Also the smooth
-   camera pans used by the HQ popup and the objective reveals, and the boxes drawn on the overlay. */
-const HQ_ZONES=[];   // {k:'med'|'sup',x,y,w,h,col,label}
-// each location's medical and supply boxes, big enough for the whole squad to stand in (Bryan); tapping inside one puts
-// everyone you've selected inside it (makeAssign)
+/* Checkpoints (Bryan): an area whose defenders are all down gets a medic station and an ammo drop, real things to look at
+   (scene.js: stationMesh) with a ring round each, green and orange. Walk a soldier into the ring: the medic station heals,
+   the ammo drop refills his grenade and special item after a moment (no swapping). The office building's lobby has a pair
+   too. The warehouse's first pair comes with a short camera tour. Also the smooth camera pans, and the rings on the overlay. */
+const HQ_ZONES=[];   // {k:'med'|'sup',x,y (centre),r,col,label}
+// each area's pair: where the medic station and the ammo drop stand (centres); the ring is big enough for the whole squad
 const REST_ZONES={
-  wh:[{k:'med',x:182,y:318,w:110,h:90},{k:'sup',x:328,y:318,w:110,h:90}],
-  br:[{k:'med',x:330,y:146,w:100,h:84},{k:'sup',x:522,y:146,w:100,h:84}],
-  dep:[{k:'med',x:700,y:-54,w:100,h:84},{k:'sup',x:806,y:-54,w:100,h:84}],
-  dc:[{k:'med',x:600,y:-546,w:100,h:84},{k:'sup',x:706,y:-546,w:100,h:84}],
-},WH_ZONES=REST_ZONES.wh;
-const HEAL_RATE=8,SUPPLY_T=4;
+  wh:[{k:'med',x:237,y:363},{k:'sup',x:383,y:363}],
+  br:[{k:'med',x:380,y:188},{k:'sup',x:572,y:188}],
+  maze:[{k:'med',x:110,y:10},{k:'sup',x:216,y:10}],   // (just south of the maze, by the sewer pipe's north mouth)
+  dco:[{k:'med',x:560,y:-370},{k:'sup',x:660,y:-370}],
+  dc:[{k:'med',x:650,y:-504},{k:'sup',x:756,y:-504}],
+},WH_ZONES=REST_ZONES.wh,ZONE_R=46;
+const HEAL_RATE=8,SUPPLY_T=2;
 let hq=null,camPan=null;
-function zoneAt(x,y){return HQ_ZONES.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
-const hqZone=z=>Object.assign({col:z.k==='med'?'255,74,64':'232,186,84',label:z.k==='med'?'MEDICAL':'SUPPLY'},z);   // a box with its colour and label
-function addZones(list){for(const z of list)HQ_ZONES.push(hqZone(z));}
-
-// after the warehouse's report: its HQ boxes, the popup, then the tour; objective 2 starts when the tour ends
-function startHQ(){
-  $('#aar').hidden=true;
-  state='play';endAt=0;contact=false;paused=true;wave.phase='hq';hq={t0:simT,tour:'hq'};
-  for(const p of players)if(alive(p)){p.sup=0;p.supT=null;p.focus=null;}
-  if(!HQ_ZONES.length)addZones(WH_ZONES);
-  setStatus();hud();
-  saveGame('wh');
-  hqGotIt();   // Bryan: no popup, just the tour of the boxes, then keep it moving   // milestone: warehouse taken (save.js)
+function zoneAt(x,y){return HQ_ZONES.find(z=>z.r?hyp(x-z.x,y-z.y)<=z.r:x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
+// a station with its colour and label (a box given as a rectangle, like the office lobby's, becomes a ring round its middle)
+const hqZone=z=>{const c=z.w?{x:z.x+z.w/2,y:z.y+z.h/2}:{x:z.x,y:z.y};return Object.assign({},z,c,{r:ZONE_R,col:z.k==='med'?'127,224,138':'255,163,72',label:z.k==='med'?'MEDIC':'AMMO'},z.w?{w:0,h:0}:{});};
+function addZones(list,floorGroup){
+  for(const z0 of list){const z=hqZone(z0);if(HQ_ZONES.some(q=>q.k===z.k&&hyp(q.x-z.x,q.y-z.y)<5))continue;HQ_ZONES.push(z);
+    if(typeof stationMesh==='function'&&typeof T!=='undefined'){const m=stationMesh(z);(floorGroup||scene).add(m);z.mesh=m;}}
 }
-// every tick once the warehouse is taken: healing and restocking in the boxes, then the mission's own tick
+
+// every tick of the mission: healing and refilling at the stations, then the mission's own tick
 function hqTick(dt){
   if(!hq)return;
   for(const p of players){
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
-    if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;
+    if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;   // (the medic station)
     const short=p.grenade<1||(p.spec&&p.specN<specFull(p))||(C4_ON&&p.charges<1);   // (a freed prisoner has no special item, but takes a grenade)
     if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.spec)p.specN=specFull(p);p.charges=1;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
   }
@@ -42,18 +36,18 @@ function hqTick(dt){
 }
 /* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes, say what they're for ---------- */
 const TOURS={
-  hq:[['med','<b>Medical.</b> Stand a wounded soldier in the red box to heal.'],['sup','<b>Supply.</b> Step inside to get your grenade and special item back. Tap the special item on a card in here to swap smoke, medic kit and silencer.']],
+  hq:[['med','<b>Medic station.</b> Walk a wounded soldier into the green ring to heal. Carry a downed man in to bring him round.'],['sup','<b>Ammo drop.</b> Walk into the orange ring to refill your grenade and special item.']],
 };
 function hqGotIt(){   // the tour of the boxes (straight after the warehouse; the old popup's button calls it too)
   $('#hqPop').hidden=true;
-  const steps=hq&&TOURS[hq.tour];if(!steps){paused=false;hud();return;}
+  const steps=hq&&TOURS[hq.tour];if(!steps){paused=false;hud();return;}   // (the first checkpoint's: mission.js)
   hq.tour=null;paused=true;const mine=hq,back={x:camT.x,z:camT.z,zoom},tip=$('#tut');
   const show=i=>{
     if(hq!==mine||state!=='play'){tip.hidden=true;return;}
-    if(i>=steps.length){tip.hidden=true;camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.2};paused=false;hud();startObjective(1);return;}   // objective 2 for the player: the bridge
+    if(i>=steps.length){tip.hidden=true;camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.2};paused=false;hud();return;}
     const z=HQ_ZONES.find(q=>q.k===steps[i][0]);
-    if(z)camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:z.x+z.w/2,z:z.y+z.h/2+30,zoom:2.8},t:0,dur:1};
-    tip.innerHTML=`<small>Temporary HQ · ${i+1}/${steps.length}</small>${steps[i][1]}`;tip.hidden=false;
+    if(z)camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:z.x,z:z.y+30,zoom:2.8},t:0,dur:1};   // (a station's x,y is its middle)
+    tip.innerHTML=`<small>Checkpoint · ${i+1}/${steps.length}</small>${steps[i][1]}`;tip.hidden=false;
     setTimeout(()=>show(i+1),3000);
   };
   show(0);
@@ -67,23 +61,15 @@ function panTick(rdt){
 }
 
 /* ---------- drawn on the overlay ---------- */
+// a ring round each station (the station itself is a 3D model), its name under it, and each soldier's refill filling round him
 function drawHQ(now){
   if(!HQ_ZONES.length)return;
-  const pulse=(Math.sin(now*4)+1)/2;
   for(const z of HQ_ZONES){
-    if(offFloor({x:z.x+z.w/2,y:z.y+z.h/2}))continue;   // a box on another floor of the office building
-    toSBack=false;const c=[[z.x,z.y],[z.x+z.w,z.y],[z.x+z.w,z.y+z.h],[z.x,z.y+z.h]].map(([x,y])=>toS(x,y,.3));if(toSBack)continue;   // a corner behind the camera
-    ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
-    ox.fillStyle=`rgba(${z.col},${.08+pulse*.05})`;ox.fill();
-    ox.setLineDash([6,5]);ox.lineDashOffset=-now*8;ox.strokeStyle=`rgba(${z.col},.9)`;ox.lineWidth=1.8;ox.stroke();ox.setLineDash([]);
-    const[cx,cy]=toS(z.x+z.w/2,z.y+z.h/2,.3),s=Math.max(8,hyp(c[1][0]-c[0][0],c[1][1]-c[0][1])*.22);
-    if(z.k==='med'){ox.fillStyle=`rgba(${z.col},.95)`;ox.fillRect(cx-s*.32,cy-s,s*.64,s*2);ox.fillRect(cx-s,cy-s*.32,s*2,s*.64);}
-    else{   // ammo crate: box with straps and an arrow pointing in
-      ox.strokeStyle=`rgba(${z.col},.95)`;ox.lineWidth=2;ox.strokeRect(cx-s,cy-s*.6,s*2,s*1.3);
-      ox.beginPath();ox.moveTo(cx-s*.4,cy-s*.6);ox.lineTo(cx-s*.4,cy+s*.7);ox.moveTo(cx+s*.4,cy-s*.6);ox.lineTo(cx+s*.4,cy+s*.7);ox.stroke();
-      ox.beginPath();ox.moveTo(cx,cy-s*1.5);ox.lineTo(cx,cy-s*.8);ox.moveTo(cx-s*.3,cy-s*1.1);ox.lineTo(cx,cy-s*.8);ox.lineTo(cx+s*.3,cy-s*1.1);ox.stroke();
-    }
-    const[lx,ly]=below(z.x+z.w/2,z.y+z.h,6);label(z.label,lx,ly,`rgba(${z.col},.95)`,9,700);
+    if(z.mesh&&z.mesh.userData.strobe)z.mesh.userData.strobe.visible=Math.sin(now*7)>.2;   // the ammo drop's strobe
+    if(!z.r||offFloor(z))continue;   // (a station on another floor of the office building)
+    toSBack=false;gPath(z.x,z.y,z.r);if(toSBack)continue;
+    ox.setLineDash([7,6]);ox.lineDashOffset=-now*6;ox.strokeStyle=`rgba(${z.col},.85)`;ox.lineWidth=2;ox.stroke();ox.setLineDash([]);
+    const[lx,ly]=below(z.x,z.y+z.r,6);label(z.label,lx,ly,`rgba(${z.col},.95)`,9,700);
   }
-  for(const p of players)if(alive(p)&&p.restock>0){gPath(p.x,p.y,14,-Math.PI/2,-Math.PI/2+p.restock/SUPPLY_T*TAU);ox.strokeStyle='rgba(232,186,84,.95)';ox.lineWidth=2.2;ox.stroke();}
+  for(const p of players)if(alive(p)&&p.restock>0){gPath(p.x,p.y,14,-Math.PI/2,-Math.PI/2+p.restock/SUPPLY_T*TAU);ox.strokeStyle='rgba(255,163,72,.95)';ox.lineWidth=2.2;ox.stroke();}
 }

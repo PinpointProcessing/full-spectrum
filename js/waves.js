@@ -5,7 +5,7 @@
    (hq.js, mission.js). Also the opening dinghy landing. Timings run on game time, so pause and slow-mo stretch them. */
 const COUNTER=[[466,40],[486,40],[466,70],[486,70],[476,100]],COUNTER_AT={x:476,y:260};   // where they come from, and where previews judge cover from while counting down
 const CLEAR_T=3.6,COUNT_T=5;   // CLEAR_T: after "Location secured", once the crossed-off objective list has closed (OBJ_LIST_T in mission.js)
-let wave={phase:'fight1',t:0};   // phases: fight1 → clear → count → fight2 → done → hq (after the report; the rest of the mission)
+let wave={phase:'fight1',t:0};   // phases: fight1 (before the landing is over) → hq (the mission); count/fight2/done: the old counterattack, dormant
 function wavePhase(...ps){return ps.includes(wave.phase);}
 function resetWaves(){
   wave={phase:'fight1',t:0};bigText(null);cdShown=-1;hq=null;camPan=null;VB={x0:0,z0:TOP,x1:W,z1:H};resetMission();
@@ -14,10 +14,8 @@ function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){
   if(landing)landTick(dt);
   const el=simT-wave.t;
-  if(wave.phase==='fight1'&&secureTick(0,dt)){goWave('clear');bigText('Location secured','clear');objCompleted(1);chatSecured();}   // all down, a soldier inside, then a quiet spell (mission.js)
-  else if(wave.phase==='clear'&&el>=CLEAR_T)startHQ();   // Bryan: a checkpoint and a rest, no counterattack (spawnCounter is kept for later)
-  else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnCounter();goWave('fight2');}
-  else if(wave.phase==='hq')hqTick(dt);
+  if(wave.phase==='hq')hqTick(dt);   // the mission (from the end of the landing: hq.js, mission.js)
+  else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnCounter();goWave('fight2');}   // (the counterattack: dormant)
   else if(wave.phase==='fight2'&&enemies.every(e=>e.dead)){goWave('done');bigText('All clear!','clear');say(players.find(alive),'objective');endAt=performance.now()+CLEAR_T*1000;}
 }
 function spawnCounter(){
@@ -50,12 +48,17 @@ function landTick(dt){
     p.inBoat=false;p.elev=0;const q={x:p.x,y:DOCK.quay-10},path=findPath(q.x,q.y,p.start.x,p.start.y);
     p.path=[q,...(path||[p.start])];p.lastOrder=simT;
   });
-  banner('Ashore. Move up: the warehouse is straight ahead.',3000);hud();
+  banner('Ashore. Get into the data center, up north. The warehouse ahead is guarded.',3200);startMissionAreas();hud();
+  setTimeout(()=>{if(state==='play'&&typeof gen==='function'){const a=players.find(p=>p.id==='A1'&&alive(p));if(a)chat('dark',60,gen(a,'dark'));}},2600);   // "Let's go dark" (chatter.js)
 }
 
 function gunnerOf(){return enemies.find(e=>e.gunner&&!e.dead);}
 // keep a jeep's machine gun pointing where its gunner aims (called every frame; no jeep in this version)
-function aimTurret(){const j=wave.jeep,g=j&&j.owner==='P'?seatOf(j,'gunner'):null;if(!j||!g||g.dead||j.state==='wreck')return;j.m.tur.rotation.y=-g.ang-j.m.g.rotation.y;}
+function aimTurret(){
+  if(MAPID==='out'&&PBOX.mesh){const m=gunMan();if(m){let da=m.ang-PBOX.gun.ang;da=clamp(Math.atan2(Math.sin(da),Math.cos(da)),-PBOX.gun.arc,PBOX.gun.arc);PBOX.mesh.rotation.y=-(PBOX.gun.ang+da);}}   // the pillbox's gun follows whoever's on it
+  aimJeep();
+}
+function aimJeep(){const j=wave.jeep,g=j&&j.owner==='P'?seatOf(j,'gunner'):null;if(!j||!g||g.dead||j.state==='wreck')return;j.m.tur.rotation.y=-g.ang-j.m.g.rotation.y;}
 
 /* ---------- wave-two hostiles push ---------- */
 // Hop from cover to cover towards the nearest soldier; hold where they have a covered shot within ~24 m.

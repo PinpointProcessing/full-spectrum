@@ -57,30 +57,41 @@ function hideAt(x,y){const z=slowAt(x,y);return z&&z.hide?z:null;}   // inside t
 
 /* ---------- objective 2: the bridge's north end ---------- */
 // (Bryan: moved back north, away from the warehouse, so its guards don't engage you the moment you've taken it)
-O('booth',540,-2,32,32);                                            // pillbox (a sentry inside, heavy cover)
+O('rail',MAINBR.x0,CANAL.y0,4,CANAL.y1-CANAL.y0);O('rail',MAINBR.x1-4,CANAL.y0,4,CANAL.y1-CANAL.y0);   // the bridge's guardrails (Bryan: cover while crossing)
+// the pillbox (Bryan's redesign): concrete to the waist, windows above, open at the back, a machine gun on a post mount in the
+// front window (a gunner on it; once he's down a soldier can walk in and take it over). Its walls are half cover and don't block
+// sight (the windows). PBOX.gun: where the gun stands, which way it faces, how far either side it swings (rad)
+const PBOX={x0:538,y0:-8,x1:578,y1:34,gun:{x:558,y:25,ang:Math.PI/2,arc:1.15}};
+O('pbwall',PBOX.x0,PBOX.y1-4,PBOX.x1-PBOX.x0,4);O('pbwall',PBOX.x0,PBOX.y0,4,PBOX.y1-PBOX.y0-4);O('pbwall',PBOX.x1-4,PBOX.y0,4,PBOX.y1-PBOX.y0-4);
 // MG nest covering the bridge, set back from its end so you can walk round it on either side (Bryan), or hop the bags
 O('sandbag',456,34,40,10);O('sandbag',456,12,10,22);O('sandbag',486,12,10,22);
-O('sandbag',388,42,44,10);O('sandbag',596,48,44,10);O('barrier',360,-10,52,12);O('crate',620,0,26,22);
+O('sandbag',388,28,44,10);O('sandbag',596,30,44,10);O('barrier',360,-10,52,12);O('crate',620,0,26,22);   // (the two sandbag lines far enough back from the canal for a man to crouch behind them coming off the bridge: Bryan couldn't)
 const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
 
-/* ---------- objective 3: the container yard, a maze between the bridge and the data center (Bryan: scrap the fuel depot,
-   "make the container maze larger and more challenging with a straight shot to the office through turret fire") ----------
-   Two blocks of stacked containers with aisles about 4 m wide and dead ends, and between them THE RUN: a straight lane 6 m
-   wide from the bridge's north end to the data center wall's east opening, covered by a manned heavy machine gun at its far
-   end (sandbags on the lane side only, so a team that works round through the maze's side openings takes him from behind;
-   smoke, pinning him while the other team runs, or his reload window are the other ways past). */
-// the lane's walls (double stacked), each with a side opening into the maze
-box(311,-310,34,120,1,2);box(311,-150,34,95,4,2);box(405,-310,34,100,2,2);box(405,-170,34,115,6,2);
-const RUN={x0:345,x1:405,y0:-320,y1:-50,nest:{x:386,y:-328}};
-O('sandbag',366,-316,39,10);O('crate',392,-358,22,16);   // the nest on the lane's east side: sandbags facing down it, ammo crates behind; the west side stays open through to the data center wall's gap
-// the west block
-box(110,-330,34,110,0,2);box(184,-330,90,34,3,3);box(184,-256,34,90,5,2);box(258,-256,34,60,7,1);
-box(110,-180,74,34,2,2);box(232,-150,60,34,1,2);box(110,-106,34,56,4,1);box(184,-106,34,56,6,2);
-// the east block
-box(479,-330,110,34,4,2);box(629,-330,34,110,1,3);box(703,-330,97,34,5,2);box(479,-256,34,96,3,2);box(553,-256,36,70,7,2);
-box(703,-256,34,110,2,2);box(553,-146,110,34,0,2);box(479,-120,34,70,6,1);box(703,-106,97,34,4,2);
-O('pallet',240,-60,30,20);O('barrel',600,-80,16,16,{col:'#6b3a28'});O('crate',760,-180,26,26);
-const YARD2_ZONE={x0:110,x1:800,y0:-345,y1:-45};   // the maze (the yard's men keep to it until they hunt)
+/* ---------- north of the bridge (Bryan's rework, a first mission: the old maze was "way too big, difficult, and close to
+   the data warehouse") ----------
+   - the watchtower on the canal's edge east of the bridge: a sniper up top covering the bridge. His rifle stays up there when
+     he's dropped; a soldier can climb up, take it and use it from the platform (mission.js)
+   - the container maze, small, down the west side: dark aisles for sneaking from the sewer pipe up to the data center
+   - the road across the middle, where a gun truck drives (mission.js), and the killing field: open ground in front of the
+     data center, raked by its guns, a patrol marching across it
+   - a few containers scattered down the east side, the flank from the rail bridge */
+const TOWER={x:712,y:46,elev:40,ladder:{x:712,y:24}};   // the watchtower: its middle, its platform's height, the foot of its ladder (north side)
+O('wtower',TOWER.x-12,TOWER.y-12,24,24);
+// the maze: three aisles about 5 m wide between walls of containers (double stacked: nobody sees over), a fourth along its
+// east edge with only a few containers between it and the killing field. Gaps in the walls let you cut across.
+box(20,-388,34,118,0,2);box(20,-240,34,100,3,2);box(20,-110,34,70,5,1);
+box(104,-390,34,100,1,2);box(104,-258,34,92,4,2);box(104,-134,34,84,6,1);
+box(188,-386,34,90,7,2);box(188,-262,34,106,2,2);box(188,-120,34,74,5,2);
+box(262,-330,34,70,3,1);box(262,-196,34,60,6,1);
+O('pallet',60,-300,26,18);O('barrel',160,-60,14,14,{col:'#4a5a3a'});O('crate',230,-260,22,18);
+const MAZE_ZONE={x0:20,x1:300,y0:-392,y1:-20};   // (its men keep to it until they hunt)
+// the killing field (Bryan): open ground from the road to the data center's guns. A burnt car, a barrier and a crate are all the
+// cover there is. The gun truck's road runs along its south edge (GTRUCK in mission.js).
+O('car',520,-262,40,22);O('barrier',652,-196,52,12);O('crate',418,-300,22,18);
+// down the east side: containers to work up from the rail bridge towards the drawbridge
+box(800,-470,34,90,4,2);box(880,-360,90,34,1,1);box(790,-262,34,80,6,2);box(904,-196,34,70,3,1);box(800,-96,90,34,7,1);
+const KILL_ZONE={x0:300,x1:780,y0:-360,y1:-120};
 
 /* ---------- objective 4: the data center (north-west): its front yard is taken, then the squad goes in ---------- */
 // (Bryan) a closed office building: you take the yard in front like the other locations, then the whole squad goes in
@@ -89,12 +100,13 @@ const YARD2_ZONE={x0:110,x1:800,y0:-345,y1:-45};   // the maze (the yard's men k
 const DC={x:30,y:-620,w:430,h:190},DC_DOOR={x:220,w:50};
 O('dcblock',DC.x,DC.y,DC.w,DC.h);
 const DC_ENTER={x0:DC_DOOR.x-15,x1:DC_DOOR.x+DC_DOOR.w+15,y0:DC.y+DC.h,y1:DC.y+DC.h+40};   // gather the squad here to go in
-// the container wall across the approach, two openings (x 120..200, 330..410), each covered by a machine-gun nest just behind it
-box(30,-390,90,26,3,2);box(200,-390,70,26,5);box(270,-390,60,26,6,2);box(410,-390,60,26,1);box(470,-390,60,26,7,2);
-const DC_NESTS=[{x:145,y:-410},{x:355,y:-410}];
+// in front (Bryan: "heavily armed along the front with an open killing field in front of them"): a sandbag line with two
+// machine-gun nests (the west one the heavy gun with its searchlight), riflemen behind, floodlights, razor wire out front.
+// The strip between the building and the line, west of the doors, is out of the nests' sight: the maze's way in.
+const DC_NESTS=[{x:340,y:-386},{x:456,y:-386}];
 for(const n of DC_NESTS){O('sandbag',n.x-20,n.y+12,40,10);O('sandbag',n.x-20,n.y-10,10,22);O('sandbag',n.x+10,n.y-10,10,22);}
-O('car',220,-330,40,22);O('barrier',60,-320,52,12);O('barrier',420,-325,52,12);
-const DC_OUT={x0:20,x1:540,y0:-432,y1:-345};
+O('sandbag',360,-372,76,8);O('sandbag',476,-372,40,8);
+const DC_OUT={x0:290,x1:520,y0:-432,y1:-360};
 
 /* ---------- objective 5 (to come): the fortress gate behind its moat (north-east) ---------- */
 const FORT={cx:850,cy:-1000,r0:380,r1:440},BRIDGE={x:815,y:FORT.cy+FORT.r1,w:70,len:74},PANEL={x:930,y:-548};
@@ -104,9 +116,9 @@ O('gatehouse',780,-656,140,46);O('gtower',742,-650,34,34);O('gtower',924,-650,34
 O('bridge',BRIDGE.x,BRIDGE.y-8,BRIDGE.w,8);O('pylon',BRIDGE.x-14,BRIDGE.y-11,10,10);O('pylon',BRIDGE.x+BRIDGE.w+4,BRIDGE.y-11,10,10);
 O('panel',PANEL.x-6,PANEL.y-4,12,8);
 // decoration that doesn't block anything
-const decor=[{kind:'wire',x0:20,x1:110,y:-292},{kind:'wire',x0:190,x1:330,y:-292},{kind:'wire',x0:400,x1:540,y:-292},{kind:'flood',x:70,y:-436},{kind:'flood',x:420,y:-436}];
+const decor=[{kind:'wire',x0:310,x1:520,y:-340},{kind:'flood',x:300,y:-436},{kind:'flood',x:520,y:-436}];
 // paths drawn on the ground (from the bridge north to the depot, the data center and the fortress)
-const PATHS=[[{x:476,y:60},{x:476,y:-30},{x:510,y:-150},{x:640,y:-190},{x:700,y:-180}],[{x:476,y:-30},{x:420,y:-150},{x:245,y:-300},{x:245,y:-432}],[{x:640,y:-190},{x:760,y:-360},{x:850,y:-500}]];
+const PATHS=[[{x:476,y:60},{x:476,y:-30},{x:476,y:-140}],[{x:310,y:-140},{x:960,y:-140}],[{x:560,y:-180},{x:400,y:-330}],[{x:870,y:-140},{x:850,y:-500}],[{x:95,y:40},{x:80,y:-40}]];   // worn tracks: the road across the middle (the gun truck's), off the bridge, up the east side
 
 function rectDist(x,y,o){if(o.disk)return Math.max(0,Math.hypot(x-o.disk.cx,y-o.disk.cy)-o.disk.r);const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
 function segHitsRect(x1,y1,x2,y2,o,pad){
@@ -142,7 +154,7 @@ function smokeBlocks(ax,ay,bx,by){
 function coverAt(tx,ty,sx,sy){
   let best=0;
   for(const o of objs){
-    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit'||o.kind==='bars'||o.kind==='void')continue;   // cell bars and the void between floors are never cover
+    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit'||o.kind==='bars'||o.kind==='void'||o.kind==='wtower')continue;   // cell bars, the void between floors and the watchtower's legs are never cover
     if(rectDist(tx,ty,o)>15)continue;
     if(rectDist(sx,sy,o)<15)continue;
     if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)
@@ -154,7 +166,7 @@ function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
-  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9,dcblock:60,
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9,dcblock:60,rail:7,pbwall:11,wtower:50,
     owall:14,iwall:12,cabinet:14,pillar:14,liftwall:14,steeldoor:14,liftdoor:14,counter:10,copier:9,sofa:6,planter:8,terminal:9,lab:9,bars:14}[o.kind]||0;   // inside walls are drawn cut away at waist height
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.

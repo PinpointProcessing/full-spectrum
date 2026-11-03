@@ -39,59 +39,55 @@ const VOICE_LINES={
 const URGENT=new Set(['man_down','hit_down','rpg','contact','charge']);
 const CALLOUT_VOICE={'Frag out!':'frag','On my way':'revive','Suppressing!':'suppress','Healing':'heal','Restocked':'restock','Charge set! Get clear!':'charge','Open fire!':'ack_attack','Focus fire':'ack_attack',
   'Taking aim':'silent','Moving in':'takedown','Watching':'watch','Breach! Breach!':'breach','Hands where I can see them!':'zip','Got the access card':'card','Smashed it':'lab'};
-let voiceBusyTill=0,voiceLast={},VSPR=null,vBuf={},vLoad={},sysVoices=[];
+let voiceBusyTill=0,voiceLast={},VSPR=null,vBytes={},vLoad={},vCache=new Map(),sysVoices=[];
 function bindVoice(){
-  fetch('sounds/voice/manifest.json').then(r=>r.ok?r.json():null).then(m=>{VSPR=m&&m.speakers?m:null;preloadVoices();}).catch(()=>{VSPR=null;});
+  fetch('sounds/voice/manifest.json').then(r=>r.ok?r.json():null).then(m=>{VSPR=m&&m.v===3&&m.speakers?m:null;preloadVoices();}).catch(()=>{VSPR=null;});
   const load=()=>{try{sysVoices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));}catch(e){}};
   if(window.speechSynthesis){load();speechSynthesis.onvoiceschanged=load;}
 }
-// a speaker's recording (all his lines in one file): fetched and decoded the first time it's wanted
+// a speaker's file (each of his lines a small mp3 of its own, one after another), fetched once and kept as it is: about 1 MB
 function spriteBuf(sp){
-  if(vBuf[sp])return vBuf[sp];
+  if(vBytes[sp])return vBytes[sp];
   const S=VSPR&&VSPR.speakers[sp];if(!S||!AC||vLoad[sp])return null;
-  vLoad[sp]=fetch('sounds/voice/'+S.file).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(decodeVoice).then(buf=>{vBuf[sp]=buf;}).catch(()=>{});
+  vLoad[sp]=fetch('sounds/voice/'+S.file).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>{vBytes[sp]=b;}).catch(()=>{});
   return null;
 }
-// Decoded at the file's own low rate, not the device's (48 kHz on most phones): a soldier's five minutes of lines take 19 MB
-// instead of 59. The squad's files (16 and 22 kHz, the encoder already cut everything above 8 kHz) at 16 kHz, the rest at their
-// own 24 kHz. The browser resamples as it plays.
-function mp3Rate(b){
-  const u=new Uint8Array(b,0,Math.min(b.byteLength,8192));let i=0;
-  if(u[0]===73&&u[1]===68&&u[2]===51)i=10+((u[6]&127)<<21|(u[7]&127)<<14|(u[8]&127)<<7|(u[9]&127));   // an ID3 tag first
-  for(;i<u.length-3;i++)if(u[i]===255&&(u[i+1]&0xE6)===0xE2){   // frame sync, layer III
-    const v=(u[i+1]>>3)&3,r=(u[i+2]>>2)&3;
-    if(v!==1&&r!==3&&(u[i+2]>>4)!==15)return[44100,48000,32000][r]/(v===3?1:v===2?2:4);
-  }
-  return 0;
-}
-function decodeVoice(b){
-  const r=mp3Rate(b),want=r>22050?r:Math.min(r,16000),OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
-  if(want&&OAC&&want<AC.sampleRate){
-    try{const oc=new OAC(1,1,want),copy=b.slice(0);
-      return new Promise((ok,no)=>oc.decodeAudioData(b,ok,no)).catch(()=>new Promise((ok,no)=>AC.decodeAudioData(copy,ok,no)));
-    }catch(e){}   // an old browser that won't make a context at that rate: decode the usual way
-  }
-  return new Promise((ok,no)=>AC.decodeAudioData(b,ok,no));
+// One line, decoded the first time it's said (a few milliseconds) and kept among the last few dozen. Decoding everyone's lines
+// up front took about 200 MB once inside the office building: too much for a phone, which reloads the page when it runs out.
+const V_CACHE=40;
+function clipBuf(sp,clip){
+  const key=sp+'/'+clip,hit=vCache.get(key);if(hit){vCache.delete(key);vCache.set(key,hit);return hit;}   // (an AudioBuffer, or a Promise of one)
+  const[o,n]=VSPR.speakers[sp].clips[clip],p=new Promise((ok,no)=>AC.decodeAudioData(vBytes[sp].slice(o,o+n),ok,no))
+    .then(buf=>{let i=0;const ch=buf.getChannelData(0),m=Math.min(ch.length,buf.sampleRate*.3|0);while(i<m&&Math.abs(ch[i])<.003)i++;buf.lead=Math.max(0,i/buf.sampleRate-.01);   // (the encoder's silence at the start)
+      if(vCache.get(key)===p)vCache.set(key,buf);return buf;})
+    .catch(()=>{vCache.delete(key);return null;});
+  vCache.set(key,p);while(vCache.size>V_CACHE)vCache.delete(vCache.keys().next().value);
+  return p;
 }
 // who's fetched when: the squad and the hostiles once sound has started (audio.js); the prisoners and scientists on the way into
 // the office building (interior.js) or when a save brings them back (office.js)
 const VOICE_OUT=['A1','A2','B1','B2','E1','E2','E3'],VOICE_IN=['A3','A4','B3','B4','S1','S2','S3','S4'];
 function preloadVoices(list=VOICE_OUT){if(VSPR&&AC)for(const sp of list)if(VSPR.speakers[sp])spriteBuf(sp);}
-// one line: over the radio (o.radio) or out loud where he stands (o.x,o.y; o.muffle: behind a door). Its length in s, 0 if
-// it isn't there or isn't loaded yet
+// one line: over the radio (o.radio) or out loud where he stands (o.x,o.y; o.muffle: behind a door). Returns its length in s
+// (0 if it isn't there or the file isn't loaded yet); it starts as soon as it's decoded. Louder while there's shooting (Bryan).
 function voiceClip(sp,clip,o={}){
-  if(!AC||!sndOn||!VSPR)return 0;const S=VSPR.speakers[sp],c=S&&S.clips[clip];if(!c)return 0;const buf=spriteBuf(sp);if(!buf)return 0;
-  const[t0,d]=c,s=AC.createBufferSource();s.buffer=buf;s.playbackRate.value=o.rate||(.97+Math.random()*.06);   // a touch of difference each time
-  if(o.radio){
-    const hp=AC.createBiquadFilter(),lp=AC.createBiquadFilter(),sh=AC.createWaveShaper(),g=AC.createGain();
-    hp.type='highpass';hp.frequency.value=380;lp.type='lowpass';lp.frequency.value=3200;
-    const cv=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;cv[i]=Math.tanh(x*2.2);}sh.curve=cv;g.gain.value=.85*(o.gain??1);
-    s.connect(hp);hp.connect(lp);lp.connect(sh);sh.connect(g);g.connect(sndMaster);
-  }else{
-    const out=voice(o.x,o.y,o.vol??.9,d+.4);if(!out)return 0;
-    if(o.muffle){const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=650;s.connect(lp);lp.connect(out);}else s.connect(out);
-  }
-  s.start(AC.currentTime+.03,t0,d);return d/s.playbackRate.value;
+  if(!AC||!sndOn||!VSPR)return 0;const S=VSPR.speakers[sp],c=S&&S.clips[clip];if(!c||!spriteBuf(sp))return 0;
+  const rate=o.rate||(.97+Math.random()*.06),d=c[2]/rate,loud=contact&&!o.muffle?1.3:1;   // (a touch of difference each time)
+  const play=buf=>{
+    if(!buf||!sndOn)return;const s=AC.createBufferSource();s.buffer=buf;s.playbackRate.value=rate;
+    if(o.radio){
+      const hp=AC.createBiquadFilter(),lp=AC.createBiquadFilter(),sh=AC.createWaveShaper(),g=AC.createGain();
+      hp.type='highpass';hp.frequency.value=380;lp.type='lowpass';lp.frequency.value=3200;
+      const cv=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;cv[i]=Math.tanh(x*2.2);}sh.curve=cv;g.gain.value=.85*(o.gain??1)*loud;
+      s.connect(hp);hp.connect(lp);lp.connect(sh);sh.connect(g);g.connect(sndMaster);
+    }else{
+      const out=voice(o.x,o.y,Math.min(1.4,(o.vol??.9)*loud),buf.duration/rate+.4);if(!out)return;
+      if(o.muffle){const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=650;s.connect(lp);lp.connect(out);}else s.connect(out);
+    }
+    s.start(AC.currentTime+.01,buf.lead||0);
+  };
+  const b=clipBuf(sp,clip);if(b instanceof AudioBuffer)play(b);else b.then(play);
+  return d;
 }
 // which of a line's versions next: each soldier goes through them all, shuffled, before any comes round again
 const vOrder={};

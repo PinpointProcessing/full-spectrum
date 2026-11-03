@@ -44,8 +44,29 @@ const CHAT={
   scan:     ['Hand on the glass. Now.','Do it.','Open it.'],
   covering: ['Covering! Move!','I\'ve got you covered!','Go, go, I\'ve got you!'],
   movingcov:['Moving!','Going!','Moving under cover!'],
+  // what they see on the way (Bryan: the voices should teach the map too); TUT: only the first four have these
+  bridge:   ['The bridge is covered. Machine gun and a pillbox.','They\'ve got the bridge locked down.','Bridge is a kill zone. We need another way, or we hit them hard.'],
+  pipe:     ['There\'s a drain pipe west of the bridge. We can crawl through.','Sewer pipe on the left. Quiet way across.','West side, the pipe. Nobody watches it.'],
+  dark:     ['Let\'s go dark. Nobody fires unless I say.','Stay quiet. Silencers first.','Keep it quiet. Takedowns where we can.'],
+  sniper:   ['Sniper in the tower! Stay out of his sights.','Watch the tower. Sniper.','Tower! Sniper! Keep your heads down.'],
+  sniperdown:['Sniper\'s down. That rifle\'s ours if we want it.','Tower\'s clear. Grab his rifle.','He dropped the rifle. Somebody pick it up.'],
+  gotrifle: ['Got the sniper rifle.','Sniper rifle. Now we\'re talking.','I\'ve got his rifle. I\'ll cover you.'],
+  tower:    ['Get up in that tower. You\'ll see the whole yard.','From the tower I can cover the whole approach.','The tower. Best view on the map.'],
+  vehicle:  ['Vehicle! Turret on top. Stay off the road.','Gun truck coming. Get out of its way.','Armored truck! Don\'t let it see you.'],
+  killfield:['That\'s open ground in front of the building. We\'d be cut to pieces.','No cover out there. Go round, or take out the guns first.','Killing field. We don\'t cross that in the open.'],
+  maze:     ['The containers on the left. We can slip through quiet.','Stick to the containers. Out of sight.','Left side, through the containers. Stay low.'],
+  patrol:   ['Patrol, moving left. Let them pass.','Foot patrol. Wait for them to go by.','Patrol coming through. Hold still.'],
+  dclock:   ['Not while they\'re looking for us. Lose them first.','They\'re on alert. We wait until it calms down.','Too hot. Let them settle, then we go in.'],
+  dcopen:   ['They\'ve settled down. The door\'s ours.','Quiet now. Let\'s get inside.','We\'re clear to go in.'],
+  mgman:    ['I\'m on the gun!','Manning the machine gun.','The pillbox gun is ours.'],
+  rpgout:   ['Rocket out!','Backblast clear!','Firing the RPG!'],
+  nadego:   ['Moving to throw.','Getting an angle.','Moving up for the frag.'],
+  nadeno:   ['Can\'t get a clean throw from here.','No angle. I\'d have to cross open ground.','Too exposed. I can\'t get there.'],
+  volley:   ['On my mark. Three, two, one.','Together. Now.','Sync shots. Take them.'],
+  volleyok: ['Both down. Clean.','Nobody heard a thing.','Good shooting. Quiet.'],
 };
-const QUIET=new Set(['hush','clear','tkdone','tknice']);
+const QUIET=new Set(['hush','clear','tkdone','tknice','dark','maze','patrol','volley','volleyok','pipe','tower','dcopen']);
+const TUT=new Set(['bridge','pipe','dark','sniper','sniperdown','gotrifle','tower','vehicle','killfield','maze','patrol','dclock','dcopen','mgman','rpgout','nadego','nadeno','volley','volleyok']);   // (voiced for A1-B2 only)
 // contact with a direction: the clock round where he's facing, and one or more of them
 const CLOCK={12:'twelve',2:'two',3:'three',4:'four',6:'six',8:'eight',9:'nine',10:'ten'};
 const CDIR={one:'Contact, {D} o\'clock!',many:'Contact! Tangos, {D} o\'clock!'};
@@ -72,8 +93,8 @@ const BANTER=[
  {when:'scip',lines:[['B3','Listen. Can you hear that? Behind the gate.'],['A2','It\'s the wind.'],['B3','It\'s not.']]},
  {when:'in',lines:[['B1','This place gives me the creeps.'],['A2','Then stop talking about it.']]},
 ];
-let talkQ=[],chatCD={},banterT=0,banterUsed=new Set(),hushBy=null;
-function resetChatter(){talkQ=[];chatCD={};banterT=0;banterUsed=new Set();hushBy=null;}
+let talkQ=[],chatCD={},banterT=0,banterUsed=new Set(),hushBy=null,tutSaid=new Set(),tutT=0;
+function resetChatter(){talkQ=[];chatCD={};banterT=0;banterUsed=new Set();hushBy=null;tutSaid=new Set();tutT=0;}
 const up=u=>!!u&&alive(u)&&!u.offMap;
 const pick=n=>1+((Math.random()*n)|0);
 let chatWho='';   // (whose turn it is for nextVariant)
@@ -89,7 +110,9 @@ const named=(u,key,about,n)=>{
   if(!hasClip(u.id,`${key}_${about.id}_${k}`))return null;return L(u,`${key}_${about.id}_${k}`,NAMED[key][k-1].replace('{N}',about.name).replace(/s's\b/,'s is'));   // ("Hayes's down" on screen as "Hayes is down")
 };
 const canSay=(u,key,about)=>!!u&&!!about&&NAMED[key].some((_,i)=>hasClip(u.id,`${key}_${about.id}_${i+1}`));
-const gen=(u,key,n)=>{if(!u)return null;const k=n||nextVariant(u.id,'chat'+key,CHAT[key].length);return L(u,`chat_${key}_${k}`,CHAT[key][k-1],QUIET.has(key));};
+const gen=(u,key,n)=>{if(!u)return null;const k=n||nextVariant(u.id,'chat'+key,CHAT[key].length);if(!hasClip(u.id,`chat_${key}_${k}`))return null;return L(u,`chat_${key}_${k}`,CHAT[key][k-1],QUIET.has(key));};
+// a line only the first four have (TUT): from whoever of them is up and nearest, or the lead
+const tutBy=(x,y)=>players.filter(p=>up(p)&&!p.joined).sort((a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y))[0]||null;
 // queue an exchange (cd: seconds before this kind can happen again); returns true if it was queued
 function chat(kind,cd,...lines){
   if(!sndOn||state!=='play'||!lines[0])return false;
@@ -155,7 +178,7 @@ function banterPhase(){
   const pris=players.some(p=>p.joined&&up(p));
   if(sciOut)return pris&&Math.random()<.5?'scip':'sci';
   if(pris)return 'pris';
-  return objDone>=3?(dcTaken?'dco':'yard'):objDone>=2?'br':objDone>=1?'wh':'any';
+  return finished[3]?'dco':finished[2]?'yard':finished[1]?'br':finished[0]?'wh':'any';   // (by the checkpoints they've cleared: mission.js)
 }
 function banterTick(dt){
   if(state!=='play'||contact||talkQ.length||paused)return;
@@ -165,4 +188,22 @@ function banterTick(dt){
   if(!cand.length){banterT=40;return;}
   const best=cand.find(c=>c.b.when===ph)||cand[(Math.random()*cand.length)|0];banterUsed.add(best.i);banterT=0;
   best.b.lines.forEach(([id,text],j)=>{const u=players.find(p=>p.id===id);talkQ.push(L(u,`ban_${best.i}_${j}`,text,ph==='in'));});   // (no time stamp: a conversation plays out)
+}
+
+/* ---------- what they say about the map (Bryan: "the voices also serve as a tutorial and talk about the location") ----------
+   Each once, the first time it comes up, from whichever of the first four is nearest it. */
+function tutLine(key,u){if(tutSaid.has(key)||!u)return false;const l=gen(u,key);if(l&&chat('tut_'+key,6,l)){tutSaid.add(key);return true;}return false;}
+function tutTick(dt){
+  if(state!=='play'||MAPID!=='out'||landing||(tutT-=dt)>0)return;tutT=.5;
+  const ups=players.filter(p=>up(p)&&!p.joined);if(!ups.length)return;
+  const sees=f=>enemies.find(e=>!e.dead&&e.vis&&f(e));
+  if(!tutSaid.has('bridge')&&ups.every(p=>p.y>CANAL.y0)){const e=sees(e=>e.grp===1&&!e.onTower);if(e&&tutLine('bridge',tutBy(e.x,e.y)))setTimeout(()=>tutLine('pipe',tutBy(CULVERT.x0,CANAL.y1)),3800);}   // the bridge is covered; the pipe's the quiet way
+  if(!tutSaid.has('sniper')){const e=sees(e=>e.onTower);if(e)tutLine('sniper',tutBy(e.x,e.y));}
+  if(!tutSaid.has('tower')&&tutSaid.has('sniperdown')&&pickups.length){const w=tutBy(TOWER.x,TOWER.y);if(w&&hyp(w.x-TOWER.x,w.y-TOWER.y)<300)tutLine('tower',w);}
+  if(!tutSaid.has('maze')&&!contact&&ups.some(p=>p.y<CANAL.y0-20))tutLine('maze',tutBy(150,-60));   // across the canal: the containers are the quiet way up
+  if(!tutSaid.has('vehicle')){const t=sees(e=>e.veh);if(t)tutLine('vehicle',tutBy(t.x,t.y));}
+  if(!tutSaid.has('patrol')&&!contact){const e=sees(e=>e.route&&e.grp===3&&!e.alerted);if(e)tutLine('patrol',tutBy(e.x,e.y));}
+  if(!tutSaid.has('killfield')){const e=sees(e=>e.grp===3&&e.gunner&&!e.veh);if(e)tutLine('killfield',tutBy(e.x,e.y));}
+  const nearDoor=ups.some(p=>hyp(p.x-245,p.y+410)<260),locked=dcLocked();   // the doors: when they open again after being shut
+  if(locked&&nearDoor)tutSaid.add('dcshut');else if(!locked&&nearDoor&&tutSaid.has('dcshut')){tutSaid.delete('dcshut');tutLine('dcopen',tutBy(245,-410));}
 }

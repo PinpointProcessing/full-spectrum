@@ -1,29 +1,54 @@
 "use strict";
-/* The mission after the warehouse (Bryan): 2 take the bridge, 3 take the container yard (a maze with a straight run under a
-   heavy machine gun; the fuel depot is scrapped, its tank code kept for later), 4 take the data center's front
-   yard, go inside and detain the scientists (interior.js, office.js), bring one to the drawbridge's bio scanner to lower it,
-   5 take the Headquarters (to come). Each objective's defenders spawn when it becomes the current one (so a fight at one doesn't alert the next); a
-   finished objective gets a medical and a supply box (hq.js) and the game saves. Also: demolition charges (one per
-   soldier, restocked at supply boxes) for the fuel tanks, the enemy RPG gunner and his rockets, fuel tanks that
-   chain-explode, the drawbridge and its panel, the objective tracker, and their overlay drawing. */
-const OBJECTIVES=['Take the warehouse','Take the bridge','Take the container yard','Take the data center','Lower the drawbridge','Take the Headquarters'];
-// indexes into OBJECTIVES: 0 warehouse, 1 bridge, 2 container yard, 3 data center, 4 drawbridge (still objective 4 for the player), 5 HQ
+/* The mission (Bryan's rework): one objective outdoors, get into the data center, then the scientists inside, the drawbridge's
+   bio scanner, and the Headquarters (to come). Every area's defenders are on the map from the start (the warehouse, the
+   bridge with its watchtower sniper, the container maze, the data center's front with its patrol and gun truck), and none of
+   them has to be cleared: clearing one is a checkpoint (a medic station and an ammo drop, and a save: hq.js, save.js). The
+   front doors open unless the alarm is going or they're out hunting the squad (interior.js). Also: the gun truck, the
+   watchtower (climbing it, the sniper's rifle), the demolition charges and fuel tanks (dormant), the enemy RPG and rockets,
+   the drawbridge and its panel, the objective tracker, and their overlay drawing. */
+const OBJECTIVES=['Get into the data center','Detain the scientists','Lower the drawbridge','Take the Headquarters'];
+// obj (internal): 3 outdoors and in the data center, 4 once the scientists are out (the drawbridge), 5 the Headquarters (0-2 were the old objectives)
 const RPG={aim:1.3,reload:8,speed:170,spread:[18,42],range:400,blast:40,dmg:85};
 const CHARGE={plant:3,fuse:8,away:130};
 let rockets=[],tankFires=[],tankQueue=[],charges=[],obj=0,groups={},finished={},panelGo=null,bridgeDown=0,pendingSpawns=[];
 let mission={name:'yard',t0:0};
 function resetMission(){
   rockets=[];tankFires=[];tankQueue=[];charges=[];obj=0;objDone=0;groups={};finished={};panelGo=null;mission={name:'yard',t0:0};pendingSpawns=[];
-  secure={t:0,state:null,said:false,left:-1};lastNoiseT=-99;spotBannerT=-99;
-  HQ_ZONES.length=0;
+  lastNoiseT=-99;spotBannerT=-99;
+  for(const z of HQ_ZONES)if(z.mesh&&z.mesh.parent)z.mesh.parent.remove(z.mesh);HQ_ZONES.length=0;   // (their models too)
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
-  dcTaken=false;sciOut=0;scanGo=null;
+  sciOut=0;scanGo=null;for(const q of pickups)if(q.mesh&&q.mesh.parent)q.mesh.parent.remove(q.mesh);pickups=[];   // (the sniper's floating rifle too)
   setBridge(0);if(PANEL.button)PANEL.button.material.emissive.setHex(0);
   updateObjUI();
 }
 /* ---------- objectives ---------- */
 // spawn helpers: a rifleman, an MG gunner on a tripod gun (never moves), a sentry inside a structure
 function hostile(id,x,y,extra){const u=mk('E','E',id,extra.name||'Hostile',x,y,extra.ang??Math.PI/2);Object.assign(u,{jumpy:true},extra);makeSoldier(u);if(u.radio)addRadioKit(u);return u;}
+// the pillbox's gunner: on its mounted gun (PBOX in map.js), standing behind it, only firing within its swing
+function pillGunner(id){const g=PBOX.gun,u=hostile(id,g.x,g.y-7,{name:'Gunner',gunner:true,post:true,ang:g.ang});u.onGun=g;return u;}
+/* ---------- a soldier on the pillbox gun (Bryan: the player can walk in and take it over) ---------- */
+const gunMan=()=>units.find(u=>u.onGun===PBOX.gun&&!u.dead&&!u.downed)||null;
+function orderMan(list){
+  const g=PBOX.gun,u=list.filter(p=>alive(p)&&!p.carry).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(!u)return false;
+  const path=findPath(u.x,u.y,g.x,g.y-7);if(!path){banner('No way to the gun from here.',1600);return false;}
+  Object.assign(u,{path,lastOrder:simT,watch:null,supT:null,focus:null,manGo:{t0:simT}});callout(u,'To the gun',C.good);return true;
+}
+function manTick(){
+  for(const u of players){
+    if(u.onGun&&(u.path.length||!alive(u))){u.onGun=null;u.gunner=false;}   // a move order (or going down) takes him off it
+    const m=u.manGo;if(!m)continue;
+    if(!alive(u)||u.lastOrder>m.t0+.01||gunMan()){u.manGo=null;continue;}
+    if(u.path.length)continue;u.manGo=null;
+    if(hyp(u.x-PBOX.gun.x,u.y-(PBOX.gun.y-7))>10)continue;
+    Object.assign(u,{onGun:PBOX.gun,gunner:true,ang:PBOX.gun.ang,aimT:simT});callout(u,'On the gun',C.good);if(typeof gen==='function')chat('mgman',20,gen(u,'mgman'));
+  }
+}
+// MAN THE GUN over the pillbox's gun once nobody's on it and a soldier is near
+function drawGunMark(now){
+  if(MAPID!=='out'||gunMan()||!players.some(p=>alive(p)&&hyp(p.x-PBOX.gun.x,p.y-PBOX.gun.y)<300))return;
+  const g=PBOX.gun,p=(Math.sin(now*3)+1)/2;gPath(g.x,g.y,12);ox.strokeStyle=`rgba(127,224,138,${(.5+p*.4).toFixed(2)})`;ox.lineWidth=2;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);
+  toSBack=false;const[lx,ly]=toS(g.x,g.y,20);if(!toSBack)label('MAN THE GUN',lx,ly-6,C.good,9,700);
+}
 function mgGunner(id,x,y){
   const u=hostile(id,x,y,{name:'Gunner',gunner:true,post:true});
   const mg=new T.Group(),dm=new T.MeshStandardMaterial({color:0x1b1e1b,roughness:.7,metalness:.45});
@@ -46,30 +71,29 @@ function heavyPose(u){const m=u.slight;if(!m)return;m.visible=!u.dead;m.position
 function heavyTick(){   // sweep the lane while unaware; keep the light on him
   for(const u of enemies){if(!u.heavy)continue;if(!u.dead&&!u.alerted)u.ang=Math.PI/2+Math.sin(simT*.55)*HEAVY.sweep;heavyPose(u);}
 }
-// Each objective's defenders: [x,y,make] for each post. They take their posts when the objective starts, but never in front
-// of the squad (Bryan: no troops turning up in the area you've just taken): a post a soldier could see (within 360, the
-// range he'd spot a man at) or that's within 100 of one waits (pendingSpawns) until it isn't; after SPAWN_WAIT s the man
-// turns up out of sight nearby instead and walks to his post.
+// Each area's defenders: [x,y,make,stay] for each post. They take their posts at the start (after the landing), but never in
+// front of the squad: a post a soldier could see (within 360) or that's within 100 of one waits (pendingSpawns) until it isn't;
+// after SPAWN_WAIT s the man turns up out of sight nearby instead and walks to his post (stay: he waits instead).
 function groupSpecs(n){
   const g=[];
-  if(n===1){   // the bridge: an MG nest at its north end, a sentry in the pillbox, riflemen behind sandbags; calm, not on edge
-    g.push([476,20,()=>mgGunner('E20',476,20)],[556,14,()=>hostile('E21',556,14,{name:'Sentry',post:true,elev:14}),true]);   // true: inside the pillbox, he never walks in
-    for(const[i,[x,y]]of[[422,30],[614,38],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE,radio:i===0})]);   // E22 carries the radio
+  if(n===1){   // the bridge: an MG nest at its north end, a gunner on the pillbox's gun, riflemen behind sandbags, a sniper up the watchtower; calm, not on edge
+    g.push([476,20,()=>mgGunner('E20',476,20)],[PBOX.gun.x,PBOX.gun.y-7,()=>pillGunner('E21'),true]);   // (the pillbox's: he never walks in)
+    for(const[i,[x,y]]of[[422,14],[614,16],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE,radio:i===0})]);   // E22 carries the radio
+    g.push([TOWER.x,TOWER.y,()=>towerSniper('E25'),true]);
     for(const q of g){const make0=q[2];q[2]=()=>{const u=make0();u.jumpy=false;return u;};}
-  }else if(n===2){   // the container yard (a maze): men posted in its aisles facing every which way, two patrols (one with a guard dog), a radio man, and the heavy machine gun at the end of the run
-    g.push([RUN.nest.x,RUN.nest.y,()=>{const u=mgGunner('E60',RUN.nest.x,RUN.nest.y);Object.assign(u,{ang:Math.PI/2,heavy:true,name:'Heavy MG'});addSearchlight(u);return u;},true]);
-    for(const[i,[x,y,a]]of YARD_POSTS.entries())g.push([x,y,()=>hostile('E'+(61+i),x,y,{zone:YARD2_ZONE,ang:a,radio:i===YARD_RADIO})]);
-    g.push([768,-260,()=>{const h=hostile('E70',768,-260,{name:'Handler',zone:YARD2_ZONE,route:[{x:768,y:-140},{x:768,y:-270}],ri:0,waitT:0});groups[2].push(dog('E72',h.x-10,h.y+12,{handler:h,zone:YARD2_ZONE}));return h;}],   // a patrol with a guard dog, in the east aisle (out of sight of the bridge's rest spot)
-      [164,-120,()=>hostile('E71',164,-120,{name:'Patrol',zone:YARD2_ZONE,route:[{x:164,y:-276},{x:164,y:-62}],ri:0,waitT:0})]);
-  }else if(n===3){   // the data center: MG nests behind the container wall, riflemen outside, more inside
-    for(const[i,p]of DC_NESTS.entries())g.push([p.x,p.y,()=>mgGunner('E'+(40+i),p.x,p.y)]);
-    for(const[i,[x,y]]of[[60,-412],[255,-412],[490,-412]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT,radio:i===0})]);   // E42 carries the radio
+  }else if(n===2){   // the maze: two men posted and one walking the west aisle; few, to sneak past or take quietly
+    g.push([163,-226,()=>hostile('E30',163,-226,{zone:MAZE_ZONE,ang:Math.PI/2,radio:true})],
+      [242,-300,()=>hostile('E31',242,-300,{zone:MAZE_ZONE,ang:0})],
+      [79,-90,()=>hostile('E32',79,-90,{name:'Patrol',zone:MAZE_ZONE,route:[{x:79,y:-360},{x:79,y:-70}],ri:1,waitT:0})]);
+  }else if(n===3){   // the data center's front: the heavy gun and an MG in nests, riflemen behind the sandbags, a patrol marching across the killing field (right to left and back), the gun truck
+    const N=DC_NESTS;
+    g.push([N[0].x,N[0].y,()=>{const u=mgGunner('E40',N[0].x,N[0].y);Object.assign(u,{heavy:true,name:'Heavy MG'});addSearchlight(u);return u;},true],[N[1].x,N[1].y,()=>mgGunner('E41',N[1].x,N[1].y),true]);
+    for(const[i,[x,y]]of[[398,-398],[300,-404],[506,-404]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT,radio:i===0})]);   // E42 carries the radio
+    for(let i=0;i<3;i++){const o=i*14,a={x:930+o,y:-250-o},b={x:330+o,y:-250-o};g.push([a.x,a.y,()=>hostile('E'+(45+i),a.x,a.y,{name:'Patrol',zone:KILL_ZONE,route:[b,a],ri:1,waitT:0,ang:Math.PI})]);}
+    g.push([GTRUCK.route[0].x,GTRUCK.route[0].y,()=>makeTruck('E48'),true]);
   }
   return g;
 }
-// the yard's posted men: [x,y,facing] in the maze's aisles (checked by script: all free and reachable), none in sight of the
-// bridge's rest spot; YARD_RADIO is the one with the radio
-const YARD_POSTS=[[164,-292,0],[238,-216,Math.PI/2],[264,-90,-Math.PI/2],[128,-200,-.6],[533,-210,Math.PI],[683,-196,Math.PI/2],[640,-70,0],[600,-180,Math.PI/2],[606,-276,-Math.PI/2],[520,-140,.8]],YARD_RADIO=8;
 const SPAWN_WAIT=12;let spawnTick=0;
 function spawnGroup(n){
   groups[n]=[];
@@ -94,68 +118,51 @@ function spawnPending(){
     }
     if(!u&&simT-s.t0>30)u=s.make();   // never hold one back for good: the location couldn't be cleared without him
     if(!u)continue;
-    groups[s.n].push(u);pendingSpawns.splice(i--,1);any=true;
+    u.grp=s.n;groups[s.n].push(u);pendingSpawns.splice(i--,1);any=true;
   }
   if(any)enemies=units.filter(u=>u.side==='E');
 }
 function groupDone(n){return !!groups[n]&&groups[n].every(beaten)&&!pendingSpawns.some(s=>s.n===n)&&!reinfPending(n);}   // (and no reinforcements on the way: hunt.js)
 function groupLeft(n){return (groups[n]||[]).filter(e=>!beaten(e)).length+pendingSpawns.filter(s=>s.n===n).length;}
 
-/* ---------- taking a location (Bryan): the whole place, then a quiet spell ---------- */
-// The warehouse, the bridge and the container yard are only secured once their defenders are all down (the old depot's tanks gone
-// too), a soldier is inside the area and nothing has fired or blown up for QUIET_T s. A ring at the top fills meanwhile, and
-// the area is marked on the ground (drawSecure). extra: spots that count as inside too (the warehouse's doorways and windows,
-// so a man fighting from the door needn't walk in).
-const QUIET_T=5;
-const LOCS={
-  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(beaten)&&!reinfPending(0),left:()=>enemies.filter(e=>!beaten(e)).length,
-    extra:[{x0:285,x1:325,y0:240,y1:276},{x0:260,x1:360,y0:548,y1:578},{x0:150,x1:182,y0:395,y1:455},{x0:438,x1:470,y0:380,y1:420},{x0:438,x1:470,y0:450,y1:500}]},
-  1:{zone:{x0:330,x1:660,y0:-40,y1:100},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},   // its north end and the north half of the bridge
-  2:{zone:YARD2_ZONE,name:'the container yard',done:()=>groupDone(2),left:()=>groupLeft(2)},
-  3:{zone:DC_OUT,name:'the data center\'s front yard',done:()=>groupDone(3),left:()=>groupLeft(3)},   // then the squad goes in (interior.js)
+/* ---------- checkpoints (Bryan: "Killing all the units in the area opens up the checkpoint"; none has to be cleared) ----------
+   An area whose defenders are all down (or gave up), with no reinforcements on the way, and CP_QUIET s without a shot is a
+   checkpoint: a medic station and an ammo drop appear there and the game saves. The warehouse's is the first one you'll
+   usually get, and comes with a short tour of the two. */
+const CP_QUIET=3;
+const AREAS={
+  0:{k:'wh',name:'the warehouse',zone:{x0:150,x1:470,y0:240,y1:580}},
+  1:{k:'br',name:'the bridge',zone:BR_ZONE},
+  2:{k:'maze',name:'the container maze',zone:MAZE_ZONE},
+  3:{k:'dco',name:'the data center\'s front',zone:DC_OUT},
 };
-let secure={t:0,state:null,said:false,left:-1},lastNoiseT=-99;
+let lastNoiseT=-99;
 function inZone(p,z){return p.x>=z.x0&&p.x<=z.x1&&p.y>=z.y0&&p.y<=z.y1;}
-function inLoc(p,L){return inZone(p,L.zone)||!!L.extra&&L.extra.some(z=>inZone(p,z));}
 function tanksGone(){return objs.every(o=>o.kind!=='tank'||o.burst);}
-// on the objective pill: how many hostiles are left once it's down to the last few (or the tanks are gone), or that it's being taken
-function locNote(){
-  if(!LOCS[obj]||objDone>obj||state!=='play')return '';
-  if(secure.state==='hold')return ' · securing';
-  if(secure.state==='move')return ' · move in';
-  const n=secure.left;return n>0&&n<=3?` · ${n} left`:'';
-}
-// every tick while location n is the objective; true once it's taken
-function secureTick(n,dt){
-  const L=LOCS[n];if(!L)return false;
-  const left=L.left();if(left!==secure.left){secure.left=left;updateObjUI();}
-  const st=!L.done()?null:players.some(p=>alive(p)&&inLoc(p,L))?'hold':'move';
-  if(st!==secure.state){secure.state=st;updateObjUI();}
-  if(st!=='hold'){
-    secure.t=0;
-    if(st==='move'&&!secure.said){secure.said=true;banner(`Area clear. Move a soldier into the green area to take ${L.name}.`,3500);}
-    return false;
-  }
-  secure.t=Math.min(secure.t+dt,simT-lastNoiseT);   // the quiet spell restarts with every shot or blast
-  if(secure.t<QUIET_T)return false;
-  secure={t:0,state:null,said:false,left:-1};updateObjUI();return true;
-}
-// when an objective starts: one short line, the next thing on the list (Bryan); the details stay in the hint line (OBJ_HINT)
-const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Take the container yard to the north',3:'Take the data center to the north-west',4:'Take a scientist to the drawbridge\'s bio scanner'};
-function startObjective(n,quiet){
-  obj=n;if(n<=3&&!groups[n]&&!(n===3&&dcTaken))spawnGroup(n);   // (the data center's yard, once taken, stays taken)
+// after the landing (or a Continue): every area not yet cleared gets its defenders
+function startMissionAreas(){
+  obj=3;wave.phase='hq';if(!hq)hq={t0:simT,tour:null};
+  if(!finished[0])groups[0]=enemies.filter(e=>e.grp===0&&!e.gone);
+  for(const n of[1,2,3])if(!finished[n]&&!groups[n])spawnGroup(n);
   updateObjUI();setStatus();hud();
-  if(quiet||!OBJ_INTRO[n])return;
-  banner(OBJ_INTRO[n],3500);   // no camera fly-over (Bryan: the map jumping elsewhere was disorienting)
 }
-// a finished objective is a checkpoint and a rest (Bryan): "Location secured", heal/resupply boxes, a save; the next one's defenders
-// take their posts a few seconds later, unaware
-// (Bryan: no box tutorial after the first; the next objective's message waits until the crossed-off list has closed)
-function finishObjective(zones,stage,next,big='Location secured'){
-  if(finished[next-1])return;finished[next-1]=true;objCompleted(next);   // once only, while the next one waits to start; crossed off the list
-  contact=false;bigText(big,'clear');chatSecured();
-  if(zones)addZones(zones);saveGame(stage);setStatus();
-  setTimeout(()=>{if(state==='play'&&obj===next-1)startObjective(next);},OBJ_LIST_T+200);
+// the area the squad is nearest (reinforcements and the lockdown's hunters belong to it); threat points for previews before anyone's seen
+const AREA_THREAT={0:{x:310,y:540},1:{x:476,y:30},2:{x:160,y:-220},3:{x:400,y:-385}};
+function nearArea(){
+  const ups=players.filter(p=>alive(p)&&!p.offMap);if(!ups.length)return 3;
+  const cx=ups.reduce((a,p)=>a+p.x,0)/ups.length,cy=ups.reduce((a,p)=>a+p.y,0)/ups.length;let best=3,bd=1e9;
+  for(const n of[0,1,2,3]){if(finished[n])continue;const t=AREA_THREAT[n],d=hyp(t.x-cx,t.y-cy);if(d<bd){bd=d;best=n;}}
+  return best;
+}
+function checkpointTick(){
+  if(MAPID!=='out'||state!=='play')return;
+  for(const n of[0,1,2,3])if(!finished[n]&&groups[n]&&groupDone(n)&&simT-lastNoiseT>=CP_QUIET)clearArea(n);
+}
+function clearArea(n){
+  const A=AREAS[n];finished[n]=true;contact=false;
+  bigText('Checkpoint','clear');banner(`${A.name[0].toUpperCase()+A.name.slice(1)} is clear. A medic station and an ammo drop are here.`,3200);chatSecured();
+  addZones(REST_ZONES[A.k]);saveGame(A.k);setStatus();updateObjUI();
+  if(!hq.toured){hq.toured=true;setTimeout(()=>{if(state==='play'&&MAPID==='out'){hq.tour='hq';hqGotIt();}},2400);}   // the first one: a look at the station and the drop
 }
 // every tick once the warehouse is taken (from hqTick)
 function missionTick(dt){
@@ -169,11 +176,7 @@ function missionTick(dt){
     if(simT<e.waitT)continue;
     e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
   }
-  if(obj===1&&!finished[1]&&secureTick(1,dt))finishObjective(REST_ZONES.br,'br',2);
-  else if(obj===2&&!finished[2]&&secureTick(2,dt))finishObjective(REST_ZONES.dep,'dep',3);
-  else if(obj===3&&!dcTaken&&MAPID==='out'&&secureTick(3,dt)){   // the front yard taken: a save, and the front doors open (interior.js)
-    dcTaken=true;contact=false;bigText('Location secured','clear');chatSecured();saveGame('dco');setStatus();updateObjUI();
-    setTimeout(()=>{if(state==='play'&&obj===3&&MAPID==='out')banner('Gather at the front doors to go in',3500);},OBJ_LIST_T);}
+  checkpointTick();truckTick(dt);towerTick(dt);
   if(panelGo){
     const u=panelGo;
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
@@ -193,7 +196,7 @@ function missionFx(dt){
 // the scan took: the drawbridge comes down (Bryan: the monsters start here, next build)
 function lowerBridge(u){
   if(obj!==4)return;callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
-  bigText('Drawbridge down!','unlock');objCompleted(4);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
+  bigText('Drawbridge down!','unlock');objCompleted(3);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
   setTimeout(()=>{if(state==='play'&&obj===5)farewell(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3000);endAt=performance.now()+1800;}});},OBJ_LIST_T+200);   // the freed men say goodbye first (office.js)
 }
 function setBridge(k){BRIDGE.lower=k;if(BRIDGE.grp)BRIDGE.grp.rotation.x=-.12-(Math.PI/2-.12)*(k<1?k*k*(3-2*k):1);if(!k)bridgeDown=0;}
@@ -202,6 +205,103 @@ function tapPanel(){
   if(!foot.length){banner('Select a soldier, then tap the bio scanner.',2000);return;}
   const u=foot[0],s=openSpot(PANEL.x,PANEL.y+14,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:PANEL.x,y:PANEL.y+14},p=findPath(u.x,u.y,s.x,s.y);
   if(p){u.path=p;u.lastOrder=simT;callout(u,'Checking the controls',C.good);panelGo=u;}else banner('No way to reach the panel from here.',2000);
+}
+
+/* ---------- the gun truck (Bryan: "a turret vehicle slowly driving from left to right, then making a U-turn and parking near
+   the front entrance") ----------
+   It waits by the data center until the squad is across the canal (or the bridge is theirs), then drives the road east, turns
+   and comes back to park by the front, its gun on the killing field. Its eyes look where it's going (or where the gun points
+   once parked); if it spots the squad it stops where it is and fights. Armoured: bullets spark off it, only blasts hurt it
+   (the RPG, grenades): two rockets or three grenades. */
+const GTRUCK={speed:22,hp:240,route:[{x:310,y:-140},{x:920,y:-140},{x:952,y:-166},{x:920,y:-192},{x:600,y:-192},{x:572,y:-346}],park:-1.9};
+function makeTruck(id){
+  const r=GTRUCK.route,u=mk('E','E',id,'Gun truck',r[0].x,r[0].y,0);
+  Object.assign(u,{veh:true,gunner:true,post:true,hp:GTRUCK.hp,jumpy:false,eye:{r:360,cone:1.6},drive:{i:0,go:false,parked:false},aimA:0});
+  const g=new T.Group(),olive=new T.MeshStandardMaterial({color:0x3f4632,roughness:.7,metalness:.25}),dark=new T.MeshStandardMaterial({color:0x1d2022,roughness:.6,metalness:.4});
+  const B=(w,h,d,m,x,y,z,p=g)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;};
+  B(34,9,17,olive,0,8,0);B(11,7,15,olive,12,15.5,0);B(1,4,13,new T.MeshStandardMaterial({color:0x88b6c8,roughness:.2,metalness:.4,emissive:0x0a1418}),17.6,16,0);   // hull, cab, windscreen
+  for(const x of[-11,0,11])for(const z of[-8.6,8.6]){const w=new T.Mesh(new T.CylinderGeometry(3.6,3.6,2.6,14),dark);w.rotation.x=Math.PI/2;w.position.set(x,3.6,z);w.castShadow=true;g.add(w);}
+  const tur=new T.Group();tur.position.set(-4,13,0);g.add(tur);B(8,3,8,olive,0,1.5,0,tur);B(3,3.4,6,dark,1,4.5,0,tur);
+  const bar=new T.Mesh(new T.CylinderGeometry(.55,.55,15,8),dark);bar.rotation.z=Math.PI/2;bar.position.set(9,4.6,0);tur.add(bar);
+  const hl=new T.MeshBasicMaterial({color:0xfff2c8,toneMapped:false});for(const z of[-5,5])B(.6,1.6,2.4,hl,17.3,10,z);   // headlights (no real light: phones)
+  const ring=new T.Mesh(new T.RingGeometry(20,22.5,32),new T.MeshBasicMaterial({color:0xff4a3a,transparent:true,opacity:.85,side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.4;g.add(ring);
+  scene.add(g);u.m={g,ring,tur,olive,pose:g};return u;
+}
+function truckPose(u){   // the turret follows its aim; a wreck goes black
+  const m=u.m;if(u.dead){if(!m.dead){m.dead=true;m.olive.color.setHex(0x161716);m.tur.rotation.z=.25;}m.ring.visible=false;return;}
+  let da=u.aimA-u.ang;m.tur.rotation.y=-Math.atan2(Math.sin(da),Math.cos(da));m.ring.visible=true;
+}
+function truckTick(dt){
+  const u=enemies.find(e=>e.veh&&!e.dead);if(!u||MAPID!=='out')return;const D=u.drive;u.sup=0;
+  if(u.alerted){if(u.path.length)u.path=[];return;}   // it's seen them: it stops and fights where it is
+  if(!D.go){if(finished[1]||players.some(p=>alive(p)&&!p.offMap&&p.y<CANAL.y0-12))D.go=true;else return;}
+  if(u.path.length)return;
+  if(D.i<GTRUCK.route.length-1){D.i++;const q=GTRUCK.route[D.i];u.path=[{x:q.x,y:q.y}];}
+  else if(!D.parked){D.parked=true;u.ang=GTRUCK.park;u.aimA=GTRUCK.park;}   // parked by the front, its gun on the field
+  if(!D.parked)u.aimA=u.ang;
+}
+// knocked out: a blast, a burning wreck (no body to find)
+function truckWreck(u,src){
+  u.dead=true;u.path=[];booms.push({x:u.x,y:u.y,t:0,size:1.4});shake(clamp(1-hyp(u.x-camT.x,u.y-camT.z)/700,0,1));paintDecal({k:'scorch',x:u.x,y:u.y,r:Math.random()});
+  callout(u,'Truck down',C.good);if(src&&src.side==='P'){creditKill(src);if(typeof gen==='function')chat('kill',8,gen(src,'tkdone'));}
+}
+
+/* ---------- the watchtower (Bryan: a sniper up it; when he's dropped his rifle floats over him, and a soldier can climb up,
+   take it and use it from there) ----------
+   Tap the tower with soldiers selected: the nearest walks to the ladder and climbs (1.6 s). Up there he's in half cover behind
+   the rails, sees a long way with the rifle, and climbs down first if you send him anywhere. One man at a time. */
+const CLIMB_T=1.6;
+let pickups=[];
+function towerSniper(id){
+  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(100-TOWER.y,476-TOWER.x)});return u;
+}
+const towerMan=()=>units.find(u=>u.onTower&&!u.dead&&!u.downed)||null;
+function enemyDown(e){   // from damage() and silentKill(): the sniper's rifle stays up the tower
+  if(e.weapon!=='sniper'||!e.onTower)return;
+  const g=new T.Group(),m=new T.MeshStandardMaterial({color:0x1d2124,roughness:.5,metalness:.5,emissive:0x2a4a2a});
+  const parts=[[22,1.6,1.6,0,0],[7,2.6,2.2,-6,-.4],[9,1.6,1.4,3,1.8]];for(const[w,h,d,x,y]of parts){const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,0);g.add(o);}
+  g.position.set(TOWER.x,TOWER.elev+10,TOWER.y);scene.add(g);pickups.push({kind:'sniper',x:TOWER.x,y:TOWER.y,tower:true,mesh:g});
+  setTimeout(()=>{if(state==='play'&&typeof tutLine==='function')tutLine('sniperdown',tutBy(e.x,e.y));},1200);   // "Sniper's down. That rifle's ours if we want it." (chatter.js)
+}
+function orderClimb(list){
+  if(enemies.some(e=>e.onTower&&!beaten(e))){banner('The sniper is still up there.',1800);return false;}
+  if(towerMan()){banner(`${towerMan().name} is already up the tower.`,1600);return false;}
+  const L=TOWER.ladder,u=list.filter(p=>alive(p)&&!p.carry).sort((a,b)=>hyp(a.x-L.x,a.y-L.y)-hyp(b.x-L.x,b.y-L.y))[0];if(!u)return false;
+  const path=hyp(u.x-L.x,u.y-L.y)<6?[]:findPath(u.x,u.y,L.x,L.y);if(!path){banner('No way to the ladder from here.',1600);return false;}
+  Object.assign(u,{path,lastOrder:simT,watch:null,supT:null,focus:null,climbGo:{t0:simT}});callout(u,'To the tower',C.good);return true;
+}
+function towerTick(dt){
+  for(const u of players){
+    if(u.climb){   // on the ladder
+      const c=u.climb;c.t+=dt;const k=clamp(c.t/CLIMB_T,0,1),L=TOWER.ladder,top={x:TOWER.x,y:TOWER.y-4};
+      if(!alive(u)){u.climb=null;u.elev=0;u.onTower=false;u.x=L.x;u.y=L.y;continue;}
+      const f=c.up?k:1-k;u.x=L.x+(top.x-L.x)*f;u.y=L.y+(top.y-L.y)*f;u.elev=TOWER.elev*f;
+      if(k<1)continue;u.climb=null;
+      if(c.up){u.onTower=true;callout(u,'Up the tower',C.good);
+        const pk=pickups.find(q=>q.tower&&q.kind!==u.weapon);
+        if(pk){u.weapon=pk.kind;pickups=pickups.filter(q=>q!==pk);if(pk.mesh&&pk.mesh.parent)pk.mesh.parent.remove(pk.mesh);callout(u,'Sniper rifle',C.good);buildCards();hud();
+          if(typeof gen==='function')chat('gotrifle',20,gen(u,'gotrifle'));}}
+      else{const p=c.then&&findPath(u.x,u.y,c.then.x,c.then.y);u.path=p||[];}
+      continue;
+    }
+    if(u.onTower){
+      if(u.downed||u.dead){u.onTower=false;u.elev=0;u.x=TOWER.ladder.x;u.y=TOWER.ladder.y;continue;}   // he goes down with the ladder (no reviving him up there)
+      if(u.path.length){const dst=u.path[u.path.length-1];u.path=[];u.onTower=false;u.climb={t:0,up:false,then:{x:dst.x,y:dst.y}};callout(u,'Climbing down',C.good);}   // sent somewhere: down the ladder first
+      continue;
+    }
+    const g=u.climbGo;if(!g)continue;
+    if(!alive(u)||u.lastOrder>g.t0+.01||towerMan()){u.climbGo=null;continue;}
+    if(u.path.length)continue;u.climbGo=null;
+    if(hyp(u.x-TOWER.ladder.x,u.y-TOWER.ladder.y)<10){u.climb={t:0,up:true};u.ang=-Math.PI/2;}
+  }
+}
+// CLIMB at the ladder once the tower's free and a soldier's near; the sniper's rifle floating over the platform
+function drawTower(now){
+  for(const p of pickups)if(p.mesh){p.mesh.rotation.y=now*1.6;p.mesh.position.y=TOWER.elev+10+Math.sin(now*2.2)*1.4;
+    toSBack=false;const[lx,ly]=toS(p.x,p.y,TOWER.elev+20);if(!toSBack&&players.some(q=>alive(q)&&hyp(q.x-p.x,q.y-p.y)<420))label('SNIPER RIFLE',lx,ly,'#9fe8a0',9,700);}
+  if(towerMan()||enemies.some(e=>e.onTower&&!beaten(e))||!players.some(p=>alive(p)&&hyp(p.x-TOWER.x,p.y-TOWER.y)<300))return;
+  const L=TOWER.ladder,k=(Math.sin(now*3)+1)/2;gPath(L.x,L.y,9);ox.strokeStyle=`rgba(127,224,138,${(.5+k*.4).toFixed(2)})`;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);
+  toSBack=false;const[lx,ly]=toS(L.x,L.y,8);if(!toSBack)label('CLIMB',lx,ly+14,C.good,9,700);
 }
 
 /* ---------- demolition charges ---------- */
@@ -259,7 +359,7 @@ function rpgThink(u){
   if(!cands.length){u.cool=.5;return;}
   let t=cands.find(p=>p.inVeh&&p.inVeh===jv)||cands.reduce((a,b)=>hyp(a.x-u.x,a.y-u.y)<hyp(b.x-u.x,b.y-u.y)?a:b);
   const tx=t.inVeh?t.inVeh.x:t.x,ty=t.inVeh?t.inVeh.y:t.y;
-  u.aimAt={x:tx,y:ty,until:simT+RPG.aim};u.ang=Math.atan2(ty-u.y,tx-u.x);u.aimT=simT+RPG.aim;
+  u.aimAt={x:tx,y:ty,until:simT+RPG.aim};u.ang=Math.atan2(ty-u.y,tx-u.x);u.aimT=simT+RPG.aim;u.revealT=simT+RPG.aim+3;
   if(u.vis)callout(u,'RPG!',C.bad);banner('RPG! Get moving!',1600);say(t.inVeh?crewOf(t.inVeh)[0]:t,'rpg');
 }
 function rocketTick(dt){
@@ -318,7 +418,7 @@ function shootTank(u){
 
 
 /* ---------- the objective tracker (top left; tap to see the whole list) ---------- */
-const OBJ_LIST=['Take the warehouse','Take the bridge','Take the container yard','Detain the scientists and lower the drawbridge','Take the Headquarters'];
+const OBJ_LIST=['Get into the data center','Detain the scientists and bring them out','Lower the drawbridge with a scientist','Take the Headquarters'];
 const OBJ_LIST_T=3400;   // how long the list stays open with the newly crossed-off objective (ms); the next messages wait for it
 let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
 function objCompleted(n){
@@ -327,34 +427,22 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  const n=MAPID==='in'?detained().length:0,label=objDone===3?(sciOut?'Take a scientist to the bio scanner':MAPID==='in'?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):dcTaken?'Go into the data center':'Take the data center'):OBJ_LIST[Math.min(objDone+1,5)-1];
-  const num=Math.min(objDone+1,5);
-  el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(num===5?' (coming next)':locNote());
+  const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
+  const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':'Take the Headquarters (coming next)';
+  el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
 }
 
 /* ---------- drawn on the overlay ---------- */
-// the area to take, marked on the ground once its defenders are down (Bryan: new players wouldn't know to go in): a pulsing
-// dashed green outline with MOVE IN while nobody's in it; solid and filling up, with a bar, while the quiet spell runs
-function drawSecure(now){
-  const st=secure.state,L=LOCS[obj];if(!st||!L||state!=='play')return;
-  toSBack=false;const z=L.zone,c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4)),pulse=(Math.sin(now*4.5)+1)/2,k=clamp(secure.t/QUIET_T,0,1);
-  if(toSBack)return;   // a corner behind the camera: skip rather than paint the screen green
-  ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
-  if(st==='move'){
-    ox.fillStyle=`rgba(95,224,142,${(.05+pulse*.09).toFixed(3)})`;ox.fill();
-    ox.setLineDash([12,8]);ox.lineDashOffset=-now*16;ox.strokeStyle=`rgba(95,224,142,${(.55+pulse*.45).toFixed(2)})`;ox.lineWidth=2.6;ox.stroke();ox.setLineDash([]);
-  }else{ox.fillStyle=`rgba(95,224,142,${(.07+k*.17).toFixed(3)})`;ox.fill();ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.8;ox.stroke();}
-  const[lx,ly]=toS((z.x0+z.x1)/2,(z.y0+z.y1)/2,.4);
-  label(st==='move'?'MOVE IN':'SECURING',lx,ly,'#5fe08e',13,700);
-  if(st==='hold')bar(lx-26,ly+11,52,k,'#5fe08e');
-}
-// the last few defenders of the location you're taking are marked (Bryan couldn't find the depot's): once at least half the
-// group is down and 3 or fewer are left (or the depot's tanks are gone), a red ring where each one is, seen or not, and an arrow at the screen's edge for any off it
+// the last few of the area the squad is fighting for (Bryan couldn't find them): once at least half its men are down and 3 or
+// fewer are left, each gets a pulsing ring, seen or not, and an arrow with the distance at the screen's edge when he's off it
 function drawLastFoes(now){
-  const L=LOCS[obj];if(!L||objDone>obj||state!=='play'||secure.state)return;
-  const all=obj===0?enemies:groups[obj]||[],foes=all.filter(e=>!beaten(e));   // only once at least half the group is down and 3 or fewer are left (the warehouse has only 4: they were marked from the start)
+  if(state!=='play')return;
+  const ups=players.filter(p=>alive(p)&&!p.offMap);if(!ups.length)return;
+  let all=null,bd=1e9;
+  for(const n of[0,1,2,3]){if(finished[n]||!groups[n])continue;const z=AREAS[n].zone,cx=(z.x0+z.x1)/2,cy=(z.y0+z.y1)/2,d=Math.min(...ups.map(p=>hyp(p.x-cx,p.y-cy)));if(d<bd&&d<520){bd=d;all=groups[n];}}
+  if(!all)return;const foes=all.filter(e=>!beaten(e));
   if(!foes.length||!(foes.length<=3&&foes.length*2<=all.length))return;
   const pulse=(Math.sin(now*5)+1)/2,[mx,my]=[cw/2,ch/2];
   for(const e of foes){
@@ -374,7 +462,8 @@ function drawLastFoes(now){
   }
 }
 function drawMission(rdt,now){
-  drawSecure(now);if(MAPID==='out')drawLastFoes(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
+  drawGunMark(now);
+  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};

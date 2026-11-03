@@ -1,19 +1,18 @@
 "use strict";
 /* Unit cards floating over the bottom of the map for the selected team (all four when both teams are selected),
-   and the team tabs' health pips. Each card: portrait, name, status, a heart-rate monitor and equipment.
-   The monitor is green when healthy, yellow when hurt, orange when badly hurt, red when downed and a grey flatline
-   when dead; it beats faster under fire, when moving fast or hurt, and goes erratic when downed.
+   and the team tabs' health pips. Each card: portrait, name, status, his health (0-100, a bar and the number: Bryan
+   dropped the heart monitor for it), his weapon and his gear (big buttons).
    Tapping a card selects just that soldier (the group's cards stay up), tapping it again goes back to selecting the whole group on show;
    tapping his grenade readies a throw. */
-const ECG_SPEED=60;   // how fast the trace sweeps across, px per second
 const C4_ON=false;   // Bryan: no demolition charges in this level (the code stays for later); the smoke grenade takes its slot
 const SMOKE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.2" y="8" width="5.6" height="7" rx="1"/><circle cx="4.6" cy="5.4" r="2.3"/><circle cx="8.3" cy="3.6" r="2.7"/><circle cx="11.6" cy="5.6" r="2.1"/></svg>';
 const SILENCER_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.4" y="5.6" width="10.2" height="4.8" rx="1.7"/><rect x="11.2" y="6.8" width="3.4" height="2.4" rx=".5"/><path d="M4.2 5.6v4.8M7 5.6v4.8" stroke="#10151a" stroke-width=".9"/></svg>';
+const RPG_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="6.6" width="9.6" height="2.8" rx=".6"/><path d="M10.4 5.2 14.8 8l-4.4 2.8z"/><rect x="4" y="9.2" width="1.6" height="3" rx=".4"/><rect x="6.6" y="9.2" width="1.4" height="2.4" rx=".4"/></svg>';
 const MEDKIT_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="4.6" width="12" height="9" rx="1.6"/><rect x="5.7" y="2.5" width="4.6" height="2.6" rx=".8" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 6.7v4.8M5.6 9.1h4.8" stroke="#10151a" stroke-width="1.9"/></svg>';
 // the special item each soldier carries beside his grenade (Bryan); swapped by tapping it in a supply box. n: how many he gets
 // (the silencer's count is how many quiet shots or bursts it has left before it's worn out). C4 and others can join later
 const SPECIALS={smoke:{label:'Smoke',a:'smoke',svg:SMOKE_SVG,col:'#cfd6dc',n:1},medkit:{label:'Medic kit',a:'a medic kit',svg:MEDKIT_SVG,col:'#ff8a7e',n:1},
-  silencer:{label:'Silencer',a:'a silencer',svg:SILENCER_SVG,col:'#a9c4d6',n:6}},SPEC_ORDER=['smoke','medkit','silencer'];
+  silencer:{label:'Silencer',a:'a silencer',svg:SILENCER_SVG,col:'#a9c4d6',n:6},rpg:{label:'RPG',a:'an RPG',svg:RPG_SVG,col:'#ffb36b',n:2}},SPEC_ORDER=['smoke','medkit','silencer','rpg'];
 const specFull=u=>(SPECIALS[u.spec]||{}).n||1;
 const fmtT=s=>{const t=Math.max(0,Math.ceil(s));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;};
 const inSupply=u=>{const z=alive(u)&&zoneAt(u.x,u.y);return !!(z&&z.k==='sup');};
@@ -21,15 +20,10 @@ const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy
 // weapon silhouettes for the cards (our own drawings): an assault rifle with a curved magazine, a pump shotgun
 const GUN_SVG={
   rifle:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.2 8.5 5H11v5H8.5L1 12.2z"/><path d="M11 4h19v5.2H11z"/><path d="M13 2.4h7.5v1.6H13z"/><path d="M15.5 9.2h3.4l-1 4.8h-3.3z"/><path d="M21 9.2h4.2l1.4 4.6-3.2 1.2z"/><path d="M30 4.6h8.5v3.6H30z"/><path d="M38.5 5.6H47v1.3h-8.5z"/><path d="M34.6 2.8h1.2v1.8h-1.2z"/></svg>',
+  hmg:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6 7.5 4.8H10v5H7.5L1 11.6z"/><path d="M10 3.6h16v5.6H10z"/><path d="M12 1.8h9v1.8h-9z"/><path d="M14 9.2h7v3.6h-7z"/><path d="M22 9.2h3l.8 3.8-2.6.8z"/><path d="M26 4.4h6v3.8h-6z"/><path d="M32 5.4h15v1.6H32z"/><path d="M36.5 7l-2.4 7h1.2l2.6-6.4zM38 7l2.6 6.8h1.2L39.2 7z"/></svg>',
+  sniper:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 7 9 5.6h3v4.6H9L1 12.4z"/><path d="M12 6h15v3.6H12z"/><path d="M14 2.2h12v2.6H14z"/><path d="M13 2.8h2v1.4h-2zM25 2.8h2.4v1.4H25z"/><path d="M18.5 4.8h2v1.2h-2z"/><path d="M16 9.6h3l-.6 3.4h-2.8z"/><path d="M27 6.8h20v1.2H27z"/><path d="M22 9.6h2.6l1 2.6-2.2.6z"/></svg>',
   shotgun:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.4 10 5h1v4.4h-1L1 12z"/><path d="M11 4.6h9.5v4.8H11z"/><path d="M13.8 9.4h3.2l-1 4.2h-3.1z"/><path d="M20.5 5h26.5v1.5H20.5z"/><path d="M20.5 7h19.5v1.5H20.5z"/><path d="M24 6.3h9.5v3.4H24z"/><path d="M45.6 3.9h1v1.1h-1z"/></svg>'};
 function hpCol(u){return u.dead?'#5b636a':u.downed?'#ff3b2a':u.hp>=70?C.good:u.hp>=35?C.warn:'#ff8a3d';}
-function bpmOf(u){
-  if(u.dead)return 0;if(u.downed)return 150;
-  return clamp(66+u.sup*55+(100-u.hp)*0.45+(u.path.length?(u.gait==='run'?24:8):0)+(contact?10:0),60,175);
-}
-// one heartbeat, phase 0..1: P wave, QRS spike, T wave
-function ecgWave(p){const g=(c,w,a)=>a*Math.exp(-(((p-c)/w)**2));return g(.12,.035,.12)+g(.27,.009,-.14)+g(.3,.011,1)+g(.33,.011,-.32)+g(.56,.05,.24);}
-
 function shade(hex,k){const n=parseInt(hex.slice(1),16),f=v=>clamp(Math.round(v*(1+k)),0,255);return`rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`;}
 // a small procedural portrait: helmeted head and shoulders, skin tone and details varied per soldier
 function drawFace(c,u){
@@ -59,18 +53,17 @@ function buildCards(){
     const el=document.createElement('div');el.className='ucard';el.style.setProperty('--tc',teamCol(u));
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
-      `<canvas class="uc-ecg"></canvas>`+
+      `<div class="uc-hpb"><i></i><span class="uc-hp">100</span></div>`+
       `<div class="uc-gun" title="${u.weapon?WEAPON[u.weapon].label:'Unarmed'}">${u.weapon?`${GUN_SVG[u.weapon]}<b>${WEAPON[u.weapon].label}</b>`:'<b class="unarmed">Unarmed</b>'}</div>`+   // (a freed prisoner until he picks one up: office.js)
-      `<div class="uc-bot"><span class="uc-hp">100</span>${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
+      `<div class="uc-bot">${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
       preview=null;
       if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.charges&&!u.inVeh)mode=mode==='charge'?null:'charge';else{mode=null;banner(`${u.name} has no charge left. Restock at a supply box.`,1800);}}   // demolition charge
-      else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it, or in a supply box swap it for the other kind
+      else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it (Bryan: ammo drops refill it, no swapping)
         select([u]);const sp=SPECIALS[u.spec];
-        if(inSupply(u)){u.spec=SPEC_ORDER[(SPEC_ORDER.indexOf(u.spec)+1)%SPEC_ORDER.length];u.specN=specFull(u);u.silent=null;mode=null;callout(u,`Took ${SPECIALS[u.spec].a}`,C.good);}
-        else if(!u.specN||u.inVeh){mode=null;banner(`${u.name} has no ${sp.label.toLowerCase()} left. Restock at a supply box.`,1800);}
-        else{const m=u.spec==='medkit'?'medkit':u.spec==='silencer'?'silent':'smoke';mode=mode===m?null:m;}   // (the silencer: tap a hostile who hasn't seen him: combat.js)
+        if(!u.specN||u.inVeh){mode=null;banner(`${u.name} has no ${sp.label==='RPG'?'rockets':sp.label.toLowerCase()} left. Refill at an ammo drop.`,1800);}
+        else{const m={medkit:'medkit',silencer:'silent',rpg:'rpg'}[u.spec]||'smoke';mode=mode===m?null:m;}   // (the silencer: tap a hostile who hasn't seen him; the RPG: tap where: combat.js)
       }
       else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
       else{mode=null;if(sel.length===1&&sel[0]===u)select(cardGroup.filter(alive));else select([u]);}   // tap him again: back to the whole group on show
@@ -79,7 +72,7 @@ function buildCards(){
     el.addEventListener('click',act);
     el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act(null);}});
     box.appendChild(el);
-    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),ecg:el.querySelector('.uc-ecg'),buf:null,head:0,acc:0,phase:Math.random(),amp:1};
+    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),hpb:el.querySelector('.uc-hpb')};
     drawFace(el.querySelector('.uc-face'),u);
   }
 }
@@ -89,6 +82,11 @@ function statusText(u){
   if(u.downed)return[u.carriedBy?'Carried':u.critical?(u.noBleed?'Critical':`Critical ${fmtT(u.crit)}`):u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
   if(simT<(u.stunT||0))return['Knocked down','pin'];
   if(u.carry)return['Carrying',''];
+  if(u.onGun)return['On the gun',''];
+  if(u.climb)return['Climbing',''];
+  if(u.onTower)return[u.weapon==='sniper'?'Sniping':'On the tower',''];
+  if(u.climbGo)return['To the tower',''];
+  if(u.manGo)return['To the gun',''];
   if(u.breaching||simT<(u.breachT||0))return['Breaching',''];
   if(breach&&breach.team.includes(u))return['Stacking up',''];
   if(u.watch&&!u.path.length)return['Watching',''];
@@ -116,14 +114,15 @@ function updateCards(){
     c.el.hidden=!shown.includes(u);
     c.el.classList.toggle('sel',sel.includes(u));c.el.classList.toggle('downed',u.downed);c.el.classList.toggle('kia',u.dead);
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
-    c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);c.hp.style.color=hpCol(u);
+    c.hp.textContent=u.dead?'KIA':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);
+    c.hpb.style.setProperty('--hp',(u.dead?0:clamp(u.hp,0,100))+'%');c.hpb.style.setProperty('--hc',hpCol(u));
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
     c.spec.hidden=!u.spec;c.nade.hidden=!!u.joined&&!u.grenade;   // a freed prisoner has no gear
-    if(u.spec){const sp=SPECIALS[u.spec]||SPECIALS.smoke,sw=inSupply(u);   // his special item, left of the frag (in a supply box: tap to swap)
+    if(u.spec){const sp=SPECIALS[u.spec]||SPECIALS.smoke,sw=false;   // his special item, left of the frag
      if(c.spec.dataset.k!==u.spec){c.spec.dataset.k=u.spec;c.spec.innerHTML=`${sp.svg}<i></i>`;c.spec.style.setProperty('--ic',sp.col);c.spec.setAttribute('aria-label',sp.label);}
      c.spec.querySelector('i').textContent=u.specN||0;c.spec.disabled=!alive(u)||(!u.specN&&!sw)||!!u.inVeh;
-     c.spec.classList.toggle('on',(mode==='smoke'||mode==='medkit'||mode==='silent')&&sel[0]===u);c.spec.classList.toggle('swap',sw);}
+     c.spec.classList.toggle('on',(mode==='smoke'||mode==='medkit'||mode==='silent'||mode==='rpg')&&sel[0]===u);}
     if(c.rpg){c.rpg.querySelector('i').textContent=u.charges||0;c.rpg.disabled=!alive(u)||!u.charges||!!u.inVeh;c.rpg.classList.toggle('on',mode==='charge'&&sel[0]===u);}   // the demolition charge (off in this level)
   }
   $('#stage').style.setProperty('--cards-h',box.hidden?'0px':box.offsetHeight+6+'px');
@@ -135,40 +134,5 @@ function updateCards(){
     team.forEach((u,k)=>{pips.children[k].style.background=hpCol(u);});
     const all=live.length>0&&live.every(p=>sel.includes(p)),some=live.some(p=>sel.includes(p));
     tab.classList.toggle('sel',all&&(t?true:act.length===live.length));tab.classList.toggle('part',!all&&some);
-  }
-}
-// every frame: sweep the heart monitors of the visible cards
-function drawCards(rdt){
-  for(const u of players){
-    const c=u.card;if(!c||c.el.hidden||c.el.parentNode.hidden)continue;
-    const cv2=c.ecg,w=Math.round(cv2.clientWidth),h=Math.round(cv2.clientHeight);if(!w||!h)continue;
-    if(cv2.width!==w*dpr||cv2.height!==h*dpr||!c.buf||c.buf.length!==w){cv2.width=w*dpr;cv2.height=h*dpr;c.buf=new Float32Array(w);c.head=0;}
-    const bpm=bpmOf(u);
-    c.acc+=ECG_SPEED*rdt;
-    while(c.acc>=1){
-      c.acc-=1;
-      let v=0;
-      if(!u.dead){
-        const prev=c.phase;c.phase+=bpm/60/ECG_SPEED*(u.downed?0.75+Math.random()*0.6:1);
-        if(Math.floor(c.phase)!==Math.floor(prev))c.amp=u.downed?0.45+Math.random()*0.5:1;   // downed: uneven beats
-        v=ecgWave(c.phase%1)*c.amp+(u.downed?(Math.random()-.5)*.08:0);
-      }else v=(Math.random()-.5)*.015;
-      c.buf[c.head]=v;c.head=(c.head+1)%w;
-    }
-    const g=cv2.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
-    g.strokeStyle='rgba(120,160,170,.08)';g.lineWidth=1;g.beginPath();
-    for(let x=10;x<w;x+=10){g.moveTo(x+.5,0);g.lineTo(x+.5,h);}for(let y=7.5;y<h;y+=8){g.moveTo(0,y);g.lineTo(w,y);}g.stroke();
-    const col=hpCol(u),base=h*.68,amp=h*.56,gap=10;
-    g.strokeStyle=col;g.lineWidth=1.6;g.lineJoin='round';g.shadowColor=col;g.shadowBlur=u.dead?0:5;
-    // the trace sweeps left to right, overwriting itself, with a short blank gap just ahead of the write head
-    g.beginPath();let pen=false;
-    for(let x=0;x<w;x++){
-      if((x-c.head+w)%w<gap){pen=false;continue;}
-      const y=base-c.buf[x]*amp;if(!pen){g.moveTo(x,y);pen=true;}else g.lineTo(x,y);
-    }
-    g.stroke();g.shadowBlur=0;
-    if(!u.dead){const hx=(c.head-1+w)%w;g.fillStyle='#fff';g.beginPath();g.arc(hx,base-c.buf[hx]*amp,1.6,0,TAU);g.fill();}
-    g.font=`700 9px ${HUDFONT}`;g.textAlign='right';g.textBaseline='top';g.fillStyle=col;
-    g.fillText(u.dead?'FLAT':`${Math.round(bpm)}`,w-3,2);
   }
 }

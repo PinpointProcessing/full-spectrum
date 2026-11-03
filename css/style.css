@@ -81,24 +81,27 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .uc-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uc-st{font-family:var(--font-hud);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uc-st.pin{color:var(--warn)}.uc-st.down{color:var(--bad)}
-.uc-ecg{width:100%;height:30px;display:block;border-radius:3px;background:#05080a}
-.uc-bot{display:flex;align-items:center;gap:6px;min-width:0}
-.uc-hp{font-family:var(--font-hud);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;margin-right:auto}
+.uc-hpb{position:relative;height:18px;border-radius:3px;background:#05080a;overflow:hidden;display:flex;align-items:center;justify-content:flex-end;padding:0 6px}
+.uc-hpb i{position:absolute;left:0;top:0;bottom:0;width:var(--hp,100%);background:color-mix(in srgb,var(--hc,#7fe08a) 34%,transparent);border-right:2px solid var(--hc,#7fe08a);transition:width .3s ease-out}
+.ucard.downed .uc-hpb i{animation:hpPulse 1s ease-in-out infinite}
+@keyframes hpPulse{50%{opacity:.45}}
+.uc-bot{display:flex;align-items:stretch;gap:6px;min-width:0}
+.uc-hp{position:relative;font-family:var(--font-hud);font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--hc,#7fe08a);text-shadow:0 1px 2px #000}
 /* the weapon: its picture and name on a line under the heart monitor (four across: the picture only) */
 .uc-gun{display:flex;align-items:center;gap:6px;min-width:0;height:14px;font-family:var(--font-hud);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden}
 .uc-gun svg{width:40px;height:13px;flex:none;fill:#c9d2d8}
 .uc-gun b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
 #cards.narrow .uc-gun b{display:none}
-#cards.compact{gap:4px}#cards.compact .ucard{padding:3px 4px;gap:2px}#cards.compact .uc-ecg,#cards.compact .uc-gun{display:none}#cards.compact .uc-face{width:22px;height:22px}#cards.compact .uc-name{font-size:10.5px}#cards.compact .uc-id b{font-size:9px}   /* more than four cards (freed prisoners joined): two rows, no monitor */
+#cards.compact{gap:4px}#cards.compact .ucard{padding:3px 4px;gap:2px}#cards.compact .uc-gun{display:none}#cards.compact .uc-hpb{height:13px}#cards.compact .uc-hp{font-size:11px}#cards.compact .uc-nade,#cards.compact .uc-spec{min-height:24px}#cards.compact .uc-face{width:22px;height:22px}#cards.compact .uc-name{font-size:10.5px}#cards.compact .uc-id b{font-size:9px}   /* more than four cards (freed prisoners joined): two rows, no monitor */
 .uc-gun b.unarmed{color:var(--warn)}
 .uc-hp::after{content:' HP'}.uc-hp.kia::after{content:''}
 #cards.narrow .uc-hp::after{content:''}
-#cards.narrow .uc-bot{gap:3px}#cards.narrow .uc-hp{font-size:10px}#cards.narrow .uc-nade,#cards.narrow .uc-spec,#cards.narrow .uc-rpg{padding:0 2px;gap:1px;font-size:9px;letter-spacing:0;min-height:22px}#cards.narrow .uc-nade svg,#cards.narrow .uc-spec svg{width:11px;height:11px}#cards.narrow .uc-rpg i{margin-left:2px}
-.uc-nade{min-height:24px;padding:0 6px;display:inline-flex;align-items:center;gap:3px;font-size:11px}
-.uc-nade svg{width:13px;height:13px;fill:currentColor}
+#cards.narrow .uc-bot{gap:4px}#cards.narrow .uc-hp{font-size:13px}#cards.narrow .uc-nade,#cards.narrow .uc-spec,#cards.narrow .uc-rpg{padding:0 2px;gap:3px;font-size:12px;letter-spacing:0;min-height:30px}#cards.narrow .uc-nade svg,#cards.narrow .uc-spec svg{width:15px;height:15px}#cards.narrow .uc-rpg i{margin-left:2px}
+.uc-nade{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:13px}
+.uc-nade svg{width:17px;height:17px;fill:currentColor}
 .uc-nade.on{border-color:var(--warn);color:var(--warn)}
-.uc-spec{min-height:24px;padding:0 6px;display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--ic,#cfd6dc)}
-.uc-spec svg{width:13px;height:13px;fill:currentColor}
+.uc-spec{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:13px;color:var(--ic,#cfd6dc)}
+.uc-spec svg{width:17px;height:17px;fill:currentColor}
 .uc-spec i{font-style:normal;color:var(--text)}
 .uc-spec.on{border-color:var(--ic,#cfd6dc);background:rgba(220,226,232,.14)}
 .uc-spec.swap{border-color:var(--warn)}
@@ -205,3 +208,5 @@ button.on{border-color:var(--warn);color:var(--warn)}
 /* our soldier hit: the screen's edge flashes red (feel: weight to the hits) */
 #hitFlash{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 52%,rgba(150,10,4,.55) 82%,rgba(190,16,8,.85) 100%)}
 @media (prefers-reduced-motion: reduce){#hitFlash{display:none}}
+
+#crashNote{margin:10px 0 0;padding:8px 10px;border:1px solid color-mix(in srgb,var(--warn) 55%,transparent);border-radius:6px;background:rgba(255,200,80,.08);color:var(--warn);font-size:13px;line-height:1.4}

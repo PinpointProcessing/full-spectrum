@@ -8,7 +8,9 @@
    carries to nearby rooms on the same floor (alertNear), and contact ends once no alerted hostile on a floor with the squad
    has seen them for a while, so the squad can go quiet again between rooms. Things to use (the computer, the stairs and
    the lift, the cells; office.js has what each one does) share one look and one tap (ACTS). */
-let MAPID='out',curFloor='GF',dcTaken=false,fading=false;
+let MAPID='out',curFloor='GF',fading=false;
+// the front doors (Bryan): open unless the alarm's going (a radio call, reinforcements on the way) or they're out hunting the squad
+function dcLocked(){return MAPID==='out'&&(contact||threatOn()||enemies.some(e=>!e.dead&&!e.surr&&!e.veh&&e.alerted));}
 let IN=null;            // the interior once built: {L,floors,objs,lamps,hq,units,scene,lights,canvas,tex}
 const STASH={};         // the map that isn't in play
 const IN_HEAR_OPEN=260,IN_HEAR_WALL=110,IN_QUIET=8;   // how far gunfire carries inside, in sight and through walls; s unseen before contact ends
@@ -92,7 +94,7 @@ function buildInterior(){
     for(let k=0;k<n;k++){const t=(k+.5)/n;IN.lamps.push({x:w>=h?r.x0+w*t:(r.x0+r.x1)/2,y:w>=h?(r.y0+r.y1)/2:r.y0+h*t,h:32,c:/cell|basement/i.test(nm)?0xffd39a:/lab|science/i.test(nm)?0xe4f0ff:/office|meeting|security/i.test(nm)?0xffe9c8:0xf0f2f4,i:1.5,d:190,ceil:1,floor,flick:hall&&k===0});}
   }
   for(const f of L.floors)for(const o of f.objects)if(o.kind==='steeldoor')IN.lamps.push({x:o.x+o.w/2,y:o.y+o.h/2+(o.w>o.h?18:0),h:20,c:0xff3a22,i:1.3,d:80,floor:f.id});   // a red warning light over a steel door
-  for(const f of L.floors)for(const z of f.zones||[])if(z.kind==='rest-med'||z.kind==='rest-sup')IN.hq.push(hqZone({k:z.kind==='rest-med'?'med':'sup',x:z.x0,y:z.y0,w:z.x1-z.x0,h:z.y1-z.y0}));
+  for(const f of L.floors)for(const z of f.zones||[])if(z.kind==='rest-med'||z.kind==='rest-sup')IN.hq.push(hqZone({k:z.kind==='rest-med'?'med':'sup',x:z.x0,y:z.y0,w:z.x1-z.x0,h:z.y1-z.y0,floor:f.id}));   // (the lobby's medic station and ammo drop: models added with the floors below)
   // the 3D scene: a floor canvas (1 px per unit; decals paint into it too), the furniture, the lights
   const sc=new T.Scene();sc.background=new T.Color(0x030405);sc.fog=new T.FogExp2(0x030405,0.00022);IN.scene=sc;
   const fc=document.createElement('canvas');fc.width=W;fc.height=H-TOP;const g=fc.getContext('2d');g.setTransform(1,0,0,1,0,-TOP);IN.canvas=fc;
@@ -105,6 +107,7 @@ function buildInterior(){
     const geo=new T.PlaneGeometry(b.x1-b.x0,b.y1-b.y0);geo.setAttribute('uv',new T.Float32BufferAttribute([b.x0/W,V(b.y0),b.x1/W,V(b.y0),b.x0/W,V(b.y1),b.x1/W,V(b.y1)],2));
     const gr=new T.Mesh(geo,gmat);gr.rotation.x=-Math.PI/2;gr.position.set((b.x0+b.x1)/2,0,(b.y0+b.y1)/2);grp.add(gr);
   }
+  for(const z of IN.hq)if(IN.groups[z.floor]){const m=stationMesh(z);IN.groups[z.floor].add(m);z.mesh=m;}   // the lobby's medic station and ammo drop
   // matte (Lambert) for walls and furniture: no glare off the faces the lamps and torches hit, and cheaper on phones; metal keeps a sheen
   const M=(c,o={})=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.8,metalness:.1},o)),ML=c=>new T.MeshLambertMaterial({color:c});
   const mat={wall:ML(0x2a2f35),owall:ML(0x202429),cap:ML(0x7a8087),wood:ML(0x5c4a38),light:ML(0x8f897e),metal:M(0x4d5359,{metalness:.5,roughness:.5}),dark:M(0x23272b,{metalness:.4,roughness:.5}),steel:M(0x3a4046,{metalness:.7,roughness:.35}),
@@ -175,9 +178,9 @@ function fadeThen(fn){
   setTimeout(()=>{fn();requestAnimationFrame(()=>{el.classList.remove('on');setTimeout(()=>{el.hidden=true;fading=false;},380);});},380);
 }
 // the squad at the front doors outside, everyone who's up: in they go (the downed stay outside, frozen, until the squad comes back)
-function enterReady(){return MAPID==='out'&&obj===3&&dcTaken&&!sciOut&&state==='play'&&players.some(alive)&&players.filter(alive).every(p=>inZone(p,DC_ENTER));}
-function enterBuilding(){
-  if(fading||!enterReady())return;
+function enterReady(){return MAPID==='out'&&obj===3&&!sciOut&&!dcLocked()&&state==='play'&&players.some(alive)&&players.filter(alive).every(p=>inZone(p,DC_ENTER));}
+function enterBuilding(force){   // (force: a Continue from the checkpoint inside: save.js)
+  if(fading||(!force&&!enterReady()))return;
   fadeThen(()=>{
     if(!IN)buildInterior();
     if(typeof preloadVoices==='function')preloadVoices(VOICE_IN);   // the prisoners' and scientists' voices (voice.js)
@@ -197,8 +200,8 @@ function enterBuilding(){
     going.forEach((p,i)=>{const s=spots[i]||spots[0]||{x:(ez.x0+ez.x1)/2,y:(ez.y0+ez.y1)/2};p.x=s.x;p.y=s.y;p.ang=-Math.PI/2;});
     contact=false;sel=sel.filter(u=>going.includes(u));cardGroup=cardGroup.filter(u=>going.includes(u));
     setFloor('GF',{x:(ez.x0+ez.x1)/2,y:(ez.y0+ez.y1)/2-110});zoom=2.4;clampCam();updateCamera();
-    updateObjUI();setStatus();buildCards();hud();floorChip();
-    banner('Find the scientists on the top floor',3000);
+    objCompleted(1);updateObjUI();setStatus();buildCards();hud();floorChip();
+    banner('Find the scientists on the top floor',3000);saveGame('dci');   // getting in is a checkpoint (Bryan): the lobby's medic station and ammo drop are right here
   });
 }
 // leaving with the scientists: everyone who's up (the freed prisoners too) at the front doors, and at least one detained scientist on
@@ -221,8 +224,8 @@ function exitBuilding(){
     const spots=slotsIn(DC_ENTER,back.length+sci.length);[...back,...sci].forEach((p,i)=>{const s=spots[i]||{x:245,y:-410};Object.assign(p,{x:s.x,y:s.y,path:[],ang:Math.PI/2,peek:null,stairs:null,lift:null});});
     VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();camT={x:245,z:-380};zoom=2.4;yaw=out.cam.yaw;tilt=out.cam.tilt;clampCam();updateCamera();
     contact=false;sel=[];cardGroup=[];floorChip();
-    obj=4;updateObjUI();setStatus();buildCards();hud();saveGame('sci');
-    setTimeout(()=>{if(state==='play'&&obj===4)banner(OBJ_INTRO[4],3500);},1200);
+    obj=4;objCompleted(2);updateObjUI();setStatus();buildCards();hud();saveGame('sci');
+    setTimeout(()=>{if(state==='play'&&obj===4)banner('Take a scientist to the drawbridge\'s bio scanner',3500);},OBJ_LIST_T);
   });
 }
 // back outside at once, without the ceremony (a new game or Continue while inside)
@@ -314,7 +317,7 @@ function drawActs(now){
 }
 // the gather areas: ENTER at the data center's front doors outside, EXIT at the lobby's front doors inside
 function gatherZone(){
-  if(MAPID==='out'&&obj===3&&dcTaken&&!sciOut)return{z:DC_ENTER,ready:enterReady(),go:'ENTER',need:players.filter(alive)};
+  if(MAPID==='out'&&obj===3&&!sciOut)return{z:DC_ENTER,ready:enterReady(),go:'ENTER',need:players.filter(alive),locked:dcLocked()};
   if(MAPID==='in'&&detained().length){const z=zoneOf(IN.floors.GF,'exit');if(z)return{z,ready:exitReady(),go:'LEAVE',need:players.filter(p=>alive(p)&&!p.offMap)};}
   return null;
 }
@@ -325,13 +328,16 @@ function drawGather(now){
   ox.fillStyle=`rgba(95,224,142,${(G.ready?.18:.06+pulse*.07).toFixed(3)})`;ox.fill();
   ox.setLineDash(G.ready?[]:[10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
   const n=G.need.filter(p=>inZone(p,z)).length,[lx,ly]=below((z.x0+z.x1)/2,z.y1,8);
+  if(G.locked){label('LOCKED · THEY\'RE SEARCHING',lx,ly,'#ffb35a',10,700);return;}   // (the dashes still say where)
   if(G.ready)pill(`TAP TO ${G.go}`,lx,ly,C.good);else label(`${G.go} ${n}/${G.need.length}`,lx,ly,'#5fe08e',11,700);
 }
 // a tap: on a ready gather area it goes; on something to use it's used; returns true if the tap was taken
 function interiorTap(wx,wy){
   if(fading)return true;
   const G=gatherZone();
-  if(G&&G.ready&&wx>=G.z.x0-20&&wx<=G.z.x1+20&&wy>=G.z.y0-20&&wy<=G.z.y1+20){if(MAPID==='out')enterBuilding();else exitBuilding();return true;}
+  const onG=G&&wx>=G.z.x0-20&&wx<=G.z.x1+20&&wy>=G.z.y0-20&&wy<=G.z.y1+20;
+  if(onG&&G.locked&&!sel.length){banner('Not while the alarm is going or they\'re searching for you. Lose them first.',2600);if(typeof gen==='function'){const w=tutBy(G.z.x0,G.z.y0);if(w)chat('dclock',12,gen(w,'dclock'));}return true;}
+  if(onG&&G.ready){if(MAPID==='out')enterBuilding();else exitBuilding();return true;}
   const a=actAt(wx,wy);if(a&&!a.pickup){orderUse(a);return true;}
   return false;
 }

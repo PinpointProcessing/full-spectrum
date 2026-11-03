@@ -139,15 +139,15 @@ function callIn(e){
   for(const o of enemies)if(!o.dead&&!o.alerted&&(MAPID!=='in'||o.floor===e.floor))alertOne(o,lk,false);
   startContact(null,false);
   if(typeof sfxSiren==='function')sfxSiren(e.x,e.y);
-  const left=reinfLeft[obj]??REINF_MAX;
-  if(MAPID==='out'&&left>0&&!reinf){reinfLeft[obj]=left-1;reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:e.x,y:e.y},obj};banner('They called it in. Reinforcements are coming.',3000);}
+  const g=e.grp??nearArea(),left=reinfLeft[g]??REINF_MAX;   // (per area: at most REINF_MAX waves each)
+  if(MAPID==='out'&&left>0&&!reinf){reinfLeft[g]=left-1;reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:e.x,y:e.y},obj:g};banner('They called it in. Reinforcements are coming.',3000);}
   else banner('They called it in. Everyone knows you are here.',2600);
   raiseAlert(5,'radio',false);   // a whole stage of the base's alert (layers.js); its own banner above says enough
 }
 const reinfPending=n=>!!reinf&&reinf.obj===n;
 function reinfTick(){
   if(!reinf)return;
-  if(reinf.obj!==obj||MAPID!=='out'||state!=='play'){reinf=null;return;}   // the area changed meanwhile
+  if(MAPID!=='out'||state!=='play'){reinf=null;return;}   // (gone inside meanwhile)
   if(simT<reinf.at)return;
   const f=reinf.from,spots=[];
   const cands=coverPts.filter(c=>{const d=hyp(c.x-f.x,c.y-f.y);return d>60&&d<360&&!postSeen(c.x,c.y)&&!players.some(p=>alive(p)&&hyp(p.x-c.x,p.y-c.y)<200);})
@@ -158,7 +158,7 @@ function reinfTick(){
   for(const s of spots){
     const u=hostile('R'+(++reinfN),s.x,s.y,{ang:Math.atan2(reinf.lk.y-s.y,reinf.lk.x-s.x)});
     alertOne(u,reinf.lk,false);Object.assign(u,{home:{x:s.x,y:s.y},hunt:'push',huntT0:simT,sawT:-99,zone:{x0:s.x-150,x1:s.x+150,y0:s.y-150,y1:s.y+150}});
-    if(groups[obj])groups[obj].push(u);first=first||u;
+    u.grp=reinf.obj;if(groups[reinf.obj])groups[reinf.obj].push(u);first=first||u;
   }
   enemies=units.filter(u=>u.side==='E');
   banner('Enemy reinforcements!',2200);bark(first,'backup',true);chatReinf();
@@ -170,14 +170,15 @@ const BARKS={spot:['There!','Contact!','Over there!'],lost:['Lost him!','Where d
   flank:['Flanking!','Moving round!','Going wide!'],pinned:["I'm pinned!",'Covering fire!'],down:['Man down!','We lost one!'],radio:['Calling it in!','Command, we have contact!'],
   backup:["Backup's here!",'Reinforcements in!'],reload:['Reloading!','Changing belts!'],giveup:['Nothing here.','They are gone.','Back to your posts.'],dog:['Release the dog!','Go get them!'],
   body:['Man down here!','Body! Over here!','We have a body!'],what:['What was that?','Hey... what is that?','Something over there.'],grenade:['Grenade out!','Frag out!','Fire in the hole!'],
-  surrender:['Don\'t shoot!','I give up!','Please, don\'t shoot!']};   // (the last three: layers.js)
+  surrender:['Don\'t shoot!','I give up!','Please, don\'t shoot!'],
+  hit:['Aaagh!','I\'m hit! I\'m hit!','Argh! My leg!'],panic:['They\'re everywhere!','Where is it coming from?!','Fall back! Fall back!']};   // (the last three: layers.js)
 function bark(e,k,force){
-  if(!e||e.dead||e.dog)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;
+  if(!e||e.dead||e.dog||e.veh)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;
   if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-e.x,p.y-e.y)<340))return;   // out of earshot
   if(MAPID==='in'&&offFloor(e))return;
   const L=BARKS[k];if(!L)return;e.barkT=simT+4;barkAllT=simT+1.4;
   const i=Math.floor(Math.random()*L.length);callout(e,L[i],'#ff9a80');
-  if(typeof voiceClip==='function')voiceClip('E'+(1+(hashId(e.id)%3)),`bark_${k}_${i+1}`,{x:e.x,y:e.y,vol:.95});   // his voice (voice.js): one of three
+  if(typeof voiceClip==='function')voiceClip('E'+(1+(hashId(e.id)%3)),`bark_${k}_${i+1}`,{x:e.x,y:e.y,vol:contact?1.25:.95});   // his voice (voice.js): one of three; shouted over the shooting
 }
 
 /* ---------- guard dogs ---------- */

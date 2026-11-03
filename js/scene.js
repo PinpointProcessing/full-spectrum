@@ -146,10 +146,9 @@ function drawGround(){
   // the canal: dark water between concrete banks (a glossy plane over it, see buildWorld)
   for(const c of[g,q]){c.fillStyle=c===g?'#0b1216':'rgb(20,20,20)';c.fillRect(0,CANAL.y0,W,CANAL.y1-CANAL.y0);}
   g.fillStyle='#8a8b86';g.fillRect(0,CANAL.y0-5,W,5);g.fillRect(0,CANAL.y1,W,5);g.fillStyle='rgba(228,182,40,.7)';g.fillRect(0,CANAL.y1+5,W,1.2);g.fillRect(0,CANAL.y0-6,W,1.2);
-  // the container yard (a maze): painted bays, and the run, a lane with worn tyre tracks and hazard stripes at both ends
-  g.strokeStyle='rgba(230,230,230,.08)';g.lineWidth=1;for(let y=-330;y<-50;y+=60)for(let x=110;x<800;x+=120)g.strokeRect(x,y,110,40);
-  g.fillStyle='rgba(0,0,0,.18)';g.fillRect(RUN.x0+8,RUN.y0,10,RUN.y1-RUN.y0);g.fillRect(RUN.x1-18,RUN.y0,10,RUN.y1-RUN.y0);
-  for(const yy of[RUN.y1-6,RUN.y0+30])for(let x=RUN.x0;x<RUN.x1;x+=12){g.fillStyle=(x/12|0)%2?'rgba(228,182,40,.7)':'rgba(20,20,20,.7)';g.fillRect(x,yy,12,5);}
+  // the road across the middle (the gun truck's): a dashed centre line; the maze's floor darker and oil-stained
+  g.fillStyle='rgba(230,220,180,.35)';for(let x=320;x<950;x+=28)g.fillRect(x,-141,14,2);
+  g.fillStyle='rgba(0,0,0,.16)';g.fillRect(MAZE_ZONE.x0,MAZE_ZONE.y0,MAZE_ZONE.x1-MAZE_ZONE.x0,MAZE_ZONE.y1-MAZE_ZONE.y0);
   // the data center: tiled floor inside, a painted apron and hazard stripes in front of the doors
   g.fillStyle='#5e6266';g.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);q.fillStyle='rgb(150,150,150)';q.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);
   g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=1;for(let x=DC.x+10;x<DC.x+DC.w-10;x+=20){g.beginPath();g.moveTo(x+.5,DC.y+10);g.lineTo(x+.5,DC.y+DC.h-10);g.stroke();}
@@ -182,6 +181,52 @@ function paintDecal(d){
 }
 
 const HGT={container:26,wall:24,crate:11,barrel:10,truck:22,pallet:7,barrier:8,rack:20};
+// a checkpoint's station (Bryan: make them look like what they are): a field medic station (a stretcher, white crates with red
+// crosses, a flag on a pole) or an ammo drop (olive ammo crates strapped on a pallet, a parachute heap, an orange strobe)
+let crossTex=null;
+function stationMesh(z){
+  const g=new T.Group();g.position.set(z.x,0,z.y);
+  const B=(w,h,d,m,x,y,zz,ry)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,zz);if(ry)o.rotation.y=ry;o.castShadow=o.receiveShadow=true;g.add(o);return o;};
+  if(z.k==='med'){
+    crossTex=crossTex||canvasTex(32,32,(c,w,h)=>{c.fillStyle='#e8ece8';c.fillRect(0,0,w,h);c.fillStyle='#d4231c';c.fillRect(12,5,8,22);c.fillRect(5,12,22,8);});
+    const white=new T.MeshStandardMaterial({map:crossTex,roughness:.7}),metal=new T.MeshStandardMaterial({color:0x8d9499,roughness:.4,metalness:.6}),canvas=new T.MeshStandardMaterial({color:0x5d6b4a,roughness:.9});
+    B(22,1,8,canvas,-4,5,6);for(const sx of[-1,1])for(const sz of[-1,1])B(.8,5,.8,metal,-4+sx*10,2.5,6+sz*3.5);   // the stretcher
+    B(9,7,7,white,8,3.5,-4);B(8,6,6,white,8.5,10,-4.5,.3);B(10,6,7,white,-9,3,-6,-.2);   // crates
+    B(.6,24,.6,metal,13,12,6);const flag=new T.Mesh(new T.PlaneGeometry(8,6),new T.MeshStandardMaterial({map:crossTex,side:T.DoubleSide,roughness:.8}));flag.position.set(17,21,6);g.add(flag);
+  }else{
+    const wood=new T.MeshStandardMaterial({color:0x9a7650,roughness:.9}),olive=new T.MeshStandardMaterial({color:0x4b5534,roughness:.75,metalness:.1}),strap=new T.MeshStandardMaterial({color:0x22262a,roughness:.6});
+    B(22,2,16,wood,0,1,0);
+    for(const[x,y,zz,ry]of[[-5,5,-3,0],[5.5,5,-3,0],[0,5,4,0],[-1,12,-.5,.15]]){B(10,6,6,olive,x,y,zz,ry);B(10.4,6.2,.8,strap,x,y,zz,ry);}
+    const chute=new T.Mesh(new T.SphereGeometry(7,10,6,0,TAU,0,Math.PI/2),new T.MeshStandardMaterial({color:0xd8d4c4,roughness:.95}));chute.scale.set(1.2,.35,.9);chute.position.set(-15,0,6);g.add(chute);
+    const strobe=new T.Mesh(new T.BoxGeometry(1.6,1.6,1.6),new T.MeshBasicMaterial({color:0xff9a3a,toneMapped:false}));strobe.position.set(6,16,4);g.add(strobe);g.userData.strobe=strobe;
+  }
+  return g;
+}
+// the pillbox: a slab, waist-high concrete walls, window glass above them in thin frames, a roof on corner posts, the back open,
+// and the machine gun on a post in the front window (PBOX.mesh turns to follow whoever's on it: aimTurret in waves.js)
+function buildPillbox(){
+  const{x0,y0,x1,y1,gun}=PBOX,w=x1-x0,d=y1-y0,cx=(x0+x1)/2,cz=(y0+y1)/2;
+  const conc=new T.MeshStandardMaterial({color:0x8a8c86,roughness:.95}),frame=new T.MeshStandardMaterial({color:0x2c3033,roughness:.6,metalness:.5});
+  const glass=new T.MeshStandardMaterial({color:0x8fb3c4,roughness:.15,metalness:.2,transparent:true,opacity:.28,depthWrite:false});
+  addMesh(new T.BoxGeometry(w,1,d),conc,cx,.5,cz);
+  const WALL=11,TOPH=24;
+  const walls=[[w,4,cx,y1-2],[4,d-4,x0+2,y0+(d-4)/2],[4,d-4,x1-2,y0+(d-4)/2]];
+  for(const[ww,dd,px,pz]of walls){
+    addMesh(new T.BoxGeometry(ww,WALL,dd),conc,px,WALL/2,pz);
+    const g=new T.Mesh(new T.BoxGeometry(ww-1,TOPH-WALL,dd-1),glass);g.position.set(px,(WALL+TOPH)/2,pz);g.renderOrder=2;scene.add(g);
+    addMesh(new T.BoxGeometry(ww+.4,1,dd+.4),frame,px,TOPH,pz);addMesh(new T.BoxGeometry(ww+.4,1,dd+.4),frame,px,WALL+.4,pz);
+  }
+  for(const[px,pz]of[[x0+2,y0+2],[x1-2,y0+2],[x0+2,y1-2],[x1-2,y1-2],[cx-9,y1-2],[cx+9,y1-2]])addMesh(new T.BoxGeometry(2.2,TOPH,2.2),frame,px,TOPH/2,pz);
+  addMesh(new T.BoxGeometry(w+6,2.4,d+6),conc,cx,TOPH+1.6,cz);   // the roof: well above a man's head
+  addMesh(new T.CylinderGeometry(.8,1.2,12,8),frame,gun.x,6,gun.y);   // the post
+  const g=new T.Group(),dm=new T.MeshStandardMaterial({color:0x1b1e1b,roughness:.6,metalness:.5});
+  const body=new T.Mesh(new T.BoxGeometry(9,3,3),dm);body.position.set(1.5,0,0);g.add(body);
+  const barrel=new T.Mesh(new T.CylinderGeometry(.55,.55,15,8),dm);barrel.rotation.z=Math.PI/2;barrel.position.set(12,.4,0);g.add(barrel);
+  const box=new T.Mesh(new T.BoxGeometry(3,3,3.4),new T.MeshStandardMaterial({color:0x3e4a2c,roughness:.8}));box.position.set(1,-.4,-3.2);g.add(box);
+  const grip=new T.Mesh(new T.BoxGeometry(1.2,3,1.2),dm);grip.position.set(-3.5,-1.8,0);g.add(grip);
+  for(const m of g.children){m.castShadow=true;}
+  g.position.set(gun.x,12.6,gun.y);g.rotation.y=-gun.ang;scene.add(g);PBOX.mesh=g;
+}
 function addMesh(geo,mat,x,y,z,ry){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;}
 const lamps=[
   {x:310,y:566,h:22,c:0xffa860,i:3.4,d:260,flick:1},
@@ -235,7 +280,6 @@ function buildWorld(){
    const cv=new T.Mesh(new T.PlaneGeometry(W+400,cw2),wm);cv.rotation.x=-Math.PI/2;cv.position.set(W/2,.15,(CANAL.y0+CANAL.y1)/2);cv.receiveShadow=true;scene.add(cv);
    const bw=MAINBR.x1-MAINBR.x0,conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.9}),rail=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
    addMesh(new T.BoxGeometry(bw,2,cw2+14),conc,(MAINBR.x0+MAINBR.x1)/2,1,(CANAL.y0+CANAL.y1)/2);
-   for(const x of[MAINBR.x0+1.5,MAINBR.x1-1.5]){addMesh(new T.BoxGeometry(1.5,6,cw2+14),rail,x,5,(CANAL.y0+CANAL.y1)/2);}
    addMesh(new T.BoxGeometry(bw+8,8,6),conc,(MAINBR.x0+MAINBR.x1)/2,-3,(CANAL.y0+CANAL.y1)/2);
    {const tw=TUNNEL.x1-TUNNEL.x0,tl=TUNNEL.y1-TUNNEL.y0,tx=(TUNNEL.x0+TUNNEL.x1)/2,tz=(TUNNEL.y0+TUNNEL.y1)/2,R=tw/2-.5,cy=R-3.5;   // a crawl-sized pipe, half sunk
     const tc=new T.MeshStandardMaterial({color:0x6f716d,roughness:.95}),dark=new T.MeshBasicMaterial({color:0x050607});
@@ -257,6 +301,7 @@ function buildWorld(){
   const darkMetal=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
   const bagGeo=new T.SphereGeometry(1,10,6),bagList=[];
 
+  buildPillbox();
   for(const o of objs){
     const cx=o.x+o.w/2,cz=o.y+o.h/2,hz=o.w>=o.h,len=hz?o.w:o.h,th=hz?o.h:o.w,ry=hz?0:Math.PI/2;
     if(o.kind==='container'){
@@ -292,6 +337,10 @@ function buildWorld(){
     }else if(o.kind==='barrier'){
       const m=texMat(hazTex,len/16,1,{roughness:.9});
       addMesh(new T.BoxGeometry(len,8,th),m,cx,4,cz,ry);
+    }else if(o.kind==='rail'){   // a guardrail: a steel beam on short posts (half cover)
+      const steel=new T.MeshStandardMaterial({color:0x9aa2a8,roughness:.45,metalness:.7});
+      addMesh(new T.BoxGeometry(len,2.4,1.2),steel,cx,6,cz,ry);addMesh(new T.BoxGeometry(len,1.2,1),steel,cx,3.6,cz,ry);
+      for(let t=4;t<len;t+=12){const px=hz?o.x+t:cx,pz=hz?cz:o.y+t;addMesh(new T.BoxGeometry(1.6,7,1.6),darkMetal,px,3.5,pz);}
     }else if(o.kind==='rack'){
       const m=texMat(shelfTex,len/80,1,{roughness:.8});
       addMesh(new T.BoxGeometry(len,20,th),m,cx,10,cz,ry);
@@ -317,21 +366,24 @@ function buildWorld(){
       const rail=new T.BoxGeometry(hz?len:1.2,1.2,hz?1.2:len),post=new T.BoxGeometry(1.2,18,1.2);
       for(const y of[1,17.5]){const m=new T.Mesh(rail,darkMetal);m.position.y=y;m.castShadow=true;gg.add(m);}
       for(const sd of[-1,1]){const m=new T.Mesh(post,darkMetal);m.position.set(hz?sd*len/2:0,9,hz?0:sd*len/2);m.castShadow=true;gg.add(m);}
+    }else if(o.kind==='pbwall'){   // (the pillbox is built in one go: buildPillbox)
     }else if(o.kind==='booth'){   // guard tower: a raised concrete sentry hut with a lit window band
       const conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.95});
       addMesh(new T.BoxGeometry(o.w,12,o.h),conc,cx,6,cz);
       addMesh(new T.BoxGeometry(o.w-4,16,o.h-4),new T.MeshStandardMaterial({color:0x5c6157,roughness:.85}),cx,20,cz);
       const win=new T.Mesh(new T.BoxGeometry(o.w-3.4,4,o.h-3.4),new T.MeshBasicMaterial({color:0xffcf8a,toneMapped:false}));win.position.set(cx,23,cz);scene.add(win);
       addMesh(new T.BoxGeometry(o.w+4,2,o.h+4),darkMetal,cx,29,cz);
-    }else if(o.kind==='tower'){   // watchtower: four legs, a railed platform, a pitched roof, a ladder and a searchlight down the road
+    }else if(o.kind==='tower'||o.kind==='wtower'){   // watchtower: four legs, a railed platform, a pitched roof, a ladder and a searchlight down the road
       const leg=new T.BoxGeometry(1.8,40,1.8),wood=new T.MeshStandardMaterial({color:0x4a3b2c,roughness:.9});
       for(const sx of[-1,1])for(const sz of[-1,1])addMesh(leg,wood,cx+sx*8,20,cz+sz*8);
       addMesh(new T.BoxGeometry(24,1.6,24),wood,cx,40,cz);
       for(const[w2,d2,ox,oz]of[[24,1,0,-12],[24,1,0,12],[1,24,-12,0],[1,24,12,0]])addMesh(new T.BoxGeometry(w2,5,d2),wood,cx+ox,43.3,cz+oz);
       const roof=addMesh(new T.ConeGeometry(18,7,4),new T.MeshStandardMaterial({color:0x2a2d30,roughness:.7,metalness:.4}),cx,53,cz);roof.rotation.y=Math.PI/4;
-      addMesh(new T.BoxGeometry(1,40,5),darkMetal,cx-10.5,20,cz);
+      if(o.kind==='wtower'){addMesh(new T.BoxGeometry(5,40,1),darkMetal,cx,20,cz-11);   // the canal's watchtower: its ladder on the north side, a lamp (no real light: phones)
+        const lamp=new T.Mesh(new T.CylinderGeometry(1.4,2,2.6,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx-9,46,cz+9);scene.add(lamp);
+      }else{addMesh(new T.BoxGeometry(1,40,5),darkMetal,cx-10.5,20,cz);
       const lamp=new T.Mesh(new T.CylinderGeometry(1.6,2.2,3,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx-6,46,cz+11);scene.add(lamp);
-      const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-6,46,cz+11);sl.target.position.set(CKPT.x,0,CKPT.y+330);scene.add(sl,sl.target);
+      const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-6,46,cz+11);sl.target.position.set(CKPT.x,0,CKPT.y+330);scene.add(sl,sl.target);}
     }else if(o.kind==='tank'){   // fuel tank: white cylinder, domed top, a red band, a ladder and a pipe
       const r=o.w/2;
       o.meshes=[addMesh(new T.CylinderGeometry(r,r,30,28),new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.35}),cx,15,cz)];   // blackened when it blows (depot.js)
@@ -549,6 +601,7 @@ function syncUnits(t){
     m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
     m.g.visible=!u.gone&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!u.detained));   // (a detained scientist is always with the squad: office.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)
+    if(u.veh){truckPose(u);continue;}   // the gun truck (mission.js)
     if((u.surr||u.cower||u.strapped)&&!m.arms){   // he gave up (layers.js), a scientist cowering, the man strapped to the wall (office.js): hands up; tied, behind his back
       const mat=m.pose.children[1].material;
       m.arms=[-1,1].map(sd=>{const a=new T.Mesh(new T.BoxGeometry(1.6,7,1.6),mat);a.position.set(.4,20,sd*2.7);a.rotation.x=sd*.22;a.castShadow=true;m.pose.add(a);return a;});

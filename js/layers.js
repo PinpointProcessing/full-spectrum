@@ -29,9 +29,10 @@ const eyeR=()=>alertStage()>=1?345:300;   // how far an unaware hostile's eyes r
 function raiseAlert(n,why,msg){
   const s0=alertStage();alertT=Math.min(ALERT_TICKS*3+ALERT_TICKS-1,alertT+n);alertMax=Math.max(alertMax,alertStage());alertQuietT=0;
   const s=alertStage(),up=s>s0;
-  if(up&&s===3&&MAPID==='out'&&!reinf&&(reinfLeft[obj]??REINF_MAX)>0){   // lockdown: a hunter team, from beyond where they last had the squad
-    reinfLeft[obj]=(reinfLeft[obj]??REINF_MAX)-1;const lk=(enemies.find(e=>e.lkp&&!e.dead)||{}).lkp||{x:camT.x,y:camT.z};
-    reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:lk.x,y:lk.y-250},obj};
+  const ga=nearArea();
+  if(up&&s===3&&MAPID==='out'&&!reinf&&(reinfLeft[ga]??REINF_MAX)>0){   // lockdown: a hunter team, from beyond where they last had the squad
+    reinfLeft[ga]=(reinfLeft[ga]??REINF_MAX)-1;const lk=(enemies.find(e=>e.lkp&&!e.dead)||{}).lkp||{x:camT.x,y:camT.z};
+    reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:lk.x,y:lk.y-250},obj:ga};
   }
   if(msg===false)return up;
   if(up)banner(s===1?'The base is on alert: they look harder now.':s===2?'Alert II: helmets and vests on.':'Lockdown: a hunter team is coming for you.',2800);
@@ -46,14 +47,14 @@ function alertLayerTick(dt){
 let lvlEl=null,lvlShown='';
 function alertHud(){
   const el=lvlEl||(lvlEl=$('#alertLvl'));if(!el)return;
-  const show=state==='play'&&alertT>0&&!secure.state&&!threatOn();if(el.hidden===show)el.hidden=!show;if(!show)return;
+  const show=state==='play'&&alertT>0&&!threatOn();if(el.hidden===show)el.hidden=!show;if(!show)return;
   const s=alertStage(),k=(alertT-s*ALERT_TICKS)/ALERT_TICKS,key=s+':'+k;if(key===lvlShown)return;lvlShown=key;
   el.className='s'+s;el.querySelector('b').textContent='Base · '+ALERT_NAMES[s];el.setAttribute('aria-label','Base alert: '+ALERT_NAMES[s]);
   el.querySelectorAll('i').forEach((seg,i)=>seg.style.setProperty('--k',i<s?'1':i===s?k.toFixed(2):'0'));
 }
 
 /* ---------- bodies and check-ins ---------- */
-function addBody(e){if(!e.dog)bodies.push({x:e.x,y:e.y,t:simT,found:false,id:e.id,area:MAPID==='in'?'in':obj,map:MAPID,floor:e.floor});}
+function addBody(e){if(!e.dog&&!e.veh)bodies.push({x:e.x,y:e.y,t:simT,found:false,id:e.id,area:MAPID==='in'?'in':obj,map:MAPID,floor:e.floor});}
 // a body he didn't already know about: one of his own area, from after the last time he was alerted (a man who heard the
 // fight knows; and a fresh garrison doesn't care about the last area's dead)
 const newsTo=(e,b)=>!b.found&&b.map===MAPID&&b.area===(MAPID==='in'?'in':obj)&&(MAPID!=='in'||b.floor===e.floor)&&(e.alertAt??-99)<b.t-.5;
@@ -94,7 +95,7 @@ function seeBodies(e){
 function checkInTick(dt){
   if(MAPID!=='out'||state!=='play')return;
   if((checkT-=dt)>0)return;checkT=45+Math.random()*20;
-  const g=(obj===0?enemies:groups[obj]||[]).filter(e=>!e.dog);if(g.length<3)return;
+  const g=enemies.filter(e=>!e.dog&&!e.veh&&e.grp!=null&&!finished[e.grp]);if(g.length<3)return;   // (every area still held)
   const live=g.filter(e=>!e.dead&&!e.surr),bodyOf=e=>bodies.find(b=>b.id===e.id&&b.map==='out');
   const silent=g.filter(e=>{if(!e.dead||e.checked)return false;const b=bodyOf(e);return!!b&&!b.found&&!live.some(o=>(o.alertAt??-99)>=b.t-.5);});   // nobody knew he'd gone
   if(!silent.length)return;
@@ -112,7 +113,7 @@ function moraleBreak(e){
   e.surrNext=simT+SURRENDER.every;if(Math.random()>SURRENDER.chance)return false;   // one roll every few seconds while it holds
   Object.assign(e,{surr:true,path:[],alerted:false,aware:0,wary:false,call:null,hunt:null,huntT0:0,lkp:null,flanking:false,bodyGo:null});
   {const i=(Math.random()*3)|0;callout(e,BARKS.surrender[i],'#ffcf4a');if(typeof voiceClip==='function')voiceClip('E'+(1+(hashId(e.id)%3)),`bark_surrender_${i+1}`,{x:e.x,y:e.y});}setStatus();
-  if(!(LOCS[obj]&&LOCS[obj].done()))banner('A hostile surrenders. Tap him to zip-tie him.',2400);   // (the last man: the area-clear message comes instead, and the hint line says it)
+  if(!(e.grp!=null&&groups[e.grp]&&groupDone(e.grp)))banner('A hostile surrenders. Tap him to zip-tie him.',2400);   // (the last man: the checkpoint's message comes instead, and the hint line says it)
   return true;
 }
 function orderZip(list,e){

@@ -113,8 +113,8 @@ function toneHit(out,t0,dur,type,f0,f1,peak,attack=.004){
 function sfxShot(u,quiet){
   if(quiet){const out=voice(u.x,u.y,.3,.3);if(!out)return;const t=AC.currentTime;   // silenced: a muffled cough and the action cycling
     noiseHit(out,t,.07,'bandpass',800,1.1,.8,.002);noiseHit(out,t,.14,'lowpass',520,0,.45,.003,140);noiseHit(out,t+.035,.03,'highpass',3500,0,.18,.001);return;}
-  const kind=u.gunner?'mg':u.side==='E'?'enemy':u.weapon==='shotgun'?'shotgun':'shot',r=.95+Math.random()*.1;
-  if(playSample(kind,u.x,u.y,kind==='mg'?.75:kind==='shotgun'?.8:.6,r))return;
+  const w=u.weapon,kind=u.gunner||w==='hmg'?'mg':w==='sniper'?'enemy':u.side==='E'?'enemy':w==='shotgun'?'shotgun':'shot',r=(w==='sniper'?.78:.95)+Math.random()*.1;   // (a sniper rifle: the big single shot, deeper)
+  if(playSample(kind,u.x,u.y,kind==='mg'?.75:kind==='shotgun'||w==='sniper'?.85:.6,r))return;
   const out=voice(u.x,u.y,.45,.3);if(!out)return;const t=AC.currentTime;   // fallback: a sharp crack and a body
   noiseHit(out,t,.05,'highpass',2500,0,1);noiseHit(out,t,.18,'lowpass',2600*r,0,.8,.002,300);toneHit(out,t,.09,'sine',110,40,.5);
 }
@@ -272,6 +272,7 @@ function audioFrame(){
   else if(wj&&wave.phase==='drive')setLoop('jeep',live?.32:0,wj.x,wj.y,1.9);
   else setLoop('jeep',0,null,null);
   setLoop('boat',live&&landing?.26:0,DOCK.moor.x,DOCK.moor.y+100,landing&&landing.t>LAND_T*.7?1:1.5);
+  {const tk=MAPID==='out'&&enemies.find(e=>e.veh&&!e.dead);setLoop('truck',live&&tk?(tk.path.length?.3:.1):0,tk?tk.x:null,tk?tk.y:null,tk&&tk.path.length?1.5:.8);}   // the gun truck: driving, or idling where it's parked
 }
 function bindAudio(){
   const wake=()=>audioInit();

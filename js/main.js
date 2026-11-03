@@ -21,16 +21,32 @@ function frame(nowMs){
   }
   if(!ptr&&!pinch&&(Math.abs(inertia.vx)+Math.abs(inertia.vy))>3){camT.x+=inertia.vx*rdt;camT.z+=inertia.vy*rdt;clampCam();const k=Math.exp(-rdt*5);inertia.vx*=k;inertia.vy*=k;}
   storm=Math.max(0,storm-rdt*6);
-  edgePan(rdt);alertMeter();drawCards(rdt);waveHud();threatHud();alertHud();aimTurret();panTick(rdt);audioFrame();
+  edgePan(rdt);alertMeter();waveHud();threatHud();alertHud();aimTurret();panTick(rdt);audioFrame();markAlive(rdt);
   render(rdt,nowMs/1000);
   hudT-=rdt;if(hudT<=0){hudT=.15;hud();}
   requestAnimationFrame(frame);
 }
 
+/* ---------- an unexpected restart ----------
+   A phone that runs out of memory reloads the page (Bryan hit it in the office building's basement: "the game went haywire
+   and went into a menu"). While a game is on, where the squad is gets noted for this tab every few seconds; a normal close or
+   reload clears it, so if it's still there at boot the last run ended without warning, and the intro card says so. */
+let aliveT=0;
+function markAlive(rdt){
+  if((aliveT-=rdt)>0)return;aliveT=3;
+  try{if(state!=='play'){sessionStorage.removeItem('wy.alive');return;}
+    sessionStorage.setItem('wy.alive',MAPID==='in'?`inside the data center, ${{GF:'ground floor',B1:'basement','1F':'top floor'}[curFloor]||curFloor}`:`outside, objective ${Math.min(5,obj+1)}`);}catch(e){}
+}
+function crashNote(){
+  try{const w=sessionStorage.getItem('wy.alive');if(!w)return;const n=$('#crashNote');
+    n.textContent=`The game restarted unexpectedly (you were ${w}). That usually means the phone ran low on memory. Continue picks up at the last save.`;n.hidden=false;}catch(e){}
+}
+addEventListener('pagehide',()=>{try{sessionStorage.removeItem('wy.alive');}catch(e){}});
+
 /* ---------- boot ---------- */
 if(!initGL())$('#nogl').hidden=false;
 else{
-  bindInput();bindHud();bindAudio();bindVoice();bindFloors();refreshSaveButtons();
+  bindInput();bindHud();bindAudio();bindVoice();bindFloors();refreshSaveButtons();crashNote();
   buildWorld();reset();
   new ResizeObserver(resize).observe(stage);resize();
   hud();

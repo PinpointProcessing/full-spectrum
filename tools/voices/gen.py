@@ -1,5 +1,7 @@
-"""Make the game's voice sprites with Kokoro-82M (Apache-2.0): one mp3 per speaker, all his lines in a row, plus manifest.json.
-Lines come from lines.json (extract.js pulls them out of the game's code)."""
+"""Make the game's voices with Kokoro-82M (Apache-2.0): one file per speaker holding each of his lines as its own small mp3,
+one after another, plus manifest.json (v3) with each line's byte offset, byte length and seconds. The game decodes a line only
+when it's said (decoding a whole speaker at once took ~20 MB each). Lines come from lines.json (extract.js pulls them out of
+the game's code)."""
 import json, sys, time, numpy as np, lameenc
 from kokoro_onnx import Kokoro
 OUT=sys.argv[1] if len(sys.argv)>1 else 'out'
@@ -18,9 +20,11 @@ CAST={
 }
 VOICE_NAME={'E3':'am_echo+bm_daniel'}
 SQUAD=['A1','A2','B1','B2','A3','A4','B3','B4']
-QUIETG={'c_hush','c_clear','c_tkdone','c_tknice','banter_in'}
+QUIETG={'c_'+q for q in L['chatter']['quiet']}|{'banter_in'}   # said low (stealth)
+TUT=set(L['chatter'].get('tut',[]))   # lines about the map: the first four only
 SHOUT={'n_down','n_gotyou','c_engage','c_radio','c_reinf','c_dog','c_fragwarn','c_covering','c_movingcov','cdir','contact','man_down','hit_down','pinned','rpg','frag','charge','suppress','ack_attack','breach','zip','cry','plead','scan',
-       'bark_spot','bark_grenade','bark_pinned','bark_down','bark_surrender','bark_backup','bark_flank','bark_body','bark_dog'}
+       'bark_spot','bark_grenade','bark_pinned','bark_down','bark_surrender','bark_backup','bark_flank','bark_body','bark_dog','bark_hit','bark_panic',
+       'c_vehicle','c_rpgout','c_mgman','c_sniper','c_nadeno'}
 SPEED={'c_hush':.9,'c_clear':.92,'c_tkdone':.92,'c_tknice':.94,'banter':1.0,'silent':.95,'takedown':.95,'end':.88,'bye':.95,'up':.88,'escort':1.0,'objective':1.0,'kill':1.0}
 def speed_of(group): return SPEED.get(group,1.15 if group in SHOUT else 1.04)
 # each speaker's lines: (clip key, text, group)
@@ -40,6 +44,7 @@ def lines_for(sp):
                     if freed and key=='down' and i>0: continue
                     out.append((f'{key}_{addr}_{i+1}',t.replace('{N}',name),'n_'+key))
         for key,arr in C['chat'].items():
+            if key in TUT and sp not in ('A1','A2','B1','B2'): continue
             for i,t in enumerate(arr): out.append((f'chat_{key}_{i+1}',t,'c_'+key))
         for h,word in C['clock'].items():
             for n,tpl in C['cdir'].items(): out.append((f'cdir_{h}_{n}',tpl.replace('{D}',word),'cdir'))
@@ -69,25 +74,27 @@ def tidy(a,shout,quiet=False):
     if shout: a=np.tanh(2.0*a)/np.tanh(2.0)   # pushed a little harder: more urgent, more presence
     return (a*(.6 if quiet else .89)).astype(np.float32)
 only=set(sys.argv[2].split(',')) if len(sys.argv)>2 else None
-man={'v':2,'model':'Kokoro-82M (Apache-2.0), via kokoro-onnx','speakers':{}}
-if os.path.exists(OUT+'/manifest.json'): man=json.load(open(OUT+'/manifest.json'))
-GAP=np.zeros(int(.22*SR),dtype=np.float32)
+man={'v':3,'model':'Kokoro-82M (Apache-2.0), via kokoro-onnx','speakers':{}}
+if os.path.exists(OUT+'/manifest.json'):
+    m0=json.load(open(OUT+'/manifest.json'))
+    if m0.get('v')==3: man=m0
+PAD=np.zeros(int(.04*SR),dtype=np.float32)
 import random;rnd=random.Random(7)
 t00=time.time()
+def mp3_of(a,kbps):   # one line as its own mp3 (a decoder handles it on its own)
+    pcm16=(np.clip(np.concatenate([PAD,a,PAD]),-1,1)*32767).astype(np.int16)
+    enc=lameenc.Encoder();enc.set_bit_rate(kbps);enc.set_in_sample_rate(SR);enc.set_channels(1);enc.set_quality(2)
+    return enc.encode(pcm16.tobytes())+enc.flush()
 for sp,(voice,lang) in CAST.items():
     if only and sp not in only: continue
-    parts=[GAP];clips={};t=len(GAP)/SR
+    kbps=24 if sp in ('A1','A2','B1','B2') else 32 if sp in SQUAD else 40   # (the radio voices are band-limited anyway)
+    blob=bytearray();clips={};secs=0
     for key,text,g in lines_for(sp):
         a,sr=k.create(text,voice=voice,speed=speed_of(g)*(.96+.08*rnd.random()),lang=lang);assert sr==SR   # (a little speed difference line to line)
-        a=tidy(a,g in SHOUT,g in QUIETG);d=len(a)/SR
-        clips[key]=[round(max(0,t-.03),3),round(d+.09,3)]
-        parts+= [a,GAP];t+=d+len(GAP)/SR
-    pcm=np.concatenate(parts);pcm16=(np.clip(pcm,-1,1)*32767).astype(np.int16)
-    enc=lameenc.Encoder();enc.set_bit_rate(24 if sp in ('A1','A2','B1','B2') else 32 if sp in SQUAD else 40);   # (the radio voices are band-limited anyway)
-    _=enc.set_in_sample_rate(SR);enc.set_channels(1);enc.set_quality(2)
-    mp3=enc.encode(pcm16.tobytes())+enc.flush()
-    open(f'{OUT}/{sp}.mp3','wb').write(mp3)
+        a=tidy(a,g in SHOUT,g in QUIETG);d=len(a)/SR+2*len(PAD)/SR
+        b=mp3_of(a,kbps);clips[key]=[len(blob),len(b),round(d,3)];blob+=b;secs+=d
+    open(f'{OUT}/{sp}.mp3','wb').write(bytes(blob))
     man['speakers'][sp]={'file':f'{sp}.mp3','voice':VOICE_NAME.get(sp,voice if isinstance(voice,str) else 'blend'),'clips':clips}
-    print(sp,len(clips),'lines',round(len(pcm)/SR,1),'s',round(len(mp3)/1024),'KB',round(time.time()-t00),'s so far',flush=True)
-json.dump(man,open(OUT+'/manifest.json','w'),separators=(',',':'))
+    print(sp,len(clips),'lines',round(secs,1),'s',round(len(blob)/1024),'KB',round(time.time()-t00),'s so far',flush=True)
+    json.dump(man,open(OUT+'/manifest.json','w'),separators=(',',':'))   # (after each speaker: a stopped run keeps what it made)
 print('done',round(time.time()-t00),'s')

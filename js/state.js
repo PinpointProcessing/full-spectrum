@@ -3,9 +3,9 @@
 let units=[],players=[],enemies=[],sel=[],preview=null,mode=null,contact=false,paused=false,state='intro',ambushT=-9,cardGroup=[];   // cardGroup: soldiers whose cards are on show
 let simT=0,shots=[],tracers=[],flashes=[],sparks=[],nades=[],booms=[],callouts=[],decals=[],visTick=0,aiTick=0,endAt=0,downCount=0,storm=0,stormT=12;
 const alive=u=>!u.dead&&!u.downed;
-// every soldier carries a grenade and one special item (Bryan): smoke, a medic kit or a silencer, swapped at supply boxes. One medic kit per
-// fire team to start; A1 brings the silencer so it can be tried on the warehouse (swap it back at the first supply box)
-const DEFAULT_SPEC={A1:'silencer',A2:'medkit',B1:'smoke',B2:'medkit'};
+// every soldier carries a grenade and one special item (Bryan): a silencer, an RPG, a medic kit or smoke; ammo drops refill them
+// (no swapping)
+const DEFAULT_SPEC={A1:'silencer',A2:'silencer',B1:'rpg',B2:'medkit'};   // (Bryan: Alpha both silenced, Bravo an RPG and the medic kit)
 
 function mk(side,team,id,name,x,y,ang){
   const u={side,team,id,name,x,y,ang,hp:100,sup:0,cool:.4+Math.random()*1.2,path:[],downed:false,dead:false,bleed:BLEED_T,revive:0,
@@ -21,8 +21,8 @@ function reset(){
   mk('P','B','B1','Hayes',78,808,-0.8);mk('P','B','B2','Okafor',114,812,-0.8);
   mk('E','E','E1','Hostile',273,459,Math.PI/2);mk('E','E','E2','Hostile',347,459,Math.PI/2);
   mk('E','E','E3','Hostile',222,494,Math.PI/2);mk('E','E','E4','Hostile',398,494,Math.PI/2);
-  players=units.filter(u=>u.side==='P');enemies=units.filter(u=>u.side==='E');
-  for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':'rifle';p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=specFull(p);}
+  players=units.filter(u=>u.side==='P');enemies=units.filter(u=>u.side==='E');for(const e of enemies)e.grp=0;   // (the warehouse's four: area 0)
+  for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':DEFAULT_WEAPON[p.id]||'rifle';p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=specFull(p);}
   for(const p of players)p.level=levelOf(xpOf(p.id));
   for(const u of units)makeSoldier(u);
   addRadioKit(enemies[1]);   // E2 carries the warehouse's radio (hunt.js)
@@ -30,7 +30,7 @@ function reset(){
   sel=[];cardGroup=[];preview=null;mode=null;contact=false;paused=false;simT=0;downCount=0;ambushT=-9;
   shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];smokes=[];endAt=0;
   landing=null;if(dinghy)dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
-  civs=[];resetOffice();resetChatter();   // (office.js, chatter.js)
+  civs=[];volley=null;resetOffice();resetChatter();   // (office.js, chatter.js)
   resetWaves();resetHunt();resetOrders();resetLayers();setStatus();buildCards();
 }
 function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw'))?0.25:1;}

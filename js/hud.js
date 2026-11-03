@@ -2,7 +2,15 @@
 /* DOM HUD: status chip, banner, squad rows, action buttons, keyboard, end screen. */
 let bannerTimer=0;
 function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
-const OBJ_HINT={1:'Next: take the bridge (north). Or crawl through the sewer pipe to the west, or cross the broken rail bridge in the east.',2:'Next: the container yard (north), a maze. The straight lane is the quick way through, but a heavy machine gun covers it: smoke it, pin the gunner while the other team runs, wait for his reload, or work round through the maze and take him from behind.',3:'Next: the data center (north-west). Take its front yard, then the whole squad goes in through the front doors.',4:'Next: the drawbridge (north-east). Its bio scanner only opens for a scientist: bring a detained one along and send a soldier to the panel.',5:'The drawbridge is down. The Headquarters comes next.'};
+// the hint line's word on where to go, by where the squad is (Bryan: clearing areas is optional; the data center is the goal)
+function objHint(){
+  if(obj===4)return'Take a scientist to the drawbridge\'s bio scanner (north-east): send a soldier to the panel by the moat.';
+  if(obj>=5)return'The Headquarters: coming next.';
+  const ups=players.filter(p=>alive(p)&&!p.offMap),north=ups.some(p=>p.y<CANAL.y0);
+  if(!north)return'Get into the data center, across the canal to the north-west. Ways over: the bridge (guarded, a sniper in the tower), the sewer pipe to the west, or the broken rail bridge to the east.';
+  if(dcLocked())return'The data center\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then gather at the doors.';
+  return'The containers down the west side are the quiet way up to the data center; its front is open ground under two machine guns. Gather everyone at the front doors to go in.';
+}
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
@@ -31,7 +39,7 @@ function hud(){
   updateCards();
   const act=sel.filter(alive);
   $('#supBtn').disabled=!act.length||!enemies.some(e=>!beaten(e)&&e.seen);
-  {const wb=$('#watchBtn'),bb=$('#breachBtn');wb.disabled=!act.length;wb.classList.toggle('on',mode==='watch'||act.some(u=>u.watch));bb.hidden=!(MAPID==='in'||obj===0);bb.disabled=!act.length;bb.classList.toggle('on',mode==='breach'||!!breach);}
+  {const wb=$('#watchBtn'),bb=$('#breachBtn');wb.disabled=!act.length;wb.classList.toggle('on',mode==='watch'||act.some(u=>u.watch));bb.hidden=!(MAPID==='in'||(!finished[0]&&players.some(p=>alive(p)&&p.y>200)));bb.disabled=!act.length;bb.classList.toggle('on',mode==='breach'||!!breach);}
   $('#supBtn').classList.toggle('on',mode==='suppress');
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
   {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
@@ -51,26 +59,26 @@ function hud(){
   else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
-  else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
+  else if(mode==='grenade')h='Tap where to throw. Inside the dashed circle he throws from where he is; further off he moves to a safe spot first. Tap the grenade on his card again to cancel.';
+  else if(mode==='rpg')h=`Tap where to fire the rocket (big blast; not closer than 6 m). Out of reach or out of sight, he moves to a safe spot first. ${sel[0]?sel[0].specN:0} left. Tap the RPG on his card again to cancel.`;
   else if(mode==='watch')h='Tap where to watch. They take cover facing that way and fire first at anything that comes into the cone, even before they are seen.';
   else if(mode==='breach')h='Tap the room to breach. The team stacks up at its doorway, then goes in together with a quick edge.';
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
   else if(mode==='silent')h=`Tap a hostile marked SILENT SHOT (one who hasn't noticed you, within 20 m): an aimed quiet shot. ${sel[0]?sel[0].specN:0} left on the silencer. Tap it again to cancel.`;
-  else if(mode==='smoke')h='Tap inside the dashed circle to throw smoke: nobody sees through it, either way, for about 12 s. Tap the smoke on his card again to cancel.';
-  else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medical box (the red +). He moves slowly and can't shoot. Put down is bottom right.`;
-  else if(act.length===1&&!preview&&inSupply(act[0]))h=`In the supply box: tap ${act[0].name}'s special item on his card to swap smoke, medic kit and silencer.`;
-  else if(act.length&&!preview&&players.some(p=>p.critical&&!p.dead&&!p.carriedBy&&!p.offMap))h='A soldier is critical: tap him with a medic (the red kit on a card) selected, or anyone to carry him to a medical box.';
+  else if(mode==='smoke')h='Tap where to throw smoke: nobody sees through it, either way, for about 12 s. Further off than the circle, he moves up first. Tap the smoke on his card again to cancel.';
+  else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medic station's green ring. He moves slowly and can't shoot. Put down is bottom right.`;
+  else if(act.length&&!preview&&players.some(p=>p.critical&&!p.dead&&!p.carriedBy&&!p.offMap))h='A soldier is critical: tap him with a medic (the red kit on a card) selected, or anyone to carry him to a medic station.';
+  else if(act.length===1&&act[0].onTower&&!preview)h=act[0].weapon==='sniper'?`${act[0].name} is up the tower with the sniper rifle: he sees 70 m the way he faces (all round while he's the one selected). Any move order brings him down first.`:`${act[0].name} is up the tower. Any move order brings him down first.`;
   else if(!preview&&enemies.some(e=>e.surr&&!e.tied&&!e.dead&&e.vis&&!offFloor(e)))h=act.length?'A hostile has surrendered: tap him to zip-tie him (2 s beside him).':'A hostile has surrendered: select a soldier, then tap him to zip-tie him.';   // (layers.js)
-  else if(secure.state==='move'&&!preview)h=`All hostiles down. Move a soldier into the green area to take ${LOCS[obj].name}.`;
-  else if(secure.state==='hold'&&!preview)h=`Taking ${LOCS[obj].name}: it's yours after ${QUIET_T} quiet seconds (no shooting).`;
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
-  else if(MAPID==='out'&&obj===3&&dcTaken&&!sciOut&&!preview&&!act.length)h='Gather everyone who\'s up in the green area at the data center\'s front doors, then tap it to go in. Heal and restock first if you need to.';
   else if(MAPID==='in'&&!preview&&!act.length)h=officeHint();   // (office.js)
-  else if(wave.phase==='hq'&&!preview&&!act.length)h=`${OBJ_HINT[Math.max(obj,objDone)]||''} Heal and restock in the red + and supply boxes.`;   // objDone: right after a location's taken, before the next objective starts
+  else if(wave.phase==='hq'&&!preview&&!act.length)h=objHint()+(HQ_ZONES.length?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
   else if(act.length===1&&enemies.some(e=>canTakedown(act[0],e)))h=`A hostile has his back to ${act[0].name}: tap him (TAKEDOWN) to sneak up and take him out silently.`;
+  else if(act.length===1&&act[0].onGun&&!preview)h=`${act[0].name} is on the pillbox gun: once you're in contact he fires at anything in its swing. Any move order takes him off it.`;
+  else if(act.length>1&&volleyCrew(act).length>1&&enemies.some(e=>canVolley(act,e)))h='Silencers: tap a hostile marked SILENT SHOT to give him to one of your silenced men, then another for the next. When each has a mark (or you tap a marked man again), they fire together.';
   else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';
@@ -80,11 +88,7 @@ function hud(){
 // detection indicator, updated every frame
 let alertShown=-1;
 function alertMeter(){
-  // taking a location: the securing ring takes the detection ring's place (mission.js)
-  const sc=$('#secure'),securing=state==='play'&&!!secure.state;sc.hidden=!securing;
-  if(securing){sc.classList.toggle('move',secure.state==='move');$('#secureArc').setAttribute('stroke-dashoffset',(94.25*(1-secure.t/QUIET_T)).toFixed(2));
-    sc.querySelector('small').textContent=secure.state==='move'?'Move in':'Securing';sc.setAttribute('aria-label',secure.state==='move'?'Area clear: move in to take it':`Securing ${Math.round(secure.t/QUIET_T*100)}%`);}
-  const el=$('#alert');el.hidden=securing||state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!beaten(e)))||threatOn();if(el.hidden)return;   // the countdown takes its place (and a radio call or reinforcements: hunt.js)
+  const el=$('#alert');el.hidden=state!=='play'||wavePhase('clear','count','done')||!enemies.some(e=>!beaten(e))||threatOn();if(el.hidden)return;   // the countdown takes its place (and a radio call or reinforcements: hunt.js)
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);

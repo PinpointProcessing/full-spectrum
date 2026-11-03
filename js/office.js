@@ -277,7 +277,7 @@ function civTick(u,dt){
 }
 function civAtScreen(sx,sy){
   let best=null,bd=26;
-  for(const c of civs){if(!c.vis&&!c.detained)continue;if(offFloor(c))continue;const[x,y]=toS(c.x,c.y,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=c;}}
+  for(const c of civs){if(!c.vis&&!c.detained&&!c.cell&&!c.strapped)continue;if(offFloor(c))continue;const[x,y]=toS(c.x,c.y,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=c;}}   // (the locked-up men can be tapped before anyone has had a look at them: Bryan tapped one and got "Can't get there")
   return best;
 }
 // a tap on one of them: a scientist gets zip-tied, a locked-up prisoner's cell gets opened, the man on the wall cut down

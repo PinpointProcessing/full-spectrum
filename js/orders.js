@@ -49,7 +49,7 @@ function watchTick(){
 // the room at (wx,wy): an office room inside, or the warehouse outdoors
 function roomFor(wx,wy){
   if(MAPID==='in'){const f=floorOf(wx,wy),fl=f&&IN.floors[f],r=fl&&roomAt(fl,wx,wy);return r&&!/hall|lobby/i.test(r.name)?{x0:r.x0,y0:r.y0,x1:r.x1,y1:r.y1,name:r.name}:null;}
-  const z=LOCS[0].zone;return wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1?{x0:z.x0,y0:z.y0,x1:z.x1,y1:z.y1,name:'the warehouse'}:null;
+  const z=AREAS[0].zone;return wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1?{x0:z.x0,y0:z.y0,x1:z.x1,y1:z.y1,name:'the warehouse'}:null;
 }
 // its doorways: runs of free ground along the walls' middle line (a 3-4 m doorway leaves a run of 10-20 once clearance is
 // counted); the one nearest (fx,fy)

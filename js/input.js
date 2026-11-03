@@ -200,9 +200,10 @@ function tap(sx,sy){
     if(en&&canSilent(u,en)){orderSilent(u,en);mode=null;preview=null;fireOrderAt=performance.now();return;}
     banner(en&&en.alerted?'He knows you are here: no silent shot.':en?'No clear shot at him from here (20 m, in sight).':'Tap a hostile marked SILENT SHOT. Tap the silencer on his card again to cancel.',2000);return;
   }
-  if(mode==='grenade'||mode==='smoke'){
+  if(mode==='grenade'||mode==='smoke'||mode==='rpg'){   // Bryan: tap where; if he can't throw or fire from where he is, he moves to where he can
     const u=sel[0];if(!u){mode=null;return;}
-    if((mode==='smoke'?throwSmoke:throwNade)(u,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
+    const en=enemyAtScreen(sx,sy),t=en&&en.vis?{x:en.x,y:en.y}:{x:wx,y:wy};if(!en&&!inMap){banner('Tap a spot on the map.',1400);return;}
+    if(orderThrow(u,t.x,t.y,mode==='grenade'?'nade':mode)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   // the jeep: with soldiers on foot selected, they board it; otherwise tapping it selects its crew
   if(jeepAtScreen(sx,sy)){
@@ -233,7 +234,9 @@ function tap(sx,sy){
   }
   if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
   if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
-  {const cv=civAtScreen(sx,sy);if(cv&&civTap(cv)){preview=null;return;}}   // a scientist (zip-tie him), a locked-up prisoner (open his cell), the man on the wall (office.js)
+  {const cv=civAtScreen(sx,sy);if(cv&&civTap(cv)){preview=null;return;}}
+  if(MAPID==='out'&&sel.some(alive)&&hyp(wx-PBOX.gun.x,wy-PBOX.gun.y)<18&&!gunMan()){if(orderMan(sel))preview=null;return;}   // the pillbox's gun, nobody on it: the nearest selected soldier takes it (mission.js)
+  if(MAPID==='out'&&sel.some(alive)&&(hyp(wx-TOWER.x,wy-TOWER.y)<20||hyp(wx-TOWER.ladder.x,wy-TOWER.ladder.y)<12)&&!sel.some(u=>u.onTower)){orderClimb(sel);preview=null;return;}   // the watchtower: climb it (mission.js)   // a scientist (zip-tie him), a locked-up prisoner (open his cell), the man on the wall (office.js)
   const en=enemyAtScreen(sx,sy);
   if(en&&en.surr){   // he gave up: the nearest selected soldier zip-ties him (layers.js)
     if(en.tied){banner('He is tied up.',1400);return;}
@@ -242,6 +245,7 @@ function tap(sx,sy){
   }
   if(en&&sel.length===1&&canTakedown(sel[0],en)){if(orderTakedown(sel[0],en))preview=null;return;}   // his back is to the one soldier selected: a silent takedown (combat.js)
   if(en&&sel.length===1&&canSilent(sel[0],en)){orderSilent(sel[0],en);preview=null;return;}   // the one soldier selected has a silencer and the man hasn't seen him: a silent shot
+  if(en&&sel.length>1&&canVolley(sel,en)){if(orderVolley(sel,en))preview=null;return;}   // two or more silencers selected: mark him for one of them (combat.js)
   if(en&&sel.length){
     for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}
     if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up

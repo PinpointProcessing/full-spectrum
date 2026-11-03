@@ -113,7 +113,7 @@ function drawOverlay(rdt,now){
     ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of ptr.trail){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}ox.stroke();ox.globalAlpha=1;
     gPath(e.x,e.y,8);ox.fillStyle=cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=cov?C.good:C.bad;ox.lineWidth=2;ox.stroke();
   }
-  if((mode==='grenade'||mode==='smoke')&&sel[0]){gPath(sel[0].x,sel[0].y,mode==='smoke'?SMOKE.range:170);ox.setLineDash([6,5]);ox.strokeStyle=mode==='smoke'?'#cfd6dc':C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
+  if((mode==='grenade'||mode==='smoke'||mode==='rpg')&&sel[0]){gPath(sel[0].x,sel[0].y,mode==='smoke'?SMOKE.range:mode==='rpg'?PRPG.range:170);ox.setLineDash([6,5]);ox.strokeStyle=mode==='smoke'?'#cfd6dc':mode==='rpg'?'#ffb36b':C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
 
   // tracers, flashes, sparks, blasts
   ox.globalCompositeOperation='lighter';
@@ -153,10 +153,12 @@ function drawOverlay(rdt,now){
       const stalked=players.some(p=>p.tk&&p.tk.e===e);
       if(stalked||act.length){   // his label: TAKEDOWN if his back is to the one soldier selected (and while he's stalked), else the best hit chance. Worked out ~7 times a second, not every frame
         const key=act.map(u=>u.id).join(),nowMs=performance.now();let pc=e._pill;
-        if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150){
+        if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150||(volley||markedBy(e))&&nowMs-pc.t>60){
           let text,col;
-          if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
+          if(e.veh){text='ARMOURED · RPG or frag';col=C.warn;}   // the gun truck (mission.js)
+          else if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
           else if(act.length===1&&canSilent(act[0],e)){const pct=Math.round(silentChance(act[0],e)*100);text=`SILENT SHOT ${pct}%`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}   // a silencer (combat.js)
+          else if(act.length>1&&canVolley(act,e)){const m=markedBy(e);if(m){text=`MARKED · ${m.id}`;col=C.good;}else{const pct=Math.round(Math.max(...volleyFree(act).filter(u=>canSilent(u,e)).map(u=>silentChance(u,e)))*100);text=`SILENT SHOT ${pct}%`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}}   // a volley: who's marked (combat.js)
           else{
             let best=0,bc=0,lean=false;
             for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}

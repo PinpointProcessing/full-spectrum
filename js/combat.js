@@ -70,17 +70,24 @@ function medTick(dt){   // medic kits being used, men being picked up, and carri
     }
   }
 }
-// the squad's weapons: everyone carries an assault rifle for now (Bryan). The shotgun is kept for later: list soldier IDs
-// in SHOTGUNNERS (e.g. ['A2','B2'], one per fire team) to hand them out again
-const WEAPON={rifle:{label:'Rifle',range:380},shotgun:{label:'Shotgun',range:200}},SHOTGUNNERS=[];
-function wRange(u){return u.gunner?440:WEAPON[u.weapon||'rifle'].range;}
+// the squad's weapons (Bryan): M4s, and B1 carries a heavy machine gun (long bursts that pin people down, worse on the move).
+// The sniper rifle is picked up off the watchtower's sniper (mission.js). The shotgun is kept for later: list soldier IDs in
+// SHOTGUNNERS (e.g. ['A2','B2']) to hand them out again. n: rounds a burst, cool: s between bursts, sup: suppression per round
+const WEAPON={
+  rifle:  {label:'M4',range:380,n:3,cool:[1.6,2.2],dmg:[11,16],sup:.06},
+  hmg:    {label:'M240',range:420,n:6,cool:[1.5,2.1],dmg:[10,14],sup:.11,acc:-.06,move:-.12},
+  sniper: {label:'Sniper',range:700,n:1,cool:[2.4,3.1],dmg:[85,110],sup:.3,far:true},
+  shotgun:{label:'Shotgun',range:200,n:1,cool:[1.1,1.5],sup:.14}},SHOTGUNNERS=[],DEFAULT_WEAPON={B1:'hmg'};
+const wOf=u=>WEAPON[u.weapon||'rifle']||WEAPON.rifle;
+function wRange(u){return u.gunner?440:wOf(u).range;}
 function hitChance(s,t,L){
   L=L||lineOf(s,t);
   const ob=s.side==='P'?(s.watch&&inWatch(s,t)?WATCH.bonus:0)+(simT<(s.breachT||0)?BREACH.bonus:0):0;   // Watch and Breach (orders.js)
   const d=hyp(L.tx-L.fx,L.ty-L.fy);
   const sg=s.weapon==='shotgun';
-  let c=sg?1-Math.max(0,d-80)/150:0.86-d/900;   // a shotgun: near-certain within 8 m, falling off fast beyond
-  let cov=shotCover(L);if(t.inVeh)cov=Math.max(cov,1);   // inside the jeep: partial cover
+  const W=wOf(s);let c=sg?1-Math.max(0,d-80)/150:W.far?0.92-d/2600:0.86-d/900;   // a shotgun: near-certain within 8 m, falling off fast beyond; a sniper rifle barely falls off
+  c+=W.acc||0;if(s.path.length)c+=W.move||0;
+  let cov=shotCover(L);if(t.inVeh||t.onTower)cov=Math.max(cov,1);   // inside the jeep, or up the watchtower behind its rails: partial cover
   if(cov===1)c-=sg?0.2:0.28;else if(cov===2)c-=sg?0.3:0.42;   // the pellet spread makes cover count for less
   c-=s.sup>0.65?0.25:s.sup*0.15;
   if(s.side==='P'&&ambushing())c+=AMBUSH_BONUS;
@@ -94,7 +101,7 @@ function hitChance(s,t,L){
 function threats(){
   const t=[];
   for(const e of enemies)if(!beaten(e)&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:OBJ_THREAT[obj]||{x:476,y:100});   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
+  if(!t.length)t.push(MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
 // before anyone's seen at the later objectives: where previews judge cover from
@@ -182,9 +189,9 @@ function makeAssign(list,tx,ty){
   return res;
 }
 // spots inside a medical or supply box (hq.js) for everyone selected: a grid of free spots 20 apart, nearest the tap first
-function boxAssign(list,z,tx,ty){
+function boxAssign(list,z,tx,ty){   // everyone selected into a station's ring (round the station, not on it)
   const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf),slots=[];
-  for(let y=z.y+12;y<=z.y+z.h-12;y+=20)for(let x=z.x+12;x<=z.x+z.w-12;x+=20)if(isFree(x,y,8)&&!others.some(o=>hyp(o.x-x,o.y-y)<SPACE_OPEN))slots.push({x,y});
+  for(let y=z.y-z.r+10;y<=z.y+z.r-10;y+=19)for(let x=z.x-z.r+10;x<=z.x+z.r-10;x+=19){const d=hyp(x-z.x,y-z.y);if(d>z.r-9||d<16)continue;if(isFree(x,y,8)&&!others.some(o=>hyp(o.x-x,o.y-y)<SPACE_OPEN))slots.push({x,y});}
   if(slots.length<list.length)return null;
   slots.sort((a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty));
   const take=slots.slice(0,list.length),res=[],th=threats();
@@ -253,11 +260,13 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 // src: who did it (credited with the kill for the after-action report)
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
+  if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun truck: only blasts get here (mission.js)
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
   if(t.unarmored)dmg*=1.3;   // a freed prisoner: no vest (office.js)
   t.hp-=dmg;t.hitFlash=.25;
   if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
+  if(t.side==='E'&&t.hp>0&&!t.dog&&Math.random()<.4)bark(t,'hit',true);   // (Bryan: the enemy should be screaming)
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
@@ -270,7 +279,7 @@ function damage(t,dmg,src){
       t.dead=true;t.path=[];callout(t,'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog&&Math.random()<.5)sfxGrunt(t,true);}
       {const o=enemies.find(q=>q!==t&&!q.dead&&!q.dog&&q.alerted&&hyp(q.x-t.x,q.y-t.y)<220);if(o)bark(o,'down');}
       if(src&&src.side==='P'){creditKill(src);if(Math.random()<.6)say(src,'kill');chatKill(src);}
-      paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);   // (a body someone may find: layers.js)
+      paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);enemyDown(t);   // (a body someone may find: layers.js; the sniper's rifle: mission.js)
     }
   }
 }
@@ -281,20 +290,30 @@ function pickTarget(u){
   let best=null,bs=-1;
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>wRange(u))continue;
+    if(f.veh&&u.side==='P')continue;   // bullets are no use on the gun truck
+    if(u.onGun){let da=Math.atan2(f.y-u.onGun.y,f.x-u.onGun.x)-u.onGun.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>u.onGun.arc)continue;}   // a mounted gun only swings so far
     const L=fireLine(u,f);if(!L)continue;
     let c=hitChance(u,f,L);if(u.focus===f)c+=1;if(u.watch&&inWatch(u,f))c+=.5;
     if(c>bs){bs=c;best={t:f,L};}
   }
   return best;
 }
+// who a soldier sees: 36 m round him; with a sniper rifle, 70 m the way he's looking (all round when he's the one selected)
+function canSee(p,e){
+  const d=hyp(p.x-e.x,p.y-e.y);if(d<=360)return!!fireLine(p,e);
+  if(p.weapon!=='sniper'||d>700)return false;
+  let da=Math.atan2(e.y-p.y,e.x-p.x)-p.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
+  return(Math.abs(da)<.45||(sel.length===1&&sel[0]===p))&&!!fireLine(p,e);
+}
 function burst(u,t,L){
+  if(u.side==='E')u.revealT=simT+3;else if(t.side==='E')t.revealT=Math.max(t.revealT||0,simT+1.6);   // a muzzle flash gives him away; and you can see who your men are shooting at
   if(u.gunner&&hyp(u.x-camT.x,u.y-camT.z)<260)shake(.14);
   if(u.heavy&&++u.rounds>=HEAVY.bursts){u.rounds=0;u.reloadT=simT+HEAVY.reload+1;bark(u,'reload',true);if(typeof sfxReload==='function')setTimeout(()=>sfxReload(u.x,u.y),600);}   // the run's heavy gun: a reload after this burst
-  u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
+  u.target=t;u.aimT=simT;if(u.veh)u.aimA=Math.atan2(L.ty-L.fy,L.tx-L.fx);else{u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);}
   const c=hitChance(u,t,L);
-  const n=u.gunner?5:u.weapon==='shotgun'?1:3;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun one blast
+  const n=u.gunner?5:wOf(u).n;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun or a sniper rifle one round
   const q=silenced(u);if(q){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}   // a silencer: a quiet burst, and it wears a little
-  for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
+  for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner||n>3?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
   if(u.side==='P'&&t.alerted&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
 }
 function resolveShot(s){
@@ -313,9 +332,10 @@ function resolveShot(s){
   if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
   if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0});   // a silencer hides the flash
-  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:sg?0.14:0.06)*(t.side==='P'?rankNerve(t):1));   // machine guns and shotgun blasts pin people down
+  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t):1));   // machine guns, sniper rounds and shotgun blasts pin people down
   if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(Math.random()<(t.side==='P'?.45:.3))sfxGrunt(t,false);}   // a hit: the thud, and often a grunt
-  if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
+  if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');s.hit=false;}   // armour: it sparks off
+  if(s.hit){const W=wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet);   // they'll think the squad is where the shot came from (a silenced shot: only close by)
   else alertAll(null,false,fx,fy,ex,ey,{x:t.x,y:t.y});   // their own gunfire is heard nearby too
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -340,10 +360,10 @@ function suppressShot(u){
   tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163',q});if(q)lastNoiseT=simT;else flashes.push({x:L.fx,y:L.fy,t:0});
   if(typeof sfxShot==='function'&&q)sfxShot(u,true);
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
-  for(const{e}of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
+  const hv=u.weapon==='hmg';for(const{e}of tg){e.sup=Math.min(1.2,e.sup+(hv?0.24:0.17));e.alerted=true;}   // (the heavy gun pins harder, and faster)
   if(hit)damage(t,12,u);
   alertAll('Contact. Weapons free.',true,u.x,u.y,ex,ey,{x:u.x,y:u.y},q?SIL.open:undefined,q?SIL.wall:undefined,!q);
-  u.cool=.42+Math.random()*.12;
+  u.cool=hv?.26+Math.random()*.08:.42+Math.random()*.12;
 }
 function throwNade(u,tx,ty){
   if(hyp(tx-u.x,ty-u.y)>170){banner('Too far. Throw inside the circle.');return false;}
@@ -368,6 +388,60 @@ function throwSmoke(u,tx,ty){
   return true;
 }
 function popSmoke(x,y){smokes.push({x,y,t0:simT});if(typeof sfxSmoke==='function')sfxSmoke(x,y);}
+/* ---------- the RPG (Bravo's special item, Bryan): a rocket at a spot, a big blast; loud ---------- */
+const PRPG={range:380,min:60,aim:.6,blast:55,dmg:120,speed:300};
+function fireRPG(u,tx,ty){
+  if(u.spec!=='rpg'||!u.specN){banner(`${u.name} has no rockets left.`,1600);return false;}
+  const d=hyp(tx-u.x,ty-u.y);if(d<PRPG.min){banner('Too close for a rocket.',1600);return false;}
+  if(d>PRPG.range){banner('Out of range for the RPG.',1600);return false;}
+  const f=sightOf(u,tx,ty);if(!f){banner('No clear shot from here.');return false;}
+  u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT+PRPG.aim+.5;leanOut(u,{fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y});
+  u.rpgAim={x:tx,y:ty,f,at:simT+PRPG.aim};callout(u,'Rocket!',C.warn);return true;
+}
+/* ---------- getting into position (Bryan: tap where to throw or fire; if he can't from where he is, he moves to where he can,
+   and says so if there's no safe way). Allies never block a throw (only walls and the like do). ---------- */
+const routeLen=(u,p)=>{let L=0,x=u.x,y=u.y;for(const q of p){L+=hyp(q.x-x,q.y-y);x=q.x;y=q.y;}return L;};
+// would an enemy they know about see this spot? (an unaware one in his cone or close by, an alerted one all round)
+function watched(x,y){
+  return enemies.some(e=>{if(beaten(e)||e.dog||!e.seen)return false;const d=hyp(x-e.x,y-e.y);if(d>(e.alerted?380:eyeR()))return false;
+    if(!e.alerted&&d>80){let da=Math.atan2(y-e.y,x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)return false;}
+    return los(e.x,e.y,x,y);});
+}
+function fireSpot(u,tx,ty,range,minD=0){
+  const ok=(x,y)=>{const d=hyp(tx-x,ty-y);return d<=range&&d>=minD&&hideAt(x,y)===hideAt(tx,ty)&&!!sightFrom(x,y,tx,ty);};
+  if(ok(u.x,u.y)&&sightOf(u,tx,ty))return{here:true};
+  const th=threats(),safe=c=>contact?isCovered(c,th):!watched(c.x,c.y),cand=[];
+  for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<340)cand.push({x:c.x,y:c.y});
+  for(const r of[range*.5,range*.8])for(let k=0;k<16;k++){const a=k/16*TAU;cand.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
+  const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
+  const good=cand.filter(c=>isFree(c.x,c.y,7)&&ok(c.x,c.y)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<10)&&safe(c)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y)})).sort((a,b)=>a.d-b.d).slice(0,6);
+  for(const c of good){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=360&&L<=c.d*1.7+60)return{x:c.x,y:c.y,path:p};}}
+  return null;
+}
+// kind: 'nade', 'smoke' or 'rpg'
+function orderThrow(u,tx,ty,kind){
+  const R=kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:170,minD=kind==='rpg'?PRPG.min:0;
+  if(kind==='rpg'&&hyp(tx-u.x,ty-u.y)<minD){banner('Too close for a rocket.',1600);return false;}
+  const s=fireSpot(u,tx,ty,R,minD);
+  if(!s){if(typeof gen==='function')chat('nadeno',5,gen(u,'nadeno'));banner(kind==='rpg'?`${u.name} can’t get a safe shot at that.`:`${u.name} can’t get a safe throw at that.`,2000);return false;}
+  if(s.here)return doThrow(u,tx,ty,kind);
+  u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};
+  if(typeof gen==='function')chat('nadego',6,gen(u,'nadego'));callout(u,kind==='rpg'?'Getting a shot':'Getting an angle',C.warn);
+  return true;
+}
+function doThrow(u,tx,ty,kind){return kind==='rpg'?fireRPG(u,tx,ty):kind==='smoke'?throwSmoke(u,tx,ty):throwNade(u,tx,ty);}
+function throwTick(){
+  for(const u of players){
+    const g=u.throwGo;
+    if(g){if(!alive(u)||u.carry||u.lastOrder>g.t0+.01)u.throwGo=null;   // (another order since: forget it)
+      else if(!u.path.length){u.throwGo=null;if(!doThrow(u,g.x,g.y,g.kind))callout(u,'No angle',C.warn);}}
+    const a=u.rpgAim;if(!a||simT<a.at)continue;u.rpgAim=null;if(!alive(u))continue;   // the rocket goes
+    const dd=hyp(a.x-a.f.x,a.y-a.f.y)||1;
+    rockets.push({x:a.f.x,y:a.f.y,dx:(a.x-a.f.x)/dd,dy:(a.y-a.f.y)/dd,left:dd,by:u,trail:[],spec:PRPG,speed:PRPG.speed});
+    flashes.push({x:a.f.x,y:a.f.y,t:0});u.stats.items++;if(typeof gen==='function')chat('rpgout',3,gen(u,'rpgout'));
+    alertAll('Contact. Weapons free.',true,a.f.x,a.f.y,a.x,a.y,{x:a.f.x,y:a.f.y});
+  }
+}
 // quiet: no alarm (an explosion with nobody left to hear it)
 function explode(x,y,by,quiet){
   booms.push({x,y,t:0});shake(clamp(1.1-hyp(x-camT.x,y-camT.z)/450,0,1));paintDecal({k:'scorch',x,y,r:Math.random()});
@@ -399,12 +473,13 @@ function autoGait(p){
 const SEE_RATE=1.6,NOISE_R=110,AWARE_FADE=0.15,AWARE_LOOK=0.35;
 function sense(e,dt){
   if(e.dog){dogSense(e,dt);return;}
-  let gain=0,best=0,src=null;const R=eyeR();   // on alert their eyes reach further (layers.js)
+  let gain=0,best=0,src=null;const R=e.eye?e.eye.r*(alertStage()>=1?1.15:1):eyeR(),CONE=e.eye?e.eye.cone:1.08;   // on alert their eyes reach further (layers.js); the sniper's and the truck's are their own
+  const fwd=e.veh&&e.drive&&e.drive.parked?e.aimA:e.ang;
   for(const p of players){
     if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);let g=0;
     if(d<=R){
-      let da=Math.atan2(p.y-e.y,p.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
-      const cone=Math.abs(da)<1.08;
+      let da=Math.atan2(p.y-e.y,p.x-e.x)-fwd;da=Math.atan2(Math.sin(da),Math.cos(da));
+      const cone=Math.abs(da)<CONE;
       if((cone||d<80)&&fireLine(e,p)){
         g=SEE_RATE*(1-d/(R*1.1));
         if(cone)g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least (in the sewer pipe nobody can see him at all: fireLine)
@@ -437,7 +512,7 @@ function behindSpot(e){   // a free spot at his back: straight behind first, the
   return null;
 }
 function canTakedown(u,e){
-  if(!u||!e||!alive(u)||u.inVeh||u.crawl||u.tk||e.dead||e.dog||e.alerted||contact||!e.vis||e.elev||e.grabbed)return false;
+  if(!u||!e||!alive(u)||u.inVeh||u.crawl||u.tk||e.dead||e.dog||e.veh||e.alerted||contact||!e.vis||e.elev||e.grabbed)return false;
   const d=hyp(u.x-e.x,u.y-e.y);if(d>TK_RANGE)return false;
   let da=Math.atan2(u.y-e.y,u.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
   return Math.abs(da)>1.08&&!!behindSpot(e);   // he's not looking his way
@@ -477,7 +552,7 @@ function endTakedown(u,done){const e=u.tk&&u.tk.e;if(e&&!done)e.grabbed=false;u.
 const SIL={range:200,aim:.45,bonus:.2,open:90,wall:40,missOpen:70,missWall:30};
 const silenced=u=>!!u&&u.side==='P'&&u.spec==='silencer'&&u.specN>0;
 function canSilent(u,e){
-  if(!u||!e||!alive(u)||!silenced(u)||u.inVeh||u.carry||u.crawl||u.tk||e.dead||e.surr||e.alerted||!e.vis||e.grabbed)return false;
+  if(!u||!e||!alive(u)||!silenced(u)||u.inVeh||u.carry||u.crawl||u.tk||u.climb||e.dead||e.veh||e.surr||e.alerted||!e.vis||e.grabbed)return false;
   return hyp(u.x-e.x,u.y-e.y)<=SIL.range&&!!fireLine(u,e);
 }
 function silentChance(u,e){const L=fireLine(u,e);return L?clamp(hitChance(u,e,L)+SIL.bonus,.05,.95):0;}
@@ -492,7 +567,8 @@ function silentTick(){
     if(e.alerted){u.silent=null;callout(u,'He\u2019s seen us',C.warn);continue;}   // too late: no quiet shot now
     const L=fireLine(u,e);if(!L){u.silent=null;callout(u,'Lost the shot',C.warn);continue;}
     u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;
-    if(simT-k.t<SIL.aim)continue;
+    if(k.hold){if(simT-k.t>20){u.silent=null;callout(u,'Stood down',C.warn);}continue;}   // marked for a volley: aiming, waiting for the others
+    if(simT<(k.at??k.t+SIL.aim))continue;
     u.silent=null;u.specN--;leanOut(u,L);
     const hit=Math.random()<clamp(hitChance(u,e,L)+SIL.bonus,.05,.95),mx=hit?0:(Math.random()-.5)*18,my=hit?0:(Math.random()-.5)*18;
     tracers.push({x1:L.fx,y1:L.fy,x2:L.tx+mx,y2:L.ty+my,t:0,col:'214,228,238',q:true});lastNoiseT=simT;
@@ -501,10 +577,38 @@ function silentTick(){
     else{alertOne(e,{x:u.x,y:u.y},false);alertAll(null,false,L.fx,L.fy,L.tx+mx,L.ty+my,{x:u.x,y:u.y},SIL.missOpen,SIL.missWall,false);callout(u,'Missed',C.warn);setStatus();}
     if(!u.specN)callout(u,'Silencer worn out',C.warn);
   }
+  if(volley&&simT>=volley.at&&!volley.by.some(u=>u.silent)){   // the volley's gone: a word if it was clean
+    const v=volley;volley=null;if(v.targets.length>1&&v.targets.every(e=>e.dead)&&!contact&&typeof gen==='function'){const w=v.by.find(alive);if(w)chat('volleyok',10,gen(partnerOf(w)||w,'volleyok'));}
+  }
+}
+/* ---------- silenced volleys (Bryan: two or more with silencers drop several men at the same moment) ----------
+   With two or more silenced soldiers selected, tapping a hostile who hasn't noticed them marks him for the nearest one who
+   can take him (he aims and holds); tap another for the next. When each has a mark, or you tap a marked man again, they fire
+   together on the lead's count. */
+let volley=null;
+const volleyCrew=list=>list.filter(u=>silenced(u)&&alive(u));
+const volleyFree=list=>volleyCrew(list).filter(u=>!(u.silent&&u.silent.hold));
+const markedBy=e=>players.find(u=>u.silent&&u.silent.hold&&u.silent.e===e)||null;
+function canVolley(list,e){return volleyCrew(list).length>1&&(!!markedBy(e)||volleyFree(list).some(u=>canSilent(u,e)));}
+function orderVolley(list,e){
+  if(markedBy(e)){fireVolley();return true;}   // a marked man tapped again: fire now
+  const u=volleyFree(list).filter(q=>canSilent(q,e)).sort((a,b)=>hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y))[0];if(!u)return false;
+  orderSilent(u,e);u.silent.hold=true;callout(u,'On him',C.good);
+  if(!volleyFree(list).length)fireVolley();   // everyone has a mark
+  else banner('Marked. Tap another hostile for the next silencer, or tap a marked man again to fire.',2400);
+  return true;
+}
+function fireVolley(){
+  const by=players.filter(u=>u.silent&&u.silent.hold);if(!by.length)return;
+  const lead=by.find(u=>/1$/.test(u.id))||by[0],l=typeof gen==='function'&&by.length>1?gen(lead,'volley'):null;let d=.3;
+  if(l&&chat('volley',4,l)){const c=VSPR&&VSPR.speakers[lead.id]&&VSPR.speakers[lead.id].clips[l.clip];d=clamp(c?c[2]-.1:1,.3,2.6);}   // they fire on the count
+  const at=Math.max(simT+d,...by.map(u=>u.silent.t+SIL.aim));
+  for(const u of by){u.silent.hold=false;u.silent.at=at;}
+  volley={by,at,targets:by.map(u=>u.silent.e)};
 }
 function silentKill(e,u){   // like damage(), but quiet: nobody hears it
   e.grabbed=false;e.hp=0;e.dead=true;e.path=[];callout(e,'Silent kill',C.good);creditKill(u);if(typeof sfxCloth==='function'){sfxCloth(e.x,e.y);sfxBodyFall(e.x,e.y);}
-  paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});addBody(e);chatTakedown(u);   // nobody heard it, but someone may find him (layers.js)
+  paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});addBody(e);enemyDown(e);chatTakedown(u);   // nobody heard it, but someone may find him (layers.js)
 }
 
 /* ---------- AI ---------- */
@@ -513,9 +617,9 @@ function computeVis(){
   for(const c of civs)c.vis=players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-c.x,p.y-c.y)<=360&&los(p.x,p.y,c.x,c.y));   // the people who aren't soldiers: shown once seen (office.js)
   for(const e of enemies){
     if(e.dead){e.vis=false;continue;}
-    e.vis=players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=360&&fireLine(p,e));
+    e.vis=players.some(p=>alive(p)&&canSee(p,e))||(simT<(e.revealT||0)&&!offFloor(e));   // (revealT: he gave himself away firing at us, or one of ours is shooting at him; Bryan couldn't find who was shooting)
     if(e.vis){
-      if(!e.seen){e.seen=true;callout(e,'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(obj===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
+      if(!e.seen){e.seen=true;callout(e,'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(e.grp===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
       e.last={x:e.x,y:e.y};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
@@ -557,7 +661,7 @@ function enemyThink(e){
   }else e.moveCool=simT+2;
 }
 function playerThink(p){
-  if(!alive(p)||p.path.length||p.inVeh||!contact||p.sup>0.65||p.supT||p.watch||(breach&&breach.team.includes(p))||simT-(p.nadeT??-99)<6){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
+  if(!alive(p)||p.path.length||p.inVeh||p.onTower||p.climb||p.onGun||!contact||p.sup>0.65||p.supT||p.watch||(breach&&breach.team.includes(p))||simT-(p.nadeT??-99)<6){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
   if(simT-p.lastOrder<4)return;
   const vis=enemies.filter(e=>!e.dead&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
   const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);
@@ -595,14 +699,15 @@ function updateUnit(u,dt){
   if(u.carry&&u.path.some(q=>q.vault)){const d0=u.path[u.path.length-1],np=findPath(u.x,u.y,d0.x,d0.y,FOOT);u.path=np||[];if(!np)callout(u,"Can't climb with him",C.warn);}   // carrying a man: no vaulting, the long way round
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
-    const sz=slowAt(u.x,u.y),sp=(u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
+    const sz=slowAt(u.x,u.y),sp=(u.veh?GTRUCK.speed:u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
       (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
-    if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
+    if(u.veh)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*2.2);   // the truck swings round slowly
+    else if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
   }else if(simT-u.aimT>2){
     if(u.side==='P'){const th=threats();let n=th[0],nd=1e9;for(const t of th){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}
     else if(!u.alerted&&u.aware>=AWARE_LOOK&&u.susp)u.ang=turn(u.ang,Math.atan2(u.susp.y-u.y,u.susp.x-u.x),dt*2);
-    else if(u.alerted){const ps=players.filter(alive);if(ps.length){let n=ps[0],nd=1e9;for(const t of ps){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}}
+    else if(u.alerted){const ps=players.filter(alive);if(ps.length){let n=ps[0],nd=1e9;for(const t of ps){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}if(u.veh)u.aimA=turn(u.aimA,Math.atan2(n.y-u.y,n.x-u.x),dt*3);else u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}}
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);
   if(u.rpg&&u.alerted&&u.aimAt)rpgThink(u);   // mid-aim: fire when ready
@@ -611,7 +716,8 @@ function updateUnit(u,dt){
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank
     else if(u.supT)suppressShot(u);
-    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);u.cool=u.gunner?1.3+Math.random()*.5:u.weapon==='shotgun'?1.1+Math.random()*.4:1.6+Math.random()*.6;}else u.cool=.25;}
+    else if(wOf(u).far&&u.path.length)u.cool=.3;   // a sniper rifle: not on the move
+    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);const W=wOf(u);u.cool=u.gunner?1.3+Math.random()*.5:W.cool[0]+Math.random()*(W.cool[1]-W.cool[0]);}else u.cool=.25;}
   }
 }
 function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Math.min(1,k);}
@@ -621,7 +727,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u,s.quiet);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);officeEvery(dt);banterTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
+  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
@@ -642,7 +748,7 @@ function update(dt){
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<(f.dur||1.7));
   if((coverTick-=dt)<=0){coverTick=.25;for(const p of players)if(alive(p))p.covered=isCovered(p,threats());}   // four times a second is plenty (it was every tick)
   for(const u of units)if(u.focus&&beaten(u.focus))u.focus=null;
-  takedownTick(dt);silentTick();
+  takedownTick(dt);silentTick();throwTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
     vehTick(dt);waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete
