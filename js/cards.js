@@ -85,6 +85,9 @@ function statusText(u){
   if(u.downed)return[u.carriedBy?'Carried':u.critical?`Critical ${fmtT(u.crit)}`:u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
   if(simT<(u.stunT||0))return['Knocked down','pin'];
   if(u.carry)return['Carrying',''];
+  if(u.breaching||simT<(u.breachT||0))return['Breaching',''];
+  if(breach&&breach.team.includes(u))return['Stacking up',''];
+  if(u.watch&&!u.path.length)return['Watching',''];
   if(u.medGo)return[u.path.length?'To the wounded':'Medic kit',''];
   if(u.carryGo)return['Getting him',''];
   if(u.inVeh)return[{driver:'Driving',gunner:'On the gun',pass:'Riding'}[u.seat],''];

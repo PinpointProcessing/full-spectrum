@@ -74,6 +74,7 @@ const WEAPON={rifle:{label:'Rifle',range:380},shotgun:{label:'Shotgun',range:200
 function wRange(u){return u.gunner?440:WEAPON[u.weapon||'rifle'].range;}
 function hitChance(s,t,L){
   L=L||lineOf(s,t);
+  const ob=s.side==='P'?(s.watch&&inWatch(s,t)?WATCH.bonus:0)+(simT<(s.breachT||0)?BREACH.bonus:0):0;   // Watch and Breach (orders.js)
   const d=hyp(L.tx-L.fx,L.ty-L.fy);
   const sg=s.weapon==='shotgun';
   let c=sg?1-Math.max(0,d-80)/150:0.86-d/900;   // a shotgun: near-certain within 8 m, falling off fast beyond
@@ -83,7 +84,7 @@ function hitChance(s,t,L){
   if(s.side==='P'&&ambushing())c+=AMBUSH_BONUS;
   if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=0.15;
   if(t.path.length)c-=0.08;
-  if(s.side==='P')c+=rankAim(s);   // rank: steadier aim
+  if(s.side==='P')c+=rankAim(s)+ob;   // rank: steadier aim; on Watch / breaching: a bonus
   if(s.side==='E')c-=0.1;
   if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);
@@ -190,7 +191,7 @@ function boxAssign(list,z,tx,ty){
   return res;
 }
 function commit(as){if(as&&as[0])say(as[0].u,'ack_move');
-  for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;}
+  for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;a.u.watch=null;}   // (a move ends a Watch: orders.js)
 }
 // Turn a finger-drawn trail into a walkable route that keeps its shape: skip points inside objects,
 // route round any stretch that cuts through something, and settle the end onto cover if there is some close by.
@@ -265,13 +266,13 @@ function damage(t,dmg,src){
 }
 
 function pickTarget(u){
-  // undetected, the squad holds fire except at a hostile you've told them to shoot
-  const foes=u.side==='P'?(contact?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:[]):players.filter(alive);   // a jeep is shot at through its driver (hits go to the jeep)
+  // undetected, the squad holds fire except at a hostile you've told them to shoot (or into a room they're breaching)
+  const foes=u.side==='P'?(contact||simT<(u.breachT||0)?enemies.filter(e=>!e.dead):u.focus&&!u.focus.dead?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(alive);   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>wRange(u))continue;
     const L=fireLine(u,f);if(!L)continue;
-    let c=hitChance(u,f,L);if(u.focus===f)c+=1;
+    let c=hitChance(u,f,L);if(u.focus===f)c+=1;if(u.watch&&inWatch(u,f))c+=.5;
     if(c>bs){bs=c;best={t:f,L};}
   }
   return best;
@@ -501,7 +502,7 @@ function enemyThink(e){
   }else e.moveCool=simT+2;
 }
 function playerThink(p){
-  if(!alive(p)||p.path.length||p.inVeh||!contact||p.sup>0.65||p.supT||simT-(p.nadeT??-99)<6){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
+  if(!alive(p)||p.path.length||p.inVeh||!contact||p.sup>0.65||p.supT||p.watch||(breach&&breach.team.includes(p))||simT-(p.nadeT??-99)<6){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
   if(simT-p.lastOrder<4)return;
   const vis=enemies.filter(e=>!e.dead&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
   const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);
@@ -563,7 +564,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);
+  medTick(dt);huntTick(dt);watchTick();breachTick();
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)

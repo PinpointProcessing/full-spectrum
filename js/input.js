@@ -171,7 +171,7 @@ function tap(sx,sy){
     const en=enemyAtScreen(sx,sy),pt=en?{x:en.x,y:en.y}:{x:wx,y:wy};
     if(!en&&!inMap){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
     if(!enemies.some(e=>!e.dead&&e.seen&&hyp((e.vis?e.x:e.last.x)-pt.x,(e.vis?e.y:e.last.y)-pt.y)<55)){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
-    for(const u of sel){u.supT={x:pt.x,y:pt.y};u.focus=null;u.noLine=0;u.lastOrder=simT;}
+    for(const u of sel){u.supT={x:pt.x,y:pt.y};u.focus=null;u.noLine=0;u.lastOrder=simT;u.watch=null;}
     if(sel[0])callout(sel[0],'Suppressing!',C.warn);
     mode=null;preview=null;fireOrderAt=performance.now();return;
   }
@@ -179,6 +179,14 @@ function tap(sx,sy){
     const u=sel[0];if(!u){mode=null;return;}
     const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
     if(orderCharge(u,t.x,t.y)){mode=null;preview=null;fireOrderAt=performance.now();}return;
+  }
+  if(mode==='watch'){   // Watch (orders.js): where to watch
+    const list=sel.filter(u=>alive(u)&&!u.carry);if(!list.length){mode=null;return;}
+    if(!inMap){banner('Tap where they should watch. Press Watch again to cancel.');return;}
+    orderWatch(list,wx,wy);mode=null;preview=null;fireOrderAt=performance.now();return;
+  }
+  if(mode==='breach'){   // Breach room (orders.js): which room
+    if(orderBreach(sel,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   if(mode==='medkit'){   // a medic kit (his special item): tap a downed teammate
     const u=sel[0];let pu=unitAtScreen(sx,sy,false);if(!u){mode=null;return;}

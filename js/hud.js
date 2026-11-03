@@ -31,6 +31,7 @@ function hud(){
   updateCards();
   const act=sel.filter(alive);
   $('#supBtn').disabled=!act.length||!enemies.some(e=>!e.dead&&e.seen);
+  {const wb=$('#watchBtn'),bb=$('#breachBtn');wb.disabled=!act.length;wb.classList.toggle('on',mode==='watch'||act.some(u=>u.watch));bb.hidden=!(MAPID==='in'||obj===0);bb.disabled=!act.length;bb.classList.toggle('on',mode==='breach'||!!breach);}
   $('#supBtn').classList.toggle('on',mode==='suppress');
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
   {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
@@ -51,6 +52,8 @@ function hud(){
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap inside the dashed circle to throw. Tap the grenade on his card again to cancel.';
+  else if(mode==='watch')h='Tap where to watch. They take cover facing that way and fire first at anything that comes into the cone, even before they are seen.';
+  else if(mode==='breach')h='Tap the room to breach. The team stacks up at its doorway, then goes in together with a quick edge.';
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
   else if(mode==='smoke')h='Tap inside the dashed circle to throw smoke: nobody sees through it, either way, for about 12 s. Tap the smoke on his card again to cancel.';
   else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medical box (the red +). He moves slowly and can't shoot. Put down is bottom right.`;
@@ -101,6 +104,8 @@ function bindHud(){
   const gaitOrDismount=()=>{if(state!=='play')return;const cr=sel.filter(u=>u.carry),c=selCrew();if(cr.length){for(const u of cr)putDown(u);}else if(c.length){const out=dismount(c);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
   $('#gaitBtn').addEventListener('click',gaitOrDismount);
   $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
+  $('#watchBtn').addEventListener('click',()=>{if(state!=='play')return;const act=sel.filter(alive);if(mode!=='watch'&&act.some(u=>u.watch)&&!mode){endWatch(act);hud();return;}mode=mode==='watch'?null:'watch';preview=null;hud();});   // on Watch already: a press ends it
+  $('#breachBtn').addEventListener('click',()=>{if(state!=='play')return;if(breach){breach=null;hud();return;}mode=mode==='breach'?null:'breach';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
