@@ -83,6 +83,7 @@ function statusText(u){
   if(u.dead)return['KIA','down'];
   if(u.offMap)return['Outside','down'];   // left downed outside the office building: frozen until the squad comes back out
   if(u.downed)return[u.carriedBy?'Carried':u.critical?`Critical ${fmtT(u.crit)}`:u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
+  if(simT<(u.stunT||0))return['Knocked down','pin'];
   if(u.carry)return['Carrying',''];
   if(u.medGo)return[u.path.length?'To the wounded':'Medic kit',''];
   if(u.carryGo)return['Getting him',''];

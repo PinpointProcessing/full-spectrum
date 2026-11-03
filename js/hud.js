@@ -6,9 +6,10 @@ const OBJ_HINT={1:'Next: take the bridge (north). Or crawl through the sewer pip
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  if(wave.phase==='hq'){s.textContent=contact?'Contact':obj>=5?'Bridge down':'Undetected';s.className='chip'+(contact?' contact':'');return;}
+  const quiet=enemies.some(e=>!e.dead&&e.alerted)?'Hunted':'Undetected';   // hunted: they're searching for you (hunt.js)
+  if(wave.phase==='hq'){s.textContent=contact?'Contact':obj>=5?'Bridge down':quiet;s.className='chip'+(contact?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
-  s.textContent=contact?'Contact':'Undetected';s.className='chip'+(contact?' contact':'');
+  s.textContent=contact?'Contact':quiet;s.className='chip'+(contact?' contact':'');
 }
 function finish(){
   const win=players.some(alive)&&(wave.phase==='hq'?obj>=5:enemies.every(e=>e.dead));

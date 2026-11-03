@@ -133,6 +133,9 @@ function drawOverlay(rdt,now){
   drawSmoke();
 
   drawHQ(now);drawVehicle(rdt,now);drawMission(rdt,now);
+  // where the hunters think the squad is (hunt.js): a faint ring where they're searching
+  {const done=[];for(const e of enemies){if(e.dead||!e.alerted||!e.hunt||!e.lkp||offFloor(e))continue;const L=e.lkp;if(done.some(d=>hyp(d.x-L.x,d.y-L.y)<80))continue;done.push(L);
+    gPath(L.x,L.y,22+Math.sin(now*3)*2);ox.setLineDash([3,5]);ox.strokeStyle='rgba(205,210,215,.55)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(L.x,L.y+22,4);label('SEARCHING',lx,ly,'rgba(205,210,215,.75)',8,700);}}
   // enemy info
   const act=sel.filter(alive);
   for(const e of enemies){
@@ -159,6 +162,8 @@ function drawOverlay(rdt,now){
         pill(pc.text,fx,fy+16,pc.col);
       }
       if(act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
+      if(e.radio){label(e.call?'CALLING IT IN':'RADIO',fx,fy+29,e.call?'#ff5a48':'#ffb0a0',8,700);   // the radio man (hunt.js): kill or pin him before the call goes out
+        if(e.call){gPath(vx,vy,15,-Math.PI/2,-Math.PI/2+e.call.t/CALL_T*TAU);ox.strokeStyle='#ff3b2a';ox.lineWidth=2.6;ox.stroke();}}
       if(stalked){gPath(vx,vy,11+Math.sin(now*6)*1.5);ox.strokeStyle=C.good;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);}   // being stalked for a takedown
     }else if(e.seen&&e.last){
       gPath(e.last.x,e.last.y,7);ox.setLineDash([3,3]);ox.strokeStyle='rgba(255,90,72,.7)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);

@@ -24,10 +24,11 @@ function reset(){
   for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':'rifle';p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=1;}
   for(const p of players)p.level=levelOf(xpOf(p.id));
   for(const u of units)makeSoldier(u);
+  addRadioKit(enemies[1]);   // E2 carries the warehouse's radio (hunt.js)
   drawGround();
   sel=[];cardGroup=[];preview=null;mode=null;contact=false;paused=false;simT=0;downCount=0;ambushT=-9;
   shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];smokes=[];endAt=0;
   landing=null;if(dinghy)dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
-  resetWaves();setStatus();buildCards();
+  resetWaves();resetHunt();setStatus();buildCards();
 }
 function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw'))?0.25:1;}

@@ -132,6 +132,7 @@ function spawnInterior(){   // the guards at their posts, unaware (ambushers, pr
     const r=roomAt(f,p.x,p.y),zone=r?{x0:r.x0+8,x1:r.x1-8,y0:r.y0+8,y1:r.y1-8}:{x0:f.bounds.x0,x1:f.bounds.x1,y0:f.bounds.y0,y1:f.bounds.y1},id='I'+(++n);
     const u=p.role==='mg'?mgGunner(id,p.x,p.y):hostile(id,p.x,p.y,{zone,ang:p.ang});
     Object.assign(u,{ang:p.ang,jumpy:false,floor:f.id,area:p.group,zone:p.role==='mg'?undefined:zone});
+    if(/operator/i.test(p.note||''))addRadioKit(u);   // he can call it in: everyone on the floor comes (hunt.js)
   }
 }
 
@@ -239,27 +240,23 @@ function bindFloors(){
 /* ---------- noise and contact inside ---------- */
 // a shot or a blast at (x,y) (and where it lands, x2,y2) alerts the hostiles on that floor who'd hear it: anyone in the
 // same room, in sight within IN_HEAR_OPEN, through walls within IN_HEAR_WALL
-function alertNear(x,y,msg,ambush,x2,y2){
+function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL){
   const f=floorOf(x,y),fl=IN.floors[f];let any=false;
   const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]],rooms=fl?pts.map(([px,py])=>roomAt(fl,px,py)).filter(Boolean):[];
   const hears=e=>{if(fl&&rooms.includes(roomAt(fl,e.x,e.y)))return true;
-    for(const[px,py]of pts){const d=hyp(e.x-px,e.y-py);if(d<=IN_HEAR_WALL||(d<=IN_HEAR_OPEN&&gridSight(px,py,e.x,e.y)))return true;}return false;};
+    for(const[px,py]of pts){const d=hyp(e.x-px,e.y-py);if(d<=wall||(d<=open&&gridSight(px,py,e.x,e.y)))return true;}return false;};
   for(const e of enemies){
     if(e.dead||e.alerted||e.floor!==f||!hears(e))continue;
-    e.alerted=true;e.aware=1;e.jumpy=true;e.sawT=simT;if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);any=true;
+    alertOne(e,lk||{x,y},ambush);any=true;   // (hunt.js: he'll come looking where the noise was)
   }
-  if(!contact){const amb=ambush&&any;contact=true;say(players.find(alive),amb?'ack_attack':'contact');if(amb)ambushT=simT+AMBUSH_T;banner(amb?'Ambush! They never saw it coming.':msg||'Contact. They know you are here.',2200);setStatus();}   // an ambush only if it caught someone unaware
+  if(any)startContact(msg,ambush);   // an ambush only if it caught someone unaware
   return any;
 }
 let inQuietT=0;
 function interiorTick(dt){
   useTick(dt);
   if((inQuietT-=dt)>0)return;inQuietT=.5;
-  if(contact){   // contact ends once no alerted hostile on a floor with the squad has seen them for a while
-    const floorsUp=new Set(players.filter(p=>alive(p)&&!p.offMap).map(p=>floorOf(p.x,p.y)));
-    if(!enemies.some(e=>!e.dead&&e.alerted&&floorsUp.has(e.floor)&&simT-(e.sawT??-99)<IN_QUIET)){contact=false;setStatus();banner('All quiet',1600);}
-  }
-  floorChip();
+  floorChip();   // (contact ending: hunt.js, for both maps)
 }
 function inThreat(){const b=IN.floors[curFloor].bounds;return{x:(b.x0+b.x1)/2,y:b.y0+40};}   // before anyone's seen inside: where previews judge cover from
 

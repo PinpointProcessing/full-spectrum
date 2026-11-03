@@ -187,3 +187,8 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #floors i span{width:5px;height:5px;border-radius:50%}
 #fade{position:absolute;inset:0;z-index:6;background:#000;opacity:0;transition:opacity .35s;pointer-events:none}
 #fade.on{opacity:1}
+
+/* a radio call going out, or reinforcements on the way (hunt.js): under the objective box */
+#threat{background:rgba(30,6,4,.9);border:1px solid rgba(255,70,50,.6);border-radius:8px;padding:4px 8px 5px;color:#ff6a52;font-family:var(--font-hud);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;min-width:130px;box-shadow:0 0 12px rgba(255,40,20,.35)}
+#threat span{display:block;height:3px;margin-top:4px;background:rgba(255,80,60,.2);border-radius:2px;overflow:hidden}
+#threat i{display:block;height:100%;width:0;background:#ff3b2a}

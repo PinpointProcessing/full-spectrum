@@ -22,7 +22,7 @@ function resetMission(){
 }
 /* ---------- objectives ---------- */
 // spawn helpers: a rifleman, an MG gunner on a tripod gun (never moves), a sentry inside a structure
-function hostile(id,x,y,extra){const u=mk('E','E',id,extra.name||'Hostile',x,y,extra.ang??Math.PI/2);Object.assign(u,{jumpy:true},extra);makeSoldier(u);return u;}
+function hostile(id,x,y,extra){const u=mk('E','E',id,extra.name||'Hostile',x,y,extra.ang??Math.PI/2);Object.assign(u,{jumpy:true},extra);makeSoldier(u);if(u.radio)addRadioKit(u);return u;}
 function mgGunner(id,x,y){
   const u=hostile(id,x,y,{name:'Gunner',gunner:true,post:true});
   const mg=new T.Group(),dm=new T.MeshStandardMaterial({color:0x1b1e1b,roughness:.7,metalness:.45});
@@ -38,18 +38,19 @@ function groupSpecs(n){
   const g=[];
   if(n===1){   // the bridge: an MG nest at its north end, a sentry in the pillbox, riflemen behind sandbags; calm, not on edge
     g.push([476,20,()=>mgGunner('E20',476,20)],[556,14,()=>hostile('E21',556,14,{name:'Sentry',post:true,elev:14}),true]);   // true: inside the pillbox, he never walks in
-    for(const[i,[x,y]]of[[422,30],[614,38],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE})]);
+    for(const[i,[x,y]]of[[422,30],[614,38],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE,radio:i===0})]);   // E22 carries the radio
     for(const q of g){const make0=q[2];q[2]=()=>{const u=make0();u.jumpy=false;return u;};}
   }else if(n===2){   // the container yard: men posted in its aisles and a two-man patrol walking them; then the depot's guards and its RPG gunner
     // behind the first row of containers, looking every which way; none in sight of the rest spot at the bridge's south end
-    for(const[i,[x,y]]of[[437,-136],[450,-150],[600,-110],[345,-140],[560,-105],[620,-120],[440,-250],[550,-240],[340,-230]].entries())g.push([x,y,()=>hostile('E'+(60+i),x,y,{zone:YARD2_ZONE,ang:Math.random()*TAU})]);
-    g.push([345,-235,()=>hostile('E70',345,-235,{name:'Patrol',zone:YARD2_ZONE,route:[{x:660,y:-235},{x:345,y:-235}],ri:0,waitT:0})],[515,-220,()=>hostile('E71',515,-220,{name:'Patrol',zone:YARD2_ZONE,route:[{x:515,y:-290},{x:515,y:-220}],ri:0,waitT:0})]);
+    for(const[i,[x,y]]of[[437,-136],[450,-150],[600,-110],[345,-140],[560,-105],[620,-120],[440,-250],[550,-240],[340,-230]].entries())g.push([x,y,()=>hostile('E'+(60+i),x,y,{zone:YARD2_ZONE,ang:Math.random()*TAU,radio:i===4})]);   // E64 carries the radio
+    // the east-west patrol has a guard dog with him (hunt.js)
+    g.push([345,-235,()=>{const h=hostile('E70',345,-235,{name:'Handler',zone:YARD2_ZONE,route:[{x:660,y:-235},{x:345,y:-235}],ri:0,waitT:0});groups[2].push(dog('E72',h.x-12,h.y+10,{handler:h,zone:YARD2_ZONE}));return h;}],[515,-220,()=>hostile('E71',515,-220,{name:'Patrol',zone:YARD2_ZONE,route:[{x:515,y:-290},{x:515,y:-220}],ri:0,waitT:0})]);
     for(const[i,[x,y]]of[[730,-110],[880,-130],[955,-235],[836,-216]].entries())g.push([x,y,()=>hostile('E'+(33+i),x,y,{zone:DEP_ZONE})]);
     g.push([742,-150,()=>{const r=hostile('E37',742,-150,{name:'RPG',zone:DEP_ZONE,rpg:true,cool:1});
       const tube=new T.Mesh(new T.CylinderGeometry(1,1,12,8),new T.MeshStandardMaterial({color:0x3b4a2e,roughness:.8}));tube.rotation.z=Math.PI/2;tube.position.set(1,15,-2.5);r.m.pose.add(tube);return r;}]);
   }else if(n===3){   // the data center: MG nests behind the container wall, riflemen outside, more inside
     for(const[i,p]of DC_NESTS.entries())g.push([p.x,p.y,()=>mgGunner('E'+(40+i),p.x,p.y)]);
-    for(const[i,[x,y]]of[[60,-412],[255,-412],[490,-412]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT})]);
+    for(const[i,[x,y]]of[[60,-412],[255,-412],[490,-412]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT,radio:i===0})]);   // E42 carries the radio
   }
   return g;
 }
@@ -81,7 +82,7 @@ function spawnPending(){
   }
   if(any)enemies=units.filter(u=>u.side==='E');
 }
-function groupDone(n){return !!groups[n]&&groups[n].every(e=>e.dead)&&!pendingSpawns.some(s=>s.n===n);}
+function groupDone(n){return !!groups[n]&&groups[n].every(e=>e.dead)&&!pendingSpawns.some(s=>s.n===n)&&!reinfPending(n);}   // (and no reinforcements on the way: hunt.js)
 function groupLeft(n){return (groups[n]||[]).filter(e=>!e.dead).length+pendingSpawns.filter(s=>s.n===n).length;}
 
 /* ---------- taking a location (Bryan): the whole place, then a quiet spell ---------- */
@@ -91,7 +92,7 @@ function groupLeft(n){return (groups[n]||[]).filter(e=>!e.dead).length+pendingSp
 // so a man fighting from the door needn't walk in).
 const QUIET_T=5;
 const LOCS={
-  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(e=>e.dead),left:()=>enemies.filter(e=>!e.dead).length,
+  0:{zone:{x0:176,x1:444,y0:266,y1:554},name:'the warehouse',done:()=>enemies.every(e=>e.dead)&&!reinfPending(0),left:()=>enemies.filter(e=>!e.dead).length,
     extra:[{x0:285,x1:325,y0:240,y1:276},{x0:260,x1:360,y0:548,y1:578},{x0:150,x1:182,y0:395,y1:455},{x0:438,x1:470,y0:380,y1:420},{x0:438,x1:470,y0:450,y1:500}]},
   1:{zone:{x0:330,x1:660,y0:-40,y1:100},name:'the bridge\'s north end',done:()=>groupDone(1),left:()=>groupLeft(1)},   // its north end and the north half of the bridge
   2:{zone:DEP_ZONE,name:'the fuel depot',done:()=>groupDone(2)&&objs.every(o=>o.kind!=='tank'||o.burst)&&!tankQueue.length,left:()=>groupLeft(2)},

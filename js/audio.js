@@ -108,6 +108,20 @@ function sfxBoom(x,y,size=1){
 }
 function sfxLaunch(x,y){if(playSample('launch',x,y,.75))return;const out=voice(x,y,.5,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.08,'lowpass',1500,0,.8);noiseHit(out,t,.9,'bandpass',700,1.2,.6,.05,250);}
 function sfxCannon(x,y){if(!playSample('boom',x,y,1.3,.7)){const out=voice(x,y,1,1.6);if(out){const t=AC.currentTime;noiseHit(out,t,1.2,'lowpass',900,0,.9,.004,60);}}rumble(x,y,1.3);}
+function sfxBark(x,y){   // a big dog: two hoarse barks
+  const out=voice(x,y,.55,1);if(!out)return;const t=AC.currentTime;
+  for(const dt of[0,.22]){toneHit(out,t+dt,.12,'sawtooth',420,260,.35,.004);noiseHit(out,t+dt,.1,'bandpass',900,2.5,.4,.003);}
+}
+function sfxRadio(x,y){   // a radio keyed up: a squelch and garbled static
+  const out=voice(x,y,.4,1.6);if(!out)return;const t=AC.currentTime;
+  noiseHit(out,t,.06,'highpass',3000,0,.5,.002);noiseHit(out,t+.05,1.2,'bandpass',1800,3,.18,.02);toneHit(out,t+.02,.05,'square',1200,0,.12,.002);
+}
+function sfxSiren(x,y){   // the call went out: an alarm wailing across the base
+  const out=voice(null,null,.28,3.2);if(!out)return;const t=AC.currentTime;
+  const o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(520,t);for(let k=0;k<3;k++){o.frequency.linearRampToValueAtTime(860,t+k*1+.5);o.frequency.linearRampToValueAtTime(520,t+k*1+1);}
+  const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=1600;const g=AC.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.1);g.gain.setValueAtTime(.5,t+2.8);g.gain.exponentialRampToValueAtTime(0.0001,t+3.1);
+  o.connect(f);f.connect(g);g.connect(out);o.start(t);o.stop(t+3.2);
+}
 function sfxSmoke(x,y){   // a smoke grenade popping: a soft thump, then a long hiss that tails off
   const out=voice(x,y,.5,3);if(!out)return;const t=AC.currentTime;
   noiseHit(out,t,.12,'lowpass',700,0,.7,.003,150);noiseHit(out,t+.05,2.6,'bandpass',2600,1.4,.35,.08,1400);noiseHit(out,t+.05,2.2,'highpass',4500,0,.12,.1);
