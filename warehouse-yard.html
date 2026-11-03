@@ -14,6 +14,7 @@
     <button id="pauseBtn" aria-label="Pause">Pause</button>
   </div>
   <div id="stage">
+    <div id="hitFlash" aria-hidden="true"></div>
     <canvas id="cv"></canvas>
     <canvas id="ov"></canvas>
     <div id="nogl" hidden>This demo needs WebGL, which this browser has turned off.</div>
@@ -37,7 +38,6 @@
     <div id="tl"><!-- top left: the objective box with the "Saved" chip stacked under it, so they never overlap -->
       <div id="obj" hidden role="button" tabindex="0" aria-expanded="false" aria-label="Objectives"><b>Objective 1/5</b><span>Take the warehouse</span><ol></ol></div>
       <span class="chip" id="savedChip" hidden>Saved</span>
-      <div id="threat" hidden role="status"><b></b><span><i></i></span></div>
     </div>
     <div id="tut" hidden aria-live="polite"></div>
     <span class="chip slow" id="speed" hidden>Slow-mo</span>

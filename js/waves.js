@@ -88,7 +88,9 @@ function bigText(text,cls){
 let cdShown=-1;
 function waveHud(){
   const cd=$('#countdown'),on=state==='play'&&wave.phase==='count';
+  if(!on&&threatOn())return;   // a radio call or reinforcements are using it (hunt.js)
   cd.hidden=!on;if(!on){cdShown=-1;return;}
+  cd.querySelector('small').textContent='Incoming!';
   const left=Math.max(0,COUNT_T-(simT-wave.t)),n=Math.ceil(left);
   cd.querySelector('b').textContent=left.toFixed(2);   // counts down in hundredths
   if(n===cdShown)return;cdShown=n;

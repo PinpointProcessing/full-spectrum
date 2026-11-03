@@ -121,7 +121,10 @@ function drawOverlay(rdt,now){
     toSBack=false;const k=1-t.t/.12,[x1,y1]=toS(t.x1,t.y1,12),[x2,y2]=toS(t.x2,t.y2,10),s=Math.max(0,t.t/.12-.35);if(toSBack)continue;
     ox.strokeStyle=`rgba(${t.col},${.9*k})`;ox.lineWidth=1.8;ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();
   }
-  for(const f of flashes){const[sx,sy]=toS(f.x,f.y,12);ox.fillStyle=`rgba(255,220,150,${.95*(1-f.t/.07)})`;ox.beginPath();ox.arc(sx,sy,5,0,TAU);ox.fill();}
+  for(const f of flashes){const[sx,sy]=toS(f.x,f.y,12),k=1-f.t/.07,r=4+zoom*2.2;   // a muzzle flash: a hot core and spikes
+    const g=ox.createRadialGradient(sx,sy,0,sx,sy,r*1.8);g.addColorStop(0,`rgba(255,250,220,${(.95*k).toFixed(3)})`);g.addColorStop(.35,`rgba(255,200,110,${(.7*k).toFixed(3)})`);g.addColorStop(1,'rgba(255,140,40,0)');
+    ox.fillStyle=g;ox.beginPath();ox.arc(sx,sy,r*1.8,0,TAU);ox.fill();
+    ox.strokeStyle=`rgba(255,235,180,${(.8*k).toFixed(3)})`;ox.lineWidth=1.2;ox.beginPath();for(let i=0;i<4;i++){const a=i*Math.PI/2+f.x;ox.moveTo(sx,sy);ox.lineTo(sx+Math.cos(a)*r*2.4,sy+Math.sin(a)*r*2.4);}ox.stroke();}
   for(const s of sparks){const[sx,sy]=toS(s.x,s.y,6),k=1-s.t/.22;ox.fillStyle=`rgba(255,200,120,${k})`;for(let i=0;i<4;i++){const a=i*1.7+s.x,d=2+s.t*40;ox.fillRect(sx+Math.cos(a)*d,sy+Math.sin(a)*d,1.6,1.6);}}
   for(const b of booms){const k=b.t/.6;gPath(b.x,b.y,10+70*k);ox.strokeStyle=`rgba(255,200,130,${1-k})`;ox.lineWidth=3*(1-k)+1;ox.stroke();}
   ox.globalCompositeOperation='source-over';
@@ -142,6 +145,7 @@ function drawOverlay(rdt,now){
     if(e.dead||offFloor(e))continue;
     if(e.vis){
       const vx=e.x+e.lx,vy=e.y+e.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
+      if(e.hitFlash>0){gPath(vx,vy,7+(.25-e.hitFlash)*30);ox.strokeStyle=`rgba(255,60,40,${(e.hitFlash*3).toFixed(2)})`;ox.lineWidth=2;ox.stroke();}   // hit: a red pulse
       if(e.hp<100)bar(hx-9,hy-6,18,e.hp/100,e.hp>60?C.good:e.hp>30?C.warn:C.bad);
       if(e.sup>0.65&&e.alerted)label('PINNED',hx,hy-14,C.warn,9,700);
       else if(e.sup>0.08&&e.alerted)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
@@ -188,6 +192,9 @@ function drawOverlay(rdt,now){
       label(txt,hx,hy-6,prog>0&&!(medic&&medic.sup>PINNED)?C.good:pinnedHelp||(medic&&medic.sup>PINNED)?C.warn:C.bad,9,700);
       continue;
     }
+    // calm, unhurt and not selected: just his callsign, faint (the dark world breathes: docs/feel-plan.md); the bars come back
+    // when he's selected, hurt, suppressed or in a fight
+    if(!contact&&!sel.includes(u)&&u.hp>=99&&u.sup<.08&&!u.carry){ox.globalAlpha=.55;label(u.id,fx,fy+15,teamCol(u),9,700);ox.globalAlpha=1;continue;}
     bar(hx-9,hy-6,18,u.hp/100,u.hp>60?C.good:u.hp>30?C.warn:C.bad);
     shield(hx+16,hy-4,peekOf(u)?C.warn:u.covered?C.good:C.bad);
     label(u.id,fx,fy+15,teamCol(u),9,700);

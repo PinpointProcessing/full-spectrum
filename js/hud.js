@@ -25,6 +25,8 @@ function finish(){
   refreshSaveButtons();$('#end').hidden=false;
 }
 /* ---------- HUD ---------- */
+// our soldier hit: the screen's edge flashes red and fades (k 0..1)
+function hitCue(k){const el=$('#hitFlash');if(!el)return;el.style.transition='none';el.style.opacity=Math.max(+el.style.opacity||0,k).toFixed(2);void el.offsetWidth;el.style.transition='opacity .7s ease-out';el.style.opacity='0';}
 function hud(){
   updateCards();
   const act=sel.filter(alive);
@@ -76,7 +78,7 @@ function alertMeter(){
   const sc=$('#secure'),securing=state==='play'&&!!secure.state;sc.hidden=!securing;
   if(securing){sc.classList.toggle('move',secure.state==='move');$('#secureArc').setAttribute('stroke-dashoffset',(94.25*(1-secure.t/QUIET_T)).toFixed(2));
     sc.querySelector('small').textContent=secure.state==='move'?'Move in':'Securing';sc.setAttribute('aria-label',secure.state==='move'?'Area clear: move in to take it':`Securing ${Math.round(secure.t/QUIET_T*100)}%`);}
-  const el=$('#alert');el.hidden=securing||state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!e.dead));if(el.hidden)return;   // the countdown takes its place
+  const el=$('#alert');el.hidden=securing||state!=='play'||wavePhase('clear','count','done')||(wave.phase==='hq'&&!enemies.some(e=>!e.dead))||threatOn();if(el.hidden)return;   // the countdown takes its place (and a radio call or reinforcements: hunt.js)
   const a=detection(),k=Math.round(a*100);
   if(k===alertShown)return;alertShown=k;
   el.classList.toggle('spotted',a>=1);el.classList.toggle('hot',a>=0.7&&a<1);

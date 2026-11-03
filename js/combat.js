@@ -246,6 +246,7 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
   t.hp-=dmg;t.hitFlash=.25;
+  if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
   if(t.hp<=0){
     t.hp=0;
@@ -276,6 +277,7 @@ function pickTarget(u){
   return best;
 }
 function burst(u,t,L){
+  if(u.gunner&&hyp(u.x-camT.x,u.y-camT.z)<260)shake(.14);
   u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
   const c=hitChance(u,t,L);
   const n=u.gunner?5:u.weapon==='shotgun'?1:3;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun one blast
@@ -351,7 +353,7 @@ function throwSmoke(u,tx,ty){
 function popSmoke(x,y){smokes.push({x,y,t0:simT});if(typeof sfxSmoke==='function')sfxSmoke(x,y);}
 // quiet: no alarm (an explosion with nobody left to hear it)
 function explode(x,y,by,quiet){
-  booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});
+  booms.push({x,y,t:0});shake(clamp(1.1-hyp(x-camT.x,y-camT.z)/450,0,1));paintDecal({k:'scorch',x,y,r:Math.random()});
   tankBlast(x,y,by);
   const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}
   for(const v of units){

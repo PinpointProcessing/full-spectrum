@@ -231,14 +231,16 @@ function dogTick(dt){
   }
 }
 
-/* ---------- the radio / reinforcements chip (every frame) ---------- */
+/* ---------- a radio call or reinforcements on the way: the top-centre countdown (every frame) ---------- */
+// it takes the detection ring's place meanwhile (alertMeter), so nothing piles up at the top
+let threatShown='';
+function threatOn(){return state==='play'&&(!!reinf||enemies.some(e=>e.call&&!e.dead));}
 function threatHud(){
-  const el=$('#threat');if(!el)return;
-  const caller=enemies.find(e=>e.call&&!e.dead);let txt='',k=0;
-  if(caller){txt='Radio call going out';k=caller.call.t/CALL_T;}
-  else if(reinf){const left=Math.max(0,reinf.at-simT);txt=`Reinforcements ${fmtT(left)}`;k=1-left/REINF_WARN;}
-  el.hidden=!txt||state!=='play';if(el.hidden)return;
-  el.querySelector('b').textContent=txt;el.querySelector('i').style.width=(clamp(k,0,1)*100).toFixed(0)+'%';
+  if(!threatOn()){threatShown='';return;}   // (waveHud hides the countdown when it isn't its own)
+  const cd=$('#countdown'),caller=enemies.find(e=>e.call&&!e.dead);
+  const txt=caller?'Radio call':'Reinforcements',left=caller?Math.max(0,CALL_T-caller.call.t):Math.max(0,reinf.at-simT);
+  cd.hidden=false;if(threatShown!==txt){threatShown=txt;cd.querySelector('small').textContent=txt;}
+  cd.querySelector('b').textContent=left.toFixed(1);cd.setAttribute('aria-label',`${txt} in ${Math.ceil(left)}`);
 }
 /* ---------- every tick (from update) ---------- */
 function huntTick(dt){

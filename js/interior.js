@@ -62,6 +62,16 @@ function paintFloors(g,L){
     }
     for(const z of f.zones||[])if(/stairs/.test(z.kind)){g.fillStyle='rgba(255,255,255,.06)';for(let y=z.y0;y<z.y1;y+=6)g.fillRect(z.x0,y,z.x1-z.x0,2);}   // stair treads
   }
+  // story in glimpses: papers scattered in the offices, spent casings by the front desk, a blood trail down the east hall,
+  // drag marks to the shared room, a scorched patch by the steel door
+  for(const f of L.floors)for(const r of f.rooms||[]){
+    const n=(r.name||'').toLowerCase(),rr=rng(Math.round(r.x0*11+r.y0*17)),w=r.x1-r.x0,h=r.y1-r.y0;
+    if(/office|security|records|meeting/.test(n))for(let i=0;i<w*h/2600;i++){const x=r.x0+8+rr()*(w-16),y=r.y0+8+rr()*(h-16);g.save();g.translate(x,y);g.rotate(rr()*3);g.fillStyle=`rgba(205,202,190,${(.16+rr()*.18).toFixed(2)})`;g.fillRect(-2.5,-3.5,5,7);g.restore();}
+    if(/lobby/.test(n)&&!/elevator/.test(n))for(let i=0;i<14;i++){const x=(r.x0+r.x1)/2-40+rr()*80,y=r.y0+20+rr()*40;g.fillStyle='rgba(200,165,80,.8)';g.fillRect(x,y,1.6,.8);}
+    if(/east hall/.test(n)){g.fillStyle='rgba(90,10,8,.55)';for(let y=r.y1-20;y>r.y0+30;y-=6+rr()*5){g.beginPath();g.ellipse((r.x0+r.x1)/2+Math.sin(y*.05)*6,y,2+rr()*2.5,1.5+rr(),0,0,7);g.fill();}}
+    if(/west hall/.test(n)){g.strokeStyle='rgba(0,0,0,.25)';g.lineWidth=2;g.beginPath();g.moveTo((r.x0+r.x1)/2-4,r.y1-10);g.lineTo((r.x0+r.x1)/2+3,r.y0+10);g.stroke();}
+  }
+  for(const f of L.floors)for(const o of f.objects)if(o.kind==='steeldoor'){const cx=o.x+o.w/2,cy=o.y+o.h+16,gr=g.createRadialGradient(cx,cy,0,cx,cy,30);gr.addColorStop(0,'rgba(0,0,0,.55)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(cx,cy,30,0,7);g.fill();}
   g.save();g.fillStyle='rgba(0,0,0,.5)';
   for(const o of IN.objs){if(o.kind==='void')continue;const wall=/wall|pillar|steeldoor|cabinet|rack/.test(o.kind);g.shadowColor=wall?'rgba(0,0,0,.8)':'rgba(0,0,0,.6)';g.shadowBlur=wall?16:9;g.fillRect(o.x,o.y,o.w,o.h);}
   g.restore();
@@ -72,10 +82,14 @@ function buildInterior(){
   for(const f of L.floors)IN.floors[f.id]=f;
   for(const f of L.floors)for(const o of f.objects)IN.objs.push({kind:o.kind,x:o.x,y:o.y,w:o.w,h:o.h,full:FULL.has(o.kind),floor:f.id});
   IN.objs.push(...voidRects(L.floors.map(f=>f.bounds)));
-  // a ceiling light in every room, and one every 12 m along anything long (they share the lamp pool like the street lamps)
+  // the light plan (docs/feel-plan.md: rooms you can read): rooms with people in them and the main spaces are lit, a hallway
+  // tube sputters, empty rooms are dark or lit only by a red emergency light. One light every 12 m along anything long.
+  // (They share the lamp pool like the street lamps.)
   for(const f of L.floors)for(const r of f.rooms||[]){
-    const w=r.x1-r.x0,h=r.y1-r.y0,n=Math.max(1,Math.round(Math.max(w,h)/120)),floor=f.id;
-    for(let k=0;k<n;k++){const t=(k+.5)/n;IN.lamps.push({x:w>=h?r.x0+w*t:(r.x0+r.x1)/2,y:w>=h?(r.y0+r.y1)/2:r.y0+h*t,h:32,c:/cell|basement/i.test(r.name)?0xffd39a:/lab|science/i.test(r.name)?0xe4f0ff:/office|meeting/i.test(r.name)?0xffe9c8:0xf0f2f4,i:1.5,d:190,ceil:1,floor});}
+    const w=r.x1-r.x0,h=r.y1-r.y0,n=Math.max(1,Math.round(Math.max(w,h)/120)),floor=f.id,nm=r.name||'',rr=rng(Math.round(r.x0*13+r.y0*7));
+    const occupied=(f.posts||[]).some(p=>/rifleman|mg|ambusher/.test(p.role)&&p.x>=r.x0&&p.x<=r.x1&&p.y>=r.y0&&p.y<=r.y1),main=/lobby|reception|shared|science|turret|stair|lift/i.test(nm),hall=/hall/i.test(nm);
+    if(!occupied&&!main&&!hall){if(rr()<.5)IN.lamps.push({x:(r.x0+r.x1)/2,y:r.y0+12,h:22,c:0xff3a2a,i:.7,d:110,floor});continue;}   // empty: dark, or a red emergency light
+    for(let k=0;k<n;k++){const t=(k+.5)/n;IN.lamps.push({x:w>=h?r.x0+w*t:(r.x0+r.x1)/2,y:w>=h?(r.y0+r.y1)/2:r.y0+h*t,h:32,c:/cell|basement/i.test(nm)?0xffd39a:/lab|science/i.test(nm)?0xe4f0ff:/office|meeting|security/i.test(nm)?0xffe9c8:0xf0f2f4,i:1.5,d:190,ceil:1,floor,flick:hall&&k===0});}
   }
   for(const f of L.floors)for(const o of f.objects)if(o.kind==='steeldoor')IN.lamps.push({x:o.x+o.w/2,y:o.y+o.h/2+(o.w>o.h?18:0),h:20,c:0xff3a22,i:1.3,d:80,floor:f.id});   // a red warning light over a steel door
   for(const f of L.floors)for(const z of f.zones||[])if(z.kind==='rest-med'||z.kind==='rest-sup')IN.hq.push(hqZone({k:z.kind==='rest-med'?'med':'sup',x:z.x0,y:z.y0,w:z.x1-z.x0,h:z.y1-z.y0}));
@@ -95,7 +109,7 @@ function buildInterior(){
   const M=(c,o={})=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.8,metalness:.1},o)),ML=c=>new T.MeshLambertMaterial({color:c});
   const mat={wall:ML(0x2a2f35),owall:ML(0x202429),cap:ML(0x7a8087),wood:ML(0x5c4a38),light:ML(0x8f897e),metal:M(0x4d5359,{metalness:.5,roughness:.5}),dark:M(0x23272b,{metalness:.4,roughness:.5}),steel:M(0x3a4046,{metalness:.7,roughness:.35}),
     sofa:ML(0x2c3440),leaf:ML(0x2f5a34),bag:ML(0x8a7a5a),screen:new T.MeshBasicMaterial({color:0x5fb8e8,toneMapped:false}),led:new T.MeshBasicMaterial({color:0x37e08a,toneMapped:false}),glow:new T.MeshBasicMaterial({color:0xa8e6ff,toneMapped:false}),
-    bars:M(0x2c3034,{metalness:.7,roughness:.4}),hazard:M(0xc8a02a)};
+    bars:M(0x2c3034,{metalness:.7,roughness:.4}),hazard:M(0xc8a02a),chair:ML(0x1c2126)};
   let tgt=sc;const box=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);tgt.add(b);return b;};
   for(const o of IN.objs){
     if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);tgt=IN.groups[o.floor]||sc;
@@ -104,7 +118,11 @@ function buildInterior(){
     }else if(o.kind==='steeldoor'){box(o.w,hgt,o.h,mat.steel,cx,hgt/2,cz);for(let k=0;k<3;k++)box(o.w>o.h?o.w:1.2,1.4,o.w>o.h?1.2:o.h,mat.hazard,cx,3+k*4,cz);}
     else if(o.kind==='cabinet'){box(o.w,hgt,o.h,mat.metal,cx,hgt/2,cz);}
     else if(o.kind==='rack'){box(o.w,hgt,o.h,mat.dark,cx,hgt/2,cz);const r=rng(o.x+o.y);for(let k=0;k<6;k++){const l=new T.Mesh(new T.BoxGeometry(1,1,1),mat.led);l.position.set(o.x+2+r()*(o.w-4),3+r()*(hgt-6),o.w>o.h?o.y-.3:cz);tgt.add(l);}}
-    else if(o.kind==='desk'||o.kind==='terminal'){box(o.w,hgt,o.h,mat.wood,cx,hgt/2,cz);const s=box(Math.min(10,o.w*.4),5,1,o.kind==='terminal'?mat.screen:mat.dark,cx,hgt+2.5,cz);if(o.kind==='terminal')s.scale.set(1.4,1.2,1);}
+    else if(o.kind==='desk'||o.kind==='terminal'){
+      box(o.w,hgt,o.h,mat.wood,cx,hgt/2,cz);const on=o.kind==='terminal'||rng(o.x*3+o.y)()<.55,s=box(Math.min(10,o.w*.4),5,1,on?mat.screen:mat.dark,cx,hgt+2.5,cz);if(o.kind==='terminal')s.scale.set(1.4,1.2,1);   // some monitors still on, glowing
+      const r=rng(o.x+o.y*5),wide=o.w>=o.h,side=r()<.5?-1:1,ch=box(5,6,5,mat.chair,wide?cx+(r()-.5)*o.w*.5:cx+side*(o.w/2+5),3,wide?cz+side*(o.h/2+5):cz+(r()-.5)*o.h*.5);   // a chair pushed back from it
+      if(r()<.2){ch.rotation.z=Math.PI/2;ch.position.y=2.5;}   // knocked over
+    }
     else if(o.kind==='counter'){box(o.w,hgt,o.h,mat.light,cx,hgt/2,cz);box(o.w,1,o.h+2,mat.wood,cx,hgt+.5,cz);}
     else if(o.kind==='copier'){box(o.w,hgt,o.h,mat.light,cx,hgt/2,cz);}
     else if(o.kind==='sofa'){box(o.w,hgt,o.h,mat.sofa,cx,hgt/2,cz);}
@@ -115,7 +133,7 @@ function buildInterior(){
     else if(o.kind==='bars'){const n=Math.max(2,Math.round(Math.max(o.w,o.h)/4));for(let k=0;k<=n;k++){const t=k/n,b=new T.Mesh(new T.CylinderGeometry(.5,.5,hgt,5),mat.bars);b.position.set(o.w>=o.h?o.x+o.w*t:cx,hgt/2,o.w>=o.h?cz:o.y+o.h*t);tgt.add(b);}box(o.w>=o.h?o.w:1,1,o.w>=o.h?1:o.h,mat.bars,cx,hgt,cz);}
     else box(o.w,Math.max(4,hgt),o.h,mat.light,cx,Math.max(4,hgt)/2,cz);
   }
-  const hemi2=new T.HemisphereLight(0x7d8aa0,0x120e0a,.3);hemi2.userData.base=.3;sc.add(hemi2);
+  const hemi2=new T.HemisphereLight(0x7d8aa0,0x120e0a,.15);hemi2.userData.base=.15;sc.add(hemi2);   // dark inside: the lit rooms and the torches carry it (more ambient zoomed out)
   const pool=[];for(let k=0;k<LAMP_POOL;k++){const p=new T.PointLight(0xffffff,0,100,1.4);sc.add(p);pool.push(p);}
   const mz=[];for(let k=0;k<2;k++){const m=new T.PointLight(0xffcf8a,0,95,2);sc.add(m);mz.push(m);}
   const bl=new T.PointLight(0xffa050,0,280,1.6);sc.add(bl);

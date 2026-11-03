@@ -11,7 +11,7 @@
    explosions / rockets found in booms / rockets). */
 const SND_KEY='warehouseYard.sound',MAX_VOICES=40;
 const SAMPLE_FILES={shot:['shot-1','shot-2','shot-3','shot-4'],shotgun:['shotgun-1','shotgun-2'],enemy:['enemy-1','enemy-2','enemy-3'],mg:['mg-1','mg-2','mg-3'],boom:['boom-1','boom-2'],launch:['launch']};
-let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,noiseBuf=null,sndOn=true,voices=0,loops={},samples={},rainG=[];
+let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,sndVerbIn=null,noiseBuf=null,sndOn=true,voices=0,loops={},samples={},rainG=[],amb=null;
 try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
 
 function audioInit(){
@@ -24,6 +24,8 @@ function audioInit(){
   noiseBuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);{const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
   // outdoor echo: a few early slaps off the warehouse and containers, then a diffuse tail
   sndVerb=AC.createConvolver();sndVerb.buffer=makeImpulse(2.2);const vg=AC.createGain();vg.gain.value=.55;sndVerb.connect(vg);vg.connect(sndMuffle);
+  sndVerbIn=AC.createConvolver();sndVerbIn.buffer=makeImpulse(.55);const vgi=AC.createGain();vgi.gain.value=.7;sndVerbIn.connect(vgi);vgi.connect(sndMuffle);   // indoors: a short, hard room, so shots crack
+  amb=makeAmbience();
   // rain: a soft hiss plus a lower patter
   for(const[type,f,q,gain]of[['highpass',900,0,.035],['lowpass',700,0,.03]]){
     const s=loopNoise(),flt=AC.createBiquadFilter(),g=AC.createGain();flt.type=type;flt.frequency.value=f;g.gain.value=gain;rainG.push([g,gain]);
@@ -34,6 +36,19 @@ function audioInit(){
     samples[k]=[];
     for(const n of names)fetch(`sounds/${n}.wav`).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(buf=>samples[k].push(buf)).catch(()=>{});
   }
+}
+// the sound bed (docs/feel-plan.md: silence between shots felt empty): wind gusting outdoors; inside a building's hum and a
+// fluorescent buzz; under it all a low drone that swells as the enemy closes in on spotting you, and stays up in a fight
+function makeAmbience(){
+  const bus=AC.createGain();bus.gain.value=1;bus.connect(sndMuffle);
+  const wind=loopNoise(),wf=AC.createBiquadFilter(),wg=AC.createGain();wf.type='bandpass';wf.frequency.value=380;wf.Q.value=.6;wg.gain.value=0;wind.connect(wf);wf.connect(wg);wg.connect(bus);wind.start(0,Math.random()*2);
+  const hum=AC.createGain();hum.gain.value=0;hum.connect(bus);
+  for(const[f,a]of[[50,.05],[100,.03],[150,.012]]){const o=AC.createOscillator();o.frequency.value=f;const g=AC.createGain();g.gain.value=a;o.connect(g);g.connect(hum);o.start();}
+  const hn=loopNoise(),hf=AC.createBiquadFilter();hf.type='lowpass';hf.frequency.value=220;const hg=AC.createGain();hg.gain.value=.05;hn.connect(hf);hf.connect(hg);hg.connect(hum);hn.start();
+  const bz=AC.createOscillator();bz.type='sawtooth';bz.frequency.value=120;const bf=AC.createBiquadFilter();bf.type='bandpass';bf.frequency.value=2400;bf.Q.value=4;const bg=AC.createGain();bg.gain.value=.012;bz.connect(bf);bf.connect(bg);bg.connect(hum);bz.start();
+  const dr=AC.createGain();dr.gain.value=0;const df=AC.createBiquadFilter();df.type='lowpass';df.frequency.value=160;df.Q.value=3;df.connect(dr);dr.connect(bus);
+  for(const f of[55,55.7,82.4]){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=f;const g=AC.createGain();g.gain.value=f>80?.35:.5;o.connect(g);g.connect(df);o.start();}
+  return{wg,hum,dr,df,gust:0};
 }
 function makeImpulse(sec){
   const sr=AC.sampleRate,n=Math.floor(sr*sec),buf=AC.createBuffer(2,n,sr);
@@ -65,7 +80,7 @@ function voice(x,y,vol,dur){
   g.gain.value=vol*pl.g;lp.type='lowpass';lp.frequency.value=2200+15000*Math.pow(1-pl.far,2);g.connect(lp);
   let out=lp;if(AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=pl.p;lp.connect(p);out=p;}
   out.connect(sndMuffle);
-  const send=AC.createGain();send.gain.value=.18+pl.far*.7;out.connect(send);send.connect(sndVerb);
+  const send=AC.createGain();send.gain.value=.18+pl.far*.7;out.connect(send);send.connect(MAPID==='in'&&sndVerbIn?sndVerbIn:sndVerb);
   voices++;setTimeout(()=>{voices--;g.disconnect();},(dur+.2)*1000);
   return g;
 }
@@ -187,6 +202,12 @@ function audioFrame(){
   const t=AC.currentTime,live=state==='play'&&!paused;
   sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:18000,t,.12);   // slow-mo and pause sound muffled
   for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='in'?.25:1),t,.4);   // indoors the rain is just a hiss on the roof
+  if(amb){
+    const inside=MAPID==='in';amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
+    amb.wg.gain.setTargetAtTime(inside?0:.05+.04*Math.max(0,amb.gust),t,.8);amb.hum.gain.setTargetAtTime(inside?1:0,t,.8);
+    const hunted=enemies.some(e=>!e.dead&&e.alerted),k=state==='play'?Math.max(contact?1:detection(),hunted?.6:0):0;   // the drone follows the danger
+    amb.dr.gain.setTargetAtTime(.0001+k*k*.085,t,.6);amb.df.frequency.setTargetAtTime(140+k*520,t,.8);
+  }
   // explosions and launches, picked up as they appear (grenades, rockets, tank shells, fuel tanks, vehicles)
   let n=0;for(const b of booms)if(!b.snd&&b.t>=0){b.snd=1;if(n++<2)sfxBoom(b.x,b.y,b.size||1);}
   for(const r of rockets)if(!r.snd){r.snd=1;sfxLaunch(r.x,r.y);}

@@ -20,6 +20,10 @@ function initGL(){
   SG={legs:new T.CylinderGeometry(2.5,2.3,6,8),body:new T.CylinderGeometry(3.3,2.9,8,8),head:new T.SphereGeometry(2.3,10,8),
     helm:new T.SphereGeometry(2.8,10,6,0,Math.PI*2,0,Math.PI/2),rifle:new T.BoxGeometry(11,1.3,1.4),pack:new T.BoxGeometry(3,5.5,5),
     band:new T.CylinderGeometry(3.45,3.45,1.8,8),ring:new T.RingGeometry(5.8,7.4,36)};
+  {const L=120,g=new T.ConeGeometry(L*Math.tan(.3),L,18,1,true);g.rotateZ(Math.PI/2);g.translate(L/2,0,0);SG.beam=g;   // apex at the lens, opening along +x
+   const c=document.createElement('canvas');c.width=4;c.height=128;const x=c.getContext('2d'),gr=x.createLinearGradient(0,0,0,128);
+   gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.25,'rgba(255,255,255,.45)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,4,128);
+   SG.beamMat=new T.MeshBasicMaterial({map:new T.CanvasTexture(c),color:0xcfe0ff,transparent:true,opacity:.22,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide,toneMapped:false});}
   return true;
 }
 
@@ -453,8 +457,8 @@ function buildWorld(){
   }
 
   // lights
-  hemi=new T.HemisphereLight(0x5a6e96,0x140f0b,.24);hemi.userData.base=.24;scene.add(hemi);
-  moon=new T.DirectionalLight(0x9fb4ff,.32);moon.position.set(FIT.w/2-300,620,FIT.h/2-400);moon.target.position.set(FIT.w/2,0,FIT.h/2);   // follows the camera (render)
+  hemi=new T.HemisphereLight(0x5a6e96,0x140f0b,.17);hemi.userData.base=.17;scene.add(hemi);   // a dark night: the lamps and torches carve it (docs/feel-plan.md)
+  moon=new T.DirectionalLight(0x9fb4ff,.24);moon.position.set(FIT.w/2-300,620,FIT.h/2-400);moon.target.position.set(FIT.w/2,0,FIT.h/2);   // follows the camera (render)
   const phone=matchMedia('(pointer:coarse)').matches;moon.castShadow=true;moon.shadow.mapSize.set(phone?1024:2048,phone?1024:2048);   // a smaller shadow map on phones
   Object.assign(moon.shadow.camera,{left:-620,right:620,top:620,bottom:-620,near:50,far:1900});moon.shadow.bias=-0.0008;
   scene.add(moon,moon.target);
@@ -481,8 +485,10 @@ function makeSoldier(u){
   const ring=new T.Mesh(SG.ring,new T.MeshBasicMaterial({color:col,transparent:true,opacity:.85,depthWrite:false,toneMapped:false}));
   ring.rotation.x=-Math.PI/2;ring.position.y=.5;g.add(ring);
   let spot=null;
-  if(P){spot=new T.SpotLight(0xd8e8ff,2.6,210,.42,.5,1.2);spot.position.set(4,14,0);const tg=new T.Object3D();tg.position.set(60,0,0);pose.add(spot,tg);spot.target=tg;}
-  scene.add(g);u.m={g,pose,ring,spot};
+  let beam=null;
+  if(P){spot=new T.SpotLight(0xd8e8ff,2.6,210,.42,.5,1.2);spot.position.set(4,14,0);const tg=new T.Object3D();tg.position.set(60,0,0);pose.add(spot,tg);spot.target=tg;
+    beam=new T.Mesh(SG.beam,SG.beamMat);beam.position.set(5,13.5,0);beam.rotation.z=-.24;beam.renderOrder=2;pose.add(beam);}
+  scene.add(g);u.m={g,pose,ring,spot,beam};
 }
 // the reinforcement gun jeep: open tub, hood, wheels, roll bar, and a pintle machine gun on a turret ring at the back.
 // Front is +z (it drives south). The turret group turns to follow the gunner's aim.
@@ -544,13 +550,14 @@ function syncUnits(t){
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)
     const lying=u.downed||u.dead||simT<(u.stunT||0);   // (knocked down by a dog: on the ground for a moment)
     const vk=lying?0:u.vaultK||0,cr=!lying&&u.crawl;   // vaulting a window: leaning forward over the sill, tucked; in the sewer pipe: flat on his front
-    m.pose.rotation.z+=((lying?Math.PI/2:cr?-Math.PI/2:-.55*vk)-m.pose.rotation.z)*.2;
+    m.pose.rotation.z+=((lying?Math.PI/2:cr?-Math.PI/2:-.55*vk+(u.hitFlash>0?u.hitFlash*1.5:0))-m.pose.rotation.z)*.25;   // (a hit: he jerks back a moment)
     const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
     m.pose.position.y=lying?2.6:cr?2+(u.path.length?Math.abs(Math.sin(t*5+u.y))*.35:0):(u.path.length&&!vk?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
     const crouch=!lying&&!cr&&!u.gunner&&(u.inVeh||u.inBoat?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
     m.pose.scale.y+=((crouch?.7:vk?.78:sneak&&!cr?.8:1)-m.pose.scale.y)*.15;
     m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
     if(m.spot)m.spot.intensity=lying||cr?0:2.6;   // no torch while lying or crawling
+    if(m.beam)m.beam.visible=!(lying||cr);
   }
 }
 function lampLights(now){   // hand the pooled lights to the lamps nearest the view's centre
@@ -559,15 +566,18 @@ function lampLights(now){   // hand the pooled lights to the lamps nearest the v
     if(L.flick&&!reduced){const f=Math.sin(now*13.1)+Math.sin(now*7.3);if(f>1.85)i*=.3;}
     p.color.setHex(L.c);p.intensity=i;p.distance=L.d;p.position.set(L.x,L.h,L.y);});
 }
+let shakeK=0;
+function shake(k){if(!reduced)shakeK=Math.min(1.2,Math.max(shakeK,k*(timeScale()<1?.4:1)));}   // blasts and machine guns nearby (muted in slow-mo)
 function render(rdt,now){
   updateCamera();syncUnits(now);
+  if(shakeK>.002){const a=shakeK*4;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a*.6;camera.position.z+=(Math.random()-.5)*a;camera.updateMatrixWorld();shakeK=Math.max(0,shakeK-rdt*3);}
   if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
   if(moon){moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);}   // the shadow box follows the view: the map is bigger than one shadow map (no moon indoors)
   lampLights(now);
   hemi.intensity=(hemi.userData.base??.24)+storm*1.6+(MAPID==='in'?Math.max(0,2.2-zoom)*.16:0);   // inside: more ambient light zoomed out, where the pooled lamps can't reach every room
   const fl=flashes.slice(-2);
-  for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=3.2*(1-f.t/.07);}else m.intensity=0;}
+  for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=(MAPID==='in'?6:4.5)*(1-f.t/.07);}else m.intensity=0;}   // muzzle flashes light the scene up (most of all indoors)
   const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18,b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;
   renderer.render(scene,camera);
   drawOverlay(rdt,now);
