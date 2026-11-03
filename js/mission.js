@@ -327,12 +327,12 @@ function drawSecure(now){
   label(st==='move'?'MOVE IN':'SECURING',lx,ly,'#5fe08e',13,700);
   if(st==='hold')bar(lx-26,ly+11,52,k,'#5fe08e');
 }
-// the last few defenders of the location you're taking are marked (Bryan couldn't find the depot's): once 4 or fewer are left
-// (or the depot's tanks are gone), a red ring where each one is, seen or not, and an arrow at the screen's edge for any off it
+// the last few defenders of the location you're taking are marked (Bryan couldn't find the depot's): once at least half the
+// group is down and 3 or fewer are left (or the depot's tanks are gone), a red ring where each one is, seen or not, and an arrow at the screen's edge for any off it
 function drawLastFoes(now){
   const L=LOCS[obj];if(!L||objDone>obj||state!=='play'||secure.state)return;
-  const foes=(obj===0?enemies:groups[obj]||[]).filter(e=>!e.dead);
-  if(!foes.length||!(foes.length<=4||(obj===2&&tanksGone())))return;
+  const all=obj===0?enemies:groups[obj]||[],foes=all.filter(e=>!e.dead);   // only once at least half the group is down and 3 or fewer are left (the warehouse has only 4: they were marked from the start)
+  if(!foes.length||!((foes.length<=3&&foes.length*2<=all.length)||(obj===2&&tanksGone())))return;
   const pulse=(Math.sin(now*5)+1)/2,[mx,my]=[cw/2,ch/2];
   for(const e of foes){
     toSBack=false;const[sx,sy]=toS(e.x,e.y,6);

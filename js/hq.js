@@ -1,6 +1,6 @@
 "use strict";
 /* Captured objectives become temporary HQ points (Bryan): a medical box (stand inside to heal) and a supply box (stand
-   inside a few seconds to get your grenade and demolition charge back). The warehouse's come with a popup and a short
+   inside a few seconds to get your grenade and smoke back). The warehouse's come with a popup and a short
    camera tour of the two boxes after its report; later objectives just add their boxes (mission.js). Also the smooth
    camera pans used by the HQ popup and the objective reveals, and the boxes drawn on the overlay. */
 const HQ_ZONES=[];   // {k:'med'|'sup',x,y,w,h,col,label}
@@ -35,14 +35,14 @@ function hqTick(dt){
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
     if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;
-    const short=p.grenade<1||p.charges<1;
-    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;p.charges=1;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
+    const short=p.grenade<1||p.smoke<1||(C4_ON&&p.charges<1);
+    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;p.smoke=1;p.charges=1;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
   }
   missionTick(dt);
 }
 /* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes, say what they're for ---------- */
 const TOURS={
-  hq:[['med','<b>Medical.</b> Stand a wounded soldier in the red box to heal.'],['sup','<b>Supply.</b> Step inside to get your grenade and demolition charge back.']],
+  hq:[['med','<b>Medical.</b> Stand a wounded soldier in the red box to heal.'],['sup','<b>Supply.</b> Step inside to get your grenade and smoke back.']],
 };
 function hqGotIt(){   // the tour of the boxes (straight after the warehouse; the old popup's button calls it too)
   $('#hqPop').hidden=true;

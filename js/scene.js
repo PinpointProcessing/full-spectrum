@@ -540,7 +540,7 @@ function syncUnits(t){
     const m=u.m;if(!m)continue;
     const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
     m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
-    m.g.visible=!u.gone&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||!!u.gunner);   // the jeep gunner is always in plain view; riders sit visible, the driver is hidden
+    m.g.visible=!u.gone&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P'));   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     const lying=u.downed||u.dead;
     const vk=lying?0:u.vaultK||0,cr=!lying&&u.crawl;   // vaulting a window: leaning forward over the sill, tucked; in the sewer pipe: flat on his front
     m.pose.rotation.z+=((lying?Math.PI/2:cr?-Math.PI/2:-.55*vk)-m.pose.rotation.z)*.2;

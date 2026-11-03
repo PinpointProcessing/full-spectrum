@@ -5,8 +5,8 @@ let simT=0,shots=[],tracers=[],flashes=[],sparks=[],nades=[],booms=[],callouts=[
 const alive=u=>!u.dead&&!u.downed;
 
 function mk(side,team,id,name,x,y,ang){
-  const u={side,team,id,name,x,y,ang,hp:100,sup:0,cool:.4+Math.random()*1.2,path:[],downed:false,dead:false,bleed:45,revive:0,
-    grenade:1,charges:1,plant:null,supT:null,focus:null,lastOrder:-99,exposeT:0,seen:false,vis:false,last:null,alerted:false,moveCool:0,hitFlash:0,aimT:-9,target:null,covered:false,fell:false,noLine:0,flankCD:0,wasDown:false,peek:null,lx:0,ly:0,gait:'run',gaitForce:null,inVeh:null,seat:null,boarding:null,aware:0,susp:null,wary:false,
+  const u={side,team,id,name,x,y,ang,hp:100,sup:0,cool:.4+Math.random()*1.2,path:[],downed:false,dead:false,bleed:BLEED_T,revive:0,
+    grenade:1,smoke:1,charges:1,plant:null,supT:null,focus:null,lastOrder:-99,exposeT:0,seen:false,vis:false,last:null,alerted:false,moveCool:0,hitFlash:0,aimT:-9,target:null,covered:false,fell:false,noLine:0,flankCD:0,wasDown:false,peek:null,lx:0,ly:0,gait:'run',gaitForce:null,inVeh:null,seat:null,boarding:null,aware:0,susp:null,wary:false,
     level:1,stats:{kills:0,streak:0,best:0,lastKill:-99,revives:0,items:0,downs:0}};
   units.push(u);return u;
 }
@@ -24,7 +24,7 @@ function reset(){
   for(const u of units)makeSoldier(u);
   drawGround();
   sel=[];cardGroup=[];preview=null;mode=null;contact=false;paused=false;simT=0;downCount=0;ambushT=-9;
-  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];endAt=0;
+  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];smokes=[];endAt=0;
   landing=null;if(dinghy)dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
   resetWaves();setStatus();buildCards();
 }

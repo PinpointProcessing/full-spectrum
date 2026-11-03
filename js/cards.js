@@ -6,6 +6,8 @@
    Tapping a card selects just that soldier (the group's cards stay up), tapping it again goes back to selecting the whole group on show;
    tapping his grenade readies a throw. */
 const ECG_SPEED=60;   // how fast the trace sweeps across, px per second
+const C4_ON=false;   // Bryan: no demolition charges in this level (the code stays for later); the smoke grenade takes its slot
+const SMOKE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.2" y="8" width="5.6" height="7" rx="1"/><circle cx="4.6" cy="5.4" r="2.3"/><circle cx="8.3" cy="3.6" r="2.7"/><circle cx="11.6" cy="5.6" r="2.1"/></svg>';
 const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy="10" rx="4.6" ry="5"/><rect x="5.8" y="2.6" width="3.4" height="2.6" rx=".6"/><path d="M9.2 3.6h2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
 // weapon silhouettes for the cards (our own drawings): an assault rifle with a curved magazine, a pump shotgun
 const GUN_SVG={
@@ -50,11 +52,12 @@ function buildCards(){
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<canvas class="uc-ecg"></canvas>`+
       `<div class="uc-gun" title="${WEAPON[u.weapon||'rifle'].label}">${GUN_SVG[u.weapon||'rifle']}<b>${WEAPON[u.weapon||'rifle'].label}</b></div>`+
-      `<div class="uc-bot"><span class="uc-hp">100</span><button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
+      `<div class="uc-bot"><span class="uc-hp">100</span>${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-smk" aria-label="Smoke grenade">${SMOKE_SVG}<i>1</i></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
       preview=null;
       if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.charges&&!u.inVeh)mode=mode==='charge'?null:'charge';else{mode=null;banner(`${u.name} has no charge left. Restock at a supply box.`,1800);}}   // demolition charge
+      else if(ev&&ev.target.closest('.uc-smk')){select([u]);if(u.smoke&&!u.inVeh)mode=mode==='smoke'?null:'smoke';else{mode=null;banner(`${u.name} has no smoke left. Restock at a supply box.`,1800);}}
       else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
       else{mode=null;if(sel.length===1&&sel[0]===u)select(cardGroup.filter(alive));else select([u]);}   // tap him again: back to the whole group on show
       hud();
@@ -62,7 +65,7 @@ function buildCards(){
     el.addEventListener('click',act);
     el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act(null);}});
     box.appendChild(el);
-    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),rpg:el.querySelector('.uc-rpg'),ecg:el.querySelector('.uc-ecg'),buf:null,head:0,acc:0,phase:Math.random(),amp:1};
+    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),smk:el.querySelector('.uc-smk'),rpg:el.querySelector('.uc-rpg'),ecg:el.querySelector('.uc-ecg'),buf:null,head:0,acc:0,phase:Math.random(),amp:1};
     drawFace(el.querySelector('.uc-face'),u);
   }
 }
@@ -94,7 +97,8 @@ function updateCards(){
     c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);c.hp.style.color=hpCol(u);
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
-    c.rpg.querySelector('i').textContent=u.charges||0;c.rpg.disabled=!alive(u)||!u.charges||!!u.inVeh;c.rpg.classList.toggle('on',mode==='charge'&&sel[0]===u);   // the demolition charge, left of the grenade
+    c.smk.querySelector('i').textContent=u.smoke||0;c.smk.disabled=!alive(u)||!u.smoke||!!u.inVeh;c.smk.classList.toggle('on',mode==='smoke'&&sel[0]===u);   // the smoke grenade, left of the frag
+    if(c.rpg){c.rpg.querySelector('i').textContent=u.charges||0;c.rpg.disabled=!alive(u)||!u.charges||!!u.inVeh;c.rpg.classList.toggle('on',mode==='charge'&&sel[0]===u);}   // the demolition charge (off in this level)
   }
   $('#stage').style.setProperty('--cards-h',box.hidden?'0px':box.offsetHeight+6+'px');
   for(const tab of document.querySelectorAll('.tab')){

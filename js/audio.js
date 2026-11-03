@@ -108,6 +108,10 @@ function sfxBoom(x,y,size=1){
 }
 function sfxLaunch(x,y){if(playSample('launch',x,y,.75))return;const out=voice(x,y,.5,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.08,'lowpass',1500,0,.8);noiseHit(out,t,.9,'bandpass',700,1.2,.6,.05,250);}
 function sfxCannon(x,y){if(!playSample('boom',x,y,1.3,.7)){const out=voice(x,y,1,1.6);if(out){const t=AC.currentTime;noiseHit(out,t,1.2,'lowpass',900,0,.9,.004,60);}}rumble(x,y,1.3);}
+function sfxSmoke(x,y){   // a smoke grenade popping: a soft thump, then a long hiss that tails off
+  const out=voice(x,y,.5,3);if(!out)return;const t=AC.currentTime;
+  noiseHit(out,t,.12,'lowpass',700,0,.7,.003,150);noiseHit(out,t+.05,2.6,'bandpass',2600,1.4,.35,.08,1400);noiseHit(out,t+.05,2.2,'highpass',4500,0,.12,.1);
+}
 function sfxCrash(x,y){   // chain-link gate and its steel frame going down
   const out=voice(x,y,.7,1.4);if(!out)return;const t=AC.currentTime;
   noiseHit(out,t,.25,'lowpass',1200,0,1,.002,200);noiseHit(out,t,.9,'bandpass',2600,4,.35,.005);noiseHit(out,t+.18,.6,'bandpass',1700,5,.25,.01);

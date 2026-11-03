@@ -1,9 +1,11 @@
 "use strict";
 /* Map data and geometry queries (line of sight, cover, free space). One mission, five objectives, south to north
-   (Bryan): 1 take the warehouse, 2 take the bridge over the canal, 3 destroy the fuel depot's tanks, 4 sabotage the data
-   center (inside) and lower the fortress drawbridge, 5 take the Headquarters (to come). */
+   (Bryan): 1 take the warehouse, 2 take the bridge over the canal, 3 destroy the fuel depot's tanks, 4 get the decryption
+   key from inside the data center and lower the fortress drawbridge, 5 take the Headquarters (to come). */
 const objs=[];
-const FULL=new Set(['container','wall','truck','rack','fence','gate','booth','tower','tank','armor','office','garage','fortwall','gatehouse','gtower','bridge','pylon','dcblock',
+// FULL objects block sight, shots, throws and blasts. Chain-link fences and gates aren't in it (Bryan: you can see and throw
+// through them); like everything else they still block movement.
+const FULL=new Set(['container','wall','truck','rack','booth','tower','tank','armor','office','garage','fortwall','gatehouse','gtower','bridge','pylon','dcblock',
   'owall','iwall','cabinet','pillar','liftwall','steeldoor','void']);   // (the second line: the office building's inside, interior.js)
 function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.has(kind)},extra||{}));}
 const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
@@ -114,7 +116,22 @@ function segHitsRect(x1,y1,x2,y2,o,pad){
 }
 // a soldier inside a structure (a sentry in the guard tower, the watchtower lookout) sees out of it, and can be seen
 function inRect(x,y,o){return x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h;}
-function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0)&&!inRect(ax,ay,o)&&!inRect(bx,by,o))return false;}return true;}
+function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0)&&!inRect(ax,ay,o)&&!inRect(bx,by,o))return false;}return !smokes.length||!smokeBlocks(ax,ay,bx,by);}
+// smoke grenades (Bryan, in place of C4 for this level): a cloud that blocks sight both ways, not movement. It grows to
+// SMOKE.r over SMOKE.grow s, blocks from SMOKE.from s until SMOKE.fade s before it's gone, then thins out
+const SMOKE={r:60,grow:1.6,from:.4,life:14,fade:2,range:170};
+let smokes=[];   // {x,y,t0}
+function smokeR(c){return SMOKE.r*Math.min(1,(simT-c.t0)/SMOKE.grow);}
+function segPtDist(ax,ay,bx,by,px,py){const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy,t=L?clamp(((px-ax)*dx+(py-ay)*dy)/L,0,1):0;return hyp(ax+dx*t-px,ay+dy*t-py);}
+function smokeBlocks(ax,ay,bx,by){
+  for(const c of smokes){
+    const age=simT-c.t0;if(age<SMOKE.from||age>SMOKE.life-SMOKE.fade)continue;
+    const r=smokeR(c)*.85;if(segPtDist(ax,ay,bx,by,c.x,c.y)>r)continue;
+    if(hyp(ax-c.x,ay-c.y)<r&&hyp(bx-c.x,by-c.y)<r&&hyp(bx-ax,by-ay)<25)continue;   // point-blank, both inside the same cloud
+    return true;
+  }
+  return false;
+}
 // 0 = open, 1 = half cover, 2 = heavy cover, for a target at (tx,ty) shot from (sx,sy)
 function coverAt(tx,ty,sx,sy){
   let best=0;

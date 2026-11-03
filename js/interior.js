@@ -143,7 +143,7 @@ function stashOut(going){
 function useMap(st){   // put a map's objects, boxes, lamps, scene and lights in play
   objs.length=0;objs.push(...st.objs);HQ_ZONES.length=0;HQ_ZONES.push(...st.hq);SLOW.length=0;SLOW.push(...st.slow);lamps.length=0;lamps.push(...st.lamps);
   rebuildNav();scene=st.scene;({hemi,moon,lampPool,muzzle,boomL}=st.lights);
-  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];preview=null;mode=null;
+  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];smokes=[];preview=null;mode=null;
 }
 function moveMesh(u,to){if(u.m&&u.m.g.parent!==to){if(u.m.g.parent)u.m.g.parent.remove(u.m.g);to.add(u.m.g);}}
 function slotsIn(z,n,taken=[]){   // n free spots 20 apart inside zone z (any that don't fit go just outside it)
@@ -191,7 +191,7 @@ function exitBuilding(){
   if(fading||!exitReady())return;
   fadeThen(()=>{
     const out=STASH.out,back=players.filter(p=>!p.dead&&(!p.offMap||p.downed));   // anyone left downed outside was stabilised and rejoins here
-    for(const p of back)if(p.offMap&&p.downed)Object.assign(p,{downed:false,hp:Math.max(p.hp,35),revive:0,bleed:45,sup:0});
+    for(const p of back)if(p.offMap&&p.downed)Object.assign(p,{downed:false,hp:Math.max(p.hp,35),revive:0,bleed:BLEED_T,sup:0});
     for(const u of units)if(u.side==='E'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
     useMap(out);({tankFires,rockets,charges}=out.fx);
     for(const p of back)moveMesh(p,out.scene);

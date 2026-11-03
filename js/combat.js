@@ -5,8 +5,11 @@
 // After firing from a lean he stays leaned out for PEEK_T: enemies can see and hit him there, and he counts as half cover.
 const PEEK_T=1.2;
 function peekOf(u){return u.peek&&simT<u.peek.until&&alive(u)&&!u.path.length?u.peek:null;}
-// where u can fire at (tx,ty) from. Leaning out only when standing still. Nobody sees into or out of the tunnel.
-function sightOf(u,tx,ty){if(hideAt(u.x,u.y)!==hideAt(tx,ty))return null;return u.path.length?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}
+// where u can fire at (tx,ty) from. Leaning out only when standing still, and not while he keeps his head down (shy: just
+// revived, or badly hurt and being hit; Bryan saw a weak soldier at a wall's edge go down, get revived, lean out and go down
+// again). Nobody sees into or out of the tunnel.
+const shy=u=>u.side==='P'&&simT<(u.shyT||0);
+function sightOf(u,tx,ty){if(hideAt(u.x,u.y)!==hideAt(tx,ty))return null;return u.path.length||shy(u)?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}
 // line of fire from a to b: from a's spot or lean (fx,fy) to b, or to b's peek spot if b is leaned out. null if none.
 function fireLine(a,b){
   const pk=peekOf(b);
@@ -21,6 +24,9 @@ function shotCover(L){return L.atPeek?1:coverAt(L.tx,L.ty,L.fx,L.fy);}
 function leanOut(u,L){if(L.lean)u.peek={x:L.fx,y:L.fy,until:simT+PEEK_T};}
 
 /* ---------- combat helpers ---------- */
+// pinned above PINNED suppression; badly hurt below SHY_HP (keeps his head down SHY_T s after a hit); a downed soldier
+// bleeds out in BLEED_T s (Bryan: a 60 s window to get to him; carrying him out or a medic kit after that comes later)
+const PINNED=0.65,SHY_HP=40,SHY_T=4,BLEED_T=60;
 // the squad's weapons: everyone carries an assault rifle for now (Bryan). The shotgun is kept for later: list soldier IDs
 // in SHOTGUNNERS (e.g. ['A2','B2'], one per fire team) to hand them out again
 const WEAPON={rifle:{label:'Rifle',range:380},shotgun:{label:'Shotgun',range:200}},SHOTGUNNERS=[];
@@ -95,7 +101,7 @@ function makeAssign(list,tx,ty){
     if(cands.some(c=>hyp(c.x-x,c.y-y)<6)||!los(tx,ty,x,y))return;
     if(others.some(o=>hyp(o.x-x,o.y-y)<(cp?SPACE_COVER:SPACE_OPEN)))return;
     const st=protStats({x,y},th);
-    cands.push({x,y,cp,cov:st.prot===th.length,v:st.prot/th.length*2+st.see*0.3-hyp(x-tx,y-ty)/12-pen});
+    cands.push({x,y,cp,cov:st.prot===th.length,expo:(st.see?1:0)+(st.prot<th.length?1:0),v:st.prot/th.length*2+st.see*0.3-hyp(x-tx,y-ty)/12-pen});
   };
   for(const c of coverPts)if(hyp(c.x-tx,c.y-ty)<=R)add(c.x,c.y,true);
   let ne=th[0];for(const t of th)if(hyp(t.x-tx,t.y-ty)<hyp(ne.x-tx,ne.y-ty))ne=t;
@@ -105,13 +111,17 @@ function makeAssign(list,tx,ty){
     if(isFree(x,y,8))add(x,y,false,b<0?0.5:0);   // back row only when the front line is full
   }
   const C=cands.sort((p,q)=>q.v-p.v).slice(0,10);
+  // Bryan: the healthier man goes in front. How exposed a spot is (it sees or peeks at the enemy: 1, it isn't fully covered: 1
+  // more) weighs on who takes it: the more exposed, the more it goes to whoever has more health than the group's average,
+  // and the badly hurt keep back when the group has somewhere else to stand
+  const avgHp=list.reduce((a,u)=>a+u.hp,0)/n,frontBias=u=>(u.hp-avgHp)/50-(n>1&&u.hp<SHY_HP+5?.3:0);
   let best=null,bs=-1e9;const pick=[];
   (function search(i,score){
     if(i===n){if(score>bs){bs=score;best=pick.slice();}return;}
     const u=list[i];
     for(const c of C){
       if(pick.includes(c)||pick.some(q=>hyp(q.x-c.x,q.y-c.y)<(q.cp&&c.cp?SPACE_COVER:SPACE_OPEN)))continue;
-      let sc=c.v-hyp(u.x-c.x,u.y-c.y)/150;
+      let sc=c.v-hyp(u.x-c.x,u.y-c.y)/150+c.expo*frontBias(u);
       for(const q of pick){const d=hyp(q.x-c.x,q.y-c.y);if(d>30)sc-=(d-30)/20;}
       pick.push(c);search(i+1,score+sc);pick.pop();
     }
@@ -198,10 +208,11 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
   t.hp-=dmg;t.hitFlash=.25;
+  if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
-      t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=45;t.revive=0;t.path=[];t.supT=null;
+      t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.revive=0;t.path=[];t.supT=null;
       callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
       {const m=players.filter(o=>o!==t&&alive(o)).sort((a,b)=>hyp(a.x-t.x,a.y-t.y)-hyp(b.x-t.x,b.y-t.y))[0];say(m,'man_down');}
       sel=sel.filter(x=>x!==t);preview=null;
@@ -286,6 +297,18 @@ function throwNade(u,tx,ty){
   callout(u,'Frag out!',C.warn);
   return true;
 }
+// a smoke grenade: thrown like the frag, it pops a cloud that blocks sight both ways (SMOKE in map.js). Quiet: no alarm
+function throwSmoke(u,tx,ty){
+  if(hyp(tx-u.x,ty-u.y)>SMOKE.range){banner('Too far. Throw inside the circle.');return false;}
+  const f=sightOf(u,tx,ty);
+  if(!f){banner('No clear throw from here.');return false;}
+  const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
+  u.smoke--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
+  nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u,smoke:true});u.stats.items++;
+  callout(u,'Smoke out!',C.warn);
+  return true;
+}
+function popSmoke(x,y){smokes.push({x,y,t0:simT});if(typeof sfxSmoke==='function')sfxSmoke(x,y);}
 // quiet: no alarm (an explosion with nobody left to hear it)
 function explode(x,y,by,quiet){
   booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});
@@ -493,11 +516,12 @@ function update(dt){
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
-    const helper=players.find(o=>alive(o)&&!o.path.length&&!o.inVeh&&hyp(o.x-p.x,o.y-p.y)<24);
-    if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;callout(p,'Back in it',C.good);helper.stats.revives++;}}
+    const helper=players.find(o=>alive(o)&&!o.path.length&&!o.inVeh&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED);   // Bryan: no reviving while pinned
+    if(helper){p.revive+=dt;if(p.revive>=3){p.downed=false;p.hp=35;p.revive=0;p.sup=.3;p.shyT=simT+SHY_T+1;callout(p,'Back in it',C.good);helper.stats.revives++;}}
     else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.dead=true;p.downed=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}}
   }
-  for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);explode(n.x1,n.y1,n.by);}}
+  for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);if(n.smoke)popSmoke(n.x1,n.y1);else explode(n.x1,n.y1,n.by);}}
+  if(smokes.length)smokes=smokes.filter(c=>simT-c.t0<SMOKE.life);
   for(const arr of [tracers,flashes,sparks,booms,callouts])for(const f of arr)f.t+=dt;
   if(flashes.some(f=>f.t<=dt+1e-6)||booms.some(b=>b.t<=dt+1e-6))lastNoiseT=simT;   // a shot or a blast this tick: a location's quiet spell starts over (mission.js)
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);

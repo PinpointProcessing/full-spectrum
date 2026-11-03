@@ -160,7 +160,7 @@ function toggleGait(){
   if(act.some(u=>u.gaitForce)){for(const u of act)u.gaitForce=null;}
   else{const g=act.some(u=>autoGait(u)==='sneak')?'run':'sneak';for(const u of act)u.gaitForce=g;}
 }
-let fireOrderAt=-1e9;   // when the last suppress/grenade/charge order was given (real ms)
+let fireOrderAt=-1e9;   // when the last suppress/grenade/smoke order was given (real ms)
 function tap(sx,sy){
   if(landing)return;   // the squad is still in the dinghy
   const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)
@@ -180,9 +180,9 @@ function tap(sx,sy){
     const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
     if(orderCharge(u,t.x,t.y)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
-  if(mode==='grenade'){
+  if(mode==='grenade'||mode==='smoke'){
     const u=sel[0];if(!u){mode=null;return;}
-    if(throwNade(u,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
+    if((mode==='smoke'?throwSmoke:throwNade)(u,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   // the jeep: with soldiers on foot selected, they board it; otherwise tapping it selects its crew
   if(jeepAtScreen(sx,sy)){
@@ -204,6 +204,10 @@ function tap(sx,sy){
       else banner('No way to reach him from here.');
       return;
     }
+    // Bryan: with several selected, tapping one of them picks just him, like tapping his card (the cards on show stay);
+    // tapping him again goes back to the group. Anyone else: his fire team, as before
+    if(sel.length>1&&sel.includes(pu)){select([pu]);preview=null;mode=null;return;}
+    if(sel.length===1&&sel[0]===pu&&cardGroup.filter(alive).length>1){select(cardGroup.filter(alive));preview=null;mode=null;return;}
     selectTeam(pu.team);return;
   }
   if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)

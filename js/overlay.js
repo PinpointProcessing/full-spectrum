@@ -52,6 +52,19 @@ function pill(text,x,y,col){
   ox.beginPath();ox.roundRect?ox.roundRect(x-w/2,y-7,w,14,3):ox.rect(x-w/2,y-7,w,14);ox.fill();ox.stroke();
   ox.fillStyle=col;ox.textAlign='center';ox.textBaseline='middle';ox.fillText(text,x,y+.5);
 }
+// smoke clouds (map.js SMOKE): soft grey puffs at a few heights, drifting a little downwind and rising as they thin out
+function drawSmoke(){
+  for(const c of smokes){
+    const age=simT-c.t0,r=smokeR(c),fadeIn=Math.min(1,age/.5),fadeOut=Math.min(1,(SMOKE.life-age)/SMOKE.fade),A=.62*fadeIn*fadeOut;if(A<=.01)continue;
+    for(let i=0;i<10;i++){
+      const a=i*2.39996+c.x*.013,d=r*.55*Math.sqrt((i+.5)/10),px=c.x+Math.cos(a)*d+age*3,py=c.y+Math.sin(a)*d,h=4+(i%3)*6+age*.7,pr=r*(.42+.07*(i%3));
+      toSBack=false;const[sx,sy]=toS(px,py,h),[ax,ay]=toS(px+pr,py,h),[bx,by]=toS(px,py+pr,h);if(toSBack)continue;
+      const sr=Math.max(hyp(ax-sx,ay-sy),hyp(bx-sx,by-sy));if(sr<2||sx<-sr||sy<-sr||sx>cw+sr||sy>ch+sr)continue;
+      const g=ox.createRadialGradient(sx,sy,0,sx,sy,sr);g.addColorStop(0,`rgba(150,158,166,${A.toFixed(3)})`);g.addColorStop(.55,`rgba(124,132,140,${(A*.62).toFixed(3)})`);g.addColorStop(1,'rgba(100,108,116,0)');
+      ox.fillStyle=g;ox.beginPath();ox.arc(sx,sy,sr,0,TAU);ox.fill();
+    }
+  }
+}
 function drawOverlay(rdt,now){
   ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
   const pulse=(Math.sin(now*4)+1)/2;
@@ -100,7 +113,7 @@ function drawOverlay(rdt,now){
     ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of ptr.trail){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}ox.stroke();ox.globalAlpha=1;
     gPath(e.x,e.y,8);ox.fillStyle=cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=cov?C.good:C.bad;ox.lineWidth=2;ox.stroke();
   }
-  if(mode==='grenade'&&sel[0]){gPath(sel[0].x,sel[0].y,170);ox.setLineDash([6,5]);ox.strokeStyle=C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
+  if((mode==='grenade'||mode==='smoke')&&sel[0]){gPath(sel[0].x,sel[0].y,mode==='smoke'?SMOKE.range:170);ox.setLineDash([6,5]);ox.strokeStyle=mode==='smoke'?'#cfd6dc':C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
 
   // tracers, flashes, sparks, blasts
   ox.globalCompositeOperation='lighter';
@@ -115,8 +128,9 @@ function drawOverlay(rdt,now){
   for(const n of nades){
     const k=n.t/n.dur,x=n.x0+(n.x1-n.x0)*k,y=n.y0+(n.y1-n.y0)*k,h=Math.sin(k*Math.PI)*30+8*(1-k);
     const[sx,sy]=toS(x,y),[bx,by]=toS(x,y,h);ox.fillStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(sx,sy,2.5,0,TAU);ox.fill();
-    ox.fillStyle='#c9d1a0';ox.beginPath();ox.arc(bx,by,3,0,TAU);ox.fill();
+    ox.fillStyle=n.smoke?'#b9c0c6':'#c9d1a0';ox.beginPath();ox.arc(bx,by,3,0,TAU);ox.fill();
   }
+  drawSmoke();
 
   drawHQ(now);drawVehicle(rdt,now);drawMission(rdt,now);
   // enemy info
@@ -161,9 +175,10 @@ function drawOverlay(rdt,now){
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
     if(sel.includes(u)){gPath(vx,vy,9.5);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(u.downed){
-      const k=u.bleed/45;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=C.bad;ox.lineWidth=2;ox.stroke();
+      const k=u.bleed/BLEED_T;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=C.bad;ox.lineWidth=2;ox.stroke();
       if(u.revive>0){gPath(u.x,u.y,16,-Math.PI/2,-Math.PI/2+u.revive/3*TAU);ox.strokeStyle=C.good;ox.stroke();}
-      label(u.revive>0?'REVIVING':`DOWN ${Math.ceil(u.bleed)}s`,hx,hy-6,u.revive>0?C.good:C.bad,9,700);
+      const pinnedHelp=u.revive<=0&&players.some(o=>o!==u&&alive(o)&&!o.path.length&&hyp(o.x-u.x,o.y-u.y)<24&&o.sup>PINNED);   // a teammate beside him, but pinned: no reviving (Bryan)
+      label(u.revive>0?'REVIVING':pinnedHelp?`HELPER PINNED · ${Math.ceil(u.bleed)}s`:`DOWN ${Math.ceil(u.bleed)}s`,hx,hy-6,u.revive>0?C.good:pinnedHelp?C.warn:C.bad,9,700);
       continue;
     }
     bar(hx-9,hy-6,18,u.hp/100,u.hp>60?C.good:u.hp>30?C.warn:C.bad);
