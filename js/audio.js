@@ -26,6 +26,7 @@ function audioInit(){
   sndVerb=AC.createConvolver();sndVerb.buffer=makeImpulse(2.2);const vg=AC.createGain();vg.gain.value=.55;sndVerb.connect(vg);vg.connect(sndMuffle);
   sndVerbIn=AC.createConvolver();sndVerbIn.buffer=makeImpulse(.55);const vgi=AC.createGain();vgi.gain.value=.7;sndVerbIn.connect(vgi);vgi.connect(sndMuffle);   // indoors: a short, hard room, so shots crack
   amb=makeAmbience();
+  if(typeof preloadVoices==='function')preloadVoices();   // everyone's recorded lines (voice.js)
   // rain: a soft hiss plus a lower patter
   for(const[type,f,q,gain]of[['highpass',900,0,.035],['lowpass',700,0,.03]]){
     const s=loopNoise(),flt=AC.createBiquadFilter(),g=AC.createGain();flt.type=type;flt.frequency.value=f;g.gain.value=gain;rainG.push([g,gain]);

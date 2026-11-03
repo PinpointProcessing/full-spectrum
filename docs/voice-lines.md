@@ -1,6 +1,6 @@
 # Voice line sheet
 
-Short radio callouts for the four soldiers. The game plays a line when that soldier does the thing (see "When it plays"). Until a soldier has recordings, the browser's built-in speech reads the line instead (robotic, a stand-in only).
+Short radio callouts for the four soldiers. The game plays a line when that soldier does the thing (see "When it plays"). Every line is already voiced by an open neural text-to-speech model (Kokoro-82M; `tools/voices/`, credits in `sounds/CREDITS.md`), and so are the freed prisoners, the scientists and the hostiles' barks (their lines are in the code: `js/office.js`, `js/hunt.js`). Those are stand-ins for actors: this sheet is for recording real ones. If the files can't load, the browser's built-in speech reads the squad's lines (robotic).
 
 ## The squad
 
@@ -15,19 +15,9 @@ All lines: spoken as if into a radio handset, close to the mic, no echo or effec
 
 ## Files
 
-- One file per line per soldier: `sounds/voice/<ID>/<key>_<n>.mp3`, for example `sounds/voice/A1/contact_2.mp3`.
-- Mono, 44.1 or 48 kHz, MP3 (128 kbps or better) or tell me if you'd rather use WAV.
-- Trim silence at both ends; peak around −3 dB; no music or effects.
-- Then list the files you have in `sounds/voice/manifest.json`, like this (only what exists; anything missing falls back to the stand-in):
-
-```json
-{
-  "A1": ["contact_1", "contact_2", "ack_move_1"],
-  "B2": ["man_down_1"]
-}
-```
-
-You don't need all of them at once: a soldier can start with a few lines and the rest stay on the stand-in. Every soldier records the same set; the three variants keep repeats from sounding canned. Feel free to rewrite lines to suit each character (same file names).
+- Record one file per line, named `<key>_<n>`, for example `contact_2` (mono, 44.1 or 48 kHz, WAV or MP3; trim silence at both ends; peak around −3 dB; no music or effects).
+- The game plays one file per speaker with all his lines in a row (`sounds/voice/<ID>.mp3`) and a list of where each line starts and how long it is (`sounds/voice/manifest.json`). Send the separate files and I'll put them together (the same script that made the stand-ins can do it), or replace a whole speaker at once.
+- Every soldier records the same set; the three variants keep repeats from sounding canned. Feel free to rewrite lines to suit each character (change them in `js/voice.js`, same keys).
 
 ## Lines
 
@@ -50,9 +40,17 @@ You don't need all of them at once: a soldier can start with a few lines and the
 | `heal` | He starts healing in a medical box | Patching up. | Bandaging. | Fixing myself up. |
 | `restock` | He restocks at a supply box | Restocked. | Topped up. | Grabbing ammo. |
 
-That's 16 lines × 3 variants = 48 files per soldier, 192 in all.
+| `silent` | He takes a silent shot (silencer) | Taking the shot. | Quiet shot. | Lining it up. |
+| `takedown` | He moves in for a takedown | Moving in. | Going quiet. | I've got him. |
+| `watch` | A Watch order | Watching. | Eyes on. | Covering that way. |
+| `breach` | The team goes in on a Breach order | Breach! Breach! | Going in! | Clear the room! |
+| `zip` | He goes to zip-tie someone | Hands where I can see them! | On your knees! | Don't move! |
+| `card` | He picks up the access card | Got the access card. | The card's ours. | I've got the card. |
+| `lab` | He wrecks a lab bench | Equipment's wrecked. | One less lab. | Smashed it. |
+
+That's 23 lines × 3 variants = 69 per soldier. The four freed prisoners (Abara, Brennan, Lindqvist, Marsh) have the same set (they shout them, no radio), plus their own lines in `js/office.js` (freed, a rifle picked up, cries for help, Marsh back on his feet, goodbye).
 
 ## Later
 
-- Enemy shouts (alarm, "reloading", calling for help on the radio) would fit the stealth plans: a separate sheet when we get there.
+- Enemy shouts and the scientists' lines are voiced now (their text is in `js/hunt.js` and `js/office.js`); a sheet for recording them would follow the same pattern.
 - Orders from you (the player as commander) and a squad leader briefing at each objective are other options.

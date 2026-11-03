@@ -26,7 +26,7 @@ function missionXP(u){
   const s=u.stats,parts=[];
   if(u.dead)return parts;
   const add=(n,label)=>{if(n>0)parts.push([n,label]);};
-  add(s.kills*40,'kills');add(s.best>=2?(s.best-1)*25:0,'streak');add(s.revives*50,'revives');add(s.items*15,'items');add((s.ties||0)*30,'captures');add(60,'survived');
+  add(s.kills*40,'kills');add(s.best>=2?(s.best-1)*25:0,'streak');add(s.revives*50,'revives');add(s.items*15,'items');add((s.ties||0)*30,'captures');add((s.labs||0)*20,'sabotage');add(60,'survived');
   add(alertMax===0?40:alertMax===1?20:0,'quiet');   // a quiet run: the base never went on alert, or only to Alert I (layers.js)
   return parts;
 }
@@ -37,6 +37,8 @@ function statLine(u){
   if(s.revives)bits.push(pl(s.revives,'revive'));
   if(s.items)bits.push(pl(s.items,'grenade'));
   if(s.ties)bits.push(pl(s.ties,'capture'));
+  if(s.labs)bits.push(pl(s.labs,'lab bench')+' wrecked');
+  if(u.joined)bits.unshift('freed prisoner');
   bits.push(u.dead?'KIA':s.downs?`survived · downed ${s.downs}×`:'survived');
   return bits.join(' · ');
 }
@@ -45,7 +47,7 @@ function statLine(u){
 function showAAR(){
   const t=Math.floor(simT-mission.t0),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
   const kills=players.reduce((n,p)=>n+p.stats.kills,0),kia=players.filter(p=>p.dead).length;
-  $('#aarSum').textContent=`${obj>=5?'Warehouse, bridge, container yard and data center taken, drawbridge down,':'Warehouse and yard cleared'} in ${mm}:${ss}. ${kills} hostiles down, ${kia?`${kia} of ours killed in action`:'no one lost'}. ${alertMax?`The base reached ${ALERT_NAMES[alertMax]}.`:'The base never went on alert.'}${sciOut?` ${sciOut} of 4 scientists brought out, ${players.filter(p=>p.joined).length} of 4 prisoners freed.`:''}`;
+  $('#aarSum').textContent=`${obj>=5?'Warehouse, bridge, container yard and data center taken, drawbridge down,':'Warehouse and yard cleared'} in ${mm}:${ss}. ${kills} hostiles down, ${kia?`${kia} of ours killed in action`:'no one lost'}. ${alertMax?`The base reached ${ALERT_NAMES[alertMax]}.`:'The base never went on alert.'}${sciOut?` ${sciOut} of 4 scientists brought out, ${players.filter(p=>p.joined).length} of 4 prisoners freed, ${office.labN} of 4 lab benches wrecked.`:''}`;
   const rows=$('#aarRows');rows.innerHTML='';
   players.forEach((u,i)=>{
     const before=xpOf(u.id),gain=missionXP(u).reduce((n,p)=>n+p[0],0),after=before+gain;

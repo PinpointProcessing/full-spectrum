@@ -22,14 +22,27 @@ const SCI_PLEAD=['Please! Please, don’t...','We’re all going to die.','You d
 const SCI_ESCORT=['They sealed it for a reason.','You think we’re the dangerous ones?','It isn’t a bridge. It’s a lid.','Turn back. Please.','We’re all going to die.','They told us it would hold.','You’ll hear them first.'];
 const SCI_SCAN=['No. No, no, no. Please!','Don’t make me do this!','You’re killing all of us...','God forgive me.'];
 const PRISON_CRY=['Help! Down here!','Is someone there?','Please! We’re down here!','Get us out!'];
+const SCI_LAB=['No! Years of work!','You’ve no idea what you’ve done.','Good. Burn it. All of it.'],SCI_END=['...God help us.'];
+// the freed men's own lines (each is voiced: voice.js, sounds/voice): freed, a rifle picked up, Marsh back on his feet, and
+// goodbye at the end of the mission (Bryan: they stay with the squad until the mission's over)
+const FREED_LINES={Brennan:'Thank God. Give me a rifle and I’m with you.',Abara:'About time. I’m with you.',Lindqvist:'Get me out of here. I’ll carry my weight.'};
+const LOOT_LINES=['Got a rifle.','Armed.','That’ll do.'],MARSH_UP='Easy... easy. I’m still in this.';
+const FAREWELL={Marsh:'We owe you our lives. We’ll see you back at HQ.',Abara:'Thanks for coming for us. First round’s on me.',Brennan:'Never thought I’d see the sky again. Thank you.',
+  Lindqvist:'Whatever they kept down there with us... it’s out here now. Watch yourselves.'};
 const LIFT_RIDE=2.2,DOOR_OPEN=2.4,LOOT_R=240;
 let office=null,civs=[],sciOut=0,scanGo=null;   // this visit's state; civilians (prisoners still locked up, the man on the wall, scientists); scientists brought out
 function resetOffice(){
-  office={card:false,cardAt:null,door:0,doorT:0,liftUp:false,ride:null,liftDoor:false,cryT:0,heard:false,found:false,freed:0,tied:0,cutT:0};
+  office={card:false,cardAt:null,door:0,doorT:0,liftUp:false,ride:null,liftDoor:false,cryT:0,heard:false,found:false,freed:0,tied:0,cutT:0,labs:[false,false,false,false],labN:0,sparks:[]};
 }
 resetOffice();
 const detained=()=>civs.filter(c=>c.sci&&c.detained);
 const wallMan=()=>civs.find(c=>c.strapped);
+// who speaks a line, and the line itself: a callout over him and his recorded voice (voice.js); i: which of the lines
+const speakerOf=c=>c.sci?'S'+(((c.sciN||0)%4)+1):c.joins||c.id;
+function line(c,group,list,i,dur=3,col='#e9eef2',opt={}){
+  const k=i??((Math.random()*list.length)|0);callouts.push({x:c.x,y:c.y,t:0,dur,text:list[k],col});
+  if(typeof voiceClip==='function')voiceClip(speakerOf(c),`${group}_${k+1}`,Object.assign({x:c.x,y:c.y},opt));return k;
+}
 
 /* ---------- people who aren't soldiers: their look ---------- */
 // prisoners in grey prison clothes (no helmet, no vest), scientists in white coats; a rifle shows once a freed man has one
@@ -50,7 +63,7 @@ function makePerson(u){
 // one of them in the building: a 'C' unit (not a player, not a hostile; nobody targets him)
 function civ(kind,p,f){
   const u=mk('C','C','C'+(units.length+1),p.name||(kind==='sci'?'Scientist':'Prisoner'),p.x,p.y,p.ang??0);
-  Object.assign(u,{kind:kind==='sci'?'sci':'prisoner',sci:kind==='sci',floor:f.id,weapon:null,grenade:0,spec:null,specN:0,hp:100,cower:false,pleadT:simT+3+Math.random()*4,
+  Object.assign(u,{kind:kind==='sci'?'sci':'prisoner',sci:kind==='sci',sciN:units.filter(q=>q.side==='C'&&q.sci).length,floor:f.id,weapon:null,grenade:0,spec:null,specN:0,hp:100,cower:false,pleadT:simT+3+Math.random()*4,
     cell:p.cell||null,joins:p.joins||null,strapped:kind==='strapped'});
   makePerson(u);return u;
 }
@@ -88,6 +101,8 @@ function officeActs(){
       need:()=>office.card?null:'The cells open with the access card from the shared room upstairs.',act:u=>openCell(u,c)});}
     if(q.kind==='strapped')ACTS.push({id:'cutdown',map:'in',floor:'B1',x:q.x,y:q.y,r:14,standY:16,secs:3,label:'CUT DOWN',avail:()=>!!wallMan(),act:u=>cutDown(u)});
   }
+  // the lab equipment upstairs (a bonus from Bryan's first design): DESTROY wrecks a bench
+  (f1.interact||[]).filter(q=>q.kind==='equipment').forEach((q,i)=>ACTS.push({id:'lab-'+i,map:'in',floor:'1F',x:q.x,y:q.y,r:14,standY:0,secs:3,label:'DESTROY',avail:()=>!office.labs[i],act:u=>wreckLab(u,i,q)}));
 }
 // orderUse (interior.js) hands these over: send everyone selected on this floor into the stairs zone
 function goStairs(list,tr,z){
@@ -183,7 +198,8 @@ function cryTick(){
   if(office.door===2||office.found)return;
   const o=IN.objs.find(q=>q.kind==='steeldoor');if(!o)return;const cx=o.x+o.w/2,cy=o.y+o.h+8;
   const near=players.find(p=>alive(p)&&!p.offMap&&hyp(p.x-cx,p.y-cy)<150);if(!near||simT<office.cryT)return;
-  office.cryT=simT+9+Math.random()*5;callouts.push({x:cx,y:cy-10,t:0,dur:2.6,text:PRISON_CRY[(Math.random()*PRISON_CRY.length)|0],col:'#d9c7a0'});
+  office.cryT=simT+9+Math.random()*5;const who=civs.find(c=>c.cell&&!c.freed)||civs.find(c=>!c.sci);   // one of them, muffled behind the door
+  if(who)line({x:cx,y:cy-10,joins:who.joins},'cry',PRISON_CRY,null,2.6,'#d9c7a0',{muffle:true});
   if(!office.heard){office.heard=true;banner('Voices behind the steel door. Someone’s being held down there.',3200);updateObjUI();}
 }
 
@@ -191,7 +207,7 @@ function cryTick(){
 function openCell(u,c){
   const p=civs.find(v=>v.cell===c&&!v.freed);if(!p)return;
   const g=IN.objs.find(o=>o.gate===c);if(g)removeObj(g);if(typeof sfxClang==='function')sfxClang(p.x,p.y);
-  joinPrisoner(p);callout(p,office.freed===1?'Thank God. Give me a rifle and I’m with you.':'About time. I’m with you.',C.good);
+  joinPrisoner(p);if(FREED_LINES[p.name])line(p,'freed',[FREED_LINES[p.name]],0,3,C.good);
 }
 function cutDown(u){
   const m=wallMan();if(!m)return;Object.assign(m,{strapped:false,x:m.x,y:m.y+10,ang:Math.PI/2});
@@ -220,7 +236,7 @@ function lootTick(){
       if(u.path.length)continue;
       if(hyp(u.x-b.x,u.y-b.y)>18){b.claim=null;u.loot=null;continue;}
       if(!u.lootAt)u.lootAt=simT;if(simT-u.lootAt<.8)continue;   // a moment to take it off him
-      b.gun=false;b.claim=null;u.loot=null;u.lootAt=0;u.weapon='rifle';u.cool=1;callout(u,'Got a rifle',C.good);buildCards();hud();continue;
+      b.gun=false;b.claim=null;u.loot=null;u.lootAt=0;u.weapon='rifle';u.cool=1;line(u,'loot',LOOT_LINES,null,2,C.good);buildCards();hud();continue;
     }
     if(simT-u.lastOrder<3)continue;
     const f=MAPID==='in'?floorOf(u.x,u.y):null;let best=null,bd=LOOT_R;
@@ -255,7 +271,7 @@ function civTick(u,dt){
   // they talk: begging while they cower, muttering on the way (cryptic about what's behind the gate)
   if(near.some(p=>hyp(p.x-u.x,p.y-u.y)<260)&&simT>u.pleadT&&(u.cower||u.detained)){
     const L=u.scanning?SCI_SCAN:u.detained?SCI_ESCORT:SCI_PLEAD;u.pleadT=simT+(u.detained?11:6)+Math.random()*5;
-    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<2.5)){u.saidT=simT;callouts.push({x:u.x,y:u.y,t:0,dur:3,text:L[(Math.random()*L.length)|0],col:'#e9eef2'});}
+    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<2.5)){u.saidT=simT;line(u,u.scanning?'scan':u.detained?'escort':'plead',L);}
   }
 }
 function civAtScreen(sx,sy){
@@ -275,7 +291,7 @@ function civTap(c){
   return false;
 }
 function sciTied(c,u){   // from zipTick (layers.js)
-  c.detained=true;c.minder=u;c.cower=false;office.tied++;callouts.push({x:c.x,y:c.y,t:0,dur:3,text:SCI_PLEAD[(Math.random()*SCI_PLEAD.length)|0],col:'#e9eef2'});
+  c.detained=true;c.minder=u;c.cower=false;office.tied++;c.saidT=simT;line(c,'plead',SCI_PLEAD);
   if(office.tied===1)banner('Detained. He follows the soldier who tied him. Bring him out the front doors.',3200);updateObjUI();hud();
 }
 
@@ -292,15 +308,47 @@ function scanTick(dt){
   if(s.path.length)return;
   if(hyp(s.x-g.spot.x,s.y-g.spot.y)>16){s.path=findPath(s.x,s.y,g.spot.x,g.spot.y,FOOT)||[];if(!s.path.length){s.scanning=false;scanGo=null;}return;}
   s.ang=Math.atan2(PANEL.y-s.y,PANEL.x-s.x);g.t+=dt;
-  if(g.t>=3){s.scanning=false;scanGo=null;lowerBridge(g.u);callouts.push({x:s.x,y:s.y,t:0,dur:3,text:'...God help us.',col:'#e9eef2'});}
+  if(g.t>=3){s.scanning=false;scanGo=null;lowerBridge(g.u);line(s,'end',SCI_END,0);}
 }
+
+/* ---------- the lab equipment (a bonus) ---------- */
+// wrecked: the bench goes dark and lopsided, its glowing vials gone, sparks for a few seconds and a scorch mark; it's loud
+// (anyone near hears it), and a scientist close by has something to say about it
+function wreckLab(u,i,q){
+  if(office.labs[i])return;office.labs[i]=true;office.labN++;u.stats.labs=(u.stats.labs||0)+1;
+  const o=IN.objs.filter(b=>b.kind==='lab').sort((a,b)=>hyp(a.x+a.w/2-q.x,a.y+a.h/2-q.y)-hyp(b.x+b.w/2-q.x,b.y+b.h/2-q.y))[0];
+  const cx=o?o.x+o.w/2:q.x,cy=o?o.y+o.h/2:q.y;
+  if(o){o.wreck=true;const g=o.grp;if(g)g.traverse(m=>{if(!m.isMesh)return;if(m.geometry.type==='CylinderGeometry'){m.visible=false;return;}m.material=m.material.clone();m.material.color.setHex(0x37322e);m.rotation.z=.07;});}
+  office.sparks.push({x:cx,y:cy,t0:simT});paintDecal({k:'scorch',x:cx,y:cy+10,r:Math.random()});
+  if(typeof sfxSparks==='function')sfxSparks(cx,cy);
+  callout(u,'Smashed it',C.good);
+  alertAll('Contact.',true,cx,cy,null,null,{x:u.x,y:u.y},180,80,true);   // smashing it up is loud
+  const s=civs.filter(c=>c.sci&&floorOf(c.x,c.y)==='1F'&&hyp(c.x-cx,c.y-cy)<560).sort((a,b)=>hyp(a.x-cx,a.y-cy)-hyp(b.x-cx,b.y-cy))[0];
+  if(s&&simT-(s.saidT||-9)>1.5){s.saidT=simT;line(s,'lab',SCI_LAB);}
+  if(office.labN===4)banner('All the lab equipment is wrecked.',2400);hud();
+}
+function sparkTick(){   // the wrecked benches spit sparks for a few seconds
+  office.sparks=office.sparks.filter(s=>simT-s.t0<3.5);
+  for(const s of office.sparks)if(Math.random()<.35)sparks.push({x:s.x+(Math.random()-.5)*30,y:s.y+(Math.random()-.5)*10,t:0});
+}
+// the freed men's goodbye at the end of the mission (Bryan: they stay with the squad until it's over), then done()
+function farewell(done){
+  const men=players.filter(p=>p.joined&&!p.dead&&FAREWELL[p.name]);
+  if(!men.length){done();return;}
+  banner('The freed men will meet you back at HQ.',3000);
+  men.forEach((m,i)=>setTimeout(()=>{if(state==='play'&&!m.dead)line(m,'bye',[FAREWELL[m.name]],0,3.2,C.good);},900+i*2700));
+  setTimeout(done,1500+men.length*2700);
+}
+// Marsh on his feet again (from reviveUp): his line, once
+function onRevive(t){if(t.joined&&t.name==='Marsh'&&!t.saidUp){t.saidUp=true;line(t,'up',[MARSH_UP],0,3,C.good);}}
 
 /* ---------- the hint line inside, with nobody selected (hud.js) ---------- */
 function officeHint(){
   const n=detained().length,left=office.heard&&office.freed<4?' The prisoners in the basement can still be freed.':'';
-  if(n)return `Bring the scientists out: everyone who's up to the front doors. Detained scientists follow the soldier who tied them.${left}`;
+  const lab=players.some(p=>alive(p)&&floorOf(p.x,p.y)==='1F')&&office.labN<4?` Bonus: wreck the lab equipment (${office.labN}/4).`:'';
+  if(n)return `Bring the scientists out: everyone who's up to the front doors. Detained scientists follow the soldier who tied them.${left}${lab}`;
   if(!office.card)return 'The scientists are on the top floor. The stairs and the lift need the access card: the shared room\u2019s guards carry it (the big room at the end of the hallways).';
-  return `Up to the top floor by the stairs (east side) or the lift (west side). The stairs come out behind the gun that watches the lift.${office.door===2?left:' The computer in the shared room opens the steel door.'}`;
+  return `Up to the top floor by the stairs (east side) or the lift (west side). The stairs come out behind the gun that watches the lift.${office.door===2?left:' The computer in the shared room opens the steel door.'}${lab}`;
 }
 
 /* ---------- Continue from a save made after the building (save.js) ---------- */
@@ -308,19 +356,19 @@ function officeHint(){
 function rejoin(id,d,at){
   const s=openSpot(at.x,at.y,players.filter(p=>!p.dead).map(destOf))||at,u=mk('P',/^A/.test(id)?'A':'B',id,d.name||id,s.x,s.y,Math.PI/2);
   Object.assign(u,{kind:'prisoner',weapon:d.weapon||null,grenade:0,spec:null,specN:0,charges:0,unarmored:true,joined:true,freed:true,level:levelOf(xpOf(id)),hp:d.hp});
-  makePerson(u);players.push(u);return u;
+  makePerson(u);players.push(u);if(typeof preloadVoices==='function')preloadVoices([id]);return u;
 }
 // the scientists the squad brought out: detained, following
 function sciBack(n,at){
   for(let i=0;i<n;i++){const s=openSpot(at.x,at.y+20,units.map(destOf))||at,u=mk('C','C','S'+(i+1),'Scientist',s.x,s.y,Math.PI/2);
-    Object.assign(u,{kind:'sci',sci:true,detained:true,weapon:null,grenade:0,spec:null,specN:0,pleadT:simT+6+i*3});makePerson(u);civs.push(u);}
-  sciOut=n;
+    Object.assign(u,{kind:'sci',sci:true,sciN:i,detained:true,weapon:null,grenade:0,spec:null,specN:0,pleadT:simT+6+i*3});makePerson(u);civs.push(u);}
+  sciOut=n;if(typeof preloadVoices==='function')preloadVoices(['S1','S2','S3','S4']);
 }
 
 /* ---------- every tick inside (from interiorTick), drawing, resets ---------- */
 function officeTick(dt){   // inside (from interiorTick)
   if(MAPID!=='in')return;
-  cardTick();doorTick();cryTick();stairsTick();liftTick();
+  cardTick();doorTick();cryTick();stairsTick();liftTick();sparkTick();
 }
 let lootT=0;
 function officeEvery(dt){   // both maps (from update): freed men looking for a rifle, the bio scan

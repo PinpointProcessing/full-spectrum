@@ -194,7 +194,7 @@ function missionFx(dt){
 function lowerBridge(u){
   if(obj!==4)return;callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
   bigText('Drawbridge down!','unlock');objCompleted(4);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
-  setTimeout(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3500);endAt=performance.now()+600;}},OBJ_LIST_T+200);
+  setTimeout(()=>{if(state==='play'&&obj===5)farewell(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3000);endAt=performance.now()+1800;}});},OBJ_LIST_T+200);   // the freed men say goodbye first (office.js)
 }
 function setBridge(k){BRIDGE.lower=k;if(BRIDGE.grp)BRIDGE.grp.rotation.x=-.12-(Math.PI/2-.12)*(k<1?k*k*(3-2*k):1);if(!k)bridgeDown=0;}
 function tapPanel(){

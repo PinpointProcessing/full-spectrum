@@ -169,13 +169,15 @@ function reinfTick(){
 const BARKS={spot:['There!','Contact!','Over there!'],lost:['Lost him!','Where did they go?','Where are they?'],search:['Spread out!','Check the corners!','Keep looking!'],
   flank:['Flanking!','Moving round!','Going wide!'],pinned:["I'm pinned!",'Covering fire!'],down:['Man down!','We lost one!'],radio:['Calling it in!','Command, we have contact!'],
   backup:["Backup's here!",'Reinforcements in!'],reload:['Reloading!','Changing belts!'],giveup:['Nothing here.','They are gone.','Back to your posts.'],dog:['Release the dog!','Go get them!'],
-  body:['Man down here!','Body! Over here!','We have a body!'],what:['What was that?','Hey... what is that?','Something over there.'],grenade:['Grenade out!','Frag out!','Fire in the hole!']};   // (the last three: layers.js)
+  body:['Man down here!','Body! Over here!','We have a body!'],what:['What was that?','Hey... what is that?','Something over there.'],grenade:['Grenade out!','Frag out!','Fire in the hole!'],
+  surrender:['Don\'t shoot!','I give up!','Please, don\'t shoot!']};   // (the last three: layers.js)
 function bark(e,k,force){
   if(!e||e.dead||e.dog)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;
   if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-e.x,p.y-e.y)<340))return;   // out of earshot
   if(MAPID==='in'&&offFloor(e))return;
   const L=BARKS[k];if(!L)return;e.barkT=simT+4;barkAllT=simT+1.4;
-  callout(e,L[Math.floor(Math.random()*L.length)],'#ff9a80');
+  const i=Math.floor(Math.random()*L.length);callout(e,L[i],'#ff9a80');
+  if(typeof voiceClip==='function')voiceClip('E'+(1+(hashId(e.id)%3)),`bark_${k}_${i+1}`,{x:e.x,y:e.y,vol:.95});   // his voice (voice.js): one of three
 }
 
 /* ---------- guard dogs ---------- */

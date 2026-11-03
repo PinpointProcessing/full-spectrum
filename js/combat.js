@@ -50,6 +50,7 @@ function reviveUp(p,hp,by){
   if(p.carriedBy)putDown(p.carriedBy);
   Object.assign(p,{downed:false,critical:false,hp,revive:0,boxRev:0,bleed:BLEED_T,sup:.3,shyT:simT+SHY_T+1});
   callout(p,'Back in it',C.good);if(by)by.stats.revives++;
+  if(typeof onRevive==='function')onRevive(p);   // (Marsh's first time up: office.js)
 }
 function medTick(dt){   // medic kits being used, men being picked up, and carried men riding along
   for(const u of players){

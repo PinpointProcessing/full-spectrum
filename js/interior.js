@@ -112,7 +112,7 @@ function buildInterior(){
     bars:M(0x2c3034,{metalness:.7,roughness:.4}),hazard:M(0xc8a02a),chair:ML(0x1c2126)};
   let tgt=sc;const box=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);tgt.add(b);return b;};
   for(const o of IN.objs){
-    if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);tgt=new T.Group();(IN.groups[o.floor]||sc).add(tgt);o.mesh=tgt;   // (its own group: doors sink away, gates vanish)
+    if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);tgt=new T.Group();(IN.groups[o.floor]||sc).add(tgt);o.mesh=o.grp=tgt;   // (its own group: doors sink away, gates vanish)
     if(o.kind==='owall'||o.kind==='iwall'||o.kind==='pillar'||o.kind==='liftwall'){   // cut away at waist height with a dark top, like Dark Descent
       box(o.w,hgt,o.h,o.kind==='liftwall'?mat.metal:o.kind==='owall'?mat.owall:mat.wall,cx,hgt/2,cz);box(o.w+.2,1.2,o.h+.2,mat.cap,cx,hgt+.6,cz);
     }else if(o.kind==='steeldoor'){box(o.w,hgt,o.h,mat.steel,cx,hgt/2,cz);for(let k=0;k<3;k++)box(o.w>o.h?o.w:1.2,1.4,o.w>o.h?1.2:o.h,mat.hazard,cx,3+k*4,cz);}
@@ -180,6 +180,7 @@ function enterBuilding(){
   if(fading||!enterReady())return;
   fadeThen(()=>{
     if(!IN)buildInterior();
+    if(typeof preloadVoices==='function')preloadVoices(VOICE_IN);   // the prisoners' and scientists' voices (voice.js)
     const going=players.filter(alive);for(const c of going.slice())if(c.carry&&!going.includes(c.carry))going.push(c.carry);   // a man being carried goes in with his carrier
     stashOut(going);
     for(const p of players)p.offMap=!going.includes(p);
