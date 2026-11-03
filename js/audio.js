@@ -192,17 +192,20 @@ function sfxCell(x,y){playSample('cell',x,y,.75,varied());}
 function sfxSparks(x,y){playSample('smash',x,y,.8,varied());setTimeout(()=>playSample('glass',x,y,.7,varied()),120);}   // a lab bench wrecked
 // footsteps: anyone moving near the middle of the view, a step every stride (sneaking: soft and slow), the squad's gear rattling
 // when they run; carpet and concrete inside, wet ground and gravel outside
+// Footsteps (Bryan: the squad's walking and running was "way too loud and distracting": they're silent now). Only a hostile
+// walking close to one of the squad is heard, faintly: about two steps a second strolling, three hurrying. (A comment had
+// swallowed the stride count, so every moving man near the view played a step every frame.)
+const STEP_NEAR=150;
 function footsteps(dt){
   if(!AC||!samples.foot_out||!samples.foot_out.length)return;let n=0;
   for(const u of units){
-    if(u.dead||u.downed||u.carriedBy||u.inBoat||offFloor(u))continue;
+    if(u.side!=='E'||u.dead||u.downed||u.dog||u.veh||offFloor(u))continue;
     const px=u.fx??u.x,py=u.fy??u.y;u.fx=u.x;u.fy=u.y;if(!u.path.length){u.stepAcc=0;continue;}
-    if(u.side==='E'&&!u.vis&&!u.alerted)continue;   // (an unseen patrol: the contact sensor gives him away, not his boots)
     const d=hyp(u.x-px,u.y-py);if(d>20||d<.01)continue;
-    const sneak=u.side==='P'?u.gait==='sneak':!u.alerted,stride=sneak?12:18;   // about two steps a second sneaking, three runningu.stepAcc=(u.stepAcc||0)+d;if(u.stepAcc<stride)continue;u.stepAcc=0;
-    if(hyp(u.x-camT.x,u.y-camT.z)>420/Math.max(1,zoom*.6)||++n>4)continue;
-    playSample(MAPID==='in'?'foot_in':'foot_out',u.x,u.y,(sneak?.22:.42)*(u.side==='E'?.85:1),varied(.9,1.1));
-    if(u.side==='P'&&!sneak&&Math.random()<.3)playSample('gear',u.x,u.y,.16,varied());
+    const stride=u.alerted?18:12;
+    u.stepAcc=(u.stepAcc||0)+d;if(u.stepAcc<stride)continue;u.stepAcc=0;
+    if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-u.x,p.y-u.y)<STEP_NEAR)||++n>2)continue;   // (an unseen man close by: a hint he's there)
+    playSample(MAPID==='in'?'foot_in':'foot_out',u.x,u.y,u.alerted?.14:.08,varied(.9,1.1));
   }
 }
 

@@ -78,7 +78,8 @@ function hud(){
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
   else if(act.length===1&&enemies.some(e=>canTakedown(act[0],e)))h=`A hostile has his back to ${act[0].name}: tap him (TAKEDOWN) to sneak up and take him out silently.`;
   else if(act.length===1&&act[0].onGun&&!preview)h=`${act[0].name} is on the pillbox gun: once you're in contact he fires at anything in its swing. Any move order takes him off it.`;
-  else if(act.length>1&&volleyCrew(act).length>1&&enemies.some(e=>canVolley(act,e)))h='Silencers: tap a hostile marked SILENT SHOT to give him to one of your silenced men, then another for the next. When each has a mark (or you tap a marked man again), they fire together.';
+  else if(act.length>1&&players.some(u=>u.silent&&u.silent.hold)){const m=players.find(u=>u.silent&&u.silent.hold),f=volleyFree(act)[0];h=`${m.name} is on his man. Tap a second hostile${f?` for ${f.name}`:''} and they fire together, or tap the marked one again to fire now. It goes by itself in ${Math.max(0,Math.ceil(VOLLEY_WAIT-(simT-volleyMarkT)))} s.`;}
+  else if(act.length>1&&volleyCrew(act).length>1&&enemies.some(e=>canVolley(act,e)))h='Two silencers: tap a hostile marked SILENT SHOT for one man, then a second for the other, and they fire together. Tap the same hostile twice to fire at once.';
   else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';

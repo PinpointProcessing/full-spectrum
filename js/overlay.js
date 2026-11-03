@@ -119,7 +119,7 @@ function drawOverlay(rdt,now){
   ox.globalCompositeOperation='lighter';
   for(const t of tracers){
     toSBack=false;const k=1-t.t/.12,[x1,y1]=toS(t.x1,t.y1,12),[x2,y2]=toS(t.x2,t.y2,10),s=Math.max(0,t.t/.12-.35);if(toSBack)continue;
-    ox.strokeStyle=`rgba(${t.col},${(t.q?.45:.9)*k})`;ox.lineWidth=t.q?1.2:1.8;   // (silenced: fainter)ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();
+    ox.strokeStyle=`rgba(${t.col},${(t.q?.45:.9)*k})`;ox.lineWidth=t.q?1.2:1.8;ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();   // (silenced: fainter. A comment had swallowed the drawing, so no tracers showed at all)
   }
   for(const f of flashes){const[sx,sy]=toS(f.x,f.y,12),k=1-f.t/.07,r=4+zoom*2.2;   // a muzzle flash: a hot core and spikes
     const g=ox.createRadialGradient(sx,sy,0,sx,sy,r*1.8);g.addColorStop(0,`rgba(255,250,220,${(.95*k).toFixed(3)})`);g.addColorStop(.35,`rgba(255,200,110,${(.7*k).toFixed(3)})`);g.addColorStop(1,'rgba(255,140,40,0)');
@@ -158,7 +158,12 @@ function drawOverlay(rdt,now){
           if(e.veh){text='ARMOURED · RPG or frag';col=C.warn;}   // the gun truck (mission.js)
           else if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
           else if(act.length===1&&canSilent(act[0],e)){const pct=Math.round(silentChance(act[0],e)*100);text=`SILENT SHOT ${pct}%`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}   // a silencer (combat.js)
-          else if(act.length>1&&canVolley(act,e)){const m=markedBy(e);if(m){text=`MARKED · ${m.id}`;col=C.good;}else{const pct=Math.round(Math.max(...volleyFree(act).filter(u=>canSilent(u,e)).map(u=>silentChance(u,e)))*100);text=`SILENT SHOT ${pct}%`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}}   // a volley: who's marked (combat.js)
+          else if(act.length>1&&canVolley(act,e)){   // a volley (combat.js): who's on whom, and who'd take the next shot
+            const m=markedBy(e),pending=players.filter(u=>u.silent&&u.silent.hold).length;
+            if(m){const left=Math.max(0,Math.ceil(VOLLEY_WAIT-(simT-volleyMarkT)));text=`${m.id} ON HIM · TAP TO FIRE${left?' · '+left:''}`;col=C.good;}
+            else{const by=volleyFree(act).filter(u=>canSilent(u,e)).sort((a,b)=>silentChance(b,e)-silentChance(a,e))[0],pct=Math.round(silentChance(by,e)*100);
+              text=pending?`2ND SHOT · ${by.id} ${pct}%`:`SILENT SHOT ${pct}% · ${volleyFree(act).length} READY`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
+          }
           else{
             let best=0,bc=0,lean=false;
             for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}

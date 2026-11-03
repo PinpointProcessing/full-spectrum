@@ -561,13 +561,14 @@ function orderSilent(u,e){
   u.ang=Math.atan2(e.y-u.y,e.x-u.x);callout(u,'Taking aim',C.good);return true;
 }
 function silentTick(){
+  if(simT-volleyMarkT>=VOLLEY_WAIT&&players.some(u=>u.silent&&u.silent.hold))fireVolley();   // nobody marked a second man: the marked shot goes on its own
   for(const u of players){
     const k=u.silent;if(!k)continue;const e=k.e;
     if(!alive(u)||u.path.length||e.dead||e.surr||!silenced(u)){u.silent=null;continue;}   // down, given a move, or the man's gone
     if(e.alerted){u.silent=null;callout(u,'He\u2019s seen us',C.warn);continue;}   // too late: no quiet shot now
     const L=fireLine(u,e);if(!L){u.silent=null;callout(u,'Lost the shot',C.warn);continue;}
     u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;
-    if(k.hold){if(simT-k.t>20){u.silent=null;callout(u,'Stood down',C.warn);}continue;}   // marked for a volley: aiming, waiting for the others
+    if(k.hold)continue;   // marked for a volley: aiming, waiting for the others (VOLLEY_WAIT below)
     if(simT<(k.at??k.t+SIL.aim))continue;
     u.silent=null;u.specN--;leanOut(u,L);
     const hit=Math.random()<clamp(hitChance(u,e,L)+SIL.bonus,.05,.95),mx=hit?0:(Math.random()-.5)*18,my=hit?0:(Math.random()-.5)*18;
@@ -585,7 +586,8 @@ function silentTick(){
    With two or more silenced soldiers selected, tapping a hostile who hasn't noticed them marks him for the nearest one who
    can take him (he aims and holds); tap another for the next. When each has a mark, or you tap a marked man again, they fire
    together on the lead's count. */
-let volley=null;
+let volley=null,volleyMarkT=-99;
+const VOLLEY_WAIT=5;   // (Bryan was left wondering why nothing fired: a mark waits this long for the next, then they fire anyway)
 const volleyCrew=list=>list.filter(u=>silenced(u)&&alive(u));
 const volleyFree=list=>volleyCrew(list).filter(u=>!(u.silent&&u.silent.hold));
 const markedBy=e=>players.find(u=>u.silent&&u.silent.hold&&u.silent.e===e)||null;
@@ -593,9 +595,9 @@ function canVolley(list,e){return volleyCrew(list).length>1&&(!!markedBy(e)||vol
 function orderVolley(list,e){
   if(markedBy(e)){fireVolley();return true;}   // a marked man tapped again: fire now
   const u=volleyFree(list).filter(q=>canSilent(q,e)).sort((a,b)=>hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y))[0];if(!u)return false;
-  orderSilent(u,e);u.silent.hold=true;callout(u,'On him',C.good);
+  orderSilent(u,e);u.silent.hold=true;volleyMarkT=simT;callout(u,'On him',C.good);
   if(!volleyFree(list).length)fireVolley();   // everyone has a mark
-  else banner('Marked. Tap another hostile for the next silencer, or tap a marked man again to fire.',2400);
+  else banner(`${u.name} is on him. Tap a second hostile for ${volleyFree(list)[0].name}, or tap the same one again to fire now.`,2600);
   return true;
 }
 function fireVolley(){
