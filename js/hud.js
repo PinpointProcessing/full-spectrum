@@ -55,9 +55,10 @@ function hud(){
   else if(mode==='watch')h='Tap where to watch. They take cover facing that way and fire first at anything that comes into the cone, even before they are seen.';
   else if(mode==='breach')h='Tap the room to breach. The team stacks up at its doorway, then goes in together with a quick edge.';
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
+  else if(mode==='silent')h=`Tap a hostile marked SILENT SHOT (one who hasn't noticed you, within 20 m): an aimed quiet shot. ${sel[0]?sel[0].specN:0} left on the silencer. Tap it again to cancel.`;
   else if(mode==='smoke')h='Tap inside the dashed circle to throw smoke: nobody sees through it, either way, for about 12 s. Tap the smoke on his card again to cancel.';
   else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medical box (the red +). He moves slowly and can't shoot. Put down is bottom right.`;
-  else if(act.length===1&&!preview&&inSupply(act[0]))h=`In the supply box: tap ${act[0].name}'s special item on his card to swap smoke and medic kit.`;
+  else if(act.length===1&&!preview&&inSupply(act[0]))h=`In the supply box: tap ${act[0].name}'s special item on his card to swap smoke, medic kit and silencer.`;
   else if(act.length&&!preview&&players.some(p=>p.critical&&!p.dead&&!p.carriedBy&&!p.offMap))h='A soldier is critical: tap him with a medic (the red kit on a card) selected, or anyone to carry him to a medical box.';
   else if(!preview&&enemies.some(e=>e.surr&&!e.tied&&!e.dead&&e.vis&&!offFloor(e)))h=act.length?'A hostile has surrendered: tap him to zip-tie him (2 s beside him).':'A hostile has surrendered: select a soldier, then tap him to zip-tie him.';   // (layers.js)
   else if(secure.state==='move'&&!preview)h=`All hostiles down. Move a soldier into the green area to take ${LOCS[obj].name}.`;
@@ -70,6 +71,7 @@ function hud(){
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
   else if(act.length===1&&enemies.some(e=>canTakedown(act[0],e)))h=`A hostile has his back to ${act[0].name}: tap him (TAKEDOWN) to sneak up and take him out silently.`;
+  else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';
   $('#hint').textContent=h;

@@ -258,9 +258,9 @@ function bindFloors(){
 /* ---------- noise and contact inside ---------- */
 // a shot or a blast at (x,y) (and where it lands, x2,y2) alerts the hostiles on that floor who'd hear it: anyone in the
 // same room, in sight within IN_HEAR_OPEN, through walls within IN_HEAR_WALL
-function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL){
+function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL,room=true){   // room=false: not everyone in the room (a silenced shot)
   const f=floorOf(x,y),fl=IN.floors[f];let any=false;
-  const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]],rooms=fl?pts.map(([px,py])=>roomAt(fl,px,py)).filter(Boolean):[];
+  const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]],rooms=fl&&room?pts.map(([px,py])=>roomAt(fl,px,py)).filter(Boolean):[];
   const hears=e=>{if(fl&&rooms.includes(roomAt(fl,e.x,e.y)))return true;
     for(const[px,py]of pts){const d=hyp(e.x-px,e.y-py);if(d<=wall||(d<=open&&gridSight(px,py,e.x,e.y)))return true;}return false;};
   for(const e of enemies){

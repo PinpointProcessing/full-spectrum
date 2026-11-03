@@ -119,7 +119,7 @@ function drawOverlay(rdt,now){
   ox.globalCompositeOperation='lighter';
   for(const t of tracers){
     toSBack=false;const k=1-t.t/.12,[x1,y1]=toS(t.x1,t.y1,12),[x2,y2]=toS(t.x2,t.y2,10),s=Math.max(0,t.t/.12-.35);if(toSBack)continue;
-    ox.strokeStyle=`rgba(${t.col},${.9*k})`;ox.lineWidth=1.8;ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();
+    ox.strokeStyle=`rgba(${t.col},${(t.q?.45:.9)*k})`;ox.lineWidth=t.q?1.2:1.8;   // (silenced: fainter)ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();
   }
   for(const f of flashes){const[sx,sy]=toS(f.x,f.y,12),k=1-f.t/.07,r=4+zoom*2.2;   // a muzzle flash: a hot core and spikes
     const g=ox.createRadialGradient(sx,sy,0,sx,sy,r*1.8);g.addColorStop(0,`rgba(255,250,220,${(.95*k).toFixed(3)})`);g.addColorStop(.35,`rgba(255,200,110,${(.7*k).toFixed(3)})`);g.addColorStop(1,'rgba(255,140,40,0)');
@@ -156,6 +156,7 @@ function drawOverlay(rdt,now){
         if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150){
           let text,col;
           if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
+          else if(act.length===1&&canSilent(act[0],e)){const pct=Math.round(silentChance(act[0],e)*100);text=`SILENT SHOT ${pct}%`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}   // a silencer (combat.js)
           else{
             let best=0,bc=0,lean=false;
             for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}
@@ -170,6 +171,7 @@ function drawOverlay(rdt,now){
       if(e.reloadT>simT)label('RELOADING',fx,fy+29,C.good,9,700);   // the run's heavy gun: dash now
       if(e.radio){label(e.call?'CALLING IT IN':'RADIO',fx,fy+29,e.call?'#ff5a48':'#ffb0a0',8,700);   // the radio man (hunt.js): kill or pin him before the call goes out
         if(e.call){gPath(vx,vy,15,-Math.PI/2,-Math.PI/2+e.call.t/CALL_T*TAU);ox.strokeStyle='#ff3b2a';ox.lineWidth=2.6;ox.stroke();}}
+      if(players.some(p=>p.silent&&p.silent.e===e)){gPath(vx,vy,9+Math.sin(now*9)*1.2);ox.strokeStyle='rgba(169,196,214,.95)';ox.lineWidth=1.6;ox.stroke();}   // lined up for a silent shot
       if(stalked){gPath(vx,vy,11+Math.sin(now*6)*1.5);ox.strokeStyle=C.good;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);}   // being stalked for a takedown
     }else if(e.seen&&e.last){
       gPath(e.last.x,e.last.y,7);ox.setLineDash([3,3]);ox.strokeStyle='rgba(255,90,72,.7)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);

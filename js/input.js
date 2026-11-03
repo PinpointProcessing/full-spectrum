@@ -194,6 +194,12 @@ function tap(sx,sy){
     if(!pu||!pu.downed||pu===u){banner('Tap a downed teammate to use the medic kit. Tap the kit on his card again to cancel.');return;}
     if(orderMedkit(u,pu)){mode=null;preview=null;}return;
   }
+  if(mode==='silent'){   // the silencer (combat.js): tap a hostile who hasn't noticed him
+    const u=sel[0];if(!u||!silenced(u)){mode=null;return;}
+    const en=enemyAtScreen(sx,sy);
+    if(en&&canSilent(u,en)){orderSilent(u,en);mode=null;preview=null;fireOrderAt=performance.now();return;}
+    banner(en&&en.alerted?'He knows you are here: no silent shot.':en?'No clear shot at him from here (20 m, in sight).':'Tap a hostile marked SILENT SHOT. Tap the silencer on his card again to cancel.',2000);return;
+  }
   if(mode==='grenade'||mode==='smoke'){
     const u=sel[0];if(!u){mode=null;return;}
     if((mode==='smoke'?throwSmoke:throwNade)(u,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
@@ -234,6 +240,7 @@ function tap(sx,sy){
     if(orderZip(sel,en))preview=null;return;
   }
   if(en&&sel.length===1&&canTakedown(sel[0],en)){if(orderTakedown(sel[0],en))preview=null;return;}   // his back is to the one soldier selected: a silent takedown (combat.js)
+  if(en&&sel.length===1&&canSilent(sel[0],en)){orderSilent(sel[0],en);preview=null;return;}   // the one soldier selected has a silencer and the man hasn't seen him: a silent shot
   if(en&&sel.length){
     for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}
     if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up

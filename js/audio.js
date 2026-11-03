@@ -103,7 +103,9 @@ function toneHit(out,t0,dur,type,f0,f1,peak,attack=.004){
 }
 
 /* ---------- one-shots ---------- */
-function sfxShot(u){
+function sfxShot(u,quiet){
+  if(quiet){const out=voice(u.x,u.y,.3,.3);if(!out)return;const t=AC.currentTime;   // silenced: a muffled cough and the action cycling
+    noiseHit(out,t,.07,'bandpass',800,1.1,.8,.002);noiseHit(out,t,.14,'lowpass',520,0,.45,.003,140);noiseHit(out,t+.035,.03,'highpass',3500,0,.18,.001);return;}
   const kind=u.gunner?'mg':u.side==='E'?'enemy':u.weapon==='shotgun'?'shotgun':'shot',r=.95+Math.random()*.1;
   if(playSample(kind,u.x,u.y,kind==='mg'?.75:kind==='shotgun'?.8:.6,r))return;
   const out=voice(u.x,u.y,.45,.3);if(!out)return;const t=AC.currentTime;   // fallback: a sharp crack and a body

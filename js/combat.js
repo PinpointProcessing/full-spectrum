@@ -234,9 +234,10 @@ function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',
 // Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
 // and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.
 const AMBUSH_T=1.5,AMBUSH_BONUS=0.15;
-function alertAll(msg,ambush,x,y,x2,y2,lk){   // noise is local everywhere (hunt.js outdoors, interior.js inside): only those who'd hear it
+// open/wall: how far it carries in sight and through walls (left out: a normal shot); room=false: not the whole room (a silenced shot)
+function alertAll(msg,ambush,x,y,x2,y2,lk,open,wall,room){   // noise is local everywhere (hunt.js outdoors, interior.js inside): only those who'd hear it
   if(x==null)return;
-  if(MAPID==='in')alertNear(x,y,msg,ambush,x2,y2,lk);else alertOut(x,y,msg,ambush,x2,y2,lk);
+  if(MAPID==='in')alertNear(x,y,msg,ambush,x2,y2,lk,open,wall,room);else alertOut(x,y,msg,ambush,x2,y2,lk,open,wall);
 }
 function ambushing(){return!contact||simT<ambushT;}
 const beaten=e=>e.dead||e.surr;   // out of the fight: dead, or he gave up (layers.js)
@@ -285,7 +286,8 @@ function burst(u,t,L){
   u.target=t;u.aimT=simT;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);
   const c=hitChance(u,t,L);
   const n=u.gunner?5:u.weapon==='shotgun'?1:3;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun one blast
-  for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner?0.07:0.08),u,t,L,hit:Math.random()<c});
+  const q=silenced(u);if(q){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}   // a silencer: a quiet burst, and it wears a little
+  for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
   if(u.side==='P'&&t.alerted&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
 }
 function resolveShot(s){
@@ -301,11 +303,11 @@ function resolveShot(s){
   }
   const sg=u.weapon==='shotgun';   // a shotgun: a spread of pellets, hard hits close, less with range
   if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
-  else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100'});
-  flashes.push({x:fx,y:fy,t:0});
+  else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
+  if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0});   // a silencer hides the flash
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:sg?0.14:0.06)*(t.side==='P'?rankNerve(t):1));   // machine guns and shotgun blasts pin people down
   if(s.hit){const dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(11+Math.random()*5)*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
-  if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy});   // they'll think the squad is where the shot came from
+  if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet);   // they'll think the squad is where the shot came from (a silenced shot: only close by)
   else alertAll(null,false,fx,fy,ex,ey,{x:t.x,y:t.y});   // their own gunfire is heard nearby too
   if(t.side==='E'&&!t.alerted)t.alerted=true;
 }
@@ -322,14 +324,16 @@ function suppressShot(u){
     L={fx:f.x,fy:f.y,tx:a.x,ty:a.y,lean:f.x!==u.x||f.y!==u.y,atPeek:false};
   }
   u.noLine=0;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;leanOut(u,L);
+  const q=silenced(u);if(q){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}
   const hit=t&&Math.random()<hitChance(u,t,L)*0.35;
   const aa=u.ang+(Math.random()-.5)*0.12,dd=hyp(L.tx-L.fx,L.ty-L.fy)+(hit?0:Math.random()*20-14);
   const ex=hit?L.tx:L.fx+Math.cos(aa)*dd,ey=hit?L.ty:L.fy+Math.sin(aa)*dd;
-  tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163'});flashes.push({x:L.fx,y:L.fy,t:0});
+  tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163',q});if(q)lastNoiseT=simT;else flashes.push({x:L.fx,y:L.fy,t:0});
+  if(typeof sfxShot==='function'&&q)sfxShot(u,true);
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
   for(const{e}of tg){e.sup=Math.min(1.2,e.sup+0.17);e.alerted=true;}
   if(hit)damage(t,12,u);
-  alertAll('Contact. Weapons free.',true,u.x,u.y,ex,ey,{x:u.x,y:u.y});
+  alertAll('Contact. Weapons free.',true,u.x,u.y,ex,ey,{x:u.x,y:u.y},q?SIL.open:undefined,q?SIL.wall:undefined,!q);
   u.cool=.42+Math.random()*.12;
 }
 function throwNade(u,tx,ty){
@@ -454,6 +458,41 @@ function takedownTick(dt){
   }
 }
 function endTakedown(u,done){const e=u.tk&&u.tk.e;if(e&&!done)e.grabbed=false;u.tk=null;if(u.gaitForce==='sneak')u.gaitForce=null;}
+/* ---------- the silencer (Bryan: a special item that wears out) ---------- */
+// A soldier carrying one fires quietly while it lasts: his gunfire is heard only close by (SIL.open in sight, SIL.wall through
+// walls, not the whole room inside) and shows no muzzle flash. Each burst, suppressing shot or silent shot wears it by one
+// (six to start, topped up at supply boxes). With just him selected, a hostile who hasn't noticed the squad, in his sight
+// within SIL.range, shows SILENT SHOT and the chance (an aimed shot: +SIL.bonus): tapping him, he takes aim for SIL.aim s
+// and fires once. A hit drops him without a sound (a body others may find: layers.js); a miss alerts him and anyone right by
+// him. If the man notices the squad first, the shot's off.
+const SIL={range:200,aim:.45,bonus:.2,open:90,wall:40,missOpen:70,missWall:30};
+const silenced=u=>!!u&&u.side==='P'&&u.spec==='silencer'&&u.specN>0;
+function canSilent(u,e){
+  if(!u||!e||!alive(u)||!silenced(u)||u.inVeh||u.carry||u.crawl||u.tk||e.dead||e.surr||e.alerted||!e.vis||e.grabbed)return false;
+  return hyp(u.x-e.x,u.y-e.y)<=SIL.range&&!!fireLine(u,e);
+}
+function silentChance(u,e){const L=fireLine(u,e);return L?clamp(hitChance(u,e,L)+SIL.bonus,.05,.95):0;}
+function orderSilent(u,e){
+  Object.assign(u,{path:[],focus:null,supT:null,focusTank:null,watch:null,medGo:null,carryGo:null,silent:{e,t:simT},lastOrder:simT,aimT:simT});
+  u.ang=Math.atan2(e.y-u.y,e.x-u.x);callout(u,'Taking aim',C.good);return true;
+}
+function silentTick(){
+  for(const u of players){
+    const k=u.silent;if(!k)continue;const e=k.e;
+    if(!alive(u)||u.path.length||e.dead||e.surr||!silenced(u)){u.silent=null;continue;}   // down, given a move, or the man's gone
+    if(e.alerted){u.silent=null;callout(u,'He\u2019s seen us',C.warn);continue;}   // too late: no quiet shot now
+    const L=fireLine(u,e);if(!L){u.silent=null;callout(u,'Lost the shot',C.warn);continue;}
+    u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;
+    if(simT-k.t<SIL.aim)continue;
+    u.silent=null;u.specN--;leanOut(u,L);
+    const hit=Math.random()<clamp(hitChance(u,e,L)+SIL.bonus,.05,.95),mx=hit?0:(Math.random()-.5)*18,my=hit?0:(Math.random()-.5)*18;
+    tracers.push({x1:L.fx,y1:L.fy,x2:L.tx+mx,y2:L.ty+my,t:0,col:'214,228,238',q:true});lastNoiseT=simT;
+    if(typeof sfxShot==='function')sfxShot(u,true);
+    if(hit)silentKill(e,u);
+    else{alertOne(e,{x:u.x,y:u.y},false);alertAll(null,false,L.fx,L.fy,L.tx+mx,L.ty+my,{x:u.x,y:u.y},SIL.missOpen,SIL.missWall,false);callout(u,'Missed',C.warn);setStatus();}
+    if(!u.specN)callout(u,'Silencer worn out',C.warn);
+  }
+}
 function silentKill(e,u){   // like damage(), but quiet: nobody hears it
   e.grabbed=false;e.hp=0;e.dead=true;e.path=[];callout(e,'Silent kill',C.good);creditKill(u);
   paintDecal({k:'body',x:e.x,y:e.y,a:e.ang,r:Math.random()});addBody(e);if(Math.random()<.6)say(u,'kill');   // nobody heard it, but someone may find him (layers.js)
@@ -568,7 +607,7 @@ function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Ma
 
 function update(dt){
   simT+=dt;
-  for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u);resolveShot(s);}
+  for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u,s.quiet);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
   medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
@@ -592,7 +631,7 @@ function update(dt){
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
   if((coverTick-=dt)<=0){coverTick=.25;for(const p of players)if(alive(p))p.covered=isCovered(p,threats());}   // four times a second is plenty (it was every tick)
   for(const u of units)if(u.focus&&beaten(u.focus))u.focus=null;
-  takedownTick(dt);
+  takedownTick(dt);silentTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
     vehTick(dt);waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete

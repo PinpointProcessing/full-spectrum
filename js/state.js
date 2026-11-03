@@ -3,8 +3,9 @@
 let units=[],players=[],enemies=[],sel=[],preview=null,mode=null,contact=false,paused=false,state='intro',ambushT=-9,cardGroup=[];   // cardGroup: soldiers whose cards are on show
 let simT=0,shots=[],tracers=[],flashes=[],sparks=[],nades=[],booms=[],callouts=[],decals=[],visTick=0,aiTick=0,endAt=0,downCount=0,storm=0,stormT=12;
 const alive=u=>!u.dead&&!u.downed;
-// every soldier carries a grenade and one special item (Bryan): smoke or a medic kit, swapped at supply boxes. One medic kit per fire team to start
-const DEFAULT_SPEC={A1:'smoke',A2:'medkit',B1:'smoke',B2:'medkit'};
+// every soldier carries a grenade and one special item (Bryan): smoke, a medic kit or a silencer, swapped at supply boxes. One medic kit per
+// fire team to start; A1 brings the silencer so it can be tried on the warehouse (swap it back at the first supply box)
+const DEFAULT_SPEC={A1:'silencer',A2:'medkit',B1:'smoke',B2:'medkit'};
 
 function mk(side,team,id,name,x,y,ang){
   const u={side,team,id,name,x,y,ang,hp:100,sup:0,cool:.4+Math.random()*1.2,path:[],downed:false,dead:false,bleed:BLEED_T,revive:0,
@@ -21,7 +22,7 @@ function reset(){
   mk('E','E','E1','Hostile',273,459,Math.PI/2);mk('E','E','E2','Hostile',347,459,Math.PI/2);
   mk('E','E','E3','Hostile',222,494,Math.PI/2);mk('E','E','E4','Hostile',398,494,Math.PI/2);
   players=units.filter(u=>u.side==='P');enemies=units.filter(u=>u.side==='E');
-  for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':'rifle';p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=1;}
+  for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':'rifle';p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=specFull(p);}
   for(const p of players)p.level=levelOf(xpOf(p.id));
   for(const u of units)makeSoldier(u);
   addRadioKit(enemies[1]);   // E2 carries the warehouse's radio (hunt.js)

@@ -41,7 +41,7 @@ function continueGame(){
     const d=s.squad[p.id];
     if(!d||d.dead){Object.assign(p,{dead:true,hp:0,gone:true});continue;}
     const spot=openSpot(at.x,at.y,taken)||at;taken.push(spot);
-    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade,spec:d.spec||DEFAULT_SPEC[p.id]||'smoke',specN:d.specN??d.smoke??1,charges:d.charges??1,path:[]});
+    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade,spec:d.spec||DEFAULT_SPEC[p.id]||'smoke',specN:d.specN??d.smoke??specFull({spec:d.spec||DEFAULT_SPEC[p.id]||'smoke'}),charges:d.charges??1,path:[]});
   }
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
