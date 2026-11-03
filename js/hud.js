@@ -2,7 +2,7 @@
 /* DOM HUD: status chip, banner, squad rows, action buttons, keyboard, end screen. */
 let bannerTimer=0;
 function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
-const OBJ_HINT={1:'Next: take the bridge (north). Or crawl through the sewer pipe to the west, or cross the broken rail bridge in the east.',2:'Next: the container yard (north), a maze. The straight lane is the quick way through, but a heavy machine gun covers it: smoke it, pin the gunner while the other team runs, wait for his reload, or work round through the maze and take him from behind.',3:'Next: the data center (north-west). Take its front yard, then the whole squad goes in through the front doors.',4:'Next: send a soldier to the drawbridge control panel (north-east).',5:'The drawbridge is down. The Headquarters comes next.'};
+const OBJ_HINT={1:'Next: take the bridge (north). Or crawl through the sewer pipe to the west, or cross the broken rail bridge in the east.',2:'Next: the container yard (north), a maze. The straight lane is the quick way through, but a heavy machine gun covers it: smoke it, pin the gunner while the other team runs, wait for his reload, or work round through the maze and take him from behind.',3:'Next: the data center (north-west). Take its front yard, then the whole squad goes in through the front doors.',4:'Next: the drawbridge (north-east). Its bio scanner only opens for a scientist: bring a detained one along and send a soldier to the panel.',5:'The drawbridge is down. The Headquarters comes next.'};
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
@@ -64,8 +64,8 @@ function hud(){
   else if(secure.state==='move'&&!preview)h=`All hostiles down. Move a soldier into the green area to take ${LOCS[obj].name}.`;
   else if(secure.state==='hold'&&!preview)h=`Taking ${LOCS[obj].name}: it's yours after ${QUIET_T} quiet seconds (no shooting).`;
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
-  else if(MAPID==='out'&&obj===3&&dcTaken&&!hasKey&&!preview&&!act.length)h='Gather everyone who\'s up in the green area at the data center\'s front doors, then tap it to go in. Heal and restock first if you need to.';
-  else if(MAPID==='in'&&!preview&&!act.length)h=hasKey?'You have the key. Gather everyone who\'s up at the front doors to leave.':'Find the decryption key. Inside, gunfire only carries to nearby rooms. Heal and restock in the lobby\'s boxes.';
+  else if(MAPID==='out'&&obj===3&&dcTaken&&!sciOut&&!preview&&!act.length)h='Gather everyone who\'s up in the green area at the data center\'s front doors, then tap it to go in. Heal and restock first if you need to.';
+  else if(MAPID==='in'&&!preview&&!act.length)h=officeHint();   // (office.js)
   else if(wave.phase==='hq'&&!preview&&!act.length)h=`${OBJ_HINT[Math.max(obj,objDone)]||''} Heal and restock in the red + and supply boxes.`;   // objDone: right after a location's taken, before the next objective starts
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';

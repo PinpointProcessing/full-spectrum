@@ -123,9 +123,9 @@ function orderZip(list,e){
 }
 function zipTick(dt){
   const z=zipGo;if(!z)return;const{u,e}=z;
-  if(!alive(u)||e.dead||e.tied||(u.path.length&&hyp(destOf(u).x-e.x,destOf(u).y-e.y)>30)){zipGo=null;return;}
+  if(!alive(u)||e.dead||e.tied||e.detained||(u.path.length&&hyp(destOf(u).x-e.x,destOf(u).y-e.y)>30)){zipGo=null;return;}
   if(u.path.length)return;if(hyp(u.x-e.x,u.y-e.y)>28){zipGo=null;return;}
-  z.prog+=dt;if(z.prog>=ZIP_T){e.tied=true;zipGo=null;u.stats.ties=(u.stats.ties||0)+1;callout(u,'Zip-tied',C.good);}
+  z.prog+=dt;if(z.prog>=ZIP_T){zipGo=null;u.stats.ties=(u.stats.ties||0)+1;callout(u,e.sci?'Detained':'Zip-tied',C.good);if(e.sci)sciTied(e,u);else e.tied=true;}   // (a scientist follows him from now on: office.js)
 }
 
 /* ---------- enemy grenades ---------- */

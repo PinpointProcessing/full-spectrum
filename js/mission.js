@@ -1,12 +1,12 @@
 "use strict";
 /* The mission after the warehouse (Bryan): 2 take the bridge, 3 take the container yard (a maze with a straight run under a
    heavy machine gun; the fuel depot is scrapped, its tank code kept for later), 4 take the data center's front
-   yard, go inside for the decryption key (interior.js) and lower the drawbridge with it, 5 take the Headquarters (to
-   come). Each objective's defenders spawn when it becomes the current one (so a fight at one doesn't alert the next); a
+   yard, go inside and detain the scientists (interior.js, office.js), bring one to the drawbridge's bio scanner to lower it,
+   5 take the Headquarters (to come). Each objective's defenders spawn when it becomes the current one (so a fight at one doesn't alert the next); a
    finished objective gets a medical and a supply box (hq.js) and the game saves. Also: demolition charges (one per
    soldier, restocked at supply boxes) for the fuel tanks, the enemy RPG gunner and his rockets, fuel tanks that
    chain-explode, the drawbridge and its panel, the objective tracker, and their overlay drawing. */
-const OBJECTIVES=['Take the warehouse','Take the bridge','Take the container yard','Sabotage the data center','Lower the drawbridge','Take the Headquarters'];
+const OBJECTIVES=['Take the warehouse','Take the bridge','Take the container yard','Take the data center','Lower the drawbridge','Take the Headquarters'];
 // indexes into OBJECTIVES: 0 warehouse, 1 bridge, 2 container yard, 3 data center, 4 drawbridge (still objective 4 for the player), 5 HQ
 const RPG={aim:1.3,reload:8,speed:170,spread:[18,42],range:400,blast:40,dmg:85};
 const CHARGE={plant:3,fuse:8,away:130};
@@ -17,7 +17,7 @@ function resetMission(){
   secure={t:0,state:null,said:false,left:-1};lastNoiseT=-99;spotBannerT=-99;
   HQ_ZONES.length=0;
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
-  dcTaken=false;hasKey=false;
+  dcTaken=false;sciOut=0;scanGo=null;
   setBridge(0);if(PANEL.button)PANEL.button.material.emissive.setHex(0);
   updateObjUI();
 }
@@ -141,7 +141,7 @@ function secureTick(n,dt){
   secure={t:0,state:null,said:false,left:-1};updateObjUI();return true;
 }
 // when an objective starts: one short line, the next thing on the list (Bryan); the details stay in the hint line (OBJ_HINT)
-const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Take the container yard to the north',3:'Take the data center to the north-west',4:'Lower the drawbridge to the north-east'};
+const OBJ_INTRO={1:'Take control of the bridge to the north',2:'Take the container yard to the north',3:'Take the data center to the north-west',4:'Take a scientist to the drawbridge\'s bio scanner'};
 function startObjective(n,quiet){
   obj=n;if(n<=3&&!groups[n]&&!(n===3&&dcTaken))spawnGroup(n);   // (the data center's yard, once taken, stays taken)
   updateObjUI();setStatus();hud();
@@ -179,10 +179,8 @@ function missionTick(dt){
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
     else if(hyp(u.x-PANEL.x,u.y-PANEL.y)<=22){
       panelGo=null;
-      if(obj<4){banner('The drawbridge needs the decryption key from inside the data center',4000);callout(u,'Locked',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
-      else if(obj===4){callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
-        bigText('Drawbridge down!','unlock');objCompleted(4);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
-        setTimeout(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3500);endAt=performance.now()+600;}},OBJ_LIST_T+200);}
+      if(obj<4){banner('The drawbridge has a bio scanner. It only opens for one of the scientists inside the data center.',4000);callout(u,'Locked',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
+      else if(obj===4&&!scanGo)startScan(u);   // a detained scientist's hand on the scanner (office.js)
     }
   }
 }
@@ -190,12 +188,18 @@ function missionTick(dt){
 function missionFx(dt){
   rocketTick(dt);
   for(let i=tankQueue.length-1;i>=0;i--)if(simT>=tankQueue[i].at){const o=tankQueue[i].o;tankQueue.splice(i,1);tankExplode(o,null);}
-  if(bridgeDown&&BRIDGE.lower<1)setBridge(Math.min(1,(simT-bridgeDown)/3));
+  if(bridgeDown&&BRIDGE.lower<1)setBridge(Math.max(1e-4,Math.min(1,(simT-bridgeDown)/3)));   // (never 0 here: setBridge(0) means a reset, and the scan can lower it in the same tick)
+}
+// the scan took: the drawbridge comes down (Bryan: the monsters start here, next build)
+function lowerBridge(u){
+  if(obj!==4)return;callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
+  bigText('Drawbridge down!','unlock');objCompleted(4);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
+  setTimeout(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3500);endAt=performance.now()+600;}},OBJ_LIST_T+200);
 }
 function setBridge(k){BRIDGE.lower=k;if(BRIDGE.grp)BRIDGE.grp.rotation.x=-.12-(Math.PI/2-.12)*(k<1?k*k*(3-2*k):1);if(!k)bridgeDown=0;}
 function tapPanel(){
   const foot=sel.filter(u=>alive(u)&&!u.inVeh).sort((a,b)=>hyp(a.x-PANEL.x,a.y-PANEL.y)-hyp(b.x-PANEL.x,b.y-PANEL.y));
-  if(!foot.length){banner('Select a soldier, then tap the control panel.',2000);return;}
+  if(!foot.length){banner('Select a soldier, then tap the bio scanner.',2000);return;}
   const u=foot[0],s=openSpot(PANEL.x,PANEL.y+14,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:PANEL.x,y:PANEL.y+14},p=findPath(u.x,u.y,s.x,s.y);
   if(p){u.path=p;u.lastOrder=simT;callout(u,'Checking the controls',C.good);panelGo=u;}else banner('No way to reach the panel from here.',2000);
 }
@@ -314,7 +318,7 @@ function shootTank(u){
 
 
 /* ---------- the objective tracker (top left; tap to see the whole list) ---------- */
-const OBJ_LIST=['Take the warehouse','Take the bridge','Take the container yard','Get the decryption key and lower the drawbridge','Take the Headquarters'];
+const OBJ_LIST=['Take the warehouse','Take the bridge','Take the container yard','Detain the scientists and lower the drawbridge','Take the Headquarters'];
 const OBJ_LIST_T=3400;   // how long the list stays open with the newly crossed-off objective (ms); the next messages wait for it
 let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
 function objCompleted(n){
@@ -323,7 +327,8 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  const num=Math.min(objDone+1,5),label=objDone===3?(hasKey?'Lower the drawbridge':MAPID==='in'?'Get the decryption key':dcTaken?'Go into the data center':'Take the data center'):OBJ_LIST[num-1];
+  const n=MAPID==='in'?detained().length:0,label=objDone===3?(sciOut?'Take a scientist to the bio scanner':MAPID==='in'?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):dcTaken?'Go into the data center':'Take the data center'):OBJ_LIST[Math.min(objDone+1,5)-1];
+  const num=Math.min(objDone+1,5);
   el.querySelector('b').textContent=`Objective ${num}/5`;el.querySelector('span').textContent=label+(num===5?' (coming next)':locNote());
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
@@ -369,12 +374,12 @@ function drawLastFoes(now){
   }
 }
 function drawMission(rdt,now){
-  drawSecure(now);if(MAPID==='out')drawLastFoes(now);drawGather(now);drawActs(now);   // (the last two: interior.js)
+  drawSecure(now);if(MAPID==='out')drawLastFoes(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};
   if(obj===2)for(const o of objs)if(o.kind==='tank'&&!o.burst)mark(o.x+o.w/2,o.y+o.h/2,o.w/2+6,'DESTROY','#ffcf4a');
-  if(obj===4)mark(PANEL.x,PANEL.y,14,'CONTROL PANEL','#5fe08e');
+  if(obj===4)mark(PANEL.x,PANEL.y,14,'BIO SCANNER','#5fe08e');
   // charges: planting progress, then a countdown on the charge itself
   for(const u of players)if(u.plant&&!u.path.length&&alive(u)){gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+u.plant.prog/CHARGE.plant*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
   for(const c of charges){const left=Math.max(0,c.at-simT),[sx,sy]=toS(c.x,c.y,4);ox.fillStyle=pulse>.5?'#ff3b2a':'#7a1510';ox.beginPath();ox.arc(sx,sy,4,0,TAU);ox.fill();label(left.toFixed(1),sx,sy-12,'#ff6a50',10,700);gPath(c.x,c.y,100);ox.strokeStyle='rgba(255,70,50,.35)';ox.setLineDash([4,6]);ox.lineWidth=1.2;ox.stroke();ox.setLineDash([]);}

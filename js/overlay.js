@@ -188,11 +188,11 @@ function drawOverlay(rdt,now){
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
     if(sel.includes(u)){gPath(vx,vy,9.5);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(u.downed){
-      const k=u.critical?u.crit/CRIT_T:u.bleed/BLEED_T;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=u.critical?'#ff3b30':C.bad;ox.lineWidth=u.critical?3:2;ox.stroke();
+      const k=u.critical?(u.noBleed?1:u.crit/CRIT_T):u.bleed/BLEED_T;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=u.critical?'#ff3b30':C.bad;ox.lineWidth=u.critical?3:2;ox.stroke();
       const medic=players.find(o=>o.medGo&&o.medGo.t===u&&!o.path.length),prog=u.revive>0?u.revive/3:medic?medic.medGo.prog/MEDKIT_T:u.boxRev>0?u.boxRev/BOXREV_T:0;
       if(prog>0){gPath(u.x,u.y,16,-Math.PI/2,-Math.PI/2+prog*TAU);ox.strokeStyle=C.good;ox.stroke();}
       const pinnedHelp=u.revive<=0&&players.some(o=>o!==u&&alive(o)&&!o.path.length&&hyp(o.x-u.x,o.y-u.y)<24&&o.sup>PINNED);   // a teammate beside him, but pinned: no reviving (Bryan)
-      const txt=u.carriedBy?`CARRIED · ${fmtT(u.crit)}`:medic?(medic.sup>PINNED?'MEDIC PINNED':'MEDIC KIT'):u.boxRev>0?'REVIVING':u.critical?`CRITICAL · ${fmtT(u.crit)}`:u.revive>0?'REVIVING':pinnedHelp?`HELPER PINNED · ${Math.ceil(u.bleed)}s`:`DOWN ${Math.ceil(u.bleed)}s`;
+      const txt=u.carriedBy?(u.noBleed?'CARRIED':`CARRIED · ${fmtT(u.crit)}`):medic?(medic.sup>PINNED?'MEDIC PINNED':'MEDIC KIT'):u.boxRev>0?'REVIVING':u.critical?(u.noBleed?'NEEDS A MEDIC KIT':`CRITICAL · ${fmtT(u.crit)}`):u.revive>0?'REVIVING':pinnedHelp?`HELPER PINNED · ${Math.ceil(u.bleed)}s`:`DOWN ${Math.ceil(u.bleed)}s`;
       label(txt,hx,hy-6,prog>0&&!(medic&&medic.sup>PINNED)?C.good:pinnedHelp||(medic&&medic.sup>PINNED)?C.warn:C.bad,9,700);
       continue;
     }
@@ -205,7 +205,7 @@ function drawOverlay(rdt,now){
     if(u.sup>0.65)label('PINNED',hx,hy-15,C.warn,9,700);
     else if(u.sup>0.08)bar(hx-9,hy-1,18,u.sup/0.65,C.warn);
   }
-  for(const c of callouts){if(offFloor(c))continue;const[sx,sy]=toS(c.x,c.y,30),k=c.t/1.7;ox.globalAlpha=1-Math.max(0,k-.6)/.4;label(c.text,sx,sy-k*16,c.col,11,700);ox.globalAlpha=1;}
+  for(const c of callouts){if(offFloor(c))continue;const[sx,sy]=toS(c.x,c.y,30),k=c.t/(c.dur||1.7);ox.globalAlpha=1-Math.max(0,k-.6)/.4;label(c.text,sx,sy-k*16,c.col,11,700);ox.globalAlpha=1;}
   if(ptr&&ptr.kind==='lasso'&&ptr.loop.length>1){   // lasso loop, closed back to its start
     ox.beginPath();ox.moveTo(...ptr.loop[0]);for(const p of ptr.loop)ox.lineTo(...p);ox.closePath();
     ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);

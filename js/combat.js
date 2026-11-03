@@ -136,7 +136,7 @@ function nearBank(tx,ty,list){
 function makeAssign(list,tx,ty){
   ({x:tx,y:ty}=nearBank(tx,ty,list));
   const box=zoneAt(tx,ty);if(box){const r=boxAssign(list,box,tx,ty);if(r)return r;}   // a medical or supply box: everyone inside it
-  const th=threats(),n=list.length,R=ASSIGN_R[Math.min(n,4)];
+  const th=threats(),n=list.length,R=n>4?62:ASSIGN_R[n];   // (five or more: the freed prisoners joined, office.js)
   const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf);
   const cands=[];
   const add=(x,y,cp,pen=0)=>{
@@ -148,26 +148,29 @@ function makeAssign(list,tx,ty){
   for(const c of coverPts)if(hyp(c.x-tx,c.y-ty)<=R)add(c.x,c.y,true);
   let ne=th[0];for(const t of th)if(hyp(t.x-tx,t.y-ty)<hyp(ne.x-tx,ne.y-ty))ne=t;
   const dl=hyp(ne.x-tx,ne.y-ty)||1,fx=(ne.x-tx)/dl,fy=(ne.y-ty)/dl;
-  for(const[a,b]of[[0,0],[1,0],[-1,0],[2,0],[-2,0],[0,-1],[1,-1],[-1,-1]]){
+  for(const[a,b]of[[0,0],[1,0],[-1,0],[2,0],[-2,0],[0,-1],[1,-1],[-1,-1],...(n>4?[[3,0],[-3,0],[2,-1],[-2,-1],[0,-2],[1,-2],[-1,-2]]:[])]){
     const x=tx-fy*a*SPACE_OPEN+fx*b*SPACE_OPEN,y=ty+fx*a*SPACE_OPEN+fy*b*SPACE_OPEN;
     if(isFree(x,y,8))add(x,y,false,b<0?0.5:0);   // back row only when the front line is full
   }
-  const C=cands.sort((p,q)=>q.v-p.v).slice(0,10);
+  const C=cands.sort((p,q)=>q.v-p.v).slice(0,n>4?18:10);
   // Bryan: the healthier man goes in front. How exposed a spot is (it sees or peeks at the enemy: 1, it isn't fully covered: 1
   // more) weighs on who takes it: the more exposed, the more it goes to whoever has more health than the group's average,
   // and the badly hurt keep back when the group has somewhere else to stand
   const avgHp=list.reduce((a,u)=>a+u.hp,0)/n,frontBias=u=>(u.hp-avgHp)/50-(n>1&&u.hp<SHY_HP+5?.3:0);
   let best=null,bs=-1e9;const pick=[];
-  (function search(i,score){
+  const step=(u,c,picked)=>{if(picked.includes(c)||picked.some(q=>hyp(q.x-c.x,q.y-c.y)<(q.cp&&c.cp?SPACE_COVER:SPACE_OPEN)))return null;
+    let sc=c.v-hyp(u.x-c.x,u.y-c.y)/150+c.expo*frontBias(u);for(const q of picked){const d=hyp(q.x-c.x,q.y-c.y);if(d>30)sc-=(d-30)/20;}return sc;};
+  if(n<=4)(function search(i,score){   // up to four: every arrangement
     if(i===n){if(score>bs){bs=score;best=pick.slice();}return;}
     const u=list[i];
-    for(const c of C){
-      if(pick.includes(c)||pick.some(q=>hyp(q.x-c.x,q.y-c.y)<(q.cp&&c.cp?SPACE_COVER:SPACE_OPEN)))continue;
-      let sc=c.v-hyp(u.x-c.x,u.y-c.y)/150+c.expo*frontBias(u);
-      for(const q of pick){const d=hyp(q.x-c.x,q.y-c.y);if(d>30)sc-=(d-30)/20;}
-      pick.push(c);search(i+1,score+sc);pick.pop();
-    }
+    for(const c of C){const sc=step(u,c,pick);if(sc==null)continue;pick.push(c);search(i+1,score+sc);pick.pop();}
   })(0,0);
+  else{   // more (the freed prisoners): a beam of the best partial arrangements, so eight men don't take millions of tries
+    let beam=[{p:[],s:0}];
+    for(let i=0;i<n;i++){const u=list[i],next=[];for(const b of beam)for(const c of C){const sc=step(u,c,b.p);if(sc!=null)next.push({p:[...b.p,c],s:b.s+sc});}
+      next.sort((a,b)=>b.s-a.s);beam=next.slice(0,60);if(!beam.length)break;}
+    if(beam.length&&beam[0].p.length===n){best=beam[0].p;bs=beam[0].s;}
+  }
   const res=[];
   list.forEach((u,i)=>{
     let c=best&&best[i],path=c&&findPath(u.x,u.y,c.x,c.y);
@@ -249,13 +252,14 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
+  if(t.unarmored)dmg*=1.3;   // a freed prisoner: no vest (office.js)
   t.hp-=dmg;t.hitFlash=.25;
   if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
-      t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.critical=false;t.revive=0;t.boxRev=0;t.path=[];t.supT=null;t.medGo=null;t.carryGo=null;if(t.carry)putDown(t);
+      t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.critical=false;t.noBleed=false;t.revive=0;t.boxRev=0;t.path=[];t.supT=null;t.medGo=null;t.carryGo=null;if(t.carry)putDown(t);
       callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
       {const m=players.filter(o=>o!==t&&alive(o)).sort((a,b)=>hyp(a.x-t.x,a.y-t.y)-hyp(b.x-t.x,b.y-t.y))[0];say(m,'man_down');}
       sel=sel.filter(x=>x!==t);preview=null;
@@ -365,7 +369,7 @@ function explode(x,y,by,quiet){
   tankBlast(x,y,by);
   const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}
   for(const v of units){
-    if(v.dead||v.seat==='driver')continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;   // the driver is shielded; riders and the gunner sit in the open
+    if(v.dead||v.seat==='driver'||v.side==='C')continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;   // (nobody harms the scientists or the men still locked up: office.js)   // the driver is shielded; riders and the gunner sit in the open
     if(!los(x,y,v.x,v.y)||hideAt(v.x,v.y)!==hideAt(x,y))continue;   // the tunnel shelters whoever's inside
     v.sup=Math.min(1.2,v.sup+0.8);
     if(!v.downed)damage(v,95*(1-d/62),by);
@@ -501,6 +505,7 @@ function silentKill(e,u){   // like damage(), but quiet: nobody hears it
 /* ---------- AI ---------- */
 let spotBannerT=-99,coverTick=0;   // one "Hostile spotted" banner at a time, not one per man
 function computeVis(){
+  for(const c of civs)c.vis=players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-c.x,p.y-c.y)<=360&&los(p.x,p.y,c.x,c.y));   // the people who aren't soldiers: shown once seen (office.js)
   for(const e of enemies){
     if(e.dead){e.vis=false;continue;}
     e.vis=players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=360&&fireLine(p,e));
@@ -569,6 +574,7 @@ function playerThink(p){
 /* ---------- update ---------- */
 function updateUnit(u,dt){
   if(u.dead||u.grabbed)return;   // grabbed from behind (a takedown): he's done
+  if(u.side==='C'){civTick(u,dt);return;}   // a prisoner still locked up, a scientist: office.js
   if(u.surr){u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);u.path=[];return;}   // he gave up: kneeling, hands up (layers.js)
   if(u.side==='P')u.gait=gaitOf(u);
   u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);
@@ -595,7 +601,7 @@ function updateUnit(u,dt){
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);
   if(u.rpg&&u.alerted&&u.aimAt)rpgThink(u);   // mid-aim: fire when ready
-  if(u.cool<=0&&!u.vaultK&&!u.carry&&!u.dog&&!(u.reloadT>simT)){   // (carrying a man: hands full)
+  if(u.cool<=0&&!u.vaultK&&!u.carry&&!u.dog&&!(u.reloadT>simT)&&u.weapon!==null){   // (carrying a man: hands full; a freed prisoner without a rifle yet: office.js)
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank
@@ -610,7 +616,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u,s.quiet);resolveShot(s);}
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
+  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);officeEvery(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
@@ -620,7 +626,7 @@ function update(dt){
       if(helper){p.revive+=dt;if(p.revive>=3)reviveUp(p,35,helper);}
       else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
     }else{
-      p.crit-=dt;
+      if(!p.noBleed)p.crit-=dt;   // (the man off the basement wall has no clock: office.js)
       if(p.crit<=0){if(p.carriedBy)putDown(p.carriedBy);p.dead=true;p.downed=false;p.critical=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}
     }
   }
@@ -628,7 +634,7 @@ function update(dt){
   if(smokes.length)smokes=smokes.filter(c=>simT-c.t0<SMOKE.life);
   for(const arr of [tracers,flashes,sparks,booms,callouts])for(const f of arr)f.t+=dt;
   if(flashes.some(f=>f.t<=dt+1e-6)||booms.some(b=>b.t<=dt+1e-6))lastNoiseT=simT;   // a shot or a blast this tick: a location's quiet spell starts over (mission.js)
-  tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<1.7);
+  tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<(f.dur||1.7));
   if((coverTick-=dt)<=0){coverTick=.25;for(const p of players)if(alive(p))p.covered=isCovered(p,threats());}   // four times a second is plenty (it was every tick)
   for(const u of units)if(u.focus&&beaten(u.focus))u.focus=null;
   takedownTick(dt);silentTick();

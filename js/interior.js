@@ -6,13 +6,13 @@
    The floors (OFFICE_LAYOUT: GF, B1, 1F) sit side by side in the frame with 'void' between them; the camera shows one at a
    time (the floor chip switches it) and every floor runs at once, so the fire teams can split (Bryan). Inside, noise only
    carries to nearby rooms on the same floor (alertNear), and contact ends once no alerted hostile on a floor with the squad
-   has seen them for a while, so the squad can go quiet again between rooms. Things to use (the decryption key for now;
-   the computer, cells and the rest in the next steps) share one look and one tap (ACTS). */
-let MAPID='out',curFloor='GF',hasKey=false,dcTaken=false,fading=false;
+   has seen them for a while, so the squad can go quiet again between rooms. Things to use (the computer, the stairs and
+   the lift, the cells; office.js has what each one does) share one look and one tap (ACTS). */
+let MAPID='out',curFloor='GF',dcTaken=false,fading=false;
 let IN=null;            // the interior once built: {L,floors,objs,lamps,hq,units,scene,lights,canvas,tex}
 const STASH={};         // the map that isn't in play
 const IN_HEAR_OPEN=260,IN_HEAR_WALL=110,IN_QUIET=8;   // how far gunfire carries inside, in sight and through walls; s unseen before contact ends
-const IN_OPEN=['GF'];   // the floors the built steps use (docs/office-building.md: B1 with step 3, 1F with step 4); the others are built but empty and off the floor chip
+const IN_OPEN=['GF','B1','1F'];   // the floors in use (all three now: office.js)
 
 /* ---------- building it ---------- */
 // the frame minus the floors: invisible full blocks, so nothing between the floors is walkable or gives cover points
@@ -80,14 +80,14 @@ function buildInterior(){
   const L=OFFICE_LAYOUT;
   IN={L,floors:{},objs:[],lamps:[],hq:[],units:[],acts:[],scene:null,lights:null,canvas:null,tex:null};
   for(const f of L.floors)IN.floors[f.id]=f;
-  for(const f of L.floors)for(const o of f.objects)IN.objs.push({kind:o.kind,x:o.x,y:o.y,w:o.w,h:o.h,full:FULL.has(o.kind),floor:f.id});
-  IN.objs.push(...voidRects(L.floors.map(f=>f.bounds)));
+  for(const f of L.floors)for(const o of f.objects)IN.objs.push({kind:o.kind,x:o.x,y:o.y,w:o.w,h:o.h,full:FULL.has(o.kind),floor:f.id,gate:o.gate});
+  IN.objs.push(...voidRects(L.floors.map(f=>f.bounds)));IN.allObjs=IN.objs.slice();   // (allObjs: doors and gates that open come back on a fresh visit)
   // the light plan (docs/feel-plan.md: rooms you can read): rooms with people in them and the main spaces are lit, a hallway
   // tube sputters, empty rooms are dark or lit only by a red emergency light. One light every 12 m along anything long.
   // (They share the lamp pool like the street lamps.)
   for(const f of L.floors)for(const r of f.rooms||[]){
     const w=r.x1-r.x0,h=r.y1-r.y0,n=Math.max(1,Math.round(Math.max(w,h)/120)),floor=f.id,nm=r.name||'',rr=rng(Math.round(r.x0*13+r.y0*7));
-    const occupied=(f.posts||[]).some(p=>/rifleman|mg|ambusher/.test(p.role)&&p.x>=r.x0&&p.x<=r.x1&&p.y>=r.y0&&p.y<=r.y1),main=/lobby|reception|shared|science|turret|stair|lift/i.test(nm),hall=/hall/i.test(nm);
+    const occupied=(f.posts||[]).some(p=>/rifleman|mg|ambusher|prisoner|strapped|scientist/.test(p.role)&&p.x>=r.x0&&p.x<=r.x1&&p.y>=r.y0&&p.y<=r.y1),main=/lobby|reception|shared|science|turret|stair|lift/i.test(nm),hall=/hall/i.test(nm);
     if(!occupied&&!main&&!hall){if(rr()<.5)IN.lamps.push({x:(r.x0+r.x1)/2,y:r.y0+12,h:22,c:0xff3a2a,i:.7,d:110,floor});continue;}   // empty: dark, or a red emergency light
     for(let k=0;k<n;k++){const t=(k+.5)/n;IN.lamps.push({x:w>=h?r.x0+w*t:(r.x0+r.x1)/2,y:w>=h?(r.y0+r.y1)/2:r.y0+h*t,h:32,c:/cell|basement/i.test(nm)?0xffd39a:/lab|science/i.test(nm)?0xe4f0ff:/office|meeting|security/i.test(nm)?0xffe9c8:0xf0f2f4,i:1.5,d:190,ceil:1,floor,flick:hall&&k===0});}
   }
@@ -112,10 +112,11 @@ function buildInterior(){
     bars:M(0x2c3034,{metalness:.7,roughness:.4}),hazard:M(0xc8a02a),chair:ML(0x1c2126)};
   let tgt=sc;const box=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);tgt.add(b);return b;};
   for(const o of IN.objs){
-    if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);tgt=IN.groups[o.floor]||sc;
+    if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);tgt=new T.Group();(IN.groups[o.floor]||sc).add(tgt);o.mesh=tgt;   // (its own group: doors sink away, gates vanish)
     if(o.kind==='owall'||o.kind==='iwall'||o.kind==='pillar'||o.kind==='liftwall'){   // cut away at waist height with a dark top, like Dark Descent
       box(o.w,hgt,o.h,o.kind==='liftwall'?mat.metal:o.kind==='owall'?mat.owall:mat.wall,cx,hgt/2,cz);box(o.w+.2,1.2,o.h+.2,mat.cap,cx,hgt+.6,cz);
     }else if(o.kind==='steeldoor'){box(o.w,hgt,o.h,mat.steel,cx,hgt/2,cz);for(let k=0;k<3;k++)box(o.w>o.h?o.w:1.2,1.4,o.w>o.h?1.2:o.h,mat.hazard,cx,3+k*4,cz);}
+    else if(o.kind==='liftdoor'){const v=o.h>o.w;box(v?o.w:o.w/2-.4,hgt,v?o.h/2-.4:o.h,mat.steel,v?cx:o.x+o.w/4,hgt/2,v?o.y+o.h/4:cz);box(v?o.w:o.w/2-.4,hgt,v?o.h/2-.4:o.h,mat.steel,v?cx:o.x+o.w*.75,hgt/2,v?o.y+o.h*.75:cz);}
     else if(o.kind==='cabinet'){box(o.w,hgt,o.h,mat.metal,cx,hgt/2,cz);}
     else if(o.kind==='rack'){box(o.w,hgt,o.h,mat.dark,cx,hgt/2,cz);const r=rng(o.x+o.y);for(let k=0;k<6;k++){const l=new T.Mesh(new T.BoxGeometry(1,1,1),mat.led);l.position.set(o.x+2+r()*(o.w-4),3+r()*(hgt-6),o.w>o.h?o.y-.3:cz);tgt.add(l);}}
     else if(o.kind==='desk'||o.kind==='terminal'){
@@ -138,20 +139,18 @@ function buildInterior(){
   const mz=[];for(let k=0;k<2;k++){const m=new T.PointLight(0xffcf8a,0,95,2);sc.add(m);mz.push(m);}
   const bl=new T.PointLight(0xffa050,0,280,1.6);sc.add(bl);
   IN.lights={hemi:hemi2,moon:null,lampPool:pool,muzzle:mz,boomL:bl};
-  // the things to use, from the layout (more kinds join in the next steps)
-  for(const f of L.floors)if(IN_OPEN.includes(f.id))for(const it of f.interact||[]){
-    if(it.kind==='key')ACTS.push({id:'key',map:'in',floor:f.id,x:it.x,y:it.y,r:16,label:'DECRYPTION KEY',pickup:true,avail:()=>!hasKey,act:u=>takeKey(u)});
-  }
+  officeActs();   // the things to use: the computer, the card, the stairs and the lift, the cells, the man on the wall (office.js)
 }
-function spawnInterior(){   // the guards at their posts, unaware (ambushers, prisoners, scientists come with their own steps)
+function spawnInterior(){   // the guards at their posts (the men on the landing behind the steel door too), unaware; then the prisoners and scientists (office.js)
   let n=0;
   for(const f of IN.L.floors)if(IN_OPEN.includes(f.id))for(const p of f.posts||[]){
-    if(p.role!=='rifleman'&&p.role!=='mg')continue;
+    if(p.role!=='rifleman'&&p.role!=='mg'&&p.role!=='ambusher')continue;
     const r=roomAt(f,p.x,p.y),zone=r?{x0:r.x0+8,x1:r.x1-8,y0:r.y0+8,y1:r.y1-8}:{x0:f.bounds.x0,x1:f.bounds.x1,y0:f.bounds.y0,y1:f.bounds.y1},id='I'+(++n);
     const u=p.role==='mg'?mgGunner(id,p.x,p.y):hostile(id,p.x,p.y,{zone,ang:p.ang});
-    Object.assign(u,{ang:p.ang,jumpy:false,floor:f.id,area:p.group,zone:p.role==='mg'?undefined:zone});
+    Object.assign(u,{ang:p.ang,jumpy:false,floor:f.id,area:p.group,note:p.note,zone:p.role==='mg'?undefined:zone});
     if(/operator/i.test(p.note||''))addRadioKit(u);   // he can call it in: everyone on the floor comes (hunt.js)
   }
+  spawnCivs();
 }
 
 /* ---------- going in and out ---------- */
@@ -176,7 +175,7 @@ function fadeThen(fn){
   setTimeout(()=>{fn();requestAnimationFrame(()=>{el.classList.remove('on');setTimeout(()=>{el.hidden=true;fading=false;},380);});},380);
 }
 // the squad at the front doors outside, everyone who's up: in they go (the downed stay outside, frozen, until the squad comes back)
-function enterReady(){return MAPID==='out'&&obj===3&&dcTaken&&!hasKey&&state==='play'&&players.some(alive)&&players.filter(alive).every(p=>inZone(p,DC_ENTER));}
+function enterReady(){return MAPID==='out'&&obj===3&&dcTaken&&!sciOut&&state==='play'&&players.some(alive)&&players.filter(alive).every(p=>inZone(p,DC_ENTER));}
 function enterBuilding(){
   if(fading||!enterReady())return;
   fadeThen(()=>{
@@ -184,42 +183,44 @@ function enterBuilding(){
     const going=players.filter(alive);for(const c of going.slice())if(c.carry&&!going.includes(c.carry))going.push(c.carry);   // a man being carried goes in with his carrier
     stashOut(going);
     for(const p of players)p.offMap=!going.includes(p);
+    if(!IN.spawned){restoreObjs();resetOffice();}   // a fresh visit: the doors shut and the gates locked again (office.js)
     useMap({objs:IN.objs,hq:IN.hq,slow:[],lamps:IN.lamps,scene:IN.scene,lights:IN.lights});
     tankFires=[];rockets=[];charges=[];
     for(const p of going){moveMesh(p,IN.scene);Object.assign(p,{path:[],peek:null,tk:null,plant:null,supT:null,focus:null,focusTank:null,elev:0,vaultK:0,crawl:false,lx:0,ly:0});}
     units=[...going];MAPID='in';
     if(!IN.spawned){   // a fresh visit (the first, or after a Retry or New game): guards at their posts, the floors clean again
       if(IN.marked){const g=IN.canvas.getContext('2d');g.setTransform(1,0,0,1,0,-TOP);paintFloors(g,IN.L);IN.tex.needsUpdate=true;IN.marked=false;}
-      spawnInterior();IN.spawned=true;IN.units=units.filter(u=>u.side==='E');}else{for(const u of IN.units){moveMesh(u,IN.scene);units.push(u);}}
-    enemies=units.filter(u=>u.side==='E');
+      spawnInterior();IN.spawned=true;IN.units=units.filter(u=>u.side!=='P');}else{for(const u of IN.units){moveMesh(u,IN.scene);units.push(u);}}
+    enemies=units.filter(u=>u.side==='E');civs=units.filter(u=>u.side==='C');
     const gf=IN.floors.GF,ez=zoneOf(gf,'entry-spawn')||{x0:gf.bounds.x0+40,x1:gf.bounds.x1-40,y0:gf.bounds.y1-90,y1:gf.bounds.y1-20},spots=slotsIn(ez,going.length);
     going.forEach((p,i)=>{const s=spots[i]||spots[0]||{x:(ez.x0+ez.x1)/2,y:(ez.y0+ez.y1)/2};p.x=s.x;p.y=s.y;p.ang=-Math.PI/2;});
     contact=false;sel=sel.filter(u=>going.includes(u));cardGroup=cardGroup.filter(u=>going.includes(u));
     setFloor('GF',{x:(ez.x0+ez.x1)/2,y:(ez.y0+ez.y1)/2-110});zoom=2.4;clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();floorChip();
-    banner('Find the decryption key',3000);
+    banner('Find the scientists on the top floor',3000);
   });
 }
-// leaving with the key: the squad's original four who are up step out at the front doors (the freed prisoners will stay behind: next steps)
+// leaving with the scientists: everyone who's up (the freed prisoners too) at the front doors, and at least one detained scientist on
+// this floor (they follow the soldier who tied them, and come out with the squad)
 function exitReady(){
-  if(MAPID!=='in'||!hasKey||state!=='play')return false;
+  if(MAPID!=='in'||!detained().some(c=>floorOf(c.x,c.y)==='GF')||state!=='play')return false;
   const z=zoneOf(IN.floors.GF,'exit');if(!z)return false;
   const ups=players.filter(p=>alive(p)&&!p.offMap);return ups.length>0&&ups.every(p=>inZone(p,z))&&!players.some(p=>p.downed&&!p.offMap&&!p.carriedBy);   // (a man being carried goes out with his carrier)
 }
 function exitBuilding(){
   if(fading||!exitReady())return;
   fadeThen(()=>{
-    const out=STASH.out,back=players.filter(p=>!p.dead&&(!p.offMap||p.downed));   // anyone left downed outside was stabilised and rejoins here
+    const out=STASH.out,back=players.filter(p=>!p.dead&&(!p.offMap||p.downed)),sci=detained();   // anyone left downed outside was stabilised and rejoins here; the detained scientists come along
     for(const p of back)if(p.offMap&&p.downed)Object.assign(p,{downed:false,hp:Math.max(p.hp,35),revive:0,bleed:BLEED_T,sup:0});
-    for(const u of units)if(u.side==='E'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
+    for(const u of units)if(u.side!=='P'&&!sci.includes(u)&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
     useMap(out);({tankFires,rockets,charges}=out.fx);
-    for(const p of back)moveMesh(p,out.scene);
-    units=[...out.units.filter(u=>!back.includes(u)),...back];enemies=units.filter(u=>u.side==='E');MAPID='out';
+    for(const p of [...back,...sci])moveMesh(p,out.scene);
+    units=[...out.units.filter(u=>!back.includes(u)),...back,...sci];enemies=units.filter(u=>u.side==='E');civs=sci.slice();sciOut=sci.length;MAPID='out';
     for(const p of players)p.offMap=false;
-    const spots=slotsIn(DC_ENTER,back.length);back.forEach((p,i)=>{const s=spots[i]||{x:245,y:-410};Object.assign(p,{x:s.x,y:s.y,path:[],ang:Math.PI/2,peek:null});});
+    const spots=slotsIn(DC_ENTER,back.length+sci.length);[...back,...sci].forEach((p,i)=>{const s=spots[i]||{x:245,y:-410};Object.assign(p,{x:s.x,y:s.y,path:[],ang:Math.PI/2,peek:null,stairs:null,lift:null});});
     VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();camT={x:245,z:-380};zoom=2.4;yaw=out.cam.yaw;tilt=out.cam.tilt;clampCam();updateCamera();
     contact=false;sel=[];cardGroup=[];floorChip();
-    obj=4;updateObjUI();setStatus();buildCards();hud();saveGame('key');
+    obj=4;updateObjUI();setStatus();buildCards();hud();saveGame('sci');
     setTimeout(()=>{if(state==='play'&&obj===4)banner(OBJ_INTRO[4],3500);},1200);
   });
 }
@@ -229,7 +230,7 @@ function leaveInteriorNow(){
   if(MAPID!=='in')return;const out=STASH.out;
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';for(const p of players){p.offMap=false;moveMesh(p,out.scene);}
-  units=[...out.units,...players.filter(p=>!out.units.includes(p))];enemies=units.filter(u=>u.side==='E');
+  units=[...out.units,...players.filter(p=>!out.units.includes(p))];enemies=units.filter(u=>u.side==='E');civs=[];
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();floorChip();
 }
 
@@ -272,7 +273,7 @@ function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL,r
 }
 let inQuietT=0;
 function interiorTick(dt){
-  useTick(dt);
+  useTick(dt);officeTick(dt);
   if((inQuietT-=dt)>0)return;inQuietT=.5;
   floorChip();   // (contact ending: hunt.js, for both maps)
 }
@@ -285,9 +286,11 @@ const ACTS=[];let useGo=null;
 function actsHere(){return ACTS.filter(a=>a.map===MAPID&&a.avail());}
 function actAt(wx,wy){let best=null,bd=1e9;for(const a of actsHere()){const d=hyp(a.x-wx,a.y-wy);if(d<=a.r+10&&d<bd){bd=d;best=a;}}return best;}
 function orderUse(a){
-  const foot=sel.filter(u=>alive(u)&&!u.inVeh).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));
+  const why=a.need&&a.need();if(why){banner(why,2600);return;}   // locked: say what it needs, don't walk there
+  const foot=sel.filter(u=>alive(u)&&!u.inVeh&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));
   if(!foot.length){banner('Select a soldier first.',1600);return;}
-  const u=foot[0],s=openSpot(a.x,a.y+(a.standY||14),players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:a.x,y:a.y+14},p=findPath(u.x,u.y,s.x,s.y);
+  if(a.multi){a.go(foot);return;}   // the stairs and the lift: everyone selected goes (office.js)
+  const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),u=foot[0],s=openSpot(sx,sy,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:sx,y:sy},p=findPath(u.x,u.y,s.x,s.y);
   if(!p){banner('No way there from here.',1600);return;}
   u.path=p;u.lastOrder=simT;useGo={u,a,prog:0};callout(u,'Moving',C.good);
 }
@@ -299,7 +302,6 @@ function useTick(dt){
   if(hyp(u.x-a.x,u.y-a.y)>a.r+18){useGo=null;return;}
   useGo.prog+=dt;if(useGo.prog>=(a.secs||0)){useGo=null;a.act(u);}
 }
-function takeKey(u){hasKey=true;callout(u,'Got the key',C.good);say(u,'objective');banner('Decryption key taken. Get out the front doors.',3000);updateObjUI();hud();}
 function drawActs(now){
   const pulse=(Math.sin(now*3)+1)/2,act=sel.some(alive);
   for(const a of actsHere()){
@@ -311,8 +313,8 @@ function drawActs(now){
 }
 // the gather areas: ENTER at the data center's front doors outside, EXIT at the lobby's front doors inside
 function gatherZone(){
-  if(MAPID==='out'&&obj===3&&dcTaken&&!hasKey)return{z:DC_ENTER,ready:enterReady(),go:'ENTER',need:players.filter(alive)};
-  if(MAPID==='in'&&hasKey){const z=zoneOf(IN.floors.GF,'exit');if(z)return{z,ready:exitReady(),go:'LEAVE',need:players.filter(p=>alive(p)&&!p.offMap)};}
+  if(MAPID==='out'&&obj===3&&dcTaken&&!sciOut)return{z:DC_ENTER,ready:enterReady(),go:'ENTER',need:players.filter(alive)};
+  if(MAPID==='in'&&detained().length){const z=zoneOf(IN.floors.GF,'exit');if(z)return{z,ready:exitReady(),go:'LEAVE',need:players.filter(p=>alive(p)&&!p.offMap)};}
   return null;
 }
 function drawGather(now){

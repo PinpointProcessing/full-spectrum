@@ -60,7 +60,7 @@ function buildCards(){
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<canvas class="uc-ecg"></canvas>`+
-      `<div class="uc-gun" title="${WEAPON[u.weapon||'rifle'].label}">${GUN_SVG[u.weapon||'rifle']}<b>${WEAPON[u.weapon||'rifle'].label}</b></div>`+
+      `<div class="uc-gun" title="${u.weapon?WEAPON[u.weapon].label:'Unarmed'}">${u.weapon?`${GUN_SVG[u.weapon]}<b>${WEAPON[u.weapon].label}</b>`:'<b class="unarmed">Unarmed</b>'}</div>`+   // (a freed prisoner until he picks one up: office.js)
       `<div class="uc-bot"><span class="uc-hp">100</span>${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
@@ -86,7 +86,7 @@ function buildCards(){
 function statusText(u){
   if(u.dead)return['KIA','down'];
   if(u.offMap)return['Outside','down'];   // left downed outside the office building: frozen until the squad comes back out
-  if(u.downed)return[u.carriedBy?'Carried':u.critical?`Critical ${fmtT(u.crit)}`:u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
+  if(u.downed)return[u.carriedBy?'Carried':u.critical?(u.noBleed?'Critical':`Critical ${fmtT(u.crit)}`):u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
   if(simT<(u.stunT||0))return['Knocked down','pin'];
   if(u.carry)return['Carrying',''];
   if(u.breaching||simT<(u.breachT||0))return['Breaching',''];
@@ -110,7 +110,7 @@ function statusText(u){
 // called from hud(): which cards show, and their text
 function updateCards(){
   const act=sel.filter(alive),shown=cardGroup;
-  const box=$('#cards');box.hidden=!shown.length||state!=='play';box.style.setProperty('--n',shown.length||1);box.classList.toggle('narrow',shown.length>2);
+  const box=$('#cards');box.hidden=!shown.length||state!=='play';box.style.setProperty('--n',Math.min(4,shown.length)||1);box.classList.toggle('narrow',shown.length>2);box.classList.toggle('compact',shown.length>4);   // more than four (the freed prisoners): two rows of small cards
   for(const u of players){
     const c=u.card;if(!c)continue;
     c.el.hidden=!shown.includes(u);
@@ -119,7 +119,8 @@ function updateCards(){
     c.hp.textContent=u.dead?'—':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);c.hp.style.color=hpCol(u);
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
-    {const sp=SPECIALS[u.spec]||SPECIALS.smoke,sw=inSupply(u);   // his special item, left of the frag (in a supply box: tap to swap)
+    c.spec.hidden=!u.spec;c.nade.hidden=!!u.joined&&!u.grenade;   // a freed prisoner has no gear
+    if(u.spec){const sp=SPECIALS[u.spec]||SPECIALS.smoke,sw=inSupply(u);   // his special item, left of the frag (in a supply box: tap to swap)
      if(c.spec.dataset.k!==u.spec){c.spec.dataset.k=u.spec;c.spec.innerHTML=`${sp.svg}<i></i>`;c.spec.style.setProperty('--ic',sp.col);c.spec.setAttribute('aria-label',sp.label);}
      c.spec.querySelector('i').textContent=u.specN||0;c.spec.disabled=!alive(u)||(!u.specN&&!sw)||!!u.inVeh;
      c.spec.classList.toggle('on',(mode==='smoke'||mode==='medkit'||mode==='silent')&&sel[0]===u);c.spec.classList.toggle('swap',sw);}
@@ -130,6 +131,7 @@ function updateCards(){
     const t=tab.dataset.team,team=t?players.filter(p=>p.team===t):players,live=team.filter(alive);
     const pips=tab.querySelector('.pips');
     if(pips.children.length!==team.length)pips.innerHTML=team.map(()=>'<i></i>').join('');
+    pips.classList.toggle('many',team.length>4);
     team.forEach((u,k)=>{pips.children[k].style.background=hpCol(u);});
     const all=live.length>0&&live.every(p=>sel.includes(p)),some=live.some(p=>sel.includes(p));
     tab.classList.toggle('sel',all&&(t?true:act.length===live.length));tab.classList.toggle('part',!all&&some);

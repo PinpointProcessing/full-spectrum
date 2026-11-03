@@ -1,6 +1,20 @@
 # The office building (objective 4): Bryan's design and the review
 
-Status: Bryan answered the decisions (below). Step 1 of the build plan is in (the interior map, going in and out, local noise, the use system; the ground floor is a placeholder layout until the floor plans are settled).
+Status: all six steps are built, to Bryan's later version (next section). Code: `interior.js` (the map) and `office.js` (what happens in it).
+
+## Bryan's later version (what's built)
+
+His words: "the bridge needs bio scanning to lower it. The bio scanner only works with the scientists. So the player enters the data center and goes to the top floor to detain the scientists. The bottom floor has the prisoners, four of them, all alive, one tortured on the wall that needs to be carried or medkitted. The prisoners do not have weapons but pick it up when they see a dead body. They are also dressed in grey prison clothes, not armored like the players. Two join alpha and two join bravo. The scientists are freaking out begging not to open the door and saying we are all going to die, but stay cryptic. When the drawbridge goes down the monsters begin."
+
+As built:
+- Ground floor as designed: the shared room's three guards; the access card drops where the door guard fell once all three are down (walk over it). The computer (2 s) opens the steel door: it sinks into the floor over 2.4 s and the three men on the landing come out, unready if the shared room went down quietly. Voices behind the steel door ("Help! Down here!") reveal the basement.
+- The card works the stairs' reader and the lift. Stairs (UP / DOWN) and the lift take everyone selected, each on his own, so the teams can split. Up top, the lift's doors stay shut until someone inside taps OPEN: men against the walls beside the doors are out of the gun's line; the stairs come out behind it.
+- Basement: Brennan (cell C1), Abara (C2) and Lindqvist (C3) behind bars, OPEN CELL with the card; Sgt Marsh strapped to the wall, CUT DOWN (3 s), then a medic kit or carrying him to a medical box (no clock on him). Freed men join: Abara and Brennan Alpha (A3, A4), Lindqvist and Marsh Bravo (B3, B4). Grey prison clothes, no armour (they take 30 % more damage), no special item, and no rifle until they see a body with one: they go and take it by themselves unless just given an order. They can pick up a grenade at a supply box.
+- Top floor: the turret room (manned gun facing the lift, two guards; two more at the stair door), the science lobby (five guards, four scientists). Scientists cower where they are once they see the squad or there's a fight; they beg and mutter, cryptic ("It isn't a bridge. It's a lid."). ZIP-TIE (2 s) detains one: he follows the soldier who tied him, floors and all. Nobody shoots or blasts the scientists or the men still locked up.
+- Leaving: everyone who's up at the front doors with at least one detained scientist on the ground floor (Marsh may be carried out). Saves as "Scientists detained".
+- Outside: the drawbridge panel is a bio scanner. Send a soldier with a detained scientist nearby: the scientist puts his hand on it (3 s, begging), the drawbridge comes down, mission complete. Without one: it says the scanner needs a scientist.
+- Defaults I took (for Bryan to change): the prisoners are a bonus (not required, revealed by the voices); one scientist is enough for the scanner; nobody can kill a scientist, so there's no way to lose them.
+- Not built from the first design: destroying the lab equipment, the farewell (the freed men now come along), the bonus list in the report (it gives counts), voice lines for the new characters. The monsters start after the drawbridge (next build).
 
 ## Bryan's design (his words, lightly tidied)
 

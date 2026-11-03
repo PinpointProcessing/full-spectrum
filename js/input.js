@@ -233,6 +233,7 @@ function tap(sx,sy){
   }
   if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
   if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
+  {const cv=civAtScreen(sx,sy);if(cv&&civTap(cv)){preview=null;return;}}   // a scientist (zip-tie him), a locked-up prisoner (open his cell), the man on the wall (office.js)
   const en=enemyAtScreen(sx,sy);
   if(en&&en.surr){   // he gave up: the nearest selected soldier zip-ties him (layers.js)
     if(en.tied){banner('He is tied up.',1400);return;}

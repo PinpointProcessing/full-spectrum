@@ -6,8 +6,9 @@
    takedown order through the ground floor (R1, R2, R3, R4, R5, then the shared room from the east hall).
    Shared frame (x 0..1000, y -760..900), floors side by side: GF x 20..720 y 20..890 (front doors x 330..410 in the
    south wall), B1 x 650..990 y -750..-350, 1F x 10..580 y -750..-90. Angles: 0 east, pi/2 south, -pi/2 north, pi west.
-   Roles in posts: rifleman, mg, ambusher, dead, wounded, prisoner, scientist (interior.js spawns what the built steps use).
-   Notes say what each thing is for in the later steps. */
+   Roles in posts: rifleman, mg, ambusher, prisoner, strapped, scientist (interior.js and office.js spawn them).
+   Bryan's version (office.js): the four prisoners are all alive (three in cells, one strapped to the wall) and join the fire
+   teams; the scientists are the goal (the drawbridge's bio scanner only opens for them), so there's no decryption key. */
 const OFFICE_LAYOUT={floors:[
  {id:'GF',name:'Ground floor',bounds:{x0:20,y0:20,x1:720,y1:890},
   objects:[
@@ -121,18 +122,17 @@ const OFFICE_LAYOUT={floors:[
   ],
   interact:[
    {kind:'entry',x:370,y:868,note:'front doors: the squad comes in here'},
-   {kind:'exit',x:370,y:868,note:'front doors: the original four leave here with the decryption key'},
+   {kind:'exit',x:370,y:868,note:'front doors: the squad leaves here with the detained scientists'},
    {kind:'computer',x:110,y:62,note:'USE with the access card: opens the steel door (2 s swipe); stand spot just south of it'},
    {kind:'steeldoor',x:370,y:160,note:'the basement door; faint cries behind it; opens from the computer and springs the ambush'},
    {kind:'keycard-drop',x:370,y:185,note:'the access card: drops where G2 falls once all three shared-room guards are down (walk over it)'},
    {kind:'lift-call',x:115,y:740,note:'elevator call button: locked until the access card'},
    {kind:'stairs',x:625,y:790,note:'card reader at the foot of the stairs up: locked until the access card'},
    {kind:'stairs',x:440,y:104,note:'the stairs down to the basement'},
-   {kind:'key',x:180,y:70,note:'step 1 stand-in: the decryption key waits beside the computer until the upper floor (and its science lobby) is built'},
   ],
   zones:[
    {kind:'entry-spawn',x0:310,y0:790,x1:430,y1:870,note:'the squad appears here, just inside the front doors'},
-   {kind:'exit',x0:310,y0:800,x1:430,y1:878,note:'gather here with the key to leave'},
+   {kind:'exit',x0:310,y0:800,x1:430,y1:878,note:'gather here with the scientists to leave'},
    {kind:'rest-med',x0:256,y0:548,x1:356,y1:633,note:'medical box behind the front desk'},
    {kind:'rest-sup',x0:384,y0:548,x1:484,y1:633,note:'supply box behind the front desk'},
    {kind:'stairs-up',x0:640,y0:660,x1:704,y1:780,note:'the flight up to 1F (locked until the access card)'},
@@ -151,40 +151,41 @@ const OFFICE_LAYOUT={floors:[
    {kind:'iwall',x:892,y:-655,w:88,h:10,note:'C3 | C4'},
    {kind:'iwall',x:892,y:-560,w:88,h:10,note:'south wall of C4'},
    {kind:'bars',x:740,y:-740,w:8,h:22,note:'C1 bars'},
-   {kind:'bars',x:740,y:-718,w:8,h:40,note:'C1 gate: opens with the keycard (removed when opened)'},
+   {kind:'bars',x:740,y:-718,w:8,h:40,gate:'C1',note:'C1 gate: opens with the access card (removed when opened)'},
    {kind:'bars',x:740,y:-678,w:8,h:23,note:'C1 bars'},
    {kind:'bars',x:740,y:-645,w:8,h:22,note:'C2 bars'},
-   {kind:'bars',x:740,y:-623,w:8,h:40,note:'C2 gate: opens with the keycard (removed when opened)'},
+   {kind:'bars',x:740,y:-623,w:8,h:40,gate:'C2',note:'C2 gate: opens with the access card (removed when opened)'},
    {kind:'bars',x:740,y:-583,w:8,h:23,note:'C2 bars'},
    {kind:'bars',x:892,y:-740,w:8,h:22,note:'C3 bars'},
-   {kind:'bars',x:892,y:-718,w:8,h:40,note:'C3 gate: opens with the keycard (removed when opened)'},
+   {kind:'bars',x:892,y:-718,w:8,h:40,gate:'C3',note:'C3 gate: opens with the access card (removed when opened)'},
    {kind:'bars',x:892,y:-678,w:8,h:23,note:'C3 bars'},
    {kind:'bars',x:892,y:-645,w:8,h:22,note:'C4 bars'},
-   {kind:'bars',x:892,y:-623,w:8,h:40,note:'C4 gate: opens with the keycard (removed when opened)'},
+   {kind:'bars',x:892,y:-623,w:8,h:40,gate:'C4',note:'C4 gate (empty cell)'},
    {kind:'bars',x:892,y:-583,w:8,h:23,note:'C4 bars'},
-   {kind:'iwall',x:795,y:-540,w:50,h:10,note:'the strap wall in the middle of the room: the dead man and the wounded man hang on its south face'},
+   {kind:'iwall',x:795,y:-540,w:50,h:10,note:'the strap wall in the middle of the room: Sgt Marsh hangs on its south face, alive'},
    {kind:'desk',x:700,y:-500,w:50,h:16,note:'tool table'},
    {kind:'cabinet',x:660,y:-480,w:14,h:50},
    {kind:'crate',x:930,y:-520,w:30,h:30},
   ],
   rooms:[
    {name:'Basement holding room',x0:748,y0:-740,x1:892,y1:-550,doorway:'open south into the stair hall; cell gates east and west',contents:'the aisle between the cells'},
-   {name:'Basement stair hall',x0:660,y0:-550,x1:980,y1:-360,doorway:'open north into the aisle',contents:'the strap wall with the dead man and the wounded man; the stairs up to GF; tool table'},
-   {name:'Cell C1',x0:660,y0:-740,x1:740,y1:-655,doorway:'gate east (40, keycard)',contents:'empty'},
-   {name:'Cell C2',x0:660,y0:-645,x1:740,y1:-560,doorway:'gate east (40, keycard)',contents:'prisoner Abara, asking to be freed'},
-   {name:'Cell C3',x0:900,y0:-740,x1:980,y1:-655,doorway:'gate west (40, keycard)',contents:'prisoner Lindqvist, asking to be freed'},
+   {name:'Basement stair hall',x0:660,y0:-550,x1:980,y1:-360,doorway:'open north into the aisle',contents:'the strap wall with Sgt Marsh, tortured, alive; the stairs up to GF; tool table'},
+   {name:'Cell C1',x0:660,y0:-740,x1:740,y1:-655,doorway:'gate east (40, access card)',contents:'prisoner Brennan (joins Alpha)'},
+   {name:'Cell C2',x0:660,y0:-645,x1:740,y1:-560,doorway:'gate east (40, access card)',contents:'prisoner Abara (joins Alpha)'},
+   {name:'Cell C3',x0:900,y0:-740,x1:980,y1:-655,doorway:'gate west (40, access card)',contents:'prisoner Lindqvist (joins Bravo)'},
    {name:'Cell C4',x0:900,y0:-645,x1:980,y1:-560,doorway:'gate west (40, keycard)',contents:'empty'},
   ],
   posts:[
-   {role:'dead',x:808,y:-518,ang:1.5708,group:'cells',note:'Sgt Marsh, strapped to the wall, dead (dog tags)'},
-   {role:'wounded',x:832,y:-518,ang:1.5708,group:'cells',note:'Brennan, strapped to the wall, injured and mumbling: CUT DOWN, CARRY'},
-   {role:'prisoner',x:700,y:-602,ang:0,group:'cells',note:'in C2: becomes a new unit (joins Alpha), unarmed'},
-   {role:'prisoner',x:940,y:-697,ang:3.1416,group:'cells',note:'in C3: becomes a new unit (joins Bravo), unarmed'},
+   {role:'strapped',x:820,y:-521,ang:1.5708,group:'cells',name:'Marsh',joins:'B4',note:'Sgt Marsh, strapped to the wall, tortured, alive: CUT DOWN, then a medic kit or carry him to a medical box; joins Bravo'},
+   {role:'prisoner',x:700,y:-697,ang:0,group:'cells',cell:'C1',name:'Brennan',joins:'A4',note:'in C1: joins Alpha, unarmed'},
+   {role:'prisoner',x:700,y:-602,ang:0,group:'cells',cell:'C2',name:'Abara',joins:'A3',note:'in C2: joins Alpha, unarmed'},
+   {role:'prisoner',x:940,y:-697,ang:3.1416,group:'cells',cell:'C3',name:'Lindqvist',joins:'B3',note:'in C3: joins Bravo, unarmed'},
   ],
   interact:[
-   {kind:'cells',x:760,y:-602,note:'OPEN cell C2 with the keycard'},
-   {kind:'cells',x:880,y:-697,note:'OPEN cell C3 with the keycard'},
-   {kind:'wounded',x:832,y:-512,note:'CUT DOWN the wounded man, then CARRY (one soldier, sneak speed)'},
+   {kind:'cells',x:764,y:-698,cell:'C1',note:'OPEN cell C1 with the access card'},
+   {kind:'cells',x:764,y:-603,cell:'C2',note:'OPEN cell C2 with the access card'},
+   {kind:'cells',x:876,y:-698,cell:'C3',note:'OPEN cell C3 with the access card'},
+   {kind:'strapped',x:820,y:-508,note:'CUT DOWN Sgt Marsh, then a medic kit or CARRY (one soldier, sneak speed)'},
    {kind:'stairs',x:820,y:-452,note:'the stairs up to GF (the landing behind the steel door)'},
   ],
   zones:[
@@ -215,6 +216,7 @@ const OFFICE_LAYOUT={floors:[
    {kind:'liftwall',x:20,y:-165,w:70,h:10,note:'car south wall'},
    {kind:'liftwall',x:80,y:-275,w:10,h:35,note:'car front, north of the doors (the only cover)'},
    {kind:'liftwall',x:80,y:-200,w:10,h:35,note:'car front, south of the doors (the only cover)'},
+   {kind:'liftdoor',x:80,y:-240,w:10,h:40,note:'the car doors: shut after the ride up until someone inside taps OPEN'},
    {kind:'sandbag',x:290,y:-290,w:12,h:140,note:'MG nest: sandbags on the elevator side only, open behind'},
    {kind:'crate',x:360,y:-300,w:30,h:30,note:'ammo crates behind the nest'},
    {kind:'crate',x:360,y:-170,w:30,h:30,note:'ammo crates behind the nest'},
@@ -229,7 +231,7 @@ const OFFICE_LAYOUT={floors:[
    {kind:'terminal',x:50,y:-660,w:80,h:16,note:'scientists\' workstations'},
    {kind:'terminal',x:50,y:-600,w:80,h:16,note:'scientists\' workstations'},
    {kind:'rack',x:190,y:-740,w:14,h:90,note:'server racks: sight screen between the scientists and the centre'},
-   {kind:'terminal',x:260,y:-740,w:60,h:16,note:'the decryption key terminal'},
+   {kind:'terminal',x:260,y:-740,w:60,h:16,note:'the bio-lock terminal (the drawbridge\'s scanner is keyed to the scientists)'},
    {kind:'rack',x:380,y:-740,w:14,h:90,note:'server racks: sight screen between the centre and the lab'},
    {kind:'lab',x:420,y:-710,w:70,h:16,note:'lab equipment to destroy'},
    {kind:'lab',x:510,y:-710,w:60,h:16,note:'lab equipment to destroy'},
@@ -240,7 +242,7 @@ const OFFICE_LAYOUT={floors:[
    {kind:'sofa',x:60,y:-506,w:60,h:16,note:'scientists\' break sofa'},
   ],
   rooms:[
-   {name:'Science lobby',x0:20,y0:-740,x1:570,y1:-490,doorway:'south: the hallway (50 wide)',contents:'four scientists at their workstations (west), the decryption key terminal (north centre), lab benches (east), server racks screening the three parts from each other'},
+   {name:'Science lobby',x0:20,y0:-740,x1:570,y1:-490,doorway:'south: the hallway (50 wide)',contents:'four scientists at their workstations (west), the bio-lock terminal (north centre), lab benches (east), server racks screening the three parts from each other'},
    {name:'Lab office',x0:20,y0:-480,x1:320,y1:-350,doorway:'east onto the hallway (y -440..-400)',contents:'empty: desks, copier'},
    {name:'Hallway 1F',x0:330,y0:-480,x1:380,y1:-350,doorway:'open both ends: turret room (south), science lobby (north)',contents:'the one hallway down the building; doors to the lab office and the security office'},
    {name:'Security office',x0:390,y0:-480,x1:570,y1:-350,doorway:'west onto the hallway (y -440..-400)',contents:'empty: CCTV desk, lockers'},
@@ -256,7 +258,7 @@ const OFFICE_LAYOUT={floors:[
    {role:'rifleman',x:445,y:-188,ang:3.1416,group:'stairs',note:'stair guard beside the door, facing it; his back is to the stairs'},
    {role:'rifleman',x:355,y:-525,ang:-1.5708,group:'lab',note:'SG1 just inside the lobby, back to the hallway'},
    {role:'rifleman',x:175,y:-600,ang:3.1416,group:'lab',note:'SG2 watching the scientists, back to the room'},
-   {role:'rifleman',x:305,y:-706,ang:-1.5708,group:'lab',note:'SG3 at the decryption key terminal'},
+   {role:'rifleman',x:305,y:-706,ang:-1.5708,group:'lab',note:'SG3 at the bio-lock terminal'},
    {role:'rifleman',x:455,y:-662,ang:0,group:'lab',note:'SG4 checking the lab benches'},
    {role:'rifleman',x:535,y:-580,ang:0,group:'lab',note:'SG5 at the bench along the east wall'},
    {role:'scientist',x:70,y:-630,ang:-1.5708,group:'lab',note:'at a workstation; cowers when shooting starts; ZIP-TIE'},
@@ -265,7 +267,6 @@ const OFFICE_LAYOUT={floors:[
    {role:'scientist',x:110,y:-570,ang:-1.5708,group:'lab',note:'at a workstation; cowers when shooting starts; ZIP-TIE'},
   ],
   interact:[
-   {kind:'key',x:280,y:-706,note:'the decryption keycard on the terminal: walk over it (it opens the fortress drawbridge outside)'},
    {kind:'equipment',x:455,y:-684,note:'DESTROY lab equipment (C4 or gunfire)'},
    {kind:'equipment',x:540,y:-684,note:'DESTROY lab equipment'},
    {kind:'equipment',x:455,y:-604,note:'DESTROY lab equipment'},
