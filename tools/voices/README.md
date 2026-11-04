@@ -31,7 +31,7 @@ Kokoro's `gen.py` stays for quick drafts. Each speaker's voice is copied from a 
 3. `gen_zonos.py CACHE [speakers] [--budget seconds]`: one take per line into `CACHE/<speaker>/` (about half a day for
    everyone on a 4-core CPU). It can be stopped and picks up where it left off.
 4. `check_zonos.py CACHE` (a venv with `faster-whisper`): a speech recogniser scores each take against its script and flags
-   bad lines. `gen_zonos.py CACHE --redo` then makes more takes of the flagged lines (up to 4), and you check again.
+   bad lines. `gen_zonos.py CACHE --redo` then makes another take of each flagged line (up to 3 in all), and you check again.
 5. `pack_zonos.py CACHE ../../sounds/voice [speakers]` (Kokoro venv): the best take of each line, tidied, into the game's
    files and `manifest.json`. A speaker whose lines aren't all done is skipped and keeps his old voice.
 

@@ -5,7 +5,7 @@ low, dry banter, pleading, hit), and the voice is copied from the speaker's clip
 About 14 s of computing per second of speech on a 4-core CPU, so the whole cast (~2070 lines) takes about half a day: it
 stops cleanly after BUDGET seconds and picks up where it left off when run again.
   python gen_zonos.py CACHE [A1,A2,...] [--budget 6600] [--redo]
---redo makes extra takes (_t1, _t2, ...) of the lines check_zonos.py flagged (CACHE/<sp>/flagged.json)."""
+--redo makes one more take (_t1, then _t2) of each line check_zonos.py flagged (CACHE/<sp>/flagged.json), up to 3 in all."""
 import json,os,sys,time,zlib,torch,torchaudio
 from zonos.model import Zonos
 from zonos.conditioning import make_cond_dict
@@ -39,7 +39,7 @@ for sp in [s for s in ORDER if s in ONLY]:
     for key,text,g in lines_for(sp):
         st=style_of(sp,g);mt=meta.setdefault(key,{'text':text,'style':st,'takes':[]})
         if REDO:
-            if key not in flagged or len(mt['takes'])>=4:continue
+            if key not in flagged or len(mt['takes'])>=3:continue
         elif mt['takes']:continue
         if time.time()-T0>BUDGET:print('budget reached');json.dump(meta,open(meta_f,'w'),indent=0);sys.exit(0)
         emo,pr,rate=STYLE[st];n=len(mt['takes']);hot=st in('shout','urgent','pain','fear')
