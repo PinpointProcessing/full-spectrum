@@ -27,7 +27,7 @@ SAY={'Reyes':'Ray-ess','Lindqvist':'Lindkvist'}   # names said the way they soun
 def spoken(t):
     for a,b in SAY.items():t=t.replace(a,b)
     return t
-torch.set_num_threads(4);T0=time.time()
+torch.set_num_threads(int(os.environ.get('ZONOS_THREADS','4')));T0=time.time()   # (two copies on 2 threads each beat one on 4 by about a quarter: each step is many small operations)
 m=Zonos.from_pretrained('Zyphra/Zonos-v0.1-transformer',device='cpu')
 def emb(name):
     w,sr=torchaudio.load(f'refs/{name}.flac');return m.make_speaker_embedding(w,sr)
