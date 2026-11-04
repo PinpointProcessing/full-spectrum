@@ -2,8 +2,8 @@
 pack_zonos.py can keep the best take of each line and gen_zonos.py --redo can make more of the bad ones. Flags a line when its
 best take scores under 0.75, or is shorter than a word or far longer than the words need (the model babbling on).
   python check_zonos.py CACHE [A1,A2,...]"""
-import json,os,re,sys,difflib,soundfile as sf
-from faster_whisper import WhisperModel
+import json,os,re,sys,difflib
+from faster_whisper import WhisperModel,decode_audio
 CACHE=sys.argv[1];ONLY=sys.argv[2].split(',') if len(sys.argv)>2 else sorted(os.listdir(CACHE))
 m=WhisperModel('base.en',device='cpu',compute_type='int8',cpu_threads=2)
 HEARD={'haze':'hayes','hays':'hayes','raise':'reyes','race':'reyes','rays':'reyes'}   # how it spells the names
@@ -15,8 +15,8 @@ for sp in ONLY:
     for key,mt in meta.items():
         for f in mt['takes']:
             if f in sc:continue
-            info=sf.info(f'{d}/{f}');dur=info.frames/info.samplerate
-            segs,_=m.transcribe(f'{d}/{f}',beam_size=1,language='en');h=' '.join(x.text for x in segs).strip()
+            a=decode_audio(f'{d}/{f}');dur=len(a)/16000
+            segs,_=m.transcribe(a,beam_size=1,language='en');h=' '.join(x.text for x in segs).strip()
             r=difflib.SequenceMatcher(None,norm(mt['text']),norm(h)).ratio()
             words=len(mt['text'].split());bad=dur<.25 or dur>1.2+words*.75
             sc[f]={'score':round(0 if bad else r,2),'heard':h,'secs':round(dur,2)}

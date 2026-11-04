@@ -42,12 +42,15 @@ for sp in [s for s in ORDER if s in ONLY]:
             if key not in flagged or len(mt['takes'])>=4:continue
         elif mt['takes']:continue
         if time.time()-T0>BUDGET:print('budget reached');json.dump(meta,open(meta_f,'w'),indent=0);sys.exit(0)
-        emo,pr,rate=STYLE[st];n=len(mt['takes'])
-        c=m.prepare_conditioning(make_cond_dict(text=spoken(text),speaker=E['hot' if st in('shout','urgent','pain','fear') else 'base'],
+        emo,pr,rate=STYLE[st];n=len(mt['takes']);hot=st in('shout','urgent','pain','fear')
+        if n>=2:pr,rate,hot=pr*.65,rate-2,False   # (later redos a little softer: short hard shouts are the ones that come out empty or garbled)
+        c=m.prepare_conditioning(make_cond_dict(text=spoken(text),speaker=E['hot' if hot else 'base'],
             language=LANG.get(sp,'en-us'),emotion=emo,pitch_std=pr,speaking_rate=rate))
-        torch.manual_seed(1000*n+zlib.crc32((sp+key).encode())%1000)
-        codes=m.generate(c,max_new_tokens=int(86*min(20,2+len(text)/9)),cfg_scale=2.5,disable_torch_compile=True,progress_bar=False)
-        a=m.autoencoder.decode(codes).cpu()[0];fn=f'{key}.wav' if n==0 else f'{key}_t{n}.wav'
+        for tries in range(4):   # (an empty take, the model stopping at once, is retried on the spot: it costs a second or two)
+            torch.manual_seed(1000*n+zlib.crc32((sp+key).encode())%1000+7919*tries)
+            codes=m.generate(c,max_new_tokens=int(86*min(20,2+len(text)/9)),cfg_scale=2.5,disable_torch_compile=True,progress_bar=False)
+            a=m.autoencoder.decode(codes).cpu()[0]
+            if a.shape[-1]>.25*m.autoencoder.sampling_rate:break;fn=f'{key}.wav' if n==0 else f'{key}_t{n}.wav'
         torchaudio.save(f'{d}/{fn}',a,m.autoencoder.sampling_rate);mt['takes'].append(fn)
         json.dump(meta,open(meta_f,'w'),indent=0)
         print(sp,key,st,round(a.shape[-1]/m.autoencoder.sampling_rate,2),'s',round(time.time()-T0),'s so far',flush=True)
