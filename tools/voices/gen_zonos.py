@@ -14,7 +14,7 @@ args=[a for a in sys.argv[1:] if not a.startswith('--')];CACHE=args[0]
 ORDER=['A1','A2','B1','B2','E1','E2','E3','S1','S2','S3','S4','A3','A4','B3','B4']
 ONLY=args[1].split(',') if len(args)>1 else ORDER
 BUDGET=float(sys.argv[sys.argv.index('--budget')+1]) if '--budget' in sys.argv else 1e9;REDO='--redo' in sys.argv
-LANG={'B2':'en-gb','A3':'en-gb','A4':'en-gb','S2':'en-gb','E2':'en-gb','E3':'en-gb'}
+LANG={}   # everyone en-us: Zonos's en-gb mode came out empty or garbled on half the short lines; the British voices keep their accent from refs/
 #            happiness sadness disgust fear surprise anger other neutral, pitch range, speaking rate (phonemes/s)
 STYLE={'shout': ([.00,.00,.00,.35,.25,.60,.05,.00],110,18.),
        'urgent':([.00,.15,.00,.55,.10,.15,.05,.00], 90,17.),
