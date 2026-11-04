@@ -38,11 +38,12 @@ for sp in [s for s in ORDER if s in ONLY]:
     d=f'{CACHE}/{sp}';os.makedirs(d,exist_ok=True);meta_f=f'{d}/meta.json'
     meta=json.load(open(meta_f)) if os.path.exists(meta_f) else {}
     flagged=json.load(open(f'{d}/flagged.json')) if REDO and os.path.exists(f'{d}/flagged.json') else []
+    scored=json.load(open(f'{d}/scores.json')) if REDO and os.path.exists(f'{d}/scores.json') else {}
     E={'base':emb(sp)};E['hot']=emb('A1_hot') if sp=='A1' else E['base']   # (Reyes: his shouted clip for the intense lines)
     for key,text,g in lines_for(sp):
         st=style_of(sp,g);mt=meta.setdefault(key,{'text':text,'style':st,'takes':[]})
         if REDO:
-            if key not in flagged or len(mt['takes'])>=3:continue
+            if key not in flagged or len(mt['takes'])>=3 or mt['takes'][-1] not in scored:continue   # (one take a round: the newest waits for check_zonos.py)
         elif mt['takes']:continue
         if time.time()-T0>BUDGET:print('budget reached');json.dump(meta,open(meta_f,'w'),indent=0);sys.exit(0)
         if made>=MAXN:print('pause',flush=True);json.dump(meta,open(meta_f,'w'),indent=0);sys.exit(0)
