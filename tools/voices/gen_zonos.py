@@ -4,7 +4,9 @@ and Chatterbox: each line gets an emotion mix, a pitch range and a speaking rate
 low, dry banter, pleading, hit), and the voice is copied from the speaker's clip in refs/ (zonos_refs.py).
 About 14 s of computing per second of speech on a 4-core CPU, so the whole cast (~2070 lines) takes about half a day: it
 stops cleanly after BUDGET seconds and picks up where it left off when run again.
-  python gen_zonos.py CACHE [A1,A2,...] [--budget 6600] [--redo]
+  python gen_zonos.py CACHE [A1,A2,...] [--budget 6600] [--redo] [--max-lines 50]
+--max-lines makes it stop (printing "pause") after that many takes: memory creeps up over a long run on CPU (heap
+fragmentation; a copy grew from 5.3 to 8 GB in two hours and two copies were killed for memory), so run it in a loop.
 --redo makes one more take (_t1, then _t2) of each line check_zonos.py flagged (CACHE/<sp>/flagged.json), up to 3 in all."""
 import json,os,sys,time,zlib,torch,torchaudio
 from zonos.model import Zonos
@@ -14,6 +16,7 @@ args=[a for a in sys.argv[1:] if not a.startswith('--')];CACHE=args[0]
 ORDER=['A1','A2','B1','B2','E1','E2','E3','S1','S2','S3','S4','A3','A4','B3','B4']
 ONLY=args[1].split(',') if len(args)>1 else ORDER
 BUDGET=float(sys.argv[sys.argv.index('--budget')+1]) if '--budget' in sys.argv else 1e9;REDO='--redo' in sys.argv
+MAXN=int(sys.argv[sys.argv.index('--max-lines')+1]) if '--max-lines' in sys.argv else 10**9;made=0
 LANG={}   # everyone en-us: Zonos's en-gb mode came out empty or garbled on half the short lines; the British voices keep their accent from refs/
 #            happiness sadness disgust fear surprise anger other neutral, pitch range, speaking rate (phonemes/s)
 STYLE={'shout': ([.00,.00,.00,.35,.25,.60,.05,.00],110,18.),
@@ -42,6 +45,7 @@ for sp in [s for s in ORDER if s in ONLY]:
             if key not in flagged or len(mt['takes'])>=3:continue
         elif mt['takes']:continue
         if time.time()-T0>BUDGET:print('budget reached');json.dump(meta,open(meta_f,'w'),indent=0);sys.exit(0)
+        if made>=MAXN:print('pause',flush=True);json.dump(meta,open(meta_f,'w'),indent=0);sys.exit(0)
         emo,pr,rate=STYLE[st];n=len(mt['takes']);hot=st in('shout','urgent','pain','fear')
         if n>=2:pr,rate,hot=pr*.65,rate-2,False   # (later redos a little softer: short hard shouts are the ones that come out empty or garbled)
         c=m.prepare_conditioning(make_cond_dict(text=spoken(text),speaker=E['hot' if hot else 'base'],
@@ -53,6 +57,6 @@ for sp in [s for s in ORDER if s in ONLY]:
             if a.shape[-1]>.25*m.autoencoder.sampling_rate:break
         fn=f'{key}.wav' if n==0 else f'{key}_t{n}.wav'
         torchaudio.save(f'{d}/{fn}',a,m.autoencoder.sampling_rate);mt['takes'].append(fn)
-        json.dump(meta,open(meta_f,'w'),indent=0)
+        json.dump(meta,open(meta_f,'w'),indent=0);made+=1
         print(sp,key,st,round(a.shape[-1]/m.autoencoder.sampling_rate,2),'s',round(time.time()-T0),'s so far',flush=True)
 print('done')
