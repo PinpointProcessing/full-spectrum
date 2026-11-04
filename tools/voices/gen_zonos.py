@@ -50,7 +50,8 @@ for sp in [s for s in ORDER if s in ONLY]:
             torch.manual_seed(1000*n+zlib.crc32((sp+key).encode())%1000+7919*tries)
             codes=m.generate(c,max_new_tokens=int(86*min(20,2+len(text)/9)),cfg_scale=2.5,disable_torch_compile=True,progress_bar=False)
             a=m.autoencoder.decode(codes).cpu()[0]
-            if a.shape[-1]>.25*m.autoencoder.sampling_rate:break;fn=f'{key}.wav' if n==0 else f'{key}_t{n}.wav'
+            if a.shape[-1]>.25*m.autoencoder.sampling_rate:break
+        fn=f'{key}.wav' if n==0 else f'{key}_t{n}.wav'
         torchaudio.save(f'{d}/{fn}',a,m.autoencoder.sampling_rate);mt['takes'].append(fn)
         json.dump(meta,open(meta_f,'w'),indent=0)
         print(sp,key,st,round(a.shape[-1]/m.autoencoder.sampling_rate,2),'s',round(time.time()-T0),'s so far',flush=True)
