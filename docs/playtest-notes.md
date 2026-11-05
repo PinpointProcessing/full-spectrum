@@ -12,7 +12,14 @@ His notes, collected here as they come; the changes are made together once he's 
    Because currently, I click it and it moves my troops." (The box let taps through to the map.) Draft:
    `docs/tutorial-bubble-draft.png`: a small bubble low on the left (above the cards when they're up); a tap hides it and
    stops there (nobody moves), a "?" in its place brings it back, a new step or tip shows by itself; Skip tutorial / No more
-   tips inside it. Built as a prototype to make the draft; waiting for his OK.
+   tips inside it. Built as a prototype to make the draft.
+   Bryan: "Okay this is better. Instead of No more tips, say Turn off tips. Everything else is good. It should also not allow
+   any other actions to happen unless you do the tip." Built and committed (not published until he's done testing): the button
+   reads "Turn off tips"; while a step or tip is up only what it asks for works (and picking soldiers, where the tip needs it;
+   the camera, Pause and Fit map always), anything else shakes the bubble and it says "Do this first". A tip that only tells
+   you something ends with a tap on it ("Tap to continue"); one that asks for something waits until it's done, at quarter
+   speed. If the moment passes the tip goes, and if its action can't be done from there (no way behind the guard, no safe
+   throw) the game says why and lets you move again.
 3. Level 2 north of the canal: "Make the containers horizontal and run along the canal. There is a large road before the
    data center, like a runway road, not small. The jeep patrols that road, from left to right continuously (the user can
    sneak by or engage). The containers are lightly guarded with most in front of the data center and at the bridge. The

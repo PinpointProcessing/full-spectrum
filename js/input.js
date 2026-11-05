@@ -39,7 +39,7 @@ function edgePan(rdt){
 }
 function finishDraw(){
   const u=ptr.unit,t=ptr.trail;
-  if(!alive(u)||state!=='play')return;
+  if(!alive(u)||state!=='play'||!tutAllows('draw',u))return;   // (Level 1's tutorial lock: level1.js)
   const e=t[t.length-1];
   if(!e||hyp(e.x-u.x,e.y-u.y)<12)return;            // dragged back onto him: cancel
   const r=routeFromTrail(u,t);
@@ -89,8 +89,8 @@ function bindInput(){
       const u=unitAtScreen(ptr.sx,ptr.sy,true);
       ptr.lp=true;
       try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}
-      if(u){select([u]);preview=null;mode=null;callout(u,u.name,teamCol(u));}
-      else{ptr.kind='lasso';ptr.loop=[[ptr.cx,ptr.cy]];}
+      if(u){if(tutAllows('hold',u)){select([u]);preview=null;mode=null;callout(u,u.name,teamCol(u));}}
+      else if(tutAllows('lasso')){ptr.kind='lasso';ptr.loop=[[ptr.cx,ptr.cy]];}
       hud();
     },380);
   });
@@ -122,7 +122,7 @@ function bindInput(){
     ptr.cx=x;ptr.cy=y;
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind=ptr.unit&&alive(ptr.unit)&&!landing&&!mode?'draw':'pan';   // no orders while the dinghy is still coming in; aiming a suppress/grenade/charge never starts a route
+      ptr.kind=ptr.unit&&alive(ptr.unit)&&!landing&&!mode&&tutAllows('draw',ptr.unit)?'draw':'pan';   // no orders while the dinghy is still coming in; aiming a suppress/grenade/charge never starts a route; nor does Level 1's tutorial lock unless that's what it asks for
       if(ptr.kind==='draw'){select([ptr.unit]);preview=null;mode=null;hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
@@ -163,6 +163,7 @@ function toggleGait(){
 let fireOrderAt=-1e9;   // when the last suppress/grenade/smoke order was given (real ms)
 function tap(sx,sy){
   if(landing)return;   // the squad is still in the dinghy
+  if(!tutAllows('tap',sx,sy))return;   // Level 1's tutorial: only what the step or tip asks for (level1.js)
   const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)
   sel=sel.filter(alive);
   // aiming modes (Bryan: suppressing or throwing must never move anyone): a tap that misses keeps the mode and says why;

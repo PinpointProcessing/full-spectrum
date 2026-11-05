@@ -110,23 +110,25 @@ function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:760};clampCam();updateC
 function bindHud(){
   // team tabs toggle: pressing the tab of the group that's already selected deselects it
   const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));select(on?[]:list);preview=null;mode=null;hud();};
-  for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p))));
-  $('#allBtn').addEventListener('click',()=>tabSelect(players.filter(alive)));
-  const gaitOrDismount=()=>{if(state!=='play')return;const cr=sel.filter(u=>u.carry),c=selCrew();if(cr.length){for(const u of cr)putDown(u);}else if(c.length){const out=dismount(c);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
+  // (Level 1's tutorial lets through only what its step or tip asks for: tutAllows in level1.js; the camera, Pause and Fit map always work)
+  for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>{if(tutAllows('tab',tab.dataset.team))tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p)));});
+  $('#allBtn').addEventListener('click',()=>{if(tutAllows('tab','all'))tabSelect(players.filter(alive));});
+  const gaitOrDismount=()=>{if(state!=='play'||!tutAllows('btn','gait'))return;const cr=sel.filter(u=>u.carry),c=selCrew();if(cr.length){for(const u of cr)putDown(u);}else if(c.length){const out=dismount(c);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
   $('#gaitBtn').addEventListener('click',gaitOrDismount);
-  $('#supBtn').addEventListener('click',()=>{if(state!=='play')return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
-  $('#watchBtn').addEventListener('click',()=>{if(state!=='play')return;const act=sel.filter(alive);if(mode!=='watch'&&act.some(u=>u.watch)&&!mode){endWatch(act);hud();return;}mode=mode==='watch'?null:'watch';preview=null;hud();});   // on Watch already: a press ends it
-  $('#breachBtn').addEventListener('click',()=>{if(state!=='play')return;if(breach){breach=null;hud();return;}mode=mode==='breach'?null:'breach';preview=null;hud();});
-  $('#clearBtn').addEventListener('click',()=>{if(mode||preview){mode=null;preview=null;}else select([]);hud();});
+  $('#supBtn').addEventListener('click',()=>{if(state!=='play'||!tutAllows('btn','sup'))return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
+  $('#watchBtn').addEventListener('click',()=>{if(state!=='play'||!tutAllows('btn','watch'))return;const act=sel.filter(alive);if(mode!=='watch'&&act.some(u=>u.watch)&&!mode){endWatch(act);hud();return;}mode=mode==='watch'?null:'watch';preview=null;hud();});   // on Watch already: a press ends it
+  $('#breachBtn').addEventListener('click',()=>{if(state!=='play'||!tutAllows('btn','breach'))return;if(breach){breach=null;hud();return;}mode=mode==='breach'?null:'breach';preview=null;hud();});
+  $('#clearBtn').addEventListener('click',()=>{if(!tutAllows('btn','clear'))return;if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>startLevel2());
   $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
-  // the tutorial's bubble: a tap hides it (and stops there, so it never moves anyone); its button skips; the "?" brings it back
+  // the tutorial's bubble: a tap carries on from a notice or hides it (and stops there, so it never moves anyone); its button
+  // turns the tutorial or the tips off; the "?" brings it back
   $('#tut').addEventListener('click',e=>{
     if(e.target.closest('.tskip')){const camp=!!tutStep();tutStop();tut.skipped=true;banner(camp?'Tutorial off. The hint line at the bottom still says what to do.':'Tips off.',2600);return;}
-    if(MAPID==='l1'){tut.hid=true;tutShow();}else $('#tut').hidden=true;   // (outside Level 1 it's the checkpoint's tour: hq.js)
+    if(MAPID==='l1')tutTap();else $('#tut').hidden=true;   // (outside Level 1 it's the checkpoint's tour: hq.js)
   });
   $('#tutPin').addEventListener('click',()=>{tut.hid=false;tutShow();});
   $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){startLevel2();return;}state='play';endAt=0;hud();});   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
@@ -141,6 +143,6 @@ function bindHud(){
     else if(e.key==='Escape'){$('#clearBtn').click();}
     else if(e.key==='r'||e.key==='R')gaitOrDismount();
     else if(e.key==='q'||e.key==='Q')turnCam(-Math.PI/12);else if(e.key==='e'||e.key==='E')turnCam(Math.PI/12);
-    else if(e.key==='1'){selectTeam('A');hud();}else if(e.key==='2'){selectTeam('B');hud();}
+    else if(e.key==='1'){if(tutAllows('tab','A')){selectTeam('A');hud();}}else if(e.key==='2'){if(tutAllows('tab','B')){selectTeam('B');hud();}}
   });
 }

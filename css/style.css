@@ -120,6 +120,9 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .tutGlow{outline:2px solid #4df3ff;outline-offset:2px;animation:tutPulse 1s ease-in-out infinite}
 #tut small{display:block;font-family:var(--font-hud);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#4df3ff;margin-bottom:3px}
 #tut b{color:#4df3ff}
+@keyframes tutNudge{0%,100%{transform:translateX(0)}18%{transform:translateX(-7px)}38%{transform:translateX(6px)}58%{transform:translateX(-4px)}78%{transform:translateX(2px)}}
+#tut.nudge{animation:tutNudge .45s ease-in-out;border-color:#4df3ff;box-shadow:0 4px 18px rgba(0,0,0,.45),0 0 20px rgba(77,243,255,.55)}   /* an input the tutorial holds back (level1.js) */
+#tut .tfoot .now{color:#fff;font-weight:700}
 .ucard.downed .uc-face{filter:grayscale(.6) brightness(.7)}
 .ucard.kia{opacity:.6}.ucard.kia .uc-face{filter:grayscale(1) brightness(.45)}
 #stage{--cards-h:0px}
@@ -203,7 +206,7 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .aar-gain em{font-style:normal;color:var(--warn);text-transform:uppercase;letter-spacing:.12em;animation:alertPop .35s ease-out}
 .linkish{background:none;border:none;min-height:28px;color:var(--dim);font-size:11px;text-decoration:underline;text-underline-offset:3px;justify-self:center}
 @media (prefers-reduced-motion: reduce){.aar-xp i{transition:none}.aar-gain em{animation:none}}
-@media (prefers-reduced-motion: reduce){.uc-rpg.tut,.tutGlow{animation:none;box-shadow:0 0 0 2px #4df3ff}#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}
+@media (prefers-reduced-motion: reduce){.uc-rpg.tut,.tutGlow{animation:none;box-shadow:0 0 0 2px #4df3ff}#tut.nudge{animation:none}#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}
 
 /* inside the office building: the floor switcher (right side, under Fit map; dots show who's on each floor) and the fade between maps */
 #floors{position:absolute;right:8px;top:56px;z-index:2;display:grid;gap:4px}

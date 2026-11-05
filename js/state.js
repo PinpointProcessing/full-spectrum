@@ -34,4 +34,4 @@ function reset(){
   civs=[];volley=null;resetOffice();resetChatter();   // (office.js, chatter.js)
   resetWaves();resetHunt();resetOrders();resetLayers();setStatus();buildCards();
 }
-function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw'))?0.25:1;}
+function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw')||tutSlow())?0.25:1;}   // (tutSlow: a tip of Level 1's tutorial waiting, level1.js)

@@ -248,52 +248,144 @@ function drawL1(now){
 }
 
 /* ---------- the tutorial (docs/tutorial.md): the boot camp on the beach, then tips the first time things come up ----------
-   A step ends when the player does the thing; what to touch pulses (a tab, a card, a ring on the ground). Tips wait until the
-   boot camp is over and show once each. "Skip tutorial" turns both off. */
+   A step ends when the player does the thing; what to touch pulses (a tab, a card, a button, a ring on the ground). Tips wait
+   until the boot camp is over and show once each. "Skip tutorial" / "Turn off tips" turn both off.
+   The lock (Bryan: "it should also not allow any other actions to happen unless you do the tip"): while a step or a tip is up,
+   only what it asks for goes through (tutAllows, called from input.js, hud.js and cards.js), plus what it takes to get there
+   (picking soldiers, for most tips). The camera, Pause, Fit map and sound always work; anything else gives the bubble a shake.
+   A tip that only tells you something ends with a tap on it ("Tap to continue"); one that asks for something ends when it's
+   done, and time runs at quarter speed meanwhile (tutSlow, in state.js's timeScale). If the moment it's about passes (the guard
+   turns round, the fight's over) the tip goes; if its action is tried and can't be done from there (no way behind him, no safe
+   throw: the game says why), the lock lifts so the player can sort it out. */
 const cardOf=id=>{const p=players.find(u=>u.id===id);return p?[...document.querySelectorAll('#cards .ucard')].find(el=>{const n=el.querySelector('.uc-name');return n&&n.textContent===p.name;})||null:null;};
+const cardUp=c=>!!c&&!c.hidden&&!$('#cards').hidden;
 const l1NearSpot=(team,x,y,r)=>players.filter(p=>p.team===team&&alive(p)).every(p=>hyp(p.x-x,p.y-y)<r&&!p.path.length);
+// what a tap at screen point (sx,sy) lands on, in tap()'s order: one of ours, else a hostile, else the ground (the world point
+// and the spot tapTarget picks for a tap on a container's side)
+function tutHit(sx,sy){
+  const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),t=tapTarget(sx,sy),u=unitAtScreen(sx,sy,false);
+  return{u,e:u?null:enemyAtScreen(sx,sy),x:wx,y:wy,tx:t.x,ty:t.y,inMap:hyp(bx-sx,by-sy)<4&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1};
+}
+const tutNear=(h,x,y,r)=>!h.u&&!h.e&&(hyp(h.x-x,h.y-y)<r||hyp(h.tx-x,h.ty-y)<r);   // the ground near (x,y)
+const ourMan=(h,t)=>!!h.u&&!h.u.downed&&(!t||h.u.team===t);
+// changing who's selected: the tabs, a card, holding a soldier, the lasso, Clear, a tap on one of ours who's up
+const tutPick=(k,x)=>k==='tab'||k==='card'||k==='hold'||k==='lasso'||(k==='btn'&&x==='clear')||(k==='tap'&&ourMan(x));
+const fromUs=a=>a.some(n=>n.by&&n.by.side==='P'&&!n.smoke);   // a frag or a rocket of ours in the air
+const blastLeft=()=>players.some(p=>alive(p)&&!p.downed&&((p.spec==='rpg'&&p.specN>0)||p.grenade>0));
+// a step or tip: text; glow() what to touch; need(kind,x) what goes through while it's up (kind: 'tap' with x what it lands on,
+// 'draw'/'hold'/'card' with x the soldier, 'gear' with x {u,id,item}, 'tab' with x 'A'/'B'/'all', 'btn' with x its name,
+// 'lasso'); done() when it's been done; ack: a notice, ended by a tap on it; still() whether the moment's still there;
+// act(kind,x) the input that should do it (if it doesn't, the lock lifts); modes an aiming mode it keeps
 const TUT_STEPS=[
-  {text:'<b>Look around.</b> Drag the map with one finger. Pinch to zoom in and out.',done:()=>hyp(camT.x-tut.cam0.x,camT.z-tut.cam0.z)>50||Math.abs(zoom-tut.cam0.zoom)>.25},
-  {text:'<b>Pick a team.</b> Tap <b>ALPHA</b> at the bottom to select Reyes and Kowalski.',glow:()=>$('.tab[data-team="A"]'),done:()=>sel.length===2&&sel.every(u=>u.team==='A')},
-  {text:'<b>Move into cover.</b> Tap the cyan ring behind the container. Green ghosts are in cover, red are exposed. Tap the same spot again to go.',mark:{x:334,y:781,r:24},done:()=>l1NearSpot('A',334,781,50)},
-  {text:'<b>One man.</b> Tap Reyes\'s card to give orders to him alone. Tap it again for the whole team.',glow:()=>cardOf('A1'),done:()=>sel.length===1&&sel[0].id==='A1'},
-  {text:'<b>Draw a route.</b> Drag from Reyes along the ground to draw his path, then lift your finger.',done:()=>tut.drew},
+  {text:'<b>Look around.</b> Drag the map with one finger. Pinch to zoom in and out.',cam:true,done:()=>hyp(camT.x-tut.cam0.x,camT.z-tut.cam0.z)>50||Math.abs(zoom-tut.cam0.zoom)>.25},
+  {text:'<b>Pick a team.</b> Tap <b>ALPHA</b> at the bottom to select Reyes and Kowalski.',glow:()=>$('.tab[data-team="A"]'),
+   need:(k,x)=>(k==='tab'&&x==='A')||(k==='tap'&&ourMan(x,'A')),done:()=>sel.length===2&&sel.every(u=>u.team==='A')},
+  {text:'<b>Move into cover.</b> Tap the cyan ring behind the container. Green ghosts are in cover, red are exposed. Tap the same spot again to go.',mark:{x:334,y:781,r:24},
+   need:(k,x)=>(k==='tab'&&x==='A')||(k==='tap'&&((ourMan(x,'A')&&!sel.includes(x.u))||tutNear(x,334,781,70))),done:()=>l1NearSpot('A',334,781,50)},   // (a tap on one of a selected pair would split them)
+  {text:'<b>One man.</b> Tap Reyes\'s card to give orders to him alone. Tap it again for the whole team.',glow:()=>cardOf('A1'),
+   need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tap'&&!!x.u&&x.u.id==='A1'),done:()=>sel.length===1&&sel[0].id==='A1'},
+  {text:'<b>Draw a route.</b> Drag from Reyes along the ground to draw his path, then lift your finger.',
+   need:(k,x)=>(k==='draw'||k==='card')&&x.id==='A1',done:()=>tut.drew},
   {text:'<b>Bring Bravo up.</b> Tap <b>BRAVO</b>, then the ring by the container, twice. <b>ALL</b> selects everyone.',glow:()=>$('.tab[data-team="B"]'),
    pick:()=>{const far=c=>Math.min(...players.filter(p=>p.team==='A'&&alive(p)).map(p=>hyp(p.x-c.x,p.y-c.y)));return[{x:266,y:781,r:24},{x:334,y:781,r:24}].sort((a,b)=>far(b)-far(a))[0];},   // the half of the container Alpha isn't in (a tap on one of Alpha would pick him instead)
-   done:()=>l1NearSpot('B',tut.mk.x,tut.mk.y,50)},
-  {text:'<b>Stay hidden.</b> Near guards your men sneak by themselves. The ring at the top fills as a guard notices you; red wedges show where they look.',glow:()=>$('#alert'),timed:8},
+   need:(k,x)=>(k==='tab'&&(x==='B'||x==='all'))||(k==='tap'&&((ourMan(x,'B')&&!sel.includes(x.u))||tutNear(x,tut.mk.x,tut.mk.y,70))),done:()=>l1NearSpot('B',tut.mk.x,tut.mk.y,50)},
+  {text:'<b>Stay hidden.</b> Near guards your men sneak by themselves. The ring at the top fills as a guard notices you; red wedges show where they look.',glow:()=>$('#alert'),timed:8,ack:true},
 ];
 const TUT_TIPS=[
-  {k:'seen',when:()=>enemies.some(e=>e.vis&&!e.dead&&!e.alerted),text:'<b>A guard.</b> His red wedge is where he\'s looking. Stay out of it and he won\'t see you.'},
-  {k:'tk',when:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),text:'<b>Takedown.</b> He has his back to your man: tap him and your man sneaks up and takes him out without a sound.'},
-  {k:'volley',when:()=>L1.fence.every(beaten)&&sel.filter(alive).length>=2&&L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e)),text:'<b>Silencers.</b> Alpha\'s rifles are silenced. Tap one guard, then the other, and they fire together on a count.'},
-  {k:'contact',when:()=>contact,text:'<b>You\'ve been seen.</b> Your men fire on their own now. Tap an enemy to focus fire: the % is the chance to hit. Cover cuts theirs.'},
-  {k:'pinned',when:()=>players.some(p=>alive(p)&&p.sup>.65),text:'<b>Pinned down.</b> Select Hayes, press <b>SUPPRESS</b>, then tap the enemy: his machine gun keeps their heads down.'},
-  {k:'nade',when:()=>contact&&enemies.some(e=>!beaten(e)&&e.vis&&players.some(p=>alive(p)&&p.grenade>0&&hyp(p.x-e.x,p.y-e.y)<170)),text:'<b>Grenades.</b> Tap the grenade on a soldier\'s card, then tap where to throw it.'},
-  {k:'down',when:()=>players.some(p=>p.downed&&!p.dead),text:'<b>Man down.</b> Select another soldier and tap him to revive him. You have 60 seconds.'},
-  {k:'cp',when:()=>l1.yardClear,text:'<b>Checkpoint.</b> Stand in the green ring to heal, the orange ring to refill grenades and gear.'},
-  {k:'scout',when:()=>l1.yardClear&&!l1.scoutUp&&tut.said.has('cp')&&simT-tut.tipAt>6,text:'<b>The scout.</b> Select a soldier and tap the wounded scout by the hut to bring him round.'},
-  {k:'rpg',when:()=>l1.scoutUp&&!l1.relayDown,text:'<b>The relay.</b> Select Hayes, tap the <b>RPG</b> on his card, then tap the mast. A grenade close to it works too.',glow:()=>{const c=cardOf('B1');return c&&c.querySelector('.uc-spec');}},
+  {k:'seen',ack:true,when:()=>enemies.some(e=>e.vis&&!e.dead&&!e.alerted),text:'<b>A guard.</b> His red wedge is where he\'s looking. Stay out of it and he won\'t see you.'},
+  {k:'tk',when:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),still:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),
+   need:(k,x)=>k==='tap'&&!!x.e&&sel.length===1&&canTakedown(sel[0],x.e),act:k=>k==='tap',done:()=>players.some(p=>p.tk),
+   text:'<b>Takedown.</b> He has his back to your man: tap him and your man sneaks up and takes him out without a sound.'},
+  {k:'volley',when:()=>L1.fence.every(beaten)&&sel.filter(alive).length>=2&&L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e)),still:()=>L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e)),
+   need:(k,x)=>k==='tap'&&!!x.e&&canVolley(sel,x.e),act:k=>k==='tap',done:()=>!!volley||players.some(p=>p.silent),
+   text:'<b>Silencers.</b> Alpha\'s rifles are silenced. Tap one guard, then the other, and they fire together on a count.'},
+  {k:'contact',when:()=>contact&&enemies.some(e=>e.vis&&!beaten(e)),still:()=>contact&&enemies.some(e=>e.vis&&!beaten(e)),
+   need:(k,x)=>tutPick(k,x)||(k==='tap'&&!!x.e),act:(k,x)=>k==='tap'&&!!x.e&&sel.some(alive),done:()=>players.some(p=>alive(p)&&p.focus),
+   text:'<b>You\'ve been seen.</b> Your men fire on their own now. Tap an enemy to focus fire: the % is the chance to hit. Cover cuts theirs.'},
+  {k:'pinned',when:()=>contact&&players.some(p=>alive(p)&&p.sup>.65)&&enemies.some(e=>e.seen&&!beaten(e)),still:()=>contact&&enemies.some(e=>e.seen&&!beaten(e)),modes:['suppress'],
+   glow:()=>mode!=='suppress'&&sel.some(alive)?$('#supBtn'):null,need:(k,x)=>tutPick(k,x)||(k==='btn'&&x==='sup')||(k==='tap'&&mode==='suppress'),done:()=>players.some(p=>alive(p)&&p.supT),
+   text:'<b>Pinned down.</b> Select Hayes, press <b>SUPPRESS</b>, then tap the enemy: his machine gun keeps their heads down.'},
+  {k:'nade',when:()=>contact&&enemies.some(e=>!beaten(e)&&e.vis&&players.some(p=>alive(p)&&p.grenade>0&&hyp(p.x-e.x,p.y-e.y)<170)),still:()=>contact&&enemies.some(e=>!beaten(e)&&e.seen)&&players.some(p=>alive(p)&&!p.downed&&p.grenade>0),modes:['grenade'],
+   glow:()=>{if(mode==='grenade')return null;const p=sel.find(u=>alive(u)&&!u.downed&&u.grenade>0),c=p&&cardOf(p.id);return cardUp(c)?c.querySelector('.uc-nade'):null;},
+   need:(k,x)=>tutPick(k,x)||(k==='gear'&&x.item==='nade')||(k==='tap'&&mode==='grenade'),act:(k,x)=>k==='tap'&&mode==='grenade'&&(!!x.e||x.inMap),
+   done:()=>players.some(p=>p.throwGo&&p.throwGo.kind==='nade')||fromUs(nades),
+   text:'<b>Grenades.</b> Tap the grenade on a soldier\'s card, then tap where to throw it.'},
+  {k:'down',when:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),still:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),modes:['medkit'],
+   need:(k,x)=>tutPick(k,x)||(k==='tap'&&(mode==='medkit'||(!!x.u&&x.u.downed)))||(k==='gear'&&x.item==='spec'&&x.u.spec==='medkit'),
+   act:(k,x)=>k==='tap'&&!!x.u&&x.u.downed&&(mode==='medkit'||sel.some(u=>u!==x.u&&alive(u)&&!u.downed&&!u.carry)),
+   done:()=>{const d=players.filter(p=>p.downed&&!p.dead);return!d.length||players.some(p=>p.medGo||p.carryGo||p.carry)||d.some(q=>q.revive>0||players.some(h=>h!==q&&alive(h)&&!h.downed&&h.path.length&&hyp(h.path[h.path.length-1].x-q.x,h.path[h.path.length-1].y-q.y)<30));},
+   text:'<b>Man down.</b> Select another soldier and tap him to revive him. You have 60 seconds.'},
+  {k:'cp',when:()=>l1.yardClear,need:(k,x)=>tutPick(k,x)||(k==='tap'&&!x.u&&!x.e&&!!(zoneAt(x.tx,x.ty)||zoneAt(x.x,x.y))),
+   done:()=>players.some(p=>alive(p)&&!p.downed&&(zoneAt(p.x,p.y)||(p.path.length&&zoneAt(p.path[p.path.length-1].x,p.path[p.path.length-1].y)))),
+   text:'<b>Checkpoint.</b> Stand in the green ring to heal, the orange ring to refill grenades and gear. Select your men and tap inside one.'},
+  {k:'scout',when:()=>l1.yardClear&&!l1.scoutUp&&tut.said.has('cp')&&simT-tut.tipAt>6,still:()=>!l1.scoutUp&&players.some(p=>alive(p)&&!p.downed),
+   need:(k,x)=>tutPick(k,x)||(k==='tap'&&!x.u&&(a=>!!a&&a.id==='scout')(actAt(x.x,x.y))),act:(k,x)=>k==='tap'&&!x.u&&sel.some(alive),done:()=>l1.scoutUp||!!(useGo&&useGo.a.id==='scout'),
+   text:'<b>The scout.</b> Select a soldier and tap the wounded scout by the hut to bring him round.'},
+  {k:'rpg',when:()=>l1.scoutUp&&!l1.relayDown&&blastLeft(),still:()=>!l1.relayDown&&blastLeft(),modes:['rpg','grenade'],
+   glow:()=>{if(mode==='rpg'||mode==='grenade')return null;const c=cardOf('B1'),b=cardUp(c)&&c.querySelector('.uc-spec');return b&&!b.disabled?b:(c&&!c.hidden?null:$('.tab[data-team="B"]'));},
+   need:(k,x)=>tutPick(k,x)||(k==='gear'&&(x.item==='nade'||(x.item==='spec'&&x.u.spec==='rpg')))||(k==='tap'&&(mode==='rpg'||mode==='grenade')),
+   act:(k,x)=>k==='tap'&&(mode==='rpg'||mode==='grenade')&&(!!x.e||x.inMap),
+   done:()=>l1.relayDown||players.some(p=>p.rpgAim||(p.throwGo&&p.throwGo.kind!=='smoke'))||fromUs(rockets)||fromUs(nades),
+   text:'<b>The relay.</b> Select Hayes, tap the <b>RPG</b> on his card, then tap the mast. A grenade close to it works too.'},
 ];
-const tut={on:false,i:0,t0:0,drew:false,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99,mk:null,campDone:false,skipped:false};
+const tut={on:false,i:0,t0:0,drew:false,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,nudgeT:-1e9,mk:null,campDone:false,skipped:false,hid:false};
 const L1_BEACH={x0:60,x1:440,y0:700,y1:860};   // the boot camp's ground: anyone beyond it, a guard down or alerted, and it's over
 // again: "Try Level 1 again" after a failed run: no second boot camp if the first was done or skipped, no tips at all if skipped
 function tutStart(again){
   if(!again){tut.campDone=false;tut.skipped=false;}
   const keep=again&&(tut.campDone||tut.skipped);
-  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,mk:null,hid:false});
+  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,mk:null,hid:false});
   tutShow();
 }
-function tutStop(){tut.on=false;tut.tip=null;tut.i=TUT_STEPS.length;tutShow();}
+function tutStop(){tut.on=false;tut.tip=null;tut.ack=false;tut.loose=false;tut.i=TUT_STEPS.length;tutShow();}
 function tutStep(){return tut.on&&tut.i<TUT_STEPS.length?TUT_STEPS[tut.i]:null;}
+function tutNext(){tut.i++;tut.t0=simT;tut.tipEnd=simT;tut.hid=false;const n=tutStep();if(n&&n.pick)tut.mk=n.pick();if(!n)tut.campDone=true;tutShow();}   // the boot camp's next step
+// a tip comes up: a notice if it only tells you something, or if what it asks for is already being done; an aiming mode it
+// doesn't use is dropped, so the tap it asks for does what it says
+function tutBegin(t){
+  tut.said.add(t.k);tut.tip=t;tut.tipAt=simT;tut.ack=!!t.ack||!!(t.done&&t.done());tut.loose=false;tut.off=0;tut.hid=false;
+  if(!tut.ack&&mode&&!(t.modes||[]).includes(mode))mode=null;
+  tutShow();hud();
+}
+function tutEnd(){tut.tip=null;tut.tipEnd=simT;tut.ack=false;tut.loose=false;tutShow();}
+// what's holding everything else back: the boot camp's step or the tip (none once a tip's action was tried and couldn't be done)
+function tutLock(){
+  if(MAPID!=='l1'||state!=='play'||!tut.on)return null;
+  return tutStep()||(tut.tip&&!tut.loose?tut.tip:null);
+}
+// does this input go through? (kind and x as for need above; a tap passes its screen point). If not, the bubble shakes.
+function tutAllows(kind,a,b){
+  const L=tutLock();if(!L)return true;
+  const x=kind==='tap'?tutHit(a,b):a,need=L===tut.tip&&tut.ack?null:L.need;
+  if(need&&need(kind,x)){
+    if(L.act&&L.act(kind,x))queueMicrotask(()=>{if(tut.tip===L&&!L.done()){tut.loose=true;tutShow();}});   // it didn't take (the game says why): the lock lifts
+    return true;
+  }
+  if(!(kind==='draw'&&L.cam))tutNudge();   // (on the "look around" step a drag that starts on a soldier just moves the camera)
+  return false;
+}
+function tutNudge(){   // the bubble comes back if hidden, shakes, and says "Do this first" for a moment
+  const box=$('#tut');if(!box)return;
+  tut.hid=false;tut.nudgeT=performance.now();tutShow();
+  box.classList.remove('nudge');void box.offsetWidth;box.classList.add('nudge');
+  clearTimeout(tut.nudgeTimer);tut.nudgeTimer=setTimeout(()=>{tut.nudgeT=-1e9;box.classList.remove('nudge');tutShow();},2200);
+  try{navigator.vibrate&&navigator.vibrate(20);}catch(_){}
+}
+function tutSlow(){return MAPID==='l1'&&state==='play'&&tut.on&&!!tut.tip&&!tut.loose&&!tutStep();}   // quarter speed while a tip waits (state.js)
 // the bubble (Bryan: "a small bubble and when clicked it clears. Because currently, I click it and it moves my troops"): the
-// boot camp's step or a tip, low on the left, out of the way; a tap on it hides it (the tap stops there), and a small "?" in
-// its place brings it back. A new step or tip shows again by itself. Skip tutorial / No more tips sit inside it.
+// boot camp's step or a tip, low on the left, out of the way. A tap on a notice carries on; on anything else it hides it (the
+// tap stops there), and a small "?" in its place brings it back. A new step or tip shows by itself, and so does a blocked input.
 function tutShow(){
   const box=$('#tut'),pin=$('#tutPin');if(!box)return;
   const s=MAPID==='l1'&&state==='play'?tutStep():null,tip=MAPID==='l1'&&state==='play'&&tut.on&&!s?tut.tip:null,has=!!(s||tip);
-  if(has)box.innerHTML=`<small>${s?`Boot camp ${tut.i+1}/${TUT_STEPS.length}`:'Tip'}</small>${(s||tip).text}<span class="tfoot"><span>Tap to hide</span><button type="button" class="tskip">${s?'Skip tutorial':'No more tips'}</button></span>`;
+  const note=s?!!s.ack:tut.ack,nudged=tut.nudgeT>0&&!(tip&&tut.loose);
+  if(has)box.innerHTML=`<small>${s?`Boot camp ${tut.i+1}/${TUT_STEPS.length}`:'Tip'}</small>${(s||tip).text}<span class="tfoot"><span${nudged?' class="now"':''}>${note?'Tap to continue':nudged?'Do this first':'Tap to hide'}</span><button type="button" class="tskip">${s?'Skip tutorial':'Turn off tips'}</button></span>`;
   box.hidden=!has||tut.hid;if(pin)pin.hidden=!has||!tut.hid;
+}
+function tutTap(){   // a tap on the bubble (hud.js)
+  const s=tutStep();
+  if(s?s.ack:tut.tip&&tut.ack){if(s)tutNext();else tutEnd();return;}
+  tut.hid=true;tutShow();
 }
 function placeBanner(){const b=$('#banner');if(b)b.style.top='';}   // (the banner keeps its place at the top: the bubble is low on the left now)
 function tutTickL1(dt){
@@ -303,9 +395,15 @@ function tutTickL1(dt){
   for(const el of document.querySelectorAll('.tutGlow'))if(el!==want)el.classList.remove('tutGlow');
   if(want&&!want.classList.contains('tutGlow'))want.classList.add('tutGlow');
   if(s&&(contact||enemies.some(e=>e.dead||e.alerted)||players.some(p=>alive(p)&&!(p.x>L1_BEACH.x0&&p.x<L1_BEACH.x1&&p.y>L1_BEACH.y0&&p.y<L1_BEACH.y1)))){   // gone on ahead: the rest of the boot camp is dropped, the tips take over
-    tut.i=TUT_STEPS.length;tut.campDone=true;tut.tipAt=simT-2;tutShow();return;}
-  if(s){if(s.timed?simT-tut.t0>=s.timed:s.done()){tut.i++;tut.t0=simT;tut.tipAt=simT;tut.hid=false;const n=tutStep();if(n&&n.pick)tut.mk=n.pick();if(!n)tut.campDone=true;tutShow();}return;}
-  if(tut.tip&&simT-tut.tipAt>8){tut.tip=null;tutShow();}   // a tip stays up 8 s (or until the next one)
-  if(simT-tut.tipAt<2.5)return;   // (not one on top of another)
-  for(const t of TUT_TIPS)if(!tut.said.has(t.k)&&t.when()){tut.said.add(t.k);tut.tip=t;tut.tipAt=simT;tut.hid=false;tutShow();break;}
+    tut.i=TUT_STEPS.length;tut.campDone=true;tut.tipEnd=simT-2;tutShow();return;}
+  if(s){if(s.timed?simT-tut.t0>=s.timed:s.done&&s.done())tutNext();return;}
+  const t=tut.tip;
+  if(t){   // one at a time: a notice waits for its tap; anything else until it's done, or the moment's gone
+    if(tut.ack)return;
+    if(t.done()){tutEnd();return;}
+    if(t.still&&!t.still()){if((tut.off+=dt)>.6)tutEnd();}else tut.off=0;
+    return;
+  }
+  if(simT-tut.tipEnd<2.5)return;   // (a breather between them)
+  for(const t of TUT_TIPS)if(!tut.said.has(t.k)&&t.when()){tutBegin(t);break;}
 }

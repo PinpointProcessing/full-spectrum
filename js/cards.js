@@ -58,6 +58,8 @@ function buildCards(){
       `<div class="uc-bot">${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
+      const g=ev&&ev.target.closest('.uc-rpg,.uc-spec,.uc-nade');   // (Level 1's tutorial lets through only what it asks for: level1.js)
+      if(!tutAllows(g?'gear':'card',g?{u,id:u.id,item:g.classList.contains('uc-nade')?'nade':g.classList.contains('uc-spec')?'spec':'c4'}:u))return;
       preview=null;
       if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.charges&&!u.inVeh)mode=mode==='charge'?null:'charge';else{mode=null;banner(`${u.name} has no charge left. Restock at a supply box.`,1800);}}   // demolition charge
       else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it (Bryan: ammo drops refill it, no swapping)
