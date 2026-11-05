@@ -123,7 +123,12 @@ function bindHud(){
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>startLevel2());
   $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
-  $('#tutSkip').addEventListener('click',()=>{const camp=!!tutStep();tutStop();tut.skipped=true;banner(camp?'Tutorial off. The hint line at the bottom still says what to do.':'Tips off.',2600);});
+  // the tutorial's bubble: a tap hides it (and stops there, so it never moves anyone); its button skips; the "?" brings it back
+  $('#tut').addEventListener('click',e=>{
+    if(e.target.closest('.tskip')){const camp=!!tutStep();tutStop();tut.skipped=true;banner(camp?'Tutorial off. The hint line at the bottom still says what to do.':'Tips off.',2600);return;}
+    if(MAPID==='l1'){tut.hid=true;tutShow();}else $('#tut').hidden=true;   // (outside Level 1 it's the checkpoint's tour: hq.js)
+  });
+  $('#tutPin').addEventListener('click',()=>{tut.hid=false;tutShow();});
   $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){startLevel2();return;}state='play';endAt=0;hud();});   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}

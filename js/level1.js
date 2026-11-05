@@ -281,23 +281,21 @@ const L1_BEACH={x0:60,x1:440,y0:700,y1:860};   // the boot camp's ground: anyone
 function tutStart(again){
   if(!again){tut.campDone=false;tut.skipped=false;}
   const keep=again&&(tut.campDone||tut.skipped);
-  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,mk:null});
+  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,mk:null,hid:false});
   tutShow();
 }
 function tutStop(){tut.on=false;tut.tip=null;tut.i=TUT_STEPS.length;tutShow();}
 function tutStep(){return tut.on&&tut.i<TUT_STEPS.length?TUT_STEPS[tut.i]:null;}
-// the box at the top: the boot camp's step, or a tip for a few seconds; the Skip button under it
+// the bubble (Bryan: "a small bubble and when clicked it clears. Because currently, I click it and it moves my troops"): the
+// boot camp's step or a tip, low on the left, out of the way; a tap on it hides it (the tap stops there), and a small "?" in
+// its place brings it back. A new step or tip shows again by itself. Skip tutorial / No more tips sit inside it.
 function tutShow(){
-  const box=$('#tut'),skip=$('#tutSkip');if(!box||!skip)return;
-  const s=MAPID==='l1'&&state==='play'?tutStep():null,tip=MAPID==='l1'&&state==='play'&&tut.on&&!s?tut.tip:null;
-  if(s)box.innerHTML=`<small>Boot camp ${tut.i+1}/${TUT_STEPS.length}</small>${s.text}`;else if(tip)box.innerHTML=`<small>Tip</small>${tip.text}`;
-  box.hidden=!(s||tip);skip.hidden=box.hidden;skip.textContent=s?'Skip tutorial':'No more tips';
-  if(!box.hidden)skip.style.top=(box.offsetTop+box.offsetHeight+6)+'px';
-  placeBanner();
+  const box=$('#tut'),pin=$('#tutPin');if(!box)return;
+  const s=MAPID==='l1'&&state==='play'?tutStep():null,tip=MAPID==='l1'&&state==='play'&&tut.on&&!s?tut.tip:null,has=!!(s||tip);
+  if(has)box.innerHTML=`<small>${s?`Boot camp ${tut.i+1}/${TUT_STEPS.length}`:'Tip'}</small>${(s||tip).text}<span class="tfoot"><span>Tap to hide</span><button type="button" class="tskip">${s?'Skip tutorial':'No more tips'}</button></span>`;
+  box.hidden=!has||tut.hid;if(pin)pin.hidden=!has||!tut.hid;
 }
-// the banner goes under the box and its button while they're up, so the two never overlap (Bryan: no text piled up at the top)
-function placeBanner(){const b=$('#banner'),box=$('#tut'),skip=$('#tutSkip');if(!b)return;
-  b.style.top=box&&!box.hidden?(skip.offsetTop+skip.offsetHeight+6)+'px':'';}
+function placeBanner(){const b=$('#banner');if(b)b.style.top='';}   // (the banner keeps its place at the top: the bubble is low on the left now)
 function tutTickL1(dt){
   if(MAPID!=='l1'||!tut.on||state!=='play')return;
   // what to touch pulses (cards are rebuilt as the selection changes, so it's looked up every tick)
@@ -306,8 +304,8 @@ function tutTickL1(dt){
   if(want&&!want.classList.contains('tutGlow'))want.classList.add('tutGlow');
   if(s&&(contact||enemies.some(e=>e.dead||e.alerted)||players.some(p=>alive(p)&&!(p.x>L1_BEACH.x0&&p.x<L1_BEACH.x1&&p.y>L1_BEACH.y0&&p.y<L1_BEACH.y1)))){   // gone on ahead: the rest of the boot camp is dropped, the tips take over
     tut.i=TUT_STEPS.length;tut.campDone=true;tut.tipAt=simT-2;tutShow();return;}
-  if(s){if(s.timed?simT-tut.t0>=s.timed:s.done()){tut.i++;tut.t0=simT;tut.tipAt=simT;const n=tutStep();if(n&&n.pick)tut.mk=n.pick();if(!n)tut.campDone=true;tutShow();}return;}
+  if(s){if(s.timed?simT-tut.t0>=s.timed:s.done()){tut.i++;tut.t0=simT;tut.tipAt=simT;tut.hid=false;const n=tutStep();if(n&&n.pick)tut.mk=n.pick();if(!n)tut.campDone=true;tutShow();}return;}
   if(tut.tip&&simT-tut.tipAt>8){tut.tip=null;tutShow();}   // a tip stays up 8 s (or until the next one)
   if(simT-tut.tipAt<2.5)return;   // (not one on top of another)
-  for(const t of TUT_TIPS)if(!tut.said.has(t.k)&&t.when()){tut.said.add(t.k);tut.tip=t;tut.tipAt=simT;tutShow();break;}
+  for(const t of TUT_TIPS)if(!tut.said.has(t.k)&&t.when()){tut.said.add(t.k);tut.tip=t;tut.tipAt=simT;tut.hid=false;tutShow();break;}
 }

@@ -7,7 +7,12 @@ His notes, collected here as they come; the changes are made together once he's 
    Level 1 but for now it's good." (Level 1 stays as it is until the redesign.)
 2. Instructions in the middle of the screen: "the instructions are right in the middle of the screen - we should place them
    somewhere else. Same with in the warehouse." That's the cyan box near the top of the map (`#tut`): Level 1's boot camp
-   and tips, and Level 2's checkpoint tour after the warehouse (`hqGotIt` in hq.js uses the same box). Where to: to agree.
+   and tips, and Level 2's checkpoint tour after the warehouse (`hqGotIt` in hq.js uses the same box).
+   Bryan: "Can you show me a draft on how the hint bar would look? I was thinking a small bubble and when clicked it clears.
+   Because currently, I click it and it moves my troops." (The box let taps through to the map.) Draft:
+   `docs/tutorial-bubble-draft.png`: a small bubble low on the left (above the cards when they're up); a tap hides it and
+   stops there (nobody moves), a "?" in its place brings it back, a new step or tip shows by itself; Skip tutorial / No more
+   tips inside it. Built as a prototype to make the draft; waiting for his OK.
 3. Level 2 north of the canal: "Make the containers horizontal and run along the canal. There is a large road before the
    data center, like a runway road, not small. The jeep patrols that road, from left to right continuously (the user can
    sneak by or engage). The containers are lightly guarded with most in front of the data center and at the bridge. The
