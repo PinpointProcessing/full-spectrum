@@ -63,6 +63,12 @@ O('rail',MAINBR.x0,CANAL.y0,4,CANAL.y1-CANAL.y0);O('rail',MAINBR.x1-4,CANAL.y0,4
 // sight (the windows). PBOX.gun: where the gun stands, which way it faces, how far either side it swings (rad)
 const PBOX={x0:538,y0:-8,x1:578,y1:34,gun:{x:558,y:25,ang:Math.PI/2,arc:1.15}};
 O('pbwall',PBOX.x0,PBOX.y1-4,PBOX.x1-PBOX.x0,4);O('pbwall',PBOX.x0,PBOX.y0,4,PBOX.y1-PBOX.y0-4);O('pbwall',PBOX.x1-4,PBOX.y0,4,PBOX.y1-PBOX.y0-4);
+// our side of the canal (Bryan: not enough cover near the canal; "add some pill boxes on our side, but not too much"): two small
+// pillboxes either side of the bridge's south end, built like theirs but without a gun and open at the back (south). Their walls
+// are heavy cover and don't block sight (the windows), so the squad can fight the bridge from them; the front walls face the MG
+// nest, the pillbox's gun and the tower
+const OUR_BOXES=[{x0:372,y0:168,x1:416,y1:204},{x0:536,y0:168,x1:580,y1:204}];
+for(const b of OUR_BOXES){O('pbwall',b.x0,b.y0,b.x1-b.x0,4,{cover:2});O('pbwall',b.x0,b.y0+4,4,b.y1-b.y0-4,{cover:2});O('pbwall',b.x1-4,b.y0+4,4,b.y1-b.y0-4,{cover:2});}
 // MG nest covering the bridge, set back from its end so you can walk round it on either side (Bryan), or hop the bags
 O('sandbag',456,34,40,10);O('sandbag',456,12,10,22);O('sandbag',486,12,10,22);
 O('sandbag',388,28,44,10);O('sandbag',596,30,44,10);O('barrier',360,-10,52,12);O('crate',620,0,26,22);   // (the two sandbag lines far enough back from the canal for a man to crouch behind them coming off the bridge: Bryan couldn't)

@@ -27,6 +27,9 @@ function leanOut(u,L){if(L.lean)u.peek={x:L.fx,y:L.fy,until:simT+PEEK_T};}
 // pinned above PINNED suppression; badly hurt below SHY_HP (keeps his head down SHY_T s after a hit); a downed soldier
 // bleeds out in BLEED_T s (Bryan: a 60 s window to get to him; carrying him out or a medic kit after that comes later)
 const PINNED=0.65,SHY_HP=40,SHY_T=4,BLEED_T=60;
+// Bryan: the squad died too fast (the bridge above all). Vests: the squad takes 20% less (the freed prisoners have none); the
+// enemy aims a little worse; the enemy sniper hits less hard and fires half as often (he did a third of the bridge's damage)
+const SQUAD_VEST=.8,ENEMY_AIM=.15,ESNIPER={dmg:.35,slow:1.5};
 /* ---------- downed soldiers (Bryan): 60 s to revive him by hand, then critical ---------- */
 // For BLEED_T s a teammate standing beside him (not pinned) revives him. After that he's critical for CRIT_T s: no hand revive.
 // A medic kit (MEDKIT_T s beside him, not pinned; up at 50 HP) saves him, or carrying him into a medical box (up after
@@ -94,7 +97,7 @@ function hitChance(s,t,L){
   if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=0.15;
   if(t.path.length)c-=0.08;
   if(s.side==='P')c+=rankAim(s)+ob;   // rank: steadier aim; on Watch / breaching: a bonus
-  if(s.side==='E')c-=0.1;
+  if(s.side==='E')c-=ENEMY_AIM;
   if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);
 }
@@ -263,6 +266,7 @@ function damage(t,dmg,src){
   if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun truck: only blasts get here (mission.js)
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
   if(t.unarmored)dmg*=1.3;   // a freed prisoner: no vest (office.js)
+  else if(t.side==='P')dmg*=SQUAD_VEST;   // the squad's vests
   t.hp-=dmg;t.hitFlash=.25;
   if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
@@ -335,7 +339,7 @@ function resolveShot(s){
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t):1));   // machine guns, sniper rounds and shotgun blasts pin people down
   if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(Math.random()<(t.side==='P'?.45:.3))sfxGrunt(t,false);}   // a hit: the thud, and often a grunt
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');s.hit=false;}   // armour: it sparks off
-  if(s.hit){const W=wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
+  if(s.hit){const W=wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet);   // they'll think the squad is where the shot came from (a silenced shot: only close by)
   else alertAll(null,false,fx,fy,ex,ey,{x:t.x,y:t.y});   // their own gunfire is heard nearby too
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -719,7 +723,7 @@ function updateUnit(u,dt){
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank
     else if(u.supT)suppressShot(u);
     else if(wOf(u).far&&u.path.length)u.cool=.3;   // a sniper rifle: not on the move
-    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);const W=wOf(u);u.cool=u.gunner?1.3+Math.random()*.5:W.cool[0]+Math.random()*(W.cool[1]-W.cool[0]);}else u.cool=.25;}
+    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);const W=wOf(u);u.cool=u.gunner?1.3+Math.random()*.5:(W.cool[0]+Math.random()*(W.cool[1]-W.cool[0]))*(u.side==='E'&&W.far?ESNIPER.slow:1);}else u.cool=.25;}
   }
 }
 function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Math.min(1,k);}

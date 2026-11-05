@@ -227,6 +227,26 @@ function buildPillbox(){
   for(const m of g.children){m.castShadow=true;}
   g.position.set(gun.x,12.6,gun.y);g.rotation.y=-gun.ang;scene.add(g);PBOX.mesh=g;
 }
+// our two pillboxes by the canal (OUR_BOXES in map.js): built like theirs, without a gun, the front wall to the north, open at
+// the back; the roof fades while one of our men is inside so you can see him (like the sewer pipe)
+let ourRoofs=[];
+function buildOurBoxes(){
+  const conc=new T.MeshStandardMaterial({color:0x8f918b,roughness:.95}),frame=new T.MeshStandardMaterial({color:0x2c3033,roughness:.6,metalness:.5});
+  const glass=new T.MeshStandardMaterial({color:0x8fb3c4,roughness:.15,metalness:.2,transparent:true,opacity:.28,depthWrite:false});
+  ourRoofs=[];
+  for(const b of OUR_BOXES){
+    const{x0,y0,x1,y1}=b,w=x1-x0,d=y1-y0,cx=(x0+x1)/2,cz=(y0+y1)/2,WALL=11,TOPH=24;
+    addMesh(new T.BoxGeometry(w,1,d),conc,cx,.5,cz);
+    for(const[ww,dd,px,pz]of[[w,4,cx,y0+2],[4,d-4,x0+2,y0+4+(d-4)/2],[4,d-4,x1-2,y0+4+(d-4)/2]]){
+      addMesh(new T.BoxGeometry(ww,WALL,dd),conc,px,WALL/2,pz);
+      const g=new T.Mesh(new T.BoxGeometry(ww-1,TOPH-WALL,dd-1),glass);g.position.set(px,(WALL+TOPH)/2,pz);g.renderOrder=2;scene.add(g);
+      addMesh(new T.BoxGeometry(ww+.4,1,dd+.4),frame,px,TOPH,pz);addMesh(new T.BoxGeometry(ww+.4,1,dd+.4),frame,px,WALL+.4,pz);
+    }
+    for(const[px,pz]of[[x0+2,y0+2],[x1-2,y0+2],[x0+2,y1-2],[x1-2,y1-2],[cx-9,y0+2],[cx+9,y0+2]])addMesh(new T.BoxGeometry(2.2,TOPH,2.2),frame,px,TOPH/2,pz);
+    const rm=new T.MeshStandardMaterial({color:0x8f918b,roughness:.95,transparent:true,opacity:1});
+    const roof=addMesh(new T.BoxGeometry(w+6,2.4,d+6),rm,cx,TOPH+1.6,cz);ourRoofs.push({roof,b});
+  }
+}
 function addMesh(geo,mat,x,y,z,ry){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;}
 const lamps=[
   {x:310,y:566,h:22,c:0xffa860,i:3.4,d:260,flick:1},
@@ -301,7 +321,7 @@ function buildWorld(){
   const darkMetal=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
   const bagGeo=new T.SphereGeometry(1,10,6),bagList=[];
 
-  buildPillbox();
+  buildPillbox();buildOurBoxes();
   for(const o of objs){
     const cx=o.x+o.w/2,cz=o.y+o.h/2,hz=o.w>=o.h,len=hz?o.w:o.h,th=hz?o.h:o.w,ry=hz?0:Math.PI/2;
     if(o.kind==='container'){
@@ -366,7 +386,7 @@ function buildWorld(){
       const rail=new T.BoxGeometry(hz?len:1.2,1.2,hz?1.2:len),post=new T.BoxGeometry(1.2,18,1.2);
       for(const y of[1,17.5]){const m=new T.Mesh(rail,darkMetal);m.position.y=y;m.castShadow=true;gg.add(m);}
       for(const sd of[-1,1]){const m=new T.Mesh(post,darkMetal);m.position.set(hz?sd*len/2:0,9,hz?0:sd*len/2);m.castShadow=true;gg.add(m);}
-    }else if(o.kind==='pbwall'){   // (the pillbox is built in one go: buildPillbox)
+    }else if(o.kind==='pbwall'){   // (the pillboxes are built in one go: buildPillbox, buildOurBoxes)
     }else if(o.kind==='booth'){   // guard tower: a raised concrete sentry hut with a lit window band
       const conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.95});
       addMesh(new T.BoxGeometry(o.w,12,o.h),conc,cx,6,cz);
@@ -633,6 +653,7 @@ function render(rdt,now){
   updateCamera();syncUnits(now);
   if(shakeK>.002){const a=shakeK*4;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a*.6;camera.position.z+=(Math.random()-.5)*a;camera.updateMatrixWorld();shakeK=Math.max(0,shakeK-rdt*3);}
   if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
+  for(const{roof,b}of ourRoofs){const m=roof.material,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1);m.opacity+=((inside?.15:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in our pillboxes
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
   if(moon){moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);}   // the shadow box follows the view: the map is bigger than one shadow map (no moon indoors)
   lampLights(now);
