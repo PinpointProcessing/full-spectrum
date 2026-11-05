@@ -21,6 +21,6 @@ for sp in ONLY:
         dur=len(a)/SR+2*len(PAD)/SR;b=mp3_of(a,kbps);clips[key]=[len(blob),len(b),round(dur,3)];blob+=b;secs+=dur
     open(f'{OUT}/{sp}.mp3','wb').write(bytes(blob))
     man['speakers'][sp]={'file':f'{sp}.mp3','voice':f'Zonos v0.1, voice from refs/{sp}.flac','clips':clips}
-    man['model']='Zonos v0.1 transformer (Zyphra, Apache-2.0); Kokoro-82M (Apache-2.0) for any speaker not yet redone'
+    man['model']='Zonos v0.1 transformer (Zyphra, Apache-2.0); each voice copied from a reference clip in tools/voices/refs/'
     json.dump(man,open(OUT+'/manifest.json','w'),separators=(',',':'))
     print(sp,len(clips),'lines',round(secs,1),'s',round(len(blob)/1024),'KB',flush=True)

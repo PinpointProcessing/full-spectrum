@@ -1,6 +1,6 @@
 # Voice line sheet
 
-Short radio callouts for the four soldiers. The game plays a line when that soldier does the thing (see "When it plays"). Every line is already voiced by an open neural text-to-speech model (Kokoro-82M; `tools/voices/`, credits in `sounds/CREDITS.md`), and so are the freed prisoners, the scientists and the hostiles' barks (their lines are in the code: `js/office.js`, `js/hunt.js`). Those are stand-ins for actors: this sheet is for recording real ones. If the files can't load, the browser's built-in speech reads the squad's lines (robotic).
+Short radio callouts for the four soldiers. The game plays a line when that soldier does the thing (see "When it plays"). Every line is already voiced by an open neural text-to-speech model (Zonos v0.1; `tools/voices/`, credits in `sounds/CREDITS.md`), and so are the freed prisoners, the scientists and the hostiles' barks (their lines are in the code: `js/office.js`, `js/hunt.js`). Those are stand-ins for actors: this sheet is for recording real ones. If the files can't load, the browser's built-in speech reads the squad's lines (robotic).
 
 ## The squad
 

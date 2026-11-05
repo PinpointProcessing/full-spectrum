@@ -1,8 +1,8 @@
 "use strict";
 /* Voices. Every soldier, freed prisoner, scientist and hostile speaks his lines with his own voice, recorded as one mp3 per
    speaker (sounds/voice/<speaker>.mp3, all his lines in a row) and listed in sounds/voice/manifest.json with where each
-   line starts and how long it is. The lines were made with Kokoro-82M, an open neural text-to-speech model (Apache-2.0;
-   scripts and credits in sounds/CREDITS.md), from the line lists in the code: VOICE_LINES here, BARKS (hunt.js), the
+   line starts and how long it is. The lines were made with Zonos v0.1, an open neural text-to-speech model (Apache-2.0;
+   scripts in tools/voices/, credits in sounds/CREDITS.md), from the line lists in the code: VOICE_LINES here, BARKS (hunt.js), the
    scientists' and prisoners' lines (office.js). The squad speaks over the radio (band-limited, a little grit, a squelch
    click and static either side); the freed prisoners have no radios and the hostiles and scientists aren't on ours, so
    they're heard where they stand (quieter and duller further off, panned). If the files can't load (opened from

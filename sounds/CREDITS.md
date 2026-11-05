@@ -42,15 +42,19 @@ CC0 packs by `tools/sfx/build_sfx.py`:
 ## Voices
 
 Every voice line in `voice/` (one mp3 per speaker, all his lines in a row; `voice/manifest.json` says where each line
-starts and how long it is) was generated offline with [Kokoro-82M](https://github.com/hexgrad/kokoro) (model and voices
-Apache-2.0) through [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) (MIT), from the line lists in the game's
-code. The scripts and steps are in `tools/voices/`. Casting (Kokoro voice names):
+starts and how long it is) was generated offline with [Zonos v0.1](https://github.com/Zyphra/Zonos) (Zyphra; code and
+model weights Apache-2.0, with the DAC audio codec by Descript, MIT) from the line lists in the game's code. Zonos copies
+each speaker's voice from a short reference clip (`tools/voices/refs/`). Those clips were made with
+[Kokoro-82M](https://github.com/hexgrad/kokoro) (model and voices Apache-2.0) through
+[kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) (MIT), and Reyes's shouted one with
+[Chatterbox](https://github.com/resemble-ai/chatterbox) (Resemble AI, MIT). The scripts and steps are in `tools/voices/`.
+Casting (the Kokoro voice behind each reference clip):
 
-| Speaker | Who | Voice |
+| Speaker | Who | Reference voice |
 | --- | --- | --- |
-| A1, A2, B1, B2 | Reyes, Kowalski, Hayes, Okafor | am_michael, am_fenrir, am_puck, bm_george |
+| A1, A2, B1, B2 | Reyes, Kowalski, Hayes, Okafor | am_michael, am_fenrir (pitched down), am_puck, bm_george |
 | A3, A4, B3, B4 | the freed prisoners Abara, Brennan, Lindqvist, Marsh | bm_lewis, bm_fable, am_liam, am_onyx |
-| S1 to S4 | the four scientists | af_nicole, bf_emma, af_sarah, am_eric |
-| E1 to E3 | hostiles (barks) | am_echo, bm_daniel, and a blend of the two |
+| S1 to S4 | the four scientists | af_bella, bf_emma, af_sarah, am_eric |
+| E1 to E3 | hostiles (barks) | am_onyx with am_echo, bm_daniel, am_onyx with bm_daniel |
 
 They're machine voices standing in for actors; `docs/voice-lines.md` is the sheet for recording real ones.
