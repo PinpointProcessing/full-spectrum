@@ -13,5 +13,5 @@ His notes, collected here as they come; the changes are made together once he's 
    sneak by or engage). The containers are lightly guarded with most in front of the data center and at the bridge. The
    whole point of the containers is for stealth. Show me a draft image of the level and I will tell you if it's right."
    Draft: `docs/map-draft-F.png` (three rows of containers along the canal's north bank; a 13 m runway road across the
-   map; the gun jeep driving it end to end; guards: containers 3, bridge 6, data center front 7 plus the jeep). Waiting
-   for his OK before building.
+   map; the gun jeep driving it end to end; guards: containers 3, bridge 6, data center front 7 plus the jeep).
+   Bryan: "Yes this works! And let's make the truck just a light jeep." Building it (not published until he's done testing).

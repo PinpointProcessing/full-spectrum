@@ -84,20 +84,23 @@ const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
    - a few containers scattered down the east side, the flank from the rail bridge */
 const TOWER={x:712,y:46,elev:40,ladder:{x:712,y:24}};   // the watchtower: its middle, its platform's height, the foot of its ladder (north side)
 O('wtower',TOWER.x-12,TOWER.y-12,24,24);
-// the maze: three aisles about 5 m wide between walls of containers (double stacked: nobody sees over), a fourth along its
-// east edge with only a few containers between it and the killing field. Gaps in the walls let you cut across.
-box(20,-388,34,118,0,2);box(20,-240,34,100,3,2);box(20,-110,34,70,5,1);
-box(104,-390,34,100,1,2);box(104,-258,34,92,4,2);box(104,-134,34,84,6,1);
-box(188,-386,34,90,7,2);box(188,-262,34,106,2,2);box(188,-120,34,74,5,2);
-box(262,-330,34,70,3,1);box(262,-196,34,60,6,1);
-O('pallet',60,-300,26,18);O('barrel',160,-60,14,14,{col:'#4a5a3a'});O('crate',230,-260,22,18);
-const MAZE_ZONE={x0:20,x1:300,y0:-392,y1:-20};   // (its men keep to it until they hunt)
-// the killing field (Bryan): open ground from the road to the data center's guns. A burnt car, a barrier and a crate are all the
-// cover there is. The gun truck's road runs along its south edge (GTRUCK in mission.js).
-O('car',520,-262,40,22);O('barrier',652,-196,52,12);O('crate',418,-300,22,18);
-// down the east side: containers to work up from the rail bridge towards the drawbridge
-box(800,-470,34,90,4,2);box(880,-360,90,34,1,1);box(790,-262,34,80,6,2);box(904,-196,34,70,3,1);box(800,-96,90,34,7,1);
-const KILL_ZONE={x0:300,x1:780,y0:-360,y1:-120};
+// the container yard along the canal (Bryan's draft F: "Make the containers horizontal and run along the canal... The whole
+// point of the containers is for stealth"): three rows on the north bank, long sides east-west, most double-stacked (nobody
+// sees over), with gaps to slip through and no long sight lines; the bridge's road runs north through the middle. From the
+// sewer pipe's north mouth (between the first row's west containers) you weave north to the road. Lightly guarded.
+for(const[y,row]of[[26,[[10,56,1],[140,110,2],[262,56,1],[760,80,1],[900,90,2]]],
+                   [-84,[[20,110,2],[160,120,2],[310,100,1],[560,110,2],[700,120,2],[850,130,1]]],
+                   [-164,[[40,120,2],[190,100,1],[320,90,2],[560,90,1],[680,130,2],[840,120,2]]]])
+  row.forEach(([x,w,st],i)=>box(x,y,w,34,(x+i*3)>>4,st));
+box(320,-50,34,76,5,2);   // the west half's first aisle closed at its east end: the tower's sniper can't look down it from the bridge
+O('barrel',236,-40,14,14,{col:'#4a5a3a'});O('pallet',700,-30,26,18);O('crate',880,-120,22,18);   // odds and ends in the aisles
+const CONT_W={x0:10,x1:420,y0:-178,y1:62},CONT_E={x0:550,x1:990,y0:-178,y1:62},CONT_ZONE={x0:10,x1:990,y0:-178,y1:62};   // (its men keep to their half until they hunt)
+const MAZE_ZONE=CONT_ZONE;   // (older name, still used by saves' area list)
+// between the containers and the road: a little cover for the last dash
+O('barrier',140,-196,52,12);O('crate',600,-196,26,22);O('car',735,-204,40,22);
+// the runway road (Bryan: "a large road before the data center, like a runway road, not small"): 13 m wide, right across the
+// map. The gun jeep drives it end to end and back, all the time (GJEEP in mission.js). Painted on the ground (scene.js).
+const ROAD={x0:0,x1:W,y0:-340,y1:-210};
 
 /* ---------- objective 4: the data center (north-west): its front yard is taken, then the squad goes in ---------- */
 // (Bryan) a closed office building: you take the yard in front like the other locations, then the whole squad goes in
@@ -109,10 +112,10 @@ const DC_ENTER={x0:DC_DOOR.x-15,x1:DC_DOOR.x+DC_DOOR.w+15,y0:DC.y+DC.h,y1:DC.y+D
 // in front (Bryan: "heavily armed along the front with an open killing field in front of them"): a sandbag line with two
 // machine-gun nests (the west one the heavy gun with its searchlight), riflemen behind, floodlights, razor wire out front.
 // The strip between the building and the line, west of the doors, is out of the nests' sight: the maze's way in.
-const DC_NESTS=[{x:340,y:-386},{x:456,y:-386}];
+const DC_NESTS=[{x:410,y:-386},{x:526,y:-386}];   // (draft F: east of the doors, so the far west end of the road is the quiet crossing)
 for(const n of DC_NESTS){O('sandbag',n.x-20,n.y+12,40,10);O('sandbag',n.x-20,n.y-10,10,22);O('sandbag',n.x+10,n.y-10,10,22);}
-O('sandbag',360,-372,76,8);O('sandbag',476,-372,40,8);
-const DC_OUT={x0:290,x1:520,y0:-432,y1:-360};
+O('sandbag',430,-372,76,8);O('sandbag',546,-372,40,8);O('sandbag',586,-372,90,8);
+const DC_OUT={x0:350,x1:710,y0:-432,y1:-360};
 
 /* ---------- objective 5 (to come): the fortress gate behind its moat (north-east) ---------- */
 const FORT={cx:850,cy:-1000,r0:380,r1:440},BRIDGE={x:815,y:FORT.cy+FORT.r1,w:70,len:74},PANEL={x:930,y:-548};
@@ -122,9 +125,9 @@ O('gatehouse',780,-656,140,46);O('gtower',742,-650,34,34);O('gtower',924,-650,34
 O('bridge',BRIDGE.x,BRIDGE.y-8,BRIDGE.w,8);O('pylon',BRIDGE.x-14,BRIDGE.y-11,10,10);O('pylon',BRIDGE.x+BRIDGE.w+4,BRIDGE.y-11,10,10);
 O('panel',PANEL.x-6,PANEL.y-4,12,8);
 // decoration that doesn't block anything
-const decor=[{kind:'wire',x0:310,x1:520,y:-340},{kind:'flood',x:300,y:-436},{kind:'flood',x:520,y:-436}];
+const decor=[{kind:'wire',x0:360,x1:700,y:-348},{kind:'flood',x:370,y:-436},{kind:'flood',x:610,y:-436}];
 // paths drawn on the ground (from the bridge north to the depot, the data center and the fortress)
-const PATHS=[[{x:476,y:60},{x:476,y:-30},{x:476,y:-140}],[{x:310,y:-140},{x:960,y:-140}],[{x:560,y:-180},{x:400,y:-330}],[{x:870,y:-140},{x:850,y:-500}],[{x:95,y:40},{x:80,y:-40}]];   // worn tracks: the road across the middle (the gun truck's), off the bridge, up the east side
+const PATHS=[[{x:476,y:60},{x:476,y:-30},{x:485,y:-205}],[{x:870,y:60},{x:880,y:-40},{x:870,y:-205}],[{x:860,y:-345},{x:850,y:-500}],[{x:95,y:40},{x:100,y:-20}]];   // worn tracks: the road across the middle (the gun truck's), off the bridge, up the east side
 
 function rectDist(x,y,o){if(o.disk)return Math.max(0,Math.hypot(x-o.disk.cx,y-o.disk.cy)-o.disk.r);const dx=Math.max(o.x-x,0,x-(o.x+o.w)),dy=Math.max(o.y-y,0,y-(o.y+o.h));return Math.hypot(dx,dy);}
 function segHitsRect(x1,y1,x2,y2,o,pad){

@@ -69,7 +69,7 @@ function figLook(u){
 function figKitKey(u,L){
   let w='none';
   if(L.k==='sq')w=u.weapon==='hmg'?'hmg':u.weapon==='sniper'?'sniper':(u.spec==='sil'&&u.specN>0?'m4s':'m4');
-  else if(L.k==='en')w=u.weapon==='sniper'||(u.post&&/sniper/i.test(u.name||''))?'sniper':'ak';
+  else if(L.k==='en')w=u.noGun?'none':u.weapon==='sniper'||(u.post&&/sniper/i.test(u.name||''))?'sniper':'ak';
   else if(L.k==='pri')w=u.weapon?(u.weapon==='sniper'?'sniper':'ak'):'none';
   const helm=L.k==='en'&&(u.gunner||(typeof alertStage==='function'&&alertStage()>=2));
   const role=L.k==='sq'?(u.id==='A1'?'lead':u.id==='B2'||u.spec==='med'?'med':u.id==='B1'?'mg':''):'';
@@ -299,7 +299,7 @@ function figState(u){
   if(u.grabbed)return'grabbed';
   if(u.climb)return'climb';
   if(u.crawl)return'crawl';
-  if(u.inBoat)return'boat';
+  if(u.inBoat)return u.driving?'drive':'boat';
   if(u.surr)return u.tied?'tied':'surr';
   if(u.cower&&!u.detained)return'cower';
   if(u.tk&&u.tk.strike)return'grab';
@@ -383,7 +383,7 @@ function figAnimate(u,m){
 // S: the distance of one full stride (two steps); sf: the share of it a foot is on the ground; lift: how high a foot swings
 function figGait(u,F,st){
   const mv=F.spd>3,run=F.spd>38;
-  if(!mv||st==='climb'||st==='boat'||st==='carried'||st==='dead'||st==='downed'||st==='stun'||st==='grabbed'||st==='strapped')return{mv:false,S:0,run:false,sneak:false};
+  if(!mv||st==='climb'||st==='boat'||st==='drive'||st==='carried'||st==='dead'||st==='downed'||st==='stun'||st==='grabbed'||st==='strapped')return{mv:false,S:0,run:false,sneak:false};
   if(st==='crawl')return{mv:true,S:9,sf:.5,lift:0,crawl:true};
   if(st==='carry')return{mv:true,S:13,sf:.62,lift:1.1,run:false,sneak:false,hip:8.4,lean:.2};
   if(run)return{mv:true,S:26,sf:.32,lift:2.4,run:true,hip:7.9,lean:.24};
@@ -426,6 +426,7 @@ function poseTorso(u,F,st,gait,P){
     P.rootE[2]=-Math.PI/2;P.rootP.set(-9,0,0);P.hipsP.set(0,9,0);P.spineE[2]=-.65;P.chestE[2]=-.6;P.neckE[2]=-.4;P.headE[1]=.3;
     slung();P.rate=10;return;
   }
+  if(st==='drive'){P.hipsP.set(-.4,3.2,0);P.spineE[2]=-.08;P.chestE[2]=breathe;P.headE[1]=Math.sin(t*.5+sd*4)*.25;slung();return;}   // at the wheel
   if(st==='boat'){P.hipsP.set(-.4,3.2,0);P.spineE[2]=-.12;P.chestE[2]=-.05+breathe;G.mode='body';G.P.set(2.6,7.6,.5);G.X.set(.35,1,0).normalize();G.Y.set(-1,.35,0).normalize();P.headE[1]=(sd-.5)*.6;return;}
   if(st==='climb'){P.hipsP.set(-.6,8.8,0);P.chestE[2]=.05;P.headE[2]=.35;slung();return;}
   if(st==='surr'||st==='tied'){
@@ -507,6 +508,7 @@ function poseLimbs(u,F,st,gait,P){
   }
   if(st==='carried'){FT[0].set(3.6,6.2,-.9);FT[1].set(3.8,6.6,.9);K[0].set(-1,0,0);K[1].set(-1,0,0);
     hand(0,5.0,14.4,-1.8);hand(1,5.0,14.8,1.8);EL[0].set(0,1,0);EL[1].set(0,1,0);return;}
+  if(st==='drive'){FT[0].set(3.6,ANKLE,-1.3);FT[1].set(3.8,ANKLE,1.3);K[0].set(1,1,-.3);K[1].set(1,1,.3);flat(0);flat(1);const w=Math.sin(t*.8+sd)*.25;hand(0,3.5,6.4+w,-1.0);hand(1,3.5,6.4-w,1.0);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
   if(st==='boat'){FT[0].set(3.4,ANKLE,-1.3);FT[1].set(3.6,ANKLE,1.3);K[0].set(1,1,-.3);K[1].set(1,1,.3);flat(0);flat(1);return;}   // (hands on the rifle, upright between his knees)
   if(st==='climb'){
     const c=((u.elev||0)/4.5)%1*TAU2;fromSh(0,1.9,1.4+Math.sin(c)*1.3,.9);fromSh(1,1.9,1.4+Math.sin(c+Math.PI)*1.3,-.9);EL[0].set(-1,-1,-.4);EL[1].set(-1,-1,.4);

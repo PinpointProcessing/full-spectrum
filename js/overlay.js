@@ -144,7 +144,7 @@ function drawOverlay(rdt,now){
     if(e.vis){
       const vx=e.x+e.lx,vy=e.y+e.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
       if(e.hitFlash>0){gPath(vx,vy,7+(.25-e.hitFlash)*30);ox.strokeStyle=`rgba(255,60,40,${(e.hitFlash*3).toFixed(2)})`;ox.lineWidth=2;ox.stroke();}   // hit: a red pulse
-      if(e.hp<100)bar(hx-9,hy-6,18,e.hp/100,e.hp>60?C.good:e.hp>30?C.warn:C.bad);
+      {const mh=e.veh?GJEEP.hp:100,k=e.hp/mh;if(k<1)bar(hx-9,hy-6,18,k,k>.6?C.good:k>.3?C.warn:C.bad);}
       if(e.sup>0.65&&e.alerted)label('PINNED',hx,hy-14,C.warn,9,700);
       else if(e.sup>0.08&&e.alerted)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
       const stalked=players.some(p=>p.tk&&p.tk.e===e);
@@ -152,8 +152,7 @@ function drawOverlay(rdt,now){
         const key=act.map(u=>u.id).join(),nowMs=performance.now();let pc=e._pill;
         if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150||(volley||markedBy(e))&&nowMs-pc.t>60){
           let text,col;
-          if(e.veh){text='ARMOURED · RPG or frag';col=C.warn;}   // the gun truck (mission.js)
-          else if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
+          if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
           else if(act.length===1&&canSilent(act[0],e)){const pct=Math.round(silentChance(act[0],e)*100);text=`SILENT SHOT ${pct}%`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}   // a silencer (combat.js)
           else if(act.length>1&&canVolley(act,e)){   // a volley (combat.js): who's on whom, and who'd take the next shot
             const m=markedBy(e),pending=players.filter(u=>u.silent&&u.silent.hold).length;

@@ -8,8 +8,8 @@ const HQ_ZONES=[];   // {k:'med'|'sup',x,y (centre),r,col,label}
 const REST_ZONES={
   wh:[{k:'med',x:237,y:363},{k:'sup',x:383,y:363}],
   br:[{k:'med',x:380,y:188},{k:'sup',x:572,y:188}],
-  maze:[{k:'med',x:110,y:10},{k:'sup',x:216,y:10}],   // (just south of the maze, by the sewer pipe's north mouth)
-  dco:[{k:'med',x:560,y:-370},{k:'sup',x:660,y:-370}],
+  maze:[{k:'med',x:485,y:-100},{k:'sup',x:485,y:-186}],   // (on the bridge's road, between the container rows)
+  dco:[{k:'med',x:300,y:-398},{k:'sup',x:170,y:-398}],   // (in front of the building, west of the doors)
   dc:[{k:'med',x:650,y:-504},{k:'sup',x:756,y:-504}],
 },WH_ZONES=REST_ZONES.wh,ZONE_R=46;
 const HEAL_RATE=8,SUPPLY_T=2;

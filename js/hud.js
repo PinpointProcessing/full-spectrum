@@ -9,7 +9,7 @@ function objHint(){
   const ups=players.filter(p=>alive(p)&&!p.offMap),north=ups.some(p=>p.y<CANAL.y0);
   if(!north)return'Get into the data center, across the canal to the north-west. Ways over: the bridge (guarded, a sniper in the tower), the sewer pipe to the west, or the broken rail bridge to the east.';
   if(dcLocked())return'The data center\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then gather at the doors.';
-  return'The containers down the west side are the quiet way up to the data center; its front is open ground under two machine guns. Gather everyone at the front doors to go in.';
+  return'The containers along the canal are the quiet way: weave north through the gaps, wait for the jeep on the road to pass, cross behind it, and keep to the strip west of the doors. The data center\'s front is heavily guarded. Gather everyone at the front doors to go in.';
 }
 function setStatus(){
   const s=$('#status');

@@ -148,9 +148,17 @@ function drawGround(){
   // the canal: dark water between concrete banks (a glossy plane over it, see buildWorld)
   for(const c of[g,q]){c.fillStyle=c===g?'#0b1216':'rgb(20,20,20)';c.fillRect(0,CANAL.y0,W,CANAL.y1-CANAL.y0);}
   g.fillStyle='#8a8b86';g.fillRect(0,CANAL.y0-5,W,5);g.fillRect(0,CANAL.y1,W,5);g.fillStyle='rgba(228,182,40,.7)';g.fillRect(0,CANAL.y1+5,W,1.2);g.fillRect(0,CANAL.y0-6,W,1.2);
-  // the road across the middle (the gun truck's): a dashed centre line; the maze's floor darker and oil-stained
-  g.fillStyle='rgba(230,220,180,.35)';for(let x=320;x<950;x+=28)g.fillRect(x,-141,14,2);
-  g.fillStyle='rgba(0,0,0,.16)';g.fillRect(MAZE_ZONE.x0,MAZE_ZONE.y0,MAZE_ZONE.x1-MAZE_ZONE.x0,MAZE_ZONE.y1-MAZE_ZONE.y0);
+  // the runway road in front of the data center (Bryan: "like a runway road, not small"): dark asphalt, smoother (wetter) than
+  // the ground round it, white edge lines, a dashed centre line, threshold stripes at both ends, tyre marks. The container
+  // yard's floor darker and oil-stained.
+  {const R_=ROAD,rh=R_.y1-R_.y0,cy=(R_.y0+R_.y1)/2;
+   for(const c of[g,q]){c.fillStyle=c===g?'#26282b':'rgb(118,118,118)';c.fillRect(R_.x0,R_.y0,R_.x1-R_.x0,rh);}
+   for(let i=0;i<2600;i++){g.fillStyle=r()<.5?'rgba(255,255,255,.035)':'rgba(0,0,0,.18)';g.fillRect(r()*W,R_.y0+r()*rh,r()*1.4+.3,r()*1.4+.3);}
+   g.strokeStyle='rgba(0,0,0,.26)';g.lineWidth=3;for(const yy of[cy-30,cy-17,cy+17,cy+30]){g.beginPath();g.moveTo(0,yy);for(let x=0;x<=W;x+=50)g.lineTo(x,yy+Math.sin(x*.013+yy)*2);g.stroke();}
+   g.fillStyle='rgba(225,228,230,.78)';g.fillRect(R_.x0,R_.y0+5,W,2);g.fillRect(R_.x0,R_.y1-7,W,2);
+   for(let x=40;x<W-40;x+=40)g.fillRect(x,cy-1.2,22,2.4);
+   for(const x0 of[10,W-36])for(let k=0;k<6;k++)g.fillRect(x0,R_.y0+14+k*18,26,9);}
+  g.fillStyle='rgba(0,0,0,.14)';g.fillRect(CONT_ZONE.x0,CONT_ZONE.y0,CONT_ZONE.x1-CONT_ZONE.x0,CONT_ZONE.y1-CONT_ZONE.y0);
   // the data center: tiled floor inside, a painted apron and hazard stripes in front of the doors
   g.fillStyle='#5e6266';g.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);q.fillStyle='rgb(150,150,150)';q.fillRect(DC.x+10,DC.y+10,DC.w-20,DC.h-20);
   g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=1;for(let x=DC.x+10;x<DC.x+DC.w-10;x+=20){g.beginPath();g.moveTo(x+.5,DC.y+10);g.lineTo(x+.5,DC.y+DC.h-10);g.stroke();}
@@ -263,7 +271,7 @@ const lamps=[
   {x:150,y:846,h:14,c:0xffc27a,i:1.6,d:150,pole:1},   // the dock, at the pier
   {x:525,y:56,h:30,c:0xffa860,i:2.6,d:280,pole:1},    // the bridge's north end
   {x:640,y:-190,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},  // the container yard's east block
-  {x:425,y:-338,h:30,c:0xffa860,i:2.4,d:240,pole:1},  // over the run's machine-gun nest
+  {x:495,y:-338,h:30,c:0xffa860,i:2.4,d:240,pole:1},  // over the front's machine-gun nest
   {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260},          // the data center's doors
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
@@ -288,6 +296,11 @@ function buildWorld(){
   const atex=new T.CanvasTexture(acan);
   const ground=new T.Mesh(new T.PlaneGeometry(W,H-TOP),wetGround(new T.MeshStandardMaterial({map:gtex,roughnessMap:rtex,roughness:1,metalness:.18,alphaMap:atex,alphaTest:.5}),W,H-TOP));
   ground.rotation.x=-Math.PI/2;ground.position.set(W/2,0,(H+TOP)/2);ground.receiveShadow=true;scene.add(ground);
+  // the runway's edge lights: small glowing studs along both edges, amber at the ends (they bloom; no real lights)
+  {const pts=[];for(let x=30;x<=W-30;x+=60)for(const y of[ROAD.y0+2,ROAD.y1-2])pts.push([x,y,x<60||x>W-60]);
+   const geo=new T.BoxGeometry(2.4,1.4,2.4),mk=(col,list)=>{const m=new T.InstancedMesh(geo,new T.MeshBasicMaterial({color:col,toneMapped:false}),list.length),o=new T.Object3D();
+     list.forEach(([x,y],i)=>{o.position.set(x,.8,y);o.updateMatrix();m.setMatrixAt(i,o.matrix);});scene.add(m);};
+   mk(0xcfe2ff,pts.filter(p=>!p[2]));mk(0xffb347,pts.filter(p=>p[2]));}
   // the ground beyond the map: four strips round it (not one big plane under it, so the moat stays bottomless)
   {const om=new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}),E=2500;
    for(const[x0,z0,x1,z1]of[[-E,TOP-E,W+E,TOP],[-E,H,W+E,H+E],[-E,TOP,0,H],[W,TOP,W+E,H]]){const m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),om);m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,-.3,(z0+z1)/2);scene.add(m);}}

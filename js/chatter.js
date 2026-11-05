@@ -194,7 +194,8 @@ function banterTick(dt){
 
 /* ---------- what they say about the map (Bryan: "the voices also serve as a tutorial and talk about the location") ----------
    Each once, the first time it comes up, from whichever of the first four is nearest it. */
-function tutLine(key,u){if(tutSaid.has(key)||!u)return false;const l=gen(u,key);if(l&&chat('tut_'+key,6,l)){tutSaid.add(key);return true;}return false;}
+const TUT_ONLY={vehicle:[1],maze:[2],patrol:[2,3]};   // (Level 2's rework: 'Armored truck', 'containers on the left' and 'moving left' no longer fit)
+function tutLine(key,u){if(tutSaid.has(key)||!u)return false;const only=TUT_ONLY[key],l=gen(u,key,only?only[(Math.random()*only.length)|0]:undefined);if(l&&chat('tut_'+key,6,l)){tutSaid.add(key);return true;}return false;}
 function tutTick(dt){
   if(state!=='play'||MAPID!=='out'||landing||(tutT-=dt)>0)return;tutT=.5;
   const ups=players.filter(p=>up(p)&&!p.joined);if(!ups.length)return;
@@ -202,9 +203,9 @@ function tutTick(dt){
   if(!tutSaid.has('bridge')&&ups.every(p=>p.y>CANAL.y0)){const e=sees(e=>e.grp===1&&!e.onTower);if(e&&tutLine('bridge',tutBy(e.x,e.y)))setTimeout(()=>tutLine('pipe',tutBy(CULVERT.x0,CANAL.y1)),3800);}   // the bridge is covered; the pipe's the quiet way
   if(!tutSaid.has('sniper')){const e=sees(e=>e.onTower);if(e)tutLine('sniper',tutBy(e.x,e.y));}
   if(!tutSaid.has('tower')&&tutSaid.has('sniperdown')&&pickups.length){const w=tutBy(TOWER.x,TOWER.y);if(w&&hyp(w.x-TOWER.x,w.y-TOWER.y)<300)tutLine('tower',w);}
-  if(!tutSaid.has('maze')&&!contact&&ups.some(p=>p.y<CANAL.y0-20))tutLine('maze',tutBy(150,-60));   // across the canal: the containers are the quiet way up
+  if(!tutSaid.has('maze')&&!contact&&ups.some(p=>p.y<CANAL.y0-10))tutLine('maze',tutBy(150,-60));   // across the canal: the containers are the quiet way up
   if(!tutSaid.has('vehicle')){const t=sees(e=>e.veh);if(t)tutLine('vehicle',tutBy(t.x,t.y));}
-  if(!tutSaid.has('patrol')&&!contact){const e=sees(e=>e.route&&e.grp===3&&!e.alerted);if(e)tutLine('patrol',tutBy(e.x,e.y));}
+  if(!tutSaid.has('patrol')&&!contact){const e=sees(e=>e.route&&e.grp===2&&!e.alerted);if(e)tutLine('patrol',tutBy(e.x,e.y));}   // the container yard's patrol
   if(!tutSaid.has('killfield')){const e=sees(e=>e.grp===3&&e.gunner&&!e.veh);if(e)tutLine('killfield',tutBy(e.x,e.y));}
   const nearDoor=ups.some(p=>hyp(p.x-245,p.y+410)<260),locked=dcLocked();   // the doors: when they open again after being shut
   if(locked&&nearDoor)tutSaid.add('dcshut');else if(!locked&&nearDoor&&tutSaid.has('dcshut')){tutSaid.delete('dcshut');tutLine('dcopen',tutBy(245,-410));}

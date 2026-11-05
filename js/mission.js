@@ -81,16 +81,15 @@ function groupSpecs(n){
     for(const[i,[x,y]]of[[422,14],[614,16],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE,radio:i===0})]);   // E22 carries the radio
     g.push([TOWER.x,TOWER.y,()=>towerSniper('E25'),true]);
     for(const q of g){const make0=q[2];q[2]=()=>{const u=make0();u.jumpy=false;return u;};}
-  }else if(n===2){   // the maze: two men posted and one walking the west aisle; few, to sneak past or take quietly
-    g.push([163,-226,()=>hostile('E30',163,-226,{zone:MAZE_ZONE,ang:Math.PI/2,radio:true})],
-      [242,-300,()=>hostile('E31',242,-300,{zone:MAZE_ZONE,ang:0})],
-      [79,-90,()=>hostile('E32',79,-90,{name:'Patrol',zone:MAZE_ZONE,route:[{x:79,y:-360},{x:79,y:-70}],ri:1,waitT:0})]);
-  }else if(n===3){   // the data center's front: the heavy gun and an MG in nests, riflemen behind the sandbags, a patrol marching across the killing field (right to left and back), the gun truck
+  }else if(n===2){   // the container yard (Bryan: "lightly guarded"): one posted with the radio and one walking the west half's middle aisle, one posted in the east half
+    g.push([250,-107,()=>hostile('E30',250,-107,{zone:CONT_W,ang:0,radio:true})],
+      [60,-107,()=>hostile('E32',60,-107,{name:'Patrol',zone:CONT_W,route:[{x:400,y:-107},{x:60,y:-107}],ri:0,waitT:0})],
+      [760,-107,()=>hostile('E31',760,-107,{zone:CONT_E,ang:Math.PI})]);
+  }else if(n===3){   // the data center's front (Bryan: most of the guards here): the heavy gun and an MG in nests, five riflemen behind the sandbags, the gun jeep on the road
     const N=DC_NESTS;
     g.push([N[0].x,N[0].y,()=>{const u=mgGunner('E40',N[0].x,N[0].y);Object.assign(u,{heavy:true,name:'Heavy MG'});addSearchlight(u);return u;},true],[N[1].x,N[1].y,()=>mgGunner('E41',N[1].x,N[1].y),true]);
-    for(const[i,[x,y]]of[[398,-398],[300,-404],[506,-404]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT,radio:i===0})]);   // E42 carries the radio
-    for(let i=0;i<3;i++){const o=i*14,a={x:930+o,y:-250-o},b={x:330+o,y:-250-o};g.push([a.x,a.y,()=>hostile('E'+(45+i),a.x,a.y,{name:'Patrol',zone:KILL_ZONE,route:[b,a],ri:1,waitT:0,ang:Math.PI})]);}
-    g.push([GTRUCK.route[0].x,GTRUCK.route[0].y,()=>makeTruck('E48'),true]);
+    for(const[i,[x,y]]of[[468,-398],[370,-404],[576,-404],[630,-392],[682,-400]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT,radio:i===0})]);   // E42 carries the radio
+    g.push([GJEEP.route[0].x,GJEEP.route[0].y,()=>makeTruck('E48'),true]);
   }
   return g;
 }
@@ -133,7 +132,7 @@ const CP_QUIET=3;
 const AREAS={
   0:{k:'wh',name:'the warehouse',zone:{x0:150,x1:470,y0:240,y1:580}},
   1:{k:'br',name:'the bridge',zone:BR_ZONE},
-  2:{k:'maze',name:'the container maze',zone:MAZE_ZONE},
+  2:{k:'maze',name:'the container yard',zone:CONT_ZONE},
   3:{k:'dco',name:'the data center\'s front',zone:DC_OUT},
 };
 let lastNoiseT=-99;
@@ -207,43 +206,53 @@ function tapPanel(){
   if(p){u.path=p;u.lastOrder=simT;callout(u,'Checking the controls',C.good);panelGo=u;}else banner('No way to reach the panel from here.',2000);
 }
 
-/* ---------- the gun truck (Bryan: "a turret vehicle slowly driving from left to right, then making a U-turn and parking near
-   the front entrance") ----------
-   It waits by the data center until the squad is across the canal (or the bridge is theirs), then drives the road east, turns
-   and comes back to park by the front, its gun on the killing field. Its eyes look where it's going (or where the gun points
-   once parked); if it spots the squad it stops where it is and fights. Armoured: bullets spark off it, only blasts hurt it
-   (the RPG, grenades): two rockets or three grenades. */
-const GTRUCK={speed:22,hp:240,route:[{x:310,y:-140},{x:920,y:-140},{x:952,y:-166},{x:920,y:-192},{x:600,y:-192},{x:572,y:-346}],park:-1.9};
-function makeTruck(id){
-  const r=GTRUCK.route,u=mk('E','E',id,'Gun truck',r[0].x,r[0].y,0);
-  Object.assign(u,{veh:true,gunner:true,post:true,hp:GTRUCK.hp,jumpy:false,eye:{r:360,cone:1.6},drive:{i:0,go:false,parked:false},aimA:0});
-  const g=new T.Group(),olive=new T.MeshStandardMaterial({color:0x3f4632,roughness:.7,metalness:.25}),dark=new T.MeshStandardMaterial({color:0x1d2022,roughness:.6,metalness:.4});
-  const B=(w,h,d,m,x,y,z,p=g)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;};
-  B(34,9,17,olive,0,8,0);B(11,7,15,olive,12,15.5,0);B(1,4,13,new T.MeshStandardMaterial({color:0x88b6c8,roughness:.2,metalness:.4,emissive:0x0a1418}),17.6,16,0);   // hull, cab, windscreen
-  for(const x of[-11,0,11])for(const z of[-8.6,8.6]){const w=new T.Mesh(new T.CylinderGeometry(3.6,3.6,2.6,14),dark);w.rotation.x=Math.PI/2;w.position.set(x,3.6,z);w.castShadow=true;g.add(w);}
-  const tur=new T.Group();tur.position.set(-4,13,0);g.add(tur);B(8,3,8,olive,0,1.5,0,tur);B(3,3.4,6,dark,1,4.5,0,tur);
-  const bar=new T.Mesh(new T.CylinderGeometry(.55,.55,15,8),dark);bar.rotation.z=Math.PI/2;bar.position.set(9,4.6,0);tur.add(bar);
-  const hl=new T.MeshBasicMaterial({color:0xfff2c8,toneMapped:false});for(const z of[-5,5])B(.6,1.6,2.4,hl,17.3,10,z);   // headlights (no real light: phones)
+/* ---------- the gun jeep (Bryan: "The jeep patrols that road, from left to right continuously (the user can sneak by or
+   engage)"; "let's make the truck just a light jeep") ----------
+   It drives the runway road end to end and back without stopping (one lane each way, a U-turn at each end), its driver and
+   its gunner in plain sight, looking where it's going. If it spots the squad it stops and the gunner fights from there; once
+   they've lost the squad (the hunt gives up) it drives on. Light: bullets hurt it (a little less than a man), a rocket or
+   two grenades wreck it. */
+const GJEEP={speed:26,hp:130,bullet:.6,route:[{x:70,y:-252},{x:930,y:-252},{x:958,y:-275},{x:930,y:-298},{x:70,y:-298},{x:42,y:-275}]};
+function makeTruck(id){   // (the defenders' list still calls it this)
+  const r=GJEEP.route,u=mk('E','E',id,'Gun jeep',r[0].x,r[0].y,0);
+  Object.assign(u,{veh:true,gunner:true,post:true,hp:GJEEP.hp,jumpy:false,eye:{r:360,cone:1.6},drive:{i:0},aimA:0});
+  const g=new T.Group(),olive=new T.MeshStandardMaterial({color:0x4b5536,roughness:.75,metalness:.2}),dark=new T.MeshStandardMaterial({color:0x1c1f21,roughness:.6,metalness:.4});
+  const B=(w,h,d,m,x,y,z,p=g)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;p.add(o);return o;};
+  B(36,6,19,olive,0,7.5,0);B(12,3.2,18,olive,13,11.2,0);B(1,5,14,dark,19.4,8.6,0);   // the tub, the hood, the grille
+  B(1.2,6.5,18.4,dark,7,14.4,0);B(5,2.6,6,dark,1,10.6,-4.5);B(5,2.6,6,dark,1,10.6,4.5);   // the windscreen's frame, two seats
+  const sw=new T.Mesh(new T.TorusGeometry(1.8,.3,6,14),dark);sw.position.set(5.2,13.4,-4.5);sw.rotation.y=Math.PI/2;sw.rotation.x=.5;g.add(sw);   // the steering wheel
+  for(const s of[-1,1]){B(1,9.5,1,dark,-4,15,s*9);}B(1,1,19,dark,-4,19.7,0);   // the roll bar
+  const wheels=[];for(const x of[-12,12])for(const z of[-10,10]){const wg=new T.Group();wg.position.set(x,4.2,z);const w=new T.Mesh(new T.CylinderGeometry(4.2,4.2,3.4,14),dark);w.rotation.x=Math.PI/2;w.castShadow=true;wg.add(w);g.add(wg);wheels.push(wg);}
+  const sp=new T.Mesh(new T.CylinderGeometry(4,4,2,12),dark);sp.rotation.z=Math.PI/2;sp.position.set(-19,10.5,0);g.add(sp);   // the spare wheel
+  const tur=new T.Group();tur.position.set(-9,13,0);g.add(tur);
+  const ringM=new T.Mesh(new T.TorusGeometry(5,.6,6,18),dark);ringM.rotation.x=Math.PI/2;tur.add(ringM);
+  B(1.2,4,1.2,dark,2.5,2,0,tur);B(4.5,2.2,2,dark,4,4.4,0,tur);B(2,2,2,olive,3.6,3.2,-1.7,tur);   // the mount, the gun's body, its ammo box
+  const bar=new T.Mesh(new T.CylinderGeometry(.45,.45,12,8),dark);bar.rotation.z=Math.PI/2;bar.position.set(11.5,4.6,0);tur.add(bar);
+  const hl=new T.MeshBasicMaterial({color:0xfff2c8,toneMapped:false}),tl=new T.MeshBasicMaterial({color:0xff3a2a,toneMapped:false});
+  for(const z of[-6,6]){B(.6,1.6,2.6,hl,19.8,10,z);B(.6,1.2,2,tl,-18.2,9.5,z*1.3);}   // headlights and tail lights (they bloom; no real light)
   const ring=new T.Mesh(new T.RingGeometry(20,22.5,32),new T.MeshBasicMaterial({color:0xff4a3a,transparent:true,opacity:.85,side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.4;g.add(ring);
-  scene.add(g);u.m={g,ring,tur,olive,pose:g};return u;
+  // its crew: a driver at the wheel and a gunner standing at the gun, turning with it (figure.js)
+  const crew=[{id:id+'d',name:'Driver',inBoat:true,driving:true,noGun:true,at:[1.4,7.2,-4.5],par:g},{id:id+'g',name:'Gunner',gunner:true,at:[-4.4,-6.2,0],par:tur}].map(c=>{
+    const v=Object.assign({side:'E',team:'E',x:0,y:0,ang:0,path:[],hp:100},c);makeFigure(v);v.m.ring.visible=false;c.par.add(v.m.g);v.m.g.position.set(...c.at);return v;});
+  scene.add(g);u.m={g,ring,tur,olive,pose:g,wheels,crew,px:u.x,py:u.y};return u;
 }
-function truckPose(u){   // the turret follows its aim; a wreck goes black
-  const m=u.m;if(u.dead){if(!m.dead){m.dead=true;m.olive.color.setHex(0x161716);m.tur.rotation.z=.25;}m.ring.visible=false;return;}
+function truckPose(u){   // the gun follows its aim, the wheels turn, the crew moves; a wreck goes black and its crew is gone
+  const m=u.m;if(u.dead){if(!m.dead){m.dead=true;m.olive.color.setHex(0x161716);m.tur.rotation.z=.25;for(const c of m.crew)c.m.g.visible=false;}m.ring.visible=false;return;}
   let da=u.aimA-u.ang;m.tur.rotation.y=-Math.atan2(Math.sin(da),Math.cos(da));m.ring.visible=true;
+  const d=hyp(u.x-m.px,u.y-m.py);m.px=u.x;m.py=u.y;if(d<20)for(const w of m.wheels)w.rotation.z-=d/4.2;
+  if(m.g.visible)for(const c of m.crew){c.shotT=u.shotT;c.hitFlash=u.hitFlash;figAnimate(c,c.m);}
 }
-function truckTick(dt){
-  const u=enemies.find(e=>e.veh&&!e.dead);if(!u||MAPID!=='out')return;const D=u.drive;u.sup=0;
-  if(u.alerted){if(u.path.length)u.path=[];return;}   // it's seen them: it stops and fights where it is
-  if(!D.go){if(finished[1]||players.some(p=>alive(p)&&!p.offMap&&p.y<CANAL.y0-12))D.go=true;else return;}
+function truckTick(dt){   // round and round the road; stopped while it fights
+  const u=enemies.find(e=>e.veh&&!e.dead);if(!u||MAPID!=='out')return;const D=u.drive;
+  if(u.alerted){if(u.path.length)u.path=[];return;}   // it's seen them: it stops and fights where it is (and drives on once they've lost the squad)
+  u.aimA=u.ang;   // (driving: the gun looks where it's going)
   if(u.path.length)return;
-  if(D.i<GTRUCK.route.length-1){D.i++;const q=GTRUCK.route[D.i];u.path=[{x:q.x,y:q.y}];}
-  else if(!D.parked){D.parked=true;u.ang=GTRUCK.park;u.aimA=GTRUCK.park;}   // parked by the front, its gun on the field
-  if(!D.parked)u.aimA=u.ang;
+  D.i=(D.i+1)%GJEEP.route.length;const q=GJEEP.route[D.i];u.path=[{x:q.x,y:q.y}];u.aimA=u.ang;
 }
 // knocked out: a blast, a burning wreck (no body to find)
 function truckWreck(u,src){
-  u.dead=true;u.path=[];booms.push({x:u.x,y:u.y,t:0,size:1.4});shake(clamp(1-hyp(u.x-camT.x,u.y-camT.z)/700,0,1));paintDecal({k:'scorch',x:u.x,y:u.y,r:Math.random()});
-  callout(u,'Truck down',C.good);if(src&&src.side==='P'){creditKill(src);if(typeof gen==='function')chat('kill',8,gen(src,'tkdone'));}
+  u.dead=true;u.path=[];booms.push({x:u.x,y:u.y,t:0,size:1.2});shake(clamp(1-hyp(u.x-camT.x,u.y-camT.z)/700,0,1));paintDecal({k:'scorch',x:u.x,y:u.y,r:Math.random()});
+  callout(u,'Jeep down',C.good);if(src&&src.side==='P'){creditKill(src);if(typeof gen==='function')chat('kill',8,gen(src,'tkdone'));}
 }
 
 /* ---------- the watchtower (Bryan: a sniper up it; when he's dropped his rifle floats over him, and a soldier can climb up,
