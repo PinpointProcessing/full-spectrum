@@ -36,9 +36,11 @@ const VOICE_LINES={
   card:      ['Got the access card.','The card\'s ours.','I\'ve got the card.'],
   lab:       ['Equipment\'s wrecked.','One less lab.','Smashed it.'],
 };
-const URGENT=new Set(['man_down','hit_down','rpg','contact','charge']);
-const CALLOUT_VOICE={'Frag out!':'frag','On my way':'revive','Suppressing!':'suppress','Healing':'heal','Restocked':'restock','Charge set! Get clear!':'charge','Open fire!':'ack_attack','Focus fire':'ack_attack',
-  'Taking aim':'silent','Moving in':'takedown','Watching':'watch','Breach! Breach!':'breach','Hands where I can see them!':'zip','Got the access card':'card','Smashed it':'lab'};
+const URGENT=new Set(['man_down','rpg','contact','charge']);
+// Bryan: "everyone is talking all the time". After anyone speaks, nothing that isn't urgent for TALK_GAP s; a man doesn't
+// repeat the same kind of line within SAY_AGAIN s; most orders and actions go unspoken (CALLOUT_VOICE)
+const TALK_GAP=6,SAY_AGAIN=25;
+const CALLOUT_VOICE={'Frag out!':'frag','Suppressing!':'suppress','Charge set! Get clear!':'charge','Breach! Breach!':'breach','Hands where I can see them!':'zip','Got the access card':'card'};
 let voiceBusyTill=0,voiceLast={},VSPR=null,vBytes={},vLoad={},vCache=new Map(),sysVoices=[];
 function bindVoice(){
   fetch('sounds/voice/manifest.json').then(r=>r.ok?r.json():null).then(m=>{VSPR=m&&m.v===3&&m.speakers?m:null;preloadVoices();}).catch(()=>{VSPR=null;});
@@ -96,8 +98,8 @@ function nextVariant(id,key,n){const k=id+key;let q=vOrder[k];if(!q||!q.length){
 function say(u,key){
   if(!u||u.side!=='P'||!sndOn||!VOICE_LINES[key]||state!=='play')return;
   const now=performance.now()/1000,k=u.id+key;
-  if(voiceLast[k]&&now-voiceLast[k]<6)return;
-  if(now<voiceBusyTill&&!URGENT.has(key))return;
+  if(voiceLast[k]&&now-voiceLast[k]<SAY_AGAIN)return;
+  if(!URGENT.has(key)&&now<voiceBusyTill+TALK_GAP)return;
   voiceLast[k]=now;
   const n=nextVariant(u.id,key,VOICE_LINES[key].length),text=VOICE_LINES[key][n-1],radio=!u.joined;   // the freed prisoners have no radios: they say it out loud
   const d=voiceClip(u.id,`${key}_${n}`,{radio,x:u.x,y:u.y});

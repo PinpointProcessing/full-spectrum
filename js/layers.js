@@ -112,7 +112,7 @@ function moraleBreak(e){
   if(enemies.some(o=>o!==e&&!o.dead&&!o.surr&&!o.dog&&(MAPID!=='in'||o.floor===e.floor)&&hyp(o.x-e.x,o.y-e.y)<SURRENDER.alone))return false;
   e.surrNext=simT+SURRENDER.every;if(Math.random()>SURRENDER.chance)return false;   // one roll every few seconds while it holds
   Object.assign(e,{surr:true,path:[],alerted:false,aware:0,wary:false,call:null,hunt:null,huntT0:0,lkp:null,flanking:false,bodyGo:null});
-  {const i=(Math.random()*3)|0;callout(e,BARKS.surrender[i],'#ffcf4a');if(typeof voiceClip==='function')voiceClip('E'+(1+(hashId(e.id)%3)),`bark_surrender_${i+1}`,{x:e.x,y:e.y});}setStatus();
+  {const i=(Math.random()*3)|0;callout(e,BARKS.surrender[i],'#ffcf4a');if(typeof sfxFear==='function')sfxFear(e);}   // the words on screen, a frightened yell out loud (Bryan: fear means screaming)setStatus();
   if(!(e.grp!=null&&groups[e.grp]&&groupDone(e.grp)))banner('A hostile surrenders. Tap him to zip-tie him.',2400);   // (the last man: the checkpoint's message comes instead, and the hint line says it)
   return true;
 }

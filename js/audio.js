@@ -179,6 +179,11 @@ function matAt(x,y){let o=null,bd=14;for(const q of objs){if(q.kind==='void')con
 function sfxImpact(x,y,mat){playSample('hit_'+(mat||matAt(x,y)),x,y,.55,varied());}
 function sfxFlesh(x,y){playSample('flesh',x,y,.45,varied(.85,1));}
 function sfxGrunt(u,big){if(u&&!u.dog)playSample(big?'grunt_down':'grunt',u.x,u.y,big?.8:.6,varied(u.side==='E'?.86:.96,u.side==='E'?.96:1.06));}
+// pain and fear (Bryan: they should be screaming, not a voice saying "ow, my leg"): recorded yells (HaelDB, CC0), never a voice line.
+// A hit: a short cry, a scream once he's badly hurt; going down or dying: a scream; giving up: "No!" or a scream
+function sfxPain(u,bad){if(u&&!u.dog)playSample(bad?'scream':'yelp',u.x,u.y,bad?.95:.8,varied(u.side==='E'?.9:.97,u.side==='E'?1:1.06));}
+function sfxScream(u,vol=.95){if(u&&!u.dog)playSample('scream',u.x,u.y,vol,varied(u.side==='E'?.9:.97,u.side==='E'?1:1.06));}
+function sfxFear(u){if(u&&!u.dog)playSample('fear',u.x,u.y,.85,varied(.95,1.05));}
 function sfxBodyFall(x,y){playSample('bodyfall',x,y,.7,varied(.9,1.02));}
 function sfxPin(x,y){playSample('pin',x,y,.5,varied());}
 function sfxReload(x,y){playSample('reload',x,y,.6,varied());}

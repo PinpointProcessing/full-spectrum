@@ -21,8 +21,8 @@ const OUT_HEAR_OPEN=350,OUT_HEAR_WALL=150,SHOUT_R=250,IN_SHOUT=180;
 const LOST_T=2.5,HUNT_T=35,CONTACT_END=10,LEASH=320,FLANK_T=4,PUSHERS=2;
 const CALL_T=5,REINF_N=3,REINF_WARN=10,REINF_MAX=2;
 const DOG={walk:30,run:72,bite:14,biteT:1.6,stun:.5,smell:170,hp:45};
-let huntTickT=0,barkAllT=0,reinf=null,reinfLeft={},reinfN=0,searched=[];
-function resetHunt(){huntTickT=0;barkAllT=0;reinf=null;reinfLeft={};reinfN=0;searched=[];}
+let huntTickT=0,barkAllT=0,barkHardT=0,reinf=null,reinfLeft={},reinfN=0,searched=[];
+function resetHunt(){huntTickT=0;barkAllT=0;barkHardT=0;reinf=null;reinfLeft={};reinfN=0;searched=[];}
 
 /* ---------- who hears what ---------- */
 function alertOne(e,lk,ambush){
@@ -173,10 +173,10 @@ const BARKS={spot:['There!','Contact!','Over there!'],lost:['Lost him!','Where d
   surrender:['Don\'t shoot!','I give up!','Please, don\'t shoot!'],
   hit:['Aaagh!','I\'m hit! I\'m hit!','Argh! My leg!'],panic:['They\'re everywhere!','Where is it coming from?!','Fall back! Fall back!']};   // (the last three: layers.js)
 function bark(e,k,force){
-  if(!e||e.dead||e.dog||e.veh)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;
+  if(!e||e.dead||e.dog||e.veh)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;if(simT<barkHardT)return;   // (Bryan: everyone talked all the time: even urgent shouts don't pile up)
   if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-e.x,p.y-e.y)<340))return;   // out of earshot
   if(MAPID==='in'&&offFloor(e))return;
-  const L=BARKS[k];if(!L)return;e.barkT=simT+4;barkAllT=simT+1.4;
+  const L=BARKS[k];if(!L)return;e.barkT=simT+9;barkAllT=simT+4;barkHardT=simT+1.5;
   const i=Math.floor(Math.random()*L.length);callout(e,L[i],'#ff9a80');
   if(typeof voiceClip==='function')voiceClip('E'+(1+(hashId(e.id)%3)),`bark_${k}_${i+1}`,{x:e.x,y:e.y,vol:contact?1.25:.95});   // his voice (voice.js): one of three; shouted over the shooting
 }

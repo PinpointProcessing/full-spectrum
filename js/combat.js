@@ -205,7 +205,7 @@ function boxAssign(list,z,tx,ty){   // everyone selected into a station's ring (
   }
   return res;
 }
-function commit(as){if(as&&as[0]&&!chatMove(as))say(as[0].u,'ack_move');   // (a group move: often the lead calls his partner instead: chatter.js)
+function commit(as){if(as&&as[0]&&!chatMove(as)&&Math.random()<.3)say(as[0].u,'ack_move');   // (a group move: often the lead calls his partner instead: chatter.js)
   for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;a.u.watch=null;}   // (a move ends a Watch: orders.js)
 }
 // Turn a finger-drawn trail into a walkable route that keeps its shape: skip points inside objects,
@@ -270,19 +270,19 @@ function damage(t,dmg,src){
   t.hp-=dmg;t.hitFlash=.25;
   if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
-  if(t.side==='E'&&t.hp>0&&!t.dog&&Math.random()<.4)bark(t,'hit',true);   // (Bryan: the enemy should be screaming)
+  if(t.side==='E'&&t.hp>0&&!t.dog&&Math.random()<.5&&typeof sfxPain==='function')sfxPain(t,t.hp<40);   // a cry of pain, a scream once he's badly hurt (Bryan: screaming, not a voice saying "ow, my leg")
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
-      if(typeof sfxGrunt==='function'){sfxGrunt(t,true);sfxBodyFall(t.x,t.y);}
+      if(typeof sfxScream==='function'){if(Math.random()<.65)sfxScream(t);else sfxGrunt(t,true);sfxBodyFall(t.x,t.y);}   // he goes down screaming
       t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.critical=false;t.noBleed=false;t.revive=0;t.boxRev=0;t.path=[];t.supT=null;t.medGo=null;t.carryGo=null;if(t.carry)putDown(t);
       callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
       chatDown(t);   // "Hayes is down!" ... "Hang on, Hayes, I've got you." (chatter.js)
       sel=sel.filter(x=>x!==t);preview=null;
     }else{
-      t.dead=true;t.path=[];callout(t,'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog&&Math.random()<.5)sfxGrunt(t,true);}
+      t.dead=true;t.path=[];callout(t,'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog){const r=Math.random();if(r<.35)sfxScream(t,.85);else if(r<.65)sfxGrunt(t,true);}}
       {const o=enemies.find(q=>q!==t&&!q.dead&&!q.dog&&q.alerted&&hyp(q.x-t.x,q.y-t.y)<220);if(o)bark(o,'down');}
-      if(src&&src.side==='P'){creditKill(src);if(Math.random()<.6)say(src,'kill');chatKill(src);}
+      if(src&&src.side==='P'){creditKill(src);if(Math.random()<.25)say(src,'kill');chatKill(src);}
       paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);enemyDown(t);   // (a body someone may find: layers.js; the sniper's rifle: mission.js)
     }
   }
@@ -337,7 +337,7 @@ function resolveShot(s){
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
   if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0});   // a silencer hides the flash
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t):1));   // machine guns, sniper rounds and shotgun blasts pin people down
-  if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(Math.random()<(t.side==='P'?.45:.3))sfxGrunt(t,false);}   // a hit: the thud, and often a grunt
+  if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(t.side==='P'&&Math.random()<.45)sfxGrunt(t,false);}   // (an enemy's cry is in damage())   // a hit: the thud, and often a grunt
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');s.hit=false;}   // armour: it sparks off
   if(s.hit){const W=wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,dm,u);}
   if(u.side==='P')alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet);   // they'll think the squad is where the shot came from (a silenced shot: only close by)
@@ -638,7 +638,7 @@ function computeVis(){
 const WH_ZONE={x0:182,x1:438,y0:272,y1:548};
 function enemyThink(e){
   if(e.dead||e.dog||e.surr||!e.alerted||e.path.length||e.gunner||e.post)return;   // posts (tower sentries) never move; dogs: hunt.js
-  if(e.sup>0.65){e.exposeT=0;if(moraleBreak(e))return;if(Math.random()<.15)bark(e,'pinned');return;}   // hurt, pinned and alone, he may give up (layers.js)
+  if(e.sup>0.65){e.exposeT=0;if(moraleBreak(e))return;if(Math.random()<.05)bark(e,'pinned');return;}   // hurt, pinned and alone, he may give up (layers.js)
   if(enemyNade(e))return;   // a soldier who's sat in one spot too long gets a grenade (layers.js)
   if(e.wave===2){assaultThink(e);return;}
   if(e.lkp&&simT-(e.sawT??-99)>LOST_T){huntThink(e);return;}   // they've lost you: the hunt (hunt.js)

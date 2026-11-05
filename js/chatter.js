@@ -114,8 +114,10 @@ const gen=(u,key,n)=>{if(!u)return null;const k=n||nextVariant(u.id,'chat'+key,C
 // a line only the first four have (TUT): from whoever of them is up and nearest, or the lead
 const tutBy=(x,y)=>players.filter(p=>up(p)&&!p.joined).sort((a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y))[0]||null;
 // queue an exchange (cd: seconds before this kind can happen again); returns true if it was queued
+const URGENT_CHAT=new Set(['contact','down','frag','reinf']);
 function chat(kind,cd,...lines){
   if(!sndOn||state!=='play'||!lines[0])return false;
+  if(!URGENT_CHAT.has(kind)&&!kind.startsWith('tut_')&&performance.now()/1000<voiceBusyTill+TALK_GAP)return false;   // (Bryan: they talked all the time)
   if(simT<(chatCD[kind]||0)||talkQ.length>3)return false;chatCD[kind]=simT+cd;
   for(const l of lines)if(l){l.at=simT;talkQ.push(l);}return true;
 }
@@ -132,8 +134,8 @@ function chatTick(){
 /* ---------- what sets them talking (hooks from the game code) ---------- */
 function chatMove(as){   // a group move: the lead calls his partner, who answers (now and then, so it doesn't get old)
   const list=as.map(a=>a.u);if(list.length<2)return false;
-  const lead=list.find(u=>/1$/.test(u.id))||list[0],mate=list.find(u=>u!==lead&&u.team===lead.team);if(!mate||Math.random()>.45)return false;
-  return chat('move',14,named(lead,'onme',mate),named(mate,'follow',lead));
+  const lead=list.find(u=>/1$/.test(u.id))||list[0],mate=list.find(u=>u!==lead&&u.team===lead.team);if(!mate||Math.random()>.15)return false;
+  return chat('move',45,named(lead,'onme',mate),named(mate,'follow',lead));
 }
 function chatContact(amb){   // first contact: the man who sees them says where; someone answers
   const e=enemies.filter(q=>!q.dead&&q.vis).sort((a,b)=>hyp(a.x-camT.x,a.y-camT.z)-hyp(b.x-camT.x,b.y-camT.z))[0];
@@ -150,27 +152,27 @@ function chatDown(t){   // a man down: the nearest calls it, the next one goes t
   if(!chat('down',2,named(a,'down',t),named(b,'gotyou',t)))say(a,'man_down');
 }
 function chatRevived(t,by){if(by&&by!==t&&!t.dead&&chat('thanks',4,named(t,'thanks',by)))return true;say(t,'revived');return false;}
-function chatKill(u){if(Math.random()<.22){const m=[partnerOf(u),...players.filter(p=>p!==u&&up(p)&&p.team===u.team)].find(p=>canSay(p,'nice',u));if(m)chat('nice',20,named(m,'nice',u));}}
-function chatTakedown(u){const m=partnerOf(u);chat('tk',8,gen(u,'tkdone'),m&&hyp(m.x-u.x,m.y-u.y)<260&&Math.random()<.6?gen(m,'tknice'):null);}
+function chatKill(u){if(Math.random()<.1){const m=[partnerOf(u),...players.filter(p=>p!==u&&up(p)&&p.team===u.team)].find(p=>canSay(p,'nice',u));if(m)chat('nice',60,named(m,'nice',u));}}
+function chatTakedown(u){const m=partnerOf(u);chat('tk',25,gen(u,'tkdone'),m&&hyp(m.x-u.x,m.y-u.y)<260&&Math.random()<.3?gen(m,'tknice'):null);}
 function chatHush(e){   // a guard heard or saw something: the nearest man says freeze; when he settles, they move on
   if(contact)return;const u=nearestTo(e.x,e.y);if(!u||hyp(u.x-e.x,u.y-e.y)>320)return;
-  if(chat('hush',18,gen(u,'hush')))hushBy=u;
+  if(chat('hush',45,gen(u,'hush')))hushBy=u;
 }
-function chatClear(){if(hushBy&&!contact&&enemies.every(e=>e.dead||e.alerted||e.aware<.25)){chat('clear',18,gen(hushBy,'clear'));hushBy=null;}}
-function chatBodyFound(){chat('body',25,gen(leaderOf(),'bodyfound'));}
+function chatClear(){if(hushBy&&!contact&&enemies.every(e=>e.dead||e.alerted||e.aware<.25)){chat('clear',45,gen(hushBy,'clear'));hushBy=null;}}
+function chatBodyFound(){chat('body',40,gen(leaderOf(),'bodyfound'));}
 function chatSecured(){const a=leaderOf(),b=leaderOf([a]);chat('secured',10,gen(a,'secured'),b?gen(b,'regroup'):null);}
-function chatRadio(e){if(e.vis)chat('radio',12,gen(nearestTo(e.x,e.y),'radio'));}
+function chatRadio(e){if(e.vis)chat('radio',30,gen(nearestTo(e.x,e.y),'radio'));}
 function chatReinf(){chat('reinf',20,gen(leaderOf(),'reinf'));}
-function chatDog(d){const u=nearestTo(d.x,d.y);if(u&&hyp(u.x-d.x,u.y-d.y)<360)chat('dog',15,gen(u,'dog'));}
+function chatDog(d){const u=nearestTo(d.x,d.y);if(u&&hyp(u.x-d.x,u.y-d.y)<360)chat('dog',40,gen(u,'dog'));}
 function chatFrag(t){chat('frag',3,gen(t,'fragwarn'));}
-function chatSuppress(u){const m=players.find(p=>p!==u&&up(p)&&p.path.length);chat('cover',10,gen(u,'covering'),m?gen(m,'movingcov'):null);}
+function chatSuppress(u){const m=players.find(p=>p!==u&&up(p)&&p.path.length);chat('cover',40,gen(u,'covering'),m?gen(m,'movingcov'):null);}
 function chatFree(u){chat('free',3,gen(u,'free'));}
 function chatSci(u){chat('sci',6,gen(u,'sci'));}
 function chatScan(u){chat('scan',4,gen(u,'scan'));}
 // once the shooting stops: the lead checks on the man who's hurt worst; he answers how he is
 function chatStatus(){
   const a=leaderOf();if(!a)return;const hurt=players.filter(p=>up(p)&&p!==a&&p.hp<90).sort((x,y)=>x.hp-y.hp)[0];if(!hurt)return;
-  chat('status',30,named(a,'check',hurt),gen(hurt,hurt.hp>=70?'fine':hurt.hp>=35?'hurt':'bad'));
+  chat('status',120,named(a,'check',hurt),gen(hurt,hurt.hp>=70?'fine':hurt.hp>=35?'hurt':'bad'));
 }
 // banter: in a quiet spell (nobody hunting, nothing hostile near, nobody talking), now and then, each conversation once
 function banterPhase(){
@@ -182,7 +184,7 @@ function banterPhase(){
 }
 function banterTick(dt){
   if(state!=='play'||contact||talkQ.length||paused)return;
-  if((banterT+=dt)<70)return;
+  if((banterT+=dt)<150)return;   // (Bryan: they talked all the time)
   if(enemies.some(e=>!e.dead&&!e.surr&&(e.alerted||players.some(p=>up(p)&&hyp(p.x-e.x,p.y-e.y)<380))))return;   // not with anyone near
   const ph=banterPhase(),cand=BANTER.map((b,i)=>({b,i})).filter(({b,i})=>!banterUsed.has(i)&&(b.when===ph||(b.when==='any'&&ph!=='in'))&&b.lines.every(([id])=>up(players.find(p=>p.id===id))));
   if(!cand.length){banterT=40;return;}

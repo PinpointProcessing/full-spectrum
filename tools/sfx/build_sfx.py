@@ -1,6 +1,6 @@
 """Cut the game's recorded sound effects into one mp3 per kind (sounds/sfx/<kind>.mp3) plus sounds/sfx/manifest.json
 (start and length of each clip). Sources: CC0 packs from Kenney and OpenGameArt (see sounds/CREDITS.md), unpacked under
-SRC. Usage: python build_sfx.py <SRC folder> <out folder>"""
+SRC. Usage: python build_sfx.py <SRC folder> <out folder> [--only kind,kind]"""
 import sys, os, json, numpy as np, soundfile as sf, lameenc
 from scipy.signal import resample_poly
 SRC,OUT=sys.argv[1],sys.argv[2];os.makedirs(OUT,exist_ok=True);SR=44100
@@ -16,7 +16,7 @@ KINDS={
  'flesh':([f'{K}impactPunch_medium_00{i}.ogg' for i in range(5)],.3,.7),
  'bodyfall':([f'{K}impactSoft_heavy_00{i}.ogg' for i in range(5)],.6,.9),
  'grunt':([f'pain1/x/slightscream-{i:02d}.flac' for i in range(1,16)],.8,.9),
- 'grunt_down':([f'pain3/x/{n}' for n in sorted(os.listdir(os.path.join(SRC,'pain3/x'))) if n.endswith('.ogg')]+[('pain2/death pain grunts.wav',s,d) for s,d in ((.5,1.2),(5.0,.95),(14.6,1.15),(35.95,.7),(47.5,.75))],1.3,.95),
+ 'grunt_down':([f'pain3/x/{n}' for n in (sorted(os.listdir(os.path.join(SRC,'pain3/x'))) if os.path.isdir(os.path.join(SRC,'pain3/x')) else []) if n.endswith('.ogg')]+[('pain2/death pain grunts.wav',s,d) for s,d in ((.5,1.2),(5.0,.95),(14.6,1.15),(35.95,.7),(47.5,.75))],1.3,.95),
  'dog':([f'dog2/x/Dog/Dog Bark {i}.wav' for i in (1,2,3)]+['dog2/x/Dog/Dog Bark.wav']+[('dog1/dog_barking.wav',s,d) for s,d in ((1.36,.7),(3.4,.58),(4.28,.6),(5.6,.52))],.75,.95),
  'siren':([('siren/siren.mp3',0,7.2)],7.2,.8),
  'static':([('static/ScatterNoise1.mp3',s,.35) for s in (5.0,12.0,20.0,26.0)],.35,.6),
@@ -34,7 +34,13 @@ KINDS={
  'cloth':([f'{R}cloth{i}.ogg' for i in (1,2,3,4)],.6,.7),
  'computer':([f'{SF}computerNoise_00{i}.ogg' for i in range(4)],1.2,.6),
  'scan':([f'{SF}forceField_00{i}.ogg' for i in range(2)],1.6,.6),
+ # Bryan: pain and fear should be screaming, not a voice saying "ow, my leg". HaelDB's yells (four men on a studio mic):
+ # long wordless screams, short pained cries, and two yells of "No!" for a man who gives up
+ 'scream':([f'yell/x/yelling sounds/{n}.wav' for n in ('3yell13','yell11','3yell9','yell10','3yell1','yell2','3yell2','yell5','yell1','yell4','3yell10','3yell14')],2.2,.9),
+ 'yelp':([f'yell/x/yelling sounds/{n}.wav' for n in ('3yell11','3yell12','3yell7','1yell4','1yell5','1yell11','2yell4','2yell7','yell12','yell7','2yell2','1yell12','1yell13')],.7,.85),
+ 'fear':([f'yell/x/yelling sounds/{n}.wav' for n in ('1yell3','3yell15','3yell2','yell2')],1.4,.85),
 }
+ONLY=sys.argv[sys.argv.index('--only')+1].split(',') if '--only' in sys.argv else None   # build just these kinds into the manifest that's there
 def load(c):
     p,s,d=(c,0,None) if isinstance(c,str) else c
     a,sr=sf.read(os.path.join(SRC,p),always_2d=True);a=a.mean(1).astype(np.float32)
@@ -48,9 +54,10 @@ def tidy(a,maxlen,peak):
     a=a[:int(maxlen*SR)].copy();f=min(len(a),int(.02*SR))
     if f:a[-f:]*=np.linspace(1,0,f)
     return a/(np.abs(a).max() or 1)*peak
-man={}
+man=json.load(open(f'{OUT}/manifest.json')) if ONLY and os.path.exists(f'{OUT}/manifest.json') else {}
 GAP=np.zeros(int(.15*SR),np.float32)
 for kind,(clips,maxlen,peak) in KINDS.items():
+    if ONLY and kind not in ONLY:continue
     parts=[GAP];t=len(GAP)/SR;spans=[]
     for c in clips:
         a=tidy(load(c),maxlen,peak);d=len(a)/SR

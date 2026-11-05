@@ -271,7 +271,7 @@ function civTick(u,dt){
   }
   // they talk: begging while they cower, muttering on the way (cryptic about what's behind the gate)
   if(near.some(p=>hyp(p.x-u.x,p.y-u.y)<260)&&simT>u.pleadT&&(u.cower||u.detained)){
-    const L=u.scanning?SCI_SCAN:u.detained?SCI_ESCORT:SCI_PLEAD;u.pleadT=simT+(u.detained?11:6)+Math.random()*5;
+    const L=u.scanning?SCI_SCAN:u.detained?SCI_ESCORT:SCI_PLEAD;u.pleadT=simT+(u.detained?20:12)+Math.random()*8;
     if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<2.5)){u.saidT=simT;line(u,u.scanning?'scan':u.detained?'escort':'plead',L);}
   }
 }
