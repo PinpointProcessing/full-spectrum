@@ -29,7 +29,9 @@ Kokoro's `gen.py` stays for quick drafts. Each speaker's voice is copied from a 
 2. `zonos_refs.py` (Kokoro venv) makes `refs/<speaker>.flac` for everyone but Reyes, whose two clips Bryan approved and
    are kept as they are.
 3. `gen_zonos.py CACHE [speakers] [--budget seconds]`: one take per line into `CACHE/<speaker>/` (about half a day for
-   everyone on a 4-core CPU). It can be stopped and picks up where it left off.
+   everyone on a 4-core CPU). It can be stopped and picks up where it left off. `--max-lines 50` makes it stop after 50 takes
+   (run it in a loop: memory creeps up over a long run), `--shard k/n` takes every n-th line so two copies on 2 threads each
+   (`ZONOS_THREADS=2`, about a quarter faster than one on 4) can share a speaker, each with its own CACHE, merged afterwards.
 4. `check_zonos.py CACHE` (a venv with `faster-whisper`): a speech recogniser scores each take against its script and flags
    bad lines. `gen_zonos.py CACHE --redo` then makes another take of each flagged line (up to 3 in all), and you check again.
 5. `pack_zonos.py CACHE ../../sounds/voice [speakers]` (Kokoro venv): the best take of each line, tidied, into the game's

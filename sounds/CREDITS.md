@@ -52,7 +52,7 @@ Casting (the Kokoro voice behind each reference clip):
 
 | Speaker | Who | Reference voice |
 | --- | --- | --- |
-| A1, A2, B1, B2 | Reyes, Kowalski, Hayes, Okafor | am_michael, am_fenrir (pitched down), am_puck, bm_george |
+| A1, A2, B1, B2 | Reyes, Kowalski, Hayes, Okafor | am_michael, am_onyx with am_fenrir, am_puck, bm_george |
 | A3, A4, B3, B4 | the freed prisoners Abara, Brennan, Lindqvist, Marsh | bm_lewis, bm_fable, am_liam, am_onyx |
 | S1 to S4 | the four scientists | af_bella, bf_emma, af_sarah, am_eric |
 | E1 to E3 | hostiles (barks) | am_onyx with am_echo, bm_daniel, am_onyx with bm_daniel |
