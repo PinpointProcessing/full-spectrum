@@ -111,9 +111,9 @@ function buildLevel1(){
     const poleM=new T.MeshStandardMaterial({color:0x1d2124,roughness:.6,metalness:.6});
     for(const L of L1.lamps){const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);sc.add(hd);if(L.pole)addMesh(new T.CylinderGeometry(1.2,1.6,L.h+2,8),poleM,L.x,(L.h+2)/2,L.y);}
     // the wounded scout, lying by the hut's door (a soldier's model, no torch)
-    const s={side:'P',team:'B',id:'SC',name:'Scout',x:L1_SCOUT.x,y:L1_SCOUT.y,ang:.4};makeSoldier(s);
+    const s={side:'P',team:'B',id:'SC',name:'Scout',x:L1_SCOUT.x,y:L1_SCOUT.y,ang:.4,path:[],downed:true,hp:20};makeSoldier(s);
     for(const k of['spot','beam'])if(s.m[k]&&s.m[k].parent)s.m[k].parent.remove(s.m[k]);s.m.ring.material.color.set(0xe8e8e8);
-    s.m.g.position.set(s.x,0,s.y);s.m.g.rotation.y=-s.ang;s.m.pose.rotation.z=Math.PI/2;s.m.pose.position.y=2.6;L1.scout=s;
+    s.m.g.position.set(s.x,0,s.y);s.m.g.rotation.y=-s.ang;L1.scout=s;extraFigs.length=0;extraFigs.push(s);   // (figure.js animates him)
     // the lights: a dark night like Level 2's, the lamps sharing a pool of six, two for muzzle flashes, one for blasts
     const hemi1=new T.HemisphereLight(0x5a6e96,0x140f0b,.17);hemi1.userData.base=.17;sc.add(hemi1);
     const moon1=new T.DirectionalLight(0x9fb4ff,.24);moon1.position.set(360-300,620,500-400);moon1.target.position.set(360,0,500);
@@ -155,7 +155,7 @@ function enterLevel1(){
 }
 // back to the big map at once (a new game, Level 2 after this one, or Run it again)
 function leaveLevel1Now(){
-  if(MAPID!=='l1')return;const out=STASH.out;tut.on=false;tut.tip=null;for(const el of document.querySelectorAll('.tutGlow'))el.classList.remove('tutGlow');
+  if(MAPID!=='l1')return;const out=STASH.out;tut.on=false;extraFigs.length=0;tut.tip=null;for(const el of document.querySelectorAll('.tutGlow'))el.classList.remove('tutGlow');
   for(const u of units)if(u.side!=='P'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';
   for(const p of players){p.offMap=false;moveMesh(p,out.scene);}
@@ -181,7 +181,7 @@ function l1Acts(){
 }
 function scoutUp(u){
   l1.scoutUp=true;const s=L1.scout;
-  if(s&&s.m){s.m.pose.rotation.z=0;s.m.pose.position.y=0;s.m.g.position.set(L1_SCOUT.x-10,0,L1_SCOUT.y-18);s.m.g.rotation.y=-Math.PI/2;}   // up on his feet by the door
+  if(s&&s.m){s.downed=false;s.x=L1_SCOUT.x-10;s.y=L1_SCOUT.y-18;s.ang=-Math.PI/2;}   // up on his feet by the door
   if(u)u.stats.revives++;
   callouts.push({x:L1_SCOUT.x,y:L1_SCOUT.y,t:0,dur:4,text:'Thanks. The relay\'s the mast, east of the hut.',col:'#dfe6ea',small:true});
   banner('Scout back on his feet. Now bring down the relay mast.',3000);hud();

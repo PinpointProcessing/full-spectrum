@@ -121,11 +121,7 @@ function flankThink(e,vis,hurt){
 }
 
 /* ---------- radio men and reinforcements ---------- */
-function addRadioKit(u){
-  u.radio=true;const m=new T.MeshStandardMaterial({color:0x1d2216,roughness:.8});
-  const box=new T.Mesh(new T.BoxGeometry(3.5,5,4.5),m);box.position.set(-4.6,11,0);u.m.pose.add(box);
-  const ant=new T.Mesh(new T.CylinderGeometry(.2,.2,13,4),new T.MeshStandardMaterial({color:0x101010,roughness:.6}));ant.position.set(-5.2,18.5,-1.3);ant.rotation.z=.08;u.m.pose.add(ant);
-}
+function addRadioKit(u){u.radio=true;figRefresh(u);}   // a radio on his back with its antenna (figure.js)
 function radioTick(dt){
   for(const e of enemies){
     if(!e.radio)continue;

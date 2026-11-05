@@ -375,7 +375,7 @@ function throwNade(u,tx,ty){
   const f=sightOf(u,tx,ty);
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
-  u.grenade=0;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
+  u.grenade=0;u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
   nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u});u.stats.items++;if(typeof sfxPin==='function')sfxPin(u.x,u.y);
   callout(u,'Frag out!',C.warn);
   return true;
@@ -387,7 +387,7 @@ function throwSmoke(u,tx,ty){
   const f=sightOf(u,tx,ty);
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
-  u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
+  u.specN--;u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
   nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u,smoke:true});u.stats.items++;if(typeof sfxPin==='function')sfxPin(u.x,u.y);
   callout(u,'Smoke out!',C.warn);
   return true;
@@ -442,7 +442,7 @@ function throwTick(){
       else if(!u.path.length){u.throwGo=null;if(!doThrow(u,g.x,g.y,g.kind))callout(u,'No angle',C.warn);}}
     const a=u.rpgAim;if(!a||simT<a.at)continue;u.rpgAim=null;if(!alive(u))continue;   // the rocket goes
     const dd=hyp(a.x-a.f.x,a.y-a.f.y)||1;
-    rockets.push({x:a.f.x,y:a.f.y,dx:(a.x-a.f.x)/dd,dy:(a.y-a.f.y)/dd,left:dd,by:u,trail:[],spec:PRPG,speed:PRPG.speed});
+    rockets.push({x:a.f.x,y:a.f.y,dx:(a.x-a.f.x)/dd,dy:(a.y-a.f.y)/dd,left:dd,by:u,trail:[],spec:PRPG,speed:PRPG.speed});u.rpgT=simT;
     flashes.push({x:a.f.x,y:a.f.y,t:0});u.stats.items++;if(typeof gen==='function')chat('rpgout',3,gen(u,'rpgout'));
     alertAll('Contact. Weapons free.',true,a.f.x,a.f.y,a.x,a.y,{x:a.f.x,y:a.f.y});
   }
@@ -731,7 +731,7 @@ function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Ma
 
 function update(dt){
   simT+=dt;
-  for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);sfxShot(s.u,s.quiet);resolveShot(s);}
+  for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);s.u.shotT=simT;sfxShot(s.u,s.quiet);resolveShot(s);}   // (shotT: his rifle kicks: figure.js)
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
   medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)

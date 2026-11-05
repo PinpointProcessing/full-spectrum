@@ -565,23 +565,8 @@ function buildWorld(){
   // (no jeep headlights while the jeep is out: every light, even switched off, costs every pixel)
 }
 
-/* soldiers */
-function makeSoldier(u){
-  const P=u.side==='P',col=new T.Color(teamCol(u));
-  const g=new T.Group(),pose=new T.Group();g.add(pose);
-  const cloth=new T.MeshStandardMaterial({color:P?0x485a5f:0x5a4434,roughness:.9});
-  const gear=new T.MeshStandardMaterial({color:P?0x262d30:0x2a201b,roughness:.75});
-  const band=new T.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.7,roughness:.6});
-  const parts=[[SG.legs,gear,0,3,0],[SG.body,cloth,0,10,0],[SG.band,band,0,12.3,0],[SG.head,gear,.3,16.2,0],[SG.helm,gear,.2,16.6,0],[SG.pack,gear,-3.5,10.5,0],[SG.rifle,gear,5,11.5,2.2]];
-  for(const[geo,mat,x,y,z]of parts){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;pose.add(m);}
-  const ring=new T.Mesh(SG.ring,new T.MeshBasicMaterial({color:col,transparent:true,opacity:.85,depthWrite:false,toneMapped:false}));
-  ring.rotation.x=-Math.PI/2;ring.position.y=.5;g.add(ring);
-  let spot=null;
-  let beam=null;
-  if(P){spot=new T.SpotLight(0xd8e8ff,2.6,210,.42,.5,1.2);spot.position.set(4,14,0);const tg=new T.Object3D();tg.position.set(60,0,0);pose.add(spot,tg);spot.target=tg;
-    beam=new T.Mesh(SG.beam,SG.beamMat);beam.position.set(5,13.5,0);beam.rotation.z=-.24;beam.renderOrder=2;pose.add(beam);}
-  scene.add(g);u.m={g,pose,ring,spot,beam};
-}
+/* soldiers: built and animated in figure.js (Bryan's stylized squad) */
+function makeSoldier(u){return makeFigure(u);}
 // the reinforcement gun jeep: open tub, hood, wheels, roll bar, and a pintle machine gun on a turret ring at the back.
 // Front is +z (it drives south). The turret group turns to follow the gunner's aim.
 function makeJeep(){
@@ -641,24 +626,13 @@ function syncUnits(t){
     m.g.visible=!u.gone&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!u.detained));   // (a detained scientist is always with the squad: office.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)
     if(u.veh){truckPose(u);continue;}   // the gun truck (mission.js)
-    if((u.surr||u.cower||u.strapped)&&!m.arms){   // he gave up (layers.js), a scientist cowering, the man strapped to the wall (office.js): hands up; tied, behind his back
-      const mat=m.pose.children[1].material;
-      m.arms=[-1,1].map(sd=>{const a=new T.Mesh(new T.BoxGeometry(1.6,7,1.6),mat);a.position.set(.4,20,sd*2.7);a.rotation.x=sd*.22;a.castShadow=true;m.pose.add(a);return a;});
-      if(m.pose.children[6])m.pose.children[6].visible=false;
-    }
-    if(m.arms){const up=((!!u.surr&&!u.tied)||(!!u.cower&&!u.detained)||!!u.strapped)&&!u.dead&&!u.downed;for(const a of m.arms){a.visible=up;a.rotation.x=(a.position.z>0?1:-1)*(u.strapped?.7:.22);}}
-    if(m.rifle)m.rifle.visible=!!u.weapon&&!u.downed;   // a freed prisoner once he has a rifle
-    const lying=u.downed||u.dead||simT<(u.stunT||0);   // (knocked down by a dog: on the ground for a moment)
-    const vk=lying?0:u.vaultK||0,cr=!lying&&u.crawl;   // vaulting a window: leaning forward over the sill, tucked; in the sewer pipe: flat on his front
-    m.pose.rotation.z+=((lying?Math.PI/2:cr?-Math.PI/2:-.55*vk+(u.hitFlash>0?u.hitFlash*1.5:0))-m.pose.rotation.z)*.25;   // (a hit: he jerks back a moment)
-    const sneak=!lying&&u.path.length&&u.gait==='sneak';   // low, slow steps
-    m.pose.position.y=lying?2.6:cr?2+(u.path.length?Math.abs(Math.sin(t*5+u.y))*.35:0):(u.path.length&&!vk?Math.abs(Math.sin(t*(sneak?6:11)+u.x))*(sneak?.4:.9):0);
-    const crouch=!lying&&!cr&&!u.gunner&&(u.inVeh||u.inBoat?true:!u.path.length&&(u.side==='P'?u.covered&&contact:u.coverNow));   // riders sit low
-    m.pose.scale.y+=(((u.surr||(u.cower&&!u.detained))&&!lying?.62:u.detained&&!lying?.88:crouch?.7:vk?.78:sneak&&!cr?.8:1)-m.pose.scale.y)*.15;   // (on his knees once he's given up, or cowering; a detained scientist walks hunched)
-    m.ring.visible=!u.dead;m.ring.material.opacity=u.downed?.35:.85;
+    const lying=u.downed||u.dead||simT<(u.stunT||0),cr=!lying&&u.crawl;
+    if(m.fig){if(u.carriedBy)figCarried(u,m);figRefresh(u);figAnimate(u,m);}
+    m.ring.visible=!u.dead&&!u.carriedBy;m.ring.material.opacity=u.downed?.35:m.person&&u.side!=='P'?.45:.85;
     if(m.spot)m.spot.intensity=lying||cr?0:2.6;   // no torch while lying or crawling
     if(m.beam)m.beam.visible=!(lying||cr);
   }
+  for(const s of extraFigs)if(s.m&&s.m.g.parent){s.m.g.position.set(s.x,0,s.y);s.m.g.rotation.y=-s.ang;figAnimate(s,s.m);}   // (Level 1's wounded scout)
 }
 function lampLights(now){   // hand the pooled lights to the lamps nearest the view's centre
   const by=lamps.filter(L=>!L.floor||L.floor===curFloor).map(L=>({L,d:hyp(L.x-camT.x,L.y-camT.z)})).sort((a,b)=>a.d-b.d),edge=by[LAMP_POOL]?by[LAMP_POOL].d:1e9;

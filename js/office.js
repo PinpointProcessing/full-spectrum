@@ -46,20 +46,7 @@ function line(c,group,list,i,dur=3,col='#e9eef2',opt={}){
 
 /* ---------- people who aren't soldiers: their look ---------- */
 // prisoners in grey prison clothes (no helmet, no vest), scientists in white coats; a rifle shows once a freed man has one
-function makePerson(u){
-  const g=new T.Group(),pose=new T.Group();g.add(pose);const pri=u.kind==='prisoner';
-  let s=7;for(const ch of u.name)s=(s*31+ch.charCodeAt(0))|0;const r=rng(s);
-  const cloth=new T.MeshStandardMaterial({color:pri?0x7d8184:0xd6dad4,roughness:.95}),pants=new T.MeshStandardMaterial({color:pri?0x666a6c:0x2b2f36,roughness:.92});
-  const skin=new T.MeshStandardMaterial({color:[0xe3b896,0xc99268,0xa06a45,0x74472b,0xd6a07a][(r()*5)|0],roughness:.8}),hair=new T.MeshStandardMaterial({color:[0x1a1410,0x3a2a1c,0x6b5a44][(r()*3)|0],roughness:.9});
-  for(const[geo,mat,x,y,z]of[[SG.legs,pants,0,3,0],[SG.body,cloth,0,10,0],[SG.head,skin,.3,16.2,0]]){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;pose.add(m);}
-  const top=new T.Mesh(new T.SphereGeometry(2.4,10,6,0,Math.PI*2,0,Math.PI/2),hair);top.position.set(.1,16.6,0);pose.add(top);   // hair (no helmet)
-  if(!pri){const tail=new T.Mesh(new T.CylinderGeometry(3.2,3.6,4,8),cloth);tail.position.set(0,5.2,0);pose.add(tail);}   // the lab coat hangs below the waist
-  else{const no=new T.Mesh(new T.BoxGeometry(.4,1.6,2.4),new T.MeshBasicMaterial({color:0x2a2c2e}));no.position.set(3.2,11,0);pose.add(no);}   // a stencilled number on the shirt
-  const rifle=new T.Mesh(SG.rifle,new T.MeshStandardMaterial({color:0x2a201b,roughness:.75}));rifle.position.set(5,11.5,2.2);rifle.visible=false;pose.add(rifle);
-  const ring=new T.Mesh(SG.ring,new T.MeshBasicMaterial({color:new T.Color(u.side==='P'?teamCol(u):pri?'#9aa3a8':'#e8ecef'),transparent:true,opacity:u.side==='P'?.85:.45,depthWrite:false,toneMapped:false}));
-  ring.rotation.x=-Math.PI/2;ring.position.y=.5;g.add(ring);
-  scene.add(g);u.m={g,pose,ring,spot:null,beam:null,rifle,person:true};
-}
+function makePerson(u){return makeFigure(u);}   // (figure.js: grey jumpsuits, white coats; a rifle once a freed man has one)
 // one of them in the building: a 'C' unit (not a player, not a hostile; nobody targets him)
 function civ(kind,p,f){
   const u=mk('C','C','C'+(units.length+1),p.name||(kind==='sci'?'Scientist':'Prisoner'),p.x,p.y,p.ang??0);
