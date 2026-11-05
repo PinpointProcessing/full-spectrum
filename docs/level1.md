@@ -4,6 +4,9 @@ Bryan: "It's still really hard to get through. This has to be a tutorial map, a 
 warehouse? Maybe we should save this map for level two and add an easier map?"
 
 Built (Bryan: "okay lets build that and then keep the level 2 map in it's entirety"): `js/level1.js`, notes in `CLAUDE.md`.
+
+Bryan's playtest: "at the end, the radio relay - its confusing how your supposed to take it down. We will redesign Level 1 but
+for now it's good." Level 1 stays as it is until the redesign.
 What came out differently from the plan below:
 - The scout (beat 5) gets up when a soldier is sent to him (tap him with a soldier selected, 3 s); there's no carrying him. The
   checkpoint's medic station and ammo drop appear by the hut once the yard is clear, and a tip explains them.
