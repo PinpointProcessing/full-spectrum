@@ -5,7 +5,8 @@ low, dry banter, pleading, hit), and the voice is copied from the speaker's clip
 About 14 s of computing per second of speech on a 4-core CPU, so the whole cast (~2070 lines) takes about half a day: it
 stops cleanly after BUDGET seconds and picks up where it left off when run again.
   python gen_zonos.py CACHE [A1,A2,...] [--budget 6600] [--redo] [--max-lines 50]
---max-lines makes it stop (printing "pause") after that many takes: memory creeps up over a long run on CPU (heap
+--shard k/n takes only every n-th line from the k-th (to split one speaker between two copies; give each its own CACHE and
+merge the two afterwards). --max-lines makes it stop (printing "pause") after that many takes: memory creeps up over a long run on CPU (heap
 fragmentation; a copy grew from 5.3 to 8 GB in two hours and two copies were killed for memory), so run it in a loop.
 --redo makes one more take (_t1, then _t2) of each line check_zonos.py flagged (CACHE/<sp>/flagged.json), up to 3 in all."""
 import json,os,sys,time,zlib,torch,torchaudio
@@ -17,6 +18,7 @@ ORDER=['A1','A2','B1','B2','E1','E2','E3','S1','S2','S3','S4','A3','A4','B3','B4
 ONLY=args[1].split(',') if len(args)>1 else ORDER
 BUDGET=float(sys.argv[sys.argv.index('--budget')+1]) if '--budget' in sys.argv else 1e9;REDO='--redo' in sys.argv
 MAXN=int(sys.argv[sys.argv.index('--max-lines')+1]) if '--max-lines' in sys.argv else 10**9;made=0
+SH=tuple(int(v) for v in sys.argv[sys.argv.index('--shard')+1].split('/')) if '--shard' in sys.argv else None
 LANG={}   # everyone en-us: Zonos's en-gb mode came out empty or garbled on half the short lines; the British voices keep their accent from refs/
 #            happiness sadness disgust fear surprise anger other neutral, pitch range, speaking rate (phonemes/s)
 STYLE={'shout': ([.00,.00,.00,.35,.25,.60,.05,.00],110,18.),
@@ -40,7 +42,8 @@ for sp in [s for s in ORDER if s in ONLY]:
     flagged=json.load(open(f'{d}/flagged.json')) if REDO and os.path.exists(f'{d}/flagged.json') else []
     scored=json.load(open(f'{d}/scores.json')) if REDO and os.path.exists(f'{d}/scores.json') else {}
     E={'base':emb(sp)};E['hot']=emb('A1_hot') if sp=='A1' else E['base']   # (Reyes: his shouted clip for the intense lines)
-    for key,text,g in lines_for(sp):
+    for i,(key,text,g) in enumerate(lines_for(sp)):
+        if SH and i%SH[1]!=SH[0]:continue
         st=style_of(sp,g);mt=meta.setdefault(key,{'text':text,'style':st,'takes':[]})
         if REDO:
             if key not in flagged or len(mt['takes'])>=3 or mt['takes'][-1] not in scored:continue   # (one take a round: the newest waits for check_zonos.py)
