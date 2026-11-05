@@ -39,7 +39,8 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #cv{pointer-events:none}
 #ov{touch-action:none}
 #nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--dim);z-index:3}
-#banner{position:absolute;top:66px;left:50%;transform:translate(-50%,-6px);z-index:2;font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:4px;background:rgba(8,11,14,.86);border:1px solid var(--line);color:var(--text);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100% - 24px);text-align:center}
+#banner{position:absolute;top:66px;left:50%;transform:translate(-50%,-6px);z-index:2;font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:4px;background:rgba(8,11,14,.86);border:1px solid var(--line);color:var(--text);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;width:max-content;max-width:calc(100% - 24px);text-align:center}
+/* (max-content: centred with left:50%, it otherwise wrapped at half the screen's width) */
 #banner.show{opacity:1;transform:translate(-50%,0)}
 #tl{position:absolute;left:8px;top:8px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:min(calc(50% - 42px),240px);pointer-events:none}   /* clear of the ring at the top centre and its label */
 #tl>*{pointer-events:auto}

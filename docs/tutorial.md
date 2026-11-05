@@ -1,7 +1,19 @@
 # Tutorial draft: how to use your soldiers
 
 Bryan: "For a newbie, they would have no idea what to do. Can we draft a tutorial on how to use your soldier?"
-A draft for Bryan to approve before anything is built.
+Built in Level 1 (`js/level1.js`; Bryan approved the Level 1 plan in `docs/level1.md`, which puts the boot camp on its beach).
+What came out differently from the draft below:
+- Part 1 is on Level 1's beach, not after Level 2's landing. Step 1 leaves out twisting the view (drag and pinch only).
+- Instead of a Tutorial on/off switch on the intro card: "Skip tutorial" under the box (it reads "No more tips" while a tip
+  shows). The boot camp ends early if the player goes on ahead (leaves the beach, a guard down or alerted, contact).
+  "Try Level 1 again" doesn't repeat the boot camp, and keeps the tips off after a skip. Starting Level 1 from the intro card
+  always begins with the boot camp; Bryan to say if it should switch itself off once Level 1 is finished (that's stored).
+- Part 2: the tips for Level 1's situations are in (a guard seen, takedown, silencers, contact, pinned, grenades, man down,
+  the checkpoint, the scout, the relay and the RPG). Level 2's (the canal, the tower sniper, the pillbox gun, Breach, the
+  wounded on the exposed spot) are not built yet.
+- Text only, as planned.
+
+The draft:
 
 ## How it works
 

@@ -3,7 +3,15 @@
 Bryan: "It's still really hard to get through. This has to be a tutorial map, a first level. Maybe we should just scrap the
 warehouse? Maybe we should save this map for level two and add an easier map?"
 
-A plan for Bryan to approve before anything is built.
+Built (Bryan: "okay lets build that and then keep the level 2 map in it's entirety"): `js/level1.js`, notes in `CLAUDE.md`.
+What came out differently from the plan below:
+- The scout (beat 5) gets up when a soldier is sent to him (tap him with a soldier selected, 3 s); there's no carrying him. The
+  checkpoint's medic station and ammo drop appear by the hut once the yard is clear, and a tip explains them.
+- Its guards also see less far (21 m instead of 30).
+- The tips are only in Level 1 for now, so there's nothing to switch off in Level 2 yet.
+- Level 1 has no saves: a failed run starts again from the beach (without the boot camp the second time).
+
+The plan as approved:
 
 ## The idea
 
@@ -33,7 +41,7 @@ The enemy has a radio relay on the river. Knock it out so the main landing (Leve
 - The intro card gets Level 1 and Level 2 (Level 2 open from the start for now, so Bryan can still test it).
 - The tips switch off in Level 2 for anyone who has finished Level 1.
 
-## Questions for Bryan
+## Questions for Bryan (answered)
 
-- Go with this, or change the beats?
-- Keep the warehouse in Level 2 (my suggestion), or cut it there too?
+- Go with this, or change the beats? Bryan: "okay lets build that".
+- Keep the warehouse in Level 2 (my suggestion), or cut it there too? Bryan: "keep the level 2 map in it's entirety".

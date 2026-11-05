@@ -162,10 +162,10 @@ function leaveLevel1Now(){
   units=[...out.units,...players.filter(p=>!out.units.includes(p))];enemies=units.filter(u=>u.side==='E');civs=[];
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();tutShow();
 }
-function startLevel1(){
+function startLevel1(again){   // again: "Try Level 1 again"
   reset();   // (Level 2's squad, outdoors; back from Level 1 first if need be)
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
-  enterLevel1();state='play';tutStart();
+  enterLevel1();state='play';tutStart(again);
   banner('Level 1: knock out the enemy radio relay up north.',3200);hud();
 }
 function startLevel2(){
@@ -231,7 +231,7 @@ function l1Hint(){
 /* ---------- drawn on the overlay ---------- */
 function drawL1(now){
   if(MAPID!=='l1'||!L1||!L1.relay)return;
-  const st=tutStep();if(st&&st.mark){const m=st.mark,p=(Math.sin(now*4)+1)/2;gPath(m.x,m.y,m.r+p*4);ox.strokeStyle='#4df3ff';ox.lineWidth=2.4;ox.setLineDash([6,5]);ox.lineDashOffset=-now*12;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(m.x,m.y+m.r,6);label('HERE',lx,ly,'#4df3ff',10,700);}   // the boot camp's spot on the ground
+  const st=tutStep(),m=st&&(st.pick?tut.mk:st.mark);if(m){const p=(Math.sin(now*4)+1)/2;gPath(m.x,m.y,m.r+p*4);ox.strokeStyle='#4df3ff';ox.lineWidth=2.4;ox.setLineDash([6,5]);ox.lineDashOffset=-now*12;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(m.x,m.y+m.r,6);label('HERE',lx,ly,'#4df3ff',10,700);}   // the boot camp's spot on the ground
   const R=L1.relay,cx=R.x+R.w/2,cy=R.y+R.h/2;
   if(!l1.relayDown){const[lx,ly]=below(cx,cy+R.h/2,10);label(l1.relayHP<100?`RADIO RELAY · ${Math.max(0,Math.round(l1.relayHP))}%`:'RADIO RELAY',lx,ly,'#ff8a6a',10,700);}
 }
@@ -244,10 +244,12 @@ const l1NearSpot=(team,x,y,r)=>players.filter(p=>p.team===team&&alive(p)).every(
 const TUT_STEPS=[
   {text:'<b>Look around.</b> Drag the map with one finger. Pinch to zoom in and out.',done:()=>hyp(camT.x-tut.cam0.x,camT.z-tut.cam0.z)>50||Math.abs(zoom-tut.cam0.zoom)>.25},
   {text:'<b>Pick a team.</b> Tap <b>ALPHA</b> at the bottom to select Reyes and Kowalski.',glow:()=>$('.tab[data-team="A"]'),done:()=>sel.length===2&&sel.every(u=>u.team==='A')},
-  {text:'<b>Move into cover.</b> Tap the cyan ring behind the container. Green ghosts are in cover, red are exposed. Tap the same spot again to go.',mark:{x:300,y:792,r:26},done:()=>l1NearSpot('A',300,788,52)},
+  {text:'<b>Move into cover.</b> Tap the cyan ring behind the container. Green ghosts are in cover, red are exposed. Tap the same spot again to go.',mark:{x:334,y:781,r:24},done:()=>l1NearSpot('A',334,781,50)},
   {text:'<b>One man.</b> Tap Reyes\'s card to give orders to him alone. Tap it again for the whole team.',glow:()=>cardOf('A1'),done:()=>sel.length===1&&sel[0].id==='A1'},
   {text:'<b>Draw a route.</b> Drag from Reyes along the ground to draw his path, then lift your finger.',done:()=>tut.drew},
-  {text:'<b>Bring Bravo up.</b> Tap <b>BRAVO</b>, then the ring by the container, twice. <b>ALL</b> selects everyone.',glow:()=>$('.tab[data-team="B"]'),mark:{x:300,y:792,r:40},done:()=>l1NearSpot('B',300,788,84)},
+  {text:'<b>Bring Bravo up.</b> Tap <b>BRAVO</b>, then the ring by the container, twice. <b>ALL</b> selects everyone.',glow:()=>$('.tab[data-team="B"]'),
+   pick:()=>{const far=c=>Math.min(...players.filter(p=>p.team==='A'&&alive(p)).map(p=>hyp(p.x-c.x,p.y-c.y)));return[{x:266,y:781,r:24},{x:334,y:781,r:24}].sort((a,b)=>far(b)-far(a))[0];},   // the half of the container Alpha isn't in (a tap on one of Alpha would pick him instead)
+   done:()=>l1NearSpot('B',tut.mk.x,tut.mk.y,50)},
   {text:'<b>Stay hidden.</b> Near guards your men sneak by themselves. The ring at the top fills as a guard notices you; red wedges show where they look.',glow:()=>$('#alert'),timed:8},
 ];
 const TUT_TIPS=[
@@ -262,8 +264,15 @@ const TUT_TIPS=[
   {k:'scout',when:()=>l1.yardClear&&!l1.scoutUp&&tut.said.has('cp')&&simT-tut.tipAt>6,text:'<b>The scout.</b> Select a soldier and tap the wounded scout by the hut to bring him round.'},
   {k:'rpg',when:()=>l1.scoutUp&&!l1.relayDown,text:'<b>The relay.</b> Select Hayes, tap the <b>RPG</b> on his card, then tap the mast. A grenade close to it works too.',glow:()=>{const c=cardOf('B1');return c&&c.querySelector('.uc-spec');}},
 ];
-const tut={on:false,i:0,t0:0,drew:false,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99};
-function tutStart(){Object.assign(tut,{on:true,i:0,t0:simT,drew:false,said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99});tutShow();}
+const tut={on:false,i:0,t0:0,drew:false,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99,mk:null,campDone:false,skipped:false};
+const L1_BEACH={x0:60,x1:440,y0:700,y1:860};   // the boot camp's ground: anyone beyond it, a guard down or alerted, and it's over
+// again: "Try Level 1 again" after a failed run: no second boot camp if the first was done or skipped, no tips at all if skipped
+function tutStart(again){
+  if(!again){tut.campDone=false;tut.skipped=false;}
+  const keep=again&&(tut.campDone||tut.skipped);
+  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,mk:null});
+  tutShow();
+}
 function tutStop(){tut.on=false;tut.tip=null;tut.i=TUT_STEPS.length;tutShow();}
 function tutStep(){return tut.on&&tut.i<TUT_STEPS.length?TUT_STEPS[tut.i]:null;}
 // the box at the top: the boot camp's step, or a tip for a few seconds; the Skip button under it
@@ -271,16 +280,22 @@ function tutShow(){
   const box=$('#tut'),skip=$('#tutSkip');if(!box||!skip)return;
   const s=MAPID==='l1'&&state==='play'?tutStep():null,tip=MAPID==='l1'&&state==='play'&&tut.on&&!s?tut.tip:null;
   if(s)box.innerHTML=`<small>Boot camp ${tut.i+1}/${TUT_STEPS.length}</small>${s.text}`;else if(tip)box.innerHTML=`<small>Tip</small>${tip.text}`;
-  box.hidden=!(s||tip);skip.hidden=!tut.on||MAPID!=='l1'||state!=='play';
+  box.hidden=!(s||tip);skip.hidden=box.hidden;skip.textContent=s?'Skip tutorial':'No more tips';
   if(!box.hidden)skip.style.top=(box.offsetTop+box.offsetHeight+6)+'px';
+  placeBanner();
 }
+// the banner goes under the box and its button while they're up, so the two never overlap (Bryan: no text piled up at the top)
+function placeBanner(){const b=$('#banner'),box=$('#tut'),skip=$('#tutSkip');if(!b)return;
+  b.style.top=box&&!box.hidden?(skip.offsetTop+skip.offsetHeight+6)+'px':'';}
 function tutTickL1(dt){
   if(MAPID!=='l1'||!tut.on||state!=='play')return;
   // what to touch pulses (cards are rebuilt as the selection changes, so it's looked up every tick)
   const s=tutStep(),want=s&&s.glow?s.glow():tut.tip&&tut.tip.glow?tut.tip.glow():null;
   for(const el of document.querySelectorAll('.tutGlow'))if(el!==want)el.classList.remove('tutGlow');
   if(want&&!want.classList.contains('tutGlow'))want.classList.add('tutGlow');
-  if(s){if(s.timed?simT-tut.t0>=s.timed:s.done()){tut.i++;tut.t0=simT;tut.tipAt=simT;tutShow();}return;}
+  if(s&&(contact||enemies.some(e=>e.dead||e.alerted)||players.some(p=>alive(p)&&!(p.x>L1_BEACH.x0&&p.x<L1_BEACH.x1&&p.y>L1_BEACH.y0&&p.y<L1_BEACH.y1)))){   // gone on ahead: the rest of the boot camp is dropped, the tips take over
+    tut.i=TUT_STEPS.length;tut.campDone=true;tut.tipAt=simT-2;tutShow();return;}
+  if(s){if(s.timed?simT-tut.t0>=s.timed:s.done()){tut.i++;tut.t0=simT;tut.tipAt=simT;const n=tutStep();if(n&&n.pick)tut.mk=n.pick();if(!n)tut.campDone=true;tutShow();}return;}
   if(tut.tip&&simT-tut.tipAt>8){tut.tip=null;tutShow();}   // a tip stays up 8 s (or until the next one)
   if(simT-tut.tipAt<2.5)return;   // (not one on top of another)
   for(const t of TUT_TIPS)if(!tut.said.has(t.k)&&t.when()){tut.said.add(t.k);tut.tip=t;tut.tipAt=simT;tutShow();break;}

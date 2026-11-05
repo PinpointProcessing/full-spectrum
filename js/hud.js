@@ -1,7 +1,7 @@
 "use strict";
 /* DOM HUD: status chip, banner, squad rows, action buttons, keyboard, end screen. */
 let bannerTimer=0;
-function banner(text,ms=2400){const b=$('#banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
+function banner(text,ms=2400){const b=$('#banner');if(typeof placeBanner==='function')placeBanner();b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
 // the hint line's word on where to go, by where the squad is (Bryan: clearing areas is optional; the data center is the goal)
 function objHint(){
   if(obj===4)return'Take a scientist to the drawbridge\'s bio scanner (north-east): send a soldier to the panel by the moat.';
@@ -123,12 +123,12 @@ function bindHud(){
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>startLevel2());
   $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
-  $('#tutSkip').addEventListener('click',()=>{tutStop();banner('Tutorial off. The hint line at the bottom still says what to do.',2600);});
+  $('#tutSkip').addEventListener('click',()=>{const camp=!!tutStep();tutStop();tut.skipped=true;banner(camp?'Tutorial off. The hint line at the bottom still says what to do.':'Tips off.',2600);});
   $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){startLevel2();return;}state='play';endAt=0;hud();});   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
-  $('#againBtn').addEventListener('click',()=>{if(LEVEL===1){startLevel1();return;}startLevel2();});
+  $('#againBtn').addEventListener('click',()=>{if(LEVEL===1){startLevel1(true);return;}startLevel2();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}
