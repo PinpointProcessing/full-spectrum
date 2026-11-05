@@ -83,10 +83,20 @@ function paintL1Ground(g){
   // puddles catching the lamplight
   for(let i=0;i<24;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-140),rx=8+r()*26,ry=5+r()*12;g.save();g.translate(x,y);g.rotate(r()*3);g.fillStyle='rgba(30,44,56,.32)';g.beginPath();g.ellipse(0,0,rx,ry,0,0,7);g.fill();g.restore();}
 }
+// how rough each bit of Level 1's ground is: the same puddles as the colour picture (same seed and order), mirror-smooth
+function paintL1Rough(q){
+  const w=L1B.x1-L1B.x0,h=L1B.y1-L1B.y0,X=L1B.x0,Y=L1B.y0;q.setTransform(1,0,0,1,-X,-Y);
+  q.fillStyle='rgb(186,186,186)';q.fillRect(X,Y,w,h);
+  q.fillStyle='rgb(232,232,232)';q.fillRect(X,780,w,82);   // dry sand up the beach
+  q.fillStyle='rgb(150,150,150)';q.fillRect(40,150,640,142);   // the concrete pad
+  // (the puddles: replay paintL1Ground's random numbers up to its puddles)
+  const r=rng(4242);for(let i=0;i<11000;i++){r();r();r();r();r();}for(let i=0;i<46;i++){r();r();r();}for(let i=0;i<900;i++){r();r();r();r();r();}
+  for(let i=0;i<24;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-140),rx=8+r()*26,ry=5+r()*12;q.save();q.translate(x,y);q.rotate(r()*3);q.fillStyle='rgb(14,14,14)';q.beginPath();q.ellipse(0,0,rx,ry,0,0,7);q.fill();q.restore();}
+}
 function disposeL1(){
   if(!L1||!L1.scene)return;
   L1.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){for(const m of[].concat(o.material)){if(m.map&&m.map!==L1.tex)m.map.dispose();m.dispose();}}});
-  if(L1.tex)L1.tex.dispose();L1=null;
+  if(L1.tex)L1.tex.dispose();if(L1.rtex)L1.rtex.dispose();L1=null;
 }
 function buildLevel1(){
   disposeL1();
@@ -96,10 +106,11 @@ function buildLevel1(){
   const fc=document.createElement('canvas');fc.width=Math.round((L1B.x1-L1B.x0)*L1S);fc.height=Math.round((L1B.y1-L1B.y0)*L1S);
   paintL1Ground(fc.getContext('2d'));
   const tex=new T.CanvasTexture(fc);tex.encoding=T.sRGBEncoding;tex.anisotropy=4;L1.canvas=fc;L1.tex=tex;
+  const rc=document.createElement('canvas');rc.width=L1B.x1-L1B.x0;rc.height=L1B.y1-L1B.y0;paintL1Rough(rc.getContext('2d'));L1.rtex=new T.CanvasTexture(rc);
   const keep=scene;scene=sc;   // build into Level 1's scene (addMesh, meshObjs, makeDinghy and makeSoldier add to `scene`)
   try{
     const gw=L1B.x1-L1B.x0,gh=L1B.y1-L1B.y0;
-    const ground=new T.Mesh(new T.PlaneGeometry(gw,gh),new T.MeshStandardMaterial({map:tex,roughness:.88,metalness:.14}));
+    const ground=new T.Mesh(new T.PlaneGeometry(gw,gh),wetGround(new T.MeshStandardMaterial({map:tex,roughnessMap:L1.rtex,roughness:1,metalness:.14}),gw,gh));
     ground.rotation.x=-Math.PI/2;ground.position.set((L1B.x0+L1B.x1)/2,0,(L1B.y0+L1B.y1)/2);ground.receiveShadow=true;sc.add(ground);
     // beyond the edges: dark ground west, north and east; the river runs on south
     const om=new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}),E=2500;

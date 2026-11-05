@@ -336,7 +336,7 @@ function resolveShot(s){
   const sg=u.weapon==='shotgun';   // a shotgun: a spread of pellets, hard hits close, less with range
   if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
-  if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0});   // a silencer hides the flash
+  if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0,u});   // a silencer hides the flash
   t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t):1));   // machine guns, sniper rounds and shotgun blasts pin people down
   if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(t.side==='P'&&Math.random()<.45)sfxGrunt(t,false);}   // (an enemy's cry is in damage())   // a hit: the thud, and often a grunt
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');s.hit=false;}   // armour: it sparks off
@@ -362,7 +362,7 @@ function suppressShot(u){
   const hit=t&&Math.random()<hitChance(u,t,L)*0.35;
   const aa=u.ang+(Math.random()-.5)*0.12,dd=hyp(L.tx-L.fx,L.ty-L.fy)+(hit?0:Math.random()*20-14);
   const ex=hit?L.tx:L.fx+Math.cos(aa)*dd,ey=hit?L.ty:L.fy+Math.sin(aa)*dd;
-  tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163',q});if(q)lastNoiseT=simT;else flashes.push({x:L.fx,y:L.fy,t:0});
+  tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163',q});if(q)lastNoiseT=simT;else flashes.push({x:L.fx,y:L.fy,t:0,u});
   if(typeof sfxShot==='function'&&q)sfxShot(u,true);
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
   const hv=u.weapon==='hmg';for(const{e}of tg){e.sup=Math.min(1.2,e.sup+(hv?0.24:0.17));e.alerted=true;}   // (the heavy gun pins harder, and faster)

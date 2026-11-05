@@ -6,7 +6,9 @@ const FOG=0x06090d;
 let renderer,scene,camera,_v,_o,_d,gtex,rtex,SG;
 function initGL(){
   if(!T)return false;
-  try{renderer=new T.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});}
+  // with WebGL2 the post-processing draws the scene with its own 4x anti-aliasing (post.js), so the page's canvas needn't pay for it too
+  let gl2=false;try{const t=document.createElement('canvas').getContext('webgl2');gl2=!!t;if(t){const x=t.getExtension('WEBGL_lose_context');if(x)x.loseContext();}}catch(e){}
+  try{renderer=new T.WebGLRenderer({canvas:cv,antialias:!gl2,powerPreference:'high-performance'});}
   catch(e){return false;}
   renderer.outputEncoding=T.sRGBEncoding;
   renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
@@ -116,16 +118,16 @@ function drawGround(){
   gcan.width=Math.round(W*GS);gcan.height=Math.round(MH*GS);rcan.width=W;rcan.height=MH;
   const g=gcan.getContext('2d'),q=rcan.getContext('2d');g.setTransform(GS,0,0,GS,0,-TOP*GS);q.setTransform(1,0,0,1,0,-TOP);
   const r=rng(1337);
-  g.fillStyle='#4c4f52';g.fillRect(0,TOP,W,MH);q.fillStyle='rgb(210,210,210)';q.fillRect(0,TOP,W,MH);
+  g.fillStyle='#4c4f52';g.fillRect(0,TOP,W,MH);q.fillStyle='rgb(182,182,182)';q.fillRect(0,TOP,W,MH);
   for(let y=TOP;y<H;y+=75)for(let x=0;x<W;x+=75){g.fillStyle=(r()<.5?'rgba(255,255,255,':'rgba(0,0,0,')+(0.03+r()*0.07).toFixed(3)+')';g.fillRect(x,y,75,75);}
   g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=1;
   for(let x=0;x<=W;x+=75){g.beginPath();g.moveTo(x+.5,TOP);g.lineTo(x+.5,H);g.stroke();}
   for(let y=TOP;y<=H;y+=75){g.beginPath();g.moveTo(0,y+.5);g.lineTo(W,y+.5);g.stroke();}
   for(let i=0;i<15000;i++){g.fillStyle=r()<.5?'rgba(255,255,255,.07)':'rgba(0,0,0,.22)';g.fillRect(r()*W,TOP+r()*MH,r()*1.6+.4,r()*1.6+.4);}
   for(let i=0;i<60;i++){const x=r()*W,y=TOP+r()*MH,rad=8+r()*34,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.4)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
-  for(let i=0;i<28;i++){
+  for(let i=0;i<56;i++){   // puddles: darker, and smooth enough to catch the lamps
     const x=20+r()*(W-40),y=TOP+20+r()*(MH-40),rx=10+r()*32,ry=6+r()*16,a=r()*Math.PI;
-    for(const[c,fill]of[[g,'rgba(40,52,64,.2)'],[q,'rgb(30,30,30)']]){c.save();c.translate(x,y);c.rotate(a);c.fillStyle=fill;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.fill();c.restore();}
+    for(const[c,fill]of[[g,'rgba(36,48,60,.26)'],[q,'rgb(16,16,16)']]){c.save();c.translate(x,y);c.rotate(a);c.fillStyle=fill;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.fill();c.restore();}
   }
   g.setLineDash([16,14]);g.strokeStyle='rgba(222,186,70,.55)';g.lineWidth=3;g.beginPath();g.moveTo(310,890);g.lineTo(310,585);g.stroke();g.setLineDash([]);
   g.strokeStyle='rgba(0,0,0,.3)';g.lineWidth=4;
@@ -284,7 +286,7 @@ function buildWorld(){
   const linkTex=canvasTex(32,32,(g,w,h)=>{g.strokeStyle='#c8cdd2';g.lineWidth=1.6;g.beginPath();g.moveTo(0,0);g.lineTo(w,h);g.moveTo(w,0);g.lineTo(0,h);g.stroke();});
   drawGround();
   const atex=new T.CanvasTexture(acan);
-  const ground=new T.Mesh(new T.PlaneGeometry(W,H-TOP),new T.MeshStandardMaterial({map:gtex,roughnessMap:rtex,roughness:1,metalness:.18,alphaMap:atex,alphaTest:.5}));
+  const ground=new T.Mesh(new T.PlaneGeometry(W,H-TOP),wetGround(new T.MeshStandardMaterial({map:gtex,roughnessMap:rtex,roughness:1,metalness:.18,alphaMap:atex,alphaTest:.5}),W,H-TOP));
   ground.rotation.x=-Math.PI/2;ground.position.set(W/2,0,(H+TOP)/2);ground.receiveShadow=true;scene.add(ground);
   // the ground beyond the map: four strips round it (not one big plane under it, so the moat stays bottomless)
   {const om=new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}),E=2500;
@@ -654,6 +656,6 @@ function render(rdt,now){
   const fl=flashes.slice(-2);
   for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=(MAPID==='in'?6:4.5)*(1-f.t/.07);}else m.intensity=0;}   // muzzle flashes light the scene up (most of all indoors)
   const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18,b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;
-  renderer.render(scene,camera);
+  fxFrame();postRender(scene,camera);   // (post.js: bloom, the grade, vignette, grain; or straight to the screen)
   drawOverlay(rdt,now);
 }

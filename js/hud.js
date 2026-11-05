@@ -132,6 +132,7 @@ function bindHud(){
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}
+    else if(e.key==='g'||e.key==='G'){POST.manual=true;postTier((POST.tier+2)%3);banner(['Graphics: plain','Graphics: medium','Graphics: full'][POST.tier],1400);}
     else if(e.key==='Escape'){$('#clearBtn').click();}
     else if(e.key==='r'||e.key==='R')gaitOrDismount();
     else if(e.key==='q'||e.key==='Q')turnCam(-Math.PI/12);else if(e.key==='e'||e.key==='E')turnCam(Math.PI/12);

@@ -121,10 +121,7 @@ function drawOverlay(rdt,now){
     toSBack=false;const k=1-t.t/.12,[x1,y1]=toS(t.x1,t.y1,12),[x2,y2]=toS(t.x2,t.y2,10),s=Math.max(0,t.t/.12-.35);if(toSBack)continue;
     ox.strokeStyle=`rgba(${t.col},${(t.q?.45:.9)*k})`;ox.lineWidth=t.q?1.2:1.8;ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();   // (silenced: fainter. A comment had swallowed the drawing, so no tracers showed at all)
   }
-  for(const f of flashes){const[sx,sy]=toS(f.x,f.y,12),k=1-f.t/.07,r=4+zoom*2.2;   // a muzzle flash: a hot core and spikes
-    const g=ox.createRadialGradient(sx,sy,0,sx,sy,r*1.8);g.addColorStop(0,`rgba(255,250,220,${(.95*k).toFixed(3)})`);g.addColorStop(.35,`rgba(255,200,110,${(.7*k).toFixed(3)})`);g.addColorStop(1,'rgba(255,140,40,0)');
-    ox.fillStyle=g;ox.beginPath();ox.arc(sx,sy,r*1.8,0,TAU);ox.fill();
-    ox.strokeStyle=`rgba(255,235,180,${(.8*k).toFixed(3)})`;ox.lineWidth=1.2;ox.beginPath();for(let i=0;i<4;i++){const a=i*Math.PI/2+f.x;ox.moveTo(sx,sy);ox.lineTo(sx+Math.cos(a)*r*2.4,sy+Math.sin(a)*r*2.4);}ox.stroke();}
+  // (muzzle flashes: 3D sprites at the muzzle now, which the bloom makes glow: post.js's fxFrame)
   for(const s of sparks){const[sx,sy]=toS(s.x,s.y,6),k=1-s.t/.22;ox.fillStyle=`rgba(255,200,120,${k})`;for(let i=0;i<4;i++){const a=i*1.7+s.x,d=2+s.t*40;ox.fillRect(sx+Math.cos(a)*d,sy+Math.sin(a)*d,1.6,1.6);}}
   for(const b of booms){const k=b.t/.6;gPath(b.x,b.y,10+70*k);ox.strokeStyle=`rgba(255,200,130,${1-k})`;ox.lineWidth=3*(1-k)+1;ox.stroke();}
   ox.globalCompositeOperation='source-over';

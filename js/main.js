@@ -4,16 +4,16 @@ function resize(){
   const r=stage.getBoundingClientRect();
   cw=Math.max(1,r.width);ch=Math.max(1,r.height);
   dpr=Math.min(2,window.devicePixelRatio||1);
-  renderer.setPixelRatio(Math.min(1.5,dpr));renderer.setSize(cw,ch,false);
+  renderer.setPixelRatio(POST.tier===0?1:Math.min(1.5,dpr));renderer.setSize(cw,ch,false);
   ov.width=Math.round(cw*dpr);ov.height=Math.round(ch*dpr);
   camera.aspect=cw/ch;camera.updateProjectionMatrix();
-  fitDist();initRain();
+  fitDist();initRain();postSize();
 }
 
 /* ---------- loop ---------- */
 let last=performance.now(),hudT=0;
 function frame(nowMs){
-  const rdt=Math.min(.05,(nowMs-last)/1000);last=nowMs;
+  const raw=(nowMs-last)/1000,rdt=Math.min(.05,raw);last=nowMs;postWatch(raw);
   if(state==='play'){
     const dt=rdt*timeScale();if(dt>0)update(dt);
     if(!reduced&&!paused&&MAPID!=='in'){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
@@ -46,6 +46,7 @@ addEventListener('pagehide',()=>{try{sessionStorage.removeItem('wy.alive');}catc
 /* ---------- boot ---------- */
 if(!initGL())$('#nogl').hidden=false;
 else{
+  postInit();
   bindInput();bindHud();bindAudio();bindVoice();bindFloors();refreshSaveButtons();crashNote();
   buildWorld();reset();
   new ResizeObserver(resize).observe(stage);resize();
