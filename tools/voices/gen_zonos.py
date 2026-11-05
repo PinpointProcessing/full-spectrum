@@ -26,7 +26,7 @@ STYLE={'shout': ([.00,.00,.00,.35,.25,.60,.05,.00],110,18.),
        'dry':   ([.35,.15,.10,.00,.05,.00,.20,.20], 60,14.),
        'fear':  ([.00,.35,.00,.50,.25,.15,.00,.10], 90,16.),   # (heavy fear comes out breathy)
        'pain':  ([.00,.40,.10,.30,.30,.45,.00,.00],120,17.)}
-SAY={'Reyes':'Ray-ess','Lindqvist':'Lindkvist'}   # names said the way they sound (Zonos read Reyes as "raise")
+SAY={'Reyes':'Rayess','Lindqvist':'Lindquist'}   # names said the way they sound: plain Reyes came out "raise", Ray-ess as "Ray, yes" (stress on both halves; Bryan), Lindkvist garbled
 def spoken(t):
     for a,b in SAY.items():t=t.replace(a,b)
     return t
