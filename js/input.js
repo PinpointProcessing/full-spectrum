@@ -268,7 +268,7 @@ function tap(sx,sy){
   if(en&&sel.length){
     for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}
     if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up
-    callout(en,contact?'Focus fire':'Open fire!',C.warn);say(sel[0],'ack_attack');return;
+    callout(en,sel.some(caught)?'Focus fire':'Open fire!',C.warn);say(sel[0],'ack_attack');return;
   }
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}

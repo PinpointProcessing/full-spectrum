@@ -198,7 +198,7 @@ function enterBuilding(force){   // (force: a Continue from the checkpoint insid
     enemies=units.filter(u=>u.side==='E');civs=units.filter(u=>u.side==='C');
     const gf=IN.floors.GF,ez=zoneOf(gf,'entry-spawn')||{x0:gf.bounds.x0+40,x1:gf.bounds.x1-40,y0:gf.bounds.y1-90,y1:gf.bounds.y1-20},spots=slotsIn(ez,going.length);
     going.forEach((p,i)=>{const s=spots[i]||spots[0]||{x:(ez.x0+ez.x1)/2,y:(ez.y0+ez.y1)/2};p.x=s.x;p.y=s.y;p.ang=-Math.PI/2;});
-    contact=false;sel=sel.filter(u=>going.includes(u));cardGroup=cardGroup.filter(u=>going.includes(u));
+    contact=false;clearTeams();sel=sel.filter(u=>going.includes(u));cardGroup=cardGroup.filter(u=>going.includes(u));
     setFloor('GF',{x:(ez.x0+ez.x1)/2,y:(ez.y0+ez.y1)/2-110});zoom=2.4;clampCam();updateCamera();
     objCompleted(1);updateObjUI();setStatus();buildCards();hud();floorChip();
     banner('Find the scientists on the top floor',3000);saveGame('dci');   // getting in is a checkpoint (Bryan): the lobby's medic station and ammo drop are right here
@@ -223,7 +223,7 @@ function exitBuilding(){
     for(const p of players)p.offMap=false;
     const spots=slotsIn(DC_ENTER,back.length+sci.length);[...back,...sci].forEach((p,i)=>{const s=spots[i]||{x:245,y:-410};Object.assign(p,{x:s.x,y:s.y,path:[],ang:Math.PI/2,peek:null,stairs:null,lift:null});});
     VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();camT={x:245,z:-380};zoom=2.4;yaw=out.cam.yaw;tilt=out.cam.tilt;clampCam();updateCamera();
-    contact=false;sel=[];cardGroup=[];floorChip();
+    contact=false;clearTeams();sel=[];cardGroup=[];floorChip();
     obj=4;objCompleted(2);updateObjUI();setStatus();buildCards();hud();saveGame('sci');
     setTimeout(()=>{if(state==='play'&&obj===4)banner('Take a scientist to the drawbridge\'s bio scanner',3500);},OBJ_LIST_T);
   });
@@ -263,7 +263,7 @@ function bindFloors(){
 /* ---------- noise and contact inside ---------- */
 // a shot or a blast at (x,y) (and where it lands, x2,y2) alerts the hostiles on that floor who'd hear it: anyone in the
 // same room, in sight within IN_HEAR_OPEN, through walls within IN_HEAR_WALL
-function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL,room=true){   // room=false: not everyone in the room (a silenced shot)
+function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL,room=true,who){   // room=false: not everyone in the room (a silenced shot)
   const f=floorOf(x,y),fl=IN.floors[f];let any=false;
   const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]],rooms=fl&&room?pts.map(([px,py])=>roomAt(fl,px,py)).filter(Boolean):[];
   const hears=e=>{if(fl&&rooms.includes(roomAt(fl,e.x,e.y)))return true;
@@ -272,7 +272,7 @@ function alertNear(x,y,msg,ambush,x2,y2,lk,open=IN_HEAR_OPEN,wall=IN_HEAR_WALL,r
     if(e.dead||e.alerted||e.surr||e.floor!==f||!hears(e))continue;
     alertOne(e,lk||{x,y},ambush);any=true;   // (hunt.js: he'll come looking where the noise was)
   }
-  if(any)startContact(msg,ambush);   // an ambush only if it caught someone unaware
+  if(any)startContact(msg,ambush,who||lk);   // an ambush only if it caught someone unaware (who: whose team gave itself away, hunt.js)
   return any;
 }
 let inQuietT=0;

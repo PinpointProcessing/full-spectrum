@@ -20,7 +20,7 @@ function inWatch(u,e){
 // hostile who has just come into a watcher's cone
 function watchTick(){
   for(const u of players){
-    if(!alive(u)||u.offMap||!contact||u.path.length||u.carry||u.onGun||u.climb||u.inVeh||u.supT){if(u.watch){u.watch=null;u.watchIn=[];}continue;}
+    if(!alive(u)||u.offMap||!caught(u)||u.path.length||u.carry||u.onGun||u.climb||u.inVeh||u.supT){if(u.watch){u.watch=null;u.watchIn=[];}continue;}
     if(!u.watch||simT-u.watch.t>.5){
       const fl=MAPID==='in'?floorOf(u.x,u.y):null;let best=null,bd=1e9;
       for(const e of enemies){if(beaten(e)||!e.seen)continue;const p=e.vis?e:e.last;if(!p)continue;if(fl&&floorOf(p.x,p.y)!==fl)continue;const d=hyp(p.x-u.x,p.y-u.y);if(d<bd){bd=d;best=p;}}

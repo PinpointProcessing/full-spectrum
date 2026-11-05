@@ -15,9 +15,10 @@ function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
   const quiet=enemies.some(e=>!e.dead&&e.alerted)?'Hunted':'Undetected';   // hunted: they're searching for you (hunt.js)
-  if(wave.phase==='hq'){s.textContent=contact?'Contact':obj>=5?'Bridge down':quiet;s.className='chip'+(contact?' contact':'');return;}
+  const hid=contact?[...new Set(players.filter(p=>alive(p)&&!p.offMap&&!caught(p)).map(p=>teamName(p.team)))]:[],cTxt=hid.length?hid.join(' & ')+' hidden':'Contact';   // (one team caught, the other still covert: hunt.js)
+  if(wave.phase==='hq'){s.textContent=contact?cTxt:obj>=5?'Bridge down':quiet;s.className='chip'+(contact?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
-  s.textContent=contact?'Contact':quiet;s.className='chip'+(contact?' contact':'');
+  s.textContent=contact?cTxt:quiet;s.className='chip'+(contact?' contact':'');
 }
 function finish(){
   if(typeof tutStop==='function'&&MAPID==='l1')tutStop();
@@ -80,7 +81,7 @@ function hud(){
   else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else if(breachSpot())h='BREACH at the doorway: tap it and the team stacks up either side, then goes in together with a quick edge.';
-  else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire, hold on one to suppress him.':'Tap the ground to preview positions. Tap a hostile to open fire, hold on one to suppress him.';
+  else h=act.some(caught)?'Tap the ground to preview positions. Tap an enemy to focus fire, hold on one to suppress him.':contact?'They haven\'t seen this team: it sneaks and holds fire. Tap a hostile to open fire (an ambush), or slip round them.':'Tap the ground to preview positions. Tap a hostile to open fire, hold on one to suppress him.';
   $('#hint').textContent=h;
   {const ob=$('#obj');if(ob)ob.hidden=state!=='play';}
 }

@@ -161,9 +161,9 @@ function drawOverlay(rdt,now){
               text=pending?`2ND SHOT · ${by.id} ${pct}%`:`SILENT SHOT ${pct}% · ${volleyFree(act).length} READY`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
           }
           else{
-            let best=0,bc=0,lean=false;
-            for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;}}
-            if(best>0){const pct=Math.round(best*100);text=`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing()?' · ambush':''}`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
+            let best=0,bc=0,lean=false,bu=null;
+            for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;bu=u;}}
+            if(best>0){const pct=Math.round(best*100);text=`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing(bu)?' · ambush':''}`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
             else{text='no line';col='#7d8a94';}
           }
           pc=e._pill={t:nowMs,key,stalked,text,col};
@@ -201,7 +201,7 @@ function drawOverlay(rdt,now){
     }
     // calm, unhurt and not selected: just his callsign, faint (the dark world breathes: docs/feel-plan.md); the bars come back
     // when he's selected, hurt, suppressed or in a fight
-    if(!contact&&!sel.includes(u)&&u.hp>=99&&u.sup<.08&&!u.carry){ox.globalAlpha=.55;label(u.id,fx,fy+15,teamCol(u),9,700);ox.globalAlpha=1;continue;}
+    if(!caught(u)&&!sel.includes(u)&&u.hp>=99&&u.sup<.08&&!u.carry){ox.globalAlpha=.55;label(u.id,fx,fy+15,teamCol(u),9,700);ox.globalAlpha=1;continue;}
     bar(hx-9,hy-6,18,u.hp/100,u.hp>60?C.good:u.hp>30?C.warn:C.bad);
     shield(hx+16,hy-4,peekOf(u)?C.warn:u.covered?C.good:C.bad);
     label(u.id,fx,fy+15,teamCol(u),9,700);

@@ -159,7 +159,7 @@ function enterLevel1(){
   players.forEach((p,i)=>{const s=L1_START[i]||L1_START[0];p.x=s[0];p.y=s[1];p.ang=-Math.PI/2;});
   units=[...players];MAPID='l1';LEVEL=1;
   spawnL1();enemies=units.filter(u=>u.side==='E');civs=[];
-  resetL1();mission.t0=simT;contact=false;sel=[];cardGroup=[];
+  resetL1();mission.t0=simT;contact=false;clearTeams();sel=[];cardGroup=[];
   VB={x0:L1B.x0,z0:L1B.y0,x1:L1B.x1,z1:L1B.y1};FIT.w=L1B.x1-L1B.x0+40;FIT.h=L1B.y1-L1B.y0+40;fitDist();
   zoom=2.4;yaw=0;tilt=0;camT={x:250,z:770};clampCam();updateCamera();
   l1Acts();updateObjUI();setStatus();buildCards();hud();

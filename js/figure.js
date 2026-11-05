@@ -448,7 +448,7 @@ function poseTorso(u,F,st,gait,P){
   }
   // base: standing, moving, crouching in cover, aiming, leaning out, vaulting
   const aim=armed&&(simT-(u.aimT||-9)<1.4||!!u.watch||!!u.supT||!!(u.silent)||!!(u.breach));
-  const crouch=!gait.mv&&(u.side==='P'?(u.covered&&contact):!!u.coverNow);
+  const crouch=!gait.mv&&(u.side==='P'?(u.covered&&caught(u)):!!u.coverNow);
   const vk=u.vaultK||0,unarmed=!armed;
   if(gait.mv){
     const bob=Math.cos(F.phase*TAU2*2);P.hipsP.set(0,gait.hip-(gait.run?.45:.22)*(1+bob)*.5,0);
@@ -520,7 +520,7 @@ function poseLimbs(u,F,st,gait,P){
     for(let s=0;s<2;s++){const f=stepFoot(F,gait,s),side=s?1:-1,a=P.footE[s]=P.footA[s];FT[s].set(f.x*ux,f.y,f.x*uz+side*(gait.run?.95:1.08));a[0]=0;a[1]=side*-.1;a[2]=f.pitch;K[s].set(1,0,side*.12);}
   }else if(st==='surr'||st==='tied'){FT[0].set(-3.4,.6,-1.1);FT[1].set(-3.4,.6,1.1);K[0].set(1,-.6,-.05);K[1].set(1,-.6,.05);}
   else if(st==='cower'){FT[0].set(.7,ANKLE,-1.4);FT[1].set(.7,ANKLE,1.4);K[0].set(1,0,-.5);K[1].set(1,0,.5);flat(0);flat(1);}
-  else if(st==='kneelwork'||(st==='base'&&!gait.mv&&(u.side==='P'?(u.covered&&contact):!!u.coverNow))){
+  else if(st==='kneelwork'||(st==='base'&&!gait.mv&&(u.side==='P'?(u.covered&&caught(u)):!!u.coverNow))){
     FT[0].set(1.9,ANKLE,-1.25);K[0].set(1,.25,-.2);flat(0);FT[1].set(-3.1,.72,1.2);K[1].set(1,-.6,.1);
   }else if(st==='strapped'){FT[0].set(.3,ANKLE,-1.3);FT[1].set(.3,ANKLE,1.3);flat(0);flat(1);}
   else if(st==='grabbed'){FT[0].set(1.8,ANKLE,-1.1);FT[1].set(2.2,ANKLE,1.1);flat(0);flat(1);}

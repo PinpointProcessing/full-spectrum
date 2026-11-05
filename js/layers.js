@@ -132,7 +132,7 @@ function zipTick(dt){
 /* ---------- enemy grenades ---------- */
 function enemyNade(e){
   if(e.dog||e.gunner||e.rpg||e.surr||!e.alerted||(e.nade??1)<1||simT<(e.nadeT||0))return false;
-  const tg=players.filter(p=>alive(p)&&!p.offMap&&!p.path.length&&simT-(p.stillT??simT)>=ENADE.camp&&hyp(p.x-e.x,p.y-e.y)<=ENADE.range&&los(e.x,e.y,p.x,p.y))[0];
+  const tg=players.filter(p=>alive(p)&&!p.offMap&&(!contact||caught(p))&&!p.path.length&&simT-(p.stillT??simT)>=ENADE.camp&&hyp(p.x-e.x,p.y-e.y)<=ENADE.range&&los(e.x,e.y,p.x,p.y))[0];
   if(!tg)return false;
   e.nade=0;e.nadeT=simT+20;e.throwT=simT;const tx=tg.x+(Math.random()-.5)*20,ty=tg.y+(Math.random()-.5)*20;
   nades.push({x0:e.x,y0:e.y,x1:tx,y1:ty,t:0,dur:ENADE.warn,by:e,enemy:true});bark(e,'grenade',true);callout(tg,'Grenade!',C.bad);chatFrag(tg);

@@ -6,7 +6,7 @@
 const HQ_ZONES=[];   // {k:'med'|'sup',x,y (centre),r,col,label}
 // each area's pair: where the medic station and the ammo drop stand (centres); the ring is big enough for the whole squad
 const REST_ZONES={
-  wh:[{k:'med',x:237,y:363},{k:'sup',x:383,y:363}],
+  wh:[{k:'med',x:240,y:445},{k:'sup',x:375,y:445}],   // (Bryan: in the middle of the warehouse, past the front crates and short of the centre crate in the back, where nobody outside can see in; the old spots were in a line of sight through the back door)
   br:[{k:'med',x:380,y:188},{k:'sup',x:572,y:188}],
   maze:[{k:'med',x:485,y:-100},{k:'sup',x:485,y:-186}],   // (on the bridge's road, between the container rows)
   dco:[{k:'med',x:300,y:-398},{k:'sup',x:170,y:-398}],   // (in front of the building, west of the doors)

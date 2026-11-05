@@ -30,7 +30,7 @@ function saveGame(stage){
 // put the game back at the saved checkpoint: the areas cleared stay cleared (their stations back), the rest get fresh defenders
 function continueGame(){
   const s=readSave();if(!s)return false;
-  reset();state='play';contact=false;landing=null;
+  reset();state='play';contact=false;clearTeams();landing=null;
   if(s.alert){alertT=s.alert.t||0;alertMax=s.alert.max||0;}
   const cleared=new Set(s.cleared||[]);
   hq={t0:simT,tour:null,toured:true};

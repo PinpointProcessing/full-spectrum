@@ -22,7 +22,25 @@ const LOST_T=2.5,HUNT_T=35,CONTACT_END=10,LEASH=320,FLANK_T=4,PUSHERS=2;
 const CALL_T=5,REINF_N=3,REINF_WARN=10,REINF_MAX=2;
 const DOG={walk:30,run:72,bite:14,biteT:1.6,stun:.5,smell:170,hp:45};
 let huntTickT=0,barkAllT=0,barkHardT=0,reinf=null,reinfLeft={},reinfN=0,searched=[];
-function resetHunt(){huntTickT=0;barkAllT=0;barkHardT=0;reinf=null;reinfLeft={};reinfN=0;searched=[];}
+function resetHunt(){huntTickT=0;barkAllT=0;barkHardT=0;reinf=null;reinfLeft={};reinfN=0;searched=[];clearTeams();}
+// Detection by fire team (Bryan: "If one squad is caught and the other remains undetected, then that squad can continue in a
+// covert fashion"): teamSeen[t] while team t is caught. contact (any team caught) still drives the enemy side; the squad's own
+// ways (sneaking, holding fire, takedowns, the ambush, Watch, shifting to cover) go by caught(u). A team is caught when one of
+// its men is spotted, or it's heard firing; it goes covert again on its own once nobody has seen it for CONTACT_END s and it
+// hasn't fired for 3 s. While one team is caught, alerted men don't see the other all round: they notice it the way an unaware
+// man would, only quicker (senseCovert in combat.js).
+let teamSeen={},teamSawT={},teamNoiseT={},teamAmbT={};
+function clearTeams(){teamSeen={};teamSawT={};teamNoiseT={};teamAmbT={};}
+const caught=u=>contact&&(teamSeen[u.team]??!Object.keys(teamSeen).length);   // (contact with no team marked, the old way: everyone)
+const TEAM_NAME={A:'Alpha',B:'Bravo'};
+const teamName=t=>TEAM_NAME[t]||t;
+// who gave the squad away: a soldier (his team), or a point (the teams of anyone within 9 m of it); with no telling, everyone
+// if it's the first contact, nobody new otherwise
+function teamsOf(who){
+  if(who&&who.side==='P')return[who.team];
+  if(who&&who.x!=null){const t=[...new Set(players.filter(p=>alive(p)&&!p.offMap&&hyp(p.x-who.x,p.y-who.y)<90).map(p=>p.team))];if(t.length)return t;}
+  return contact?[]:[...new Set(players.filter(alive).map(p=>p.team))];
+}
 
 /* ---------- who hears what ---------- */
 function alertOne(e,lk,ambush){
@@ -31,32 +49,47 @@ function alertOne(e,lk,ambush){
   if(lk)e.lkp={x:lk.x,y:lk.y,t:simT};
   if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);
 }
-function startContact(msg,amb){
-  if(contact)return;contact=true;
+function startContact(msg,amb,who){
+  const ts=teamsOf(who),fresh=ts.filter(t=>!teamSeen[t]);
+  for(const t of ts){teamSeen[t]=true;teamSawT[t]=simT;if(amb&&fresh.includes(t))teamAmbT[t]=simT+AMBUSH_T;}
+  if(contact){if(fresh.length){banner(fresh.map(teamName).join(' and ')+(amb?' opened fire.':' spotted.'),1800);setStatus();}return;}   // (the other team was caught already)
+  contact=true;
   chatContact(amb);   // "Contact, two o'clock!" ... "Return fire!" (chatter.js)
   if(amb)ambushT=simT+AMBUSH_T;
-  banner(amb?'Ambush! They never saw it coming.':msg||'Contact. They know you are here.',2200);setStatus();
+  const hid=[...new Set(players.filter(p=>alive(p)&&!teamSeen[p.team]).map(p=>p.team))];
+  banner((amb?'Ambush! They never saw it coming.':msg||'Contact. They know you are here.')+(hid.length?` ${hid.map(teamName).join(' and ')} still hidden.`:''),2400);setStatus();
+}
+// a shot heard by men already alerted (fighting the other team): they know where it came from now, and so the shooter's team
+// is caught (a quiet silenced shot further off than SIL's reach isn't heard)
+function heardNow(x,y,open,wall){
+  let any=false;
+  for(const e of enemies){
+    if(e.dead||e.surr||!e.alerted||(MAPID==='in'&&e.floor!==floorOf(x,y)))continue;
+    const d=hyp(e.x-x,e.y-y);if(d<=wall||(d<=open&&gridSight(x,y,e.x,e.y))){e.lkp={x,y,t:simT};e.sawT=simT;any=true;}
+  }
+  return any;
 }
 // outdoors: who hears a sound at (x,y) (and where a shot lands, x2,y2); lk is where they'll think the squad is
-function alertOut(x,y,msg,ambush,x2,y2,lk,open=OUT_HEAR_OPEN,wall=OUT_HEAR_WALL){
+function alertOut(x,y,msg,ambush,x2,y2,lk,open=OUT_HEAR_OPEN,wall=OUT_HEAR_WALL,who){
   const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]];let any=false;
   for(const e of enemies){
     if(e.dead||e.alerted||e.surr)continue;
     if(!pts.some(([px,py])=>{const d=hyp(e.x-px,e.y-py);return d<=wall||(d<=open&&gridSight(px,py,e.x,e.y));}))continue;
     alertOne(e,lk||{x,y},ambush);any=true;
   }
-  if(any)startContact(msg,ambush);
+  if(any)startContact(msg,ambush,who||lk);
   return any;
 }
 // a man who spots the squad shouts: those near him know too
 function shout(e,src){
   alertOne(e,src,false);bark(e,'spot',true);
   if(MAPID==='in')alertNear(e.x,e.y,null,false,null,null,src,IN_SHOUT,IN_SHOUT*.5);
-  else alertOut(e.x,e.y,null,false,null,null,src,SHOUT_R,SHOUT_R*.5);
-  startContact('Contact. You have been spotted.',false);
+  else alertOut(e.x,e.y,null,false,null,null,src,SHOUT_R,SHOUT_R*.5,src);
+  startContact('Contact. You have been spotted.',false,src);
 }
-// an alerted man who can see a soldier: where he is now
-function seenBy(e){let best=null,bd=1e9;for(const p of players){if(!alive(p)||p.offMap)continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<=380&&d<bd&&fireLine(e,p)){bd=d;best=p;}}return best;}
+// an alerted man who can see a soldier: where he is now. While one team is caught he sees that team's men all round; the
+// other team's he has to notice (senseCovert in combat.js). Each team he sees counts as seen just now (teamSawT)
+function seenBy(e){let best=null,bd=1e9;for(const p of players){if(!alive(p)||p.offMap||(contact&&!caught(p)))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<=380&&fireLine(e,p)){teamSawT[p.team]=simT;if(d<bd){bd=d;best=p;}}}return best;}
 
 /* ---------- the hunt ---------- */
 // alerted, but nobody in sight for LOST_T s: push to where they were, or search round it; give up after HUNT_T s
@@ -133,7 +166,7 @@ function radioTick(dt){
 function callIn(e){
   const lk=e.lkp||{x:e.x,y:e.y};
   for(const o of enemies)if(!o.dead&&!o.alerted&&(MAPID!=='in'||o.floor===e.floor))alertOne(o,lk,false);
-  startContact(null,false);
+  startContact(null,false,lk);   // (the team they had: whoever's near where he last saw the squad)
   if(typeof sfxSiren==='function')sfxSiren(e.x,e.y);
   const g=e.grp??nearArea(),left=reinfLeft[g]??REINF_MAX;   // (per area: at most REINF_MAX waves each)
   if(MAPID==='out'&&left>0&&!reinf){reinfLeft[g]=left-1;reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:e.x,y:e.y},obj:g};banner('They called it in. Reinforcements are coming.',3000);}
@@ -254,9 +287,16 @@ function huntTick(dt){
     const inside=MAPID==='in',quiet=inside?IN_QUIET:CONTACT_END;
     const floors=inside?new Set(players.filter(p=>alive(p)&&!p.offMap).map(p=>floorOf(p.x,p.y))):null;
     const seen=enemies.some(e=>!e.dead&&e.alerted&&(!floors||floors.has(e.floor))&&simT-(e.sawT??-99)<quiet);
-    if(!seen&&simT-lastNoiseT>3&&!reinf){
-      contact=false;setStatus();setTimeout(()=>{if(!contact)chatStatus();},1800);   // the lead checks on whoever's hurt (chatter.js)
-      if(enemies.some(e=>!e.dead&&e.alerted))banner('They lost you. They are searching.',2400);   // (nobody left looking: no message, the location's own messages take over)
+    // each caught team on its own: unseen for a while and quiet, it's covert again (the other may still be fighting)
+    const left=[];
+    for(const t of Object.keys(teamSeen)){
+      if(!teamSeen[t])continue;
+      const up=players.some(p=>p.team===t&&alive(p)&&!p.offMap);
+      if(!up||(simT-(teamSawT[t]??-99)>=quiet&&simT-(teamNoiseT[t]??-99)>3&&!reinf)){teamSeen[t]=false;if(up)left.push(t);}
     }
+    if(!Object.values(teamSeen).some(Boolean)&&((!seen&&simT-lastNoiseT>3&&!reinf)||left.length)){
+      contact=false;clearTeams();setStatus();setTimeout(()=>{if(!contact)chatStatus();},1800);   // the lead checks on whoever's hurt (chatter.js)
+      if(enemies.some(e=>!e.dead&&e.alerted))banner('They lost you. They are searching.',2400);   // (nobody left looking: no message, the location's own messages take over)
+    }else if(left.length){banner(left.map(teamName).join(' and ')+' slipped away. They\'re hidden again.',2400);setStatus();}
   }
 }

@@ -103,7 +103,8 @@ function statusText(u){
   if(u.supT)return['Suppressing',''];
   if(u.vaultK)return['Vaulting',''];
   if(u.path.length)return[u.gait==='sneak'?'Sneaking':'Running',''];
-  if(contact)return[peekOf(u)?'Peeking':u.covered?'In cover':'Exposed',''];
+  if(caught(u))return[peekOf(u)?'Peeking':u.covered?'In cover':'Exposed',''];
+  if(contact)return['Hidden',''];   // (his team still unseen while the other fights: hunt.js)
   return['Ready',''];
 }
 // called from hud(): which cards show, and their text

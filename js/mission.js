@@ -157,7 +157,7 @@ function checkpointTick(){
   for(const n of[0,1,2,3])if(!finished[n]&&groups[n]&&groupDone(n)&&simT-lastNoiseT>=CP_QUIET)clearArea(n);
 }
 function clearArea(n){
-  const A=AREAS[n];finished[n]=true;contact=false;
+  const A=AREAS[n];finished[n]=true;contact=false;clearTeams();
   bigText('Checkpoint','clear');banner(`${A.name[0].toUpperCase()+A.name.slice(1)} is clear. A medic station and an ammo drop are here.`,3200);chatSecured();
   addZones(REST_ZONES[A.k]);saveGame(A.k);setStatus();updateObjUI();
   // (Bryan: no tips in Level 2: the first checkpoint's camera tour of the station and the drop is gone; their rings say what they are)

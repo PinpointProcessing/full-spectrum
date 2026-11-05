@@ -72,3 +72,11 @@ Bryan: "Here is everything from my testing."
 12. "The corner near the bridge, can you open that up instead of enclosing it. That would make it easier to ambush/flank the
    bridge." The container that closed the first aisle by the bridge is gone; the tower's sniper now faces the bridge's
    south approach, so he can't look down the aisle at the pipe (the quiet route still went unseen in the scripted run).
+
+13. "Nobody should be able to see the units inside the warehouse while they are collecting medical and resupply. Can you move
+   the two circles to the middle of the warehouse? Right after the boxes and before the center box in the back." Moved there;
+   a script checked every spot in both rings against every enemy post (none sees in). The old ones were partly in a line of
+   sight through the back door.
+14. "If one squad is caught and the other remains undetected, then that squad can continue in a covert fashion." Detection is
+   by fire team now: the hidden team keeps sneaking, holds fire, can take men down quietly and ambush, and isn't shot at;
+   alerted men have to notice it (their cone, or close by) instead of seeing it all round; each team breaks contact on its own.
