@@ -17,6 +17,12 @@ What came out differently from the draft below:
   everything else back until it's done (picking soldiers is allowed where the tip needs it; the camera, Pause and Fit map
   always work); anything else shakes the bubble ("Do this first"). Tips that only tell you something end with a tap on them.
   The slow motion is for tips that ask for something, not the boot camp's steps (nothing's happening on the beach).
+- Bryan, playtesting v65: the level after the beach is led step by step: a dotted line for the boot camp's drawn route, then
+  the takedown (Reyes to a ring behind the shed guard, then tap him), the double silent shot (Alpha to a ring by the gate, then
+  tap one guard, then the other), into the yard (everyone to a ring by the barrels), suppress (hold a finger on a guard: the
+  Suppress button is gone) and a grenade; then the checkpoint, the scout and the radio tower (a ring under it, the RPG button
+  lit in Bravo's colour). Move steps end once the move is ordered, so the game isn't in slow motion while they walk. No tips
+  in Level 2.
 - Text only, as planned.
 
 The draft:

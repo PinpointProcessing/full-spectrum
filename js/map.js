@@ -88,13 +88,15 @@ O('wtower',TOWER.x-12,TOWER.y-12,24,24);
 // point of the containers is for stealth"): three rows on the north bank, long sides east-west, most double-stacked (nobody
 // sees over), with gaps to slip through and no long sight lines; the bridge's road runs north through the middle. From the
 // sewer pipe's north mouth (between the first row's west containers) you weave north to the road. Lightly guarded.
-for(const[y,row]of[[26,[[10,56,1],[140,110,2],[262,56,1],[760,80,1],[900,90,2]]],
-                   [-84,[[20,110,2],[160,120,2],[310,100,1],[560,110,2],[700,120,2],[850,130,1]]],
-                   [-164,[[40,120,2],[190,100,1],[320,90,2],[560,90,1],[680,130,2],[840,120,2]]]])
+// Bryan, playtesting: the rows stop 4.5 m short of the map's edges (a strip you can walk and hide in at each end), no slot
+// that looks like a gap but isn't (the first row's two west-middle containers meet), and the first aisle is open at its
+// east end by the bridge, a way to flank it (the tower's sniper faces the bridge's south approach, so he can't look down it)
+for(const[y,row]of[[26,[[45,40,1],[140,122,2],[262,56,1],[760,80,1],[900,50,2]]],
+                   [-84,[[45,85,2],[160,120,2],[310,100,1],[560,110,2],[700,120,2],[850,100,1]]],
+                   [-164,[[45,115,2],[190,100,1],[320,90,2],[560,90,1],[680,130,2],[840,110,2]]]])
   row.forEach(([x,w,st],i)=>box(x,y,w,34,(x+i*3)>>4,st));
-box(320,-50,34,76,5,2);   // the west half's first aisle closed at its east end: the tower's sniper can't look down it from the bridge
 O('barrel',236,-40,14,14,{col:'#4a5a3a'});O('pallet',700,-30,26,18);O('crate',880,-120,22,18);   // odds and ends in the aisles
-const CONT_W={x0:10,x1:420,y0:-178,y1:62},CONT_E={x0:550,x1:990,y0:-178,y1:62},CONT_ZONE={x0:10,x1:990,y0:-178,y1:62};   // (its men keep to their half until they hunt)
+const CONT_W={x0:12,x1:420,y0:-178,y1:62},CONT_E={x0:550,x1:988,y0:-178,y1:62},CONT_ZONE={x0:12,x1:988,y0:-178,y1:62};   // (its men keep to their half until they hunt)
 const MAZE_ZONE=CONT_ZONE;   // (older name, still used by saves' area list)
 // between the containers and the road: a little cover for the last dash
 O('barrier',140,-196,52,12);O('crate',600,-196,26,22);O('car',735,-204,40,22);

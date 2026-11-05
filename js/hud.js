@@ -31,7 +31,7 @@ function finish(){
   if(LEVEL===1&&!win){$('#endText').textContent='The squad went down. Try again: keep to cover, and let the guards come to you.';$('#againBtn').textContent='Try Level 1 again';$('#retryBtn').hidden=true;$('#end').hidden=false;return;}
   $('#endText').textContent=win
     ?`Cleared in ${mm}:${ss}. ${downCount} time${downCount===1?'':'s'} a soldier went down, ${kia} killed in action.`
-    :`The squad held out for ${mm}:${ss}. Try pinning one side of the room with Suppress while a fire team works around to the west window or the east door.`;
+    :`The squad held out for ${mm}:${ss}. Try pinning one side of the room (hold your finger on an enemy to suppress him) while a fire team works around to the west window or the east door.`;
   refreshSaveButtons();$('#end').hidden=false;
 }
 /* ---------- HUD ---------- */
@@ -40,9 +40,6 @@ function hitCue(k){const el=$('#hitFlash');if(!el)return;el.style.transition='no
 function hud(){
   updateCards();
   const act=sel.filter(alive);
-  $('#supBtn').disabled=!act.length||!enemies.some(e=>!beaten(e)&&e.seen);
-  {const wb=$('#watchBtn'),bb=$('#breachBtn');wb.disabled=!act.length;wb.classList.toggle('on',mode==='watch'||act.some(u=>u.watch));bb.hidden=!(MAPID==='in'||(MAPID==='out'&&!finished[0]&&players.some(p=>alive(p)&&p.y>200)));bb.disabled=!act.length;bb.classList.toggle('on',mode==='breach'||!!breach);}
-  $('#supBtn').classList.toggle('on',mode==='suppress');
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
   {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
    gb.disabled=!act.length;gb.classList.toggle('on',forced);gb.setAttribute('aria-pressed',forced);
@@ -58,13 +55,10 @@ function hud(){
   const sp=$('#speed');sp.hidden=!(state==='play'&&ts<1);sp.textContent=paused?'Paused':'Slow-mo';
   let h;
   if(ptr&&ptr.kind==='lasso')h='Draw a loop round the soldiers you want.';
-  else if(mode==='suppress')h='Tap an enemy to pin him down. Pinned enemies barely shoot back.';
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap where to throw. Inside the dashed circle he throws from where he is; further off he moves to a safe spot first. Tap the grenade on his card again to cancel.';
   else if(mode==='rpg')h=`Tap where to fire the rocket (big blast; not closer than 6 m). Out of reach or out of sight, he moves to a safe spot first. ${sel[0]?sel[0].specN:0} left. Tap the RPG on his card again to cancel.`;
-  else if(mode==='watch')h='Tap where to watch. They take cover facing that way and fire first at anything that comes into the cone, even before they are seen.';
-  else if(mode==='breach')h='Tap the room to breach. The team stacks up at its doorway, then goes in together with a quick edge.';
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
   else if(mode==='silent')h=`Tap a hostile marked SILENT SHOT (one who hasn't noticed you, within 20 m): an aimed quiet shot. ${sel[0]?sel[0].specN:0} left on the silencer. Tap it again to cancel.`;
   else if(mode==='smoke')h='Tap where to throw smoke: nobody sees through it, either way, for about 12 s. Further off than the circle, he moves up first. Tap the smoke on his card again to cancel.';
@@ -85,7 +79,8 @@ function hud(){
   else if(act.length>1&&volleyCrew(act).length>1&&enemies.some(e=>canVolley(act,e)))h='Two silencers: tap a hostile marked SILENT SHOT for one man, then a second for the other, and they fire together. Tap the same hostile twice to fire at once.';
   else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
-  else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire.':'Tap the ground to preview positions. Tap a hostile to open fire.';
+  else if(breachSpot())h='BREACH at the doorway: tap it and the team stacks up either side, then goes in together with a quick edge.';
+  else h=contact?'Tap the ground to preview positions. Tap an enemy to focus fire, hold on one to suppress him.':'Tap the ground to preview positions. Tap a hostile to open fire, hold on one to suppress him.';
   $('#hint').textContent=h;
   {const ob=$('#obj');if(ob)ob.hidden=state!=='play';}
 }
@@ -115,9 +110,6 @@ function bindHud(){
   $('#allBtn').addEventListener('click',()=>{if(tutAllows('tab','all'))tabSelect(players.filter(alive));});
   const gaitOrDismount=()=>{if(state!=='play'||!tutAllows('btn','gait'))return;const cr=sel.filter(u=>u.carry),c=selCrew();if(cr.length){for(const u of cr)putDown(u);}else if(c.length){const out=dismount(c);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
   $('#gaitBtn').addEventListener('click',gaitOrDismount);
-  $('#supBtn').addEventListener('click',()=>{if(state!=='play'||!tutAllows('btn','sup'))return;mode=mode==='suppress'?null:'suppress';preview=null;hud();});
-  $('#watchBtn').addEventListener('click',()=>{if(state!=='play'||!tutAllows('btn','watch'))return;const act=sel.filter(alive);if(mode!=='watch'&&act.some(u=>u.watch)&&!mode){endWatch(act);hud();return;}mode=mode==='watch'?null:'watch';preview=null;hud();});   // on Watch already: a press ends it
-  $('#breachBtn').addEventListener('click',()=>{if(state!=='play'||!tutAllows('btn','breach'))return;if(breach){breach=null;hud();return;}mode=mode==='breach'?null:'breach';preview=null;hud();});
   $('#clearBtn').addEventListener('click',()=>{if(!tutAllows('btn','clear'))return;if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});

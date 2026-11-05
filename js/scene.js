@@ -261,7 +261,38 @@ function buildOurBoxes(){
     const roof=addMesh(new T.BoxGeometry(w+6,2.4,d+6),rm,cx,TOPH+1.6,cz);ourRoofs.push({roof,b});
   }
 }
-function addMesh(geo,mat,x,y,z,ry){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;}
+function addMesh(geo,mat,x,y,z,ry){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;m.castShadow=true;m.receiveShadow=true;scene.add(m);if(meshOwner)(meshOwner.meshes=meshOwner.meshes||[]).push(m);return m;}
+// See-through cover (Bryan: "When my players are behind a wall or object, that object should turn translucent. I think Dark
+// Descent did this"): a few times a second, anything tall standing between the camera and one of our men fades to
+// see-through, and comes back once he's clear. Inside the office building the walls are cut low already.
+let meshOwner=null;   // the map object meshObjs is building: addMesh files its meshes under it (o.meshes)
+const SEE_H=15,SEE_SKIP=new Set(['gate','tower','wtower','pylon','bridge','gatehouse','gtower','fortwall','pit','relay','void','water']),fadeObjs=new Set();let seeT=0;
+function segHitsBox(ax,ay,az,bx,by,bz,x0,y0,z0,x1,y1,z1){   // does the segment a-b pass through the box? (slabs)
+  let t0=0,t1=1;const d=[bx-ax,by-ay,bz-az],o=[ax,ay,az],lo=[x0,y0,z0],hi=[x1,y1,z1];
+  for(let k=0;k<3;k++){
+    if(Math.abs(d[k])<1e-9){if(o[k]<lo[k]||o[k]>hi[k])return false;continue;}
+    let ta=(lo[k]-o[k])/d[k],tb=(hi[k]-o[k])/d[k];if(ta>tb){const q=ta;ta=tb;tb=q;}
+    t0=Math.max(t0,ta);t1=Math.min(t1,tb);if(t0>t1)return false;
+  }
+  return t1>0&&t0<.97;   // (not the bit right at his feet)
+}
+function seeThrough(rdt){
+  seeT-=rdt;
+  if(seeT<=0){
+    seeT=.12;const c=camera.position,hit=new Set();
+    if(MAPID!=='in')for(const p of players){
+      if(p.dead||p.offMap||p.carriedBy)continue;const ty=(p.downed?3:p.crawl?2:11)+(p.elev||0);
+      for(const o of objs){if(!o.meshes||SEE_SKIP.has(o.kind)||objHeight(o)<SEE_H)continue;if(segHitsBox(c.x,c.y,c.z,p.x,ty,p.y,o.x,0,o.y,o.x+o.w,objHeight(o),o.y+o.h))hit.add(o);}
+    }
+    for(const o of hit){if(!fadeObjs.has(o)){fadeObjs.add(o);for(const m of o.meshes)if(!m.userData.ownMat){m.material=m.material.clone();m.userData.ownMat=true;}}o.fadeTo=.28;}   // (its own materials, so nothing else fades with it)
+    for(const o of fadeObjs)if(!hit.has(o))o.fadeTo=1;
+  }
+  for(const o of fadeObjs){
+    o.fadeA=(o.fadeA??1)+((o.fadeTo??1)-(o.fadeA??1))*Math.min(1,rdt*7);const done=o.fadeTo===1&&o.fadeA>.985;
+    for(const m of o.meshes){const mt=m.material;mt.opacity=done?1:o.fadeA;mt.transparent=!done;mt.depthWrite=done||o.fadeA>.9;}
+    if(done){o.fadeA=1;fadeObjs.delete(o);}
+  }
+}
 const lamps=[
   {x:310,y:566,h:22,c:0xffa860,i:3.4,d:260,flick:1},
   {x:30,y:560,h:40,c:0xffa860,i:2.8,d:300,pole:1},
@@ -343,6 +374,7 @@ function buildWorld(){
   meshObjs=list=>{
   const bagList=[];
   for(const o of list){
+    meshOwner=o;o.meshes=null;   // (see-through cover: seeThrough)
     const cx=o.x+o.w/2,cz=o.y+o.h/2,hz=o.w>=o.h,len=hz?o.w:o.h,th=hz?o.h:o.w,ry=hz?0:Math.PI/2;
     if(o.kind==='container'){
       const m=texMat(corrTex,len/7,1,{color:o.col,roughness:.6,metalness:.35});
@@ -525,6 +557,7 @@ function buildWorld(){
     }
   }
   // sandbags as one instanced mesh
+  meshOwner=null;
   if(!bagList.length)return;
   const bagMat=new T.MeshStandardMaterial({color:0xffffff,roughness:1});
   const bags=new T.InstancedMesh(bagGeo,bagMat,bagList.length);
@@ -658,7 +691,7 @@ function lampLights(now){   // hand the pooled lights to the lamps nearest the v
 let shakeK=0;
 function shake(k){if(!reduced)shakeK=Math.min(1.2,Math.max(shakeK,k*(timeScale()<1?.4:1)));}   // blasts and machine guns nearby (muted in slow-mo)
 function render(rdt,now){
-  updateCamera();syncUnits(now);
+  updateCamera();syncUnits(now);seeThrough(rdt);
   if(shakeK>.002){const a=shakeK*4;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a*.6;camera.position.z+=(Math.random()-.5)*a;camera.updateMatrixWorld();shakeK=Math.max(0,shakeK-rdt*3);}
   if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
   for(const{roof,b}of ourRoofs){const m=roof.material,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1);m.opacity+=((inside?.15:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in our pillboxes

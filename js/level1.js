@@ -177,7 +177,7 @@ function startLevel1(again){   // again: "Try Level 1 again"
   reset();   // (Level 2's squad, outdoors; back from Level 1 first if need be)
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   enterLevel1();state='play';tutStart(again);
-  banner('Level 1: knock out the enemy radio relay up north.',3200);hud();
+  banner('Level 1: knock out the enemy radio tower up north.',3200);hud();
 }
 function startLevel2(){
   LEVEL=2;clearSave();refreshSaveButtons();reset();startView();
@@ -194,14 +194,14 @@ function scoutUp(u){
   l1.scoutUp=true;const s=L1.scout;
   if(s&&s.m){s.downed=false;s.x=L1_SCOUT.x-10;s.y=L1_SCOUT.y-18;s.ang=-Math.PI/2;}   // up on his feet by the door
   if(u)u.stats.revives++;
-  callouts.push({x:L1_SCOUT.x,y:L1_SCOUT.y,t:0,dur:4,text:'Thanks. The relay\'s the mast, east of the hut.',col:'#dfe6ea',small:true});
-  banner('Scout back on his feet. Now bring down the relay mast.',3000);hud();
+  callouts.push({x:L1_SCOUT.x,y:L1_SCOUT.y,t:0,dur:4,text:'Thanks. The radio tower\'s east of the hut.',col:'#dfe6ea',small:true});
+  banner('Scout back on his feet. Now bring down the radio tower: Hayes\'s RPG.',3000);hud();
 }
 function l1Blast(x,y,by){   // (from tankBlast: every grenade and rocket)
   if(MAPID!=='l1'||!L1||!L1.relay||l1.relayDown)return;
   const d=rectDist(x,y,L1.relay);if(d>60)return;
   l1.relayHP-=d<25?100:70*(1-d/60);L1.relay.hitT=simT;
-  if(l1.relayHP<=0)relayDown();else banner('The relay\'s damaged. Hit it again.',2000);
+  if(l1.relayHP<=0)relayDown();else banner('The tower\'s damaged. Hit it again.',2000);
 }
 function relayDown(){
   l1.relayDown=true;const R=L1.relay,cx=R.x+R.w/2,cy=R.y+R.h/2;
@@ -209,7 +209,7 @@ function relayDown(){
   if(R.light)R.light.visible=false;
   for(let k=0;k<6;k++)sparks.push({x:cx+(Math.random()-.5)*20,y:cy+(Math.random()-.5)*20,t:-k*.06});
   booms.push({x:cx,y:cy,t:0});shake(.9);if(typeof sfxSparks==='function')sfxSparks(cx,cy);
-  banner('Relay down. They\'re deaf and blind.',2600);
+  banner('Radio tower down. They\'re deaf and blind.',2600);
   setTimeout(()=>l1Win(),1800);
 }
 function l1Win(){
@@ -228,23 +228,30 @@ function l1Tick(dt){
   if(L1.relay&&L1.relay.light)L1.relay.light.visible=!l1.relayDown&&Math.sin(simT*4)>0;   // the mast's warning light blinks
   if(!l1.yardClear&&L1.yard.every(beaten)&&simT-lastNoiseT>2){   // the yard clear: a checkpoint by the relay hut
     l1.yardClear=true;addZones(L1_REST);bigText('Checkpoint','clear');
-    banner('Yard clear. A medic station and an ammo drop are by the relay hut.',3200);chatSecured();updateObjUI();
+    banner('Yard clear. A medic station and an ammo drop are by the hut.',3200);chatSecured();updateObjUI();
   }
 }
 function l1Hint(){
   if(tutStep())return '';   // (the boot camp's box says it)
-  if(l1.relayDown)return 'Relay down.';
+  if(l1.relayDown)return 'Radio tower down.';
   if(!L1.yard.every(beaten))return L1.fence.every(beaten)?(L1.gate.every(beaten)?'Clear the yard: get into cover first, then fire. The ambush gives you an edge.':'Two guards at the gate: Alpha\'s silencers can drop them together. Select Alpha and tap each one.'):'One guard by the shed has his back to you: select one soldier and tap him to take him down.';
-  if(!l1.scoutUp)return 'A wounded scout lies by the relay hut: select a soldier and tap him to bring him round.';
-  return 'Bring down the relay mast east of the hut: Hayes\'s RPG or a grenade close to it.';
+  if(!l1.scoutUp)return 'A wounded scout lies by the hut: select a soldier and tap him to bring him round.';
+  return 'Bring down the radio tower east of the hut: Hayes\'s RPG (on his card) at the ring under it, or a grenade close to it.';
 }
 
 /* ---------- drawn on the overlay ---------- */
 function drawL1(now){
   if(MAPID!=='l1'||!L1||!L1.relay)return;
-  const st=tutStep(),m=st&&(st.pick?tut.mk:st.mark);if(m){const p=(Math.sin(now*4)+1)/2;gPath(m.x,m.y,m.r+p*4);ox.strokeStyle='#4df3ff';ox.lineWidth=2.4;ox.setLineDash([6,5]);ox.lineDashOffset=-now*12;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(m.x,m.y+m.r,6);label('HERE',lx,ly,'#4df3ff',10,700);}   // the boot camp's spot on the ground
+  const st=tutStep(),tip=!st&&tut.on&&tut.tip&&!tut.ack&&!tut.loose?tut.tip:null,src=st||tip;
+  const m0=src&&(st&&st.pick?tut.mk:typeof src.mark==='function'?src.mark():src.mark);
+  if(src&&src.guide){   // a dotted line from the soldier to where his route should go (Bryan: boot camp 5/7)
+    const u=players.find(p=>p.id===src.guide.id),g=src.guide;
+    if(u&&alive(u)){toSBack=false;const a=toS(u.x,u.y,1),b=toS(g.x,g.y,1);if(!toSBack){ox.setLineDash([3,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(77,243,255,.85)';ox.lineWidth=2.6;ox.lineCap='round';ox.beginPath();ox.moveTo(...a);ox.lineTo(...b);ox.stroke();ox.setLineDash([]);ox.lineCap='butt';}}
+  }
+  if(m0){const p=(Math.sin(now*4)+1)/2,col=m0.col||'#4df3ff';toSBack=false;gPath(m0.x,m0.y,m0.r+p*4);if(!toSBack){ox.strokeStyle=col;ox.lineWidth=2.6;ox.setLineDash([6,5]);ox.lineDashOffset=-now*12;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(m0.x,m0.y+m0.r,6);label(m0.label||'HERE',lx,ly,col,10,700);}}   // the spot to tap
   const R=L1.relay,cx=R.x+R.w/2,cy=R.y+R.h/2;
-  if(!l1.relayDown){const[lx,ly]=below(cx,cy+R.h/2,10);label(l1.relayHP<100?`RADIO RELAY · ${Math.max(0,Math.round(l1.relayHP))}%`:'RADIO RELAY',lx,ly,'#ff8a6a',10,700);}
+  if(l1.scoutUp&&!l1.relayDown&&!(tip&&tip.k==='rpg')){const p=(Math.sin(now*3)+1)/2;toSBack=false;gPath(cx,cy,30+p*3);if(!toSBack){ox.strokeStyle='rgba(255,138,106,.85)';ox.lineWidth=2.4;ox.setLineDash([7,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);}}   // the ring under the tower: what to aim at (Bryan)
+  if(!l1.relayDown){const[lx,ly]=below(cx,cy+R.h/2,10);label(l1.relayHP<100?`RADIO TOWER · RPG · ${Math.max(0,Math.round(l1.relayHP))}%`:'RADIO TOWER · RPG',lx,ly,'#ff8a6a',10,700);}   // (Bryan: "it should say Radio Tower - RPG")
 }
 
 /* ---------- the tutorial (docs/tutorial.md): the boot camp on the beach, then tips the first time things come up ----------
@@ -259,6 +266,7 @@ function drawL1(now){
    throw: the game says why), the lock lifts so the player can sort it out. */
 const cardOf=id=>{const p=players.find(u=>u.id===id);return p?[...document.querySelectorAll('#cards .ucard')].find(el=>{const n=el.querySelector('.uc-name');return n&&n.textContent===p.name;})||null:null;};
 const cardUp=c=>!!c&&!c.hidden&&!$('#cards').hidden;
+const ROUTE_SPOT={x:414,y:796,r:22},TK_SPOT={x:494,y:726,r:24},VOL_SPOT={x:332,y:650,r:26},YARD_SPOT={x:334,y:505,r:30};   // where the steps send the squad
 const l1NearSpot=(team,x,y,r)=>players.filter(p=>p.team===team&&alive(p)).every(p=>hyp(p.x-x,p.y-y)<r&&!p.path.length);
 // what a tap at screen point (sx,sy) lands on, in tap()'s order: one of ours, else a hostile, else the ground (the world point
 // and the spot tapTarget picks for a tap on a container's side)
@@ -284,32 +292,71 @@ const TUT_STEPS=[
    need:(k,x)=>(k==='tab'&&x==='A')||(k==='tap'&&((ourMan(x,'A')&&!sel.includes(x.u))||tutNear(x,334,781,70))),done:()=>l1NearSpot('A',334,781,50)},   // (a tap on one of a selected pair would split them)
   {text:'<b>One man.</b> Tap Reyes\'s card to give orders to him alone. Tap it again for the whole team.',glow:()=>cardOf('A1'),
    need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tap'&&!!x.u&&x.u.id==='A1'),done:()=>sel.length===1&&sel[0].id==='A1'},
-  {text:'<b>Draw a route.</b> Drag from Reyes along the ground to draw his path, then lift your finger.',
-   need:(k,x)=>(k==='draw'||k==='card')&&x.id==='A1',done:()=>tut.drew},
+  {text:'<b>Draw a route.</b> Drag from Reyes along the dotted line to the crate, then lift your finger.',guide:{id:'A1',...ROUTE_SPOT},mark:{...ROUTE_SPOT,label:'DRAW TO HERE'},   // (Bryan: a dotted line to the box right of the container)
+   need:(k,x)=>((k==='draw'||k==='card')&&x.id==='A1')||(k==='drawEnd'&&hyp(x.x-ROUTE_SPOT.x,x.y-ROUTE_SPOT.y)<48),done:()=>tut.drew&&!!tut.drewEnd&&hyp(tut.drewEnd.x-ROUTE_SPOT.x,tut.drewEnd.y-ROUTE_SPOT.y)<48},
   {text:'<b>Bring Bravo up.</b> Tap <b>BRAVO</b>, then the ring by the container, twice. <b>ALL</b> selects everyone.',glow:()=>$('.tab[data-team="B"]'),
    pick:()=>{const far=c=>Math.min(...players.filter(p=>p.team==='A'&&alive(p)).map(p=>hyp(p.x-c.x,p.y-c.y)));return[{x:266,y:781,r:24},{x:334,y:781,r:24}].sort((a,b)=>far(b)-far(a))[0];},   // the half of the container Alpha isn't in (a tap on one of Alpha would pick him instead)
    need:(k,x)=>(k==='tab'&&(x==='B'||x==='all'))||(k==='tap'&&((ourMan(x,'B')&&!sel.includes(x.u))||tutNear(x,tut.mk.x,tut.mk.y,70))),done:()=>l1NearSpot('B',tut.mk.x,tut.mk.y,50)},
   {text:'<b>Stay hidden.</b> Near guards your men sneak by themselves. The ring at the top fills as a guard notices you; red wedges show where they look.',glow:()=>$('#alert'),timed:8,ack:true},
 ];
+// After the boot camp (Bryan, playtesting): the takedown, then the double silent shot at the gate, then into the yard to
+// suppress and throw a grenade, each led step by step (a ring where to go, then what to tap); the rest come up as they happen
+const shedG=()=>L1.fence[0],reyes=()=>players.find(p=>p.id==='A1');
+const quiet=()=>!contact&&!enemies.some(e=>e.alerted&&!beaten(e));
+const onlyReyes=()=>sel.length===1&&sel[0].id==='A1';
+const alphaSel=()=>{const a=players.filter(p=>p.team==='A'&&alive(p));return a.length>0&&sel.length===a.length&&a.every(u=>sel.includes(u));};
+const allSel=()=>{const a=players.filter(alive);return sel.length===a.length&&a.every(u=>sel.includes(u));};
+const atSpot=(list,s,r)=>list.length>0&&list.every(p=>!p.path.length&&hyp(p.x-s.x,p.y-s.y)<r);
+// sent there (or there already): a move step is done once it's ordered, so the game isn't held in slow motion while they walk
+const headedTo=(list,s,r)=>list.length>0&&list.every(p=>{const e=p.path.length?p.path[p.path.length-1]:p;return hyp(e.x-s.x,e.y-s.y)<r;});
+const ringOn=(e,label,col)=>e&&{x:e.x,y:e.y,r:15,label,col};
+const nadeTarget=()=>{let best=null,bd=1e9;for(const e of enemies){if(beaten(e)||!e.vis)continue;for(const p of players)if(alive(p)&&p.grenade>0){const d=hyp(p.x-e.x,p.y-e.y);if(d<170&&d<bd){bd=d;best=e;}}}return best;};
 const TUT_TIPS=[
   {k:'seen',ack:true,when:()=>enemies.some(e=>e.vis&&!e.dead&&!e.alerted),text:'<b>A guard.</b> His red wedge is where he\'s looking. Stay out of it and he won\'t see you.'},
-  {k:'tk',when:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),still:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),
+  // the takedown: Reyes alone to the ring behind the shed guard, then tap the guard
+  {k:'tkmove',when:()=>{const g=shedG(),r=reyes();return!!g&&!beaten(g)&&!g.alerted&&quiet()&&!!r&&alive(r)&&!r.tk&&!canTakedown(r,g)&&!atSpot([r],TK_SPOT,45);},
+   still:()=>{const g=shedG(),r=reyes();return!!g&&!beaten(g)&&!g.alerted&&quiet()&&!!r&&alive(r);},
+   mark:{...TK_SPOT,label:'REYES HERE'},glow:()=>onlyReyes()?null:cardUp(cardOf('A1'))?cardOf('A1'):$('.tab[data-team="A"]'),
+   need:(k,x)=>((k==='card'||k==='hold'||k==='draw')&&x.id==='A1')||(k==='tab'&&x==='A')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,TK_SPOT.x,TK_SPOT.y,60))||(k==='drawEnd'&&hyp(x.x-TK_SPOT.x,x.y-TK_SPOT.y)<60),
+   done:()=>{const r=reyes();return!!r&&(!!r.tk||headedTo([r],TK_SPOT,45)||(onlyReyes()&&canTakedown(r,shedG())));},
+   text:'<b>Takedown.</b> Tap Reyes\'s card to take him alone, then the ring behind the guard by the shed. Stay out of his red wedge.'},
+  {k:'tk',gap:.4,when:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),still:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),
+   mark:()=>ringOn(enemies.find(e=>canTakedown(sel[0],e)),'TAP HIM'),
    need:(k,x)=>k==='tap'&&!!x.e&&sel.length===1&&canTakedown(sel[0],x.e),act:k=>k==='tap',done:()=>players.some(p=>p.tk),
-   text:'<b>Takedown.</b> He has his back to your man: tap him and your man sneaks up and takes him out without a sound.'},
-  {k:'volley',when:()=>L1.fence.every(beaten)&&sel.filter(alive).length>=2&&L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e)),still:()=>L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e)),
-   need:(k,x)=>k==='tap'&&!!x.e&&canVolley(sel,x.e),act:k=>k==='tap',done:()=>!!volley||players.some(p=>p.silent),
-   text:'<b>Silencers.</b> Alpha\'s rifles are silenced. Tap one guard, then the other, and they fire together on a count.'},
+   text:'<b>Takedown.</b> His back is to your man: tap the guard and he sneaks up and takes him out without a sound.'},
+  // the double silent shot: Alpha to the ring by the gate, then tap one guard, then the other
+  {k:'volmove',when:()=>L1.fence.every(beaten)&&L1.gate.every(e=>!beaten(e)&&!e.alerted)&&quiet()&&volleyCrew(players.filter(p=>p.team==='A')).length>1&&!l1NearSpot('A',VOL_SPOT.x,VOL_SPOT.y,60),
+   still:()=>L1.gate.some(e=>!beaten(e)&&!e.alerted)&&quiet(),
+   mark:{...VOL_SPOT,label:'ALPHA HERE'},glow:()=>alphaSel()?null:$('.tab[data-team="A"]'),
+   need:(k,x)=>(k==='tab'&&x==='A')||(k==='tap'&&ourMan(x,'A')&&!sel.includes(x.u))||(k==='tap'&&alphaSel()&&tutNear(x,VOL_SPOT.x,VOL_SPOT.y,60))||(k==='btn'&&x==='clear'),
+   done:()=>headedTo(players.filter(p=>p.team==='A'&&alive(p)),VOL_SPOT,60),
+   text:'<b>Silent shots.</b> Both of Alpha\'s rifles are silenced. Tap <b>ALPHA</b>, then the ring by the gate, twice.'},
+  {k:'volley',gap:.4,when:()=>L1.fence.every(beaten)&&sel.filter(alive).length>=2&&L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e)),
+   still:()=>L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e))||players.some(p=>p.silent),
+   mark:()=>ringOn(L1.gate.find(e=>!beaten(e)&&!markedBy(e)&&canVolley(sel,e)),'TAP'),
+   need:(k,x)=>k==='tap'&&!!x.e&&canVolley(sel,x.e),act:k=>k==='tap',progress:()=>players.some(p=>p.silent),done:()=>!!volley||L1.gate.every(beaten),
+   text:'<b>Silent shots.</b> Tap one guard, then the other: Reyes and Kowalski fire together on a count.'},
+  // the yard: everyone into cover by the barrels, then suppress and a grenade
+  {k:'yardmove',when:()=>L1.gate.every(beaten)&&L1.yard.some(e=>!beaten(e))&&quiet()&&!atSpot(players.filter(alive),YARD_SPOT,75),
+   still:()=>L1.yard.some(e=>!beaten(e))&&quiet(),
+   mark:{...YARD_SPOT,label:'EVERYONE HERE'},glow:()=>allSel()?null:$('#allBtn'),
+   need:(k,x)=>(k==='tab'&&x==='all')||(k==='tap'&&allSel()&&tutNear(x,YARD_SPOT.x,YARD_SPOT.y,70))||(k==='btn'&&x==='clear'),
+   done:()=>headedTo(players.filter(alive),YARD_SPOT,75),
+   text:'<b>Into the yard.</b> Four guards ahead. Tap <b>ALL</b>, then the ring by the barrels, twice. Quietly.'},
+  {k:'suppress',gap:.4,when:()=>(tut.said.has('yardmove')&&atSpot(players.filter(alive),YARD_SPOT,80)&&L1.yard.some(e=>!beaten(e)&&e.vis))||(contact&&enemies.some(e=>e.vis&&!beaten(e))),
+   still:()=>enemies.some(e=>e.seen&&!beaten(e)),
+   mark:()=>{let best=null,bd=1e9;for(const e of enemies){if(beaten(e)||!e.vis)continue;const d=Math.min(...players.filter(alive).map(p=>hyp(p.x-e.x,p.y-e.y)));if(d<bd){bd=d;best=e;}}return ringOn(best,'HOLD','#ffcf4a');},
+   need:(k,x)=>tutPick(k,x)||k==='suppress',done:()=>players.some(p=>alive(p)&&p.supT),
+   text:'<b>Suppress.</b> Hold your finger on a guard until the ring fills: your men pin him down. Pinned men barely shoot back.'},
+  {k:'nade',when:()=>contact&&!!nadeTarget(),still:()=>contact&&enemies.some(e=>!beaten(e)&&e.seen)&&players.some(p=>alive(p)&&p.grenade>0),modes:['grenade'],
+   mark:()=>mode==='grenade'?ringOn(nadeTarget(),'THROW HERE','#ffcf4a'):null,
+   glow:()=>{if(mode==='grenade')return null;const p=sel.find(u=>alive(u)&&u.grenade>0),c=p&&cardOf(p.id);return cardUp(c)?c.querySelector('.uc-nade'):sel.some(alive)?null:$('#allBtn');},
+   need:(k,x)=>tutPick(k,x)||(k==='gear'&&x.item==='nade')||(k==='tap'&&mode==='grenade'),act:(k,x)=>k==='tap'&&mode==='grenade'&&(!!x.e||x.inMap),
+   done:()=>players.some(p=>p.throwGo&&p.throwGo.kind==='nade')||fromUs(nades),
+   text:'<b>Grenade.</b> Tap the grenade on a soldier\'s card (it glows), then tap the guards behind the sandbags.'},
   {k:'contact',when:()=>contact&&enemies.some(e=>e.vis&&!beaten(e)),still:()=>contact&&enemies.some(e=>e.vis&&!beaten(e)),
    need:(k,x)=>tutPick(k,x)||(k==='tap'&&!!x.e),act:(k,x)=>k==='tap'&&!!x.e&&sel.some(alive),done:()=>players.some(p=>alive(p)&&p.focus),
    text:'<b>You\'ve been seen.</b> Your men fire on their own now. Tap an enemy to focus fire: the % is the chance to hit. Cover cuts theirs.'},
-  {k:'pinned',when:()=>contact&&players.some(p=>alive(p)&&p.sup>.65)&&enemies.some(e=>e.seen&&!beaten(e)),still:()=>contact&&enemies.some(e=>e.seen&&!beaten(e)),modes:['suppress'],
-   glow:()=>mode!=='suppress'&&sel.some(alive)?$('#supBtn'):null,need:(k,x)=>tutPick(k,x)||(k==='btn'&&x==='sup')||(k==='tap'&&mode==='suppress'),done:()=>players.some(p=>alive(p)&&p.supT),
-   text:'<b>Pinned down.</b> Select Hayes, press <b>SUPPRESS</b>, then tap the enemy: his machine gun keeps their heads down.'},
-  {k:'nade',when:()=>contact&&enemies.some(e=>!beaten(e)&&e.vis&&players.some(p=>alive(p)&&p.grenade>0&&hyp(p.x-e.x,p.y-e.y)<170)),still:()=>contact&&enemies.some(e=>!beaten(e)&&e.seen)&&players.some(p=>alive(p)&&!p.downed&&p.grenade>0),modes:['grenade'],
-   glow:()=>{if(mode==='grenade')return null;const p=sel.find(u=>alive(u)&&!u.downed&&u.grenade>0),c=p&&cardOf(p.id);return cardUp(c)?c.querySelector('.uc-nade'):null;},
-   need:(k,x)=>tutPick(k,x)||(k==='gear'&&x.item==='nade')||(k==='tap'&&mode==='grenade'),act:(k,x)=>k==='tap'&&mode==='grenade'&&(!!x.e||x.inMap),
-   done:()=>players.some(p=>p.throwGo&&p.throwGo.kind==='nade')||fromUs(nades),
-   text:'<b>Grenades.</b> Tap the grenade on a soldier\'s card, then tap where to throw it.'},
   {k:'down',when:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),still:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),modes:['medkit'],
    need:(k,x)=>tutPick(k,x)||(k==='tap'&&(mode==='medkit'||(!!x.u&&x.u.downed)))||(k==='gear'&&x.item==='spec'&&x.u.spec==='medkit'),
    act:(k,x)=>k==='tap'&&!!x.u&&x.u.downed&&(mode==='medkit'||sel.some(u=>u!==x.u&&alive(u)&&!u.downed&&!u.carry)),
@@ -319,22 +366,25 @@ const TUT_TIPS=[
    done:()=>players.some(p=>alive(p)&&!p.downed&&(zoneAt(p.x,p.y)||(p.path.length&&zoneAt(p.path[p.path.length-1].x,p.path[p.path.length-1].y)))),
    text:'<b>Checkpoint.</b> Stand in the green ring to heal, the orange ring to refill grenades and gear. Select your men and tap inside one.'},
   {k:'scout',when:()=>l1.yardClear&&!l1.scoutUp&&tut.said.has('cp')&&simT-tut.tipAt>6,still:()=>!l1.scoutUp&&players.some(p=>alive(p)&&!p.downed),
+   mark:{x:L1_SCOUT.x,y:L1_SCOUT.y,r:18,label:'TAP HIM'},
    need:(k,x)=>tutPick(k,x)||(k==='tap'&&!x.u&&(a=>!!a&&a.id==='scout')(actAt(x.x,x.y))),act:(k,x)=>k==='tap'&&!x.u&&sel.some(alive),done:()=>l1.scoutUp||!!(useGo&&useGo.a.id==='scout'),
    text:'<b>The scout.</b> Select a soldier and tap the wounded scout by the hut to bring him round.'},
+  // the radio tower (Bryan: say "Radio Tower - RPG", light the RPG up in the team's colour, a ring under the tower)
   {k:'rpg',when:()=>l1.scoutUp&&!l1.relayDown&&blastLeft(),still:()=>!l1.relayDown&&blastLeft(),modes:['rpg','grenade'],
+   mark:()=>{const R=L1.relay;return{x:R.x+R.w/2,y:R.y+R.h/2,r:30,label:mode==='rpg'||mode==='grenade'?'TAP HERE':'TARGET',col:'#ff8a6a'};},
    glow:()=>{if(mode==='rpg'||mode==='grenade')return null;const c=cardOf('B1'),b=cardUp(c)&&c.querySelector('.uc-spec');return b&&!b.disabled?b:(c&&!c.hidden?null:$('.tab[data-team="B"]'));},
    need:(k,x)=>tutPick(k,x)||(k==='gear'&&(x.item==='nade'||(x.item==='spec'&&x.u.spec==='rpg')))||(k==='tap'&&(mode==='rpg'||mode==='grenade')),
    act:(k,x)=>k==='tap'&&(mode==='rpg'||mode==='grenade')&&(!!x.e||x.inMap),
    done:()=>l1.relayDown||players.some(p=>p.rpgAim||(p.throwGo&&p.throwGo.kind!=='smoke'))||fromUs(rockets)||fromUs(nades),
-   text:'<b>The relay.</b> Select Hayes, tap the <b>RPG</b> on his card, then tap the mast. A grenade close to it works too.'},
+   text:'<b>The radio tower.</b> Select Hayes, tap the <b>RPG</b> on his card (it glows), then tap the ring under the tower.'},
 ];
-const tut={on:false,i:0,t0:0,drew:false,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,nudgeT:-1e9,mk:null,campDone:false,skipped:false,hid:false};
+const tut={on:false,i:0,t0:0,drew:false,drewEnd:null,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,nudgeT:-1e9,mk:null,campDone:false,skipped:false,hid:false};
 const L1_BEACH={x0:60,x1:440,y0:700,y1:860};   // the boot camp's ground: anyone beyond it, a guard down or alerted, and it's over
 // again: "Try Level 1 again" after a failed run: no second boot camp if the first was done or skipped, no tips at all if skipped
 function tutStart(again){
   if(!again){tut.campDone=false;tut.skipped=false;}
   const keep=again&&(tut.campDone||tut.skipped);
-  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,mk:null,hid:false});
+  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,drewEnd:null,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,mk:null,hid:false});
   tutShow();
 }
 function tutStop(){tut.on=false;tut.tip=null;tut.ack=false;tut.loose=false;tut.i=TUT_STEPS.length;tutShow();}
@@ -358,7 +408,7 @@ function tutAllows(kind,a,b){
   const L=tutLock();if(!L)return true;
   const x=kind==='tap'?tutHit(a,b):a,need=L===tut.tip&&tut.ack?null:L.need;
   if(need&&need(kind,x)){
-    if(L.act&&L.act(kind,x))queueMicrotask(()=>{if(tut.tip===L&&!L.done()){tut.loose=true;tutShow();}});   // it didn't take (the game says why): the lock lifts
+    if(L.act&&L.act(kind,x))queueMicrotask(()=>{if(tut.tip===L&&!L.done()&&!(L.progress&&L.progress())){tut.loose=true;tutShow();}});   // it didn't take (the game says why): the lock lifts
     return true;
   }
   if(!(kind==='draw'&&L.cam))tutNudge();   // (on the "look around" step a drag that starts on a soldier just moves the camera)
@@ -404,6 +454,5 @@ function tutTickL1(dt){
     if(t.still&&!t.still()){if((tut.off+=dt)>.6)tutEnd();}else tut.off=0;
     return;
   }
-  if(simT-tut.tipEnd<2.5)return;   // (a breather between them)
-  for(const t of TUT_TIPS)if(!tut.said.has(t.k)&&t.when()){tutBegin(t);break;}
+  for(const t of TUT_TIPS)if(!tut.said.has(t.k)&&simT-tut.tipEnd>=(t.gap??2.5)&&t.when()){tutBegin(t);break;}   // (a breather between them; a step's second half comes straight after its first)
 }

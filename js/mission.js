@@ -126,8 +126,7 @@ function groupLeft(n){return (groups[n]||[]).filter(e=>!beaten(e)).length+pendin
 
 /* ---------- checkpoints (Bryan: "Killing all the units in the area opens up the checkpoint"; none has to be cleared) ----------
    An area whose defenders are all down (or gave up), with no reinforcements on the way, and CP_QUIET s without a shot is a
-   checkpoint: a medic station and an ammo drop appear there and the game saves. The warehouse's is the first one you'll
-   usually get, and comes with a short tour of the two. */
+   checkpoint: a medic station and an ammo drop appear there and the game saves. */
 const CP_QUIET=3;
 const AREAS={
   0:{k:'wh',name:'the warehouse',zone:{x0:150,x1:470,y0:240,y1:580}},
@@ -161,7 +160,7 @@ function clearArea(n){
   const A=AREAS[n];finished[n]=true;contact=false;
   bigText('Checkpoint','clear');banner(`${A.name[0].toUpperCase()+A.name.slice(1)} is clear. A medic station and an ammo drop are here.`,3200);chatSecured();
   addZones(REST_ZONES[A.k]);saveGame(A.k);setStatus();updateObjUI();
-  if(!hq.toured){hq.toured=true;setTimeout(()=>{if(state==='play'&&MAPID==='out'){hq.tour='hq';hqGotIt();}},2400);}   // the first one: a look at the station and the drop
+  // (Bryan: no tips in Level 2: the first checkpoint's camera tour of the station and the drop is gone; their rings say what they are)
 }
 // every tick once the warehouse is taken (from hqTick)
 function missionTick(dt){
@@ -262,7 +261,7 @@ function truckWreck(u,src){
 const CLIMB_T=1.6;
 let pickups=[];
 function towerSniper(id){
-  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(100-TOWER.y,476-TOWER.x)});return u;
+  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(258-TOWER.y,500-TOWER.x)});return u;   // facing the bridge's south approach (SW): the bridge in his cone, the first aisle west of it not (Bryan opened its east end)
 }
 const towerMan=()=>units.find(u=>u.onTower&&!u.dead&&!u.downed)||null;
 function enemyDown(e){   // from damage() and silentKill(): the sniper's rifle stays up the tower
@@ -436,7 +435,7 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.relayDown?'Relay down':l1.yardClear?'Bring down the radio relay':'Knock out the radio relay (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
+  if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
   const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':'Take the Headquarters (coming next)';
   el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;

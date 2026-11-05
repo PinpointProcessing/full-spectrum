@@ -30,3 +30,45 @@ His notes, collected here as they come; the changes are made together once he's 
    (was held until he'd finished testing). Two changes from the draft, found by testing the quiet route: a container closes the west half's first aisle
    at its east end (the tower's sniper could look down it and spot the squad leaving the pipe), and the data center's guns
    and riflemen stand a little further east (x 350-710) so the far west end of the road is the quiet crossing.
+
+# Playtest notes (Bryan, testing v65; the changes are in v66)
+
+Bryan: "Here is everything from my testing."
+
+1. Level 1, boot camp 5/7: "Draw a route. Have a dotted line to the box to the right of the container closest to the team."
+   A dotted guide line from Reyes to a ring by the crate right of the container; only a route that ends there is taken.
+2. "There should also be a tutorial point that teaches the unit how to take out a troop with a takedown. Like move Reyes
+   towards the troop to stage a takedown." After the boot camp: Reyes alone to a ring behind the shed guard, then tap him.
+3. "Then the next tip would be a double silent shot at the two guards near the fence." Alpha to a ring by the gate, then
+   tap one guard, then the other; they fire together.
+4. "The watch and suppress buttons look bad. Can we just have the user choose suppress by holding down the location where
+   they suppress? We would have to add a tip for that. Let's get rid of the buttons on the bottom. Just the teams and
+   'Clear'. Maybe 'watch' can just be automatic?" The bottom bar is the three team tabs and Clear. Suppress: hold a finger
+   on an enemy (or where one was last seen) with soldiers selected; a ring fills, then they pin him down (and a tip teaches
+   it in Level 1's yard). Watch is automatic in a fight (a soldier holding still watches the nearest enemy and fires first);
+   never before contact. Breach (it had a button inside the office building and at the warehouse) is a BREACH marker at a
+   room's doorway when selected soldiers are next to it.
+5. "Level 1 should also give scenarios for grenades on the enemy and suppress on the enemy." The yard: everyone to a ring
+   by the barrels, then suppress (hold on a guard), then a grenade.
+6. "The RPG to the mast was a bit confusing, it should say Radio Tower - RPG and the tools should be highlighted in a bold
+   color that matches the team selected. A circle underneath the radio tower should have been presented so the user knows
+   what to press." The label reads RADIO TOWER · RPG, a ring pulses under it once the scout is up, and what a tip asks for
+   glows in the team's colour (the RPG button in Bravo's amber, filled).
+7. "Get rid of the tips on Level 2." The checkpoint's camera tour (the only tip box in Level 2) is gone.
+8. "Players equipment is refilled at the start of each level." It already was (checked: grenades and special items full at
+   the start of Level 1, Level 2 and Level 1 again); Continue and Retry bring back what was saved at the checkpoint.
+9. "I was playing through Level 2 and once I got to the containers the camera stopped moving. I was only able to spin the
+   camera around but not move it. THIS IS A BIG ISSUE." Found: a finger's lift that never reached the game (likely taken by
+   the page around it) left a phantom finger, and every one-finger drag after that was read as a two-finger twist and zoom.
+   Reproduced on v65 with a simulated lost lift; fixed: a new first touch starts clean, and a lost capture, the page losing
+   focus or being hidden drop every finger.
+10. "When my players are behind a wall or object, that object should turn translucent." Anything tall between the camera
+   and one of ours fades to see-through and comes back once he's clear (outdoors and in Level 1; inside the office building
+   the walls are cut low already).
+11. "Not all corners of the containers were able to place the units. Spaces in between the containers and the edge of the
+   map were inaccessible." The rows stop 4.5 m short of both edges (a strip you can walk and hide in); a slot between two
+   containers that looked like a gap but wasn't is closed; a script tapped round all 17 containers and every corner takes a
+   soldier.
+12. "The corner near the bridge, can you open that up instead of enclosing it. That would make it easier to ambush/flank the
+   bridge." The container that closed the first aisle by the bridge is gone; the tower's sniper now faces the bridge's
+   south approach, so he can't look down the aisle at the pipe (the quiet route still went unseen in the scripted run).

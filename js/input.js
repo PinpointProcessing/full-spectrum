@@ -42,9 +42,10 @@ function finishDraw(){
   if(!alive(u)||state!=='play'||!tutAllows('draw',u))return;   // (Level 1's tutorial lock: level1.js)
   const e=t[t.length-1];
   if(!e||hyp(e.x-u.x,e.y-u.y)<12)return;            // dragged back onto him: cancel
+  if(!tutAllows('drawEnd',e))return;                 // (Level 1's tutorial: a route that has to end at its ring)
   const r=routeFromTrail(u,t);
   if(!r){banner('Can’t get there.');return;}
-  commit([r]);u.peek=null;tut.drew=true;   // (Level 1's boot camp: level1.js)
+  commit([r]);u.peek=null;tut.drew=true;tut.drewEnd={x:e.x,y:e.y};   // (Level 1's boot camp: level1.js)
 }
 function endPtr(ev,cancel){
   touches.delete(ev.pointerId);
@@ -71,6 +72,10 @@ function endPtr(ev,cancel){
 function bindInput(){
   ov.addEventListener('pointerdown',ev=>{
     camPan=null;   // touching the map stops any camera move in progress
+    // a new touch with no other finger down (the browser's own count: isPrimary) starts clean. If a lift was ever lost (a
+    // gesture taken over by the page around the game, a system swipe), a phantom finger stayed in the list and every one-
+    // finger drag turned into a two-finger twist: the camera spun but wouldn't move (Bryan, Level 2 at the containers)
+    if(ev.isPrimary&&touches.size){touches.clear();pinch=null;if(ptr){clearTimeout(ptr.timer);ptr=null;}}
     const[sx,sy]=localXY(ev);
     touches.set(ev.pointerId,{x:sx,y:sy});
     try{ov.setPointerCapture(ev.pointerId);}catch(_){}
@@ -82,14 +87,17 @@ function bindInput(){
     }
     if(touches.size>2||pinch)return;
     if(ptr)return;
-    ptr={id:ev.pointerId,sx,sy,cx:sx,cy:sy,lx:sx,ly:sy,lt:performance.now(),vx:0,vy:0,kind:null,lp:false,
+    ptr={id:ev.pointerId,sx,sy,cx:sx,cy:sy,lx:sx,ly:sy,lt:performance.now(),t0:performance.now(),vx:0,vy:0,kind:null,lp:false,
       unit:state==='play'?unitAtScreen(sx,sy,true):null,trail:[]};
+    ptr.supPt=state==='play'&&!ptr.unit&&!mode&&!landing&&sel.some(alive)?suppressAt(sx,sy):null;   // (for the filling ring: drawHold)
     ptr.timer=setTimeout(()=>{
       if(!ptr||ptr.kind||state!=='play')return;
       const u=unitAtScreen(ptr.sx,ptr.sy,true);
       ptr.lp=true;
       try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}
+      const sp=!u&&!mode&&!landing&&suppressAt(ptr.sx,ptr.sy);   // holding on an enemy, or where one was seen: suppress
       if(u){if(tutAllows('hold',u)){select([u]);preview=null;mode=null;callout(u,u.name,teamCol(u));}}
+      else if(sp){if(!sel.some(alive))banner('Select soldiers, then hold your finger on an enemy to suppress him.',2400);else if(tutAllows('suppress',sp))orderSuppress(sel,sp);}
       else if(tutAllows('lasso')){ptr.kind='lasso';ptr.loop=[[ptr.cx,ptr.cy]];}
       hud();
     },380);
@@ -141,6 +149,9 @@ function bindInput(){
   });
   ov.addEventListener('pointerup',ev=>endPtr(ev,false));
   ov.addEventListener('pointercancel',ev=>endPtr(ev,true));
+  ov.addEventListener('lostpointercapture',ev=>{if(touches.has(ev.pointerId))endPtr(ev,true);});   // (a finger the canvas lost track of)
+  const dropAll=()=>{touches.clear();pinch=null;if(ptr){clearTimeout(ptr.timer);ptr=null;}};   // leaving the page or app: nobody's touching it any more
+  addEventListener('blur',dropAll);document.addEventListener('visibilitychange',()=>{if(document.hidden)dropAll();});
   ov.addEventListener('contextmenu',ev=>ev.preventDefault());
   ov.addEventListener('wheel',ev=>{ev.preventDefault();if(ev.shiftKey){tiltCam(tilt+(ev.deltaY||ev.deltaX)*0.0015);return;}const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
   $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;tilt=0;camT={x:(VB.x0+VB.x1)/2,z:(VB.z0+VB.z1)/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
@@ -161,6 +172,28 @@ function toggleGait(){
   else{const g=act.some(u=>autoGait(u)==='sneak')?'run':'sneak';for(const u of act)u.gaitForce=g;}
 }
 let fireOrderAt=-1e9;   // when the last suppress/grenade/smoke order was given (real ms)
+// Suppress (Bryan: no button; hold your finger on where to suppress): a hold on a hostile you can see, or near where one you've
+// seen is or was last seen, with soldiers selected. What a hold at (sx,sy) would pin down, or null:
+function suppressAt(sx,sy){
+  const en=enemyAtScreen(sx,sy);if(en&&!en.surr)return{x:en.x,y:en.y,en};
+  let best=null,bd=34;
+  for(const e of enemies){if(e.dead||e.surr||!e.seen)continue;const p=e.vis?e:e.last;if(!p)continue;toSBack=false;const[x,y]=toS(p.x,p.y,8);if(toSBack)continue;const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best={x:p.x,y:p.y,en:e.vis?e:null};}}
+  return best;
+}
+function orderSuppress(list,pt){
+  const sh=list.filter(alive);if(!sh.length)return false;
+  for(const u of sh){u.supT={x:pt.x,y:pt.y};u.focus=null;u.noLine=0;u.lastOrder=simT;u.watch=null;}
+  callout(sh[0],'Suppressing!',C.warn);chatSuppress(sh[0]);
+  mode=null;preview=null;fireOrderAt=performance.now();return true;
+}
+// while a finger rests on something it would suppress: a ring fills round it until the hold takes (drawn from the overlay)
+function drawHold(now){
+  if(!ptr||ptr.kind||ptr.lp||!ptr.supPt)return;
+  const k=clamp((performance.now()-ptr.t0-60)/320,0,1);if(k<=0)return;
+  toSBack=false;const[x,y]=toS(ptr.supPt.x,ptr.supPt.y,8);if(toSBack)return;
+  ox.beginPath();ox.arc(x,y,22,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=C.warn;ox.lineWidth=3;ox.stroke();
+  label('SUPPRESS',x,y-30,C.warn,10,700);
+}
 function tap(sx,sy){
   if(landing)return;   // the squad is still in the dinghy
   if(!tutAllows('tap',sx,sy))return;   // Level 1's tutorial: only what the step or tip asks for (level1.js)
@@ -168,26 +201,10 @@ function tap(sx,sy){
   sel=sel.filter(alive);
   // aiming modes (Bryan: suppressing or throwing must never move anyone): a tap that misses keeps the mode and says why;
   // one that lands gives the order and briefly guards against the next tap turning into a move (moveGuard below)
-  if(mode==='suppress'){
-    const en=enemyAtScreen(sx,sy),pt=en?{x:en.x,y:en.y}:{x:wx,y:wy};
-    if(!en&&!inMap){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
-    if(!enemies.some(e=>!e.dead&&e.seen&&hyp((e.vis?e.x:e.last.x)-pt.x,(e.vis?e.y:e.last.y)-pt.y)<55)){banner('Tap an enemy you have seen. Press Suppress again to cancel.');return;}
-    for(const u of sel){u.supT={x:pt.x,y:pt.y};u.focus=null;u.noLine=0;u.lastOrder=simT;u.watch=null;}
-    if(sel[0]){callout(sel[0],'Suppressing!',C.warn);chatSuppress(sel[0]);}
-    mode=null;preview=null;fireOrderAt=performance.now();return;
-  }
   if(mode==='charge'){   // demolition charge: tap a fuel tank (mission.js)
     const u=sel[0];if(!u){mode=null;return;}
     const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
     if(orderCharge(u,t.x,t.y)){mode=null;preview=null;fireOrderAt=performance.now();}return;
-  }
-  if(mode==='watch'){   // Watch (orders.js): where to watch
-    const list=sel.filter(u=>alive(u)&&!u.carry);if(!list.length){mode=null;return;}
-    if(!inMap){banner('Tap where they should watch. Press Watch again to cancel.');return;}
-    orderWatch(list,wx,wy);mode=null;preview=null;fireOrderAt=performance.now();return;
-  }
-  if(mode==='breach'){   // Breach room (orders.js): which room
-    if(orderBreach(sel,wx,wy)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   if(mode==='medkit'){   // a medic kit (his special item): tap a downed teammate
     const u=sel[0];let pu=unitAtScreen(sx,sy,false);if(!u){mode=null;return;}
@@ -214,6 +231,7 @@ function tap(sx,sy){
     if(c.length){select(c);preview=null;mode=null;return;}
     banner(jv.state==='ok'?'Select soldiers, then tap the jeep to board it.':'The jeep is wrecked.',1800);return;
   }
+  if(breachTap(sx,sy)){preview=null;return;}   // the BREACH marker at a room's doorway near the selected soldiers (orders.js)
   const pu=unitAtScreen(sx,sy,false);
   if(pu){
     if(pu.downed){
@@ -256,7 +274,7 @@ function tap(sx,sy){
   if(!sel.length){banner('Select soldiers first.',1600);return;}
   const sinceFire=performance.now()-fireOrderAt;
   if(sinceFire<1200)return;   // a second tap right after a suppress/grenade/charge order (thinking it didn't take) is not a move
-  const tg=tapTarget(sx,sy);   // tapping a wall or crate means: stand against the side you tapped
+  const tg0=tapTarget(sx,sy),tg=zoneAt(wx,wy)&&!zoneAt(tg0.x,tg0.y)?{x:wx,y:wy}:tg0;   // tapping a wall or crate means: stand against the side you tapped; but a medic or ammo ring under your finger wins over a wall in front of it (Level 1's station sits just behind one)
   // tapping a fuel tank: everyone selected who can shoot opens up on it (mission.js)
   if(tg.obj&&tg.obj.kind==='tank'&&!tg.obj.burst){const sh=sel.filter(u=>u.seat!=='driver');for(const u of sh){u.focusTank=tg.obj;u.focus=null;u.supT=null;}if(sh[0])callout(sh[0],'Hit the tank!',C.warn);preview=null;return;}
   // crew selected: it's a drive order, two taps like a squad move (anyone on foot in the selection goes there too)

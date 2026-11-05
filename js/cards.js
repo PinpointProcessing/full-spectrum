@@ -91,7 +91,6 @@ function statusText(u){
   if(u.manGo)return['To the gun',''];
   if(u.breaching||simT<(u.breachT||0))return['Breaching',''];
   if(breach&&breach.team.includes(u))return['Stacking up',''];
-  if(u.watch&&!u.path.length)return['Watching',''];
   if(u.medGo)return[u.path.length?'To the wounded':'Medic kit',''];
   if(u.carryGo)return['Getting him',''];
   if(u.inVeh)return[{driver:'Driving',gunner:'On the gun',pass:'Riding'}[u.seat],''];
