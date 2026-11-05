@@ -1,4 +1,4 @@
-# Playtest notes (Bryan, testing v64)
+# Playtest notes (Bryan, testing v64; the changes are in v65)
 
 Bryan: "I am testing now so take my notes into consideration and then we can make the changes."
 His notes, collected here as they come; the changes are made together once he's done.
@@ -14,7 +14,7 @@ His notes, collected here as they come; the changes are made together once he's 
    stops there (nobody moves), a "?" in its place brings it back, a new step or tip shows by itself; Skip tutorial / No more
    tips inside it. Built as a prototype to make the draft.
    Bryan: "Okay this is better. Instead of No more tips, say Turn off tips. Everything else is good. It should also not allow
-   any other actions to happen unless you do the tip." Built and committed (not published until he's done testing): the button
+   any other actions to happen unless you do the tip." Built, published in v65: the button
    reads "Turn off tips"; while a step or tip is up only what it asks for works (and picking soldiers, where the tip needs it;
    the camera, Pause and Fit map always), anything else shakes the bubble and it says "Do this first". A tip that only tells
    you something ends with a tap on it ("Tap to continue"); one that asks for something waits until it's done, at quarter
