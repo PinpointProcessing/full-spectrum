@@ -97,14 +97,14 @@ function hitChance(s,t,L){
   if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=0.15;
   if(t.path.length)c-=0.08;
   if(s.side==='P')c+=rankAim(s)+ob;   // rank: steadier aim; on Watch / breaching: a bonus
-  if(s.side==='E')c-=ENEMY_AIM;
+  if(s.side==='E')c-=ENEMY_AIM+(s.l1?L1E.aim:0);   // (Level 1's guards: worse still, level1.js)
   if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);
 }
 function threats(){
   const t=[];
   for(const e of enemies)if(!beaten(e)&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
+  if(!t.length)t.push(MAPID==='l1'?l1Threat():MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
 // before anyone's seen at the later objectives: where previews judge cover from
@@ -265,6 +265,7 @@ function damage(t,dmg,src){
   if(t.dead||t.downed)return;
   if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun truck: only blasts get here (mission.js)
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
+  if(t.l1)dmg*=L1E.dmgIn;   // Level 1's guards go down faster (level1.js)
   if(t.unarmored)dmg*=1.3;   // a freed prisoner: no vest (office.js)
   else if(t.side==='P')dmg*=SQUAD_VEST;   // the squad's vests
   t.hp-=dmg;t.hitFlash=.25;
@@ -757,7 +758,7 @@ function update(dt){
   takedownTick(dt);silentTick();throwTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
-    vehTick(dt);waveTick(dt);   // cleared the warehouse? then the reinforcements; cleared those? mission complete
+    vehTick(dt);waveTick(dt);l1Tick(dt);   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

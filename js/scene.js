@@ -173,10 +173,14 @@ function drawGround(){
   a.fillStyle='#fff';a.fillRect(0,TOP,W,MH);a.fillStyle='#000';a.beginPath();a.arc(FORT.cx,FORT.cy,FORT.r1,0,TAU);a.arc(FORT.cx,FORT.cy,FORT.r0,0,TAU,true);a.fill('evenodd');
   gtex.needsUpdate=true;rtex.needsUpdate=true;
 }
-function paintDecal(d){
-  const inside=MAPID==='in'&&IN,s=inside?1:GS,g=(inside?IN.canvas:gcan).getContext('2d');g.setTransform(s,0,0,s,0,-TOP*s);   // inside, onto the building's own floor
+function decalOn(g,d){
   if(d.k==='scorch'){const gr=g.createRadialGradient(d.x,d.y,0,d.x,d.y,26);gr.addColorStop(0,'rgba(0,0,0,.75)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(d.x,d.y,26,0,7);g.fill();}
   else{g.fillStyle='rgba(80,8,6,.7)';g.beginPath();g.ellipse(d.x+2,d.y+1,9+d.r*4,6+d.r*3,d.r*3,0,7);g.fill();}
+}
+function paintDecal(d){
+  if(MAPID==='l1'&&L1){const g=L1.canvas.getContext('2d');g.setTransform(L1S,0,0,L1S,-L1B.x0*L1S,-L1B.y0*L1S);decalOn(g,d);L1.tex.needsUpdate=true;return;}   // Level 1's own ground (level1.js)
+  const inside=MAPID==='in'&&IN,s=inside?1:GS,g=(inside?IN.canvas:gcan).getContext('2d');g.setTransform(s,0,0,s,0,-TOP*s);   // inside, onto the building's own floor
+  decalOn(g,d);
   if(inside){IN.tex.needsUpdate=true;IN.marked=true;}else gtex.needsUpdate=true;
 }
 
@@ -261,7 +265,7 @@ const lamps=[
   {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260},          // the data center's doors
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
-let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null;
+let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null,meshObjs=null;   // (meshObjs: set by buildWorld)
 // Every light costs every pixel on screen (a phone feels it), so the street lamps share LAMP_POOL lights: each frame the lamps
 // nearest the middle of the view get them, the one at the edge of the set fading so nothing pops (lampLights in render)
 const LAMP_POOL=6;let lampPool=[];   // (the interior has its own pool and lights: interior.js swaps these)
@@ -319,10 +323,11 @@ function buildWorld(){
   const wallMat=texMat(corrTex,1,1,{color:0x59616a,roughness:.65,metalness:.35});
   const concrete=new T.MeshStandardMaterial({color:0x8d8e8a,roughness:.95});
   const darkMetal=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
-  const bagGeo=new T.SphereGeometry(1,10,6),bagList=[];
-
-  buildPillbox();buildOurBoxes();
-  for(const o of objs){
+  const bagGeo=new T.SphereGeometry(1,10,6);
+  // every map object by its kind, into the current scene (a function so Level 1's own map can use it: level1.js)
+  meshObjs=list=>{
+  const bagList=[];
+  for(const o of list){
     const cx=o.x+o.w/2,cz=o.y+o.h/2,hz=o.w>=o.h,len=hz?o.w:o.h,th=hz?o.h:o.w,ry=hz?0:Math.PI/2;
     if(o.kind==='container'){
       const m=texMat(corrTex,len/7,1,{color:o.col,roughness:.6,metalness:.35});
@@ -487,6 +492,16 @@ function buildWorld(){
     }else if(o.kind==='core'){   // the server core: a glowing cabinet bank, the sabotage target
       addMesh(new T.BoxGeometry(o.w,18,o.h),new T.MeshStandardMaterial({color:0x1d2328,roughness:.4,metalness:.6}),cx,9,cz);
       const glow=new T.Mesh(new T.BoxGeometry(o.w+.4,3,o.h+.4),new T.MeshStandardMaterial({color:0x0b2a36,emissive:0x0a5a7a,emissiveIntensity:1.4,roughness:.3}));glow.position.set(cx,14,cz);scene.add(glow);o.mesh=glow;
+    }else if(o.kind==='relay'){   // Level 1's radio relay (level1.js): a lattice mast with dishes, a blinking red light on top, its equipment cabinet
+      const grp=new T.Group();grp.position.set(cx,0,cz);scene.add(grp);o.mesh=grp;const H1=72,st=new T.MeshStandardMaterial({color:0x6c7176,roughness:.5,metalness:.6});
+      const bar=(w,h,d,x,y,z,rz,rx)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),st);m.position.set(x,y,z);if(rz)m.rotation.z=rz;if(rx)m.rotation.x=rx;m.castShadow=true;grp.add(m);return m;};
+      for(const[sx,sz]of[[-1,-1],[1,-1],[-1,1],[1,1]])bar(1.1,H1,1.1,sx*3.4,H1/2,sz*3.4,-sx*.05,sz*.05);   // four legs leaning in
+      for(let k=1;k<8;k++){const y=k*H1/8,s=5.2-3.6*y/H1;bar(s*2,.5,.5,0,y,s,0,0);bar(s*2,.5,.5,0,y,-s,0,0);bar(.5,.5,s*2,s,y,0,0,0);bar(.5,.5,s*2,-s,y,0,0,0);}   // the rungs
+      for(const[a,y]of[[0,52],[2.1,60],[4.2,46]]){const dish=new T.Mesh(new T.CylinderGeometry(3.2,2.4,1.2,14),new T.MeshStandardMaterial({color:0xd8dcdc,roughness:.6}));dish.position.set(Math.cos(a)*4,y,Math.sin(a)*4);dish.rotation.z=Math.PI/2;dish.rotation.y=-a;grp.add(dish);}
+      bar(.5,12,.5,0,H1+6,0,0,0);   // the whip aerial
+      const li=new T.Mesh(new T.SphereGeometry(1.3,10,8),new T.MeshBasicMaterial({color:0xff2a1a,toneMapped:false}));li.position.set(0,H1+1,0);grp.add(li);o.light=li;
+      const cab=new T.Mesh(new T.BoxGeometry(9,12,7),new T.MeshStandardMaterial({color:0x3d4a3a,roughness:.7,metalness:.3}));cab.position.set(15,6,4);cab.castShadow=true;scene.add(cab);cab.position.add(grp.position);
+      const led=new T.Mesh(new T.BoxGeometry(5,1,.4),new T.MeshBasicMaterial({color:0x37e08a,toneMapped:false}));led.position.set(cx+15,9,cz+7.7);scene.add(led);o.led=led;
     }else if(o.kind==='fence'){
       const fm=texMat(linkTex,len/6,3,{color:0x9aa2a8,transparent:true,alphaTest:.35,side:T.DoubleSide,roughness:.6,metalness:.6});
       const pl=new T.Mesh(new T.PlaneGeometry(len,18),fm);pl.position.set(cx,9,cz);pl.rotation.y=ry;scene.add(pl);
@@ -495,11 +510,15 @@ function buildWorld(){
     }
   }
   // sandbags as one instanced mesh
+  if(!bagList.length)return;
   const bagMat=new T.MeshStandardMaterial({color:0xffffff,roughness:1});
   const bags=new T.InstancedMesh(bagGeo,bagMat,bagList.length);
   const m4=new T.Matrix4(),q=new T.Quaternion(),pv=new T.Vector3(),sv=new T.Vector3(),col=new T.Color(),br=rng(21);
   bagList.forEach((b,i)=>{pv.set(b.x,b.y,b.z);sv.set(b.sx,1.9,b.sz);m4.compose(pv,q,sv);bags.setMatrixAt(i,m4);col.setRGB(.55+br()*.08,.49+br()*.07,.34+br()*.05);bags.setColorAt(i,col);});
   bags.castShadow=bags.receiveShadow=true;scene.add(bags);
+  };
+  buildPillbox();buildOurBoxes();
+  meshObjs(objs);
   // the fortress wall (a giant ring, mostly beyond the map) and the moat: walls dropping away into darkness (the ground has a hole cut for it)
   {const F=FORT,wallM=texMat(corrTex,F.r0*TAU/11,3,{color:0x51575d,roughness:.55,metalness:.55});
    addMesh(new T.CylinderGeometry(F.r0,F.r0,96,160,1,true),wallM,F.cx,48,F.cy);

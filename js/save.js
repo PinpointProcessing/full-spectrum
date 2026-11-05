@@ -60,7 +60,7 @@ function continueGame(){
 // intro and end screens: offer Continue / Retry when there's a save
 function refreshSaveButtons(){
   const s=readSave();
-  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Continue · ${STAGES[s.stage]}`;
-  $('#startBtn').textContent=s?'New game':'Deploy';
+  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level 2 · Continue · ${STAGES[s.stage]}`;
+  $('#startBtn').textContent=s?'Level 2 · New game':'Level 2 · The Data Center';
   $('#retryBtn').hidden=!s;$('#againBtn').textContent=s?'New game':'Run it again';
 }

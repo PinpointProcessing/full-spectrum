@@ -64,9 +64,10 @@
 
 <div class="overlay" id="intro">
   <div class="card">
-    <div class="eyebrow">Night op · one mission</div>
+    <div class="eyebrow">Night op · two missions</div>
     <h1>Warehouse Yard</h1>
-    <p>Get into the data center across the canal, detain the scientists inside and make one open the drawbridge. Nothing on the way has to be cleared, but every area you clear becomes a checkpoint with a medic station and an ammo drop. You come ashore at the dock in the southwest corner; four hostiles hold the warehouse ahead.</p>
+    <p><b>Level 1</b> teaches you the squad on a small raid: knock out an enemy radio relay. <b>Level 2</b> is the big one: get into the data center across the canal and bring out the scientists.</p>
+    <details class="controls"><summary>Controls</summary>
     <ul>
       <li><b>Look around:</b> drag empty ground with one finger to move the map. Pinch with two to zoom.</li>
       <li><b>Select:</b> tap a team tab at the bottom, or tap a soldier to grab his fire team. Hold on a soldier, or tap his card, to take just him. To lasso, hold on empty ground and draw a loop round the soldiers you want.</li>
@@ -87,9 +88,11 @@
       <span><i class="dot" style="color:var(--bad)"></i>Exposed</span>
       <span>% = hit chance per shot</span>
     </div>
+    </details>
     <p class="crash" id="crashNote" hidden></p>
+    <button class="go" id="l1Btn">Level 1 · The Relay</button>
     <button class="go" id="continueBtn" hidden>Continue</button>
-    <button class="go" id="startBtn">Deploy</button>
+    <button class="go alt" id="startBtn">Level 2 · The Data Center</button>
     <button class="linkish" id="resetXpBtn" type="button">Reset squad XP and ranks</button>
   </div>
 </div>
@@ -145,6 +148,7 @@
 <script src="js/office-layout.js"></script>
 <script src="js/interior.js"></script>
 <script src="js/office.js"></script>
+<script src="js/level1.js"></script>
 <script src="js/vehicle.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/input.js"></script>

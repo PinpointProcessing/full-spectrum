@@ -172,7 +172,7 @@ function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(
 function objHeight(o){
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
-  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9,dcblock:60,rail:7,pbwall:11,wtower:50,
+  return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9,dcblock:60,rail:7,pbwall:11,wtower:50,relay:72,
     owall:14,iwall:12,cabinet:14,pillar:14,liftwall:14,steeldoor:14,liftdoor:14,counter:10,copier:9,sofa:6,planter:8,terminal:9,lab:9,bars:14}[o.kind]||0;   // inside walls are drawn cut away at waist height
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.

@@ -25,6 +25,9 @@ function addZones(list,floorGroup){
 // every tick of the mission: healing and refilling at the stations, then the mission's own tick
 function hqTick(dt){
   if(!hq)return;
+  stationTick(dt);missionTick(dt);
+}
+function stationTick(dt){   // (Level 1 calls it too: level1.js)
   for(const p of players){
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
@@ -32,7 +35,6 @@ function hqTick(dt){
     const short=p.grenade<1||(p.spec&&p.specN<specFull(p))||(C4_ON&&p.charges<1);   // (a freed prisoner has no special item, but takes a grenade)
     if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.spec)p.specN=specFull(p);p.charges=1;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
   }
-  missionTick(dt);
 }
 /* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes, say what they're for ---------- */
 const TOURS={

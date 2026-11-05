@@ -27,6 +27,7 @@ function finish(){
   const kia=players.filter(p=>p.dead).length;
   $('#endEyebrow').textContent=win?'Mission complete':'Mission failed';
   $('#endTitle').textContent=win?'Warehouse secured':'Squad lost';
+  if(LEVEL===1&&!win){$('#endText').textContent='The squad went down. Try again: keep to cover, and let the guards come to you.';$('#againBtn').textContent='Try Level 1 again';$('#retryBtn').hidden=true;$('#end').hidden=false;return;}
   $('#endText').textContent=win
     ?`Cleared in ${mm}:${ss}. ${downCount} time${downCount===1?'':'s'} a soldier went down, ${kia} killed in action.`
     :`The squad held out for ${mm}:${ss}. Try pinning one side of the room with Suppress while a fire team works around to the west window or the east door.`;
@@ -39,7 +40,7 @@ function hud(){
   updateCards();
   const act=sel.filter(alive);
   $('#supBtn').disabled=!act.length||!enemies.some(e=>!beaten(e)&&e.seen);
-  {const wb=$('#watchBtn'),bb=$('#breachBtn');wb.disabled=!act.length;wb.classList.toggle('on',mode==='watch'||act.some(u=>u.watch));bb.hidden=!(MAPID==='in'||(!finished[0]&&players.some(p=>alive(p)&&p.y>200)));bb.disabled=!act.length;bb.classList.toggle('on',mode==='breach'||!!breach);}
+  {const wb=$('#watchBtn'),bb=$('#breachBtn');wb.disabled=!act.length;wb.classList.toggle('on',mode==='watch'||act.some(u=>u.watch));bb.hidden=!(MAPID==='in'||(MAPID==='out'&&!finished[0]&&players.some(p=>alive(p)&&p.y>200)));bb.disabled=!act.length;bb.classList.toggle('on',mode==='breach'||!!breach);}
   $('#supBtn').classList.toggle('on',mode==='suppress');
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
   {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
@@ -71,6 +72,7 @@ function hud(){
   else if(act.length===1&&act[0].onTower&&!preview)h=act[0].weapon==='sniper'?`${act[0].name} is up the tower with the sniper rifle: he sees 70 m the way he faces (all round while he's the one selected). Any move order brings him down first.`:`${act[0].name} is up the tower. Any move order brings him down first.`;
   else if(!preview&&enemies.some(e=>e.surr&&!e.tied&&!e.dead&&e.vis&&!offFloor(e)))h=act.length?'A hostile has surrendered: tap him to zip-tie him (2 s beside him).':'A hostile has surrendered: select a soldier, then tap him to zip-tie him.';   // (layers.js)
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
+  else if(MAPID==='l1'&&!preview&&!act.length)h=l1Hint();   // (level1.js)
   else if(MAPID==='in'&&!preview&&!act.length)h=officeHint();   // (office.js)
   else if(wave.phase==='hq'&&!preview&&!act.length)h=objHint()+(HQ_ZONES.length?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
@@ -118,12 +120,13 @@ function bindHud(){
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
-  $('#startBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();if(wave.phase!=='fight1')reset();startView();$('#intro').hidden=true;state='play';startLanding();banner('Coming in to the dock…',2400);hud();});
-  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;state='play';endAt=0;hud();});   // the one report comes at the end of the mission
+  $('#startBtn').addEventListener('click',()=>startLevel2());
+  $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
+  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){startLevel2();return;}state='play';endAt=0;hud();});   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
-  $('#againBtn').addEventListener('click',()=>{clearSave();refreshSaveButtons();startView();$('#end').hidden=true;reset();state='play';startLanding();hud();});
+  $('#againBtn').addEventListener('click',()=>{if(LEVEL===1){startLevel1();return;}startLevel2();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}

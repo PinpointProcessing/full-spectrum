@@ -127,6 +127,10 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .card ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13.5px;line-height:1.4;color:#b9c3ca}
 .card ul b{color:var(--text);font-weight:600}
 .card .go{min-height:44px;font-size:14px;background:#1d2a33;border-color:var(--alpha);color:var(--alpha)}
+.card .go.alt{background:#1a2026;border-color:#5d6a74;color:#c9d3da}
+.card details.controls{display:grid;gap:8px}
+.card details.controls summary{cursor:pointer;color:var(--dim);font-size:13px;min-height:28px}
+.card details.controls[open] summary{margin-bottom:6px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--dim)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;display:inline-block}

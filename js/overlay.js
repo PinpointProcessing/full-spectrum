@@ -71,7 +71,7 @@ function drawOverlay(rdt,now){
   // enemy view cones (unaware, seen)
   for(const e of enemies){
     if(e.dead||e.alerted||e.surr||!e.vis||offFloor(e))continue;
-    if(MAPID==='in')conePath(e);else gPath(e.x,e.y,eyeR(),e.ang-1.08,e.ang+1.08,true);   // indoors the cone stops at walls
+    if(MAPID==='in')conePath(e);else{const R=e.eye?e.eye.r*(alertStage()>=1?1.15:1):eyeR(),A=e.eye?e.eye.cone:1.08;gPath(e.x,e.y,R,e.ang-A,e.ang+A,true);}   // indoors the cone stops at walls; a man with eyes of his own (Level 1's guards, the sniper) shows his own reach
     ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
   }
   // suppression zones
