@@ -26,7 +26,7 @@ His notes, collected here as they come; the changes are made together once he's 
    whole point of the containers is for stealth. Show me a draft image of the level and I will tell you if it's right."
    Draft: `docs/map-draft-F.png` (three rows of containers along the canal's north bank; a 13 m runway road across the
    map; the gun jeep driving it end to end; guards: containers 3, bridge 6, data center front 7 plus the jeep).
-   Bryan: "Yes this works! And let's make the truck just a light jeep." Built and committed (not published until he's done
-   testing). Two changes from the draft, found by testing the quiet route: a container closes the west half's first aisle
+   Bryan: "Yes this works! And let's make the truck just a light jeep." Built, published in v65
+   (was held until he'd finished testing). Two changes from the draft, found by testing the quiet route: a container closes the west half's first aisle
    at its east end (the tower's sniper could look down it and spot the squad leaving the pipe), and the data center's guns
    and riflemen stand a little further east (x 350-710) so the far west end of the road is the quiet crossing.
