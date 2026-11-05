@@ -20,6 +20,7 @@ function setStatus(){
   s.textContent=contact?'Contact':quiet;s.className='chip'+(contact?' contact':'');
 }
 function finish(){
+  if(typeof tutStop==='function'&&MAPID==='l1')tutStop();
   const win=players.some(alive)&&(wave.phase==='hq'?obj>=5:enemies.every(beaten));
   state='end';setStatus();$('#status').textContent=win?'Secured':'Lost';
   if(win){bigText('Mission complete!','complete');setTimeout(showAAR,2600);return;}   // then the after-action report, then the HQ
@@ -122,6 +123,7 @@ function bindHud(){
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>startLevel2());
   $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
+  $('#tutSkip').addEventListener('click',()=>{tutStop();banner('Tutorial off. The hint line at the bottom still says what to do.',2600);});
   $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){startLevel2();return;}state='play';endAt=0;hud();});   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}

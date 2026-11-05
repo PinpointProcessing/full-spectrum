@@ -44,7 +44,7 @@ function finishDraw(){
   if(!e||hyp(e.x-u.x,e.y-u.y)<12)return;            // dragged back onto him: cancel
   const r=routeFromTrail(u,t);
   if(!r){banner('Can’t get there.');return;}
-  commit([r]);u.peek=null;
+  commit([r]);u.peek=null;tut.drew=true;   // (Level 1's boot camp: level1.js)
 }
 function endPtr(ev,cancel){
   touches.delete(ev.pointerId);

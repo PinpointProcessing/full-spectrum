@@ -112,6 +112,8 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .uc-rpg.tut{animation:tutPulse 1s ease-in-out infinite}
 @keyframes tutPulse{0%,100%{box-shadow:0 0 0 0 rgba(77,243,255,.7)}50%{box-shadow:0 0 0 6px rgba(77,243,255,0)}}
 #tut{position:absolute;top:92px;left:50%;transform:translateX(-50%);z-index:3;width:min(340px,calc(100% - 32px));padding:10px 12px;border-radius:6px;background:rgba(8,14,18,.92);border:1px solid rgba(77,243,255,.7);box-shadow:0 0 18px rgba(77,243,255,.25);color:var(--text);font-size:13px;line-height:1.4;pointer-events:none}
+#tutSkip{position:absolute;top:150px;left:50%;transform:translateX(-50%);z-index:3;min-height:30px;padding:4px 12px;font-size:11px;background:rgba(8,14,18,.85);border:1px solid rgba(77,243,255,.45);color:#9feaf2;border-radius:15px}
+.tutGlow{outline:2px solid #4df3ff;outline-offset:2px;animation:tutPulse 1s ease-in-out infinite}
 #tut small{display:block;font-family:var(--font-hud);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#4df3ff;margin-bottom:3px}
 #tut b{color:#4df3ff}
 .ucard.downed .uc-face{filter:grayscale(.6) brightness(.7)}
@@ -197,7 +199,7 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .aar-gain em{font-style:normal;color:var(--warn);text-transform:uppercase;letter-spacing:.12em;animation:alertPop .35s ease-out}
 .linkish{background:none;border:none;min-height:28px;color:var(--dim);font-size:11px;text-decoration:underline;text-underline-offset:3px;justify-self:center}
 @media (prefers-reduced-motion: reduce){.aar-xp i{transition:none}.aar-gain em{animation:none}}
-@media (prefers-reduced-motion: reduce){.uc-rpg.tut{animation:none;box-shadow:0 0 0 2px #4df3ff}#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}
+@media (prefers-reduced-motion: reduce){.uc-rpg.tut,.tutGlow{animation:none;box-shadow:0 0 0 2px #4df3ff}#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}
 
 /* inside the office building: the floor switcher (right side, under Fit map; dots show who's on each floor) and the fade between maps */
 #floors{position:absolute;right:8px;top:56px;z-index:2;display:grid;gap:4px}
