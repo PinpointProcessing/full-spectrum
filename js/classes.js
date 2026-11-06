@@ -1,8 +1,9 @@
 "use strict";
 /* Soldier classes (Bryan's design, docs/classes.md: "Every private can use a basic assault rifle. When they reach level 3 their
    class type should be chosen... Each unit unlocks different Class Attribute Slots for skills and equipment"). Step 1 of the
-   plan: the choice at level 3 on the between-missions screen, each class's weapons and one passive bonus. The slots and new
-   gear (heal darts, the field station, the ammo bag, the drone, hacking, the Captain's call-ins) come later.
+   plan: the choice at level 3 on the between-missions screen, each class's weapons and one passive bonus. Each class's skill
+   is in skills.js, the Defender's building in build.js; the slots and the rest of the new gear (heal darts, the drone,
+   the Captain's call-ins) come later.
    Until Bryan answers the four questions in the doc: the player picks; a class is kept (retraining at HQ later); two soldiers
    may share a class but there's one Captain; the Medic brings the downed and critical back, not the dead.
    A class adds to the armory, it doesn't take away: everyone can still take the M240, the RPG, smoke or a kit. */
