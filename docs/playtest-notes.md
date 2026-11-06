@@ -511,3 +511,38 @@ center, medic table, supply table." (His ideas for more stations and rooms are i
   real fight, eight men: won with one down, the bot got him up and went on through the talk and the montage to the report.
   Four men lost to her on that seed. With no scientists, the clean-up started on its own. Level 1's tutorial lock test,
   Level 2's quiet run and the regroup test still pass.
+
+# v96: out of the HQ, the road east to a dark tunnel
+Bryan, after v95: "1) supplies and Intel to start 2) the moment you get the supplies. 3) both, upgraded to strikes later
+one. Extra men start at level 1 and are limitedly available 4) Yes it should grow. 5) Both 6) yes. As for the map outside.
+When the user exits, the map now extends to the right. The road continues out to a dark tunnel. The leader says, alright,
+we need to get our radio communication up. Then a scientist responds, there's a decommissioned radio tower accessible from
+the tunnel down the road. You'll probably find the supplies you need from there. And that opens up to the next mission."
+(His six answers are in docs/hq-base.md, with the plan rewritten to follow them.)
+
+- In the finished HQ, gather everyone at the entry hall's south door (GO OUT n/m, then TAP TO GO OUT). They come out of
+  the gate two by two and walk off the drawbridge; the first time, one of the scientists walks out with them.
+- The big map now goes on past its old east edge. The piece of the east fence across the runway road is gone (its two
+  gate leaves stand open), and the road runs on, narrower, past an empty sentry hut and a failing lamp, round a bend to the
+  left and into a tunnel in a hillside: a concrete portal, chevrons either side, black inside, a dim work light over the
+  mouth and a red light far in. Rock along the north and east, the canal along the south, boulders and a burnt-out car to
+  take cover behind. It stays open from then on, saves included; a new game closes it again.
+- The first time out, the camera goes down the road to the tunnel, the leader (Reyes, or Hayes if Reyes is gone) says
+  "Alright, we need to get our radio communication up." and the scientist answers "There's a decommissioned radio tower
+  accessible from the tunnel down the road. You'll probably find the supplies you need from there." Both are voiced
+  (Zonos, as before). Then the camera comes back to the squad and the scientist walks back in. Objective: "Next mission ·
+  The old radio tower". A save: "The road east" (the last checkpoint on the intro card).
+- The tunnel's mouth is a gather area (TUNNEL n/m, then TAP TO GO IN). The radio tower mission isn't built yet, so the tap
+  says so for now. That mission is yours to design: docs/hq-base.md.
+- The drawbridge's green area takes the squad back into the HQ (in at the south door); going out again doesn't replay the
+  talk.
+- Under the hood: the pathfinding grid is wider than the old map now (1440 instead of 1000), and the old edge still counts
+  as the edge on every map until the road opens.
+- Found on the way: every scientist brought into the HQ (the fetch, a Continue) was in the game's list of people twice, so
+  they moved at double speed (fixed). After a Continue into the HQ there was no way back in from outside, because the
+  drawbridge's gather area only existed after the gate fight (fixed).
+- Tested headless: from the HQ save, GO OUT, the walk-out, the camera, both lines, the save, real paths to the tunnel for
+  all eight (about 10 s), TAP TO GO IN, a tap on the new ground, back into the HQ and out again; the same from the end of
+  a real fight, the fetch and the montage; Continue from every Level 3 checkpoint; a new game. Regressions: Level 1's
+  tutorial lock (0 fails), Level 2's quiet run (won, never seen), back to the group after a job, the gate and the HQ fight
+  (eight men, won, three down at the end), the HQ's end.

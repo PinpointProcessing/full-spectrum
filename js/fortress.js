@@ -198,7 +198,7 @@ const HQ_TALK=[['sci',"She's dead. You actually killed her."],['lead',"No thanks
   ['sci',"Why would I help you?"],['lead',"Because the next thing that hatches won't care whose side you're on."],
   ['sci',"Fine. What do you need?"],['lead',"Power. A working lab. And everything you know about those things."]];
 let hqEnd=null;
-const endingBusy=()=>!!hqEnd&&hqEnd.ph!=='done';
+const endingBusy=()=>!!hqEnd&&hqEnd.ph!=='done'||roadBusy();   // (and the road east's first look and talk: road.js)
 function hqEndTick(){   // (every tick once she's dead: hqTickWin)
   const E=hqEnd;if(!E||E.ph!=='out')return;const f=E.fetch;
   if(!f.away&&(f.y>946||simT-E.t>14)){f.away=true;f.path=[];E.t=simT;}   // out of the door, into the dark
@@ -212,7 +212,7 @@ function hqEndTick(){   // (every tick once she's dead: hqTickWin)
 }
 function hqHint(){
   if(MAPID!=='hq')return'';
-  if(hqs.won){if(HQ&&HQ.base)return'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now.';
+  if(hqs.won){if(HQ&&HQ.base)return'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now. Gather everyone at the south door to go out.';
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now.':'Send someone for the scientists: select a soldier, then tap BRING THE SCIENTISTS at the south door.';}
   if(!hqs.awake)return'Here she comes.';

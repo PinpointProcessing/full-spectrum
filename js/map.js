@@ -12,7 +12,7 @@ function O(kind,x,y,w,h,extra){objs.push(Object.assign({kind,x,y,w,h,full:FULL.h
 const CK=[['#2e5759','TCNU'],['#6a3324','MSKU'],['#4a5230','CMAU'],['#5b2f2a','HLXU'],['#2c4a63','OOLU'],['#4f565b','TGHU'],['#7a5a22','CXDU'],['#3b3f6b','EGHU']];
 const box=(x,y,w,h,k,stack=1)=>O('container',x,y,w,h,{col:CK[k%CK.length][0],tag:`${CK[k%CK.length][1]} ${(1000+k*397)%9000+1000}`,stack});
 // perimeter fence (open at the dock in the south-west corner, where the water is; the fortress fills the north-east)
-O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,TOP+200,8,H-TOP-200);O('fence',0,TOP,460,8);
+O('fence',175,H-8,W-175,8);O('fence',0,TOP,8,852-TOP);O('fence',W-8,TOP+200,8,-352-TOP-200);O('fence',W-8,-352,8,154,{eastGate:1});O('fence',W-8,-198,8,H+198);O('fence',0,TOP,460,8);
 // the dock in the south-west corner, where the squad comes ashore by dinghy: water either side of a short wooden pier
 O('water',0,852,120,48);O('water',142,852,33,48);
 const DOCK={pier:{x:120,y:852,w:22,h:40},moor:{x:96,y:872},quay:852};
@@ -172,14 +172,14 @@ function coverAt(tx,ty,sx,sy){
   }
   return best;
 }
-function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(const o of objs)if(!o.door&&rectDist(x,y,o)<(o.kind==='jeep'&&pad<10?Math.min(pad,4):pad))return false;return true;}   // a parked jeep doesn't seal a gap: you can squeeze past it
+function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>EAST_X-10||y>H-10)return false;for(const o of objs)if(!o.door&&rectDist(x,y,o)<(o.kind==='jeep'&&pad<10?Math.min(pad,4):pad))return false;return true;}   // a parked jeep doesn't seal a gap: you can squeeze past it
 // How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
 function objHeight(o){
   if(o.door)return o.open?0:10.5;   // a door (interior.js): as tall as the cut-away walls while it's shut; open, nothing
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
   return{barricade:11,fwall:22,wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9,dcblock:60,rail:7,pbwall:11,wtower:50,relay:72,
-    owall:14,iwall:12,cabinet:14,pillar:14,liftwall:14,steeldoor:14,liftdoor:14,carddoor:14,xfmr:20,ctank:30,console:12,counter:10,copier:9,sofa:6,planter:8,terminal:9,lab:9,bars:14}[o.kind]||0;   // inside walls are drawn cut away at waist height
+    owall:14,iwall:12,cabinet:14,pillar:14,liftwall:14,steeldoor:14,liftdoor:14,carddoor:14,xfmr:20,ctank:30,console:12,counter:10,copier:9,sofa:6,planter:8,terminal:9,lab:9,bars:14,cliff:60,rock:8}[o.kind]||0;   // inside walls are drawn cut away at waist height
 }
 // Leaning round a corner: when a full object close by blocks the line to (tx,ty), step 8 or 14 sideways past its edge.
 const PEEK_REACH=[8,14],PEEK_NEAR=22;
@@ -190,7 +190,7 @@ function leanPts(x,y,tx,ty){
   const d=hyp(tx-x,ty-y)||1,px=(y-ty)/d,py=(tx-x)/d,out=[];
   for(const r of PEEK_REACH)for(const s of[1,-1]){
     const lx=x+px*r*s,ly=y+py*r*s;
-    if(lx<10||ly<TOP+10||lx>W-10||ly>H-10)continue;
+    if(lx<10||ly<TOP+10||lx>EAST_X-10||ly>H-10)continue;
     if(objs.some(o=>rectDist(lx,ly,o)<3))continue;
     if(los(x,y,lx,ly))out.push({x:lx,y:ly});
   }

@@ -268,7 +268,7 @@ function addMesh(geo,mat,x,y,z,ry){const m=new T.Mesh(geo,mat);m.position.set(x,
 // Descent did this"): a few times a second, anything tall standing between the camera and one of our men fades to
 // see-through, and comes back once he's clear. Inside the office building the walls are cut low already.
 let meshOwner=null;   // the map object meshObjs is building: addMesh files its meshes under it (o.meshes)
-const SEE_H=15,SEE_SKIP=new Set(['gate','tower','wtower','pylon','bridge','gatehouse','gtower','fortwall','pit','relay','void','water']),fadeObjs=new Set();let seeT=0;
+const SEE_H=15,SEE_SKIP=new Set(['gate','tower','wtower','pylon','bridge','gatehouse','gtower','fortwall','pit','relay','void','water','cliff']),fadeObjs=new Set();let seeT=0;
 function segHitsBox(ax,ay,az,bx,by,bz,x0,y0,z0,x1,y1,z1){   // does the segment a-b pass through the box? (slabs)
   let t0=0,t1=1;const d=[bx-ax,by-ay,bz-az],o=[ax,ay,az],lo=[x0,y0,z0],hi=[x1,y1,z1];
   for(let k=0;k<3;k++){
@@ -445,7 +445,7 @@ function buildWorld(){
       const conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.95});
       addMesh(new T.BoxGeometry(o.w,12,o.h),conc,cx,6,cz);
       addMesh(new T.BoxGeometry(o.w-4,16,o.h-4),new T.MeshStandardMaterial({color:0x5c6157,roughness:.85}),cx,20,cz);
-      const win=new T.Mesh(new T.BoxGeometry(o.w-3.4,4,o.h-3.4),new T.MeshBasicMaterial({color:0xffcf8a,toneMapped:false}));win.position.set(cx,23,cz);scene.add(win);
+      const win=new T.Mesh(new T.BoxGeometry(o.w-3.4,4,o.h-3.4),o.dark?new T.MeshStandardMaterial({color:0x101417,roughness:.3,metalness:.4}):new T.MeshBasicMaterial({color:0xffcf8a,toneMapped:false}));win.position.set(cx,23,cz);scene.add(win);   // (dark: an empty one, the road east's)
       addMesh(new T.BoxGeometry(o.w+4,2,o.h+4),darkMetal,cx,29,cz);
     }else if(o.kind==='tower'||o.kind==='wtower'){   // watchtower: four legs, a railed platform, a pitched roof, a ladder and a searchlight down the road
       const leg=new T.BoxGeometry(1.8,40,1.8),wood=new T.MeshStandardMaterial({color:0x4a3b2c,roughness:.9});
@@ -567,7 +567,7 @@ function buildWorld(){
       const led=new T.Mesh(new T.BoxGeometry(5,1,.4),new T.MeshBasicMaterial({color:0x37e08a,toneMapped:false}));led.position.set(cx+15,9,cz+7.7);scene.add(led);o.led=led;
     }else if(o.kind==='fence'){
       const fm=texMat(linkTex,len/6,3,{color:0x9aa2a8,transparent:true,alphaTest:.35,side:T.DoubleSide,roughness:.6,metalness:.6});
-      const pl=new T.Mesh(new T.PlaneGeometry(len,18),fm);pl.position.set(cx,9,cz);pl.rotation.y=ry;scene.add(pl);
+      const pl=new T.Mesh(new T.PlaneGeometry(len,18),fm);pl.position.set(cx,9,cz);pl.rotation.y=ry;scene.add(pl);o.fencePl=pl;   // (the east fence's piece across the road comes out when the road east opens: road.js)
       const pg=new T.CylinderGeometry(.9,.9,20,6);
       for(let k=0;k<=len;k+=50){const px=hz?o.x+k:cx,pz=hz?cz:o.y+k;addMesh(pg,darkMetal,px,10,pz);}
     }

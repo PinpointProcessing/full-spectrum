@@ -76,3 +76,10 @@ prefix, but it copies a voice from its reference, and a reference of a man screa
 embedding blended with the soldier's own. Three takes at each of 0.6, 0.75 and 1.0 of the screamer for each of the three, all
 heard right by the speech recogniser; the pitch measured with WORLD's harvest (`pyworld`). In: B2 at 0.6 (342 Hz, still partly
 his own voice), A2 and B1 at 1.0 (306 and 385 Hz; their blends stayed under 260 Hz), packed as 'shout'.
+
+After v95, the two lines on the road east (`ROAD_TALK` in `js/road.js`; Bryan wrote them): `road_1` "Alright, we need to
+get our radio communication up." for Reyes and Hayes (A1, B1: whoever leads; 'firm', like the gate's leader) and `road_2`
+"There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need
+from there." for each scientist (S1-S4: whichever comes out with them; 'tell', even, a little wary), made with
+`gen_road.py` (no pause at the comma, as `gen_zonos.py` does), two or three takes each, scored by `check_zonos.py`, the
+best of each put on the end of the speakers' files with `add_lines.py` ('plain').

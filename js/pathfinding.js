@@ -3,14 +3,14 @@
    through windows (Bryan) when that's the quickest or safest way, and its routes keep out of known enemies' sight when a
    hidden way isn't much longer. */
 // cell (gx,gy) covers x gx*CS.., y TOP+gy*CS.. (the map starts at y TOP, north of the yard)
-const CS=10,GW=W/CS,GH=(H-TOP)/CS,blk=new Uint8Array(GW*GH);
+const CS=10,GW=NAV_W/CS,GH=(H-TOP)/CS,blk=new Uint8Array(GW*GH);
 const cx0=gx=>gx*CS+5,cy0=gy=>TOP+gy*CS+5;   // a cell's centre
 // The grids below are rebuilt whenever the map changes (going into the office building and back out: rebuildNav).
 // fillBlk marks each object's cells only (same rule as isFree: a cell is blocked if its centre is within the pad of an
 // object or the frame's edge), so a rebuild takes milliseconds instead of testing every object for every cell.
 function fillBlk(){
   blk.fill(0);
-  for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){const x=cx0(gx),y=cy0(gy);if(x<10||y<TOP+10||x>W-10||y>H-10)blk[gy*GW+gx]=1;}
+  for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){const x=cx0(gx),y=cy0(gy);if(x<10||y<TOP+10||x>EAST_X-10||y>H-10)blk[gy*GW+gx]=1;}
   for(const o of objs){
     if(o.door)continue;   // a door never blocks the way: whoever walks into a shut one opens it (orders.js)
     const pad=o.kind==='jeep'?4:7.5,b=o.disk?{x:o.disk.cx-o.disk.r,y:o.disk.cy-o.disk.r,w:o.disk.r*2,h:o.disk.r*2}:o;

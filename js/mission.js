@@ -442,6 +442,8 @@ function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
   if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
   if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
+  if(typeof road!=='undefined'&&road&&road.talked){el.querySelector('b').textContent='Next mission';el.querySelector('span').textContent='The old radio tower: through the tunnel down the road (east)';   // (road.js)
+    el.querySelector('ol').innerHTML=OBJ_LIST.map(t=>`<li class="done">${t}</li>`).join('');el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
   const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':typeof hqs!=='undefined'&&hqs.won?'Headquarters taken':MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
   el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;

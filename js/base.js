@@ -18,6 +18,7 @@
 const HQ_MID={x:500,y:600};   // the middle of the hall, where everyone gathers while they talk
 const BASE_ST={cmd:{x:500,y:468,w:64,h:34},med:{x:400,y:744},sup:{x:600,y:744}};   // the command center, the medic table, the supply table
 let base=null;   // the montage while it plays ({t0, i}), then {done:true} once the HQ is finished
+let hqStaff=[];   // the scientists who work there now ({id, name, sciN}): the ones brought in, or as many as came out of the data center
 
 const hqCalm=()=>MAPID==='hq'&&hqs.won;   // (the fight's over: nobody bleeds out, combat.js)
 const cineOn=()=>!!(base&&base.cine);   // (the montage: no HUD, nothing drawn over the picture, nobody talking: overlay.js, monsters.js)
@@ -28,7 +29,7 @@ const anyDown=()=>players.some(p=>p.downed&&!p.dead&&!p.offMap);
 function sciCopy(o,x,y,ang){
   const u=mk('C','C',o.id,o.name,x,y,ang);
   Object.assign(u,{kind:'sci',sci:true,sciN:o.sciN,detained:true,weapon:null,grenade:0,spec:null,specN:0,pleadT:simT+1e6,hold:{ang}});
-  makePerson(u);units.push(u);civs.push(u);return u;
+  makePerson(u);civs.push(u);return u;   // (mk has put him in units already)
 }
 
 /* ---------- after the fight: the wounded, then someone out for the scientists ---------- */
@@ -125,6 +126,7 @@ function montageStart(){   // (the conversation's over: fortress.js's hqEndTick)
 }
 function montageEnd(){
   base={done:true};$('#app').classList.remove('cine');for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;   // (HQ staff now: office.js draws no DETAINED over them)
+  hqStaff=civs.filter(c=>c.sci&&!c.dead).map(c=>({id:c.id,name:c.name,sciN:c.sciN}));
   if(hqEnd)hqEnd.ph='done';saveGame('base');updateObjUI();hud();
   if(state==='play')endAt=performance.now()+1200;   // "Mission complete!" and the report (hud.js's finish)
 }
@@ -235,8 +237,8 @@ function drawBase(now){
   for(const q of HQ_ROOMS){const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;label('EMPTY ROOM',x,y,'rgba(200,210,220,.55)',9,700);}
 }
 
-/* ---------- Continue from the save in the finished HQ ---------- */
-function enterBase(){
+/* ---------- Continue from the save in the finished HQ, or back in from outside (the drawbridge's gather area: monsters.js) ---------- */
+function enterBase(fromOut){
   fadeTo(true);
   setTimeout(()=>{
     buildHQ();stashOut(players);
@@ -244,9 +246,12 @@ function enterBase(){
     tankFires=[];rockets=[];charges=[];
     for(const p of players){moveMesh(p,HQ.scene);Object.assign(p,{path:[],peek:null,tk:null,plant:null,supT:null,focus:null,elev:0,vaultK:0,crawl:false,lx:0,ly:0,offMap:false,throwGo:null,medGo:null,work:null});}
     units=[...players];MAPID='hq';enemies=[];civs=[];resetHQ();hqs.won=true;hqs.awake=true;hqEnd={ph:'done'};baseActs();
-    const sci=STASH.out?STASH.out.units.filter(u=>u.sci&&!u.dead):[];sci.forEach((o,i)=>sciCopy(o,470+i*20,430,Math.PI/2));
-    makeBase();base={done:true};shotReveal();for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;camShot(500,600,1.6,0,.1);
-    contact=false;clearTeams();sel=[];cardGroup=[];obj=6;objDone=4;
+    if(!hqStaff.length)hqStaff=Array.from({length:Math.max(1,sciOut||0)},(_,i)=>({id:'S'+(i+1),name:'Scientist',sciN:i}));   // (a Continue: as many as came out of the data center)
+    hqStaff.forEach((o,i)=>sciCopy(o,470+i*20,430,Math.PI/2));
+    makeBase();base={done:true};shotReveal();for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;
+    if(fromOut){players.filter(p=>!p.dead&&!p.gone&&!p.carriedBy).forEach((p,i)=>{p.x=440+(i%4)*40;p.y=806+Math.floor(i/4)*24;p.ang=-Math.PI/2;});camShot(500,760,2.0,0,.1);}   // (in at the south door, short of its gather area)
+    else camShot(500,600,1.6,0,.1);
+    contact=false;clearTeams();sel=[];cardGroup=[];obj=Math.max(obj,6);objDone=4;
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
     updateObjUI();setStatus();buildCards();hud();fadeTo(false);
   },380);

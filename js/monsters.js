@@ -209,7 +209,7 @@ function sceneTick(){
   callouts.push({x:w.x,y:w.y,t:0,dur:len+1.2,text:l.text,col:l.col||'#e6ecf0'});
   voiceBusyTill=now+len+.35;if(l.radio&&d){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}S.next=simT+.2;
 }
-const sceneOn=()=>!!(mon.scene&&(mon.scene.q.length||simT<mon.scene.quiet))||(typeof talkActive==='function'&&talkActive())||(typeof cineOn==='function'&&cineOn());   // (and the montage after the Headquarters: base.js)   // (the scientists keep their own lines to themselves meanwhile: office.js)
+const sceneOn=()=>!!(mon.scene&&(mon.scene.q.length||simT<mon.scene.quiet))||(typeof talkActive==='function'&&talkActive())||(typeof cineOn==='function'&&cineOn())||(typeof roadBusy==='function'&&roadBusy());   // (and the montage after the Headquarters: base.js)   // (the scientists keep their own lines to themselves meanwhile: office.js)
 const sceneUp=p=>!!p&&alive(p)&&!p.offMap&&!p.downed;
 const sciWith=()=>civs.filter(c=>c.sci&&c.detained&&!c.dead&&!c.offMap&&!c.gone);
 const gateLead=()=>['A1','B1'].map(id=>players.find(p=>p.id===id&&sceneUp(p))).find(Boolean)||null;
@@ -248,6 +248,7 @@ function tieSteps(lead){
 }
 // into the Headquarters (a tap on the gather area); any scientist not left on the bridge yet is tied up first
 function goIn(){
+  if(obj>=6){enterBase(true);return;}   // (the Headquarters is the squad's: back into it, base.js)
   if(typeof enterHQ!=='function')return;
   if(sciWith().some(c=>!c.railed)){sceneStart([...tieSteps(gateLead()),{fn:()=>{if(state==='play'&&MAPID==='out')enterHQ();}}],.3,'tie');return;}
   enterHQ();

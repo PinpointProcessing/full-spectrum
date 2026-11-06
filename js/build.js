@@ -25,7 +25,7 @@ function fortPlan(kind,x,y){
 const rectsMeet=(a,b,pad=0)=>a.x-pad<b.x+b.w&&a.x+a.w+pad>b.x&&a.y-pad<b.y+b.h&&a.y+a.h+pad>b.y;
 // why it can't go there, or null
 function fortBlocked(r){
-  if(r.x<12||r.y<TOP+12||r.x+r.w>W-12||r.y+r.h>H-12)return'Too close to the edge.';
+  if(r.x<12||r.y<TOP+12||r.x+r.w>EAST_X-12||r.y+r.h>H-12)return'Too close to the edge.';
   for(const o of objs)if(o.disk?rectDist(r.x+r.w/2,r.y+r.h/2,o)<Math.max(r.w,r.h)/2+3:rectsMeet(r,o,3))return o.kind==='water'||o.kind==='pit'?'Not on the water.':'Something’s in the way.';
   for(const u of units)if(!u.dead&&!u.offMap&&rectsMeet(r,{x:u.x,y:u.y,w:0,h:0},6))return'Someone’s standing there.';
   return null;

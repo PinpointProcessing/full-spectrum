@@ -111,11 +111,11 @@ function hitChance(s,t,L){
 function threats(){
   const t=[];
   for(const e of enemies)if(!beaten(e)&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(MAPID==='l1'?l1Threat():MAPID==='l2'?l2Threat():MAPID==='hq'?{x:500,y:240}:MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
+  if(!t.length)t.push(MAPID==='l1'?l1Threat():MAPID==='l2'?l2Threat():MAPID==='hq'?{x:500,y:240}:MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[Math.min(obj,7)]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
 // before anyone's seen at the later objectives: where previews judge cover from
-const OBJ_THREAT={1:{x:476,y:30},2:{x:800,y:-180},3:{x:245,y:-420},4:{x:850,y:-600},5:{x:850,y:-600},6:{x:850,y:-600}};
+const OBJ_THREAT={1:{x:476,y:30},2:{x:800,y:-180},3:{x:245,y:-420},4:{x:850,y:-600},5:{x:850,y:-600},6:{x:850,y:-600},7:{x:1280,y:-480}};   // (7: the road east, the tunnel's mouth: road.js)
 function protStats(p,th){
   let prot=0,see=0;
   for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l||sightFrom(p.x,p.y,t.x,t.y))see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}
@@ -902,7 +902,7 @@ function update(dt){
   takedownTick(dt);silentTick();throwTick();fireGoTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
-    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();baseTick(dt);   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
+    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();baseTick(dt);roadTick(dt);   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

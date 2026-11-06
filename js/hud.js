@@ -4,6 +4,7 @@ let bannerTimer=0;
 function banner(text,ms=2400){const b=$('#banner');if(typeof placeBanner==='function')placeBanner();b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),ms);}
 // the hint line's word on where to go, by where the squad is (Bryan: clearing areas is optional; the data center is the goal)
 function objHint(){
+  if(obj>=7)return roadHint();   // (the road east: road.js)
   if(obj===4)return'Take a scientist to the drawbridge\'s bio scanner (north-east): send a soldier to the panel by the moat.';
   if(obj>=5)return mon.out&&!mon.out.done?'Hold them off at the drawbridge: shoot the hunters when they crouch, step out of the violet line. Keep the scientists close.':'The gate is clear. Heal and restock at the medic station and ammo drop west of the drawbridge, then gather everyone in the green area at the drawbridge to go in.';   // (monsters.js)
   const ups=players.filter(p=>alive(p)&&!p.offMap),north=ups.some(p=>p.y<CANAL.y0);
@@ -16,7 +17,7 @@ function setStatus(){
   if(state==='end'){s.className='chip';return;}
   const quiet=enemies.some(e=>!e.dead&&e.alerted)?'Hunted':'Undetected';   // hunted: they're searching for you (hunt.js)
   const hid=contact?[...new Set(players.filter(p=>alive(p)&&!p.offMap&&!caught(p)).map(p=>teamName(p.team)))]:[],cTxt=hid.length?hid.join(' & ')+' hidden':'Contact';   // (one team caught, the other still covert: hunt.js)
-  if(wave.phase==='hq'){s.textContent=contact?cTxt:obj>=5?'Bridge down':quiet;s.className='chip'+(contact?' contact':'');return;}
+  if(wave.phase==='hq'){s.textContent=contact?cTxt:obj>=6?quiet:obj>=5?'Bridge down':quiet;s.className='chip'+(contact?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
   s.textContent=contact?cTxt:quiet;s.className='chip'+(contact?' contact':'');
 }
@@ -77,7 +78,7 @@ function hud(){
   else if(MAPID==='l2'&&!preview&&!act.length)h=l2Hint();   // (level2.js)
   else if(MAPID==='hq'&&!preview&&!act.length)h=hqHint();   // (fortress.js)
   else if(MAPID==='in'&&!preview&&!act.length)h=officeHint();   // (office.js)
-  else if(wave.phase==='hq'&&!preview&&!act.length){const o=objHint();h=o+(HQ_ZONES.length&&!/medic station/.test(o)?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');}   // (unless it says so already)
+  else if(wave.phase==='hq'&&!preview&&!act.length){const o=objHint();h=o+(o&&HQ_ZONES.length&&!/medic station/.test(o)?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');}   // (unless it says so already)
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';

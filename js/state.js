@@ -16,6 +16,7 @@ function mk(side,team,id,name,x,y,ang){
 function reset(){
   leaveLevel1Now();leaveLevel2Now();leaveHQNow();   // (Level 1: level1.js; Level 2: level2.js; the Headquarters: fortress.js)
   leaveInteriorNow();   // a new game or Continue from inside the office building: back to the outdoor map first
+  resetRoad();   // the road east closed again (road.js)
   clearBuilds();clearSkills();   // the Defender's barricades and walls go (build.js), and the field stations set down (skills.js)
   for(const u of units){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);if(u.slight&&u.slight.parent)u.slight.parent.remove(u.slight);}
   units=[];

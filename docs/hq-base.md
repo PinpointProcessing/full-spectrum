@@ -1,4 +1,4 @@
-# The Headquarters as your base: a proposal for Bryan
+# The Headquarters as your base: the plan with Bryan
 
 Bryan, after the boss fight (v94): "It then goes to the complete HQ which has a command center, medic table, supply table.
 Then we can talk about adding some new stations and rooms. Some stations will require resources to be built. One will be
@@ -8,16 +8,38 @@ maybe a garage door leads to a road, another can be a dock on the water with a b
 that goes to the roof where a helipad and the radio tower could go. I am open to other build types. I haven't really
 decided if PvP can be applied to these HQs yet."
 
-This is a starting point for that conversation. Nothing below is built yet except the first section.
+This started as a proposal (v95). Bryan answered its six questions after v95; his answers are below and the plan follows
+them. Built so far: the finished HQ (v95) and the way out of it, onto the road east (v96).
 
-## What's there now (v95)
+## Bryan's answers (after v95)
+1. **Resources:** supplies and intel to start.
+2. **Building:** the moment you have the supplies (no waiting for the next mission).
+3. **Radio control:** both. Reinforcements first: extra men who start at level 1 and are available in limited numbers.
+   Strikes (a mortar, an air strike) come later, as upgrades.
+4. **The garage and the dock:** the HQ map should grow outside.
+5. **Upstairs:** both stairs and a lift.
+6. **An attack on the HQ that you defend:** yes, as the first step toward the PvP question.
+
+And the map outside: "When the user exits, the map now extends to the right. The road continues out to a dark tunnel. The
+leader says, alright, we need to get our radio communication up. Then a scientist responds, there's a decommissioned radio
+tower accessible from the tunnel down the road. You'll probably find the supplies you need from there. And that opens up to
+the next mission."
+
+## What's there now (v96)
 - The hall, cleaned: a **command center** in the middle (a map table and screens), a **medic table** (heals, like a medic
   station) and a **supply table** (refills grenades and special items, like an ammo drop).
 - The **six side rooms** are empty and labelled EMPTY ROOM. They're the build slots.
-- The squad and the four scientists are there. Continue on the intro card goes straight back in.
+- The squad and the scientists are there.
+- **Going out:** everyone gathers at the entry hall's south door (GO OUT) and goes out over the drawbridge. The first time,
+  one of the scientists comes out with them. The big map now goes on past its old east edge: the runway road runs through
+  a gap in the east fence and on as a narrower road, round a bend, into a tunnel in a hillside. The camera follows the road
+  to the tunnel while the leader and the scientist say Bryan's two lines, then the scientist goes back in.
+- **The tunnel's mouth** is a gather area for the next mission (TUNNEL n/m, TAP TO GO IN). The mission isn't built yet,
+  so for now it says so.
+- **Back in:** the drawbridge's green area takes the squad back into the HQ.
+- A save on the road ("The road east"); Continue comes back to it.
 
 ## Resources: two to start
-Keep it small until it proves itself.
 - **Supplies**: salvage, materials and money. Every mission brings some back: each area you clear, and crates you find on
   the maps (a new pickup). Supplies build and upgrade.
 - **Intel**: what you learn. It comes from radio men cut off before they call it in, hacked terminals, the Recon's
@@ -25,62 +47,51 @@ Keep it small until it proves itself.
   the quiet way in) and pays for some call-ins.
 - A third later, if vehicles need one: **fuel** for the vehicles and the helicopter.
 
-The command center shows what you have and is where you pick what to build.
+The command center shows what you have and is where you pick what to build. A station is built **the moment you can pay
+for it**.
 
 ## The rooms (the six side rooms, and the new spaces)
-Each one costs supplies to build. Each one is ready after the next mission, not instantly, so building is a decision
-between missions. Each one can be upgraded later.
+Each one costs supplies to build, is ready at once, and can be upgraded later.
 
 | Station | What it does | Notes |
 |---|---|---|
-| **Radio control** (yours) | Calls command for reinforcements during a mission: a button on the HUD, a few uses per mission. Two men come in by boat, or by helicopter once there's a helipad, and stay for that mission. | Upgrade: with the radio tower on the roof, call-ins reach every map, and later supply drops. |
+| **Radio control** (yours) | Calls command for reinforcements during a mission: a button on the HUD. The men who come start at level 1, and only a few are available. | Upgrades: strikes (a mortar, then an air strike), and with the radio tower on the roof, call-ins on every map. The next mission (the old radio tower) is where its supplies come from. |
 | **Weapon station** (yours) | Mods per weapon: suppressor, extended magazine, optic, grip, heavier rounds. Each changes the numbers you already have (range, burst, accuracy, noise). The loadout picker moves here from the boat. | Upgrades unlock better mods. |
 | **Armor station** (yours) | Light vest (quieter and faster, less protection), plate carrier (what they wear now), heavy armor (the Defender's, for anyone, slower). Helmets. Upgrades take more off each hit. | The freed prisoners have no armor until they get it here. |
 | **Infirmary** | The wounded heal between missions. Later, life support for a man carried back (your earlier idea), so a death isn't always final. | Grows out of the medic table. |
 | **Lab** | The scientists work here. Research unlocks gear (heal darts, a scout drone, heavier rockets), and what they know about her brood. | Gives the scientists a job. |
 | **Barracks** | The roster: who goes on the next mission (two teams of up to four), who stays. The scout from Level 1 and the freed men live here. | |
-| **Vehicle dock** (yours) | A garage with a roll-up door out to a road. The jeep comes back as the squad's vehicle (the code is still there). | Needs the HQ map to grow outside the hall (below). |
-| **Boat dock** (yours) | A quay on the water with the dinghy, or a bigger boat. Missions on the coast start from here. | The between-missions boat scene could become this. |
+| **Vehicle dock** (yours) | A garage with a roll-up door out to a road. The jeep comes back as the squad's vehicle (the code is still there). | Outside the hall: the HQ map grows (your answer 4). |
+| **Boat dock** (yours) | A quay on the water with the dinghy, or a bigger boat. Missions on the coast start from here. | Outside too. The between-missions boat scene could become this. |
 
-Six rooms and eight stations means you can't have everything at once: that's the choice. The garage and the boat dock
-could take outside space instead of a side room, so all six rooms stay for the others.
+Six rooms and eight stations means you can't have everything at once: that's the choice. The garage and the boat dock go
+outside, so all six rooms stay for the others.
 
 ## Upstairs: a second floor and the roof
-The office building already has stairs between floors and a floor switch, so the HQ can use the same thing.
-- **The second floor**: stairs (or a lift) from the entry hall. Offices, quarters for the squad, and space for later
-  stations.
+Both stairs and a lift (your answer 5), like the office building's.
+- **The second floor**: offices, quarters for the squad, and space for later stations.
 - **The roof**: the **helipad** (missions start by helicopter, like Level 1, and the radio's reinforcements can arrive
   this way) and the **radio tower** (the radio control upgrade).
 
 ## Other things you could build
 - **Defenses**: the Defender's barricades and walls round the HQ, then fixed guns, searchlights and cameras on the walls.
-  This is the start of defending the base.
 - **Generator**: power as a limit. More stations need more power, so you have to choose.
 - **Intel room**: captured men questioned for intel; the radio net listened in on.
 - **Training range**: retrain a class, or give soldiers a little XP between missions.
 - **Drone bay**: the Recon's scout drone; later, one that marks guards before a mission starts.
 - **Kennel**: a dog of your own (the enemy has them already).
 
-## PvP, or another way
-Since that's undecided, a step that works either way: **the HQ gets attacked**. Her brood comes back for the nest, or the
-enemy counterattacks to take the place back. You defend it with what you've built: the barricades, the guns on the walls,
-the men you left there. It's single player and uses everything we already have. It also builds exactly what an
-asynchronous PvP raid would need later: defenses that fight on their own, and an HQ map someone else's squad could attack.
-If PvP never happens, it's still a good mission type.
+## PvP: the HQ attacked first
+Your answer 6: **the HQ gets attacked** and you defend it with what you've built (the barricades, the guns on the walls,
+the men you left there). Her brood comes back for the nest, or the enemy counterattacks to take the place back. It's
+single player and uses what we have, and it builds what an asynchronous PvP raid would need later: defenses that fight on
+their own, and an HQ map someone else's squad could attack. If PvP never happens, it's still a good mission type.
 
-## A first step, if you like the direction
-1. Supplies and intel counted from each mission and shown at the command center.
-2. Tap an EMPTY ROOM: a small build menu with the three you named first (radio control, weapon station, armor station),
-   each with its cost. Built rooms get their own models and do one thing each to start.
-3. The radio's reinforcements as a HUD button in the next mission.
-4. Later: the second floor and the roof with the helipad and the radio tower; the garage and the boat dock once the HQ
-   map grows outside.
-
-## Questions for you
-1. Resources: just supplies and intel to start, or do you want more types (fuel, parts, medicine)?
-2. Building: ready after the next mission (my suggestion), or instant once you can pay?
-3. Radio reinforcements: extra men who join for the rest of that mission, or a call-in like a mortar or an air strike?
-4. The garage and the dock: should the HQ map grow outside the hall (a yard and a road beyond a roll-up door, a quay on
-   the water), or are they doors that lead to the next mission?
-5. Upstairs: stairs from the entry hall, or a lift?
-6. Would an attack on the HQ that you defend be a good first step toward the PvP question?
+## Next steps
+1. **The next mission: the old radio tower**, through the tunnel down the road. Its supplies are what the radio control
+   station needs. Yours to design: the map, the guards, what's left of the tower, how they get there and back.
+2. Supplies and intel counted from each mission and shown at the command center.
+3. Tap an EMPTY ROOM: a build menu with radio control, the weapon station and the armor station, each with its cost.
+4. The radio's reinforcements as a HUD button: level 1 men, a few per mission.
+5. Later: the yard, the garage and the quay outside the HQ; the second floor and the roof; strikes from the radio; the
+   attack on the HQ.
