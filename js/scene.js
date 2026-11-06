@@ -191,6 +191,7 @@ function paintDecal(d){
   if(MAPID==='l1'&&L1){const g=L1.canvas.getContext('2d');g.setTransform(L1S,0,0,L1S,-L1B.x0*L1S,-L1B.y0*L1S);decalOn(g,d);L1.tex.needsUpdate=true;return;}   // Level 1's own ground (level1.js)
   if(MAPID==='hq'&&HQ&&HQ.tex){const g=HQ.tex.image.getContext('2d');g.setTransform(1.2,0,0,1.2,-HQB.x0*1.2,-HQB.y0*1.2);decalOn(g,d);HQ.tex.needsUpdate=true;return;}   // the Headquarters' own floor (fortress.js; they landed on the big map's ground before)
   if(MAPID==='l2'&&L2){const g=L2.canvas.getContext('2d');g.setTransform(L2S,0,0,L2S,-L2B.x0*L2S,-L2B.y0*L2S);decalOn(g,d);L2.tex.needsUpdate=true;return;}   // Level 2's (level2.js)
+  if(MAPID==='out'&&typeof EAST!=='undefined'&&EAST.tex&&EAST.grp.visible&&d.x>EXT.x0-30){const g=EAST.tex.image.getContext('2d');g.setTransform(1.5,0,0,1.5,-EXT.x0*1.5,-EXT.y0*1.5);decalOn(g,d);EAST.tex.needsUpdate=true;EAST.dirty=true;if(d.x>EXT.x0+30)return;}   // the road east's own ground (road.js; near its edge, on both)
   const inside=MAPID==='in'&&IN,s=inside?1:GS,g=(inside?IN.canvas:gcan).getContext('2d');g.setTransform(s,0,0,s,0,-TOP*s);   // inside, onto the building's own floor
   decalOn(g,d);
   if(inside){IN.tex.needsUpdate=true;IN.marked=true;}else gtex.needsUpdate=true;

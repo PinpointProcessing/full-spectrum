@@ -24,7 +24,7 @@ const ROAD_OUT={x:850,y:-392};   // where the squad comes to off the drawbridge,
 const ROAD_TALK=["Alright, we need to get our radio communication up.",
   "There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need from there."];   // (Bryan's words; clips road_1, road_2)
 let road=null;   // {open, talked, intro:{t0, ph}, guide}
-const EAST={grp:null,objs:null,lamps:null,gate:null};   // built once, into the big map's scene
+const EAST={grp:null,objs:null,lamps:null,gate:null,tex:null,rc:null,dirty:false};   // built once, into the big map's scene (tex: its ground, where scorch marks and blood go: scene.js's paintDecal)
 const roadBusy=()=>!!(road&&road.intro);   // (the camera down the road and the talk: no orders, fortress.js's endingBusy)
 
 /* ---------- the map east of the old edge ---------- */
@@ -124,7 +124,7 @@ function buildEast(sc){
   const grp=new T.Group();grp.visible=false;sc.add(grp);EAST.grp=grp;
   const S=1.5,gw=EXT.x1-EXT.x0,gh=EXT.y1-EXT.y0,gc=document.createElement('canvas'),rc=document.createElement('canvas');
   gc.width=Math.round(gw*S);gc.height=Math.round(gh*S);rc.width=gw;rc.height=gh;paintEast(gc.getContext('2d'),rc.getContext('2d'),S);
-  const tex=new T.CanvasTexture(gc);tex.encoding=T.sRGBEncoding;tex.anisotropy=4;
+  const tex=new T.CanvasTexture(gc);tex.encoding=T.sRGBEncoding;tex.anisotropy=4;EAST.tex=tex;EAST.rc=rc;
   const ground=new T.Mesh(new T.PlaneGeometry(gw,gh),wetGround(new T.MeshStandardMaterial({map:tex,roughnessMap:new T.CanvasTexture(rc),roughness:1,metalness:.16}),gw,gh));
   ground.rotation.x=-Math.PI/2;ground.position.set((EXT.x0+EXT.x1)/2,0,(EXT.y0+EXT.y1)/2);ground.receiveShadow=true;grp.add(ground);
   const cw=new T.Mesh(new T.PlaneGeometry(170,CANAL.y1-CANAL.y0),new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7}));   // the canal's water on to the rock (the big map's runs to x 1200)
@@ -156,6 +156,7 @@ function closeEast(){   // (a new game, a Retry, another level: reset, once the 
   for(const l of EAST.lamps){const i=lamps.indexOf(l);if(i>=0)lamps.splice(i,1);}
   if(EAST.gate){if(!objs.includes(EAST.gate))objs.push(EAST.gate);eastShow(EAST.gate,true);}
   EAST_X=W;if(was)rebuildNav();
+  if(EAST.dirty){paintEast(EAST.tex.image.getContext('2d'),EAST.rc.getContext('2d'),1.5);EAST.tex.needsUpdate=true;EAST.dirty=false;}   // (clean ground for the next game)
 }
 function resetRoad(){closeEast();road=null;hqStaff=[];}   // (state.js's reset)
 
