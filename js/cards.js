@@ -67,6 +67,7 @@ function buildCards(){
       const g=ev&&ev.target.closest('.uc-rpg,.uc-spec,.uc-nade,.uc-gun.swap');   // (Level 1's tutorial lets through only what it asks for: level1.js)
       if(!tutAllows(g?'gear':'card',g?{u,id:u.id,item:g.classList.contains('uc-nade')?'nade':g.classList.contains('uc-spec')?'spec':g.classList.contains('uc-gun')?'gun':'c4'}:u))return;
       if(g&&g.classList.contains('uc-gun')){if(mode==='silent')mode=null;swapWeapon(u);hud();return;}   // his second gun (the sniper rifle): swap, nothing else changes
+      if(!selectAway(sel.length===1&&sel[0]===u&&!g?cardGroup.filter(alive):[u])){hud();return;}   // (a man somewhere else: the camera goes to him, not while the men on screen are under fire: input.js)
       preview=null;
       if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.charges&&!u.inVeh)mode=mode==='charge'?null:'charge';else{mode=null;banner(`${u.name} has no charge left. Restock at a supply box.`,1800);}}   // demolition charge
       else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it (Bryan: ammo drops refill it, no swapping)
@@ -75,13 +76,13 @@ function buildCards(){
         else{const m={medkit:'medkit',silencer:'silent',rpg:'rpg'}[u.spec]||'smoke';mode=mode===m?null:m;}   // (the silencer: tap a hostile who hasn't seen him; the RPG: tap where: combat.js)
       }
       else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
-      else{mode=null;if(sel.length===1&&sel[0]===u)select(cardGroup.filter(alive));else select([u]);}   // tap him again: back to the whole group on show
+      else mode=null;   // tap him again: back to the whole group on show (picked above)
       hud();
     };
     el.addEventListener('click',act);
     el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act(null);}});
     box.appendChild(el);
-    u.card={el,gun:el.querySelector('.uc-gun'),st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),hpb:el.querySelector('.uc-hpb')};
+    u.card={el,idb:el.querySelector('.uc-id b'),gun:el.querySelector('.uc-gun'),st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),hpb:el.querySelector('.uc-hpb')};
     drawFace(el.querySelector('.uc-face'),u);
   }
 }
@@ -118,9 +119,15 @@ function statusText(u){
 function updateCards(){
   const act=sel.filter(alive),shown=cardGroup;
   const box=$('#cards');box.hidden=!shown.length||state!=='play';box.style.setProperty('--n',Math.min(4,shown.length)||1);box.classList.toggle('narrow',shown.length>2);box.classList.toggle('compact',shown.length>4);   // more than four (the freed prisoners): two rows of small cards
+  const compact=shown.length>4;
   for(const u of players){
     const c=u.card;if(!c)continue;
     c.el.hidden=!shown.includes(u);
+    // more than four on show (up to eight: two squads of four, Bryan): Alpha's row on top, Bravo's under it, each man always in
+    // his own slot (A3 third along); the name goes up beside the callsign and the rank comes off, a line less per row
+    const ck=compact?'c':'n';if(c.el.dataset.k!==ck){c.el.dataset.k=ck;const n=+u.id.slice(1)||1;
+      c.el.style.gridRow=compact?(u.team==='A'?'1':'2'):'';c.el.style.gridColumn=compact?String(Math.min(4,n)):'';
+      c.idb.textContent=compact?u.name:`${u.id} · ${rankOf(u.level).ab}`;}
     c.el.classList.toggle('sel',sel.includes(u));c.el.classList.toggle('downed',u.downed);c.el.classList.toggle('kia',u.dead);
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
     c.hp.textContent=u.dead?'KIA':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);

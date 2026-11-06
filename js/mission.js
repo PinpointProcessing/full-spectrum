@@ -378,7 +378,7 @@ function rocketTick(dt){
     const r=rockets[i],step=Math.min(r.left,(r.speed||RPG.speed)*dt),nx=r.x+r.dx*step,ny=r.y+r.dy*step;
     r.trail.push({x:r.x,y:r.y,t:0});if(r.trail.length>14)r.trail.shift();
     let hitX=null,hitY=null;
-    if(!los(r.x,r.y,nx,ny)){hitX=r.x;hitY=r.y;}   // slammed into a container, wall or tank
+    if(r.total?rocketHits(r.x,r.y,nx,ny,...(f=>[r.z0+(r.z1-r.z0)*f,r.z0+(r.z1-r.z0)*Math.min(1,f+step/r.total)])(1-r.left/r.total)):!los(r.x,r.y,nx,ny,true)){hitX=r.x;hitY=r.y;}   // slammed into a container, wall or tank (ours fly at a height: over what's lower; smoke doesn't stop any)
     const jv=jeepOf(),mine=r.by&&r.by.side==='P';
     if(hitX==null&&!mine&&jv&&jv.state!=='wreck'&&hyp(jv.x-nx,jv.y-ny)<16){hitX=nx;hitY=ny;}
     r.x=nx;r.y=ny;r.left-=step;
@@ -398,7 +398,7 @@ function rpgBlast(x,y,by,spec=RPG){
 /* ---------- fuel tanks ---------- */
 function tankHit(o,dmg,by){if(o.burst)return;o.hp=(o.hp??100)-dmg;if(o.hp<=0)tankExplode(o,by);}
 // a blast near the tanks (from explode): close enough and they go up
-function tankBlast(x,y,by){l1Blast(x,y,by);for(const o of objs)if(o.kind==='tank'&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
+function tankBlast(x,y,by){l1Blast(x,y,by);if(typeof labBlast==='function')labBlast(x,y,by);for(const o of objs)if(o.kind==='tank'&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
 function tankExplode(o,by){
   if(o.burst)return;o.burst=true;o.hp=0;shake(clamp(1.4-hyp(o.x-camT.x,o.y-camT.z)/600,0,1.2));
   const cx=o.x+o.w/2,cy=o.y+o.h/2;

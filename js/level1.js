@@ -444,7 +444,7 @@ const TUT_TIPS=[
    text:'<b>Checkpoint.</b> Stand in the green ring to heal, the orange ring to refill grenades and gear. Select your men and tap inside one.'},
   {k:'scout',when:()=>l1.yardClear&&!l1.scoutUp&&tut.said.has('cp')&&simT-tut.tipAt>6,still:()=>!l1.scoutUp&&players.some(p=>alive(p)&&!p.downed),
    mark:{x:L1_SCOUT.x,y:L1_SCOUT.y,r:18,label:'TAP HIM'},
-   need:(k,x)=>tutPick(k,x)||(k==='tap'&&!x.u&&(a=>!!a&&a.id==='scout')(actAt(x.x,x.y))),act:(k,x)=>k==='tap'&&!x.u&&sel.some(alive),done:()=>l1.scoutUp||!!(useGo&&useGo.a.id==='scout'),
+   need:(k,x)=>tutPick(k,x)||(k==='tap'&&!x.u&&(a=>!!a&&a.id==='scout')(actAt(x.x,x.y))),act:(k,x)=>k==='tap'&&!x.u&&sel.some(alive),done:()=>l1.scoutUp||useGos.some(g=>g.a.id==='scout'),
    text:'<b>The scout.</b> Select a soldier and tap the wounded scout by the hut to bring him round.'},
   // the radio tower (Bryan: say "Radio Tower - RPG", light the RPG up in the team's colour, a ring under the tower)
   {k:'rpg',when:()=>l1.scoutUp&&!l1.relayDown&&blastLeft(),still:()=>!l1.relayDown&&blastLeft(),modes:['rpg','grenade'],

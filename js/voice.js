@@ -57,10 +57,35 @@ function spriteBuf(sp){
 // One line, decoded the first time it's said (a few milliseconds) and kept among the last few dozen. Decoding everyone's lines
 // up front took about 200 MB once inside the office building: too much for a phone, which reloads the page when it runs out.
 const V_CACHE=40;
+// the pauses inside a line (Bryan, after v70: "They dont handle the commas well"; the model left 0.2-0.6 s of dead air at a
+// comma): any quiet stretch inside the speech longer than gap s is cut down to it, with short fades either side of the cut.
+// Banter keeps a little more; the count before a volley keeps its beat.
+const VOICE_GAP=.14,BANTER_GAP=.2;
+function tightenBuf(buf,gap){
+  const sr=buf.sampleRate,a=buf.getChannelData(0),hop=Math.round(sr*.01),n=Math.floor(a.length/hop);if(n<3)return buf;
+  const fr=new Float32Array(n);let mx=0;
+  for(let i=0;i<n;i++){let s=0;for(let j=i*hop,e=j+hop;j<e;j++)s+=a[j]*a[j];fr[i]=Math.sqrt(s/hop);if(fr[i]>mx)mx=fr[i];}
+  const thr=Math.max(mx*.06,1e-4),g=Math.round(gap*sr);let first=-1,last=-1;
+  for(let i=0;i<n;i++)if(fr[i]>thr){if(first<0)first=i;last=i;}
+  if(first<0||last<=first)return buf;
+  const cuts=[];let s=-1;
+  for(let i=first;i<=last;i++){if(fr[i]<=thr){if(s<0)s=i;}else{if(s>=0&&(i-s)*hop>g)cuts.push([s*hop+(g>>1),i*hop-(g>>1)]);s=-1;}}
+  if(!cuts.length)return buf;
+  const segs=[];let pos=0;for(const[x,y]of cuts){segs.push([pos,x]);pos=y;}segs.push([pos,a.length]);
+  const out=AC.createBuffer(1,segs.reduce((t,[x,y])=>t+y-x,0),sr),o=out.getChannelData(0),f=Math.round(sr*.012);let w=0;
+  segs.forEach(([x,y],k)=>{o.set(a.subarray(x,y),w);const L=y-x;
+    if(k>0)for(let j=0;j<f&&j<L;j++)o[w+j]*=j/f;
+    if(k<segs.length-1)for(let j=0;j<f&&j<L;j++)o[w+L-1-j]*=j/f;
+    w+=L;});
+  return out;
+}
 function clipBuf(sp,clip){
   const key=sp+'/'+clip,hit=vCache.get(key);if(hit){vCache.delete(key);vCache.set(key,hit);return hit;}   // (an AudioBuffer, or a Promise of one)
-  const[o,n]=VSPR.speakers[sp].clips[clip],p=new Promise((ok,no)=>AC.decodeAudioData(vBytes[sp].slice(o,o+n),ok,no))
-    .then(buf=>{let i=0;const ch=buf.getChannelData(0),m=Math.min(ch.length,buf.sampleRate*.3|0);while(i<m&&Math.abs(ch[i])<.003)i++;buf.lead=Math.max(0,i/buf.sampleRate-.01);   // (the encoder's silence at the start)
+  const c=VSPR.speakers[sp].clips[clip],[o,n]=c,p=new Promise((ok,no)=>AC.decodeAudioData(vBytes[sp].slice(o,o+n),ok,no))
+    .then(buf=>{
+      if(!/volley/.test(clip))buf=tightenBuf(buf,/^ban_/.test(clip)?BANTER_GAP:VOICE_GAP);
+      let i=0;const ch=buf.getChannelData(0),m=Math.min(ch.length,buf.sampleRate*.3|0);while(i<m&&Math.abs(ch[i])<.003)i++;buf.lead=Math.max(0,i/buf.sampleRate-.01);   // (the encoder's silence at the start)
+      c[2]=+(buf.duration-buf.lead).toFixed(3);   // (how long it now lasts, for the next time it's asked)
       if(vCache.get(key)===p)vCache.set(key,buf);return buf;})
     .catch(()=>{vCache.delete(key);return null;});
   vCache.set(key,p);while(vCache.size>V_CACHE)vCache.delete(vCache.keys().next().value);
@@ -70,6 +95,50 @@ function clipBuf(sp,clip){
 // the office building (interior.js) or when a save brings them back (office.js)
 const VOICE_OUT=['A1','A2','B1','B2','E1','E2','E3','PL'],VOICE_IN=['A3','A4','B3','B4','S1','S2','S3','S4'];
 function preloadVoices(list=VOICE_OUT){if(VSPR&&AC)for(const sp of list)if(VSPR.speakers[sp])spriteBuf(sp);}
+/* ---------- the radio (Bryan, after v70: "make it radio sounding... the throat scratchiness of a human") ----------
+   A handset: the voice squashed flat the way a radio's level control does it, a throat that wavers a little 30-90 times a
+   second (a rough voice, not a smooth machine one), driven into clipping (the grit of a man talking hard into the mic), cut
+   to a narrow band with a small speaker's honk in the middle, and a bed of hiss under it while the key is down. */
+const RADIO={lo:440,hi:2800,honk:1600,honkDb:6,drive:3.2,grit:.14,hiss:.022,level:.8};
+const radioBufs=new WeakMap();   // (per audio context: the noise for the waver and the hiss)
+function radioNoise(ctx){
+  let b=radioBufs.get(ctx);if(b)return b;
+  const sr=ctx.sampleRate,n=sr*4|0,k1=1-Math.exp(-2*Math.PI*90/sr),k2=1-Math.exp(-2*Math.PI*30/sr),m=sr*.05|0;
+  const grit=ctx.createBuffer(1,n,sr),g=grit.getChannelData(0),hiss=ctx.createBuffer(1,n,sr),h=hiss.getChannelData(0);
+  let a=0,c=0,s=0;for(let i=0;i<n;i++){a+=k1*((Math.random()*2-1)-a);c+=k2*(a-c);g[i]=a-c;s+=g[i]*g[i];h[i]=Math.random()*2-1;}   // (30-90 Hz: a low-pass at 90 less one at 30)
+  const r=Math.sqrt(s/n)||1;for(let i=0;i<n;i++)g[i]/=r;
+  for(let i=0;i<m;i++){const t=i/m;g[n-m+i]=g[n-m+i]*(1-t)+g[i]*t;}   // (its end eased into its start: it loops without a click)
+  b={grit,hiss};radioBufs.set(ctx,b);return b;
+}
+const clipCurves={};
+function clipCurve(k){   // a hard, slightly lopsided clip (lopsided like an overdriven mic: rougher)
+  if(clipCurves[k])return clipCurves[k];
+  const n=1024,cv=new Float32Array(n),o=.12,t0=Math.tanh(k*o);let mx=0;
+  for(let i=0;i<n;i++){const x=i/(n-1)*2-1;cv[i]=Math.tanh(k*(x+o))-t0;mx=Math.max(mx,Math.abs(cv[i]));}
+  for(let i=0;i<n;i++)cv[i]/=mx;return clipCurves[k]=cv;
+}
+// one line over the radio, from src into dest; dur: how long it plays (for the hiss); o overrides RADIO's settings
+function radioChain(ctx,src,dest,dur,o={}){
+  const R=Object.assign({},RADIO,o),t=ctx.currentTime,N=radioNoise(ctx);
+  const node=(type,f,q,g)=>{const b=ctx.createBiquadFilter();b.type=type;b.frequency.value=f;if(q!=null)b.Q.value=q;if(g!=null)b.gain.value=g;return b;};
+  const pre=node('highpass',180,.7),comp=ctx.createDynamicsCompressor();
+  comp.threshold.value=-34;comp.knee.value=6;comp.ratio.value=12;comp.attack.value=.002;comp.release.value=.14;
+  const wav=ctx.createGain();wav.gain.value=1;
+  if(R.grit>0){const w=ctx.createBufferSource(),d=ctx.createGain();w.buffer=N.grit;w.loop=true;d.gain.value=R.grit;w.connect(d);d.connect(wav.gain);w.start(t,Math.random()*3);w.stop(t+dur+.5);}
+  const band1=[node('highpass',400,.7),node('lowpass',3200,.7),node('peaking',R.honk,1.1,R.honkDb)];   // (the band and the honk before the clip: after it they'd ring)
+  const drive=ctx.createGain();drive.gain.value=R.drive;
+  const clip=ctx.createWaveShaper();clip.curve=clipCurve(2.5);clip.oversample='2x';
+  const band2=[node('highpass',R.lo,.7),node('lowpass',R.hi,.7)];
+  const lim=ctx.createDynamicsCompressor();lim.threshold.value=-10;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.001;lim.release.value=.06;   // (the receiver's limiter: no peak gets out of hand)
+  const out=ctx.createGain();out.gain.value=R.level;
+  [pre,comp,wav,...band1,drive,clip,...band2,lim,out].reduce((a,b)=>(a.connect(b),b),src);out.connect(dest);
+  if(R.hiss>0){   // the hiss while the key's down (the squelch's bursts either side: squelch())
+    const h=ctx.createBufferSource(),bp=node('bandpass',2100,.5),hg=ctx.createGain();h.buffer=N.hiss;h.loop=true;
+    hg.gain.setValueAtTime(0,t);hg.gain.linearRampToValueAtTime(R.hiss,t+.03);hg.gain.setValueAtTime(R.hiss,t+dur);hg.gain.linearRampToValueAtTime(0,t+dur+.08);
+    h.connect(bp);bp.connect(hg);hg.connect(dest);h.start(t,Math.random()*3);h.stop(t+dur+.1);
+  }
+  return out;
+}
 // one line: over the radio (o.radio) or out loud where he stands (o.x,o.y; o.muffle: behind a door). Returns its length in s
 // (0 if it isn't there or the file isn't loaded yet); it starts as soon as it's decoded. Louder while there's shooting (Bryan).
 function voiceClip(sp,clip,o={}){
@@ -77,12 +146,8 @@ function voiceClip(sp,clip,o={}){
   const rate=o.rate||(.97+Math.random()*.06),d=c[2]/rate,loud=contact&&!o.muffle?1.3:1;   // (a touch of difference each time)
   const play=buf=>{
     if(!buf||!sndOn)return;const s=AC.createBufferSource();s.buffer=buf;s.playbackRate.value=rate;
-    if(o.radio){
-      const hp=AC.createBiquadFilter(),lp=AC.createBiquadFilter(),sh=AC.createWaveShaper(),g=AC.createGain();
-      hp.type='highpass';hp.frequency.value=380;lp.type='lowpass';lp.frequency.value=3200;
-      const cv=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;cv[i]=Math.tanh(x*2.2);}sh.curve=cv;g.gain.value=.85*(o.gain??1)*loud;
-      s.connect(hp);hp.connect(lp);lp.connect(sh);sh.connect(g);g.connect(sndMaster);
-    }else{
+    if(o.radio)radioChain(AC,s,sndMaster,buf.duration/rate,{level:RADIO.level*(o.gain??1)*loud});
+    else{
       const out=voice(o.x,o.y,Math.min(1.4,(o.vol??.9)*loud),buf.duration/rate+.4);if(!out)return;
       if(o.muffle){const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=650;s.connect(lp);lp.connect(out);}else s.connect(out);
     }

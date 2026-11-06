@@ -44,7 +44,11 @@ function roomFor(wx,wy){
   const z=WH_ROOM;return wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1?{...z}:null;
 }
 // its doorways: runs of free ground along the walls' middle line (a 3-4 m doorway leaves a run of 10-20 once clearance is
-// counted); the one nearest (fx,fy). Worked out once a room every few seconds (the marker asks four times a second)
+// counted), with a wall at both ends and no wider than a doorway: an open side (the office's shared room and its wings are
+// one open space) is no doorway (Bryan: BREACH showed up where there was no way into a room). The one nearest (fx,fy).
+// Worked out once a room every few seconds (the marker asks four times a second)
+const WALL_KINDS=new Set(['wall','owall','iwall','liftwall','steeldoor','carddoor','liftdoor','bars']);
+const wallNear=(x,y)=>objs.some(o=>WALL_KINDS.has(o.kind)&&rectDist(x,y,o)<=4);
 const doorCache=new Map();
 function doorOf(r,fx,fy){
   const key=MAPID+r.x0+','+r.y0+','+r.x1+','+r.y1,c=doorCache.get(key);let doors;
@@ -60,7 +64,10 @@ function doorsOf(r){
     for(let d=0;d<=L;d+=5){
       const x=s.a[0]+tx*d,y=s.a[1]+ty*d,free=isFree(x,y,5)&&isFree(x+s.n[0]*14,y+s.n[1]*14,5)&&isFree(x-s.n[0]*14,y-s.n[1]*14,5);
       if(free){if(!run)run={d0:d};run.d1=d;}
-      if((!free||d+5>L)&&run){if(run.d1-run.d0>=10){const m=(run.d0+run.d1)/2;doors.push({x:s.a[0]+tx*m,y:s.a[1]+ty*m,n:s.n,t:[tx,ty],w:run.d1-run.d0});}run=null;}
+      if((!free||d+5>L)&&run){
+        const w=run.d1-run.d0,end=k=>wallNear(s.a[0]+tx*k,s.a[1]+ty*k);
+        if(w>=10&&w<=(MAPID==='in'?60:100)&&end(run.d0-8)&&end(run.d1+8)){const m=(run.d0+run.d1)/2;doors.push({x:s.a[0]+tx*m,y:s.a[1]+ty*m,n:s.n,t:[tx,ty],w});}
+        run=null;}
     }
   }
   return doors;

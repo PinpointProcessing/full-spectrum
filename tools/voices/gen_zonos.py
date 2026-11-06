@@ -27,7 +27,9 @@ STYLE={'shout': ([.00,.00,.00,.35,.25,.60,.05,.00],110,18.),
        'quiet': ([.00,.00,.00,.40,.00,.10,.10,.30], 40,13.),
        'dry':   ([.35,.15,.10,.00,.05,.00,.20,.20], 60,14.),
        'fear':  ([.00,.35,.00,.50,.25,.15,.00,.10], 90,16.),   # (heavy fear comes out breathy)
-       'pain':  ([.00,.40,.10,.30,.30,.45,.00,.00],120,17.)}
+       'pain':  ([.00,.40,.10,.30,.30,.45,.00,.00],120,17.),
+       'stubborn':([.00,.05,.30,.00,.00,.45,.10,.10],55,14.),   # (the scientists, defiant: disgust and anger, clipped)
+       'panic': ([.00,.25,.00,.45,.20,.30,.00,.00],110,17.)}   # (the scientists near the HQ: frantic, shouting rather than breathy)
 SAY={'Reyes':'Rayess','Lindqvist':'Lindquist'}   # names said the way they sound: plain Reyes came out "raise", Ray-ess as "Ray, yes" (stress on both halves; Bryan), Lindkvist garbled
 def spoken(t):
     for a,b in SAY.items():t=t.replace(a,b)

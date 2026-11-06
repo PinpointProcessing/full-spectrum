@@ -60,10 +60,10 @@ function hud(){
   else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap where to throw. Inside the dashed circle he throws from where he is; further off he moves to a safe spot first. Tap the grenade on his card again to cancel.';
-  else if(mode==='rpg')h=`Tap where to fire the rocket (big blast; not closer than 6 m). Out of reach or out of sight, he moves to a safe spot first. ${sel[0]?sel[0].specN:0} left. Tap the RPG on his card again to cancel.`;
+  else if(mode==='rpg')h=`Tap where to fire the rocket, inside the circle (big blast; not closer than 6 m). He fires from where he stands, or takes a step or two first if something's in the way. ${sel[0]?sel[0].specN:0} left. Tap the RPG on his card again to cancel.`;
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
   else if(mode==='silent')h=`Tap a hostile marked SILENT SHOT (one who hasn't noticed you, within 20 m): an aimed quiet shot. ${sel[0]?sel[0].specN:0} left on the silencer. Tap it again to cancel.`;
-  else if(mode==='smoke')h='Tap where to throw smoke: nobody sees through it, either way, for about 12 s. Further off than the circle, he moves up first. Tap the smoke on his card again to cancel.';
+  else if(mode==='smoke')h='Tap where to throw smoke, inside the circle: he lobs it from where he stands, over low cover. Nobody sees through it, either way, for about 12 s. Tap the smoke on his card again to cancel.';
   else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medic station's green ring. He moves slowly and can't shoot. Put down is bottom right.`;
   else if(act.length&&!preview&&players.some(p=>p.critical&&!p.dead&&!p.carriedBy&&!p.offMap))h='A soldier is critical: tap him with a medic (the red kit on a card) selected, or anyone to carry him to a medic station.';
   else if(act.length===1&&act[0].onTower&&!preview)h=act[0].weapon==='sniper'?`${act[0].name} is up the tower with the sniper rifle: he sees 70 m the way he faces (all round while he's the one selected). Tap the gun on his card to swap back to his ${WEAPON[act[0].weapon2||'rifle'].label}. Any move order brings him down first.`:`${act[0].name} is up the tower. Any move order brings him down first.`;
@@ -107,7 +107,7 @@ function alertMeter(){
 function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:760};clampCam();updateCamera();}
 function bindHud(){
   // team tabs toggle: pressing the tab of the group that's already selected deselects it
-  const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));select(on?[]:list);preview=null;mode=null;hud();};
+  const tabSelect=list=>{if(state!=='play')return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));if(on)select([]);else if(!selectAway(list))return;preview=null;mode=null;hud();};   // (a team somewhere else: the camera goes to them, not while the men on screen are under fire: input.js)
   // (Level 1's tutorial lets through only what its step or tip asks for: tutAllows in level1.js; the camera, Pause and Fit map always work)
   for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>{if(tutAllows('tab',tab.dataset.team))tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p)));});
   $('#allBtn').addEventListener('click',()=>{if(tutAllows('tab','all'))tabSelect(players.filter(alive));});

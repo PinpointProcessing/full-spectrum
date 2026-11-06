@@ -310,7 +310,7 @@ function floorChip(){   // the floor switcher, right side: which floor you're lo
 function bindFloors(){
   const el=$('#floors');if(!el)return;
   el.addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b||MAPID!=='in')return;const id=b.dataset.f;
-    const on=players.filter(p=>alive(p)&&!p.offMap&&floorOf(p.x,p.y)===id);
+    const on=players.filter(p=>alive(p)&&!p.offMap&&floorOf(p.x,p.y)===id);if(id!==curFloor&&!mayLeave(on))return;   // (not away from men under fire: input.js)
     setFloor(id,on.length?{x:on.reduce((a,p)=>a+p.x,0)/on.length,y:on.reduce((a,p)=>a+p.y,0)/on.length}:null);});
 }
 
@@ -340,25 +340,27 @@ function inThreat(){const b=IN.floors[curFloor].bounds;return{x:(b.x0+b.x1)/2,y:
 /* ---------- things to use (Bryan: one way to use everything) ---------- */
 // A ring and a word where it is. A pickup is taken by walking over it. Anything else: with soldiers selected, a tap on it
 // sends the nearest one; a ring fills while he works (secs), then it happens. Each has avail() and act(u).
-const ACTS=[];let useGo=null;
+const ACTS=[];let useGos=[];   // (one soldier a job: layers.js pickFor)
+const useOf=u=>useGos.find(g=>g.u===u)||null,useFor=a=>useGos.find(g=>g.a===a)||null;
 function actsHere(){return ACTS.filter(a=>a.map===MAPID&&a.avail());}
-function actAt(wx,wy){let best=null,bd=1e9;for(const a of actsHere()){const d=hyp(a.x-wx,a.y-wy);if(d<=a.r+10&&d<bd){bd=d;best=a;}}return best;}
+function actAt(wx,wy){let best=null,bd=1e9;for(const a of actsHere()){let d=hyp(a.x-wx,a.y-wy);if(a.near){const o=a.near();if(o)d=Math.min(d,rectDist(wx,wy,o)+4);}if(d<=a.r+10&&d<bd){bd=d;best=a;}}return best;}   // (near: something with a body, a lab bench: a tap anywhere on it)
 function orderUse(a){
   const why=a.need&&a.need();if(why){banner(why,2600);return;}   // locked: say what it needs, don't walk there
   const foot=sel.filter(u=>alive(u)&&!u.inVeh&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));
   if(!foot.length){banner('Select a soldier first.',1600);return;}
   if(a.multi){a.go(foot);return;}   // the stairs and the lift: everyone selected goes (office.js)
-  const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),u=foot[0],s=openSpot(sx,sy,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:sx,y:sy},p=findPath(u.x,u.y,s.x,s.y);
+  if(useFor(a))return;   // (someone's already on it)
+  const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),u=pickFor(foot,a.x,a.y),s=openSpot(sx,sy,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:sx,y:sy},p=findPath(u.x,u.y,s.x,s.y);
   if(!p){banner('No way there from here.',1600);return;}
-  u.path=p;u.lastOrder=simT;useGo={u,a,prog:0};callout(u,'Moving',C.good);
+  u.path=p;u.lastOrder=simT;useGos=useGos.filter(g=>g.u!==u);zipGos=zipGos.filter(z=>z.u!==u);useGos.push({u,a,prog:0});callout(u,'Moving',C.good);
 }
 function useTick(dt){
   for(const a of actsHere())if(a.pickup){const u=players.find(p=>alive(p)&&!p.offMap&&hyp(p.x-a.x,p.y-a.y)<a.r);if(u)a.act(u);}
-  if(!useGo)return;const{u,a}=useGo;
-  if(!alive(u)||!a.avail()||(u.path.length&&simT-u.lastOrder>.1&&hyp(u.path[u.path.length-1].x-a.x,u.path[u.path.length-1].y-a.y)>30)){useGo=null;return;}
-  if(u.path.length)return;
-  if(hyp(u.x-a.x,u.y-a.y)>a.r+18){useGo=null;return;}
-  useGo.prog+=dt;if(useGo.prog>=(a.secs||0)){useGo=null;a.act(u);}
+  for(const g of[...useGos]){const{u,a}=g,end=()=>{useGos=useGos.filter(q=>q!==g);};
+    if(!alive(u)||!a.avail()||(u.path.length&&simT-u.lastOrder>.1&&hyp(u.path[u.path.length-1].x-a.x,u.path[u.path.length-1].y-a.y)>30)){end();continue;}
+    if(u.path.length)continue;
+    if(hyp(u.x-a.x,u.y-a.y)>a.r+18){end();continue;}
+    g.prog+=dt;if(g.prog>=(a.secs||0)){end();a.act(u);}}
 }
 function drawActs(now){
   const pulse=(Math.sin(now*3)+1)/2,act=sel.some(alive);
@@ -367,7 +369,7 @@ function drawActs(now){
     gPath(a.x,a.y,a.r+pulse*3);ox.strokeStyle=a.pickup?'#7ff0ff':'#ffcf4a';ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);
     const[lx,ly]=below(a.x,a.y+a.r,6);if(act&&!a.pickup)pill(a.label,lx,ly,C.good);else label(a.label,lx,ly,a.pickup?'#7ff0ff':'#ffcf4a',9,700);
   }
-  if(useGo&&!useGo.u.path.length&&useGo.a.secs){const u=useGo.u;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+useGo.prog/useGo.a.secs*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
+  for(const g of useGos)if(!g.u.path.length&&g.a.secs){const u=g.u;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+g.prog/g.a.secs*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
 }
 // the gather areas: ENTER at the data center's front doors outside, EXIT at the lobby's front doors inside
 function gatherZone(){

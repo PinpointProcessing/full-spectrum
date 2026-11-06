@@ -93,7 +93,7 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .uc-gun svg{width:40px;height:13px;flex:none;fill:#c9d2d8}
 .uc-gun b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
 #cards.narrow .uc-gun b{display:none}
-#cards.compact{gap:4px}#cards.compact .ucard{padding:3px 4px;gap:2px}#cards.compact .uc-gun{display:none}#cards.compact .uc-hpb{height:13px}#cards.compact .uc-hp{font-size:11px}#cards.compact .uc-nade,#cards.compact .uc-spec{min-height:24px}#cards.compact .uc-face{width:22px;height:22px}#cards.compact .uc-name{font-size:10.5px}#cards.compact .uc-id b{font-size:9px}   /* more than four cards (freed prisoners joined): two rows, no monitor */
+#cards.compact{gap:4px}#cards.compact .ucard{padding:3px 4px;gap:2px}#cards.compact .uc-gun{display:none}#cards.compact .uc-hpb{height:13px}#cards.compact .uc-hp{font-size:11px}#cards.compact .uc-nade,#cards.compact .uc-spec{min-height:24px}#cards.compact .uc-face{width:22px;height:22px}#cards.compact .uc-name{display:none}#cards.compact .uc-id b{font-size:9px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* more than four cards (freed prisoners joined): two rows, no monitor */
 .uc-gun b.unarmed{color:var(--warn)}
 .uc-gun.swap{cursor:pointer;height:18px;margin:-2px 0}
 .uc-swap{margin-left:auto;flex:none;font-style:normal;font-weight:700;padding:1px 5px;border:1px solid var(--tc);border-radius:3px;color:#e8eef2;background:rgba(255,255,255,.06);letter-spacing:.08em}

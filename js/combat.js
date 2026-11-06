@@ -279,6 +279,7 @@ function damage(t,dmg,src){
   if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun jeep (mission.js): bullets (at GJEEP.bullet) and blasts
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
   if(t.dmgIn)dmg*=t.dmgIn;else if(t.l1)dmg*=L1E.dmgIn;   // Level 1's and Level 2's guards go down faster (level1.js, level2.js)
+  if(t.side==='P')t.firedOnT=simT;
   if(t.unarmored)dmg*=1.3;   // a freed prisoner: no vest (office.js)
   else if(t.side==='P')dmg*=SQUAD_VEST;   // the squad's vests
   t.hp-=dmg;t.hitFlash=.25;
@@ -324,6 +325,7 @@ function canSee(p,e){
   return(Math.abs(da)<.45||(sel.length===1&&sel[0]===p))&&!!fireLine(p,e);
 }
 function burst(u,t,L){
+  if(t.side==='P')t.firedOnT=simT;   // (under fire: the squads apart can't be left while it lasts, input.js)
   if(u.side==='E')u.revealT=simT+3;else if(t.side==='E')t.revealT=Math.max(t.revealT||0,simT+1.6);   // a muzzle flash gives him away; and you can see who your men are shooting at
   if(u.gunner&&hyp(u.x-camT.x,u.y-camT.z)<260)shake(.14);
   if(u.heavy&&++u.rounds>=HEAVY.bursts){u.rounds=0;u.reloadT=simT+HEAVY.reload+1;bark(u,'reload',true);if(typeof sfxReload==='function')setTimeout(()=>sfxReload(u.x,u.y),600);}   // the run's heavy gun: a reload after this burst
@@ -383,9 +385,35 @@ function suppressShot(u){
   alertAll('Contact. Weapons free.',true,u.x,u.y,ex,ey,{x:u.x,y:u.y},q?SIL.open:undefined,q?SIL.wall:undefined,!q,u);squadNoise(u,u.x,u.y,q?SIL.open:undefined,q?SIL.wall:undefined);
   u.cool=hv?.26+Math.random()*.08:.42+Math.random()*.12;
 }
+/* what a throw or a rocket needs (Bryan, after v70: smoke and the RPG walked him off instead of firing). A frag or a smoke can
+   is lobbed: over anything up to a container's height outdoors (not over a building's walls, and indoors only through
+   doorways), and through smoke. A rocket flies straight (round a corner he can lean past), and through smoke too. */
+const LOB_H=30,NO_LOB=new Set(['wall','window','owall','iwall','liftwall','steeldoor','liftdoor','carddoor','office','garage','booth','gatehouse','dcblock','bars']);
+function lobOK(x,y,tx,ty){
+  for(const o of objs){if(!o.full||!segHitsRect(x,y,tx,ty,o,0)||inRect(x,y,o)||inRect(tx,ty,o))continue;if(MAPID==='in'||NO_LOB.has(o.kind)||objHeight(o)>LOB_H)return false;}
+  return true;
+}
+// a rocket flies from his shoulder (1.5 m) to its mark's height: up the side of something tall (a mast, a tower), so it clears
+// whatever is lower than its path on the way (the radio hut in front of Level 1's mast); at a man or the ground it stays low
+const RPG_SH=15;
+function rocketAim(tx,ty){const o=objs.find(o=>objHeight(o)>30&&rectDist(tx,ty,o)<=12),h=o?objHeight(o):0;return h>30?Math.min(h*.6,40):8;}   // (on or right by something tall: up its side)
+function rocketHits(x,y,tx,ty,z0,z1){   // the first full object the path runs into below its height, or null (smoke doesn't stop it)
+  const dx=tx-x,dy=ty-y,L2=dx*dx+dy*dy||1;
+  for(const o of objs){if(!o.full||!segHitsRect(x,y,tx,ty,o,0)||inRect(x,y,o)||inRect(tx,ty,o))continue;
+    let t=1;for(const[cx,cy]of[[o.x,o.y],[o.x+o.w,o.y],[o.x,o.y+o.h],[o.x+o.w,o.y+o.h]])t=Math.min(t,((cx-x)*dx+(cy-y)*dy)/L2);   // (where it meets it at the earliest: lowest)
+    if(objHeight(o)>=z0+(z1-z0)*Math.max(0,t))return o;}
+  return null;
+}
+function throwFrom(u,tx,ty,kind){   // where he throws or fires from (his spot, or leaned out round a corner), or null
+  if(hideAt(u.x,u.y)!==hideAt(tx,ty))return null;
+  if(kind==='rpg'){const th=rocketAim(tx,ty),ok=(x,y)=>!rocketHits(x,y,tx,ty,RPG_SH,th);
+    if(ok(u.x,u.y))return{x:u.x,y:u.y};if(u.path.length||shy(u))return null;for(const p of leanPts(u.x,u.y,tx,ty))if(ok(p.x,p.y))return p;return null;}
+  if(lobOK(u.x,u.y,tx,ty))return{x:u.x,y:u.y};
+  return u.path.length||shy(u)?(los(u.x,u.y,tx,ty,true)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty,true);
+}
 function throwNade(u,tx,ty){
   if(hyp(tx-u.x,ty-u.y)>170){banner('Too far. Throw inside the circle.');return false;}
-  const f=sightOf(u,tx,ty);
+  const f=throwFrom(u,tx,ty,'nade');
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.grenade=0;u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
@@ -397,7 +425,7 @@ function throwNade(u,tx,ty){
 function throwSmoke(u,tx,ty){
   if(u.spec!=='smoke'||!u.specN){banner(`${u.name} has no smoke.`,1600);return false;}
   if(hyp(tx-u.x,ty-u.y)>SMOKE.range){banner('Too far. Throw inside the circle.');return false;}
-  const f=sightOf(u,tx,ty);
+  const f=throwFrom(u,tx,ty,'smoke');
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.specN--;u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
@@ -412,9 +440,9 @@ function fireRPG(u,tx,ty){
   if(u.spec!=='rpg'||!u.specN){banner(`${u.name} has no rockets left.`,1600);return false;}
   const d=hyp(tx-u.x,ty-u.y);if(d<PRPG.min){banner('Too close for a rocket.',1600);return false;}
   if(d>PRPG.range){banner('Out of range for the RPG.',1600);return false;}
-  const f=sightOf(u,tx,ty);if(!f){banner('No clear shot from here.');return false;}
+  const f=throwFrom(u,tx,ty,'rpg');if(!f){banner('No clear shot from here: something’s in the way.');return false;}
   u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT+PRPG.aim+.5;leanOut(u,{fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y});
-  u.rpgAim={x:tx,y:ty,f,at:simT+PRPG.aim};callout(u,'Rocket!',C.warn);return true;
+  u.rpgAim={x:tx,y:ty,f,at:simT+PRPG.aim,th:rocketAim(tx,ty)};callout(u,'Rocket!',C.warn);return true;
 }
 /* ---------- getting into position (Bryan: tap where to throw or fire; if he can't from where he is, he moves to where he can,
    and says so if there's no safe way). Allies never block a throw (only walls and the like do). ---------- */
@@ -425,22 +453,32 @@ function watched(x,y,skip){
     if(!e.alerted&&d>80){let da=Math.atan2(y-e.y,x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)return false;}
     return los(e.x,e.y,x,y);});
 }
-function fireSpot(u,tx,ty,range,minD=0){
-  const ok=(x,y)=>{const d=hyp(tx-x,ty-y);return d<=range&&d>=minD&&hideAt(x,y)===hideAt(tx,ty)&&!!sightFrom(x,y,tx,ty);};
-  if(ok(u.x,u.y)&&sightOf(u,tx,ty))return{here:true};
+function fireSpot(u,tx,ty,range,minD=0,kind='nade',maxWalk=360){
+  const ok=(x,y)=>{const d=hyp(tx-x,ty-y);return d<=range&&d>=minD&&hideAt(x,y)===hideAt(tx,ty)&&(kind==='rpg'?!rocketHits(x,y,tx,ty,RPG_SH,rocketAim(tx,ty)):lobOK(x,y,tx,ty)||!!sightFrom(x,y,tx,ty,true));};
+  {const d=hyp(tx-u.x,ty-u.y);if(d<=range&&d>=minD&&throwFrom(u,tx,ty,kind))return{here:true};}
   const th=threats(),safe=c=>caught(u)?isCovered(c,th):!watched(c.x,c.y),cand=[];
   for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<340)cand.push({x:c.x,y:c.y});
   for(const r of[range*.5,range*.8])for(let k=0;k<16;k++){const a=k/16*TAU;cand.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
+  for(const r of[45,90])for(let k=0;k<12;k++){const a=k/12*TAU;cand.push({x:u.x+Math.cos(a)*r,y:u.y+Math.sin(a)*r});}   // (a step or two from where he is)
   const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
   const good=cand.filter(c=>isFree(c.x,c.y,7)&&ok(c.x,c.y)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<10)&&safe(c)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y)})).sort((a,b)=>a.d-b.d).slice(0,6);
-  for(const c of good){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=360&&L<=c.d*1.7+60)return{x:c.x,y:c.y,path:p};}}
+  for(const c of good){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=maxWalk&&L<=c.d*1.7+60)return{x:c.x,y:c.y,path:p};}}
   return null;
 }
 // kind: 'nade', 'smoke' or 'rpg'
 function orderThrow(u,tx,ty,kind){
   const R=kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:170,minD=kind==='rpg'?PRPG.min:0;
-  if(kind==='rpg'&&hyp(tx-u.x,ty-u.y)<minD){banner('Too close for a rocket.',1600);return false;}
-  const s=fireSpot(u,tx,ty,R,minD);
+  const d=hyp(tx-u.x,ty-u.y);
+  if(kind!=='nade'){   // smoke and the rocket go from where he stands, never walking him off towards it (Bryan, after v70); a miss keeps the aim
+    if(d>R){banner(kind==='rpg'?'Out of range for the RPG. Fire inside the circle.':'Too far for smoke. Throw inside the circle.',1800);return false;}
+    if(d>=minD&&throwFrom(u,tx,ty,kind))return doThrow(u,tx,ty,kind);
+    if(kind==='rpg'){   // too close, or a building in the way: a few steps (18 m at most) to where he can fire, then the rocket
+      const s=fireSpot(u,tx,ty,R,minD,kind,180);
+      if(s&&!s.here){u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};callout(u,d<minD?'Backing off':'Getting a shot',C.warn);return true;}
+    }
+    banner(kind==='rpg'?(d<minD?'Too close for a rocket.':'No clear shot from here: something’s in the way.'):'No clear throw from here.',1800);return false;
+  }
+  const s=fireSpot(u,tx,ty,R,minD,kind);
   if(!s){if(typeof gen==='function')chat('nadeno',5,gen(u,'nadeno'));banner(kind==='rpg'?`${u.name} can’t get a safe shot at that.`:`${u.name} can’t get a safe throw at that.`,2000);return false;}
   if(s.here)return doThrow(u,tx,ty,kind);
   u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};
@@ -455,7 +493,7 @@ function throwTick(){
       else if(!u.path.length){u.throwGo=null;if(!doThrow(u,g.x,g.y,g.kind))callout(u,'No angle',C.warn);}}
     const a=u.rpgAim;if(!a||simT<a.at)continue;u.rpgAim=null;if(!alive(u))continue;   // the rocket goes
     const dd=hyp(a.x-a.f.x,a.y-a.f.y)||1;
-    rockets.push({x:a.f.x,y:a.f.y,dx:(a.x-a.f.x)/dd,dy:(a.y-a.f.y)/dd,left:dd,by:u,trail:[],spec:PRPG,speed:PRPG.speed});u.rpgT=simT;
+    rockets.push({x:a.f.x,y:a.f.y,dx:(a.x-a.f.x)/dd,dy:(a.y-a.f.y)/dd,left:dd,total:dd,z0:RPG_SH,z1:a.th??8,by:u,trail:[],spec:PRPG,speed:PRPG.speed});u.rpgT=simT;
     flashes.push({x:a.f.x,y:a.f.y,t:0});u.stats.items++;if(typeof gen==='function')chat('rpgout',3,gen(u,'rpgout'));
     alertAll('Contact. Weapons free.',true,a.f.x,a.f.y,a.x,a.y,{x:a.f.x,y:a.f.y},undefined,undefined,undefined,u);squadNoise(u,a.f.x,a.f.y);
   }

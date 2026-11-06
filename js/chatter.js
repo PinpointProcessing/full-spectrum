@@ -93,6 +93,7 @@ const BANTER=[
  {when:'scip',lines:[['B3','Listen. Can you hear that? Behind the gate.'],['A2','It\'s the wind.'],['B3','It\'s not.']]},
  {when:'in',lines:[['B1','This place gives me the creeps.'],['A2','Then stop talking about it.']]},
 ];
+const BANTER_MAX=2;
 let talkQ=[],chatCD={},banterT=0,banterUsed=new Set(),hushBy=null,tutSaid=new Set(),tutT=0;
 function resetChatter(){talkQ=[];chatCD={};banterT=0;banterUsed=new Set();hushBy=null;tutSaid=new Set();tutT=0;}
 const up=u=>!!u&&alive(u)&&!u.offMap;
@@ -135,6 +136,7 @@ function chatTick(){
 function chatMove(as){   // a group move: the lead calls his partner, who answers (now and then, so it doesn't get old)
   const list=as.map(a=>a.u);if(list.length<2)return false;
   const lead=list.find(u=>/1$/.test(u.id))||list[0],mate=list.find(u=>u!==lead&&u.team===lead.team);if(!mate||Math.random()>.15)return false;
+  if(players.filter(p=>up(p)&&p.team===lead.team).length>2)return false;   // (Bryan: not "Brennan, on me" with a whole team round him; an unnamed "On me" is to be recorded)
   return chat('move',45,named(lead,'onme',mate),named(mate,'follow',lead));
 }
 function chatContact(amb){   // first contact: the man who sees them says where; someone answers
@@ -184,6 +186,7 @@ function banterPhase(){
 }
 function banterTick(dt){
   if(state!=='play'||contact||talkQ.length||paused||MAPID==='l1'||MAPID==='l2')return;
+  if(banterUsed.size>=BANTER_MAX)return;   // (Bryan: small talk is fun but rare, once or twice a mission, never in a fight)
   if((banterT+=dt)<150)return;   // (Bryan: they talked all the time)
   if(enemies.some(e=>!e.dead&&!e.surr&&(e.alerted||players.some(p=>up(p)&&hyp(p.x-e.x,p.y-e.y)<380))))return;   // not with anyone near
   const ph=banterPhase(),cand=BANTER.map((b,i)=>({b,i})).filter(({b,i})=>!banterUsed.has(i)&&(b.when===ph||(b.when==='any'&&ph!=='in'))&&b.lines.every(([id])=>up(players.find(p=>p.id===id))));

@@ -65,6 +65,8 @@ def mp3_of(a,kbps):   # one line as its own mp3 (a decoder handles it on its own
 
 # how a line is said, for Zonos (gen_zonos.py's STYLE); the shouted ones also get pushed harder by tidy()
 def style_of(sp,g):
+    if sp[0]=='S' and g in ('defy','tied','grumble'):return 'stubborn'   # (Bryan, after v70: stubborn at first, panicking near the HQ)
+    if sp[0]=='S' and g=='panic':return 'panic'
     if g in ('bark_hit','hit_down'):return 'pain'
     if g in ('cry','bark_panic','bark_surrender') or (sp[0]=='S' and g in ('plead','scan')):return 'fear'
     if g in ('n_gotyou','pinned','revive','escort') or (sp[0]=='S' and g=='lab'):return 'urgent'

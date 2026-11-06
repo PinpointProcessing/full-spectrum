@@ -19,8 +19,13 @@
 const ALERT_TICKS=5,ALERT_NAMES=['Calm','Alert I','Alert II','Lockdown'];
 const SURRENDER={hp:40,alone:150,chance:.5,every:5},ZIP_T=2,ENADE={camp:8,range:170,warn:1.8,r:60};
 const SENSOR={every:1.6,range:450,blip:1.6};
-let alertT=0,alertMax=0,alertQuietT=0,alertFightT=0,bodies=[],checkT=0,sensorT=0,blips=[],sweepT=-9,zipGo=null,lastPing=-9;
-function resetLayers(){alertT=0;alertMax=0;alertQuietT=0;alertFightT=0;bodies=[];checkT=40;sensorT=0;blips=[];sweepT=-9;zipGo=null;lastPing=-9;}
+let alertT=0,alertMax=0,alertQuietT=0,alertFightT=0,bodies=[],checkT=0,sensorT=0,blips=[],sweepT=-9,zipGos=[],lastPing=-9;
+function resetLayers(){alertT=0;alertMax=0;alertQuietT=0;alertFightT=0;bodies=[];checkT=40;sensorT=0;blips=[];sweepT=-9;zipGos=[];lastPing=-9;}
+// (Bryan: "one soldier does each task. The squad is never limited to one action at a time": each zip-tie and each thing used is
+// one soldier's job, and a new one goes to the nearest selected man who isn't already on one)
+const zipOf=u=>zipGos.find(z=>z.u===u)||null,zipFor=e=>zipGos.find(z=>z.e===e)||null;
+const onTask=u=>!!(zipOf(u)||(typeof useOf==='function'&&useOf(u))||u.medGo||u.carryGo||u.throwGo);
+function pickFor(list,x,y){const c=list.filter(p=>alive(p)&&!p.carry&&!p.inVeh).sort((a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y));return c.find(u=>!onTask(u))||c[0]||null;}
 const alertStage=()=>Math.min(3,Math.floor(alertT/ALERT_TICKS));
 const eyeR=()=>alertStage()>=1?345:300;   // how far an unaware hostile's eyes reach: 15 % further once the base is on alert (sense in combat.js, the cones)
 
@@ -117,16 +122,17 @@ function moraleBreak(e){
   return true;
 }
 function orderZip(list,e){
-  const u=list.filter(p=>alive(p)&&!p.carry).sort((a,b)=>hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y))[0];if(!u)return false;
+  if(zipFor(e))return true;   // (someone's already on him)
+  const u=pickFor(list,e.x,e.y);if(!u)return false;
   const s=openSpot(e.x,e.y,players.filter(o=>o!==u&&!o.dead).map(destOf))||{x:e.x,y:e.y},p=hyp(u.x-e.x,u.y-e.y)<20?[]:findPath(u.x,u.y,s.x,s.y);
   if(!p){banner('No way to reach him.');return false;}
-  u.path=p;u.lastOrder=simT;u.watch=null;zipGo={u,e,prog:0};callout(u,'Hands where I can see them!',C.good);return true;
+  u.path=p;u.lastOrder=simT;u.watch=null;zipGos=zipGos.filter(z=>z.u!==u);if(typeof useGos!=='undefined')useGos=useGos.filter(g=>g.u!==u);zipGos.push({u,e,prog:0});callout(u,'Hands where I can see them!',C.good);return true;
 }
 function zipTick(dt){
-  const z=zipGo;if(!z)return;const{u,e}=z;
-  if(!alive(u)||e.dead||e.tied||e.detained||(u.path.length&&hyp(destOf(u).x-e.x,destOf(u).y-e.y)>30)){zipGo=null;return;}
-  if(u.path.length)return;if(hyp(u.x-e.x,u.y-e.y)>28){zipGo=null;return;}
-  z.prog+=dt;if(z.prog>=ZIP_T){zipGo=null;if(typeof sfxZip==='function')sfxZip(e.x,e.y);u.stats.ties=(u.stats.ties||0)+1;callout(u,e.sci?'Detained':'Zip-tied',C.good);if(e.sci)sciTied(e,u);else e.tied=true;}   // (a scientist follows him from now on: office.js)
+  for(const z of[...zipGos]){const{u,e}=z,end=()=>{zipGos=zipGos.filter(q=>q!==z);};
+  if(!alive(u)||e.dead||e.tied||e.detained||(u.path.length&&hyp(destOf(u).x-e.x,destOf(u).y-e.y)>30)){end();continue;}
+  if(u.path.length)continue;if(hyp(u.x-e.x,u.y-e.y)>28){end();continue;}
+  z.prog+=dt;if(z.prog>=ZIP_T){end();if(typeof sfxZip==='function')sfxZip(e.x,e.y);u.stats.ties=(u.stats.ties||0)+1;callout(u,e.sci?'Detained':'Zip-tied',C.good);if(e.sci)sciTied(e,u);else e.tied=true;}}   // (a scientist follows him from now on: office.js)
 }
 
 /* ---------- enemy grenades ---------- */
@@ -174,6 +180,6 @@ function drawLayers(now){
   // an incoming enemy grenade: where it'll land
   for(const n of nades){if(!n.enemy)continue;const p=(Math.sin(now*14)+1)/2;gPath(n.x1,n.y1,ENADE.r);ox.fillStyle=`rgba(255,40,30,${(.12+p*.12).toFixed(3)})`;ox.fill();ox.strokeStyle='rgba(255,70,50,.9)';ox.lineWidth=2;ox.setLineDash([6,4]);ox.stroke();ox.setLineDash([]);const[lx,ly]=toS(n.x1,n.y1);label('GRENADE',lx,ly,'#ff5040',11,700);}
   // the ones who gave up
-  for(const e of enemies){if(!e.surr||e.dead||offFloor(e)||!e.vis)continue;const[sx,sy]=toS(e.x,e.y,22);label(e.tied?'TIED':zipGo&&zipGo.e===e?'ZIP-TYING':'SURRENDERED',sx,sy,'#ffcf4a',9,700);}
-  if(zipGo&&!zipGo.u.path.length){const u=zipGo.u;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+zipGo.prog/ZIP_T*TAU);ox.strokeStyle=C.good;ox.lineWidth=2.4;ox.stroke();}
+  for(const e of enemies){if(!e.surr||e.dead||offFloor(e)||!e.vis)continue;const[sx,sy]=toS(e.x,e.y,22);label(e.tied?'TIED':zipFor(e)?'ZIP-TYING':'SURRENDERED',sx,sy,'#ffcf4a',9,700);}
+  for(const z of zipGos)if(!z.u.path.length){const u=z.u;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+z.prog/ZIP_T*TAU);ox.strokeStyle=C.good;ox.lineWidth=2.4;ox.stroke();}
 }

@@ -18,8 +18,14 @@
      scientists. Leave by the front doors with at least one.
    - Outside, the drawbridge's panel is a bio scanner: bring a detained scientist and send a soldier to it; his hand on the
      glass lowers the drawbridge. (The monsters come with the next build, Bryan.) */
-const SCI_PLEAD=['Please! Please, don’t...','We’re all going to die.','You don’t know what you’re doing.','Don’t open it. Whatever they told you.','It was never meant to be opened.','I have a family...'];
-const SCI_ESCORT=['They sealed it for a reason.','You think we’re the dangerous ones?','It isn’t a bridge. It’s a lid.','Turn back. Please.','We’re all going to die.','They told us it would hold.','You’ll hear them first.'];
+// Bryan, after v70: stubborn at first ("I'm not talking. You all are terrorists"), panicking only near the HQ, and talking less.
+// Found and cowering: defiant. Zip-tied: a word or two. Led along: grumbling. Near the fortress's gate (they know what's behind
+// it; the player doesn't yet): panic. Made to put a hand on the scanner: begging (SCI_SCAN).
+const SCI_DEFY=['I’m not talking.','You people are terrorists.','I have nothing to say to you.','Get away from me.','You’ll get nothing from me.','Do what you want. I’m not helping you.'];
+const SCI_TIED=['Terrorists. All of you.','Get your hands off me!'];
+const SCI_GRUMBLE=['Where are you taking me?','You have no right to do this.','I told you. I’m not talking.','Animals.','You won’t get away with this.','Keep your hands off me.'];
+const SCI_PANIC=['No. No! Not there!','Don’t open it! Please don’t open it!','You don’t know what’s down there!','Turn back! I’m begging you!','They sealed it for a reason!','Oh God. Oh God no...'];
+const SCI_HQ_NEAR=480;   // how close to the drawbridge's panel before they start to panic
 const SCI_SCAN=['No. No, no, no. Please!','Don’t make me do this!','You’re killing all of us...','God forgive me.'];
 const PRISON_CRY=['Help! Down here!','Is someone there?','Please! We’re down here!','Get us out!'];
 const SCI_LAB=['No! Years of work!','You’ve no idea what you’ve done.','Good. Burn it. All of it.'],SCI_END=['...God help us.'];
@@ -93,7 +99,7 @@ function officeActs(){
     if(q.kind==='strapped')ACTS.push({id:'cutdown',map:'in',floor:'B1',x:q.x,y:q.y,r:14,standY:16,secs:3,label:'CUT DOWN',avail:()=>!!wallMan(),act:u=>cutDown(u)});
   }
   // the lab equipment upstairs (a bonus from Bryan's first design): DESTROY wrecks a bench
-  (f1.interact||[]).filter(q=>q.kind==='equipment').forEach((q,i)=>ACTS.push({id:'lab-'+i,map:'in',floor:'1F',x:q.x,y:q.y,r:14,standY:0,secs:3,label:'DESTROY',avail:()=>!office.labs[i],act:u=>wreckLab(u,i,q)}));
+  (f1.interact||[]).filter(q=>q.kind==='equipment').forEach((q,i)=>ACTS.push({id:'lab-'+i,map:'in',floor:'1F',x:q.x,y:q.y,r:14,standY:0,secs:3,label:'DESTROY',q,near:()=>labObj(q),avail:()=>!office.labs[i],act:u=>wreckLab(u,i,q)}));   // (near: a tap anywhere on the bench counts, Bryan)
 }
 // orderUse (interior.js) hands these over: send everyone selected on this floor into the stairs zone
 function goStairs(list,tr,z){
@@ -265,10 +271,12 @@ function civTick(u,dt){
     if(m&&simT>(u.followT||0)){u.followT=simT+.5;const d=hyp(m.x-u.x,m.y-u.y),end=u.path.length?u.path[u.path.length-1]:null;
       if(d>34&&(!end||hyp(end.x-m.x,end.y-m.y)>30)){const s=openSpot(m.x-Math.cos(m.ang)*18,m.y-Math.sin(m.ang)*18,players.filter(p=>!p.dead).map(destOf)),p=s&&findPath(u.x,u.y,s.x,s.y,FOOT);if(p)u.path=p;}}
   }
-  // they talk: begging while they cower, muttering on the way (cryptic about what's behind the gate)
+  // they talk, not much: defiant while they cower, grumbling on the way, and panicking near the fortress's gate (Bryan)
   if(near.some(p=>hyp(p.x-u.x,p.y-u.y)<260)&&simT>u.pleadT&&(u.cower||u.detained)){
-    const L=u.scanning?SCI_SCAN:u.detained?SCI_ESCORT:SCI_PLEAD;u.pleadT=simT+(u.detained?20:12)+Math.random()*8;
-    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<2.5)){u.saidT=simT;line(u,u.scanning?'scan':u.detained?'escort':'plead',L);}
+    const panic=u.detained&&MAPID==='out'&&typeof PANEL!=='undefined'&&hyp(u.x-PANEL.x,u.y-PANEL.y)<SCI_HQ_NEAR;
+    const g=u.scanning?'scan':panic?'panic':u.detained?'grumble':'defy',L={scan:SCI_SCAN,panic:SCI_PANIC,grumble:SCI_GRUMBLE,defy:SCI_DEFY}[g];
+    u.pleadT=simT+(u.scanning?5:panic?7:u.detained?40:30)+Math.random()*(panic?5:15);
+    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<(panic?3:6))){u.saidT=simT;line(u,g,L,undefined,panic||u.scanning?3.4:3,panic||u.scanning?'#ffd7cf':'#e9eef2');}
   }
 }
 function civAtScreen(sx,sy){
@@ -281,14 +289,14 @@ function civTap(c){
   if(c.sci){
     if(c.detained){banner('Detained: he follows the soldier who tied him.',1800);return true;}
     if(!sel.some(alive)){banner('Select a soldier, then tap the scientist to zip-tie him.',2000);return true;}
-    if(orderZip(sel,c)&&zipGo)chatSci(zipGo.u);return true;
+    if(orderZip(sel,c)&&zipFor(c))chatSci(zipFor(c).u);return true;
   }
   const a=ACTS.find(q=>q.id===(c.strapped?'cutdown':'cell-'+c.cell));
   if(a&&a.avail()){if(!sel.some(alive)){banner('Select a soldier first.',1600);return true;}orderUse(a);return true;}
   return false;
 }
 function sciTied(c,u){   // from zipTick (layers.js)
-  c.detained=true;c.minder=u;c.cower=false;office.tied++;c.saidT=simT;line(c,'plead',SCI_PLEAD);
+  c.detained=true;c.minder=u;c.cower=false;office.tied++;c.saidT=simT;c.pleadT=simT+25+Math.random()*15;line(c,'tied',SCI_TIED);
   if(office.tied===1)banner('Detained. He follows the soldier who tied him. Bring him out the front doors.',3200);updateObjUI();hud();
 }
 
@@ -311,15 +319,23 @@ function scanTick(dt){
 /* ---------- the lab equipment (a bonus) ---------- */
 // wrecked: the bench goes dark and lopsided, its glowing vials gone, sparks for a few seconds and a scorch mark; it's loud
 // (anyone near hears it), and a scientist close by has something to say about it
-function wreckLab(u,i,q){
-  if(office.labs[i])return;office.labs[i]=true;office.labN++;u.stats.labs=(u.stats.labs||0)+1;
-  const o=IN.objs.filter(b=>b.kind==='lab').sort((a,b)=>hyp(a.x+a.w/2-q.x,a.y+a.h/2-q.y)-hyp(b.x+b.w/2-q.x,b.y+b.h/2-q.y))[0];
+function labObj(q){   // the bench a DESTROY ring belongs to
+  if(!IN||!IN.objs)return null;if(q._o&&IN.objs.includes(q._o))return q._o;
+  return q._o=IN.objs.filter(b=>b.kind==='lab').sort((a,b)=>hyp(a.x+a.w/2-q.x,a.y+a.h/2-q.y)-hyp(b.x+b.w/2-q.x,b.y+b.h/2-q.y))[0]||null;
+}
+// a frag or a rocket that goes off by a bench wrecks it as well (Bryan: tap it, or blow it up); the thrower gets the credit
+function labBlast(x,y,by){
+  if(MAPID!=='in'||!IN)return;
+  for(const a of ACTS)if(/^lab-/.test(a.id)&&a.avail()){const o=labObj(a.q);if(o&&rectDist(x,y,o)<40)wreckLab(by&&by.side==='P'?by:null,+a.id.slice(4),a.q,true);}
+}
+function wreckLab(u,i,q,blast){
+  if(office.labs[i])return;office.labs[i]=true;office.labN++;if(u&&u.stats)u.stats.labs=(u.stats.labs||0)+1;
+  const o=labObj(q);
   const cx=o?o.x+o.w/2:q.x,cy=o?o.y+o.h/2:q.y;
   if(o){o.wreck=true;const g=o.grp;if(g)g.traverse(m=>{if(!m.isMesh)return;if(m.geometry.type==='CylinderGeometry'){m.visible=false;return;}m.material=m.material.clone();m.material.color.setHex(0x37322e);m.rotation.z=.07;});}
   office.sparks.push({x:cx,y:cy,t0:simT});paintDecal({k:'scorch',x:cx,y:cy+10,r:Math.random()});
   if(typeof sfxSparks==='function')sfxSparks(cx,cy);
-  callout(u,'Smashed it',C.good);
-  alertAll('Contact.',true,cx,cy,null,null,{x:u.x,y:u.y},180,80,true);   // smashing it up is loud
+  if(!blast){callout(u,'Smashed it',C.good);alertAll('Contact.',true,cx,cy,null,null,{x:u.x,y:u.y},180,80,true);}   // smashing it up is loud (a blast is louder, and already heard)
   const s=civs.filter(c=>c.sci&&floorOf(c.x,c.y)==='1F'&&hyp(c.x-cx,c.y-cy)<560).sort((a,b)=>hyp(a.x-cx,a.y-cy)-hyp(b.x-cx,b.y-cy))[0];
   if(s&&simT-(s.saidT||-9)>1.5){s.saidT=simT;line(s,'lab',SCI_LAB);}
   if(office.labN===4)banner('All the lab equipment is wrecked.',2400);hud();
@@ -376,7 +392,7 @@ function drawOffice(now){
   const pulse=(Math.sin(now*4)+1)/2,act=sel.some(alive);
   for(const c of civs){
     if((!c.vis&&!c.detained)||offFloor(c))continue;const[x,y]=toS(c.x,c.y,22);
-    if(c.sci){if(c.detained)label('DETAINED',x,y,'#e9eef2',8,700);else{label('SCIENTIST',x,y,'#e9eef2',9,700);if(act&&!(zipGo&&zipGo.e===c)){const[fx,fy]=toS(c.x,c.y);pill('ZIP-TIE',fx,fy+16,C.good);}}}
+    if(c.sci){if(c.detained)label('DETAINED',x,y,'#e9eef2',8,700);else{label('SCIENTIST',x,y,'#e9eef2',9,700);if(act&&!zipFor(c)){const[fx,fy]=toS(c.x,c.y);pill('ZIP-TIE',fx,fy+16,C.good);}}}
     else if(c.strapped)label('PRISONER · ALIVE',x,y,'#d9c7a0',9,700);
     else label('PRISONER',x,y,'#d9c7a0',9,700);
   }

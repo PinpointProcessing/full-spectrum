@@ -140,7 +140,7 @@ function drawOverlay(rdt,now){
   const act=sel.filter(alive);
   for(const e of enemies){
     if(e.dead||offFloor(e))continue;
-    if(e.surr){if(e.vis&&!e.tied&&act.length&&!(zipGo&&zipGo.e===e)){const[fx,fy]=toS(e.x,e.y);pill('ZIP-TIE',fx,fy+16,C.good);}continue;}   // he gave up: tap him (layers.js draws his label)
+    if(e.surr){if(e.vis&&!e.tied&&act.length&&!zipFor(e)){const[fx,fy]=toS(e.x,e.y);pill('ZIP-TIE',fx,fy+16,C.good);}continue;}   // he gave up: tap him (layers.js draws his label)
     if(e.vis){
       const vx=e.x+e.lx,vy=e.y+e.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
       if(e.hitFlash>0){gPath(vx,vy,7+(.25-e.hitFlash)*30);ox.strokeStyle=`rgba(255,60,40,${(e.hitFlash*3).toFixed(2)})`;ox.lineWidth=2;ox.stroke();}   // hit: a red pulse

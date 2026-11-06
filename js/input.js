@@ -165,7 +165,28 @@ function select(list){
   if(!(list.length===1&&cardGroup.includes(list[0])))cardGroup=players.filter(p=>list.some(u=>u.team===p.team));
   sel=list;
 }
-function selectTeam(t){select(players.filter(p=>p.team===t&&alive(p)));preview=null;mode=null;}
+/* ---------- the squads apart (Bryan: "if selecting the other squad, it should bring you to them. You cant change squads if
+   they are in different locations and your squad is under attack") ---------- */
+const UNDER_FIRE_T=4;   // shot at, or hurt, in the last 4 s: under fire (firedOnT, combat.js)
+const underFire=list=>list.some(p=>alive(p)&&simT-(p.firedOnT??-99)<UNDER_FIRE_T);
+const midOf=list=>({x:list.reduce((a,p)=>a+p.x,0)/list.length,y:list.reduce((a,p)=>a+p.y,0)/list.length});
+function inView(p){toSBack=false;const[sx,sy]=toS(p.x,p.y,4);return !toSBack&&sx>=0&&sy>=0&&sx<=cw&&sy<=ch;}
+// are these men somewhere other than what's on screen (another floor, or off the edge)?
+function elsewhere(list){const live=list.filter(p=>alive(p)&&!p.offMap);return live.length>0&&live.every(p=>offFloor(p)||!inView(p));}
+// may the view leave the men on screen (the ones selected, else everyone on this floor) for these? Not while those are being shot
+// at, unless these are too (then both need you)
+function mayLeave(list){
+  const here=(sel.some(alive)?sel:players).filter(p=>alive(p)&&!p.offMap&&!offFloor(p)&&!list.includes(p));
+  if(!here.length||!underFire(here)||underFire(list))return true;
+  const t=new Set(here.map(p=>p.team));banner(`${t.size>1?'Your squad is':t.has('A')?'Alpha is':'Bravo is'} under fire. You can't leave them in a fight.`,2200);return false;
+}
+// the camera to them: their floor inside the office building, and over them
+function goTo(list){const live=list.filter(p=>alive(p)&&!p.offMap);if(!live.length)return;const m=midOf(live);
+  if(MAPID==='in'){const f=floorOf(live[0].x,live[0].y);if(f&&f!==curFloor){setFloor(f,m);return;}}
+  camT={x:m.x,z:m.y};clampCam();updateCamera();}
+// pick these men; if they're somewhere else the camera goes to them, or nothing happens and the banner says why (false)
+function selectAway(list){const far=elsewhere(list);if(far&&!mayLeave(list))return false;select(list);if(far)goTo(list);return true;}
+function selectTeam(t){if(selectAway(players.filter(p=>p.team===t&&alive(p)))){preview=null;mode=null;}}
 // gait button: flip the selected soldiers to the other gait, or back to automatic if already flipped
 function toggleGait(){
   const act=sel.filter(alive);if(!act.length)return;

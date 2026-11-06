@@ -145,10 +145,10 @@ function segHitsRect(x1,y1,x2,y2,o,pad){
 }
 // a soldier inside a structure (a sentry in the guard tower, the watchtower lookout) sees out of it, and can be seen
 function inRect(x,y,o){return x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h;}
-function los(ax,ay,bx,by){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0)&&!inRect(ax,ay,o)&&!inRect(bx,by,o))return false;}return !smokes.length||!smokeBlocks(ax,ay,bx,by);}
+function los(ax,ay,bx,by,noSmoke){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0)&&!inRect(ax,ay,o)&&!inRect(bx,by,o))return false;}return noSmoke||!smokes.length||!smokeBlocks(ax,ay,bx,by);}   // (noSmoke: a throw or a rocket, which smoke doesn't stop)
 // smoke grenades (Bryan, in place of C4 for this level): a cloud that blocks sight both ways, not movement. It grows to
 // SMOKE.r over SMOKE.grow s, blocks from SMOKE.from s until SMOKE.fade s before it's gone, then thins out
-const SMOKE={r:60,grow:1.6,from:.4,life:14,fade:2,range:170};
+const SMOKE={r:60,grow:1.6,from:.4,life:14,fade:2,range:260};   // (range: how far it's thrown, 26 m)
 let smokes=[];   // {x,y,t0}
 function smokeR(c){return SMOKE.r*Math.min(1,(simT-c.t0)/SMOKE.grow);}
 function segPtDist(ax,ay,bx,by,px,py){const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy,t=L?clamp(((px-ax)*dx+(py-ay)*dy)/L,0,1):0;return hyp(ax+dx*t-px,ay+dy*t-py);}
@@ -196,8 +196,8 @@ function leanPts(x,y,tx,ty){
   return out;
 }
 // where someone standing at (x,y) can see (tx,ty) from: right there, or leaning out. null if nowhere.
-function sightFrom(x,y,tx,ty){
-  if(los(x,y,tx,ty))return{x,y};
-  for(const p of leanPts(x,y,tx,ty))if(los(p.x,p.y,tx,ty))return p;
+function sightFrom(x,y,tx,ty,noSmoke){
+  if(los(x,y,tx,ty,noSmoke))return{x,y};
+  for(const p of leanPts(x,y,tx,ty))if(los(p.x,p.y,tx,ty,noSmoke))return p;
   return null;
 }

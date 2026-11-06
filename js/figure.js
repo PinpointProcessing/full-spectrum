@@ -307,8 +307,8 @@ function figState(u){
   if(u.carry)return'carry';
   if(u.rpgAim||simT-(u.rpgT||-9)<.5)return'rpg';
   if(simT-(u.throwT||-9)<.75)return'throw';
-  if((u.medGo&&u.medGo.prog>0)||(u.carryGo&&u.carryGo.prog>0)||(typeof zipGo!=='undefined'&&zipGo&&zipGo.u===u&&!u.path.length)||u.plant||reviving(u))return'kneelwork';
-  if(typeof useGo!=='undefined'&&useGo&&useGo.u===u&&!u.path.length&&useGo.a.secs)return'standwork';
+  if((u.medGo&&u.medGo.prog>0)||(u.carryGo&&u.carryGo.prog>0)||(typeof zipOf==='function'&&zipOf(u)&&!u.path.length)||u.plant||reviving(u))return'kneelwork';
+  if(typeof useOf==='function'&&(g=>g&&!u.path.length&&g.a.secs)(useOf(u)))return'standwork';
   return'base';
 }
 function reviving(u){if(u.side!=='P'||u.path.length)return false;for(const p of players)if(p!==u&&p.downed&&!p.dead&&p.revive>0&&hyp(p.x-u.x,p.y-u.y)<26)return true;return false;}

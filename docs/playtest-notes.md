@@ -140,3 +140,30 @@ Open for Bryan: a store or upgrades (what you'd buy with, what's for sale), and 
 
 Open for Bryan: Lights Out to play; the four questions in `docs/classes.md` (can a soldier retrain, can two share a class,
 can the Medic bring back the dead, does the player pick); a store or upgrades.
+
+# Bryan testing v70 (the changes are in v71)
+
+1. "Theres a problem when throwing smokes. and shooting RPGs they dont read where i want to deploy it right away and directs my
+   unit to that location instead." Out of reach, or with anything solid in the straight line (a container, a crate, even a
+   smoke cloud), they walked off to find a spot. Now smoke is lobbed over low cover from where he stands and reaches 26 m (was
+   17); a rocket flies up to the height of what it's aimed at, so Hayes hits Level 1's radio mast over the hut from the
+   checkpoint (that's where the walk came from); too close, or a building in the way, he takes a few steps; out of range he
+   says so and keeps aiming. Frags still walk to a safe spot first, as Bryan asked before.
+2. "Breach room is showing up in locatins where there are no entries to rooms." The office's shared room and its two wings are
+   one open space, and the open side counted as a doorway. A doorway needs a wall on both sides now and a doorway's width.
+3. "Can we add doors to break down. We can have them kick it in, later incoporate C4s or flashbangs." Next (not in v71).
+4. Eight units on screen: Alpha's row on top, Bravo's under it, each man always in his own slot, the name instead of callsign
+   and rank (a line less). Bryan's "maybe we keep it" holds otherwise.
+5. Squads on different floors: picking the other one takes you there; not while the squad on screen is under fire (unless both
+   are).
+6. The lab table: a tap anywhere on it now (the DESTROY ring at one end was a small target); a frag or a rocket wrecks it too.
+7. The scientists: stubborn when found ("I'm not talking." "You people are terrorists."), grumbling on the way, panicking only
+   near the HQ ("Don't open it!"), and a third as chatty. The new lines show as words until they're voiced.
+8. "One soldier does each task": zip-ties and things to use (cells, benches, the computer) are one soldier's job each, so two
+   taps send two men.
+9. Chatter: no "Brennan, on me" with a team round him; small talk at most twice a mission.
+10. Voices: the radio is a real radio now (squashed, clipped, a waver in the throat, narrow, hiss under it) and the dead air at
+   commas is cut out of every line; a listening page compares it with v70 and with lines re-recorded without names or commas.
+
+Still to build from this round: the classes, the monsters pouring out of the HQ and the HQ itself (the boss room), monster
+sounds, doors to kick in, the scientists' and the unnamed lines voiced.
