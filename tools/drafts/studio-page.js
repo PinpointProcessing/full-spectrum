@@ -6,13 +6,13 @@ function studioSetup(){
   window.requestAnimationFrame=()=>0;   // the frame loop stops; we draw by hand
   for(const e of enemies)if(e.m)scene.remove(e.m.g);
   // the new look of the hall: amber where the violet was, warmer, darker
-  for(const L of lamps){if(L.c===0x9a55ff)Object.assign(L,{c:0xd88a3e,i:1.3,d:300,h:34});else if(L.c===0x8a44ff)Object.assign(L,{c:0xb06a2c,i:1.0});}
+  for(const L of lamps){if(L.c===0x9a55ff)Object.assign(L,{c:0xd88a3e,i:1.3,d:300,h:34});else if(L.c===0x8a44ff)Object.assign(L,{c:0xb06a2c,i:1.0});else if(L.c===0xff5544||L.c===0xff4433)L.c=0xff3010;}   // (the red lamps deeper and more orange: no pink)
   hemi.color.setHex(0x7d776e);hemi.groundColor.setHex(0x120e0b);hemi.userData.base=.26;hemi.intensity=.26;
   ST.nest=hqNest(scene,objs);
   for(const L of lamps)if(L.head)L.head.material.color.setHex(L.c);
   for(const o of objs)if(o.kind==='wall'&&o.meshes)for(const m of o.meshes)if(m.material&&m.material.color&&!m.material.userData.dk){m.material=m.material.clone();m.material.userData.dk=1;m.material.color.multiplyScalar(.45);}
   // the hall's old fittings: grimed over (the pale tanks and consoles burned out to white under her lamps)
-  for(const o of objs)if(o.meshes)for(const m of o.meshes){const ms=Array.isArray(m.material)?m.material:[m.material];for(const q of ms)if(q&&q.color&&!q.userData.dk&&['ctank','xfmr','console','crate','barrel'].includes(o.kind)){q.userData.dk=1;q.color.multiplyScalar(o.kind==='ctank'?.3:.55);if(q.roughness!=null)q.roughness=Math.min(1,q.roughness+.2);}}
+  for(const o of objs)if(o.meshes)for(const m of o.meshes){const ms=Array.isArray(m.material)?m.material:[m.material];for(const q of ms)if(q&&q.color&&!q.userData.dk&&['ctank','xfmr','console','crate','barrel'].includes(o.kind)){q.userData.dk=1;q.color.multiplyScalar(o.kind==='ctank'?.16:.45).lerp(new T.Color(0x2a1c12),.25);if(q.roughness!=null)q.roughness=Math.min(1,q.roughness+.2);}}
   {const cv=HQ.tex.image,g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cv.width,cv.height);paintNestGround(g);HQ.tex.needsUpdate=true;}
   ST.cam=new T.PerspectiveCamera(36,cw/ch,1,6000);
 }

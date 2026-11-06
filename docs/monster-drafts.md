@@ -36,7 +36,28 @@ lights and post-processing (`tools/drafts`), from `js/creatures.js`, which the p
 - A cost check on a phone (the mother is about ten draw calls: her parts are instanced).
 - Shed skins in the rooms, spores in the air.
 
+## Round 2, Bryan's answers
+"The monster looks great", "The eggs look great too", "the mother is great for now. They will get more fierce as the game
+goes on", "the goo looks great"; but "the resin and slime on the floor looks bad, they just look like grey circles", and:
+"I was thinking like hard purple, black, red, brown slime rocks growing up furniture and walls, extending to the ground".
+"No pink." The lore: "the scientists bred mutated predator insects that could be used as military weapons but they lost
+control."
+
+## Round 3
+- The slime puddles are gone. Slime rocks instead: hardened lumps in black, deep purple, dark red and brown (`hqRocks`,
+  `crRockGeo`), heaped round the foot of every crate, tank, console and barrel and along the walls' feet, climbing them in
+  streams (lying flat against the side), a broken rim round each clutch; under them a crust of the same colours flowing
+  out over the floor, its ragged edge sinking under it (`crCrust`). The creep sheets' edges sink under the floor too (no
+  stepped edge), and the strips of creep along the walls are gone (the crust took their place).
+- No pink: the red lamps a deeper orange-red, the hall's floor darker and browner (grey went lavender under red light),
+  the old fittings grimed darker, the purple kept deep.
+- The hunter (option B), fiercer: a crest of spines on a flatter, wedge-shaped head, heavier jaws with teeth, a dark red
+  mouth under them, bigger spines down its back, dark red flesh between its plates, darker legs, the scythes raised to
+  strike (`threat`).
+- Pictures: `hq-3-slime-rocks-game-camera.jpg`, `hq-4-slime-rocks-hall.jpg`, `hq-5-slime-rocks-close.jpg`,
+  `brood-B-hunter-2.jpg`, `brood-A-her-young-2.jpg`.
+
 ## Questions for Bryan
-1. Brood: A (her young) or B (the hunter)?
-2. The mother: the right size and look, or more of something (spikes, size, darker)?
-3. The nest: enough goo, or more over the walls and floor?
+1. The smaller monsters: her young, the hunter, or both (the young as the swarm in the side rooms, the hunters pouring out
+   of the gate)?
+2. The slime rocks: right, or more of them up the walls?

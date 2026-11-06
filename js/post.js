@@ -103,13 +103,40 @@ function detailNormalTex(){
   DETAIL_N=new T.CanvasTexture(c);DETAIL_N.wrapS=DETAIL_N.wrapT=T.RepeatWrapping;DETAIL_N.anisotropy=4;
   return DETAIL_N;
 }
-// a ground plane's material (laid flat: its u along +x, v along -z): tiles of `tile` units, bumps of strength k
+// a puddle on a ground picture (Bryan: the puddles were "grey circles"): a ragged outline (an ellipse and two smaller lobes,
+// the edge wobbling; the same shape every time for the same spot, so the colour and roughness pictures match) and a damp,
+// darker ring round it. kind 'col' paints the colour picture, 'rough' the roughness picture (the puddle mirror-smooth).
+function puddle(c,kind,x,y,rx,ry,a){
+  const h=k=>{const v=Math.sin(x*12.9898+y*78.233+k*37.719)*43758.5453;return v-Math.floor(v);};
+  const path=sc=>{c.beginPath();for(let lobe=0;lobe<3;lobe++){const ox=lobe?(h(lobe)-.5)*rx*1.1:0,oy=lobe?(h(lobe+3)-.5)*ry*.9:0,s=(lobe?.42+h(lobe+6)*.3:1)*sc,p1=h(9+lobe)*6.3,p2=h(12+lobe)*6.3;
+    for(let i=0;i<=30;i++){const t=i/30*Math.PI*2,w=1+.16*Math.sin(3*t+p1)+.09*Math.sin(5*t+p2)+.05*Math.sin(9*t+p1*2);const px=ox+Math.cos(t)*rx*s*w,py=oy+Math.sin(t)*ry*s*w;i?c.lineTo(px,py):c.moveTo(px,py);}c.closePath();}};
+  c.save();c.translate(x,y);c.rotate(a);
+  c.fillStyle=kind==='col'?'rgba(8,11,14,.2)':'rgb(112,112,112)';path(1.32);c.fill();   // the damp ring
+  c.fillStyle=kind==='col'?'rgba(5,8,11,.55)':'rgb(30,30,30)';path(1);c.fill();          // standing water
+  c.restore();
+}
+// the night the wet ground reflects: dark all round, a few dim lamp glows and a cold patch of sky (puddles show them as
+// glints; there was nothing to reflect, so they looked flat). The lights sit inside a dark dome: an empty background in a
+// scene made into a reflection map came out white here.
+let NIGHT_ENV;
+function nightEnv(){
+  if(NIGHT_ENV!==undefined)return NIGHT_ENV;NIGHT_ENV=null;
+  try{const sc=new T.Scene(),add=(c,k,x,y,z,r)=>{const m=new T.Mesh(new T.SphereGeometry(r,12,8),new T.MeshBasicMaterial({color:new T.Color(c).multiplyScalar(k)}));m.position.set(x,y,z);sc.add(m);};
+    sc.add(new T.Mesh(new T.SphereGeometry(90,32,16),new T.MeshBasicMaterial({color:0x05070a,side:T.BackSide})));
+    add(0x1a2230,1,0,70,0,40);   // the overcast sky, faintly lit
+    for(const[c,k,x,y,z,r]of[[0xffb060,2.4,-42,34,-48,4],[0xffc27a,2,52,30,24,3.5],[0xffa850,1.8,14,46,58,3.5],[0xff9a40,1.6,-58,24,30,3],[0xd8e6ff,1.5,-18,62,-20,5]])add(c,k,x,y,z,r);
+    const pm=new T.PMREMGenerator(renderer);NIGHT_ENV=pm.fromScene(sc,.035).texture;pm.dispose();}catch(e){NIGHT_ENV=null;}
+  return NIGHT_ENV;
+}
+// a ground plane's material (laid flat: its u along +x, v along -z): tiles of `tile` units, bumps of strength k (none on
+// standing water: a puddle is a flat mirror; its bumps made it glitter)
 function wetGround(mat,w,h,tile=24,k=.6){
   const U={uDetN:{value:detailNormalTex()},uDetRep:{value:new T.Vector2(w/tile,h/tile)},uDetK:{value:k}};
   mat.onBeforeCompile=s=>{Object.assign(s.uniforms,U);
     s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D uDetN;uniform vec2 uDetRep;uniform float uDetK;')
-      .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n  {vec3 dn=texture2D(uDetN,vUv*uDetRep).xyz*2.-1.;dn.xy*=uDetK;vec3 Tt=normalize((viewMatrix*vec4(1.,0.,0.,0.)).xyz),Bt=normalize((viewMatrix*vec4(0.,0.,-1.,0.)).xyz);normal=normalize(Tt*dn.x+Bt*dn.y+normal*dn.z);}');};
-  mat.customProgramCacheKey=()=>'wet1';mat.needsUpdate=true;return mat;
+      .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n  {vec3 dn=texture2D(uDetN,vUv*uDetRep).xyz*2.-1.;dn.xy*=uDetK*smoothstep(.08,.36,roughnessFactor);vec3 Tt=normalize((viewMatrix*vec4(1.,0.,0.,0.)).xyz),Bt=normalize((viewMatrix*vec4(0.,0.,-1.,0.)).xyz);normal=normalize(Tt*dn.x+Bt*dn.y+normal*dn.z);}');};
+  const env=nightEnv();if(env){mat.envMap=env;mat.envMapIntensity=.75;}
+  mat.customProgramCacheKey=()=>'wet2';mat.needsUpdate=true;return mat;
 }
 
 /* ---------- 3D effects that glow: muzzle flashes at the real muzzle, fireballs and smoke from blasts ----------

@@ -90,13 +90,13 @@ function paintL2Ground(g){
   // scorched ground round the fire
   blot(236,640,26,.5);
   // puddles catching the light
-  for(let i=0;i<32;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-170),rx=8+r()*26,ry=5+r()*12;g.save();g.translate(x,y);g.rotate(r()*3);g.fillStyle='rgba(30,44,56,.32)';g.beginPath();g.ellipse(0,0,rx,ry,0,0,7);g.fill();g.restore();}
+  for(let i=0;i<32;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-170),rx=8+r()*26,ry=5+r()*12;puddle(g,'col',x,y,rx,ry,r()*3);}
 }
 function paintL2Rough(q){   // how rough each bit is (the same puddles as the colour picture: same seed and order), mirror-smooth
   const w=L2B.x1-L2B.x0,h=L2B.y1-L2B.y0,X=L2B.x0,Y=L2B.y0;q.setTransform(1,0,0,1,-X,-Y);
   q.fillStyle='rgb(186,186,186)';q.fillRect(X,Y,w,h);q.fillStyle='rgb(232,232,232)';q.fillRect(X,772,w,58);q.fillStyle='rgb(140,140,140)';q.fillRect(48,28,552,462);
   const r=rng(5151);for(let i=0;i<14000;i++){r();r();r();r();r();}for(let i=0;i<60;i++){r();r();r();}for(let i=0;i<1200;i++){r();r();r();r();r();}for(let i=0;i<2600;i++){r();r();r();}
-  for(let i=0;i<32;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-170),rx=8+r()*26,ry=5+r()*12;q.save();q.translate(x,y);q.rotate(r()*3);q.fillStyle='rgb(14,14,14)';q.beginPath();q.ellipse(0,0,rx,ry,0,0,7);q.fill();q.restore();}
+  for(let i=0;i<32;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-170),rx=8+r()*26,ry=5+r()*12;puddle(q,'rough',x,y,rx,ry,r()*3);}
 }
 function disposeL2(){
   if(!L2||!L2.scene)return;

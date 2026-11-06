@@ -127,7 +127,7 @@ function drawGround(){
   for(let i=0;i<60;i++){const x=r()*W,y=TOP+r()*MH,rad=8+r()*34,gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(0,0,0,.4)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,7);g.fill();}
   for(let i=0;i<56;i++){   // puddles: darker, and smooth enough to catch the lamps
     const x=20+r()*(W-40),y=TOP+20+r()*(MH-40),rx=10+r()*32,ry=6+r()*16,a=r()*Math.PI;
-    for(const[c,fill]of[[g,'rgba(36,48,60,.26)'],[q,'rgb(16,16,16)']]){c.save();c.translate(x,y);c.rotate(a);c.fillStyle=fill;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.fill();c.restore();}
+    puddle(g,'col',x,y,rx,ry,a);puddle(q,'rough',x,y,rx,ry,a);
   }
   g.setLineDash([16,14]);g.strokeStyle='rgba(222,186,70,.55)';g.lineWidth=3;g.beginPath();g.moveTo(310,890);g.lineTo(310,585);g.stroke();g.setLineDash([]);
   g.strokeStyle='rgba(0,0,0,.3)';g.lineWidth=4;

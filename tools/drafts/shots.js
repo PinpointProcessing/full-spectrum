@@ -1,5 +1,5 @@
-// The shots in docs/drafts: the Headquarters overgrown (the game's camera and lights), then close-ups on a clean set.
-// the drafts for Bryan: the HQ overgrown (the game's own camera and lights), then close-ups on a clean set
+// The shots in docs/drafts (round 3): the Headquarters with her slime rocks (the game's camera and lights), then close-ups
+// on a clean set. Round 2's camera positions are in git history.
 
 module.exports={w:1600,h:900,pr:2,
  setup:()=>{
@@ -10,6 +10,8 @@ module.exports={w:1600,h:900,pr:2,
              [[505,3.5,640],[503,3.5,630],[499,3.5,621],[494,3.5,613],[488,3.5,606],[482,3.5,598],[478,3.5,589],[477,3.5,580],[479,3.5,571],[484,3.5,563],[490,3.5,556]],
              [[372,10,520],[378,7,516],[385,3.5,512],[393,3.5,509],[401,3.5,509],[409,3.5,512],[416,3.5,517],[423,3.5,521],[431,3.5,523],[439,3.5,522],[446,3.5,519]]];
    ST.HB=yb.map((c,i)=>{const b=makeCentipede(BROOD);scene.add(b.g);poseCentipede(b,crSpine(BROOD,c),1+i*1.7,{walk:i===2?.2:.85,jaw:i===2?.8:.3,look:i===2?.4:0,antUp:.25});return b;});
+   // two hunters in the hall: one out of the east room, one squaring up to the squad
+   ST.HS=[makeStalker(),makeStalker()];ST.HS.forEach(h=>scene.add(h.root));poseStalker(ST.HS[0],612,470,-Math.PI/2,2.2,{walk:.8,jaw:.3});poseStalker(ST.HS[1],515,605,0,1.1,{crouch:.3,jaw:.9,threat:1});
    // the clean set: the mother rearing, two of her young, two hunters (option B)
    const sc=studioSet(500,400);
    ST.M=makeCentipede(MOTHER);sc.add(ST.M.g);
@@ -17,16 +19,14 @@ module.exports={w:1600,h:900,pr:2,
    ST.B1=makeCentipede(BROOD);sc.add(ST.B1.g);ST.B2=makeCentipede(BROOD);sc.add(ST.B2.g);
    poseCentipede(ST.B1,crSpine(BROOD,[[648,12,560],[646,10,556],[643,6,551],[639,3.5,546],[634,3.5,539],[627,3.5,533],[619,3.5,530],[611,3.5,526],[606,3.5,519],[605,3.5,511],[607,3.5,503]]),2.1,{walk:.2,jaw:.85,look:.45,flail:.7,antUp:.15});
    poseCentipede(ST.B2,crSpine(BROOD,[[700,3.5,575],[694,3.5,569],[687,3.5,565],[679,3.5,564],[671,3.5,567],[664,3.5,571],[656,3.5,573],[648,3.5,571],[641,3.5,566],[635,3.5,560]]),4.4,{walk:.9,jaw:.3,look:-.05,antUp:.3});
-   ST.S1=makeStalker();sc.add(ST.S1.root);poseStalker(ST.S1,330,560,.5,1.2,{crouch:.6,jaw:.5,look:.1});
+   ST.S1=makeStalker();sc.add(ST.S1.root);poseStalker(ST.S1,330,560,.5,1.2,{crouch:.35,jaw:.9,look:-.05,threat:1});
    ST.S2=makeStalker();sc.add(ST.S2.root);poseStalker(ST.S2,268,515,1.1,2.5,{walk:.8,jaw:.15});
  },
  list:[
-  {name:'06_hq_overview',pose:()=>stPut(scene,[[470,870,500,300],[500,862,500,300],[530,870,500,300],[485,895,500,300]]),game:{x:500,z:520,zoom:1.15}},
-  {name:'07_hq_lair',pose:()=>stPut(scene,[[470,700,500,300],[505,690,500,300],[535,705,500,300],[485,730,500,300]]),game:{x:500,z:420,zoom:2.3}},
-  {name:'08_hq_low',pose:()=>stPut(scene,[[452,640,500,300],[548,632,500,300],[470,668,500,300],[530,662,500,300]]),cam:{pos:[500,92,700],at:[500,14,300],fov:34}},
-  {name:'01_mother_hero',pose:()=>stPut(ST.set,[[650,660,500,450],[520,676,500,450]]),set:1,cam:{pos:[600,30,560],at:[490,32,410],fov:40}},
-  {name:'02_mother_head',pose:()=>stPut(ST.set,[]),set:1,cam:{pos:[545,47,512],at:[501,47,450],fov:34}},
-  {name:'03_mother_side',pose:()=>stPut(ST.set,[[610,600,500,450]]),set:1,cam:{pos:[760,40,480],at:[500,26,370],fov:40}},
-  {name:'04_brood_young',pose:()=>stPut(ST.set,[[720,700,648,560],[600,710,648,560]]),set:1,cam:{pos:[700,44,632],at:[632,6,540],fov:40}},
-  {name:'05_brood_hunter',pose:()=>stPut(ST.set,[[380,640,330,560]]),set:1,cam:{pos:[380,38,628],at:[318,10,548],fov:38}},
+  {name:'hq-3-slime-rocks-game-camera',pose:()=>stPut(scene,[[470,700,500,300],[505,690,500,300],[535,705,500,300],[485,730,500,300]]),game:{x:500,z:470,zoom:2.0}},
+  {name:'hq-4-slime-rocks-hall',pose:()=>stPut(scene,[[452,690,500,300],[548,682,500,300],[470,718,500,300],[530,712,500,300]]),cam:{pos:[500,70,740],at:[505,12,520],fov:38}},
+  {name:'hq-5-slime-rocks-close',pose:()=>stPut(scene,[[452,640,500,300],[548,632,500,300],[470,668,500,300],[530,662,500,300]]),cam:{pos:[470,40,640],at:[405,8,560],fov:40}},
+  {name:'brood-hunter-front',pose:()=>stPut(ST.set,[[392,640,330,560]]),set:1,cam:{pos:[376,26,600],at:[328,12,556],fov:40}},
+  {name:'brood-hunter-side',pose:()=>stPut(ST.set,[]),set:1,cam:{pos:[252,42,604],at:[318,10,552],fov:40}},
+  {name:'brood-young',pose:()=>stPut(ST.set,[[720,690,648,560]]),set:1,cam:{pos:[688,24,604],at:[646,9,552],fov:40}},
  ]};

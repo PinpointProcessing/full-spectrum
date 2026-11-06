@@ -81,7 +81,7 @@ function paintL1Ground(g){
   // hazard stripes across the gate
   g.save();g.beginPath();g.rect(290,606,80,8);g.clip();g.fillStyle='rgba(228,182,40,.8)';for(let x=280;x<380;x+=10){g.beginPath();g.moveTo(x,614);g.lineTo(x+5,614);g.lineTo(x+14,606);g.lineTo(x+9,606);g.fill();}g.restore();
   // puddles catching the lamplight
-  for(let i=0;i<24;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-140),rx=8+r()*26,ry=5+r()*12;g.save();g.translate(x,y);g.rotate(r()*3);g.fillStyle='rgba(30,44,56,.32)';g.beginPath();g.ellipse(0,0,rx,ry,0,0,7);g.fill();g.restore();}
+  for(let i=0;i<24;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-140),rx=8+r()*26,ry=5+r()*12;puddle(g,'col',x,y,rx,ry,r()*3);}
 }
 // how rough each bit of Level 1's ground is: the same puddles as the colour picture (same seed and order), mirror-smooth
 function paintL1Rough(q){
@@ -91,7 +91,7 @@ function paintL1Rough(q){
   q.fillStyle='rgb(150,150,150)';q.fillRect(40,150,640,142);   // the concrete pad
   // (the puddles: replay paintL1Ground's random numbers up to its puddles)
   const r=rng(4242);for(let i=0;i<11000;i++){r();r();r();r();r();}for(let i=0;i<46;i++){r();r();r();}for(let i=0;i<900;i++){r();r();r();r();r();}
-  for(let i=0;i<24;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-140),rx=8+r()*26,ry=5+r()*12;q.save();q.translate(x,y);q.rotate(r()*3);q.fillStyle='rgb(14,14,14)';q.beginPath();q.ellipse(0,0,rx,ry,0,0,7);q.fill();q.restore();}
+  for(let i=0;i<24;i++){const x=X+20+r()*(w-40),y=Y+40+r()*(h-140),rx=8+r()*26,ry=5+r()*12;puddle(q,'rough',x,y,rx,ry,r()*3);}
 }
 function disposeL1(){
   if(!L1||!L1.scene)return;

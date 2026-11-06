@@ -108,7 +108,7 @@ function crPlate({sq=4,dome=.55,keel=.12,rim=.16,front=.75,under=.35,seg=[40,20]
 /* ---------- the palettes: black, grey and brown (Bryan) ---------- */
 const CR_PAL={
   mother:{c:'#0c0907',m:'#22160e',e:'#6b4a2c',under:'#4a423a',under2:'#241e1a',leg0:'#33261b',leg1:'#0f0b08',joint:'#7a5a3a',tip:'#1a120c',eye:'#030303'},
-  hunter:{c:'#0b0a09',m:'#211a14',e:'#4a3a2a',under:'#3a332d',under2:'#1d1915',leg0:'#3d3329',leg1:'#14110e',joint:'#6a5a48',tip:'#1a140f',eye:'#030303'},
+  hunter:{c:'#0a0908',m:'#1f1712',e:'#463424',under:'#40160f',under2:'#1e0a07',leg0:'#2e241c',leg1:'#100c0a',joint:'#3a2617',tip:'#120d0a',eye:'#030303'},
   brood:{c:'#131110',m:'#2b2622',e:'#544a40',under:'#5c554d',under2:'#332e29',leg0:'#544c44',leg1:'#1f1b18',joint:'#82786c',tip:'#0e0c0b',eye:'#050505'}};
 
 /* ---------- a centipede: the Brood Mother and her brood ---------- */
@@ -263,8 +263,8 @@ function crCreep(cx,cz,rx,rz,rot,seed,H=1.6,step=3){
   const P=[],C=[],UV=[],I=[],nx=Math.ceil(rx*2/step)+1,nz=Math.ceil(rz*2/step)+1,ca=Math.cos(rot),sa=Math.sin(rot),inn=[];
   for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const lx=-rx+i*step,lz=-rz+j*step,a=Math.atan2(lz/rz,lx/rx),rho=Math.hypot(lx/rx,lz/rz),b=.72+.28*crF(Math.cos(a)*1.4+seed,Math.sin(a)*1.4,seed,3);
     const k=crS(b,b*.62,rho),wx=cx+lx*ca-lz*sa,wz=cz+lx*sa+lz*ca,rid=Math.pow(Math.abs(Math.sin((wx*.045+crF(wx*.015,wz*.015,seed,2)*5))*Math.sin(wz*.04+crF(wz*.02,wx*.015,seed+1,2)*4)),1.5);
-    const h=k*H*(.35+.65*crF(wx*.03,wz*.03,seed+2,3))+k*rid*H*.35;inn.push(rho<b);
-    P.push(wx,h+.08,wz);UV.push(wx/30,wz/30);C.push(...crMix(crMix(crLin('#070504'),crLin('#21170f'),rid*.6),crLin('#3a2818'),crS(.68,.9,crF(wx*.08,wz*.08,seed+5,2))*.5*k));}
+    const h=k*H*(.35+.65*crF(wx*.03,wz*.03,seed+2,3))+k*rid*H*.35-(1-k)*1.2;inn.push(rho<b*1.12);
+    P.push(wx,h+.1,wz);UV.push(wx/30,wz/30);C.push(...crMix(crMix(crLin('#070504'),crLin('#21170f'),rid*.6),crLin('#3a2818'),crS(.68,.9,crF(wx*.08,wz*.08,seed+5,2))*.5*k));}
   for(let j=0;j<nz-1;j++)for(let i=0;i<nx-1;i++){const a=j*nx+i,b=a+1,c=a+nx,d=c+1;if(inn[a]||inn[b]||inn[c]||inn[d])I.push(a,c,b,b,c,d);}
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();return g;}
 // a blob of slime on the floor: a ragged round outline
@@ -284,11 +284,12 @@ function crStrand(a,b,r,sag){const pts=[];for(let i=0;i<=12;i++){const u=i/12;pt
 function crClutch(cx,cz,R,n,size,seed,out){const r=rng(seed);for(let i=0;i<n;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*R,h=Math.max(0,(1-d/R))*R*.22+r()*size*.4;
   out.push({x:cx+Math.cos(a)*d,y:h+size*.7,z:cz+Math.sin(a)*d,s:size*(.75+r()*.45),rx:r()*3,ry:r()*3});}}
 
+const hqInside=(x,y)=>(x>HQ_HALL.x0&&x<HQ_HALL.x1&&y>HQ_HALL.y0&&y<HQ_HALL.y1)||HQ_ROOMS.some(q=>x>q.x0&&x<q.x1&&y>q.y0&&y<q.y1)||(x>400&&x<600&&y>790&&y<930);
 // overgrow the Headquarters (its scene sc and objects objs): resin down the walls of the hall and the rooms, veins over the
 // floor toward the lair, slime, strands, her clutch in the lair and smaller ones in the rooms
 function hqNest(sc,objs){
   const goo=crGooMat(),slime=crSlimeMat(),grp=new T.Group();sc.add(grp);const r=rng(9157);
-  const inside=(x,y)=>(x>HQ_HALL.x0&&x<HQ_HALL.x1&&y>HQ_HALL.y0&&y<HQ_HALL.y1)||HQ_ROOMS.some(q=>x>q.x0&&x<q.x1&&y>q.y0&&y<q.y1)||(x>400&&x<600&&y>790&&y<930);
+  const inside=hqInside;
   const nestK=(x,y)=>y<790?1:.35;   // the entry hall: less
   let seed=1;
   for(const o of objs){if(o.kind!=='wall')continue;const hz=o.w>=o.h,len=hz?o.w:o.h;
@@ -306,13 +307,7 @@ function hqNest(sc,objs){
   const cm=crMat('creep',{nmap:crNormalTex('goo',512,crGooH),ns:.22,rough:.3,coat:1,coatR:.12,env:.7,rimK:.04,rim:0x8a7056});
   const creep=(cx,cz,rx,rz,rot,sd,H)=>{const m=new T.Mesh(crCreep(cx,cz,rx,rz,rot,sd,H),cm);m.receiveShadow=true;grp.add(m);};
   creep(L.x,L.y+10,150,110,0,1.1,2.4);creep(L.x-40,L.y+120,90,60,.3,2.2,1.8);creep(L.x+60,L.y+110,80,55,-.4,3.3,1.6);
-  for(const[x,s0]of[[352,1],[648,-1]])for(let y=170;y<760;y+=95+r()*40)creep(x+s0*6,y,18+r()*8,40+r()*20,0,y*.13+x,1.4);
   for(const q of HQ_ROOMS){creep((q.x0+q.x1)/2+q.side*30,(q.y0+q.y1)/2-10,75,60,r(),q.x*.01+q.y,1.8);creep(q.door.x-q.side*30,q.door.y,40,16,q.side*.15,q.y*.07,1.1);}
-  // slime: puddles over the floor (glossy: the lamps glint off them), most round the lair and the rooms' doorways
-  const blobs=[];for(let i=0;i<12;i++)blobs.push([L.x+(r()-.5)*240,L.y-30+r()*200,6+r()*14]);
-  for(const q of HQ_ROOMS)blobs.push([q.door.x-q.side*14,q.door.y+(r()-.5)*20,8+r()*8]);
-
-  blobs.forEach(([x,y,R],i)=>{const m=new T.Mesh(crBlob(R,i*1.7),slime);m.position.set(x,.14+(i%7)*.02,y);m.receiveShadow=true;grp.add(m);});
   // strands: from the resin on the walls down to the floor, and across the rooms' doorways
   for(const q of HQ_ROOMS){const dx=q.door.x,dy=q.door.y;for(let i=0;i<5;i++){const a=new T.Vector3(dx,8+r()*14,dy-22+r()*6),b=new T.Vector3(dx,6+r()*14,dy+16+r()*6);
     const m=new T.Mesh(crStrand(a,b,.22+r()*.3,3+r()*6),goo);grp.add(m);}}
@@ -322,15 +317,16 @@ function hqNest(sc,objs){
   const eg=new T.SphereGeometry(1,16,12);{const p=eg.attributes.position,C=[];for(let i=0;i<p.count;i++){const y=p.getY(i);C.push(...crMix(crLin('#4e473d'),crLin('#a39a86'),crS(-.9,.8,y)));}eg.setAttribute('color',new T.Float32BufferAttribute(C,3));}
   const E=new T.InstancedMesh(eg,crEggMat(),eggs.length),m4=new T.Matrix4(),q4=new T.Quaternion(),e4=new T.Euler();E.castShadow=true;E.receiveShadow=true;E.frustumCulled=false;
   eggs.forEach((e,i)=>{q4.setFromEuler(e4.set(e.rx,e.ry,0));m4.compose(new T.Vector3(e.x,e.y,e.z),q4,new T.Vector3(e.s,e.s*1.22,e.s));E.setMatrixAt(i,m4);});grp.add(E);
+  hqRocks(sc,objs);
   return grp;}
 // the floor under the nest (fortress.js's ground canvas, its own transform): old concrete gone dark with her secretions,
 // drag marks out of the rooms, the lair black and veined
 function paintNestGround(g){
   const W=HQB.x1-HQB.x0,H=HQB.y1-HQB.y0,S=1.2,r=rng(4242);g.setTransform(S,0,0,S,-HQB.x0*S,-HQB.y0*S);
-  g.fillStyle='#121315';g.fillRect(HQB.x0,HQB.y0,W,H);
-  g.fillStyle='#3a3b40';g.fillRect(340,140,320,640);
-  for(const q of HQ_ROOMS){g.fillStyle='#2e2c30';g.fillRect(q.x0,q.y0,q.x1-q.x0,q.y1-q.y0);}
-  g.fillStyle='#37383d';g.fillRect(400,790,200,140);
+  g.fillStyle='#100e0d';g.fillRect(HQB.x0,HQB.y0,W,H);
+  g.fillStyle='#2b2724';g.fillRect(340,140,320,640);
+  for(const q of HQ_ROOMS){g.fillStyle='#231f1c';g.fillRect(q.x0,q.y0,q.x1-q.x0,q.y1-q.y0);}
+  g.fillStyle='#2e2a27';g.fillRect(400,790,200,140);
   g.strokeStyle='rgba(0,0,0,.4)';g.lineWidth=1;for(let x=340;x<=660;x+=40){g.beginPath();g.moveTo(x,140);g.lineTo(x,780);g.stroke();}for(let y=140;y<=780;y+=40){g.beginPath();g.moveTo(340,y);g.lineTo(660,y);g.stroke();}
   for(let i=0;i<6000;i++){const x=HQB.x0+r()*W,y=HQB.y0+r()*H,v=r();g.fillStyle=v<.55?'rgba(0,0,0,.2)':'rgba(255,240,220,.03)';g.fillRect(x,y,1+r()*2,1+r()*2);}
   const blot=(x,y,rx,ry,a,col)=>{g.save();g.translate(x,y);g.rotate(r()*3);g.scale(1,ry/rx);const gr=g.createRadialGradient(0,0,0,0,0,rx);gr.addColorStop(0,`rgba(${col},${a})`);gr.addColorStop(.6,`rgba(${col},${a*.6})`);gr.addColorStop(1,`rgba(${col},0)`);g.fillStyle=gr;g.beginPath();g.arc(0,0,rx,0,7);g.fill();g.restore();};
@@ -355,7 +351,7 @@ const STALKER={pal:'brood',len:1};
 function makeStalker(){
   const P=CR_PAL.hunter,L=k=>crLin(P[k]),root=new T.Group(),g=new T.Group(),body=new T.Group(),legs=new T.Group();root.add(g,legs);g.add(body);
   const chit=crMat('st-plate',{nmap:crNormalTex('chitin',512,crChitinH),ns:.22,rough:.32,coatR:.08,env:.75});
-  const legM=crMat('st-leg',{nmap:crNormalTex('chitin',512,crChitinH),ns:.14,rough:.6,coat:.2,coatR:.35,env:.25,rim:0x6a5440,rimK:.14});
+  const legM=crMat('st-leg',{nmap:crNormalTex('chitin',512,crChitinH),ns:.14,rough:.7,coat:.12,coatR:.4,env:.15,rim:0x5a3a2a,rimK:.1});
   const soft=crMat('st-soft',{nmap:crNormalTex('chitin',512,crChitinH),ns:.3,rough:.7,coat:.15,coatR:.4,rimK:.08,env:.25});
   const eyeM=crMat('eye',{rough:.04,coat:1,coatR:.02,env:2,rimK:.05});
   const add=(geo,mat,par=body)=>{const m=new T.Mesh(geo,mat);m.castShadow=true;m.receiveShadow=true;par.add(m);return m;};
@@ -367,16 +363,20 @@ function makeStalker(){
   const tg=new T.Vector3();for(let i=0;i<7;i++){const u=.06+i*.14,c=new T.CatmullRomCurve3(spine);const p=c.getPoint(u),t=c.getTangent(u);
     const pl=new T.Group();pl.position.copy(p);pl.lookAt(tg.copy(p).add(t));pl.rotateX(-.08);body.add(pl);   // (lookAt aims +z along the back)
     const w=6.8+2.4*Math.sin(Math.PI*Math.min(1,u*1.1)),m=add(plateG,chit,pl);m.scale.set(w/2,2.3,2.9);m.position.y=.9+Math.sin(Math.PI*u)*.5;
-    for(const s of[-1,0,1]){const sp=add(spikeG,chit,pl);sp.scale.setScalar(s?1.1:1.6);sp.position.set(s*w*.28,3+(s?0:.4),-2.1);sp.rotation.z=s*.35;}}
+    for(const s of[-1,0,1]){const sp=add(spikeG,chit,pl);sp.scale.setScalar((s?1.5:2.4)*(.7+.5*Math.sin(Math.PI*u)));sp.position.set(s*w*.28,3+(s?0:.4),-2.1);sp.rotation.z=s*.45;}}
   // the head: a low wedge, six eyes in two rows, hooked side jaws, the mouth between them
   const neck=new T.Group();neck.position.set(0,12.4,8.6);body.add(neck);
   add(crSweep(crCurve([[0,0,-1],[0,-.6,1.2],[0,-1.4,2.8]],8),u=>2.2-u*.5,{sides:12,col:()=>L('under2')}),soft,neck);
   const head=new T.Group();head.position.set(0,-1.5,3);neck.add(head);
   const hm=add(crPlate({sq:2.3,dome:.62,keel:.12,rim:0,front:.98,under:.55,seg:[44,22],col:(r,z,top)=>top?crMix(crMix(L('c'),L('m'),crS(.5,1,r)*.4),L('e'),crS(.92,1,r)*.25):L('under2')}),chit,head);
-  hm.scale.set(2.9,2.4,4.6);hm.position.z=3.4;
-  for(const s of[1,-1])for(const[x,y,z,r]of[[.55,1.85,6.4,.42],[1.25,1.6,6.0,.36],[1.85,1.2,5.3,.3],[.62,2.15,5.4,.3],[1.32,1.9,5.0,.26],[1.9,1.5,4.4,.22]]){const e=add(new T.SphereGeometry(1,14,10),eyeM,head);e.geometry.setAttribute('color',new T.Float32BufferAttribute(new Array(e.geometry.attributes.position.count*3).fill(.004),3));e.scale.setScalar(r);e.position.set(s*x,y,z);}
+  hm.scale.set(3.4,2.15,5.9);hm.position.z=3.8;
+  for(let k=0;k<5;k++){const sp=add(spikeG,chit,head);sp.scale.setScalar(1.3+(2-Math.abs(k-2))*.45);sp.position.set((k-2)*1.15,2.6-Math.abs(k-2)*.3,1.2-Math.abs(k-2)*.4);sp.rotation.set(-.35,0,(k-2)*.28);}   // a crest
+  {const mo=add(new T.SphereGeometry(1,16,10),crMat('st-mouth',{rough:.25,coat:1,coatR:.08,env:.6,rimK:.02}),head);const C=[];for(let i=0;i<mo.geometry.attributes.position.count;i++)C.push(...crLin('#1c0504'));mo.geometry.setAttribute('color',new T.Float32BufferAttribute(C,3));mo.scale.set(1.25,.55,.7);mo.position.set(0,-1.15,8.1);}   // the mouth, dark red, recessed under the jaws
+  for(const s of[1,-1])for(const[x,y,z,r]of[[.6,1.7,7.2,.5],[1.35,1.45,6.8,.44],[2.0,1.05,6.0,.36],[.7,2.05,6.2,.36],[1.45,1.8,5.8,.32],[2.05,1.4,5.1,.27]]){const e=add(new T.SphereGeometry(1,14,10),eyeM,head);e.geometry.setAttribute('color',new T.Float32BufferAttribute(new Array(e.geometry.attributes.position.count*3).fill(.004),3));e.scale.setScalar(r);e.position.set(s*x,y,z);}
   const jawG=crSweep(crCurve([[0,0,0],[.6,-.2,1.6],[.5,-.3,3.4],[-.4,-.2,4.7],[-1.3,-.1,4.9]],16),u=>.7*Math.pow(1-u,1.1)+.05,{sides:10,col:u=>crMix(L('m'),L('tip'),crS(.3,.8,u))});
-  const jaws=[];for(const s of[1,-1]){const pv=new T.Group();pv.position.set(s*1.6,-.6,5.6);head.add(pv);const j=add(jawG,chit,pv);j.scale.set(s,1,1);jaws.push({pv,s});}
+  const toothG=crSweep(crCurve([[0,0,0],[-.25,.05,.15],[-.6,.08,.2]],5),u=>.22*(1-u)+.02,{sides:5,col:()=>crLin('#2a1a10'),cap0:false});
+  const jaws=[];for(const s of[1,-1]){const pv=new T.Group();pv.position.set(s*2,-.6,7);head.add(pv);const j=add(jawG,chit,pv);j.scale.set(s*1.35,1.35,1.35);
+    for(let k=0;k<4;k++){const t=add(toothG,chit,pv);t.scale.set(s*2.2,2.2,2.2);t.position.set(s*(.75-k*.1),-.25,1.6+k*1.15);}jaws.push({pv,s});}
   add(new T.SphereGeometry(1,14,10),soft,head).scale.set(1.2,.8,.9);head.children[head.children.length-1].position.set(0,-.9,7.3);
   // the scythe arms: folded under the chest, spined along the inside of the blade
   const armF=crSweep(crCurve([[0,0,0],[0,2,3],[0,3.2,6.6],[0,3,9.6]],12),u=>1.05-.35*u,{sides:10,col:u=>crMix(L('leg0'),L('m'),u)});
@@ -403,7 +403,7 @@ function poseStalker(S,x,z,head,t,o={}){
   S.body.position.set(0,-cr*3.2+lu*1.2,lu*2);S.body.rotation.set(cr*.18-lu*.12,0,Math.sin(t*1.3)*.02);
   S.neck.rotation.set(cr*.25-lu*.25+(o.look??0),Math.sin(t*.9)*.12*(1-cr),0);
   S.jaws.forEach(({pv,s})=>pv.rotation.set(0,s*((o.jaw??.2)*.7-.1),0));
-  S.arms.forEach(({sh,el,s})=>{sh.rotation.set(-.15+cr*.4-lu*1.4,s*(.12+lu*.25),s*.12);el.rotation.set(.1-cr*.3+lu*2.0,0,0);});
+  const th=o.threat??0;S.arms.forEach(({sh,el,s})=>{sh.rotation.set(-.15+cr*.4-lu*1.4-th*.9,s*(.12+lu*.25+th*.45),s*(.12+th*.3));el.rotation.set(.1-cr*.3+lu*2.0+th*.9,0,0);});
   S.tail.rotation.set(-.1+cr*.25+Math.sin(t*1.7)*.05,Math.sin(t*1.1)*.25,0);
   S.g.updateMatrixWorld(true);
   const mw=S.body.matrixWorld,gm=S.g.matrixWorld,v=[0,1,2,3,4,5,6,7].map(()=>new T.Vector3()),up=new T.Vector3(0,1,0);
@@ -414,3 +414,61 @@ function poseStalker(S,x,z,head,t,o={}){
     const fo=v[6].subVectors(ft,kn).normalize().multiplyScalar(b+c).add(kn),ak=v[7].copy(kn).lerp(fo,b/(b+c)).addScaledVector(pole,(b+c)*.07);
     crSeg(_cm,hip,t0,pole,1.15);S.coxa.setMatrixAt(i,_cm);crSeg(_cm,t0,kn,pole,.9);S.fem.setMatrixAt(i,_cm);crSeg(_cm,kn,ak,pole,.72);S.tib.setMatrixAt(i,_cm);crSeg(_cm,ak,fo,pole,.6);S.tar.setMatrixAt(i,_cm);});
   for(const k of['coxa','fem','tib','tar'])S[k].instanceMatrix.needsUpdate=true;}
+
+/* ---------- slime rocks (Bryan: "hard purple, black, red, brown slime rocks growing up furniture and walls, extending to the
+   ground"): her secretions gone hard, glossy lumps crusted up the old fittings and the walls' feet and out over the floor,
+   a broken rim of them round each clutch ---------- */
+const CR_ROCK=[['#0b090a','#2b2427'],['#170c22','#33204a'],['#220606','#561410'],['#1c120b','#523620']];   // black, deep purple, dark red, brown (no pink)
+function crRockGeo(seed){
+  const g=new T.SphereGeometry(1,13,9),p=g.attributes.position,C=[];
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+    const n1=crF(x*1.3+seed,y*1.3,z*1.3+seed*.7,3),rid=1-Math.abs(2*crF(x*2.4+seed*1.9,y*2.4,z*2.4,2)-1);
+    const r=.7+.42*n1+.38*Math.pow(rid,3);let yy=y*r;if(yy<-.25)yy=-.25+(yy+.25)*.25;   // a flattish base where it sits
+    p.setXYZ(i,x*r,yy,z*r);const k=crS(.75,1.25,r);C.push(.42+.58*k,.42+.58*k,.42+.58*k);}   // (crevices darker; the colour comes from each lump)
+  g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.computeVertexNormals();return g;}
+function crCrust(sdf,x0,z0,x1,z1,reach,H,seed,step=2.4){
+  const nx=Math.ceil((x1-x0)/step)+1,nz=Math.ceil((z1-z0)/step)+1,P=[],C=[],UV=[],I=[],cols=CR_ROCK.map(([a,b])=>[crLin(a),crLin(b)]);
+  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const x=x0+i*step,z=z0+j*step,d=sdf(x,z),R=reach*(.5+.7*crF(x*.035,z*.035,seed,3)),k=1-d/R;
+    const rid=1-Math.abs(2*crF(x*.16,z*.16,seed+3,2)-1),h=k>0?H*Math.pow(k,1.3)*(.55+.55*crF(x*.07,z*.07,seed+1,3))+k*rid*rid*2.2:-1.2+k*.5;
+    P.push(x,h,z);UV.push(x/26,z/26);
+    const f=crF(x*.022,z*.022,seed+9,2),fi=f<.42?0:f<.52?1:f<.6?2:f<.7?3:0,c=crMix(cols[fi][0],cols[fi][1],rid*.6);C.push(...crMix(c,cols[0][0],(1-rid)*.35));}
+  for(let j=0;j<nz-1;j++)for(let i=0;i<nx-1;i++){const a=j*nx+i,b=a+1,c=a+nx,d=c+1;if(P[a*3+1]>-1.1||P[b*3+1]>-1.1||P[c*3+1]>-1.1||P[d*3+1]>-1.1)I.push(a,c,b,b,c,d);}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();return g;}
+function hqRocks(sc,objs){
+  const mat=crMat('rock',{nmap:crNormalTex('chitin',512,crChitinH),ns:.2,rough:.38,coat:.85,coatR:.2,env:.7,rimK:.06,rim:0x5a5068});
+  const V=[crRockGeo(1.3),crRockGeo(4.7),crRockGeo(8.1)],L=[[],[],[]],r=rng(6061),grpC=new T.Group();sc.add(grpC);
+  const fam=()=>{const k=r();return k<.34?0:k<.6?1:k<.8?2:3;};
+  const lump=(x,y,z,s,sy=1,nx=0,nz=0)=>L[(r()*3)|0].push({x,y,z,s,sy,sz:nx||nz?.55+r()*.2:1,f:fam(),ry:nx||nz?Math.atan2(nx,nz)+(r()-.5)*.6:r()*7,rx:(r()-.5)*.5});
+  // up a fitting: a crust round its foot, a heap of lumps on it, and a few streams of lumps climbing its sides
+  const cmat=crMat('crust',{nmap:crNormalTex('chitin',512,crChitinH),ns:.16,rough:.46,coat:.7,coatR:.3,env:.55,rimK:.04,rim:0x5a5068});
+  const crust=(g)=>{const m=new T.Mesh(g,cmat);m.receiveShadow=true;m.castShadow=true;grpC.add(m);};
+  const grow=o=>{const H=objHeight(o),round=o.kind==='ctank'||o.kind==='barrel',cx=o.x+o.w/2,cz=o.y+o.h/2,rw=o.w/2,per=round?Math.PI*2*rw:2*(o.w+o.h),big=Math.min(1.3,.6+per/160);
+    const reach=10+10*big,sdf=round?(x,z)=>Math.max(0,Math.hypot(x-cx,z-cz)-rw):(x,z)=>Math.hypot(Math.max(o.x-x,0,x-o.x-o.w),Math.max(o.y-z,0,z-o.y-o.h));
+    crust(crCrust(sdf,o.x-reach*1.3,o.y-reach*1.3,o.x+o.w+reach*1.3,o.y+o.h+reach*1.3,reach,3.2+2.6*big,o.x*.013+o.y*.007));
+    const at=t=>{if(round){const a=t*Math.PI*2;return[cx+Math.cos(a)*rw,cz+Math.sin(a)*rw,Math.cos(a),Math.sin(a)];}
+      let d=((t%1)+1)%1*per;if(d<o.w)return[o.x+d,o.y,0,-1];d-=o.w;if(d<o.h)return[o.x+o.w,o.y+d,1,0];d-=o.h;if(d<o.w)return[o.x+o.w-d,o.y+o.h,0,1];d-=o.w;return[o.x,o.y+o.h-d,-1,0];};
+    for(let i=0,n=Math.round(per/1.4);i<n;i++){const[px,pz,nx,nz]=at(r()),s=(2.6+r()*3.6)*big;lump(px+nx*s*.45,s*.35+r()*2,pz+nz*s*.45,s,.75+r()*.4);}   // the heap at its foot
+    const streams=2+Math.round(per/45);for(let k=0;k<streams;k++){const t0=r(),top=H*(.45+r()*.5);
+      for(let h=0;h<top;h+=1.1){const w=(1-h/top),[px,pz,nx,nz]=at(t0+(r()-.5)*.07*w+Math.sin(h*.25+k)*.015),s=(1.8+r()*2.8)*(.5+.5*w)*big;if(r()<.9)lump(px+nx*s*.18,h+s*.15,pz+nz*s*.18,s,.9+r()*.3,nx,nz);}}
+    for(let i=0,m=Math.round(per/6);i<m;i++){const[px,pz,nx,nz]=at(r()),d=(.3+Math.pow(r(),1.4)*.8)*reach,s=(1.4+r()*2.4)*(1-d/(reach*1.3));lump(px+nx*d+(r()-.5)*4,s*.15+1,pz+nz*d+(r()-.5)*4,s,.5);}
+    if(!round)for(let i=0;i<3;i++)if(r()<.6)lump(o.x+r()*o.w,H+.5,o.y+r()*o.h,1.4+r()*2,.55);};
+  for(const o of objs)if(['ctank','xfmr','console','crate','barrel'].includes(o.kind)&&hqInside(o.x+o.w/2,o.y+o.h/2))grow(o);
+  // the walls' feet: a crust along them, a heap of lumps on it, streams climbing a fifth to two thirds of the way up
+  for(const o of objs){if(o.kind!=='wall')continue;const hz=o.w>=o.h,len=hz?o.w:o.h;
+    for(const side of[-1,1]){const nx=hz?0:side,nz=hz?side:0,fx=nx>0?o.x+o.w:nx<0?o.x:0,fz=nz>0?o.y+o.h:nz<0?o.y:0;
+      const mx=hz?o.x+o.w/2:fx+nx*3,mz=hz?fz+nz*3:o.y+o.h/2;if(!hqInside(mx,mz)||mz>790)continue;
+      const sdf=(x,z)=>{const dx=Math.max(o.x-x,0,x-o.x-o.w),dz=Math.max(o.y-z,0,z-o.y-o.h);if((nx&&(x-fx)*nx<0)||(nz&&(z-fz)*nz<0))return 99;return Math.hypot(dx,dz);};
+      const reach=13;crust(crCrust(sdf,hz?o.x:fx-(nx<0?reach*1.3:0),hz?fz-(nz<0?reach*1.3:0):o.y,hz?o.x+o.w:fx+(nx>0?reach*1.3:0),hz?fz+(nz>0?reach*1.3:0):o.y+o.h,reach,4.2,o.x*.011+o.y*.017+side));
+      for(let a=0;a<len;a+=1.8){const px=hz?o.x+a:fx,pz=hz?fz:o.y+a;if(r()<.8){const s=2.4+r()*3.4;lump(px+nx*s*.45,s*.3+r()*1.5,pz+nz*s*.45,s,.75+r()*.4);}}
+      for(let k=0,n=Math.round(len/26);k<n;k++){const a0=r()*len,top=24*(.2+.48*r());for(let h=0;h<top;h+=1.1){const w=1-h/top,a=a0+(r()-.5)*7*w+Math.sin(h*.2+k)*2,px=hz?o.x+a:fx,pz=hz?fz:o.y+a,s=(1.8+r()*2.8)*(.5+.5*w);if(a>0&&a<len&&r()<.9)lump(px+nx*s*.18,h+s*.15,pz+nz*s*.18,s,.9+r()*.3,nx,nz);}}
+      for(let a=0;a<len;a+=6){const d=(.35+Math.pow(r(),1.4)*.7)*reach,s=(1.4+r()*2.2)*(1-d/(reach*1.3)),px=(hz?o.x+a:fx)+nx*d,pz=(hz?fz:o.y+a)+nz*d;if(r()<.6)lump(px,s*.15+1,pz,s,.5);}}}
+  // a broken rim round the lair's clutch, and round each room's nest
+  const ring=(cx,cz,R,n,big)=>{for(let i=0;i<n;i++){const a=r()*Math.PI*2,d=R*(.85+r()*.35),s=(big*.6+r()*big)*(1-.3*r());lump(cx+Math.cos(a)*d,s*.3,cz+Math.sin(a)*d,s,.7+r()*.5);}};
+  ring(500,200,62,90,4.5);for(const q of HQ_ROOMS)ring((q.x0+q.x1)/2+q.side*40,(q.y0+q.y1)/2-30,26,30,3);
+  // one instanced mesh per shape; each lump's colour from its family, its crevices darker
+  const grp=new T.Group(),m4=new T.Matrix4(),q4=new T.Quaternion(),e4=new T.Euler(),col=new T.Color(),tmp=new T.Color();
+  L.forEach((list,vi)=>{if(!list.length)return;const M=new T.InstancedMesh(V[vi],mat,list.length);M.castShadow=true;M.receiveShadow=true;M.frustumCulled=false;
+    list.forEach((l,i)=>{q4.setFromEuler(e4.set(l.rx,l.ry,0));m4.compose(new T.Vector3(l.x,l.y,l.z),q4,new T.Vector3(l.s*(1.1+((i*5)%4)*.1),l.s*l.sy,l.s*l.sz*(.85+((i*7)%5)*.08)));M.setMatrixAt(i,m4);
+      const[a,b]=CR_ROCK[l.f];col.set(a).convertSRGBToLinear().lerp(tmp.set(b).convertSRGBToLinear(),((i*13)%7)/7);M.setColorAt(i,col);});
+    M.instanceColor.needsUpdate=true;grp.add(M);});
+  sc.add(grp);grp.userData.lumps=L[0].length+L[1].length+L[2].length;grp.add(grpC);return grp;}
