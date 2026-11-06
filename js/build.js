@@ -11,7 +11,7 @@
    A frag or a rocket close by wrecks a barricade; a wall takes two. Like everything on the map they're axis-aligned (the
    collision is), so a fortification runs north-south or east-west, whichever is more across the threat's line. Built
    things are cleared at a reset (a level's start, a retry; clearBuilds from reset). Hostiles can use them for cover too. */
-const BUILD={kits:3,range:320,barricade:{len:40,th:6,h:9,t:2.5,cost:1,hp:100,pack:2},wall:{len:40,th:10,h:22,t:5,cost:2,hp:200}};
+const BUILD={kits:3,range:320,bar:1.5,barricade:{len:40,th:6,h:9,t:2.5,cost:1,hp:100,pack:2},wall:{len:40,th:10,h:22,t:5,cost:2,hp:200}};
 let builds=[];   // {o, mesh}
 
 // where a fortification goes: centred on (x,y), across the line to the nearest threat; n points at the threat
@@ -40,6 +40,21 @@ function orderBuild(u,x,y,kind){
   Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:null,pack:null,build:{...pl,t0:simT,p:0}});
   callout(u,kind==='wall'?'Building a wall':'Setting up a barricade',C.good);return true;
 }
+// a shut door (inside the office building), tapped in a build mode: he bars it (one kit, BUILD.bar s at it). From then on it
+// only opens by being kicked in, by anyone: loud (orders.js, doorWait). Seal a room behind you, or a flank
+function orderBar(u,o){
+  if(!u||!alive(u)||u.spec!=='build'){mode=null;return false;}
+  if(u.specN<1){banner(`${u.name}'s build kit is empty. Refill at an ammo drop.`,2000);return false;}
+  const cx=o.x+o.w/2,cy=o.y+o.h/2,side=Math.sign(u.x-cx)||1,p=findPath(u.x,u.y,cx+side*12,cy);
+  if(!p){banner('No way to that door from here.',1800);return false;}
+  Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:null,build:null,pack:null,bar:{o,side,t0:simT,p:0}});callout(u,'Barring the door',C.good);return true;
+}
+function barMesh(o,side){
+  const mt=fortMats(),g=new T.Group(),x=o.x+o.w/2+side*2.8,cy=o.y+o.h/2;
+  const bx=(w,h,d,m,px,py,pz)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(px,py,pz);g.add(b);};
+  bx(1.4,1.6,o.h+6,mt.steel,x,6,cy);for(const s of[-1,1])bx(1.8,3.2,1.6,mt.dark,x,6,cy+s*(o.h/2+2));bx(1.5,.5,o.h+6.2,mt.hazard,x,6.95,cy);
+  (IN&&IN.groups&&IN.groups[o.floor]||scene).add(g);return g;
+}
 // a tap on a barricade itself (not the ground beside it: that's where you'd put a man behind it) with a Defender
 // selected: the nearest one packs it up
 function fortTap(sx,sy){
@@ -55,9 +70,16 @@ function fortTap(sx,sy){
 // every tick (update): the builders and packers at work
 function buildTick(dt){
   for(const u of players){
-    const b=u.build,k=u.pack;if(!b&&!k)continue;
-    const job=b||k;if(!alive(u)||u.lastOrder>job.t0+.01||u.carry){u.build=u.pack=null;continue;}   // another order, down, or carrying a man: the job's off
+    const b=u.build,k=u.pack,br=u.bar;if(!b&&!k&&!br)continue;
+    const job=b||k||br;if(!alive(u)||u.lastOrder>job.t0+.01||u.carry){u.build=u.pack=u.bar=null;continue;}   // another order, down, or carrying a man: the job's off
     if(u.path.length)continue;
+    if(br){
+      if(br.o.open||br.o.barred){u.bar=null;continue;}
+      if(rectDist(u.x,u.y,br.o)>18){u.bar=null;callout(u,'Can\u2019t get there',C.warn);continue;}
+      u.ang=Math.atan2(br.o.y+br.o.h/2-u.y,br.o.x+br.o.w/2-u.x);u.aimT=simT;
+      if(br.p<BUILD.bar){br.p+=dt;continue;}
+      br.o.barred=true;br.o.barMesh=barMesh(br.o,br.side);u.specN-=1;u.stats.items++;u.bar=null;callout(u,'Door barred',C.good);if(typeof playSample==='function')playSample('steel',u.x,u.y,.6,1.2);hud();continue;
+    }
     if(b){
       if(hyp(u.x-b.spot.x,u.y-b.spot.y)>16){u.build=null;callout(u,'Can’t get there',C.warn);continue;}
       u.ang=Math.atan2(b.n[1],b.n[0]);u.aimT=simT;
@@ -101,7 +123,7 @@ function buildBlast(x,y){
 function clearBuilds(){
   if(!builds.length)return;
   for(const b of builds){if(b.mesh&&b.mesh.parent)b.mesh.parent.remove(b.mesh);let i=objs.indexOf(b.o);if(i>=0)objs.splice(i,1);if(IN&&IN.objs){i=IN.objs.indexOf(b.o);if(i>=0)IN.objs.splice(i,1);}}
-  builds=[];for(const p of players){p.build=null;p.pack=null;}rebuildNav();
+  builds=[];for(const p of players){p.build=null;p.pack=null;p.bar=null;}rebuildNav();
 }
 
 /* ---------- the 3D models (our own) ---------- */

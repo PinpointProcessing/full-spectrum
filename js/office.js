@@ -173,7 +173,7 @@ function removeObj(o){
 }
 function restoreObjs(){   // a fresh visit: the doors and gates back where they were
   for(const o of IN.allObjs)if(o.gone){o.gone=false;if(!IN.objs.includes(o))IN.objs.push(o);if(o.mesh){o.mesh.visible=true;o.mesh.position.y=0;}}
-  for(const o of IN.allObjs)if(o.door){o.open=o.open0;o.full=!o.open0;o.broken=false;o.anim=null;doorPose(o,o.open?1:0);}   // the rooms' doors shut again (orders.js)
+  for(const o of IN.allObjs)if(o.door){o.open=o.open0;o.full=!o.open0;o.broken=false;o.anim=null;doorPose(o,o.open?1:0);o.barred=false;if(o.barMesh){if(o.barMesh.parent)o.barMesh.parent.remove(o.barMesh);o.barMesh=null;}}   // the rooms' doors shut again (orders.js)
 }
 
 /* ---------- the shared room, the card and the steel door ---------- */

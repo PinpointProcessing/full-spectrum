@@ -111,6 +111,7 @@ function statusText(u){
   if(u.tk)return[u.tk.strike?'Takedown':'Sneaking up',''];
   if(u.doorT>0)return['Opening door',''];
   if(u.deploy)return['Setting up',''];
+  if(u.bar)return['Barring door',''];
   if(u.build)return[u.build.p>0?'Building':'Going to build',''];if(u.pack)return['Packing up',''];
   if(u.silent)return['Taking aim',''];
   if(u.sup>0.65)return['Pinned','pin'];

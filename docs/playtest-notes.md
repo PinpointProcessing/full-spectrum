@@ -245,3 +245,11 @@ From the classes plan (step 3, Bryan's own descriptions of the classes): a third
 - Cyber Ops, hacking: no button. Anything that needs the access card inside the office building, a selected Cyber gets
   into without it (4 s).
 Tested each one; on a phone's four cards the three gear buttons shrink to fit.
+
+# v77: barring doors, the controls list
+
+- The Defender's build kit also bars a door: in a build mode, tap a shut door inside the office building (one use,
+  1.5 s at it). From then on it only opens by being kicked in, by anyone, and that's loud: seal a room behind you or cut
+  off a flank. Tested: a guard walking out of the barred security office had to kick his way out; one of ours walking
+  into a barred door kicked it in after 1.2 s.
+- The intro card's Controls list now covers doors, classes and the Defender.

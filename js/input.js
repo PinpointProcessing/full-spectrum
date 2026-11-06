@@ -246,6 +246,8 @@ function tap(sx,sy){
   }
   if(mode==='build'||mode==='buildwall'){   // a Defender's build kit: tap where (build.js)
     const u=sel[0];if(!u){mode=null;return;}if(!inMap){banner('Tap a spot on the map.',1400);return;}
+    const dr=MAPID==='in'&&objs.find(q=>q.door&&!q.open&&!q.barred&&rectDist(wx,wy,q)<9);   // a shut door: bar it instead (build.js)
+    if(dr){if(orderBar(u,dr)){mode=null;preview=null;fireOrderAt=performance.now();}return;}
     if(orderBuild(u,wx,wy,mode==='build'?'barricade':'wall')){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   if(mode==='grenade'||mode==='smoke'||mode==='rpg'){   // Bryan: tap where; if he can't throw or fire from where he is, he moves to where he can

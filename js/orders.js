@@ -48,11 +48,19 @@ function roomFor(wx,wy){
    throws, never the way: whoever walks into one (a soldier, a guard) stops and opens it quietly in DOOR.open s (doorWait,
    from updateUnit). A breach kicks a shut door in: the lead kicks it (DOOR.kick s), it bangs open off its hinges, loud
    (the room and anyone near hear it, but they're caught off guard: an ambush), and the team goes straight in. */
-const DOOR={open:.5,kick:.45,reach:16};
+const DOOR={open:.5,kick:.45,reach:16,barKick:1.2};
+// open it the quiet way, or a barred one (build.js) the loud way: kicked in, heard like a shot
+function doorThrough(o,u){
+  if(!o.barred){openDoor(o,false,u);return;}
+  const x=o.x+o.w/2,y=o.y+o.h/2;openDoor(o,true,u);
+  if(u.side==='P'){alertAll(null,false,x,y,null,null,{x:u.x,y:u.y},undefined,undefined,true,u);squadNoise(u,x,y);}
+  else alertAll(null,false,x,y,null,null,{x,y});
+}
 function doorPose(o,k){   // k: 0 shut .. 1 open (the group sits on the hinge); a kicked door swings further and sags off its hinges
   const g=o.mesh;if(!g)return;g.rotation.set(0,o.into*(o.broken?1.85:Math.PI/2)*k,o.broken?o.into*.14*k:0);}
 function openDoor(o,kick,by){
   if(!o||o.open)return;o.open=true;o.full=false;o.broken=!!kick;o.anim={t:0,dur:kick?.16:.45};
+  if(o.barMesh){if(o.barMesh.parent)o.barMesh.parent.remove(o.barMesh);o.barMesh=null;}o.barred=false;   // (a barred door only goes this way: build.js)
   fillSight();dKey='';   // what can be seen through it now (pathfinding.js's sight grid)
   const x=o.x+o.w/2,y=o.y+o.h/2;
   if(kick){playSample('hit_wood',x,y,1,.7);playSample('slam',x,y,.9,1.15);shake(.1);if(by)callout(by,'Door!',C.warn);}
@@ -65,7 +73,7 @@ function roomDoorTick(dt){   // (office.js has its own doorTick, for the steel d
     if(!alive(u)||g.o.open||u.lastOrder>g.t+.01){u.doorGo=null;continue;}
     if(u.path.length||rectDist(u.x,u.y,g.o)>DOOR.reach)continue;
     u.doorT=(u.doorT||0)+dt;u.ang=Math.atan2(g.o.y+g.o.h/2-u.y,g.o.x+g.o.w/2-u.x);u.aimT=simT;
-    if(u.doorT>=DOOR.open){u.doorT=0;openDoor(g.o,false,u);u.doorGo=null;}}
+    if(u.doorT>=(g.o.barred?DOOR.barKick:DOOR.open)){u.doorT=0;doorThrough(g.o,u);u.doorGo=null;}}
 }
 // a tap on a shut door: the nearest soldier selected goes to it, on his side, and opens it (a look inside without going in)
 function doorTap(wx,wy){
@@ -84,7 +92,7 @@ function doorWait(u,p,dt){
   for(const o of objs){
     if(!o.door||o.open||rectDist(u.x,u.y,o)>DOOR.reach||!segHitsRect(u.x,u.y,p.x,p.y,o,1))continue;
     u.doorT=(u.doorT||0)+dt;u.ang=turn(u.ang,Math.atan2(o.y+o.h/2-u.y,o.x+o.w/2-u.x),dt*8);
-    if(u.doorT>=DOOR.open){u.doorT=0;openDoor(o,false,u);}
+    if(u.doorT>=(o.barred?DOOR.barKick:DOOR.open)){u.doorT=0;doorThrough(o,u);}
     return true;
   }
   u.doorT=0;return false;
