@@ -6,9 +6,9 @@
    dead unless the game is restarted, and wounds are kept. A soldier who is down when it saves is stored badly wounded
    (5 HP) rather than bleeding out. XP and ranks are saved separately (progress.js) and survive a New game. */
 const SAVE_KEY='warehouseYard.save.v3';   // (v3: the checkpoints rework; older saves are ignored)
-const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Data center front cleared',dci:'Inside the data center',sci:'Scientists detained',dc:'Drawbridge down'};
-const STAGE_OBJ={wh:3,br:3,maze:3,dco:3,dci:3,sci:4,dc:5};   // obj (mission.js) after each
-const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},dc:{x:700,y:-470}};
+const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Data center front cleared',dci:'Inside the data center',sci:'Scientists detained',dc:'Drawbridge down',gate:'The gate cleared'};
+const STAGE_OBJ={wh:3,br:3,maze:3,dco:3,dci:3,sci:4,dc:5,gate:5};   // obj (mission.js) after each
+const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},dc:{x:700,y:-470},gate:{x:850,y:-470}};
 const AREA_STAGE=['wh','br','maze','dco'];   // the areas' checkpoints (AREAS in mission.js)
 function readSave(){
   try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&STAGES[s.stage])return s;}catch(e){}
@@ -54,7 +54,9 @@ function continueGame(){
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
   setStatus();buildCards();hud();banner(`Continuing: ${STAGES[s.stage]}.`,2400);
-  if(s.stage==='dci')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBuilding(true);},60);   // the checkpoint inside the data center: straight back in (interior.js)
+  if(s.stage==='dci')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBuilding(true);},60);
+  if(s.stage==='dc')monGateStart();   // the drawbridge down: they come out again (monsters.js)
+  if(s.stage==='gate'){mon.out={t0:simT-60,spawned:12,wave:MON_WAVES.length,roared:true,done:true};updateObjUI();}   // the gate cleared: gather at the drawbridge to go in   // the checkpoint inside the data center: straight back in (interior.js)
   return true;
 }
 // intro and end screens: offer Continue / Retry when there's a save

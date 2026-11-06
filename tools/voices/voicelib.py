@@ -19,12 +19,14 @@ def lines_for(sp):
     if sp in SQUAD and 'chatter' in L:
         C=L['chatter'];team=[x for x in SQUAD if x[0]==sp[0] and x!=sp];freed=sp in ('A3','A4','B3','B4')
         for key,arr in C['named'].items():
-            for addr,name in C['names'].items():
-                if addr==sp: continue
-                if key in ('onme','follow') and addr not in team: continue   # partners and team mates only
-                if freed and key not in ('down','thanks','onme','follow'): continue   # the freed men say fewer of them
-                for i,t in enumerate(arr):
-                    if freed and key=='down' and i>0: continue
+            if freed and key not in ('down','thanks','onme','follow'): continue   # the freed men say fewer of them
+            for i,t in enumerate(arr):
+                if '{N}' not in t:   # one line for everyone (Bryan, after v71: names only for who's down and who's asked)
+                    out.append((f'{key}_{i+1}',t,'n_'+key));continue
+                if freed and key=='down' and i>0: continue
+                for addr,name in C['names'].items():
+                    if addr==sp: continue
+                    if key in ('onme','follow') and addr not in team: continue   # partners and team mates only
                     out.append((f'{key}_{addr}_{i+1}',t.replace('{N}',name),'n_'+key))
         for key,arr in C['chat'].items():
             if key in TUT and sp not in ('A1','A2','B1','B2'): continue

@@ -15,11 +15,11 @@ const SQUAD_NAME={A1:'Reyes',A2:'Kowalski',B1:'Hayes',B2:'Okafor',A3:'Abara',A4:
 // have fewer; a line nobody recorded is just skipped)
 const NAMED={
   down:  ['{N}\'s down!','{N} is hit!'],
-  gotyou:['Hang on, {N}, I\'ve got you.'],
-  thanks:['Thanks, {N}. I owe you.'],
-  nice:  ['Nice shot, {N}.'],
-  onme:  ['{N}, on me.','{N}, with me. Let\'s go.'],
-  follow:['Right behind you, {N}.','On you, {N}.'],
+  gotyou:['Hang on. I\'ve got you.'],   // (Bryan, after v71: names only where they say something, who's down and who's asked if
+  thanks:['Thanks. I owe you.'],         //  he's alright; the rest are one line for everyone, recorded once: clipKey)
+  nice:  ['Nice shot.'],
+  onme:  ['On me.','With me. Let\'s go.'],
+  follow:['Right behind you.','On you.'],
   check: ['{N}, you good?'],
 };
 // lines with no names (voiced for every speaker); QUIET ones are said low (stealth)
@@ -105,12 +105,13 @@ const leaderOf=(but=[])=>players.find(p=>p.id==='A1'&&up(p)&&!but.includes(p))||
 // a line: who says it, its clip, the words, quiet or not
 const L=(u,clip,text,quiet)=>u&&{u,clip,text,quiet};
 const hasClip=(id,clip)=>!VSPR||!!(VSPR.speakers[id]&&VSPR.speakers[id].clips[clip]);
+const clipKey=(key,about,k)=>NAMED[key][k-1].includes('{N}')?`${key}_${about.id}_${k}`:`${key}_${k}`;
 const named=(u,key,about,n)=>{
   if(!u||!about)return null;const N=NAMED[key].length;let k=n||nextVariant(u.id,key+about.id,N);
-  for(let i=0;i<N&&!hasClip(u.id,`${key}_${about.id}_${k}`);i++)k=k%N+1;   // (the freed men have fewer versions: one he has)
-  if(!hasClip(u.id,`${key}_${about.id}_${k}`))return null;return L(u,`${key}_${about.id}_${k}`,NAMED[key][k-1].replace('{N}',about.name).replace(/s's\b/,'s is'));   // ("Hayes's down" on screen as "Hayes is down")
+  for(let i=0;i<N&&!hasClip(u.id,clipKey(key,about,k));i++)k=k%N+1;   // (the freed men have fewer versions: one he has)
+  if(!hasClip(u.id,clipKey(key,about,k)))return null;return L(u,clipKey(key,about,k),NAMED[key][k-1].replace('{N}',about.name).replace(/s's\b/,'s is'));   // ("Hayes's down" on screen as "Hayes is down")
 };
-const canSay=(u,key,about)=>!!u&&!!about&&NAMED[key].some((_,i)=>hasClip(u.id,`${key}_${about.id}_${i+1}`));
+const canSay=(u,key,about)=>!!u&&!!about&&NAMED[key].some((_,i)=>hasClip(u.id,clipKey(key,about,i+1)));
 const gen=(u,key,n)=>{if(!u)return null;const k=n||nextVariant(u.id,'chat'+key,CHAT[key].length);if(!hasClip(u.id,`chat_${key}_${k}`))return null;return L(u,`chat_${key}_${k}`,CHAT[key][k-1],QUIET.has(key));};
 // a line only the first four have (TUT): from whoever of them is up and nearest, or the lead
 const tutBy=(x,y)=>players.filter(p=>up(p)&&!p.joined).sort((a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y))[0]||null;
@@ -136,7 +137,6 @@ function chatTick(){
 function chatMove(as){   // a group move: the lead calls his partner, who answers (now and then, so it doesn't get old)
   const list=as.map(a=>a.u);if(list.length<2)return false;
   const lead=list.find(u=>/1$/.test(u.id))||list[0],mate=list.find(u=>u!==lead&&u.team===lead.team);if(!mate||Math.random()>.15)return false;
-  if(players.filter(p=>up(p)&&p.team===lead.team).length>2)return false;   // (Bryan: not "Brennan, on me" with a whole team round him; an unnamed "On me" is to be recorded)
   return chat('move',45,named(lead,'onme',mate),named(mate,'follow',lead));
 }
 function chatContact(amb){   // first contact: the man who sees them says where; someone answers

@@ -14,7 +14,7 @@ function mk(side,team,id,name,x,y,ang){
   units.push(u);return u;
 }
 function reset(){
-  leaveLevel1Now();leaveLevel2Now();   // (Level 1: level1.js; Level 2: level2.js)
+  leaveLevel1Now();leaveLevel2Now();leaveHQNow();   // (Level 1: level1.js; Level 2: level2.js; the Headquarters: fortress.js)
   leaveInteriorNow();   // a new game or Continue from inside the office building: back to the outdoor map first
   for(const u of units){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);if(u.slight&&u.slight.parent)u.slight.parent.remove(u.slight);}
   units=[];
@@ -31,7 +31,7 @@ function reset(){
   sel=[];cardGroup=[];preview=null;mode=null;contact=false;paused=false;simT=0;downCount=0;ambushT=-9;
   shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];smokes=[];endAt=0;
   landing=null;if(dinghy)dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
-  civs=[];volley=null;resetOffice();resetChatter();   // (office.js, chatter.js)
+  civs=[];volley=null;resetOffice();resetChatter();resetMonsters();   // (office.js, chatter.js, monsters.js)
   resetWaves();resetHunt();resetOrders();resetLayers();setStatus();buildCards();
 }
 function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw')||tutSlow())?0.25:1;}   // (tutSlow: a tip of Level 1's tutorial waiting, level1.js)

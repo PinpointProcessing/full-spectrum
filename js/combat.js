@@ -111,11 +111,11 @@ function hitChance(s,t,L){
 function threats(){
   const t=[];
   for(const e of enemies)if(!beaten(e)&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(MAPID==='l1'?l1Threat():MAPID==='l2'?l2Threat():MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
+  if(!t.length)t.push(MAPID==='l1'?l1Threat():MAPID==='l2'?l2Threat():MAPID==='hq'?{x:500,y:240}:MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
 // before anyone's seen at the later objectives: where previews judge cover from
-const OBJ_THREAT={1:{x:476,y:30},2:{x:800,y:-180},3:{x:245,y:-420},4:{x:850,y:-600},5:{x:850,y:-600}};
+const OBJ_THREAT={1:{x:476,y:30},2:{x:800,y:-180},3:{x:245,y:-420},4:{x:850,y:-600},5:{x:850,y:-600},6:{x:850,y:-600}};
 function protStats(p,th){
   let prot=0,see=0;
   for(const t of th){const l=los(t.x,t.y,p.x,p.y);if(l||sightFrom(p.x,p.y,t.x,t.y))see=1;if(!l||coverAt(p.x,p.y,t.x,t.y)>0)prot++;}
@@ -268,7 +268,7 @@ function squadNoise(u,x,y,open,wall){
   if(contact&&!caught(u)&&heardNow(x,y,open??OUT_HEAR_OPEN,wall??OUT_HEAR_WALL))startContact(null,false,u);
 }
 function ambushing(u){return u?(!caught(u)||simT<(teamAmbT[u.team]??-9)):(!contact||simT<ambushT);}   // (per soldier: his team undetected, or in its first moments after striking first)
-const beaten=e=>e.dead||e.surr;   // out of the fight: dead, or he gave up (layers.js)
+const beaten=e=>e.dead||e.surr||!!e.dormant;   // out of the fight: dead, or he gave up (layers.js), or a monster still waiting in its room (fortress.js)
 
 // a kill streak is kills no more than STREAK_GAP s apart
 const STREAK_GAP=8;
@@ -285,7 +285,8 @@ function damage(t,dmg,src){
   t.hp-=dmg;t.hitFlash=.25;
   if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
-  if(t.side==='E'&&t.hp>0&&!t.dog&&Math.random()<.5&&typeof sfxPain==='function')sfxPain(t,t.hp<40);   // a cry of pain, a scream once he's badly hurt (Bryan: screaming, not a voice saying "ow, my leg")
+  if(t.side==='E'&&t.hp>0&&!t.dog&&Math.random()<.5&&typeof sfxPain==='function')sfxPain(t,t.hp<40);
+  if(t.mon&&t.hp>0)monHurt(t);   // a monster's shriek, or the Brood Mother's roar and her next phase (monsters.js, fortress.js)   // a cry of pain, a scream once he's badly hurt (Bryan: screaming, not a voice saying "ow, my leg")
   if(t.hp<=0){
     t.hp=0;
     if(t.side==='P'){
@@ -295,10 +296,10 @@ function damage(t,dmg,src){
       chatDown(t);   // "Hayes is down!" ... "Hang on, Hayes, I've got you." (chatter.js)
       sel=sel.filter(x=>x!==t);preview=null;
     }else{
-      t.dead=true;t.path=[];callout(t,'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog){const r=Math.random();if(r<.35)sfxScream(t,.85);else if(r<.65)sfxGrunt(t,true);}}
+      t.dead=true;t.path=[];callout(t,t.mon?'Got it':'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog){const r=Math.random();if(r<.35)sfxScream(t,.85);else if(r<.65)sfxGrunt(t,true);}}
       {const o=enemies.find(q=>q!==t&&!q.dead&&!q.dog&&q.alerted&&hyp(q.x-t.x,q.y-t.y)<220);if(o)bark(o,'down');}
       if(src&&src.side==='P'){creditKill(src);if(Math.random()<.25)say(src,'kill');chatKill(src);}
-      paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);enemyDown(t);   // (a body someone may find: layers.js; the sniper's rifle: mission.js)
+      if(t.mon)monDied(t);else paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);enemyDown(t);   // (a body someone may find: layers.js; the sniper's rifle: mission.js)
     }
   }
 }
@@ -766,10 +767,10 @@ let spotBannerT=-99,coverTick=0;   // one "Hostile spotted" banner at a time, no
 function computeVis(){
   for(const c of civs)c.vis=players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-c.x,p.y-c.y)<=360&&los(p.x,p.y,c.x,c.y));   // the people who aren't soldiers: shown once seen (office.js)
   for(const e of enemies){
-    if(e.dead){e.vis=false;continue;}
+    if(e.dead||e.dormant){e.vis=false;continue;}   // (a monster still in its room: fortress.js)
     e.vis=players.some(p=>alive(p)&&canSee(p,e))||(simT<(e.revealT||0)&&!offFloor(e));   // (revealT: he gave himself away firing at us, or one of ours is shooting at him; Bryan couldn't find who was shooting)
     if(e.vis){
-      if(!e.seen){e.seen=true;callout(e,'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(e.grp===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
+      if(!e.seen){e.seen=true;callout(e,e.mon==='boss'?'Brood Mother':e.mon?'Hound!':'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(e.grp===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
       e.last={x:e.x,y:e.y};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
@@ -813,7 +814,7 @@ function enemyThink(e){
 function playerThink(p){
   if(!alive(p)||p.path.length||p.inVeh||p.onTower||p.climb||p.onGun||!caught(p)||p.sup>0.65||p.supT||(breach&&breach.team.includes(p))||simT-(p.nadeT??-99)<6){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
   if(simT-p.lastOrder<4)return;
-  const vis=enemies.filter(e=>!e.dead&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
+  const vis=enemies.filter(e=>!e.dead&&!e.dormant&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
   const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);
   p.exposeT=exposed?p.exposeT+.4:0;
   if(p.exposeT<2)return;
@@ -850,7 +851,7 @@ function updateUnit(u,dt){
   if(u.carry&&u.path.some(q=>q.vault)){const d0=u.path[u.path.length-1],np=findPath(u.x,u.y,d0.x,d0.y,FOOT);u.path=np||[];if(!np)callout(u,"Can't climb with him",C.warn);}   // carrying a man: no vaulting, the long way round
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
-    const sz=slowAt(u.x,u.y),sp=(u.veh?GJEEP.speed:u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
+    const sz=slowAt(u.x,u.y),sp=(u.veh?GJEEP.speed:u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.mon?(u.mon==='boss'?BOSS.walk:HOUND.run):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
       (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl
     if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
     if(u.veh)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*3);   // the jeep swings round
@@ -902,7 +903,7 @@ function update(dt){
   takedownTick(dt);silentTick();throwTick();fireGoTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
-    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
+    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

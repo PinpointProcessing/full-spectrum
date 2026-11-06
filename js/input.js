@@ -294,6 +294,7 @@ function tap(sx,sy){
     else if(r.fire.length||r.move.length){callout(en,sel.some(caught)?'Focus fire':'Open fire!',C.warn);say(sel[0],'ack_attack');}
     return;
   }
+  if(MAPID==='out'&&monGateTap(wx,wy)){preview=null;return;}   // into the Headquarters (monsters.js)
   if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
   if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
   {const cv=civAtScreen(sx,sy);if(cv&&civTap(cv)){preview=null;return;}}

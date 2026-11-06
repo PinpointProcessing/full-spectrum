@@ -244,7 +244,7 @@ function dogSense(d,dt){
 }
 function dogTick(dt){
   for(const d of enemies){
-    if(!d.dog||d.dead)continue;
+    if(!d.dog||d.dead||d.mon)continue;   // (monsters: monsters.js)
     const h=d.handler&&!d.handler.dead?d.handler:null;
     if(!d.alerted){
       if(d.handler&&!h&&hyp(d.x-d.handler.x,d.y-d.handler.y)<80){alertOne(d,{x:d.x,y:d.y},false);continue;}   // his handler dropped beside him
@@ -296,7 +296,7 @@ function huntTick(dt){
     }
     if(!Object.values(teamSeen).some(Boolean)&&((!seen&&simT-lastNoiseT>3&&!reinf)||left.length)){
       contact=false;clearTeams();setStatus();setTimeout(()=>{if(!contact)chatStatus();},1800);   // the lead checks on whoever's hurt (chatter.js)
-      if(enemies.some(e=>!e.dead&&e.alerted))banner('They lost you. They are searching.',2400);   // (nobody left looking: no message, the location's own messages take over)
+      if(enemies.some(e=>!e.dead&&e.alerted&&!e.mon))banner('They lost you. They are searching.',2400);   // (monsters don't search: monsters.js)   // (nobody left looking: no message, the location's own messages take over)
     }else if(left.length){banner(left.map(teamName).join(' and ')+' slipped away. They\'re hidden again.',2400);setStatus();}
   }
 }

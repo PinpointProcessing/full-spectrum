@@ -198,7 +198,7 @@ function missionFx(dt){
 function lowerBridge(u){
   if(obj!==4)return;callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
   bigText('Drawbridge down!','unlock');objCompleted(3);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
-  setTimeout(()=>{if(state==='play'&&obj===5)farewell(()=>{if(state==='play'&&obj===5){banner('Take the Headquarters: coming next',3000);endAt=performance.now()+1800;}});},OBJ_LIST_T+200);   // the freed men say goodbye first (office.js)
+  monGateStart();   // and what was behind it comes out (monsters.js); the freed men's goodbye waits for the end, in the Headquarters (fortress.js)
 }
 function setBridge(k){BRIDGE.lower=k;if(BRIDGE.grp)BRIDGE.grp.rotation.x=-.12-(Math.PI/2-.12)*(k<1?k*k*(3-2*k):1);if(!k)bridgeDown=0;}
 function tapPanel(){
@@ -441,7 +441,7 @@ function updateObjUI(flash){
   if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
   if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
-  const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':'Take the Headquarters (coming next)';
+  const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
   el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
@@ -476,7 +476,7 @@ function drawLastFoes(now){
 }
 function drawMission(rdt,now){
   drawGunMark(now);
-  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
+  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);drawMonsters(now);drawHQ(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};

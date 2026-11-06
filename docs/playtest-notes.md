@@ -167,3 +167,27 @@ can the Medic bring back the dead, does the player pick); a store or upgrades.
 
 Still to build from this round: the classes, the monsters pouring out of the HQ and the HQ itself (the boss room), monster
 sounds, doors to kick in, the scientists' and the unnamed lines voiced.
+
+# Bryan after v71 (the changes are in v72)
+
+1. "Re-Recorded is the best, hands down." Every squad line whose words to the voice model change is being made again (no
+   names but for who's down and who's asked if he's alright, no pauses at commas): 298 lines across the eight squad
+   voices, recorded in the background, checked by the speech recogniser, then packed. The rest keep their takes.
+2. "The scout would only come in after the mission when you are back to HQ or base." Noted for the roster: he joins at base
+   after Level 1, not in the field.
+3. "I'm ready to build the HQ and everything else in your order." Built:
+   - When the drawbridge comes down, the Brood Mother roars somewhere inside and hounds pour out: 20 in four waves, out of
+     the gate and up over the moat's edge right beside the squad. They run you down, crouch and snarl (a violet line on
+     the ground shows where they'll go), lunge, knock a man down, pull back and come again. They go for the scientists
+     too.
+   - The gate clear is a checkpoint. Everyone gathers at the drawbridge and goes in.
+   - The Headquarters: a long hall with three rooms down each side and an entry hall with a medic station and an ammo
+     drop. The Brood Mother sleeps at the far end; stepping into the hall wakes her. Her roar opens two side rooms; at two
+     thirds and a third of her health two more; another every 40 s. A slam you can see coming (a violet ring fills), a
+     swipe up close. When nothing is left alive: "Headquarters taken", the freed men's goodbye, the report.
+   - Sounds: CC0 creature recordings layered, slowed and roughened (a listening page has every take).
+   - Tested with a bot that only moves the squad (the shooting is automatic): four soldiers won 3 runs of 3, with one or
+     two men down by the end; eight won with nobody down inside.
+4. The scientists' new lines are voiced.
+
+Next: the classes, then doors to kick in.

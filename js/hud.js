@@ -5,7 +5,7 @@ function banner(text,ms=2400){const b=$('#banner');if(typeof placeBanner==='func
 // the hint line's word on where to go, by where the squad is (Bryan: clearing areas is optional; the data center is the goal)
 function objHint(){
   if(obj===4)return'Take a scientist to the drawbridge\'s bio scanner (north-east): send a soldier to the panel by the moat.';
-  if(obj>=5)return'The Headquarters: coming next.';
+  if(obj>=5)return mon.out&&!mon.out.done?'Hold them off at the drawbridge: shoot the hounds when they crouch, step out of the violet line. Keep the scientists close.':'The gate is clear. Heal and restock at the medic station and ammo drop by the panel, then gather everyone in the green area at the drawbridge to go in.';   // (monsters.js)
   const ups=players.filter(p=>alive(p)&&!p.offMap),north=ups.some(p=>p.y<CANAL.y0);
   if(!north)return'Get into the data center, across the canal to the north-west. Ways over: the bridge (guarded, a sniper in the tower), the sewer pipe to the west, or the broken rail bridge to the east.';
   if(dcLocked())return'The data center\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then gather at the doors.';
@@ -71,6 +71,7 @@ function hud(){
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(MAPID==='l1'&&!preview&&!act.length)h=l1Hint();   // (level1.js)
   else if(MAPID==='l2'&&!preview&&!act.length)h=l2Hint();   // (level2.js)
+  else if(MAPID==='hq'&&!preview&&!act.length)h=hqHint();   // (fortress.js)
   else if(MAPID==='in'&&!preview&&!act.length)h=officeHint();   // (office.js)
   else if(wave.phase==='hq'&&!preview&&!act.length)h=objHint()+(HQ_ZONES.length?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';

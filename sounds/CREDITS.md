@@ -59,3 +59,22 @@ Casting (the Kokoro voice behind each reference clip):
 | E1 to E3 | hostiles (barks) | am_onyx with am_echo, bm_daniel, am_onyx with bm_daniel |
 
 They're machine voices standing in for actors; `docs/voice-lines.md` is the sheet for recording real ones.
+
+## The monsters (`sfx/mon_*.mp3`, `sfx/boss_*.mp3`)
+
+Built by `tools/sfx/build_monsters.py`: two or three of these recordings layered, slowed down (deeper, bigger), driven a
+little into distortion and given a room, so none is used as it was. All CC0, from opengameart.org:
+
+| Pack | Author | Used for |
+|---|---|---|
+| [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) | rubberduck | screams, roars, hurt, growls |
+| [80 CC0 creture SFX #2](https://opengameart.org/content/80-cc0-creture-sfx-2) | rubberduck | deaths, attacks, roars, the boss's footsteps (stomp) |
+| [Monster Sound Effects Pack](https://opengameart.org/content/monster-sound-effects-pack) | Ogrebane | the hounds' growls |
+| [Monster Sound Effects 2](https://opengameart.org/content/monster-sound-effects-2) | Ogrebane | growls |
+| [Monster Sound Pack, Volume 1](https://opengameart.org/content/monster-sound-pack-volume-1) | Ogrebane | the hounds' hurt cries |
+| [CC0 Deep Monster Roar](https://opengameart.org/content/cc0-deep-monster-roar) | trazzz123 | the Brood Mother's roar and death |
+| [Monster snarls](https://opengameart.org/content/monster-snarls) | Darsycho | the snarl before a lunge |
+| [Insect or alien scream](https://opengameart.org/content/insect-or-alien-scream) | qubodup | the lunge's screech, the roar's edge |
+| [Alien Sounds](https://opengameart.org/content/alien-sounds-0) | EZduzziteh | a hiss under the snarls |
+
+The slam also uses the game's own `boom-1.wav` (listed above).

@@ -9,7 +9,7 @@ stops cleanly after BUDGET seconds and picks up where it left off when run again
 merge the two afterwards). --max-lines makes it stop (printing "pause") after that many takes: memory creeps up over a long run on CPU (heap
 fragmentation; a copy grew from 5.3 to 8 GB in two hours and two copies were killed for memory), so run it in a loop.
 --redo makes one more take (_t1, then _t2) of each line check_zonos.py flagged (CACHE/<sp>/flagged.json), up to 3 in all."""
-import json,os,sys,time,zlib,torch,torchaudio
+import json,os,re,sys,time,zlib,torch,torchaudio
 from zonos.model import Zonos
 from zonos.conditioning import make_cond_dict
 from voicelib import lines_for,style_of
@@ -31,8 +31,9 @@ STYLE={'shout': ([.00,.00,.00,.35,.25,.60,.05,.00],110,18.),
        'stubborn':([.00,.05,.30,.00,.00,.45,.10,.10],55,14.),   # (the scientists, defiant: disgust and anger, clipped)
        'panic': ([.00,.25,.00,.45,.20,.30,.00,.00],110,17.)}   # (the scientists near the HQ: frantic, shouting rather than breathy)
 SAY={'Reyes':'Rayess','Lindqvist':'Lindquist'}   # names said the way they sound: plain Reyes came out "raise", Ray-ess as "Ray, yes" (stress on both halves; Bryan), Lindkvist garbled
-def spoken(t):
+def spoken(t,key=''):
     for a,b in SAY.items():t=t.replace(a,b)
+    if 'volley' not in key:t=re.sub(r'(?<!Tangos),\s*',' ',t)   # (Bryan, after v71: no pause at a comma; "Tangos, two o'clock" keeps it, the words run together without; the volley's count keeps its beat)
     return t
 torch.set_num_threads(int(os.environ.get('ZONOS_THREADS','4')));T0=time.time()   # (two copies on 2 threads each beat one on 4 by about a quarter: each step is many small operations)
 m=Zonos.from_pretrained('Zyphra/Zonos-v0.1-transformer',device='cpu')
@@ -54,7 +55,7 @@ for sp in [s for s in ORDER if s in ONLY]:
         if made>=MAXN:print('pause',flush=True);json.dump(meta,open(meta_f,'w'),indent=0);sys.exit(0)
         emo,pr,rate=STYLE[st];n=len(mt['takes']);hot=st in('shout','urgent','pain','fear')
         if n>=2:pr,rate,hot=pr*.65,rate-2,False   # (later redos a little softer: short hard shouts are the ones that come out empty or garbled)
-        c=m.prepare_conditioning(make_cond_dict(text=spoken(text),speaker=E['hot' if hot else 'base'],
+        c=m.prepare_conditioning(make_cond_dict(text=spoken(text,key),speaker=E['hot' if hot else 'base'],
             language=LANG.get(sp,'en-us'),emotion=emo,pitch_std=pr,speaking_rate=rate))
         for tries in range(4):   # (an empty take, the model stopping at once, is retried on the spot: it costs a second or two)
             torch.manual_seed(1000*n+zlib.crc32((sp+key).encode())%1000+7919*tries)
