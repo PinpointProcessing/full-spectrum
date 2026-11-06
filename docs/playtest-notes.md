@@ -468,3 +468,12 @@ it: five CC0 screams (HaelDB's yells, already used for the pain screams) end to 
 Now Okafor screams it at about 340 Hz with some of his own voice kept (40 %); Kowalski and Hayes, who say it only when Okafor
 is down, from the screamer's voice alone, at about 310 and 390 Hz (their blends stayed under 260 Hz). Nothing reshaped
 afterwards, and a speech recogniser hears every word of all of them. Still over the radio, like the squad's other lines.
+
+# v94: a bigger gather box, and a clear screen when the drawbridge comes down
+
+Bryan: "1) make the green box larger. 2) don't say Drawbridge Down and don't expand the objective list. I want full visual
+when the monsters attack." The green box at the drawbridge (gather everyone there to go into the Headquarters) is about
+three times the area: 15 x 13 m, it was 12 x 6, which eight men sent there together didn't always fit in. The drawbridge's
+medic station and ammo drop (they come once the gate is clear) moved 5 m west, out of it. Lowering the drawbridge shows
+nothing now: no "Drawbridge down!", the objective list doesn't open (it's crossed off quietly), and the save happens without
+its "Saved" chip; a Continue from that save doesn't put up "Continuing: Drawbridge down." either.

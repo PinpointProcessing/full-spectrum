@@ -197,7 +197,7 @@ function missionFx(dt){
 // the scan took: the drawbridge comes down (Bryan: the monsters start here, next build)
 function lowerBridge(u){
   if(obj!==4)return;callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
-  bigText('Drawbridge down!','unlock');objCompleted(3);saveGame('dc');updateObjUI();   // (its medic station and ammo drop once the gate's clear: monsters.js)
+  objDone=Math.max(objDone,3);saveGame('dc',true);updateObjUI();   // (Bryan: no "Drawbridge down!", no objective list opening, no Saved chip: the screen clear for what comes out of the gate; the objective is crossed off quietly. Its medic station and ammo drop once the gate's clear: monsters.js)
   monGateStart();   // and what was behind it comes out (monsters.js); the freed men's goodbye waits for the end, in the Headquarters (fortress.js)
 }
 function setBridge(k){BRIDGE.lower=k;if(BRIDGE.grp)BRIDGE.grp.rotation.x=-.12-(Math.PI/2-.12)*(k<1?k*k*(3-2*k):1);if(!k)bridgeDown=0;}

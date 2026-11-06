@@ -15,7 +15,7 @@
 // more of them for a bigger squad, and most swing wide to come in from the sides: gateTick and houndThink)
 const HOUND={hp:80,run:110,lungeR:92,crouchT:.45,lungeSpd:270,hit:22,bite:12,biteT:1.0,stun:.65,fadeT:1.2,reach:17,again:1.4};
 const BOSS={hp:600,perMan:230,dmgIn:.7,walk:21,slamR:64,slamT:1.3,slamDmg:65,slamCd:3.6,swipeR:36,swipeDmg:34,swipeCd:1.9};   // (her health: hp plus perMan for each soldier who comes in; a tough hide, dmgIn. After v91, harder: perMan 180, slam 55, swipe 28 before)
-const MON_GATE={x:850,y:-604},MON_OUT={x0:790,x1:910,y0:-548,y1:-488};   // where they come out (the gate's mouth), and where the squad gathers to go in
+const MON_GATE={x:850,y:-604},MON_OUT={x0:765,x1:918,y0:-548,y1:-418};   // where they come out (the gate's mouth), and where the squad gathers to go in (Bryan, after v93: larger; it was 790-910 by -548 to -488, tight for eight men; its east edge stops short of the scanner's panel)
 let mon={out:null,first:false};
 function resetMonsters(){mon={out:null,first:false};}
 const isMon=u=>!!u&&!!u.mon;

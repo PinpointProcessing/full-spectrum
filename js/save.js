@@ -18,13 +18,13 @@ function readSave(){
 }
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem('warehouseYard.save.v2');}catch(e){}}
 let savedTimer=0;
-function saveGame(stage){
+function saveGame(stage,quiet){   // (quiet: no Saved chip, the drawbridge coming down: mission.js)
   const data={v:3,stage,when:Date.now(),sci:sciOut,cleared:[0,1,2,3].filter(n=>finished[n]),   // (sci: scientists brought out of the data center: office.js; cleared: the areas that are checkpoints)
     alert:{t:alertT,max:alertMax},   // the base's alert level only goes up within the mission (layers.js)
     squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges,weapon:p.weapon,weapon2:p.weapon2||null,
       ...(p.joined?{joined:true,name:p.name,weapon:p.weapon}:{})}]))};   // (joined: a freed prisoner, office.js)
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
-  const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
+  if(quiet)return;const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
 }
 
 // put the game back at the saved checkpoint: the areas cleared stay cleared (their stations back), the rest get fresh defenders
@@ -53,7 +53,7 @@ function continueGame(){
   }
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
-  setStatus();buildCards();hud();banner(`Continuing: ${STAGES[s.stage]}.`,2400);
+  setStatus();buildCards();hud();if(s.stage!=='dc')banner(`Continuing: ${STAGES[s.stage]}.`,2400);   // (from 'dc' they pour out again at once: nothing on screen, Bryan)
   if(s.stage==='dci')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBuilding(true);},60);
   if(s.stage==='dc')monGateStart();   // the drawbridge down: they come out again (monsters.js)
   if(s.stage==='gate'){mon.out={t0:simT-60,spawned:MON_FLOOD.n,roared:true,done:true};if(typeof railNow==='function')railNow();updateObjUI();}   // the gate cleared: gather at the drawbridge to go in   // the checkpoint inside the data center: straight back in (interior.js)

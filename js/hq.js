@@ -10,7 +10,7 @@ const REST_ZONES={
   br:[{k:'med',x:380,y:188},{k:'sup',x:572,y:188}],
   maze:[{k:'med',x:485,y:-100},{k:'sup',x:485,y:-186}],   // (on the bridge's road, between the container rows)
   dco:[{k:'med',x:300,y:-398},{k:'sup',x:170,y:-398}],   // (in front of the building, west of the doors)
-  dc:[{k:'med',x:650,y:-504},{k:'sup',x:756,y:-504}],
+  dc:[{k:'med',x:610,y:-490},{k:'sup',x:705,y:-490}],   // (west of the gather box at the drawbridge, MON_OUT in monsters.js)
 },WH_ZONES=REST_ZONES.wh,ZONE_R=46;
 const HEAL_RATE=8,SUPPLY_T=2;
 let hq=null,camPan=null;
