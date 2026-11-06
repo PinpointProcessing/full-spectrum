@@ -853,9 +853,9 @@ function updateUnit(u,dt){
   if(u.carry&&u.path.some(q=>q.vault)){const d0=u.path[u.path.length-1],np=findPath(u.x,u.y,d0.x,d0.y,FOOT);u.path=np||[];if(!np)callout(u,"Can't climb with him",C.warn);}   // carrying a man: no vaulting, the long way round
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
-    const sz=slowAt(u.x,u.y),sp=(u.veh?GJEEP.speed:u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.mon?(u.mon==='boss'?BOSS.walk:HOUND.run):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
+    const sz=slowAt(u.x,u.y),held=doorWait(u,p,dt),sp=held?0:(u.veh?GJEEP.speed:u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.mon?(u.mon==='boss'?BOSS.walk:HOUND.run):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
       (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl
-    if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
+    if(held){}else if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}   // (held: opening a door in his way, orders.js)
     if(u.veh)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*3);   // the jeep swings round
     else if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
   }else if(simT-u.aimT>2){
@@ -881,7 +881,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);s.u.shotT=simT;sfxShot(s.u,s.quiet);resolveShot(s);}   // (shotT: his rifle kicks: figure.js)
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);watchTick();breachTick();layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
+  medTick(dt);huntTick(dt);watchTick();breachTick();roomDoorTick(dt);layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)

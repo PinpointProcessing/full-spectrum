@@ -88,6 +88,19 @@ const OFFICE_LAYOUT={floors:[
    {kind:'crate',x:355,y:92,w:30,h:20,note:'ambusher A3 crouches behind it'},
    {kind:'crate',x:270,y:30,w:30,h:24},
   ],
+  // the rooms' doors (Bryan: "can we add doors to break down... have them kick it in"): one in each office's doorway, in
+  // the middle of the wall; into: which way it swings (-1 west, +1 east), into the room. Shut to start, but for E3's onto
+  // the east hall: R3 watches the hall through it. A door blocks sight while it's shut, never the way: a soldier or a guard
+  // who walks into one opens it (0.5 s, quiet); a breach kicks it in (orders.js)
+  doors:[
+   {x:183,y:560,w:4,h:40,into:-1,room:'Office W1'},
+   {x:183,y:430,w:4,h:40,into:-1,room:'Security office W2'},
+   {x:243,y:450,w:4,h:40,into:1,room:'Records office W3'},
+   {x:368,y:480,w:4,h:40,into:1,room:'Meeting room E3'},
+   {x:493,y:420,w:4,h:40,into:-1,room:'Meeting room E3',open:true},
+   {x:553,y:520,w:4,h:40,into:1,room:'Office E1'},
+   {x:553,y:380,w:4,h:40,into:1,room:'Store room E2'},
+  ],
   rooms:[
    {name:'Main lobby',x0:190,y0:650,x1:550,y1:880,doorway:'front doors (south, 80 wide); open to both hallways, the reception alcove, the elevator lobby (120 opening) and the stairwell door (60)',contents:'front desk counter, two pillars, sofas, planters; entry and exit at the front doors'},
    {name:'Elevator lobby',x0:30,y0:650,x1:180,y1:880,doorway:'120-wide opening east into the main lobby',contents:'the elevator car on the west wall (locked until the access card), a bench'},
@@ -241,6 +254,10 @@ const OFFICE_LAYOUT={floors:[
    {kind:'planter',x:230,y:-506,w:16,h:16},
    {kind:'planter',x:470,y:-506,w:16,h:16},
    {kind:'sofa',x:60,y:-506,w:60,h:16,note:'scientists\' break sofa'},
+  ],
+  doors:[
+   {x:323,y:-440,w:4,h:40,into:-1,room:'Lab office'},
+   {x:383,y:-440,w:4,h:40,into:1,room:'Security office'},
   ],
   rooms:[
    {name:'Science lobby',x0:20,y0:-740,x1:570,y1:-490,doorway:'south: the hallway (50 wide)',contents:'four scientists at their workstations (west), the bio-lock terminal (north centre), lab benches (east), server racks screening the three parts from each other'},

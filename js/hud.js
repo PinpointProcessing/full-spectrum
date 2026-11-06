@@ -83,7 +83,7 @@ function hud(){
   else if(act.length>1&&enemies.some(e=>canVolley(act,e)))h='Silencers: tap a hostile marked SILENT SHOT and they all take him at once, quietly.';
   else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=act[0].weapon==='m4s'?`${act[0].name}'s rifle is silenced: tap a hostile marked SILENT SHOT to drop him quietly. A miss alerts him.`:`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
-  else if(breachSpot())h='BREACH at the doorway: tap it and the team stacks up either side, then goes in together with a quick edge.';
+  else if(breachSpot()){const m=breachSpot();h=shutDoorAt(m&&m.door)?'BREACH at the door: tap it and the team stacks up either side, kicks it in and goes in together, catching them off guard. Or walk in, or tap the door: they open it quietly.':'BREACH at the doorway: tap it and the team stacks up either side, then goes in together with a quick edge.';}
   else h=act.some(caught)?'Tap the ground to preview positions. Tap an enemy to focus fire, hold on one to suppress him.':contact?'They haven\'t seen this team: it sneaks and holds fire. Tap a hostile to open fire (an ambush), or slip round them.':'Tap the ground to preview positions. Tap a hostile to open fire, hold on one to suppress him.';
   $('#hint').textContent=h;
   {const ob=$('#obj');if(ob)ob.hidden=state!=='play';}

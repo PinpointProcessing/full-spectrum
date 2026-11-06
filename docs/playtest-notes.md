@@ -201,3 +201,15 @@ its own 3D model; the sniper rifle for Recon) and one passive each, measured lik
 `docs/classes.md`). Defaults until Bryan answers the four questions: the player picks, a class is for good, one Captain,
 the freed men have none. Fixed on the way: a frag throw emptied a soldier's grenades instead of using one (it didn't
 matter while everyone carried one). Still to come: the Class Attribute Slots, the new class gear, the store.
+
+# v74: doors to kick in
+
+Bryan (testing v70): "can we add doors to break down. We can have them kick it in, later incorporate C4s or flashbangs."
+The nine offices off the office building's halls have doors now, shut to start (but for the meeting room's onto the east
+hall, which its guard watches through). A shut door hides the room until it's opened. Walking through opens it quietly
+in half a second (guards open them too), tapping it sends the nearest selected soldier to open it and look in, and a
+breach kicks it in: the team stacks up, the nearest man kicks, the door bangs open off its hinges and they go in. It's
+loud, but the men inside are caught off guard. Tested: sight blocked shut and clear open; a soldier and a guard each
+walking through; a tap from the hall; a breach on the security office (kick at 1.7 s, both guards down by 4 s); the office
+suites (the story, stairs, carrying, floors, the tasks, the breach marker). The warehouse and Level 2's control building
+have no doors yet: their quiet routes were tested on open doorways. C4 and flashbangs on doors come later.

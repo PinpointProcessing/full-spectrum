@@ -12,6 +12,7 @@ function fillBlk(){
   blk.fill(0);
   for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){const x=cx0(gx),y=cy0(gy);if(x<10||y<TOP+10||x>W-10||y>H-10)blk[gy*GW+gx]=1;}
   for(const o of objs){
+    if(o.door)continue;   // a door never blocks the way: whoever walks into a shut one opens it (orders.js)
     const pad=o.kind==='jeep'?4:7.5,b=o.disk?{x:o.disk.cx-o.disk.r,y:o.disk.cy-o.disk.r,w:o.disk.r*2,h:o.disk.r*2}:o;
     const g0=Math.max(0,Math.floor((b.x-pad)/CS)),g1=Math.min(GW-1,Math.floor((b.x+b.w+pad)/CS)),h0=Math.max(0,Math.floor((b.y-pad-TOP)/CS)),h1=Math.min(GH-1,Math.floor((b.y+b.h+pad-TOP)/CS));
     for(let gy=h0;gy<=h1;gy++)for(let gx=g0;gx<=g1;gx++){const i=gy*GW+gx;if(!blk[i]&&rectDist(cx0(gx),cy0(gy),o)<pad)blk[i]=1;}
@@ -33,7 +34,7 @@ function nearestFreeCell(gx,gy,b=blk){
   return -1;
 }
 function cellOf(x,y,b=blk){const gx=clamp(Math.floor(x/CS),0,GW-1),gy=clamp(Math.floor((y-TOP)/CS),0,GH-1);let i=gy*GW+gx;if(b[i])i=nearestFreeCell(gx,gy,b);return i;}
-function clearLine(ax,ay,bx,by,pad=6.5){for(const o of objs)if(segHitsRect(ax,ay,bx,by,o,pad))return false;return true;}
+function clearLine(ax,ay,bx,by,pad=6.5){for(const o of objs)if(!o.door&&segHitsRect(ax,ay,bx,by,o,pad))return false;return true;}   // (a door never blocks the way: whoever walks into it opens it, orders.js)
 const gS=new Float32Array(GW*GH),came=new Int32Array(GW*GH),cameW=new Int16Array(GW*GH),seenSt=new Int32Array(GW*GH),closedSt=new Int32Array(GW*GH);let stampN=0;
 
 /* ---------- windows, sandbags and barriers: the squad vaults over them ---------- */
@@ -201,7 +202,7 @@ function addCoverPts(o){
   for(let i=0;i<nx;i++){const x=o.x+(i+.5)*o.w/nx;add(x,o.y-off);add(x,o.y+o.h+off);}
   for(let i=0;i<ny;i++){const y=o.y+(i+.5)*o.h/ny;add(o.x-off,y);add(o.x+o.w+off,y);}
 }
-const NO_COVER=new Set(['fence','water','pit','fortwall','bars','void','wtower']);   // no cover points round these (cover points that land in a 'void' or outside a building's walls aren't free, so they're dropped anyway)
+const NO_COVER=new Set(['fence','water','pit','fortwall','bars','void','wtower','door']);   // no cover points round these (cover points that land in a 'void' or outside a building's walls aren't free, so they're dropped anyway)
 function fillCover(){coverPts.length=0;for(const o of objs)if(!NO_COVER.has(o.kind))addCoverPts(o);}
 fillCover();
 

@@ -165,16 +165,17 @@ function smokeBlocks(ax,ay,bx,by){
 function coverAt(tx,ty,sx,sy){
   let best=0;
   for(const o of objs){
-    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit'||o.kind==='bars'||o.kind==='void'||o.kind==='wtower'||o.kind==='srail')continue;   // cell bars, the void between floors and the watchtower's legs are never cover
+    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit'||o.kind==='bars'||o.kind==='void'||o.kind==='wtower'||o.kind==='srail'||o.door&&o.open)continue;   // (an open door isn't cover)   // cell bars, the void between floors and the watchtower's legs are never cover
     if(rectDist(tx,ty,o)>15)continue;
     if(rectDist(sx,sy,o)<15)continue;
     if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)
   }
   return best;
 }
-function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(const o of objs)if(rectDist(x,y,o)<(o.kind==='jeep'&&pad<10?Math.min(pad,4):pad))return false;return true;}   // a parked jeep doesn't seal a gap: you can squeeze past it
+function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>W-10||y>H-10)return false;for(const o of objs)if(!o.door&&rectDist(x,y,o)<(o.kind==='jeep'&&pad<10?Math.min(pad,4):pad))return false;return true;}   // a parked jeep doesn't seal a gap: you can squeeze past it
 // How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
 function objHeight(o){
+  if(o.door)return o.open?0:10.5;   // a door (interior.js): as tall as the cut-away walls while it's shut; open, nothing
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);
   return{wall:24,window:24,truck:24,rack:20,barrel:10,pallet:7,barrier:8,sandbag:9,jeep:12,gate:18,booth:34,tower:46,tank:32,armor:20,office:90,garage:26,bridge:74,pylon:80,panel:12,gatehouse:110,gtower:130,car:12,core:18,desk:9,dcblock:60,rail:7,pbwall:11,wtower:50,relay:72,

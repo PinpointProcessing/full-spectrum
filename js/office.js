@@ -172,6 +172,7 @@ function removeObj(o){
 }
 function restoreObjs(){   // a fresh visit: the doors and gates back where they were
   for(const o of IN.allObjs)if(o.gone){o.gone=false;if(!IN.objs.includes(o))IN.objs.push(o);if(o.mesh){o.mesh.visible=true;o.mesh.position.y=0;}}
+  for(const o of IN.allObjs)if(o.door){o.open=o.open0;o.full=!o.open0;o.broken=false;o.anim=null;doorPose(o,o.open?1:0);}   // the rooms' doors shut again (orders.js)
 }
 
 /* ---------- the shared room, the card and the steel door ---------- */
@@ -260,7 +261,7 @@ function civTick(u,dt){
   u.hitFlash=Math.max(0,(u.hitFlash||0)-dt);
   if(u.path.length){
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy),sp=(u.detained?48:30)*dt;
-    if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}
+    if(doorWait(u,p,dt)){}else if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}   // (a shut door in his way: he opens it too, orders.js)
     if(d>.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
   }
   if(!u.sci)return;

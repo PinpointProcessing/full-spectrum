@@ -106,6 +106,7 @@ function statusText(u){
   if(u.inBoat)return['In the boat',''];
   if(u.crawl)return[u.path.length?'Crawling':'In the pipe',''];
   if(u.tk)return[u.tk.strike?'Takedown':'Sneaking up',''];
+  if(u.doorT>0)return['Opening door',''];
   if(u.silent)return['Taking aim',''];
   if(u.sup>0.65)return['Pinned','pin'];
   if(u.supT)return['Suppressing',''];

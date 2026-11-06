@@ -74,7 +74,7 @@ function paintFloors(g,L){
   }
   for(const f of L.floors)for(const o of f.objects)if(o.kind==='steeldoor'){const cx=o.x+o.w/2,cy=o.y+o.h+16,gr=g.createRadialGradient(cx,cy,0,cx,cy,30);gr.addColorStop(0,'rgba(0,0,0,.55)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(cx,cy,30,0,7);g.fill();}
   g.save();g.fillStyle='rgba(0,0,0,.5)';
-  for(const o of IN.objs){if(o.kind==='void'||o.kind==='srail')continue;const wall=/wall|pillar|steeldoor|cabinet|rack|carddoor/.test(o.kind);g.shadowColor=wall?'rgba(0,0,0,.8)':'rgba(0,0,0,.6)';g.shadowBlur=wall?16:9;g.fillRect(o.x,o.y,o.w,o.h);}
+  for(const o of IN.objs){if(o.kind==='void'||o.kind==='srail'||o.door)continue;const wall=/wall|pillar|steeldoor|cabinet|rack|carddoor/.test(o.kind);g.shadowColor=wall?'rgba(0,0,0,.8)':'rgba(0,0,0,.6)';g.shadowBlur=wall?16:9;g.fillRect(o.x,o.y,o.w,o.h);}
   g.restore();
   for(const f of L.floors)for(const z of f.zones||[])if(z.kind==='stairs-down')g.clearRect(z.x0,z.y0,z.x1-z.x0,z.y1-z.y0);   // a hole in the floor: the flight goes down into it (buildFlight)
 }
@@ -83,6 +83,7 @@ function buildInterior(){
   IN={L,floors:{},objs:[],lamps:[],hq:[],units:[],acts:[],scene:null,lights:null,canvas:null,tex:null};
   for(const f of L.floors)IN.floors[f.id]=f;
   for(const f of L.floors)for(const o of f.objects)IN.objs.push({kind:o.kind,x:o.x,y:o.y,w:o.w,h:o.h,full:FULL.has(o.kind),floor:f.id,gate:o.gate});
+  for(const f of L.floors)for(const d of f.doors||[])IN.objs.push({kind:'door',door:true,x:d.x,y:d.y,w:d.w,h:d.h,into:d.into,room:d.room,open0:!!d.open,open:!!d.open,full:!d.open,floor:f.id});   // the rooms' doors (orders.js)
   IN.flights=[];for(const f of L.floors)for(const z of f.zones||[])if(/^stairs-(up|down)$/.test(z.kind)&&z.dir){IN.flights.push({...z,floor:f.id,up:z.kind==='stairs-up'});IN.objs.push(...flightRails(z,f.id));}   // the stairs in 3D, and rails you can't walk through along their sides
   IN.objs.push(...voidRects(L.floors.map(f=>f.bounds)));IN.allObjs=IN.objs.slice();   // (allObjs: doors and gates that open come back on a fresh visit)
   // the light plan (docs/feel-plan.md: rooms you can read): rooms with people in them and the main spaces are lit, a hallway
@@ -113,7 +114,7 @@ function buildInterior(){
   const M=(c,o={})=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.8,metalness:.1},o)),ML=c=>new T.MeshLambertMaterial({color:c});
   const mat={wall:ML(0x2a2f35),owall:ML(0x202429),cap:ML(0x7a8087),wood:ML(0x5c4a38),light:ML(0x8f897e),metal:M(0x4d5359,{metalness:.5,roughness:.5}),dark:M(0x23272b,{metalness:.4,roughness:.5}),steel:M(0x3a4046,{metalness:.7,roughness:.35}),
     sofa:ML(0x2c3440),leaf:ML(0x2f5a34),bag:ML(0x8a7a5a),screen:new T.MeshBasicMaterial({color:0x5fb8e8,toneMapped:false}),led:new T.MeshBasicMaterial({color:0x37e08a,toneMapped:false}),glow:new T.MeshBasicMaterial({color:0xa8e6ff,toneMapped:false}),
-    bars:M(0x2c3034,{metalness:.7,roughness:.4}),hazard:M(0xc8a02a),chair:ML(0x1c2126)};
+    bars:M(0x2c3034,{metalness:.7,roughness:.4}),hazard:M(0xc8a02a),chair:ML(0x1c2126),door:ML(0x7a5a3c),doorTop:ML(0xc0925a)};
   let tgt=sc;const box=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);tgt.add(b);return b;};
   for(const o of IN.objs){
     if(o.kind==='void')continue;const cx=o.x+o.w/2,cz=o.y+o.h/2,hgt=objHeight(o);tgt=new T.Group();(IN.groups[o.floor]||sc).add(tgt);o.mesh=o.grp=tgt;   // (its own group: doors sink away, gates vanish)
@@ -121,6 +122,11 @@ function buildInterior(){
       box(o.w,hgt,o.h,o.kind==='liftwall'?mat.metal:o.kind==='owall'?mat.owall:mat.wall,cx,hgt/2,cz);box(o.w+.2,1.2,o.h+.2,mat.cap,cx,hgt+.6,cz);
     }else if(o.kind==='steeldoor'){box(o.w,hgt,o.h,mat.steel,cx,hgt/2,cz);for(let k=0;k<3;k++)box(o.w>o.h?o.w:1.2,1.4,o.w>o.h?1.2:o.h,mat.hazard,cx,3+k*4,cz);}
     else if(o.kind==='srail')continue;   // (drawn with its flight: buildFlight)
+    else if(o.door){   // a room's door: a wooden slab hinged at its north end (the group sits on the hinge and turns: doorPose, orders.js)
+      const dh=10.5;tgt.position.set(cx,0,o.y);box(o.w,dh,o.h-1,mat.door,0,dh/2,o.h/2);box(o.w+.3,.8,o.h-1,mat.doorTop,0,dh+.4,o.h/2);   // (a warm wood top: from above it reads as a door in the wall line, lower than the walls)
+      for(const s of[-1,1])box(.8,1.2,1.6,mat.metal,s*(o.w/2+.4),dh*.55,o.h-5);
+      doorPose(o,o.open?1:0);
+    }
     else if(o.kind==='carddoor'){   // the stair door up top: plain steel with a wired glass panel; the card reader on the wall beside it, stairwell side (east)
       box(o.w,hgt,o.h,mat.metal,cx,hgt/2,cz);box(o.w+.4,4,o.h*.4,mat.dark,cx,8.5,cz);box(o.w+.6,.8,o.h,new T.MeshBasicMaterial({color:0xd02818,toneMapped:false}),cx,hgt+.4,cz);   // a red strip along its top: locked
       for(const e of[o.y-1,o.y+o.h+1])box(o.w+1,hgt+1,2,mat.hazard,cx,(hgt+1)/2,e);   // a yellow frame either side
