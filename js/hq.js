@@ -16,10 +16,11 @@ const HEAL_RATE=8,SUPPLY_T=2;
 let hq=null,camPan=null;
 function zoneAt(x,y){return HQ_ZONES.find(z=>z.r?hyp(x-z.x,y-z.y)<=z.r:x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h);}
 // a station with its colour and label (a box given as a rectangle, like the office lobby's, becomes a ring round its middle)
-const hqZone=z=>{const c=z.w?{x:z.x+z.w/2,y:z.y+z.h/2}:{x:z.x,y:z.y};return Object.assign({},z,c,{r:ZONE_R,col:z.k==='med'?'127,224,138':'255,163,72',label:z.k==='med'?'MEDIC':'AMMO'},z.w?{w:0,h:0}:{});};
+const hqZone=z=>{const c=z.w?{x:z.x+z.w/2,y:z.y+z.h/2}:{x:z.x,y:z.y};return Object.assign({},z,c,{r:ZONE_R,col:z.k==='med'?'127,224,138':'255,163,72',label:z.label||(z.k==='med'?'MEDIC':'AMMO')},z.w?{w:0,h:0}:{});};   // (label: the finished HQ's tables, base.js)
 function addZones(list,floorGroup){
   for(const z0 of list){const z=hqZone(z0);if(HQ_ZONES.some(q=>q.k===z.k&&hyp(q.x-z.x,q.y-z.y)<5))continue;HQ_ZONES.push(z);
-    if(typeof stationMesh==='function'&&typeof T!=='undefined'){const m=stationMesh(z);(floorGroup||scene).add(m);z.mesh=m;}}
+    if(!z0.noMesh&&typeof stationMesh==='function'&&typeof T!=='undefined'){   // (noMesh: the HQ's tables have their own models, base.js)
+     const m=stationMesh(z);(floorGroup||scene).add(m);z.mesh=m;}}
 }
 
 // every tick of the mission: healing and refilling at the stations, then the mission's own tick

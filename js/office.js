@@ -389,7 +389,7 @@ function drawOffice(now){
   if(typeof talkActive==='function'&&talkActive())return;   // (a conversation on: story.js)
   const pulse=(Math.sin(now*4)+1)/2,act=sel.some(alive);
   for(const c of civs){
-    if((!c.vis&&!c.detained)||offFloor(c))continue;const[x,y]=toS(c.x,c.y,22);
+    if((!c.vis&&!c.detained)||c.staff||offFloor(c))continue;const[x,y]=toS(c.x,c.y,22);   // (staff: the scientists at work in the finished Headquarters, base.js)
     if(c.sci){if(c.detained)label('DETAINED',x,y,'#e9eef2',8,700);else{label('SCIENTIST',x,y,'#e9eef2',9,700);if(act&&!zipFor(c)){const[fx,fy]=toS(c.x,c.y);pill('ZIP-TIE',fx,fy+16,C.good);}}}
     else if(c.strapped)label('PRISONER · ALIVE',x,y,'#d9c7a0',9,700);
     else label('PRISONER',x,y,'#d9c7a0',9,700);

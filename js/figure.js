@@ -302,6 +302,7 @@ function figState(u){
   if(u.strapped&&!u.joined)return'strapped';
   if(u.railed&&!u.path.length)return'tied';   // (a scientist tied to the drawbridge's railings: monsters.js)
   if(u.grabbed)return'grabbed';
+  if(u.work&&!u.path.length)return u.work==='kneel'?'kneelwork':'standwork';   // (at work in the montage after the Headquarters: base.js)
   if(u.climb)return'climb';
   if(u.crawl)return'crawl';
   if(u.inBoat)return u.driving?'drive':'boat';

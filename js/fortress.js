@@ -6,7 +6,8 @@
    Mother (a giant centipede: creatures.js) coiled round her clutch. She's awake as the squad comes in; her roar opens two of
    the side rooms and her young come out; at two thirds and a third of her health she roars again and two more open. Walk
    into a side room early and its young are on you there. If she dies first, the rooms left burst open. When nothing is left
-   alive the place is the squad's: "Headquarters taken", the freed men's goodbye, the report. No save inside: a lost fight
+   alive the place is the squad's: "Headquarters taken", then the wounded, the scientists brought in, the clean-up and the
+   finished HQ (base.js), and the report. No save inside until then: a lost fight
    goes back to the gate ('gate'). The place is her nest (Bryan: goo on the walls, "hard purple, black, red, brown slime rocks
    growing up furniture and walls, extending to the ground"; "No pink"): hqNest in creatures.js. */
 const HQB={x0:60,x1:940,y0:80,y1:940},HQ_START=[[470,880],[500,880],[530,880],[455,905],[485,905],[515,905],[545,905],[500,925]];
@@ -88,7 +89,7 @@ function buildHQ(){
     // old fittings grimed over (the pale tanks burned out to white under her lamps)
     HQ.nest=hqNest(sc,HQ.objs);
     for(const o of HQ.objs)if(o.meshes&&['ctank','xfmr','console','crate','barrel','wall'].includes(o.kind))for(const m of o.meshes){if(!m.material||!m.material.color||m.userData.grimed)continue;
-      m.material=m.material.clone();m.userData.grimed=true;m.material.color.multiplyScalar(o.kind==='ctank'?.16:o.kind==='wall'?.45:.45).lerp(new T.Color(0x2a1c12),o.kind==='wall'?0:.25);}
+      m.userData.cleanMat=m.material;m.material=m.material.clone();m.userData.grimed=true;m.material.color.multiplyScalar(o.kind==='ctank'?.16:o.kind==='wall'?.45:.45).lerp(new T.Color(0x2a1c12),o.kind==='wall'?0:.25);}
     const moon=new T.DirectionalLight(0xb0a4ff,.32);moon.position.set(300,600,300);moon.target.position.set(500,0,500);moon.castShadow=true;
     moon.shadow.mapSize.set(1024,1024);Object.assign(moon.shadow.camera,{left:-520,right:520,top:520,bottom:-520,near:50,far:1600});moon.shadow.bias=-0.0008;sc.add(moon,moon.target);
     const pool=[];for(let k=0;k<LAMP_POOL;k++){const p=new T.PointLight(0xffffff,0,100,1.4);sc.add(p);pool.push(p);}
@@ -99,9 +100,9 @@ function buildHQ(){
 }
 // in through the gate (from the gather area at the drawbridge: monsters.js); the scientists and the rest wait outside
 function enterHQ(){
-  const f=$('#fade');if(f)f.classList.add('on');
+  const f=$('#fade');if(f){f.hidden=false;void f.offsetWidth;f.classList.add('on');}
   setTimeout(()=>{
-    buildHQ();stashOut(players);
+    buildHQ();stashOut(players);baseActs();   // (BRING THE SCIENTISTS once the fight's over: base.js)
     useMap({objs:HQ.objs,hq:HQ.hq,slow:[],lamps:HQ.lamps,scene:HQ.scene,lights:HQ.lights});
     tankFires=[];rockets=[];charges=[];
     const live=players.filter(p=>!p.dead&&!p.gone);
@@ -118,11 +119,11 @@ function enterHQ(){
     zoom=2.0;yaw=0;tilt=0;camT={x:500,z:800};clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
     bigText('The Headquarters','inbound');
-    if(f)setTimeout(()=>f.classList.remove('on'),60);
+    if(f)setTimeout(()=>{f.classList.remove('on');setTimeout(()=>{if(!f.classList.contains('on'))f.hidden=true;},400);},60);
   },380);
 }
 function leaveHQNow(){   // back to the big map at once (a Retry, a New game)
-  if(MAPID!=='hq')return;const out=STASH.out;hqEnd=null;if(typeof talkStop==='function')talkStop();
+  if(MAPID!=='hq')return;const out=STASH.out;hqEnd=null;base=null;$('#app').classList.remove('cine');if(typeof talkStop==='function')talkStop();
   for(const u of units)if(u.side!=='P'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';
   for(const p of players){p.offMap=false;moveMesh(p,out.scene);}
@@ -177,13 +178,16 @@ function hqTickWin(){
   for(const p of hqs.pending.slice())if(simT>=p.at){hqs.pending.splice(hqs.pending.indexOf(p),1);openRoom(p.r);}
   for(const h of hqs.hatch.slice())if(simT>=h.at){hqs.hatch.splice(hqs.hatch.indexOf(h),1);hatch(h.k,h.n);}
   if(enemies.some(e=>e.mon&&!e.dead))return;if(!enemies.some(e=>e.mon==='boss'))return;
-  hqs.won=true;obj=6;objCompleted(4);updateObjUI();bigText('Headquarters taken','complete');banner('It’s yours now. This is your new HQ.',3600);
-  setTimeout(()=>{if(state==='play'&&MAPID==='hq')hqEnding(()=>{if(state==='play'){endAt=performance.now()+1800;}});},OBJ_LIST_T+400);   // (the scientists brought in and a talk first; the freed men stay: Bryan, they're part of the squad now)
+  hqs.won=true;hqs.wonT=simT;obj=6;objCompleted(4);updateObjUI();hud();bigText('Headquarters taken','complete');
+  setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!hqEnd)banner(anyDown()?'It’s over. Get the wounded up, then send someone for the scientists.':'It’s over. Send someone out for the scientists.',4200);},OBJ_LIST_T+300);   // (the player's turn now: base.js)
 }
 /* ---------- the end (Bryan, after v85: "one of the surviving soldiers exits the HQ off screen and returns with the
-   scientist. Then a sequence happens."): everyone who's up gathers in the entry hall, one of them goes out of its south door
-   for the scientists left tied on the drawbridge and brings them in, and they talk (story.js's panel); then the freed men's
-   goodbye and the report. No orders meanwhile (endingBusy: input.js, hud.js), and nobody bleeds out (combat.js). ---------- */
+   scientist. Then a sequence happens."; after v94: the player gets the wounded up and sends someone for the scientists, and
+   "When the scientists come in, they all walk to the center while the conversation is happening"): the soldier the player
+   sends (BRING THE SCIENTISTS: base.js's startFetch) goes out of the entry hall's south door for the scientists left tied
+   on the drawbridge and brings them in; as they come in everyone walks to the middle of the hall and they talk (story.js's
+   panel); then base.js's montage and the finished HQ. No orders from the moment he's sent (endingBusy: input.js, hud.js);
+   nobody bleeds out once the fight's over (hqCalm: combat.js). ---------- */
 const HQ_DOOR={x:500,y:922},HQ_OUT={x:500,y:974},HQ_SCI={x:500,y:893};   // (the door out of the entry hall, the dark beyond it, where the scientist stops)
 // the conversation: a draft for Bryan (who, the words); clips hqend_1.. once it's voiced
 const HQ_TALK=[['sci',"She's dead. You actually killed her."],['lead',"No thanks to you. Start talking."],
@@ -195,48 +199,30 @@ const HQ_TALK=[['sci',"She's dead. You actually killed her."],['lead',"No thanks
   ['sci',"Fine. What do you need?"],['lead',"Power. A working lab. And everything you know about those things."]];
 let hqEnd=null;
 const endingBusy=()=>!!hqEnd&&hqEnd.ph!=='done';
-function hqEnding(done){
-  const out=STASH.out,tied=out?out.units.filter(u=>u.sci&&u.railed&&!u.dead):[],up=players.filter(p=>alive(p)&&!p.offMap&&!p.away);
-  if(!tied.length||!up.length){done();return;}
-  const lead=['A1','B1'].map(id=>up.find(p=>p.id===id)).find(Boolean)||up[0];
-  const fetch=up.filter(p=>p!==lead&&!p.carry).sort((a,b)=>hyp(a.x-HQ_DOOR.x,a.y-HQ_DOOR.y)-hyp(b.x-HQ_DOOR.x,b.y-HQ_DOOR.y))[0]||lead;
-  const other=['A2','B2','B1','A3','A4','B3','B4'].map(id=>up.find(p=>p.id===id&&p!==lead)).find(Boolean)||lead;
-  select([]);preview=null;mode=null;hqEnd={ph:'out',t:simT,done,tied,lead,fetch,other,sci:[]};
-  const rest=up.filter(p=>p!==fetch&&!p.carry).sort((a,b)=>(b===lead)-(a===lead)),taken=[];   // (the leader in front, the rest either side of him)
-  rest.forEach((p,i)=>{const k=i?(i%2?1:-1)*Math.ceil(i/2):0,a=-Math.PI/2+k*.55,s=openSpot(HQ_SCI.x+Math.cos(a)*46,HQ_SCI.y+Math.sin(a)*46,taken)||{x:p.x,y:p.y};taken.push(s);
-    p.path=findPath(p.x,p.y,s.x,s.y)||[];p.lastOrder=simT;});
-  fetch.path=[...(findPath(fetch.x,fetch.y,HQ_DOOR.x,HQ_DOOR.y)||[]),{x:HQ_OUT.x,y:HQ_OUT.y}];fetch.lastOrder=simT;
-  if(lead!==fetch)callout(lead,'Bring the scientists in.',C.good);setTimeout(()=>{if(hqEnd&&alive(fetch))callout(fetch,'On it.',C.good);},900);
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:500,z:904,zoom:3.5},t:0,dur:1.6};
-}
 function hqEndTick(){   // (every tick once she's dead: hqTickWin)
-  const E=hqEnd;if(!E||E.ph==='done'||E.ph==='talk')return;const f=E.fetch;
-  if(E.ph==='out'){
-    if(!f.away&&(f.y>946||simT-E.t>14)){f.away=true;f.path=[];E.t=simT;}   // out of the door, into the dark
-    if(!f.away||simT-E.t<2.4)return;
-    E.ph='back';E.t=simT;f.away=false;f.x=HQ_OUT.x;f.y=HQ_OUT.y-6;f.ang=-Math.PI/2;f.path=[{x:HQ_DOOR.x,y:HQ_DOOR.y},{x:HQ_SCI.x+46,y:HQ_SCI.y+16}];f.lastOrder=simT;
-    E.sci=E.tied.map((o,i)=>{const d=[[0,0],[-24,16],[24,16],[0,30]][i%4],u=mk('C','C',o.id,o.name,HQ_OUT.x+d[0],HQ_OUT.y+16+d[1],-Math.PI/2);   // (back with him: the ones tied on the drawbridge)
-      Object.assign(u,{kind:'sci',sci:true,sciN:o.sciN,detained:true,weapon:null,grenade:0,spec:null,specN:0,pleadT:simT+1e6,hold:{ang:-Math.PI/2}});
-      makePerson(u);units.push(u);civs.push(u);u.path=[{x:HQ_DOOR.x+d[0]*.4,y:HQ_DOOR.y+6},{x:HQ_SCI.x+d[0],y:HQ_SCI.y+d[1]}];return u;});
-    return;
-  }
-  if(E.sci.some(c=>c.path.length)&&simT-E.t<12)return;   // (in through the door and up to the squad)
-  E.ph='talk';const s0=E.sci[0];
-  for(const p of players)if(alive(p)&&!p.away&&!p.path.length)p.ang=Math.atan2(s0.y-p.y,s0.x-p.x);   // (everyone turns to him)
-  const who={sci:s0,lead:E.lead,other:E.other},to={sci:E.lead,lead:s0,other:s0};
-  talkStart(HQ_TALK.map(([k,t],i)=>({who:who[k],to:to[k],text:t,clip:`hqend_${i+1}`})),()=>{E.ph='done';E.done();});
+  const E=hqEnd;if(!E||E.ph!=='out')return;const f=E.fetch;
+  if(!f.away&&(f.y>946||simT-E.t>14)){f.away=true;f.path=[];E.t=simT;}   // out of the door, into the dark
+  if(!f.away||simT-E.t<2.4)return;
+  E.ph='talk';E.t=simT;f.away=false;f.x=HQ_OUT.x;f.y=HQ_OUT.y-6;f.ang=-Math.PI/2;f.path=[{x:HQ_DOOR.x,y:HQ_DOOR.y}];f.lastOrder=simT;
+  E.sci=E.tied.map((o,i)=>{const d=[[0,0],[-24,16],[24,16],[0,30]][i%4],u=sciCopy(o,HQ_OUT.x+d[0],HQ_OUT.y+16+d[1],-Math.PI/2);   // (back with him: the ones tied on the drawbridge)
+    u.path=[{x:HQ_DOOR.x+d[0]*.4,y:HQ_DOOR.y+6},{x:HQ_DOOR.x+d[0]*.4,y:HQ_DOOR.y-10}];return u;});
+  walkToMid(E);   // in through the door and on to the middle of the hall, everyone, while they talk (base.js)
+  const s0=E.sci[0],who={sci:s0,lead:E.lead,other:E.other},to={sci:E.lead,lead:s0,other:s0};
+  talkStart(HQ_TALK.map(([k,t],i)=>({who:who[k],to:to[k],text:t,clip:`hqend_${i+1}`})),()=>{E.ph='montage';E.done();});
 }
 function hqHint(){
   if(MAPID!=='hq')return'';
-  if(hqs.won)return'The Headquarters is yours.';
+  if(hqs.won){if(HQ&&HQ.base)return'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now.';
+    if(hqEnd)return'';
+    return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now.':'Send someone for the scientists: select a soldier, then tap BRING THE SCIENTISTS at the south door.';}
   if(!hqs.awake)return'Here she comes.';
   const b=enemies.find(e=>e.mon==='boss');
   if(b&&!b.dead)return'Keep moving: get out of the violet ring before she slams, shoot her young when they rear up. Her roars open the side rooms and hatch her eggs.';
   return'Finish her young: the side rooms are open.';
 }
 function drawHQ(now){
-  if(MAPID!=='hq')return;
-  const b=enemies.find(e=>e.mon==='boss');if(!b||!hqs.awake)return;
+  if(MAPID!=='hq')return;drawBase(now);
+  const b=enemies.find(e=>e.mon==='boss');if(!b||!hqs.awake||hqs.won)return;
   // her health across the top
   const w=Math.min(300,cw-120),x=(cw-w)/2,y=92,k=Math.max(0,b.hp/b.maxHp);
   ox.fillStyle='rgba(10,8,14,.75)';ox.fillRect(x-2,y-2,w+4,12);ox.fillStyle='#2a1838';ox.fillRect(x,y,w,8);ox.fillStyle=b.dead?'#3a2a44':'#b46cff';ox.fillRect(x,y,w*k,8);

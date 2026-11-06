@@ -886,9 +886,9 @@ function update(dt){
     if(!p.critical){
       const hs=players.filter(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED),helper=hs.find(o=>isCls(o,'medic'))||hs[0];   // Bryan: no reviving while pinned (a Medic beside him does it if there is one)
       if(helper){const md=isCls(helper,'medic');p.revive+=dt;p.reviveNeed=md?CLS.reviveT:3;if(p.revive>=p.reviveNeed)reviveUp(p,md?CLS.reviveHp:35,helper);}   // (a Medic: quicker, and he comes up better: classes.js)
-      else{p.revive=Math.max(0,p.revive-dt);if(!(typeof endingBusy==='function'&&endingBusy()))p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
+      else{p.revive=Math.max(0,p.revive-dt);if(!(typeof hqCalm==='function'&&hqCalm()))p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
     }else{
-      if(!p.noBleed&&!(typeof endingBusy==='function'&&endingBusy()))p.crit-=dt;   // (the man off the basement wall has no clock: office.js; nor anyone while the Headquarters' end plays: fortress.js)
+      if(!p.noBleed&&!(typeof hqCalm==='function'&&hqCalm()))p.crit-=dt;   // (the man off the basement wall has no clock: office.js; nor anyone while the Headquarters' end plays: fortress.js)
       if(p.crit<=0){if(p.carriedBy)putDown(p.carriedBy);p.dead=true;p.downed=false;p.critical=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}
     }
   }
@@ -902,7 +902,7 @@ function update(dt){
   takedownTick(dt);silentTick();throwTick();fireGoTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
-    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
+    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();baseTick(dt);   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

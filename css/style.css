@@ -301,3 +301,5 @@ body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipp
 .card details.cps[open] summary{margin-bottom:6px}
 #cpBtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
 #cpBtns .cp{min-height:36px;font-size:12px;background:#151c22;border-color:var(--line);color:#c9d3da;text-align:left;padding:4px 10px}
+/* the montage after the Headquarters (base.js): just the picture */
+#app.cine .panel,#app.cine #cards,#app.cine #gaitBtn,#app.cine #fitBtn,#app.cine #floors,#app.cine #tl,#app.cine #speed,#app.cine #talk,#app.cine #banner{visibility:hidden}

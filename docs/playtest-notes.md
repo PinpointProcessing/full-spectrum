@@ -477,3 +477,37 @@ three times the area: 15 x 13 m, it was 12 x 6, which eight men sent there toget
 medic station and ammo drop (they come once the gate is clear) moved 5 m west, out of it. Lowering the drawbridge shows
 nothing now: no "Drawbridge down!", the objective list doesn't open (it's crossed off quietly), and the save happens without
 its "Saved" chip; a Continue from that save doesn't put up "Continuing: Drawbridge down." either.
+
+# v95: after the boss: the wounded, the scientists, the clean-up, the finished HQ
+
+Bryan: "Okay that was a pretty awesome boss battle lol. Hard but winnable. Now, when the match is over. The player should
+revive any downed unit, if there save bar hasn't depleted, remember only a medic can revive when it's depleted completely,
+so if one managed to survive they can survive them all. Then the player should send someone to go get the scientist. When
+the scientists come in, they all walk to the center while the conversation is happening. Then after the conversation the
+screen shows a montage of the units and scientists cleaning the HQ. It then goes to the complete HQ which has a command
+center, medic table, supply table." (His ideas for more stations and rooms are in docs/hq-base.md, as a proposal.)
+
+- Once nothing's left alive, nobody bleeds out: each downed man's bar stops where it is. A teammate beside him gets him up
+  while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carrying him to the medic station. The
+  ammo drop refills a medic kit, so one medic can get everyone up.
+- BRING THE SCIENTISTS at the entry hall's south door: select a soldier and tap it (while anyone's down it says "Get the
+  wounded up first."). He goes out and comes back with the scientists left tied on the drawbridge; as they come in,
+  everyone walks to the middle of the hall while they talk.
+- Then the montage: four shots with a fade between: her lair, the squad and scientists kneeling round the clutch while
+  the eggs come away; a side room, the resin and slime rocks coming off the walls; the hall, clean, the scientists at the
+  old consoles and the squad hauling the debris out while the lights come back on one by one; and the finished HQ.
+- The finished HQ: the hall clean and lit, a command center in the middle (a map table that lights up, three screens,
+  chairs), a medic table and a supply table (they heal and refill like the stations did), the six side rooms empty and
+  labelled for what's built next. "Mission complete!", the report, and a save: Continue (or the new last checkpoint,
+  "The Headquarters") goes straight back in.
+- If every scientist died at the gate, there's nobody to fetch: the clean-up starts by itself once the wounded are up.
+- Found on the way: the side rooms' floor creep in her nest had never shown (its seed read room fields that don't exist,
+  so every vertex was NaN); it shows now, as designed. Scorch marks inside the HQ were being painted onto the big map's
+  ground. And the test harness only reported page errors from loading, so errors after that never showed in any test; it
+  reports them all now (the nest's NaN was the only one).
+- Tested headless: two men down after the fight (one still bleeding, one critical), their bars frozen for 10 s, the fetch
+  refused until both were up (9 s: a hand revive and a medic kit), the fetch, all twelve lines while everyone gathered in
+  the middle, the montage and the finished HQ, the save, Continue straight back in (healing at the medic table). With a
+  real fight, eight men: won with one down, the bot got him up and went on through the talk and the montage to the report.
+  Four men lost to her on that seed. With no scientists, the clean-up started on its own. Level 1's tutorial lock test,
+  Level 2's quiet run and the regroup test still pass.

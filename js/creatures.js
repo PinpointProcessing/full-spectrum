@@ -317,7 +317,7 @@ function hqNest(sc,objs){
   const cm=crMat('creep',{nmap:crNormalTex('goo',512,crGooH),ns:.22,rough:.3,coat:1,coatR:.12,env:.7,rimK:.04,rim:0x8a7056});
   const creep=(cx,cz,rx,rz,rot,sd,H)=>creepG.push(crCreep(cx,cz,rx,rz,rot,sd,H));
   creep(L.x,L.y+10,150,110,0,1.1,2.4);creep(L.x-40,L.y+120,90,60,.3,2.2,1.8);creep(L.x+60,L.y+110,80,55,-.4,3.3,1.6);
-  for(const q of HQ_ROOMS){creep((q.x0+q.x1)/2+q.side*30,(q.y0+q.y1)/2-10,75,60,r(),q.x*.01+q.y,1.8);creep(q.door.x-q.side*30,q.door.y,40,16,q.side*.15,q.y*.07,1.1);}
+  for(const q of HQ_ROOMS){creep((q.x0+q.x1)/2+q.side*30,(q.y0+q.y1)/2-10,75,60,r(),q.x0*.01+q.y0,1.8);creep(q.door.x-q.side*30,q.door.y,40,16,q.side*.15,q.y0*.07,1.1);}
   // strands: from the resin on the walls down to the floor, and across the rooms' doorways
   for(const q of HQ_ROOMS){const dx=q.door.x,dy=q.door.y;for(let i=0;i<5;i++){const a=new T.Vector3(dx,8+r()*14,dy-22+r()*6),b=new T.Vector3(dx,6+r()*14,dy+16+r()*6);
     gooG.push(crStrand(a,b,.22+r()*.3,3+r()*6));}}
@@ -325,12 +325,12 @@ function hqNest(sc,objs){
   // the clutches
   const eggs=[],clutches=[],cl=(x,z,R,n,sz,sd)=>{const a=eggs.length;crClutch(x,z,R,n,sz,sd,eggs);clutches.push({x,z,R,a,b:eggs.length});};
   cl(L.x,L.y-10,44,230,2.6,77);cl(L.x-95,L.y+58,20,44,2.3,78);cl(L.x+98,L.y+52,19,40,2.3,79);   // (0: her clutch, 1 and 2 beside it, 3-8 the rooms' in HQ_ROOMS order)
-  for(const q of HQ_ROOMS)cl((q.x0+q.x1)/2+q.side*40,(q.y0+q.y1)/2-30,16,26,1.8,q.x+q.y);
+  for(const q of HQ_ROOMS)cl((q.x0+q.x1)/2+q.side*40,(q.y0+q.y1)/2-30,16,26,1.8,q.x0+q.y0);
   const eg=new T.SphereGeometry(1,8,6);{const p=eg.attributes.position,C=[];for(let i=0;i<p.count;i++){const y=p.getY(i);C.push(...crMix(crLin('#4e473d'),crLin('#a39a86'),crS(-.9,.8,y)));}eg.setAttribute('color',new T.Float32BufferAttribute(C,3));}
   const E=new T.InstancedMesh(eg,crEggMat(),eggs.length),m4=new T.Matrix4(),q4=new T.Quaternion(),e4=new T.Euler();E.receiveShadow=true;E.frustumCulled=false;
   const white=new T.Color(1,1,1);eggs.forEach((e,i)=>{q4.setFromEuler(e4.set(e.rx,e.ry,0));m4.compose(new T.Vector3(e.x,e.y,e.z),q4,new T.Vector3(e.s,e.s*1.22,e.s));E.setMatrixAt(i,m4);E.setColorAt(i,white);});grp.add(E);   // (a colour each, so one can split open: crEggBurst)
   grp.userData.eggs={list:eggs,mesh:E,clutches};
-  hqRocks(sc,objs);
+  grp.userData.rocks=hqRocks(sc,objs);   // (with the nest, so the clean-up can take them away: base.js)
   return grp;}
 // the floor under the nest (fortress.js's ground canvas, its own transform): old concrete gone dark with her secretions,
 // drag marks out of the rooms, the lair black and veined

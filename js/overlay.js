@@ -67,6 +67,7 @@ function drawSmoke(){
 }
 function drawOverlay(rdt,now){
   ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
+  if(typeof cineOn==='function'&&cineOn())return;   // (the montage after the Headquarters: just the picture, base.js)
   const pulse=(Math.sin(now*4)+1)/2;
   // enemy view cones (unaware, seen)
   for(const e of enemies){
@@ -82,7 +83,7 @@ function drawOverlay(rdt,now){
   }
   // move paths
   for(const u of players){
-    if(!alive(u)||!u.path.length)continue;const isSel=sel.includes(u);
+    if(!alive(u)||!u.path.length||(typeof endingBusy==='function'&&endingBusy()))continue;const isSel=sel.includes(u);   // (none in the scene at the Headquarters' end: fortress.js)
     ox.strokeStyle=teamCol(u);ox.globalAlpha=isSel?.7:.3;ox.setLineDash([4,5]);ox.lineWidth=1.4;
     toSBack=false;ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of u.path){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}if(!toSBack)ox.stroke();
     ox.setLineDash([]);
