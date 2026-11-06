@@ -42,6 +42,9 @@
     </div>
     <div id="tut" hidden aria-live="polite"></div>
     <button id="tutPin" hidden aria-label="Show the tip again">?</button>
+    <div id="talk" hidden><!-- a conversation outside battle (story.js): tap for the next line -->
+      <div class="tk-box"><canvas class="tk-face" width="96" height="96" aria-hidden="true"></canvas><div class="tk-body"><b class="tk-name"></b><p class="tk-text" aria-live="polite"></p><span class="tk-more">Tap to continue</span></div><button class="tk-skip" type="button">Skip</button></div>
+    </div>
     <span class="chip slow" id="speed" hidden>Slow-mo</span>
     <div id="cards" hidden></div>
     <div id="floors" hidden aria-label="Floors"></div>
@@ -183,4 +186,5 @@
 <script src="js/audio.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/chatter.js"></script>
+<script src="js/story.js"></script>
 <script src="js/main.js"></script>

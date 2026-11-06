@@ -352,3 +352,20 @@ straight in; they stay tied outside. A tap during the scene still waits for its 
 them back at the railings, tied.
 Tested: in that order from the drawbridge's save, the tap straight in, the scientists outside on the bridge in the
 Headquarters' saved outdoor state; from the gate's save tied at the railings at once.
+
+# v86: the scientists brought in at the end, and a talk
+
+Bryan: "Yes, one of the surviving soldiers exits the HQ off screen and returns with the scientist. Then a sequence happens.
+Do you think we can handle longer conversations? Or do you think we should fall back to text conversations outside of
+battle?"
+- Once the Headquarters is taken: everyone who's up gathers in the entry hall ("Bring the scientists in." / "On it."), one
+  of them walks out of a new door in its south wall into the dark, and comes back a couple of seconds later with the
+  scientists who were tied on the drawbridge. They stop in front of the squad and the talk starts.
+- The talk is a panel along the bottom of the map: the speaker's portrait, name and words, a tap for the next line, Skip
+  for the rest. The words are a draft for Bryan (12 lines: the scientist, the leader, one more soldier) and have no voices
+  yet: once he's happy with them they get voiced like the rest, and the panel plays each line's voice with its words.
+  Then the freed men's goodbye and the report, as before.
+- Meanwhile no orders, and nobody down bleeds out. The objective box reads "Headquarters taken" after the win, and the
+  hint line "The Headquarters is yours." (it said "Here she comes." if she died before waking).
+- Tested: the whole end on a phone and a wide screen (the fetch, the 12 lines through real clicks, then the report);
+  the bot's fight through to the report, tapping through the talk; Levels 1, 2 and 3 start without errors.

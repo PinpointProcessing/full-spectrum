@@ -283,3 +283,15 @@ body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipp
 #clsPick .cls-card b{font:700 14px/1.2 var(--font-hud);letter-spacing:.08em;text-transform:uppercase}
 #clsPick .cls-card span{font-size:13px;color:var(--text)}#clsPick .cls-card em{font-style:normal;font-size:13px;color:var(--good)}#clsPick .cls-card small{font-size:12px;color:var(--dim)}
 #clsPick .cls-card:disabled{opacity:.45;cursor:default}
+
+/* a conversation outside battle (story.js): a veil over the map, the speaker's box along the bottom; a tap goes on */
+#talk{position:absolute;inset:0;z-index:5;cursor:pointer;--tc:var(--text);background:linear-gradient(to top,rgba(4,6,8,.8) 0,rgba(4,6,8,.4) 30%,rgba(4,6,8,0) 50%)}
+#talk .tk-box{position:absolute;left:8px;right:8px;bottom:8px;max-width:640px;margin:0 auto;display:flex;gap:12px;align-items:flex-start;padding:12px 14px 9px;background:rgba(9,13,16,.95);border:1px solid var(--line);border-top:2px solid var(--tc);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+#talk .tk-face{width:72px;height:72px;flex:none;border-radius:6px;border:1px solid color-mix(in srgb,var(--tc) 45%,var(--line))}
+#talk .tk-body{min-width:0;flex:1;display:grid;gap:5px}
+#talk .tk-name{font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--tc)}
+#talk .tk-text{margin:0;font-size:16px;line-height:1.38;color:var(--text);min-height:2.76em}
+#talk .tk-more{justify-self:end;font-family:var(--font-hud);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);opacity:0;transition:opacity .2s}
+#talk.more .tk-more{opacity:1}
+#talk .tk-skip{position:absolute;right:8px;top:8px;min-height:28px;padding:0 10px;font-size:10px;background:rgba(10,14,18,.88)}
+#talk .tk-name{padding-right:64px}

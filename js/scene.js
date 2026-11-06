@@ -713,7 +713,7 @@ function syncUnits(t){
     const m=u.m;if(!m)continue;
     const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
     m.g.position.set(u.x+u.lx,(u.elev||0)+(MAPID==='in'?stairElev(u.x,u.y):0),u.y+u.ly);m.g.rotation.y=-u.ang;   // (on the office stairs: up or down with the steps, interior.js)
-    m.g.visible=!u.gone&&!u.inHeli&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!u.detained));   // (a detained scientist is always with the squad: office.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
+    m.g.visible=!u.gone&&!u.inHeli&&!u.away&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!u.detained));   // (a detained scientist is always with the squad: office.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     if(u.mon){monPose(u,t);continue;}   // (monsters.js)
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)
     if(u.veh){truckPose(u);continue;}   // the gun truck (mission.js)

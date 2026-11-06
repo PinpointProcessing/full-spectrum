@@ -48,7 +48,7 @@ addEventListener('pagehide',()=>{try{sessionStorage.removeItem('wy.alive');}catc
 if(!initGL())$('#nogl').hidden=false;
 else{
   postInit();
-  bindInput();bindHud();bindAudio();bindVoice();bindFloors();bindEquip();refreshSaveButtons();crashNote();
+  bindInput();bindHud();bindAudio();bindVoice();bindFloors();bindEquip();bindTalk();refreshSaveButtons();crashNote();
   buildWorld();reset();
   new ResizeObserver(resize).observe(stage);resize();
   hud();

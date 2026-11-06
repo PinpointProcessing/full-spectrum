@@ -145,7 +145,7 @@ function voiceClip(sp,clip,o={}){
   if(!AC||!sndOn||!VSPR)return 0;const S=VSPR.speakers[sp],c=S&&S.clips[clip];if(!c||!spriteBuf(sp))return 0;
   const rate=o.rate||(.97+Math.random()*.06),d=c[2]/rate,loud=contact&&!o.muffle?1.3:1;   // (a touch of difference each time)
   const play=buf=>{
-    if(!buf||!sndOn)return;const s=AC.createBufferSource();s.buffer=buf;s.playbackRate.value=rate;
+    if(!buf||!sndOn)return;const s=AC.createBufferSource();s.buffer=buf;s.playbackRate.value=rate;if(o.onSrc)o.onSrc(s);   // (o.onSrc: whoever wants to stop it early, story.js)
     if(o.radio)radioChain(AC,s,sndMaster,buf.duration/rate,{level:RADIO.level*(o.gain??1)*loud});
     else{
       const out=voice(o.x,o.y,Math.min(1.4,(o.vol??.9)*loud),buf.duration/rate+.4);if(!out)return;

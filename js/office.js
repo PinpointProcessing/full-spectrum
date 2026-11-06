@@ -270,6 +270,7 @@ function civTick(u,dt){
   const f=MAPID==='in'?u.floor:null,near=players.filter(p=>alive(p)&&!p.offMap&&(!f||floorOf(p.x,p.y)===f));
   if(!u.cower&&!u.detained&&(near.some(p=>hyp(p.x-u.x,p.y-u.y)<240&&los(p.x,p.y,u.x,u.y))||(contact&&near.some(p=>hyp(p.x-u.x,p.y-u.y)<400))))u.cower=true;   // Bryan: they cower where they are
   if(u.railed){if(!u.path.length)u.ang=u.railed.ang;return;}   // tied to the drawbridge's railings till the Headquarters is cleared (monsters.js)
+  if(u.hold){if(!u.path.length)u.ang=u.hold.ang;return;}   // brought into the Headquarters at the end: where he's put, facing the squad (fortress.js)
   if(u.detained&&!u.scanning){
     let m=u.minder;if(!m||!alive(m)||m.offMap||(MAPID==='in'&&floorOf(m.x,m.y)!==floorOf(u.x,u.y))){m=near.slice().sort((a,b)=>hyp(a.x-u.x,a.y-u.y)-hyp(b.x-u.x,b.y-u.y))[0]||null;if(m)u.minder=m;}
     if(m&&simT>(u.followT||0)){u.followT=simT+.5;const d=hyp(m.x-u.x,m.y-u.y),end=u.path.length?u.path[u.path.length-1]:null;
@@ -394,6 +395,7 @@ function officeEvery(dt){   // both maps (from update): freed men looking for a 
   scanTick(dt);
 }
 function drawOffice(now){
+  if(typeof talkActive==='function'&&talkActive())return;   // (a conversation on: story.js)
   const pulse=(Math.sin(now*4)+1)/2,act=sel.some(alive);
   for(const c of civs){
     if((!c.vis&&!c.detained)||offFloor(c))continue;const[x,y]=toS(c.x,c.y,22);

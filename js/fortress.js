@@ -24,7 +24,7 @@ const HQ_HALL={x0:340,y0:140,x1:660,y1:780},HQ_LAMPS=[
   {x:500,y:158,h:34,c:0xd88a3e,i:1.3,d:300},   // the lair: a low amber glow over her clutch
   {x:225,y:470,h:22,c:0xb06a2c,i:1.0,d:160},{x:775,y:470,h:22,c:0xb06a2c,i:1.0,d:160}];   // the nests
 let HQ=null,hqs={awake:false,phase:-1,won:false,t0:0,killed:0,pending:[],hatch:[]};
-function resetHQ(){hqs={awake:false,phase:-1,won:false,t0:simT,killed:0,pending:[],hatch:[]};for(const r of HQ_ROOMS)r.open=false;}   // (a Retry comes back to closed rooms)
+function resetHQ(){hqs={awake:false,phase:-1,won:false,t0:simT,killed:0,pending:[],hatch:[]};hqEnd=null;for(const r of HQ_ROOMS)r.open=false;}   // (a Retry comes back to closed rooms)
 // her eggs hatch (Bryan: her young swarm "from the side rooms and from the nest eggs"): n of clutch k burst, a hatchling crawls
 // out of each and comes for the squad. Hatchlings are newborn: less to kill (HATCH.hp) and a weaker bite
 const HATCH={hp:40,hit:.75,lair:1,room:1};   // (lair: how many her clutch hatches at each roar; enterHQ makes it two for a big squad)
@@ -50,7 +50,7 @@ function hqObjects(){
   // the side rooms' outer walls and the walls between them
   for(const[x0,x1]of[[110,330],[670,890]]){O('wall',x0,140,x1-x0,10);O('wall',x0,780,x1-x0,10);O('wall',x0,355,x1-x0,10);O('wall',x0,575,x1-x0,10);O('wall',x0===110?110:880,140,10,650);}
   // the entry hall behind the way in
-  O('wall',390,790,10,140);O('wall',600,790,10,140);O('wall',390,930,220,10);
+  O('wall',390,790,10,140);O('wall',600,790,10,140);O('wall',390,930,80,10);O('wall',530,930,80,10);   // (its south door, x 470-530: the way out to the drawbridge)
   // in the hall: four big glass tanks (they block sight), machines at the far end, crates and debris for cover
   for(const[x,y]of[[384,300],[570,300],[384,540],[570,540]])O('ctank',x,y,46,46);
   O('xfmr',360,148,44,26);O('xfmr',596,148,44,26);O('console',440,330,40,12);O('console',520,330,40,12);
@@ -120,7 +120,7 @@ function enterHQ(){
   },380);
 }
 function leaveHQNow(){   // back to the big map at once (a Retry, a New game)
-  if(MAPID!=='hq')return;const out=STASH.out;
+  if(MAPID!=='hq')return;const out=STASH.out;hqEnd=null;if(typeof talkStop==='function')talkStop();
   for(const u of units)if(u.side!=='P'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';
   for(const p of players){p.offMap=false;moveMesh(p,out.scene);}
@@ -170,15 +170,63 @@ function bossDied(u){
 }
 // every tick: the win
 function hqTickWin(){
-  if(MAPID!=='hq'||hqs.won||state!=='play')return;
+  if(MAPID!=='hq'||state!=='play')return;
+  if(hqs.won){hqEndTick();return;}
   for(const p of hqs.pending.slice())if(simT>=p.at){hqs.pending.splice(hqs.pending.indexOf(p),1);openRoom(p.r);}
   for(const h of hqs.hatch.slice())if(simT>=h.at){hqs.hatch.splice(hqs.hatch.indexOf(h),1);hatch(h.k,h.n);}
   if(enemies.some(e=>e.mon&&!e.dead))return;if(!enemies.some(e=>e.mon==='boss'))return;
   hqs.won=true;obj=6;objCompleted(4);updateObjUI();bigText('Headquarters taken','complete');banner('It’s yours now. This is your new HQ.',3600);
-  setTimeout(()=>{if(state==='play'&&MAPID==='hq')farewell(()=>{if(state==='play'){endAt=performance.now()+1800;}});},OBJ_LIST_T+400);
+  setTimeout(()=>{if(state==='play'&&MAPID==='hq')hqEnding(()=>farewell(()=>{if(state==='play'){endAt=performance.now()+1800;}}));},OBJ_LIST_T+400);   // (the scientists brought in and a talk first, then the freed men's goodbye)
+}
+/* ---------- the end (Bryan, after v85: "one of the surviving soldiers exits the HQ off screen and returns with the
+   scientist. Then a sequence happens."): everyone who's up gathers in the entry hall, one of them goes out of its south door
+   for the scientists left tied on the drawbridge and brings them in, and they talk (story.js's panel); then the freed men's
+   goodbye and the report. No orders meanwhile (endingBusy: input.js, hud.js), and nobody bleeds out (combat.js). ---------- */
+const HQ_DOOR={x:500,y:922},HQ_OUT={x:500,y:974},HQ_SCI={x:500,y:893};   // (the door out of the entry hall, the dark beyond it, where the scientist stops)
+// the conversation: a draft for Bryan (who, the words); clips hqend_1.. once it's voiced
+const HQ_TALK=[['sci',"She's dead. You actually killed her."],['lead',"No thanks to you. Start talking."],
+  ['sci',"She was the first. They wanted a weapon nothing could stop, so we bred one."],
+  ['sci',"Then she started laying eggs on her own. We lost the whole building in a week."],
+  ['other',"So you sealed the doors and left her in here."],['sci',"It was that or let her out."],
+  ['lead',"This place is ours now. It's our headquarters."],['lead',"And you're going to help us run it."],
+  ['sci',"Why would I help you?"],['lead',"Because the next thing that hatches won't care whose side you're on."],
+  ['sci',"Fine. What do you need?"],['lead',"Power. A working lab. And everything you know about those things."]];
+let hqEnd=null;
+const endingBusy=()=>!!hqEnd&&hqEnd.ph!=='done';
+function hqEnding(done){
+  const out=STASH.out,tied=out?out.units.filter(u=>u.sci&&u.railed&&!u.dead):[],up=players.filter(p=>alive(p)&&!p.offMap&&!p.away);
+  if(!tied.length||!up.length){done();return;}
+  const lead=['A1','B1'].map(id=>up.find(p=>p.id===id)).find(Boolean)||up[0];
+  const fetch=up.filter(p=>p!==lead&&!p.carry).sort((a,b)=>hyp(a.x-HQ_DOOR.x,a.y-HQ_DOOR.y)-hyp(b.x-HQ_DOOR.x,b.y-HQ_DOOR.y))[0]||lead;
+  const other=['A2','B2','B1','A3','A4','B3','B4'].map(id=>up.find(p=>p.id===id&&p!==lead)).find(Boolean)||lead;
+  select([]);preview=null;mode=null;hqEnd={ph:'out',t:simT,done,tied,lead,fetch,other,sci:[]};
+  const rest=up.filter(p=>p!==fetch&&!p.carry).sort((a,b)=>(b===lead)-(a===lead)),taken=[];   // (the leader in front, the rest either side of him)
+  rest.forEach((p,i)=>{const k=i?(i%2?1:-1)*Math.ceil(i/2):0,a=-Math.PI/2+k*.55,s=openSpot(HQ_SCI.x+Math.cos(a)*46,HQ_SCI.y+Math.sin(a)*46,taken)||{x:p.x,y:p.y};taken.push(s);
+    p.path=findPath(p.x,p.y,s.x,s.y)||[];p.lastOrder=simT;});
+  fetch.path=[...(findPath(fetch.x,fetch.y,HQ_DOOR.x,HQ_DOOR.y)||[]),{x:HQ_OUT.x,y:HQ_OUT.y}];fetch.lastOrder=simT;
+  if(lead!==fetch)callout(lead,'Bring the scientists in.',C.good);setTimeout(()=>{if(hqEnd&&alive(fetch))callout(fetch,'On it.',C.good);},900);
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:500,z:904,zoom:3.5},t:0,dur:1.6};
+}
+function hqEndTick(){   // (every tick once she's dead: hqTickWin)
+  const E=hqEnd;if(!E||E.ph==='done'||E.ph==='talk')return;const f=E.fetch;
+  if(E.ph==='out'){
+    if(!f.away&&(f.y>946||simT-E.t>14)){f.away=true;f.path=[];E.t=simT;}   // out of the door, into the dark
+    if(!f.away||simT-E.t<2.4)return;
+    E.ph='back';E.t=simT;f.away=false;f.x=HQ_OUT.x;f.y=HQ_OUT.y-6;f.ang=-Math.PI/2;f.path=[{x:HQ_DOOR.x,y:HQ_DOOR.y},{x:HQ_SCI.x+46,y:HQ_SCI.y+16}];f.lastOrder=simT;
+    E.sci=E.tied.map((o,i)=>{const d=[[0,0],[-24,16],[24,16],[0,30]][i%4],u=mk('C','C',o.id,o.name,HQ_OUT.x+d[0],HQ_OUT.y+16+d[1],-Math.PI/2);   // (back with him: the ones tied on the drawbridge)
+      Object.assign(u,{kind:'sci',sci:true,sciN:o.sciN,detained:true,weapon:null,grenade:0,spec:null,specN:0,pleadT:simT+1e6,hold:{ang:-Math.PI/2}});
+      makePerson(u);units.push(u);civs.push(u);u.path=[{x:HQ_DOOR.x+d[0]*.4,y:HQ_DOOR.y+6},{x:HQ_SCI.x+d[0],y:HQ_SCI.y+d[1]}];return u;});
+    return;
+  }
+  if(E.sci.some(c=>c.path.length)&&simT-E.t<12)return;   // (in through the door and up to the squad)
+  E.ph='talk';const s0=E.sci[0];
+  for(const p of players)if(alive(p)&&!p.away&&!p.path.length)p.ang=Math.atan2(s0.y-p.y,s0.x-p.x);   // (everyone turns to him)
+  const who={sci:s0,lead:E.lead,other:E.other},to={sci:E.lead,lead:s0,other:s0};
+  talkStart(HQ_TALK.map(([k,t],i)=>({who:who[k],to:to[k],text:t,clip:`hqend_${i+1}`})),()=>{E.ph='done';E.done();});
 }
 function hqHint(){
   if(MAPID!=='hq')return'';
+  if(hqs.won)return'The Headquarters is yours.';
   if(!hqs.awake)return'Here she comes.';
   const b=enemies.find(e=>e.mon==='boss');
   if(b&&!b.dead)return'Keep moving: get out of the violet ring before she slams, shoot her young when they rear up. Her roars open the side rooms and hatch her eggs.';

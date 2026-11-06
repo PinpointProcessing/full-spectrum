@@ -836,7 +836,7 @@ function playerThink(p){
 
 /* ---------- update ---------- */
 function updateUnit(u,dt){
-  if(u.inHeli)return;   // still in Level 1's helicopter (level1.js)
+  if(u.inHeli||u.away)return;   // still in Level 1's helicopter (level1.js), or off screen for a moment (u.away: fortress.js's ending)
   if(u.dead||u.grabbed)return;   // grabbed from behind (a takedown): he's done
   if(u.side==='C'){civTick(u,dt);return;}   // a prisoner still locked up, a scientist: office.js
   if(u.surr){u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);u.path=[];return;}   // he gave up: kneeling, hands up (layers.js)
@@ -890,9 +890,9 @@ function update(dt){
     if(!p.critical){
       const hs=players.filter(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED),helper=hs.find(o=>isCls(o,'medic'))||hs[0];   // Bryan: no reviving while pinned (a Medic beside him does it if there is one)
       if(helper){const md=isCls(helper,'medic');p.revive+=dt;p.reviveNeed=md?CLS.reviveT:3;if(p.revive>=p.reviveNeed)reviveUp(p,md?CLS.reviveHp:35,helper);}   // (a Medic: quicker, and he comes up better: classes.js)
-      else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
+      else{p.revive=Math.max(0,p.revive-dt);if(!(typeof endingBusy==='function'&&endingBusy()))p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
     }else{
-      if(!p.noBleed)p.crit-=dt;   // (the man off the basement wall has no clock: office.js)
+      if(!p.noBleed&&!(typeof endingBusy==='function'&&endingBusy()))p.crit-=dt;   // (the man off the basement wall has no clock: office.js; nor anyone while the Headquarters' end plays: fortress.js)
       if(p.crit<=0){if(p.carriedBy)putDown(p.carriedBy);p.dead=true;p.downed=false;p.critical=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}
     }
   }

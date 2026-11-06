@@ -183,7 +183,7 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
-    if(u.seat==='driver'||u.offMap||u.inHeli||offFloor(u))continue;   // behind the wheel: the jeep's own label covers him; left outside the office building: not on this map
+    if(u.seat==='driver'||u.offMap||u.inHeli||u.away||offFloor(u))continue;   // behind the wheel: the jeep's own label covers him; left outside the office building: not on this map
     // shoulder to shoulder with an earlier teammate: lift this one's bar so the two don't overlap
     const crowd=players.filter((o,i)=>i<players.indexOf(u)&&!o.dead&&o.seat!=='driver'&&hyp(o.x-u.x,o.y-u.y)<16).length;
     const vx=u.x+u.lx,vy=u.y+u.ly,ev=u.onTower||u.climb?u.elev||0:0,[hx,hy0]=toS(vx,vy,24+ev),hy=hy0-crowd*10,[fx,fy]=toS(vx,vy,ev);   // (up the watchtower: on the platform)
