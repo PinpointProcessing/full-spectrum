@@ -23,31 +23,6 @@ function tiltCam(t){tilt=clamp(t,0,basePitch()-PITCH_MIN);clampCam();updateCamer
 let inertia={vx:0,vy:0};
 // is screen point (x,y) inside the polygon pts (the lasso loop, closed automatically)?
 function inLoop(x,y,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[a,b]=pts[i],[p,q]=pts[j];if((b>y)!==(q>y)&&x<(p-a)*(y-b)/(q-b)+a)c=!c;}return c;}
-// drawing a route: drag that starts on a soldier. Trail is in world coordinates.
-function addTrail(sx,sy){
-  const[wx,wy]=toW(sx,sy),p={x:clamp(wx,10,W-10),y:clamp(wy,TOP+10,H-10)},l=ptr.trail[ptr.trail.length-1];
-  if(!l||hyp(p.x-l.x,p.y-l.y)>=6)ptr.trail.push(p);
-}
-// while drawing near the edge of the view, slide the camera that way so long routes fit
-function edgePan(rdt){
-  if(!ptr||ptr.kind!=='draw')return;
-  const m=48,sp=260/zoom;let vx=0,vy=0;
-  if(ptr.cx<m)vx=-1;else if(ptr.cx>cw-m)vx=1;
-  if(ptr.cy<m)vy=-1;else if(ptr.cy>ch-m)vy=1;
-  if(!vx&&!vy)return;
-  const c=Math.cos(yaw),s=Math.sin(yaw);   // screen direction -> world, for a turned camera
-  camT.x+=(vx*c+vy*s)*sp*rdt;camT.z+=(vy*c-vx*s)*sp*rdt;clampCam();updateCamera();addTrail(ptr.cx,ptr.cy);
-}
-function finishDraw(){
-  const u=ptr.unit,t=ptr.trail;
-  if(!alive(u)||state!=='play'||!tutAllows('draw',u))return;   // (Level 1's tutorial lock: level1.js)
-  const e=t[t.length-1];
-  if(!e||hyp(e.x-u.x,e.y-u.y)<12)return;            // dragged back onto him: cancel
-  if(!tutAllows('drawEnd',e))return;                 // (Level 1's tutorial: a route that has to end at its ring)
-  const r=routeFromTrail(u,t);
-  if(!r){banner('Can’t get there.');return;}
-  commit([r]);u.peek=null;tut.drew=true;tut.drewEnd={x:e.x,y:e.y};   // (Level 1's boot camp: level1.js)
-}
 function endPtr(ev,cancel){
   touches.delete(ev.pointerId);
   if(pinch){if(touches.size===0)pinch=null;return;}
@@ -59,8 +34,6 @@ function endPtr(ev,cancel){
       const got=loop.length>2?players.filter(u=>{if(!alive(u))return false;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);return inLoop(x,y,loop);}):[];
       if(got.length){select(got);preview=null;mode=null;}
       else if(loop.length>2)banner('No soldiers inside the loop.',1400);
-    }else if(ptr.kind==='draw'){
-      finishDraw();
     }else if(ptr.kind==='pan'){
       // the glide: the drag's speed over its last ~0.1 s (not between two touch events, which can come 1 ms apart and
       // made the speed look huge: the camera flew off), capped, and only if the finger was still moving when it lifted
@@ -89,7 +62,7 @@ function bindInput(){
     if(touches.size>2||pinch)return;
     if(ptr)return;
     ptr={id:ev.pointerId,sx,sy,cx:sx,cy:sy,lx:sx,ly:sy,lt:performance.now(),t0:performance.now(),vx:0,vy:0,kind:null,lp:false,
-      unit:state==='play'?unitAtScreen(sx,sy,true):null,trail:[]};
+      unit:state==='play'?unitAtScreen(sx,sy,true):null};
     ptr.supPt=state==='play'&&!ptr.unit&&!mode&&!noOrders()&&sel.some(alive)?suppressAt(sx,sy):null;   // (for the filling ring: drawHold)
     ptr.timer=setTimeout(()=>{
       if(!ptr||ptr.kind||state!=='play')return;
@@ -131,11 +104,9 @@ function bindInput(){
     ptr.cx=x;ptr.cy=y;
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind=ptr.unit&&alive(ptr.unit)&&!noOrders()&&!mode&&tutAllows('draw',ptr.unit)?'draw':'pan';   // no orders while the dinghy is still coming in; aiming a suppress/grenade/charge never starts a route; nor does Level 1's tutorial lock unless that's what it asks for
-      if(ptr.kind==='draw'){select([ptr.unit]);preview=null;mode=null;hud();}
+      ptr.kind='pan';   // (Bryan: no dragging soldiers to move them, "Too many times I accidentally dragged a unit to a different spot": a drag that starts on one moves the map; tap him, then tap where)
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
-    if(ptr.kind==='draw')addTrail(x,y);
     if(ptr.kind==='lasso'){const l=ptr.loop[ptr.loop.length-1];if(hyp(x-l[0],y-l[1])>4)ptr.loop.push([x,y]);}
     if(ptr.kind==='pan'){
       const now=performance.now();

@@ -358,7 +358,7 @@ const tutPick=(k,x)=>k==='tab'||k==='card'||k==='hold'||k==='lasso'||(k==='btn'&
 const fromUs=a=>a.some(n=>n.by&&n.by.side==='P'&&!n.smoke);   // a frag or a rocket of ours in the air
 const blastLeft=()=>players.some(p=>alive(p)&&!p.downed&&((p.spec==='rpg'&&p.specN>0)||p.grenade>0));
 // a step or tip: text; glow() what to touch; need(kind,x) what goes through while it's up (kind: 'tap' with x what it lands on,
-// 'draw'/'hold'/'card' with x the soldier, 'gear' with x {u,id,item}, 'tab' with x 'A'/'B'/'all', 'btn' with x its name,
+// 'hold'/'card' with x the soldier, 'gear' with x {u,id,item}, 'tab' with x 'A'/'B'/'all', 'btn' with x its name,
 // 'lasso'); done() when it's been done; ack: a notice, ended by a tap on it; still() whether the moment's still there;
 // act(kind,x) the input that should do it (if it doesn't, the lock lifts); modes an aiming mode it keeps
 const TUT_STEPS=[
@@ -369,8 +369,9 @@ const TUT_STEPS=[
    need:(k,x)=>(k==='tab'&&x==='A')||(k==='tap'&&((ourMan(x,'A')&&!sel.includes(x.u))||tutNear(x,334,781,70))),done:()=>l1NearSpot('A',334,781,50)},   // (a tap on one of a selected pair would split them)
   {text:'<b>One man.</b> Tap Reyes\'s card to give orders to him alone. Tap it again for the whole team.',glow:()=>cardOf('A1'),
    need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tap'&&!!x.u&&x.u.id==='A1'),done:()=>sel.length===1&&sel[0].id==='A1'},
-  {text:'<b>Draw a route.</b> Drag from Reyes along the dotted line to the crate, then lift your finger.',guide:{id:'A1',...ROUTE_SPOT},mark:{...ROUTE_SPOT,label:'DRAW TO HERE'},   // (Bryan: a dotted line to the box right of the container)
-   need:(k,x)=>((k==='draw'||k==='card')&&x.id==='A1')||(k==='drawEnd'&&hyp(x.x-ROUTE_SPOT.x,x.y-ROUTE_SPOT.y)<48),done:()=>tut.drew&&!!tut.drewEnd&&hyp(tut.drewEnd.x-ROUTE_SPOT.x,tut.drewEnd.y-ROUTE_SPOT.y)<48},
+  {text:'<b>Send him.</b> With one man selected, a single tap sends him: tap the ring by the crate.',guide:{id:'A1',...ROUTE_SPOT},mark:{...ROUTE_SPOT,label:'REYES HERE'},   // (it was drawing a route, Bryan's dotted line to the box right of the container; he took drawing out after v90)
+   need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,ROUTE_SPOT.x,ROUTE_SPOT.y,60)),
+   done:()=>{const r=reyes();return!!r&&headedTo([r],ROUTE_SPOT,48);}},
   {text:'<b>Bring Bravo up.</b> Tap <b>BRAVO</b>, then the ring by the container, twice. <b>ALL</b> selects everyone.',glow:()=>$('.tab[data-team="B"]'),
    pick:()=>{const far=c=>Math.min(...players.filter(p=>p.team==='A'&&alive(p)).map(p=>hyp(p.x-c.x,p.y-c.y)));return[{x:266,y:781,r:24},{x:334,y:781,r:24}].sort((a,b)=>far(b)-far(a))[0];},   // the half of the container Alpha isn't in (a tap on one of Alpha would pick him instead)
    need:(k,x)=>(k==='tab'&&(x==='B'||x==='all'))||(k==='tap'&&((ourMan(x,'B')&&!sel.includes(x.u))||tutNear(x,tut.mk.x,tut.mk.y,70))),done:()=>l1NearSpot('B',tut.mk.x,tut.mk.y,50)},
@@ -394,7 +395,7 @@ const TUT_TIPS=[
   {k:'tkmove',when:()=>{const g=shedG(),r=reyes();return!!g&&!beaten(g)&&!g.alerted&&quiet()&&!!r&&alive(r)&&!r.tk&&!canTakedown(r,g)&&!atSpot([r],TK_SPOT,45);},
    still:()=>{const g=shedG(),r=reyes();return!!g&&!beaten(g)&&!g.alerted&&quiet()&&!!r&&alive(r);},
    mark:{...TK_SPOT,label:'REYES HERE'},glow:()=>onlyReyes()?null:cardUp(cardOf('A1'))?cardOf('A1'):$('.tab[data-team="A"]'),
-   need:(k,x)=>((k==='card'||k==='hold'||k==='draw')&&x.id==='A1')||(k==='tab'&&x==='A')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,TK_SPOT.x,TK_SPOT.y,60))||(k==='drawEnd'&&hyp(x.x-TK_SPOT.x,x.y-TK_SPOT.y)<60),
+   need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tab'&&x==='A')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,TK_SPOT.x,TK_SPOT.y,60)),
    done:()=>{const r=reyes();return!!r&&(!!r.tk||headedTo([r],TK_SPOT,45)||(onlyReyes()&&canTakedown(r,shedG())));},
    text:'<b>Takedown.</b> Tap Reyes\'s card to take him alone, then the ring behind the guard by the shed. Stay out of his red wedge.'},
   {k:'tk',gap:.4,when:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),still:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),
@@ -455,13 +456,13 @@ const TUT_TIPS=[
    done:()=>l1.relayDown||players.some(p=>p.rpgAim||(p.throwGo&&p.throwGo.kind!=='smoke'))||fromUs(rockets)||fromUs(nades),
    text:'<b>The radio tower.</b> Select Hayes, tap the <b>RPG</b> on his card (it glows), then tap the ring under the tower.'},
 ];
-const tut={on:false,i:0,t0:0,drew:false,drewEnd:null,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,nudgeT:-1e9,mk:null,campDone:false,skipped:false,hid:false};
+const tut={on:false,i:0,t0:0,said:new Set(),cam0:{x:0,z:0,zoom:1},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,nudgeT:-1e9,mk:null,campDone:false,skipped:false,hid:false};
 const L1_BEACH={x0:60,x1:440,y0:700,y1:860};   // the boot camp's ground: anyone beyond it, a guard down or alerted, and it's over
 // again: "Try Level 1 again" after a failed run: no second boot camp if the first was done or skipped, no tips at all if skipped
 function tutStart(again){
   if(!again){tut.campDone=false;tut.skipped=false;}
   const keep=again&&(tut.campDone||tut.skipped);
-  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,drew:false,drewEnd:null,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,mk:null,hid:false});
+  Object.assign(tut,{on:!(again&&tut.skipped),i:keep?TUT_STEPS.length:0,t0:simT,said:keep?tut.said:new Set(),cam0:{x:camT.x,z:camT.z,zoom},tip:null,tipAt:-99,tipEnd:-99,ack:false,loose:false,off:0,mk:null,hid:false});
   tutShow();
 }
 function tutStop(){tut.on=false;tut.tip=null;tut.ack=false;tut.loose=false;tut.i=TUT_STEPS.length;tutShow();}
@@ -488,7 +489,7 @@ function tutAllows(kind,a,b){
     if(L.act&&L.act(kind,x))queueMicrotask(()=>{if(tut.tip===L&&!L.done()&&!(L.progress&&L.progress())){tut.loose=true;tutShow();}});   // it didn't take (the game says why): the lock lifts
     return true;
   }
-  if(!(kind==='draw'&&L.cam))tutNudge();   // (on the "look around" step a drag that starts on a soldier just moves the camera)
+  tutNudge();
   return false;
 }
 function tutNudge(){   // the bubble comes back if hidden, shakes, and says "Do this first" for a moment

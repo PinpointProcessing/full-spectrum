@@ -416,3 +416,14 @@ apart, starting just after her roar, so all of them are out in about 6 s. The fi
 Tested with the bot that only moves the squad (the shooting is automatic): four soldiers had one or two men go down on
 each of 3 seeds and won every time (one man still down at the end on one seed); eight soldiers, nobody down. At a half
 second apart it was easier with four (one seed nobody went down, the other two men left at 31 and 8 HP).
+
+# v91: no dragging soldiers
+
+Bryan: "I think we need to make it so when a soldier is clicked then they can be directed to move. I don't think I like
+the dragging feature. Can we get rid of that? Too many times I accidentally dragged a unit to a different spot." Route
+drawing is gone: a drag that starts on a soldier moves the map, like any other drag, and never moves anyone. Moving is by
+tapping: tap a soldier (his fire team), tap him again for just him (or hold him, or tap his card), then tap where he
+should go; a team's move is still the two-tap preview. Level 1's tutorial step 5 was "Draw a route"; it's "Send him" now
+(Reyes selected, tap the ring by the crate; the dotted guide line stays). The controls list on the intro card says so.
+Tested with real mouse input: a drag from Reyes moved the camera and nobody; tap, tap, tap the ground moved Reyes alone;
+the tutorial lock test passes all 25 checks with the new step 5.

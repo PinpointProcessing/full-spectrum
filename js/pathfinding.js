@@ -22,8 +22,7 @@ fillBlk();
 // Foot soldiers use blk. Vehicles use vblk (built on demand, see buildVehGrid): free only where something jeep-sized fits.
 const vblk=new Uint8Array(GW*GH);
 // FOOT: plain walking (the enemy). SQUAD: the squad's moves (windows, and the safest way when it isn't much longer).
-// TRAIL: a drawn route's gaps (windows, but no detours: it follows your line).
-const FOOT={blk,pad:6.5,end:7},VEH={blk:vblk,pad:15,end:16},SQUAD={blk,pad:6.5,end:7,vault:true,safe:true},TRAIL={blk,pad:6.5,end:7,vault:true};
+const FOOT={blk,pad:6.5,end:7},VEH={blk:vblk,pad:15,end:16},SQUAD={blk,pad:6.5,end:7,vault:true,safe:true};
 function buildVehGrid(){for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)vblk[gy*GW+gx]=isFree(cx0(gx),cy0(gy),VEH.end)?0:1;}
 function nearestFreeCell(gx,gy,b=blk){
   for(let r=0;r<7;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){

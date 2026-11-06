@@ -53,7 +53,7 @@ The draft:
    red means exposed. Tap the same spot again to go." Done when they arrive.
 4. **One soldier.** "Tap Reyes's card to give orders to him alone. Tap it again for the whole team." Done when he's
    been picked alone.
-5. **Draw a route.** "Drag from a soldier to draw his path." Done when one follows a drawn route.
+5. **Send him.** "With one man selected, a single tap sends him." Done when Reyes is sent to the ring by the crate. (It was "Draw a route"; Bryan took route drawing out after v90: "Too many times I accidentally dragged a unit to a different spot.")
 6. **The rest of the squad.** Ring on BRAVO: "Bring Hayes and Okafor up too. ALL selects everyone." Done when all four
    are by the containers.
 7. **Sneaking.** "While nobody has seen you, your men sneak by themselves. The ring at the top fills when an enemy starts
