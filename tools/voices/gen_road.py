@@ -5,18 +5,19 @@ whoever leads), road_2 for each scientist (S1-S4: whichever comes out with them)
 no pause at a comma, its `spoken`), several takes each into a cache check_zonos.py can score; add_lines.py puts the best on
 the end of the speakers' voice files (README.md, "Lines made on their own"). Run as gen_zonos.py is run (its venv and
 environment):
-  python gen_road.py CACHE [takes]"""
+  python gen_road.py CACHE [takes] [speakers, e.g. S2,S4]"""
 import json,os,re,sys,time,zlib,torch,torchaudio
 os.chdir(os.path.dirname(os.path.abspath(__file__)));sys.path.insert(0,'.')
 from zonos.model import Zonos
 from zonos.conditioning import make_cond_dict
-CACHE=sys.argv[1];NT=int(sys.argv[2]) if len(sys.argv)>2 else 3
+CACHE=sys.argv[1];NT=int(sys.argv[2]) if len(sys.argv)>2 else 3;ONLY=sys.argv[3].split(',') if len(sys.argv)>3 else None
 #            happiness sadness disgust fear surprise anger other neutral, pitch range, speaking rate
 STYLE={'firm':([.00,.00,.00,.00,.05,.15,.15,.65],40,14.),   # (the leader: steady, decided)
        'tell':([.00,.10,.00,.12,.00,.00,.15,.63],50,14.5)}   # (the scientist: telling them what he knows, still wary of them)
 LEAD="Alright, we need to get our radio communication up."
 SCI="There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need from there."
 LINES=[(sp,'road_1',LEAD,'firm') for sp in ('A1','B1')]+[(sp,'road_2',SCI,'tell') for sp in ('S1','S2','S3','S4')]
+if ONLY:LINES=[l for l in LINES if l[0] in ONLY]
 spoken=lambda t:re.sub(r',\s*',' ',t)   # (Bryan, after v71: no pause at a comma)
 torch.set_num_threads(int(os.environ.get('ZONOS_THREADS','4')));T0=time.time()
 m=Zonos.from_pretrained('Zyphra/Zonos-v0.1-transformer',device='cpu');SR=m.autoencoder.sampling_rate
