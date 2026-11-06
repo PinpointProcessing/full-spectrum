@@ -389,3 +389,10 @@ have a decision to start the level over."
 - Tested: the list on a phone; in front of the Headquarters with eight armed men and four scientists, the scan from there
   (the drawbridge down, the hunters, its save); from the scientists' save, walking up to the drawbridge saves the new
   checkpoint by itself.
+
+# v88: the freed men stay
+
+Bryan: "the freed prisoners are now part of the players squad. They never say bye." The goodbye at the end is gone: after
+the talk in the Headquarters it goes straight to the report. (Their recorded goodbye lines are still in their voice files,
+unused, and the voice tools no longer make them.) Bryan on the talk: "We will work on the script and after battle sequence
+more after the testing of the HQ battle."

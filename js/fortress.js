@@ -176,7 +176,7 @@ function hqTickWin(){
   for(const h of hqs.hatch.slice())if(simT>=h.at){hqs.hatch.splice(hqs.hatch.indexOf(h),1);hatch(h.k,h.n);}
   if(enemies.some(e=>e.mon&&!e.dead))return;if(!enemies.some(e=>e.mon==='boss'))return;
   hqs.won=true;obj=6;objCompleted(4);updateObjUI();bigText('Headquarters taken','complete');banner('It’s yours now. This is your new HQ.',3600);
-  setTimeout(()=>{if(state==='play'&&MAPID==='hq')hqEnding(()=>farewell(()=>{if(state==='play'){endAt=performance.now()+1800;}}));},OBJ_LIST_T+400);   // (the scientists brought in and a talk first, then the freed men's goodbye)
+  setTimeout(()=>{if(state==='play'&&MAPID==='hq')hqEnding(()=>{if(state==='play'){endAt=performance.now()+1800;}});},OBJ_LIST_T+400);   // (the scientists brought in and a talk first; the freed men stay: Bryan, they're part of the squad now)
 }
 /* ---------- the end (Bryan, after v85: "one of the surviving soldiers exits the HQ off screen and returns with the
    scientist. Then a sequence happens."): everyone who's up gathers in the entry hall, one of them goes out of its south door

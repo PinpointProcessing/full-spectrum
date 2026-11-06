@@ -16,7 +16,7 @@ const out={
   barks:grab('hunt.js','BARKS'),
   sci:{defy:grab('office.js','SCI_DEFY'),tied:grab('office.js','SCI_TIED'),grumble:grab('office.js','SCI_GRUMBLE'),panic:grab('office.js','SCI_PANIC'),scan:grab('office.js','SCI_SCAN'),lab:grab('office.js','SCI_LAB'),end:grab('office.js','SCI_END')},
   chatter:{names:grab('chatter.js','SQUAD_NAME'),named:grab('chatter.js','NAMED'),chat:grab('chatter.js','CHAT'),quiet:Array.from(grab('chatter.js','QUIET')),clock:grab('chatter.js','CLOCK'),cdir:grab('chatter.js','CDIR'),banter:grab('chatter.js','BANTER'),tut:Array.from(grab('chatter.js','TUT'))},
-  prison:{cry:grab('office.js','PRISON_CRY'),loot:grab('office.js','LOOT_LINES'),freed:grab('office.js','FREED_LINES'),bye:grab('office.js','FAREWELL'),up:grab('office.js','MARSH_UP')},
+  prison:{cry:grab('office.js','PRISON_CRY'),loot:grab('office.js','LOOT_LINES'),freed:grab('office.js','FREED_LINES'),up:grab('office.js','MARSH_UP')},
 };
 fs.writeFileSync(__dirname+'/lines.json',JSON.stringify(out,null,1));
 const n=Object.values(out.squad).flat().length;console.log('squad lines',n,'barks',Object.values(out.barks).flat().length,'sci',Object.values(out.sci).flat().length,'prison',JSON.stringify(out.prison).length);

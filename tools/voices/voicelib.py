@@ -41,7 +41,7 @@ def lines_for(sp):
         for i,t in enumerate(L['prison']['cry']): out.append((f'cry_{i+1}',t,'cry'))
         for i,t in enumerate(L['prison']['loot']): out.append((f'loot_{i+1}',t,'loot'))
         if name in L['prison']['freed']: out.append(('freed_1',L['prison']['freed'][name],'freed'))
-        if name in L['prison']['bye']: out.append(('bye_1',L['prison']['bye'][name],'bye'))
+        if name in L['prison'].get('bye',{}): out.append(('bye_1',L['prison']['bye'][name],'bye'))   # (none now: Bryan, the freed men never say bye)
         if name=='Marsh': out.append(('up_1',L['prison']['up'],'up'))
     if sp[0]=='S':
         for g,arr in L['sci'].items():

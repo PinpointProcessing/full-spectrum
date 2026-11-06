@@ -29,12 +29,10 @@ const SCI_HQ_NEAR=480;   // how close to the drawbridge's panel before they star
 const SCI_SCAN=['No. No, no, no. Please!','Don’t make me do this!','You’re killing all of us...','God forgive me.'];
 const PRISON_CRY=['Help! Down here!','Is someone there?','Please! We’re down here!','Get us out!'];
 const SCI_LAB=['No! Years of work!','You’ve no idea what you’ve done.','Good. Burn it. All of it.'],SCI_END=['...God help us.'];
-// the freed men's own lines (each is voiced: voice.js, sounds/voice): freed, a rifle picked up, Marsh back on his feet, and
-// goodbye at the end of the mission (Bryan: they stay with the squad until the mission's over)
+// the freed men's own lines (each is voiced: voice.js, sounds/voice): freed, a rifle picked up, Marsh back on his feet; no
+// goodbye (Bryan: they're part of the squad now, they never say bye)
 const FREED_LINES={Brennan:'Thank God. Give me a rifle and I’m with you.',Abara:'About time. I’m with you.',Lindqvist:'Get me out of here. I’ll carry my weight.'};
 const LOOT_LINES=['Got a rifle.','Armed.','That’ll do.'],MARSH_UP='Easy... easy. I’m still in this.';
-const FAREWELL={Marsh:'We owe you our lives. We’ll see you back at HQ.',Abara:'Thanks for coming for us. First round’s on me.',Brennan:'Never thought I’d see the sky again. Thank you.',
-  Lindqvist:'Whatever they kept down there with us... it’s out here now. Watch yourselves.'};
 const LIFT_RIDE=2.2,DOOR_OPEN=2.4,LOOT_R=240;
 let office=null,civs=[],sciOut=0,scanGo=null;   // this visit's state; civilians (prisoners still locked up, the man on the wall, scientists); scientists brought out
 function resetOffice(){
@@ -349,14 +347,6 @@ function wreckLab(u,i,q,blast){
 function sparkTick(){   // the wrecked benches spit sparks for a few seconds
   office.sparks=office.sparks.filter(s=>simT-s.t0<3.5);
   for(const s of office.sparks)if(Math.random()<.35)sparks.push({x:s.x+(Math.random()-.5)*30,y:s.y+(Math.random()-.5)*10,t:0});
-}
-// the freed men's goodbye at the end of the mission (Bryan: they stay with the squad until it's over), then done()
-function farewell(done){
-  const men=players.filter(p=>p.joined&&!p.dead&&FAREWELL[p.name]);
-  if(!men.length){done();return;}
-  banner('The freed men will meet you back at HQ.',3000);
-  men.forEach((m,i)=>setTimeout(()=>{if(state==='play'&&!m.dead)line(m,'bye',[FAREWELL[m.name]],0,3.2,C.good);},900+i*2700));
-  setTimeout(done,1500+men.length*2700);
 }
 // Marsh on his feet again (from reviveUp): his line, once
 function onRevive(t){if(t.joined&&t.name==='Marsh'&&!t.saidUp){t.saidUp=true;line(t,'up',[MARSH_UP],0,3,C.good);}}
