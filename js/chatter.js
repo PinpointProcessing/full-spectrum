@@ -207,7 +207,7 @@ function tutTick(dt){
   if(!tutSaid.has('bridge')&&ups.every(p=>p.y>CANAL.y0)){const e=sees(e=>e.grp===1&&!e.onTower);if(e&&tutLine('bridge',tutBy(e.x,e.y)))setTimeout(()=>tutLine('pipe',tutBy(CULVERT.x0,CANAL.y1)),3800);}   // the bridge is covered; the pipe's the quiet way
   if(!tutSaid.has('sniper')){const e=sees(e=>e.onTower);if(e)tutLine('sniper',tutBy(e.x,e.y));}
   if(!tutSaid.has('tower')&&tutSaid.has('sniperdown')&&pickups.length){const w=tutBy(TOWER.x,TOWER.y);if(w&&hyp(w.x-TOWER.x,w.y-TOWER.y)<300)tutLine('tower',w);}
-  if(!tutSaid.has('maze')&&!contact&&ups.some(p=>p.y<CANAL.y0-10))tutLine('maze',tutBy(150,-60));   // across the canal: the containers are the quiet way up
+  if(!tutSaid.has('maze')&&!contact&&ups.some(p=>p.y<CANAL.y0-10&&p.y>CONT_ZONE.y0))tutLine('maze',tutBy(150,-60));   // across the canal, among the containers: they're the quiet way up (not at a checkpoint further on)
   if(!tutSaid.has('vehicle')){const t=sees(e=>e.veh);if(t)tutLine('vehicle',tutBy(t.x,t.y));}
   if(!tutSaid.has('patrol')&&!contact){const e=sees(e=>e.route&&e.grp===2&&!e.alerted);if(e)tutLine('patrol',tutBy(e.x,e.y));}   // the container yard's patrol
   if(!tutSaid.has('killfield')){const e=sees(e=>e.grp===3&&e.gunner&&!e.veh);if(e)tutLine('killfield',tutBy(e.x,e.y));}

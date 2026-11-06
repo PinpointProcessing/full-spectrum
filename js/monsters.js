@@ -94,7 +94,7 @@ function monMove(u,dx,dy,dist){   // a lunge or a step back: straight, stopping 
 /* ---------- what they do (every tick, from update) ---------- */
 function monTick(dt){
   if(state!=='play')return;
-  gateTick(dt);sceneTick();
+  gateTick(dt);sceneTick();hqfTick();
   for(const u of enemies){
     if(!u.mon||u.dead||u.dormant)continue;
     if(u.mon==='boss'){if(typeof bossThink==='function')bossThink(u,dt);continue;}
@@ -163,6 +163,11 @@ function gateTick(dt){
     o.done=true;bigText('The gate is clear','clear');
     if(typeof saveGame==='function')saveGame('gate');updateObjUI();hud();gateAftermath();
   }
+}
+// the checkpoint in front of the Headquarters (save.js's 'hqf'): the squad at the drawbridge with a scientist, before the scan
+function hqfTick(){
+  if(mon.hqf||obj!==4||MAPID!=='out'||LEVEL!==3)return;const near=u=>hyp(u.x-PANEL.x,u.y-PANEL.y)<170;
+  if(players.some(p=>alive(p)&&near(p))&&civs.some(c=>c.sci&&c.detained&&!c.dead&&near(c))){mon.hqf=true;if(typeof saveGame==='function')saveGame('hqf');}
 }
 // places on the moat's outer edge a short run from the squad (left and right of them): where a hound climbs out (ix,iy: down
 // in the moat, where it starts; x,y: up on the edge)

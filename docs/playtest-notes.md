@@ -369,3 +369,23 @@ battle?"
   hint line "The Headquarters is yours." (it said "Here she comes." if she died before waking).
 - Tested: the whole end on a phone and a wide screen (the fetch, the 12 lines through real clicks, then the report);
   the bot's fight through to the report, tapping through the talk; Levels 1, 2 and 3 start without errors.
+
+# v87: start at a checkpoint (in front of the Headquarters)
+
+Bryan: "Can you set me up in front of the HQ with both squads (from the prisoners-armed) and the scientists? This wouldn't
+be a separate level, just a checkpoint. Btw, if players exit and come back to the game they can start off at checkpoints or
+have a decision to start the level over."
+- A new checkpoint, "In front of the Headquarters": it saves itself when the squad reaches the drawbridge with a scientist,
+  before the bio scanner (the drawbridge's own save comes once it's down, as before).
+- On the intro card, under Level 3: "Level 3 · start at a checkpoint" opens the list of Level 3's checkpoints (the
+  warehouse, the bridge, the container maze, the data center's front, inside the data center, the scientists detained, in
+  front of the Headquarters, the drawbridge down, the gate cleared). Every one is open for now, like the levels. Each
+  starts at full health with the loadout from the between-missions screen; from the scientists on, with the four freed men
+  armed with rifles and all four scientists. It becomes the save, so Continue comes back to it.
+- Coming back to the game: Level 3 already offers Continue (with the checkpoint's name) or New game. Levels 1 and 2 still
+  have no saves: they start from the beginning.
+- Found on the way: "Stick to the containers. Out of sight." was said on arriving at any checkpoint north of the canal,
+  even at the drawbridge; now only among the containers.
+- Tested: the list on a phone; in front of the Headquarters with eight armed men and four scientists, the scan from there
+  (the drawbridge down, the hunters, its save); from the scientists' save, walking up to the drawbridge saves the new
+  checkpoint by itself.

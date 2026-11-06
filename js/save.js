@@ -6,9 +6,9 @@
    dead unless the game is restarted, and wounds are kept. A soldier who is down when it saves is stored badly wounded
    (5 HP) rather than bleeding out. XP and ranks are saved separately (progress.js) and survive a New game. */
 const SAVE_KEY='warehouseYard.save.v3';   // (v3: the checkpoints rework; older saves are ignored)
-const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Data center front cleared',dci:'Inside the data center',sci:'Scientists detained',dc:'Drawbridge down',gate:'The gate cleared'};
-const STAGE_OBJ={wh:3,br:3,maze:3,dco:3,dci:3,sci:4,dc:5,gate:5};   // obj (mission.js) after each
-const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},dc:{x:700,y:-470},gate:{x:850,y:-470}};
+const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Data center front cleared',dci:'Inside the data center',sci:'Scientists detained',hqf:'In front of the Headquarters',dc:'Drawbridge down',gate:'The gate cleared'};
+const STAGE_OBJ={wh:3,br:3,maze:3,dco:3,dci:3,sci:4,hqf:4,dc:5,gate:5};   // obj (mission.js) after each
+const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},hqf:{x:860,y:-462},dc:{x:700,y:-470},gate:{x:850,y:-470}};   // (hqf: at the drawbridge with the scientists, before the bio scanner: monsters.js's hqfTick)
 const AREA_STAGE=['wh','br','maze','dco'];   // the areas' checkpoints (AREAS in mission.js)
 function readSave(){
   try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&STAGES[s.stage])return s;}catch(e){}
@@ -38,7 +38,7 @@ function continueGame(){
   if(cleared.has(0))for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;e.gone=true;}   // the warehouse's four
   const n=STAGE_OBJ[s.stage],at0=STAGE_AT[s.stage];
   for(const[id,d]of Object.entries(s.squad))if(d.joined&&!players.some(p=>p.id===id))rejoin(id,d,at0);   // the freed prisoners who joined (office.js)
-  if(n>=4)sciBack(s.sci||1,at0);   // the scientists brought out follow the squad again (to the bio scanner, then onto the drawbridge: monsters.js)
+  if(n>=4)sciBack(s.sci||1,at0);if(['hqf','dc','gate'].includes(s.stage))mon.hqf=true;   // the scientists brought out follow the squad again (to the bio scanner, then onto the drawbridge: monsters.js)
   if(n>=5){setBridge(1);addZones(REST_ZONES.dc);}
   objDone=n>=5?3:n>=4?2:0;
   startMissionAreas();obj=n;updateObjUI();
@@ -61,8 +61,28 @@ function continueGame(){
 }
 // intro and end screens: offer Continue / Retry when there's a save
 function refreshSaveButtons(){
-  const s=readSave();
+  const s=readSave();buildCheckpoints();
   $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level 3 · Continue · ${STAGES[s.stage]}`;
   $('#startBtn').textContent=s?'Level 3 · New game':'Level 3 · The Data Center';
   $('#retryBtn').hidden=!s;$('#againBtn').textContent=s?'New game':'Run it again';
+}
+
+/* ---------- starting Level 3 at any of its checkpoints (Bryan: "set me up in front of the HQ with both squads (from the
+   prisoners-armed) and the scientists... This wouldn't be a separate level, just a checkpoint"; and "if players exit and
+   come back to the game they can start off at checkpoints or have a decision to start the level over"). On the intro card
+   under Level 3: Continue (the last save) and New game as before, and the list of checkpoints, every one open for now, like
+   the levels. A checkpoint starts with everyone at full health and the loadout from the between-missions screen; from the
+   scientists on, with the four freed men armed and all four scientists. It becomes the save. ---------- */
+const CP_ORDER=['wh','br','maze','dco','dci','sci','hqf','dc','gate'];
+function startCheckpoint(st){
+  const n=STAGE_OBJ[st],after=n>=4,lo=typeof loadout!=='undefined'?loadout:DEFAULT_LOADOUT,squad={};
+  for(const id of['A1','A2','B1','B2']){const l=lo[id]||DEFAULT_LOADOUT[id];squad[id]={dead:false,hp:100,grenade:1,spec:l.spec,weapon:l.weapon};}
+  if(after)for(const[id,name]of[['A3','Abara'],['A4','Brennan'],['B3','Lindqvist'],['B4','Marsh']])squad[id]={dead:false,hp:100,grenade:0,joined:true,name,weapon:'rifle'};   // (the freed men, each with a rifle off a body)
+  const cleared={wh:[0],br:[0,1],maze:[0,1,2]}[st]||[0,1,2,3];
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:3,stage:st,when:Date.now(),cleared,alert:0,sci:after?4:0,squad}));}catch(e){return;}
+  continueGame();refreshSaveButtons();
+}
+function buildCheckpoints(){
+  const box=$('#cpBtns');if(!box||box.childElementCount)return;
+  for(const st of CP_ORDER){const b=document.createElement('button');b.type='button';b.className='cp';b.textContent=STAGES[st];b.addEventListener('click',()=>startCheckpoint(st));box.appendChild(b);}
 }

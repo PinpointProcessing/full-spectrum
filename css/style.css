@@ -295,3 +295,9 @@ body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipp
 #talk.more .tk-more{opacity:1}
 #talk .tk-skip{position:absolute;right:8px;top:8px;min-height:28px;padding:0 10px;font-size:10px;background:rgba(10,14,18,.88)}
 #talk .tk-name{padding-right:64px}
+
+/* Level 3's checkpoints on the intro card (save.js) */
+.card details.cps summary{cursor:pointer;color:var(--dim);font-size:13px;min-height:28px;text-align:center}
+.card details.cps[open] summary{margin-bottom:6px}
+#cpBtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+#cpBtns .cp{min-height:36px;font-size:12px;background:#151c22;border-color:var(--line);color:#c9d3da;text-align:left;padding:4px 10px}
