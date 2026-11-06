@@ -283,3 +283,28 @@ Found while taking pictures of the monsters for Bryan:
   red lamps in the hall are a little dimmer, and the monsters' skin a little darker.
 - "Flanked" came up over hounds (they don't take cover): not over monsters now.
 
+# v82: puddles that look wet
+
+Bryan: the puddles "just look like grey circles (I noticed this on the normal map too". They're ragged now, with a damp
+darker ring, flat (the ground's fine bumps made them glitter), and the wet ground reflects a dim night sky with a few lamp
+glows. Before and after: `docs/drafts/puddles-before-after.jpg`.
+
+# v83: the new monsters and her nest, in the game
+
+Bryan picked: "the hunters come out of the gate, the young fight alongside with her." The mother ("the mother is great for
+now. They will get more fierce as the game goes on"), the eggs and the goo were already right; the slime rocks are as in
+the round-3 drafts.
+- At the drawbridge: the hunters pour out (the hounds' behaviour as before: they crouch with the violet line, lunge, pull
+  back and come again), black, spined, scythe arms raised as they crouch, splayed flat when they die.
+- Inside: the Headquarters is her nest (resin down the walls, wet resin over the lair's floor, egg clutches, slime rocks
+  in black, deep purple, dark red and brown up every fitting and wall and out over the floor; a low amber glow over the
+  lair, the red lamps deep orange-red, no pink). She lies coiled round her clutch, rears up to roar as you come in, comes
+  down the hall with her body following her head, rears and crashes down to slam, strikes with her claws up close, and
+  collapses when she dies. Her young (small centipedes) wait in the side rooms; they rear up before they lunge (their
+  crouch) and die on their backs.
+- What it costs: all the hunters share a dozen or so draw calls, and so do all her young; the gate with every hunter out
+  fell from 1,639 draw calls to 428 (triangles 124k to 354k), the Headquarters from 611 to 340 (triangles 34k to about
+  650k, most of it the slime rocks). Not yet measured on a real phone.
+- Tested with the bot that only moves the squad: four soldiers won 2 of 2 (one or two down by the end: she now starts
+  7 m nearer, coiled round her eggs), eight won with nobody down; the pour-out killed all 20 hunters each time.
+

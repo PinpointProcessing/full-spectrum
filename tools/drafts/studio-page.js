@@ -8,7 +8,8 @@ function studioSetup(){
   // the new look of the hall: amber where the violet was, warmer, darker
   for(const L of lamps){if(L.c===0x9a55ff)Object.assign(L,{c:0xd88a3e,i:1.3,d:300,h:34});else if(L.c===0x8a44ff)Object.assign(L,{c:0xb06a2c,i:1.0});else if(L.c===0xff5544||L.c===0xff4433)L.c=0xff3010;}   // (the red lamps deeper and more orange: no pink)
   hemi.color.setHex(0x7d776e);hemi.groundColor.setHex(0x120e0b);hemi.userData.base=.26;hemi.intensity=.26;
-  ST.nest=hqNest(scene,objs);
+  ST.nest=HQ.nest||hqNest(scene,objs);   // (buildHQ makes the nest now)
+  for(const k in (scene.userData.crPools||{}))scene.userData.crPools[k].g.visible=false;   // (the game's own monsters: the shots pose their own)
   for(const L of lamps)if(L.head)L.head.material.color.setHex(L.c);
   for(const o of objs)if(o.kind==='wall'&&o.meshes)for(const m of o.meshes)if(m.material&&m.material.color&&!m.material.userData.dk){m.material=m.material.clone();m.material.userData.dk=1;m.material.color.multiplyScalar(.45);}
   // the hall's old fittings: grimed over (the pale tanks and consoles burned out to white under her lamps)

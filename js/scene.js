@@ -734,7 +734,7 @@ function lampLights(now){   // hand the pooled lights to the lamps nearest the v
 let shakeK=0;
 function shake(k){if(!reduced)shakeK=Math.min(1.2,Math.max(shakeK,k*(timeScale()<1?.4:1)));}   // blasts and machine guns nearby (muted in slow-mo)
 function render(rdt,now){
-  updateCamera();syncUnits(now);seeThrough(rdt);
+  updateCamera();syncUnits(now);if(typeof crPoolsFrame==='function')crPoolsFrame();seeThrough(rdt);   // (monsters out of sight: their slots hidden, creatures.js)
   if(shakeK>.002){const a=shakeK*4;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a*.6;camera.position.z+=(Math.random()-.5)*a;camera.updateMatrixWorld();shakeK=Math.max(0,shakeK-rdt*3);}
   if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
   for(const{roof,b}of ourRoofs){const m=roof.material,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1);m.opacity+=((inside?.15:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in our pillboxes

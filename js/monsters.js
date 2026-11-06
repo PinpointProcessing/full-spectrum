@@ -20,99 +20,53 @@ const monsLeft=()=>enemies.filter(e=>e.mon&&!e.dead&&!e.dormant);
 function sfxMon(kind,u,vol=.9,rate){if(typeof playSample==='function'&&u)playSample(kind,u.x,u.y,vol,rate??varyRate());}
 const varyRate=()=>.92+Math.random()*.16;
 
-/* ---------- their bodies ---------- */
-let MONG=null;   // shared geometry and materials (made once)
-function monKit(){
-  if(MONG)return MONG;
-  const skin=new T.MeshStandardMaterial({color:0x6f6575,roughness:.62,metalness:.05,emissive:0x140a1c,emissiveIntensity:1});   // (a little darker: under the Headquarters' lamps the paler skin burned out to white up close)
-  const dark=new T.MeshStandardMaterial({color:0x2a2128,roughness:.7});
-  const bone=new T.MeshStandardMaterial({color:0xd9cfc2,roughness:.45});
-  const glow=new T.MeshBasicMaterial({color:0xc27bff,toneMapped:false});
-  const sac=new T.MeshStandardMaterial({color:0x6a2aa8,emissive:0x8a3dff,emissiveIntensity:1.6,roughness:.3,transparent:true,opacity:.92});
-  return MONG={skin,dark,bone,glow,sac,box:new T.BoxGeometry(1,1,1),cone:new T.ConeGeometry(1,1,6),ball:new T.SphereGeometry(1,10,8)};
-}
-function part(parent,geo,mat,sx,sy,sz,x,y,z,shadow=true){const m=new T.Mesh(geo,mat);m.scale.set(sx,sy,sz);m.position.set(x,y,z);m.castShadow=shadow;parent.add(m);return m;}
-function pivot(parent,x,y,z){const g=new T.Group();g.position.set(x,y,z);parent.add(g);return g;}
+/* ---------- their bodies (creatures.js: the hunters out of the gate, her young, the Brood Mother) ---------- */
 function monRing(u,g,s){const ring=new T.Mesh(SG.ring,new T.MeshBasicMaterial({color:new T.Color(teamCol(u)),transparent:true,opacity:.85,depthWrite:false,toneMapped:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.5;ring.scale.setScalar(s);g.add(ring);return ring;}
-// a hound: front is +x. A long lean body hunched at the shoulders, a long skull with a jaw that drops, heat pits that glow,
-// spines down the back, long legs with backward knees behind
+// u.m.g only carries the ring (syncUnits moves it with the monster); the body is a slot in its scene's pool
 function makeHound(u){
-  const K=monKit(),g=new T.Group(),pose=pivot(g,0,0,0),body=pivot(pose,0,10,0);
-  part(body,K.box,K.skin,18,6,6.4,0,0,0);part(body,K.box,K.skin,8,7,7,6,1.2,0);   // body, shoulders
-  for(let i=0;i<4;i++){part(body,K.box,K.dark,.8,4.6,7,-3+i*2.6,-.4,0);}   // ribs showing
-  for(let i=0;i<5;i++){const s=part(body,K.cone,K.bone,1,2.6+i*.3,1,-6+i*3,4.2,0);s.rotation.z=.5;}   // spines
-  const neck=pivot(body,9,2,0);part(neck,K.box,K.skin,5,3.2,3.4,2,0,0);
-  const head=pivot(neck,4.5,.8,0);part(head,K.box,K.skin,7.5,3.6,4.2,3,0,0);part(head,K.box,K.dark,2.4,1.4,4.4,6.6,.6,0);
-  for(const z of[-1.5,1.5])for(let i=0;i<2;i++)part(head,K.ball,K.glow,.55,.55,.55,4.6+i*1.4,1.6,z,false);   // the heat pits
-  const jaw=pivot(head,.5,-1.6,0);part(jaw,K.box,K.skin,7,1.4,3.6,3,-.4,0);
-  for(let i=0;i<4;i++)for(const z of[-1.3,1.3])part(jaw,K.box,K.bone,.5,1.3,.4,1.5+i*1.5,.6,z,false);   // teeth
-  const legs=[];
-  for(const[x,z,back]of[[6,2.6,0],[6,-2.6,0],[-6.5,2.6,1],[-6.5,-2.6,1]]){
-    const hip=pivot(body,x,-2,z);part(hip,K.box,K.skin,2.2,7,2.2,0,-3.2,0);const knee=pivot(hip,0,-6.4,0);part(knee,K.box,K.dark,1.5,7,1.5,0,-3.2,0);
-    legs.push({hip,knee,back});}
-  const tail=pivot(body,-9,1,0);part(tail,K.box,K.skin,7,1.6,1.6,-3.5,0,0);const tail2=pivot(tail,-7,0,0);part(tail2,K.box,K.dark,6,1,1,-3,0,0);
-  const ring=monRing(u,g,.95);scene.add(g);u.m={g,pose,body,neck,head,jaw,legs,tail,tail2,ring,spot:null};
+  const g=new T.Group(),young=u.kind==='young',ring=monRing(u,g,young?1.15:1.05);scene.add(g);
+  const pool=crPool(scene,young?'young':'hunter');u.m={g,ring,spot:null,pool,slot:crSlotFor(pool,u)};
+  if(young)crTrailInit(u,BROOD);else u.m.rig=crHunterRig();
 }
-// the Brood Mother: a hunched mountain of a thing on two thick legs and two long arms, sacs on its back that glow, a head
-// mostly jaw
+// she starts coiled round her clutch (the lair at 500,205), her head toward the hall
 function makeBoss(u){
-  const K=monKit(),g=new T.Group(),pose=pivot(g,0,0,0),body=pivot(pose,0,34,0);
-  part(body,K.box,K.skin,30,22,28,0,0,0);part(body,K.box,K.skin,18,18,24,14,4,0);part(body,K.box,K.skin,16,12,20,-16,-4,0);
-  for(let i=0;i<5;i++)for(const z of[-12,12])part(body,K.box,K.dark,2,14,1.2,-8+i*5,-2,z);   // ribs
-  const sacs=[];for(const[x,y,z,r]of[[-4,13,-6,5],[4,14,5,6],[-12,10,4,4.5],[10,12,-5,4]])sacs.push(part(body,K.ball,K.sac,r,r*.8,r,x,y,z));
-  for(let i=0;i<7;i++){const s=part(body,K.cone,K.bone,1.8,5+i%3*2,1.8,-18+i*6,12,i%2?4:-4);s.rotation.z=.4;}
-  const neck=pivot(body,22,4,0);part(neck,K.box,K.skin,8,10,12,3,0,0);
-  const head=pivot(neck,8,-2,0);part(head,K.box,K.skin,16,10,14,6,2,0);
-  for(const z of[-4,4])for(let i=0;i<3;i++)part(head,K.ball,K.glow,1.1,1.1,1.1,7+i*2.6,6,z,false);
-  const jaw=pivot(head,0,-3,0);part(jaw,K.box,K.skin,16,4,13,7,-2,0);
-  for(let i=0;i<6;i++)for(const z of[-5,5])part(jaw,K.cone,K.bone,1,3,1,2+i*2.4,1.4,z,false);
-  const arms=[];
-  for(const z of[-16,16]){const sh=pivot(body,12,4,z);part(sh,K.box,K.skin,7,24,7,0,-11,0);const el=pivot(sh,0,-22,0);part(el,K.box,K.skin,6,24,6,0,-11,0);
-    for(let i=-1;i<=1;i++){const c=part(el,K.cone,K.bone,1.2,6,1.2,2,-24,i*2);c.rotation.z=Math.PI;}arms.push({sh,el});}
-  const legs=[];for(const z of[-10,10]){const hip=pivot(body,-12,-8,z);part(hip,K.box,K.skin,11,18,11,0,-8,0);const knee=pivot(hip,0,-16,0);part(knee,K.box,K.dark,8,14,8,0,-6,0);legs.push({hip,knee});}
-  const ring=monRing(u,g,2.6);scene.add(g);u.m={g,pose,body,neck,head,jaw,arms,legs,sacs,ring,spot:null};
+  const g=new T.Group(),ring=monRing(u,g,2.6);scene.add(g);const pool=crPool(scene,'mother');u.m={g,ring,spot:null,pool,slot:crSlotFor(pool,u)};
+  const pts=[{x:u.x,y:u.y}];for(let y=u.y-2;y>257;y-=2)pts.push({x:u.x,y});for(let a=Math.PI/2;a<Math.PI/2+5;a+=.04)pts.push({x:500+Math.cos(a)*52,y:205+Math.sin(a)*52});
+  crTrailInit(u,MOTHER,pts);
 }
 function monPose(u,t){
-  const m=u.m;if(!m)return;m.ring.visible=!u.dead&&!u.dormant;m.g.visible=m.g.visible&&!u.dormant;
-  if(u.mon==='boss'){bossPose(u,t);return;}
-  const st=u.ms||'hunt',mv=(!!u.path.length||st==='lunge'||st==='fade')&&!u.dead,sp=st==='lunge'?3:st==='fade'?1.6:1;
-  if(u.dead){m.pose.rotation.x+=(Math.PI/2-m.pose.rotation.x)*.15;m.pose.position.y+=(1.5-m.pose.position.y)*.15;m.jaw.rotation.z=-.5;for(const L of m.legs){L.hip.rotation.z=.6;L.knee.rotation.z=-1;}return;}
-  m.pose.rotation.x=0;
-  const ph=t*(mv?16*sp:3)+u.x*.01;
-  m.body.position.y=(st==='crouch'?6.5:10)+(mv?Math.abs(Math.sin(ph))*1.1:Math.sin(t*2)*.3);
-  m.body.rotation.z=st==='crouch'?-.28:st==='lunge'?.12:.06;   // head down and haunches up to spring; stretched out in the air
-  m.neck.rotation.z=st==='crouch'?-.25:st==='lunge'?.25:Math.sin(t*1.7+u.y)*.12;
-  m.head.rotation.y=st==='hunt'?Math.sin(t*2.3+u.x)*.25:0;
-  m.jaw.rotation.z=-(st==='crouch'?.45:st==='lunge'||simT-(u.biteAt||-9)<.25?.9:.08+Math.max(0,Math.sin(t*5))*.06);
-  m.legs.forEach((L,i)=>{const s=Math.sin(ph+(i===0||i===3?0:Math.PI));
-    if(st==='lunge'){L.hip.rotation.z=L.back?.9:-1;L.knee.rotation.z=L.back?-.2:.5;return;}
-    if(st==='crouch'){L.hip.rotation.z=L.back?-.5:.5;L.knee.rotation.z=L.back?1.1:-1;return;}
-    L.hip.rotation.z=mv?s*.7:0;L.knee.rotation.z=(L.back?1:-1)*(mv?.3+Math.max(0,s)*.6:.25);});
-  m.tail.rotation.y=Math.sin(t*(mv?9:2))*.4;m.tail2.rotation.y=Math.sin(t*(mv?9:2)-1)*.5;m.tail.rotation.z=st==='crouch'?.5:.1;
+  const m=u.m;if(!m)return;m.ring.visible=!u.dead&&!u.dormant;
+  const boss=u.mon==='boss',young=u.kind==='young',walk=crGait(u,boss?BOSS.walk:HOUND.run*.8);
+  if(boss)crTrailStep(u,MOTHER);else if(young)crTrailStep(u,BROOD);
+  if(!m.g.visible||u.dormant||m.slot<0)return;   // (out of sight: its slot is hidden, crPoolsFrame)
+  if(boss){motherPose(u,walk);return;}
+  const st=u.ms||'hunt',bite=simT-(u.biteAt||-9)<.25;
+  if(young){let rear=.08,jaw=bite?1:.25,look=.1,o;
+    if(u.dead)o={dead:1,flip:1,jaw:.6,walk:0};
+    else{if(st==='crouch'){rear=.9*Math.min(1,(simT-u.mt0)/HOUND.crouchT);jaw=.9;look=.35;}else if(st==='lunge'){rear=.15;jaw=1;look=.2;}
+      o={walk:st==='lunge'?1:walk,jaw,look,antUp:.3,flail:.6};}
+    crCentiSlot(m.pool,m.slot,crTrailSpine(u,BROOD,u.dead?0:rear,6,u.dead?BROOD.ride*.7:BROOD.ride),(u.wph||0)*.3,o);return;}
+  const o={walk,jaw:bite?1:.25};
+  if(u.dead)o.dead=1;else if(st==='crouch'){o.crouch=1;o.threat=.6;o.jaw=.7;}else if(st==='lunge'){o.lunge=1;o.jaw=1;o.walk=1;}
+  crHunterSlot(m.pool,m.slot,m.rig,u.x,u.y,Math.PI/2-u.ang,(u.wph||0)*.13+(o.walk?0:t*.2),o);
 }
-function bossPose(u,t){
-  const m=u.m,st=u.ms||'sleep';
-  if(u.dead){const k=Math.min(1,(simT-(u.diedT||simT))/2.2);m.pose.rotation.z=-k*.9;m.pose.position.y=-k*14;m.jaw.rotation.z=-.7;for(const s of m.sacs)s.material=monKit().dark;return;}
-  const breathe=Math.sin(t*(st==='sleep'?1:2.2));m.body.position.y=34+breathe*(st==='sleep'?.6:1.2);
-  monKit().sac.emissiveIntensity=1.3+Math.sin(t*4)*.6;   // (the sacs pulse)
-  const mv=!!u.path.length,ph=t*5;
-  m.legs.forEach((L,i)=>{const s=Math.sin(ph+(i?Math.PI:0));L.hip.rotation.z=mv?s*.45:0;L.knee.rotation.z=mv?-.2-Math.max(0,s)*.5:-.15;});
-  const w=st==='slam'?Math.min(1,(simT-u.mt0)/BOSS.slamT):0,sw=st==='swipe'?Math.min(1,(simT-u.mt0)/.5):0;
-  m.arms.forEach((A,i)=>{
-    if(st==='slam'){A.sh.rotation.z=w<1?w*2.4:-.2;A.el.rotation.z=w<1?-w*.9:.2;return;}   // both arms up over its head, then down
-    if(st==='swipe'&&i===0){A.sh.rotation.z=sw<.6?sw*2:1.2-(sw-.6)*4;A.sh.rotation.x=sw*.8;return;}
-    if(st==='roar'){A.sh.rotation.x=(i?1:-1)*.7;A.sh.rotation.z=.6;A.el.rotation.z=-.3;return;}
-    A.sh.rotation.x=0;A.sh.rotation.z=mv?Math.sin(ph+(i?0:Math.PI))*.35:Math.sin(t*1.3+i)*.05;A.el.rotation.z=-.15;});
-  m.neck.rotation.z=st==='roar'?.6:st==='sleep'?-.35:Math.sin(t*1.1)*.08;
-  m.jaw.rotation.z=-(st==='roar'?1:st==='slam'&&w>.7?.6:.12+Math.max(0,breathe)*.08);
-  m.body.rotation.z=st==='sleep'?-.15:st==='slam'&&w>=1?-.25:0;
+// the Brood Mother: rears to roar and to slam, strikes with her claws up close, collapses when she dies
+function motherPose(u,walk){
+  const st=u.ms||'sleep';let rear=.12,jaw=.2,look=.15,antUp=.25,o;
+  if(u.dead){const k=Math.min(1,(simT-(u.diedT||simT))/1.5);o={dead:1,jaw:.7,walk:0,look:.6};crCentiSlot(u.m.pool,u.m.slot,crTrailSpine(u,MOTHER,0,9,MOTHER.ride*(1-.45*k)),(u.wph||0)*.13,o);return;}
+  if(st==='sleep'){rear=.05;jaw=.1;look=.3;}
+  else if(st==='roar'){rear=.95*Math.min(1,(simT-u.mt0)/.5);jaw=1;look=-.2;antUp=.7;}
+  else if(st==='slam'){const w=Math.min(1,(simT-u.mt0)/BOSS.slamT);rear=.25+.75*w;jaw=.6+.4*w;look=.5;}
+  else if(st==='swipe'){const w=Math.min(1,(simT-u.mt0)/.5);rear=.3-.2*w;jaw=w<.6?1:.1;look=.8;}
+  if(u.slamDownT&&simT-u.slamDownT<.5){const k=(simT-u.slamDownT)/.5;rear=Math.min(rear,k<.2?1-k/.2:0);look=.9;}   // (the crash down: fortress.js marks it)
+  crCentiSlot(u.m.pool,u.m.slot,crTrailSpine(u,MOTHER,rear,9,MOTHER.ride),(u.wph||0)*.13,{walk,jaw,look,antUp,flail:.5});
 }
 
 /* ---------- the units ---------- */
 let monN=0;
 function hound(x,y,o={}){
-  const u=mk('E','E','H'+(++monN),'Hound',x,y,Math.PI/2);
-  Object.assign(u,{mon:'hound',dog:true,hp:HOUND.hp,maxHp:HOUND.hp,alerted:true,aware:1,jumpy:true,seen:false,grp:null,ms:'hunt',growlT:simT+1+Math.random()*3,againT:simT+1.2},o);
+  const young=o.kind==='young',u=mk('E','E','H'+(++monN),young?'Brood':'Hunter',x,y,o.ang??Math.PI/2);
+  Object.assign(u,{mon:'hound',kind:young?'young':'hunter',dog:true,hp:HOUND.hp,maxHp:HOUND.hp,alerted:true,aware:1,jumpy:true,seen:false,grp:null,ms:'hunt',growlT:simT+1+Math.random()*3,againT:simT+1.2},o);
   makeHound(u);enemies.push(u);return u;
 }
 function broodMother(x,y){
@@ -203,7 +157,7 @@ function gateTick(dt){
       if(i<near.length){const s=near[i];h=hound(s.ix,s.iy,{entry:[{x:s.x,y:s.y}]});}   // up over the edge of the moat
       else{const x=MON_GATE.x+(i-(W.n-1)/2)*14;h=hound(x,MON_GATE.y-i*10,{entry:[{x,y:-572},{x:x+(Math.random()-.5)*40,y:-528}]});}   // out of the gate and over the bridge
       h.wave=o.wave;o.spawned++;}
-    if(o.wave===1&&!mon.first){mon.first=true;setTimeout(()=>{if(state==='play')banner('Hounds. They crouch before they lunge: shoot them then, or get out of the violet line.',4200);},1200);}
+    if(o.wave===1&&!mon.first){mon.first=true;setTimeout(()=>{if(state==='play')banner('Hunters. They crouch before they lunge: shoot them then, or get out of the violet line.',4200);},1200);}
   }
   if(!o.done&&o.wave>=MON_WAVES.length&&!enemies.some(e=>e.mon==='hound'&&!e.dead)){
     o.done=true;bigText('The gate is clear','clear');banner('Gather at the drawbridge to go in. The Headquarters is inside.',3600);
