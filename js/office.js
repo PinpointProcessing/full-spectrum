@@ -39,6 +39,7 @@ const LIFT_RIDE=2.2,DOOR_OPEN=2.4,LOOT_R=240;
 let office=null,civs=[],sciOut=0,scanGo=null;   // this visit's state; civilians (prisoners still locked up, the man on the wall, scientists); scientists brought out
 function resetOffice(){
   office={card:false,cardAt:null,door:0,doorT:0,liftUp:false,ride:null,liftDoor:false,stairDoor:false,cryT:0,heard:false,found:false,freed:0,tied:0,cutT:0,labs:[false,false,false,false],labN:0,sparks:[]};
+  if(typeof ACTS!=='undefined')for(const a of ACTS)a.hacked=false;   // (a Cyber Ops's way in doesn't carry over to a fresh visit: skills.js)
 }
 resetOffice();
 const detained=()=>civs.filter(c=>c.sci&&c.detained);
