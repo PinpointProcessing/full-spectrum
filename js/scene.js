@@ -43,7 +43,7 @@ function updateCamera(){
 }
 function clampCam(){
   // Bryan: the view may go past the map's edge; the centre stays within CAM_OVER of the area that's open
-  const over=MAPID==='in'?40:CAM_OVER;   // inside, the view stays on the floor you're looking at
+  const over=MAPID==='in'?40:MAPID==='tun'?70:CAM_OVER;   // inside, the view stays on the floor you're looking at
   camT.x=clamp(camT.x,VB.x0-over,VB.x1+over);camT.z=clamp(camT.z,VB.z0-over,VB.z1+over);
   const fb=$('#fitBtn');if(fb)fb.hidden=zoom<1.02&&Math.abs(yaw)<0.02&&tilt<0.02;
 }
@@ -189,6 +189,7 @@ function decalOn(g,d){
 }
 function paintDecal(d){
   if(MAPID==='l1'&&L1){const g=L1.canvas.getContext('2d');g.setTransform(L1S,0,0,L1S,-L1B.x0*L1S,-L1B.y0*L1S);decalOn(g,d);L1.tex.needsUpdate=true;return;}   // Level 1's own ground (level1.js)
+  if(MAPID==='tun'&&TUN&&TUN.tex){const g=TUN.tex.image.getContext('2d');g.setTransform(1.5,0,0,1.5,-TUNB.x0*1.5,-TUNB.y0*1.5);decalOn(g,d);TUN.tex.needsUpdate=true;return;}   // the tunnel's own (tunnel.js)
   if(MAPID==='hq'&&HQ&&HQ.tex){const g=HQ.tex.image.getContext('2d');g.setTransform(1.2,0,0,1.2,-HQB.x0*1.2,-HQB.y0*1.2);decalOn(g,d);HQ.tex.needsUpdate=true;return;}   // the Headquarters' own floor (fortress.js; they landed on the big map's ground before)
   if(MAPID==='l2'&&L2){const g=L2.canvas.getContext('2d');g.setTransform(L2S,0,0,L2S,-L2B.x0*L2S,-L2B.y0*L2S);decalOn(g,d);L2.tex.needsUpdate=true;return;}   // Level 2's (level2.js)
   if(MAPID==='out'&&typeof EAST!=='undefined'&&EAST.tex&&EAST.grp.visible&&d.x>EXT.x0-30){const g=EAST.tex.image.getContext('2d');g.setTransform(1.5,0,0,1.5,-EXT.x0*1.5,-EXT.y0*1.5);decalOn(g,d);EAST.tex.needsUpdate=true;EAST.dirty=true;if(d.x>EXT.x0+30)return;}   // the road east's own ground (road.js; near its edge, on both)
@@ -743,9 +744,9 @@ function render(rdt,now){
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
   if(moon){moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);}   // the shadow box follows the view: the map is bigger than one shadow map (no moon indoors)
   lampLights(now);
-  hemi.intensity=(hemi.userData.base??.24)+storm*1.6+(MAPID==='in'?Math.max(0,2.2-zoom)*.16:0);   // inside: more ambient light zoomed out, where the pooled lamps can't reach every room
+  hemi.intensity=(hemi.userData.base??.24)+storm*1.6+(MAPID==='in'||MAPID==='tun'?Math.max(0,2.2-zoom)*.16:0);   // inside: more ambient light zoomed out, where the pooled lamps can't reach every room
   const fl=flashes.slice(-2);
-  for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=(MAPID==='in'?6:4.5)*(1-f.t/.07);}else m.intensity=0;}   // muzzle flashes light the scene up (most of all indoors)
+  for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=(MAPID==='in'||MAPID==='tun'?6:4.5)*(1-f.t/.07);}else m.intensity=0;}   // muzzle flashes light the scene up (most of all indoors)
   const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18,b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;
   fxFrame();postRender(scene,camera);   // (post.js: bloom, the grade, vignette, grain; or straight to the screen)
   drawOverlay(rdt,now);

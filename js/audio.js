@@ -210,7 +210,7 @@ function footsteps(dt){
     const stride=u.alerted?18:12;
     u.stepAcc=(u.stepAcc||0)+d;if(u.stepAcc<stride)continue;u.stepAcc=0;
     if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-u.x,p.y-u.y)<STEP_NEAR)||++n>2)continue;   // (an unseen man close by: a hint he's there)
-    playSample(MAPID==='in'?'foot_in':'foot_out',u.x,u.y,u.alerted?.14:.08,varied(.9,1.1));
+    playSample(MAPID==='in'||MAPID==='tun'?'foot_in':'foot_out',u.x,u.y,u.alerted?.14:.08,varied(.9,1.1));
   }
 }
 
@@ -266,9 +266,9 @@ function audioFrame(){
   if(live)footsteps();
   if(typeof chatTick==='function')chatTick();   // the squad's conversations (chatter.js)
   sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:18000,t,.12);   // slow-mo and pause sound muffled
-  for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='in'?.25:1),t,.4);   // indoors the rain is just a hiss on the roof
+  for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='in'?.25:MAPID==='tun'?.15:1),t,.4);   // indoors the rain is just a hiss on the roof
   if(amb){
-    const inside=MAPID==='in';amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
+    const inside=MAPID==='in'||MAPID==='tun';amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
     amb.wg.gain.setTargetAtTime(inside?0:.05+.04*Math.max(0,amb.gust),t,.8);amb.hum.gain.setTargetAtTime(inside?1:0,t,.8);
     const hunted=enemies.some(e=>!e.dead&&e.alerted),k=state==='play'?Math.max(contact?1:detection(),hunted?.6:0):0;   // the drone follows the danger
     amb.dr.gain.setTargetAtTime(.0001+k*k*.085,t,.6);amb.df.frequency.setTargetAtTime(140+k*520,t,.8);

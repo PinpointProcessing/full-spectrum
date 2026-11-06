@@ -383,23 +383,26 @@ function gatherZone(){
   if(MAPID==='in'&&detained().length){const z=zoneOf(IN.floors.GF,'exit');if(z)return{z,ready:exitReady(),go:'LEAVE',need:players.filter(p=>alive(p)&&!p.offMap)};}
   return roadGather();   // (GO OUT of the finished Headquarters, the tunnel at the end of the road east: road.js)
 }
-function drawGather(now){
-  const G=gatherZone();if(!G)return;const z=G.z,pulse=(Math.sin(now*4)+1)/2;
+const gatherZones=()=>{const G=gatherZone();return !G?[]:Array.isArray(G)?G:[G];};   // (the tunnel has one at each end: road.js)
+function drawGather(now){for(const G of gatherZones())drawGatherOne(G,now);}
+function drawGatherOne(G,now){
+  const z=G.z,pulse=(Math.sin(now*4)+1)/2;
   toSBack=false;const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));if(toSBack)return;
   ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
   ox.fillStyle=`rgba(95,224,142,${(G.ready?.18:.06+pulse*.07).toFixed(3)})`;ox.fill();
   ox.setLineDash(G.ready?[]:[10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
   const n=G.need.filter(p=>inZone(p,z)).length,[lx,ly]=below((z.x0+z.x1)/2,z.y1,8);
   if(G.locked){label('LOCKED · THEY\'RE SEARCHING',lx,ly,'#ffb35a',10,700);return;}   // (the dashes still say where)
-  if(G.ready)pill(`TAP TO ${G.go}`,lx,ly,C.good);else label(`${G.name||G.go} ${n}/${G.need.length}`,lx,ly,'#5fe08e',11,700);
+  if(G.ready)pill(G.auto?G.go:`TAP TO ${G.go}`,lx,ly,C.good);else label(`${G.name||G.go} ${n}/${G.need.length}`,lx,ly,'#5fe08e',11,700);   // (auto: it goes by itself once everyone's in it)
 }
 // a tap: on a ready gather area it goes; on something to use it's used; returns true if the tap was taken
 function interiorTap(wx,wy){
   if(fading)return true;
-  const G=gatherZone();
-  const onG=G&&wx>=G.z.x0-20&&wx<=G.z.x1+20&&wy>=G.z.y0-20&&wy<=G.z.y1+20;
-  if(onG&&G.locked&&!sel.length){banner('Not while the alarm is going or they\'re searching for you. Lose them first.',2600);if(typeof gen==='function'){const w=tutBy(G.z.x0,G.z.y0);if(w)chat('dclock',12,gen(w,'dclock'));}return true;}
-  if(onG&&G.ready){if(G.fn)G.fn();else if(MAPID==='out')enterBuilding();else exitBuilding();return true;}
+  for(const G of gatherZones()){
+    const onG=wx>=G.z.x0-20&&wx<=G.z.x1+20&&wy>=G.z.y0-20&&wy<=G.z.y1+20;
+    if(onG&&G.locked&&!sel.length){banner('Not while the alarm is going or they\'re searching for you. Lose them first.',2600);if(typeof gen==='function'){const w=tutBy(G.z.x0,G.z.y0);if(w)chat('dclock',12,gen(w,'dclock'));}return true;}
+    if(onG&&G.ready){if(G.fn)G.fn();else if(MAPID==='out')enterBuilding();else exitBuilding();return true;}
+  }
   const a=actAt(wx,wy);if(a&&!a.pickup){orderUse(a);return true;}
   return false;
 }

@@ -532,8 +532,18 @@ the tunnel down the road. You'll probably find the supplies you need from there.
   accessible from the tunnel down the road. You'll probably find the supplies you need from there." Both are voiced
   (Zonos, as before). Then the camera comes back to the squad and the scientist walks back in. Objective: "Next mission ·
   The old radio tower". A save: "The road east" (the last checkpoint on the intro card).
-- The tunnel's mouth is a gather area (TUNNEL n/m, then TAP TO GO IN). The radio tower mission isn't built yet, so the tap
-  says so for now. That mission is yours to design: docs/hq-base.md.
+- Then Bryan: "The tunnel could be it's own map. When approaching it it changes to it." So it is: walk everyone into the
+  mouth (TUNNEL n/m) and half a second after the last one's in, it fades into the tunnel by itself, no tap. Inside: a dark
+  two-lane road tunnel running north under the hill, about 125 m, walls cut away low so the floor reads (like the office
+  building), glowing studs along both kerbs, most wall lights dead and a few flickering, red lights by two cross-passage
+  doors. On the way: the old checkpoint's barrier arm down across one lane, a car slewed across the other, a lorry left in
+  the east lane, a jet fan fallen from the roof, and a collapse that leaves one way through on the east side. At the far
+  end the portal opens on the night; the old radio tower's mission isn't built yet, so the gather area there says so. Walk
+  back to the south end and it takes you out the same way. Nothing is waiting in it yet: that's yours to say.
+- Classes (Bryan: "when the team finishes the HQ, I think classes should be assigned to the units... Maybe we should wait
+  for the radio control"): today the choice is only on the boat screen before Levels 2 and 3, nothing after the HQ offers
+  it, and the freed men can't take one. Agreed to wait: with radio control, promote at the HQ and bring the class weapons
+  in on a supply drop (docs/classes.md, docs/hq-base.md).
 - The drawbridge's green area takes the squad back into the HQ (in at the south door); going out again doesn't replay the
   talk.
 - Under the hood: the pathfinding grid is wider than the old map now (1440 instead of 1000), and the old edge still counts
@@ -542,7 +552,10 @@ the tunnel down the road. You'll probably find the supplies you need from there.
   they moved at double speed (fixed). After a Continue into the HQ there was no way back in from outside, because the
   drawbridge's gather area only existed after the gate fight (fixed).
 - Tested headless: from the HQ save, GO OUT, the walk-out, the camera, both lines, the save, real paths to the tunnel for
-  all eight (about 10 s), TAP TO GO IN, a tap on the new ground, back into the HQ and out again; the same from the end of
+  all eight (about 10 s), a tap on the new ground, back into the HQ and out again; into the tunnel by walking (it switched
+  0.5 s after the last man was in), real paths to the far end round every wreck and through the gap at the collapse
+  (about 22 s), the far end's message, back to the south end and out by itself (short of the mouth, so it doesn't send
+  them straight back in), in again, a reset from inside; the same from the end of
   a real fight, the fetch and the montage; Continue from every Level 3 checkpoint; a new game. Regressions: Level 1's
   tutorial lock (0 fails), Level 2's quiet run (won, never seen), back to the group after a job, the gate and the HQ fight
   (eight men, won, three down at the end), the HQ's end.

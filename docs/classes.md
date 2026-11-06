@@ -96,3 +96,20 @@ Not yet: the Assault's breaching charge (C4 on a door), the Captain's call-ins f
 3. The Medic "can heal units when dead": back to full health from downed and critical, or can he bring a killed soldier
    back too? (Today the dead stay dead; Bryan's earlier idea was life support at HQ.)
 4. Does the player pick the class, or does the game suggest one from how the soldier has been used?
+
+## Classes after the Headquarters (Bryan, after v96)
+
+Bryan: "when the team finishes the HQ, I think classes should be assigned to the units. Did we work that out yet? Because
+that's not in the game yet. Maybe we should wait for the radio control to come in because then it would make sense how the
+troops can get weapons."
+
+Where it stands: the class choice exists (step 1 above), but only on the between-missions screen at sea, which comes before
+Levels 2 and 3. Nothing after the Headquarters offers it (the report says "Level up · choose his class next", and then
+there's no screen to choose on), and the freed prisoners can't take a class at all (`canPromote` in classes.js leaves them
+out).
+
+The plan, as Bryan suggests: wait for radio control (docs/hq-base.md). Once it's built, promotion happens at the
+Headquarters (the command center, or the barracks when there is one), and a class's weapons and gear (the shotgun, the
+sniper rifle, the Support's extra rockets, the Defender's build kit, the Medic's kits) come in on a supply drop called on
+the radio. Open: should the freed men be able to take a class too, and does the choice stay on the boat screen as well, or
+move to the HQ only?

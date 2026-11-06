@@ -76,12 +76,12 @@ function paintEast(g,q,S){
   g.fillStyle='#8a8b86';g.fillRect(1000,CANAL.y0-5,w,5);g.fillRect(1000,CANAL.y1,w,5);g.fillStyle='rgba(228,182,40,.7)';g.fillRect(1000,CANAL.y1+5,w,1.2);g.fillRect(1000,CANAL.y0-6,w,1.2);
   g.fillStyle='rgba(0,0,0,.32)';for(const o of EAST.objs)if(['booth','barrier','car','rock'].includes(o.kind))g.fillRect(o.x-3,o.y-3,o.w+6,o.h+6);
 }
-// faceted rock, all in one mesh: [x, z, sx, sy, sz, turn, seed, height of its middle]
-function rockMesh(list){
+// faceted rock, all in one mesh: [x, z, sx, sy, sz, turn, seed, height of its middle]; tint [hue, saturation, lightness] for another stone (tunnel.js's broken concrete)
+function rockMesh(list,tint){
   const pos=[],col=[],v=new T.Vector3(),m=new T.Matrix4(),q=new T.Quaternion(),s=new T.Vector3(),p=new T.Vector3(),c=new T.Color(),up=new T.Vector3(0,1,0);
   const bp=new T.DodecahedronGeometry(1,1).attributes.position;
   for(const[x,z,sx,sy,sz,ry,seed,y0]of list){
-    const r=rng(seed);c.setHSL(.07+r()*.04,.07+r()*.07,.085+r()*.055);q.setFromAxisAngle(up,ry);s.set(sx,sy,sz);p.set(x,y0,z);m.compose(p,q,s);
+    const r=rng(seed);if(tint)c.setHSL(tint[0]+r()*.02,tint[1]+r()*.03,tint[2]+r()*.08);else c.setHSL(.07+r()*.04,.07+r()*.07,.085+r()*.055);q.setFromAxisAngle(up,ry);s.set(sx,sy,sz);p.set(x,y0,z);m.compose(p,q,s);
     for(let i=0;i<bp.count;i++){
       const bx=bp.getX(i),by=bp.getY(i),bz=bp.getZ(i),hv=Math.sin(Math.round(bx*1e3)*12.9898+Math.round(by*1e3)*78.233+Math.round(bz*1e3)*37.719+seed*1.37)*43758.5453,f=hv-Math.floor(hv),k=.8+f*.38;   // (the same push for a corner every face shares: no cracks)
       v.set(bx*k,by*k*(by<0?.6:1),bz*k).applyMatrix4(m);pos.push(v.x,v.y,v.z);const sh=.82+.36*f;col.push(c.r*sh,c.g*sh,c.b*sh);
@@ -164,7 +164,8 @@ function resetRoad(){closeEast();road=null;hqStaff=[];}   // (state.js's reset)
 function roadGather(){   // (interior.js's gatherZone: GO OUT in the Headquarters' entry hall, TUNNEL at the tunnel's mouth)
   const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&need.every(p=>inZone(p,z));
   if(MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive())return{z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',need,fn:leaveBase};
-  if(MAPID==='out'&&road&&road.talked&&state==='play')return{z:TUN_ZONE,ready:all(TUN_ZONE),go:'GO IN',name:'TUNNEL',need,fn:tunnelGo};
+  if(MAPID==='out'&&road&&road.talked&&state==='play')return{z:TUN_ZONE,ready:all(TUN_ZONE),go:'GOING IN',name:'TUNNEL',auto:'in',need,fn:enterTunnel};   // (auto: it goes by itself, Bryan: "When approaching it it changes to it": tunnel.js)
+  if(MAPID==='tun'&&state==='play')return[{z:TUN_IN,ready:all(TUN_IN),go:'GOING OUT',name:'OUT',auto:'out',need,fn:leaveTunnel},{z:TUN_END,ready:all(TUN_END),go:'NEXT MISSION · COMING NEXT',name:'THE RADIO TOWER',auto:'end',need,fn:tunnelEnd}];
   return null;
 }
 function leaveBase(){
@@ -202,6 +203,8 @@ function roadIntro(){
 function roadLead(){const up=players.filter(p=>alive(p)&&!p.offMap);return['A1','B1'].map(id=>up.find(p=>p.id===id)).find(Boolean)||up[0]||null;}
 function roadTick(dt){   // (every tick: combat.js's update)
   if(!road)return;const I=road.intro,g=road.guide;
+  if(state==='play'&&!fading&&!I&&(MAPID==='out'||MAPID==='tun')){const A=road.auto||(road.auto={});   // the gather areas that go by themselves: half a second after everyone's in
+    for(const G of gatherZones()){if(!G.auto)continue;const a=A[G.auto]||(A[G.auto]={t:0,done:false});if(!G.ready){a.t=0;a.done=false;continue;}a.t+=dt;if(a.t>.5&&!a.done){a.done=true;G.fn();}}}
   if(I&&MAPID==='out'){
     if(contact||state!=='play'){roadIntroEnd(true);return;}   // (trouble on the way: the talk can wait)
     if(I.ph==='walk'&&simT-I.t0>1.3){I.ph='pan';camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1238,z:-402,zoom:1.75},t:0,dur:3.4};}
@@ -218,10 +221,10 @@ function roadIntroEnd(cut){
   if(!cut&&up.length)camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:up.reduce((s,p)=>s+p.x,0)/up.length,z:up.reduce((s,p)=>s+p.y,0)/up.length+30,zoom:2.1},t:0,dur:2.2};
   obj=Math.max(obj,7);updateObjUI();setStatus();hud();saveGame('road');
 }
-function tunnelGo(){banner('Next mission: the old radio tower, through the tunnel. It isn\'t built yet: coming next.',3800);}
 function roadHint(){
+  if(MAPID==='tun')return tunHint();
   if(MAPID!=='out'||!road||road.intro)return'';
-  return'The road east runs on past the gate to a tunnel in the hillside: the way to the old radio tower. Gather everyone at its mouth. The green area at the drawbridge takes you back into the Headquarters.';
+  return'The road east runs on past the gate to a tunnel in the hillside: the way to the old radio tower. Walk everyone into its mouth to go in. The green area at the drawbridge takes you back into the Headquarters.';
 }
 // a Continue from the save on the road: the big map with the road open, the talk done, the drawbridge's gather area back to the HQ
 function roadContinue(){

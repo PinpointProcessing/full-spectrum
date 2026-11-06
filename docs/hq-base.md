@@ -34,8 +34,10 @@ the next mission."
   one of the scientists comes out with them. The big map now goes on past its old east edge: the runway road runs through
   a gap in the east fence and on as a narrower road, round a bend, into a tunnel in a hillside. The camera follows the road
   to the tunnel while the leader and the scientist say Bryan's two lines, then the scientist goes back in.
-- **The tunnel's mouth** is a gather area for the next mission (TUNNEL n/m, TAP TO GO IN). The mission isn't built yet,
-  so for now it says so.
+- **The tunnel** is its own map (Bryan: "When approaching it it changes to it"): walk everyone into its mouth and it
+  comes in by itself; walk back to its south end and you're back on the road. A dark two-lane road tunnel about 125 m
+  long with wrecks, a fallen fan and a collapse to get round; at its far end the old radio tower's mission, which isn't
+  built yet, so for now it says so.
 - **Back in:** the drawbridge's green area takes the squad back into the HQ.
 - A save on the road ("The road east"); Continue comes back to it.
 
@@ -66,6 +68,12 @@ Each one costs supplies to build, is ready at once, and can be upgraded later.
 
 Six rooms and eight stations means you can't have everything at once: that's the choice. The garage and the boat dock go
 outside, so all six rooms stay for the others.
+
+## Classes, once radio control is in
+Bryan, after v96: classes should be assigned once the team has finished the HQ, but better to wait for radio control,
+"because then it would make sense how the troops can get weapons." Today the choice is only on the boat screen before
+Levels 2 and 3, and the freed men can't take one (docs/classes.md). With radio control: promote at the HQ, and the class's
+weapons and gear arrive on a supply drop called on the radio.
 
 ## Upstairs: a second floor and the roof
 Both stairs and a lift (your answer 5), like the office building's.

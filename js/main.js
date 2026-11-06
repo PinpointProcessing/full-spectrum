@@ -17,7 +17,7 @@ function frame(nowMs){
   if(state==='equip'){equipFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);requestAnimationFrame(frame);return;}   // between missions: the squad at sea (equip.js)
   if(state==='play'){
     const dt=rdt*timeScale();if(dt>0)update(dt);
-    if(!reduced&&!paused&&MAPID!=='in'){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
+    if(!reduced&&!paused&&MAPID!=='in'&&MAPID!=='tun'){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
     if(endAt&&nowMs>=endAt)finish();
   }
   if(!ptr&&!pinch&&(Math.abs(inertia.vx)+Math.abs(inertia.vy))>3){camT.x+=inertia.vx*rdt;camT.z+=inertia.vy*rdt;clampCam();const k=Math.exp(-rdt*5);inertia.vx*=k;inertia.vy*=k;}
