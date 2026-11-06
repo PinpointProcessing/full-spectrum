@@ -89,7 +89,7 @@ function shout(e,src){
 }
 // an alerted man who can see a soldier: where he is now. While one team is caught he sees that team's men all round; the
 // other team's he has to notice (senseCovert in combat.js). Each team he sees counts as seen just now (teamSawT)
-function seenBy(e){let best=null,bd=1e9;for(const p of players){if(!alive(p)||p.offMap||(contact&&!caught(p)))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<=380&&fireLine(e,p)){teamSawT[p.team]=simT;if(d<bd){bd=d;best=p;}}}return best;}
+function seenBy(e){let best=null,bd=1e9;const R=e.reach||380;for(const p of players){if(!alive(p)||p.offMap||(contact&&!caught(p)))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<=R&&fireLine(e,p)){teamSawT[p.team]=simT;if(d<bd){bd=d;best=p;}}}return best;}   // (reach: Level 2's guards, shorter, and shorter again in the dark: level2.js)
 
 /* ---------- the hunt ---------- */
 // alerted, but nobody in sight for LOST_T s: push to where they were, or search round it; give up after HUNT_T s

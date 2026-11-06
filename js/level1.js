@@ -10,7 +10,7 @@
    5 the relay hut: a wounded scout to bring round; clearing the yard makes a checkpoint there (a medic station, an ammo drop)
    6 the radio relay, a mast beside the hut: a rocket or a grenade close to it brings it down. Mission complete, then Level 2.
    Its guards aim worse, go down faster and see less far (L1E), and have no radio, grenades, dogs or reinforcements. */
-let LEVEL=2,L1=null;
+let LEVEL=3,L1=null;   // 1 the radio tower, 2 Lights Out (level2.js), 3 the data center
 const L1B={x0:0,x1:720,y0:120,y1:900};   // the map (inside the shared frame; void all round it)
 const L1E={aim:.15,dmgIn:1.6,eye:{r:210,cone:1}};   // its guards: on top of ENEMY_AIM; damage taken ×1.6 (about 60 HP); eyes 21 m, ±57°
 const L1_START=[[170,818],[198,814],[180,840],[208,838]];   // A1, A2, B1, B2 on the beach
@@ -181,8 +181,8 @@ function startLevel1(again){   // again: "Try Level 1 again" (straight onto the 
   if(again)go();else startHeli(go);
   hud();
 }
-function startLevel2(){
-  LEVEL=2;clearSave();refreshSaveButtons();reset();if(typeof applyLoadout==='function')applyLoadout();startView();   // (what was picked between missions: equip.js)
+function startLevel3(){   // the data center (it was Level 2 until Bryan asked for an easier one before it: level2.js)
+  LEVEL=3;clearSave();refreshSaveButtons();reset();if(typeof applyLoadout==='function')applyLoadout();darkFront(l2Done());startView();   // (what was picked between missions: equip.js; its front dark once Level 2's power was cut)
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   state='play';startLanding();banner('Coming in to the dock…',2400);hud();
 }

@@ -104,14 +104,14 @@ function hitChance(s,t,L){
   if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=0.15;
   if(t.path.length)c-=0.08;
   if(s.side==='P')c+=rankAim(s)+ob;   // rank: steadier aim; on Watch / breaching: a bonus
-  if(s.side==='E')c-=ENEMY_AIM+(s.l1?L1E.aim:0);   // (Level 1's guards: worse still, level1.js)
+  if(s.side==='E')c-=ENEMY_AIM+(s.aimPen??(s.l1?L1E.aim:0));   // (Level 1's and Level 2's guards: worse still, level1.js, level2.js)
   if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);
 }
 function threats(){
   const t=[];
   for(const e of enemies)if(!beaten(e)&&e.seen&&(e.vis||e.last))t.push(e.vis?{x:e.x,y:e.y}:e.last);
-  if(!t.length)t.push(MAPID==='l1'?l1Threat():MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
+  if(!t.length)t.push(MAPID==='l1'?l1Threat():MAPID==='l2'?l2Threat():MAPID==='in'?inThreat():wave.phase==='fight1'?{x:310,y:540}:wavePhase('clear','count','fight2','done')?COUNTER_AT:obj>=4?OBJ_THREAT[obj]:AREA_THREAT[nearArea()]);   // before anyone's seen: the warehouse door, the checkpoint, or where the gun jeep parks
   return t;
 }
 // before anyone's seen at the later objectives: where previews judge cover from
@@ -278,7 +278,7 @@ function damage(t,dmg,src){
   if(t.dead||t.downed)return;
   if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun jeep (mission.js): bullets (at GJEEP.bullet) and blasts
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
-  if(t.l1)dmg*=L1E.dmgIn;   // Level 1's guards go down faster (level1.js)
+  if(t.dmgIn)dmg*=t.dmgIn;else if(t.l1)dmg*=L1E.dmgIn;   // Level 1's and Level 2's guards go down faster (level1.js, level2.js)
   if(t.unarmored)dmg*=1.3;   // a freed prisoner: no vest (office.js)
   else if(t.side==='P')dmg*=SQUAD_VEST;   // the squad's vests
   t.hp-=dmg;t.hitFlash=.25;
@@ -306,9 +306,9 @@ function pickTarget(u){
   // undetected, the squad holds fire except at a hostile you've told them to shoot (or into a room they're breaching)
   if(u.side==='P'&&volleyHeld(u))return null;   // the silencers are about to take him: wait for it
   const foes=u.side==='P'?(caught(u)||simT<(u.breachT||0)?enemies.filter(e=>!beaten(e)):u.focus&&!beaten(u.focus)?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(p=>alive(p)&&(!contact||caught(p)));   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
-  let best=null,bs=-1;
+  let best=null,bs=-1;const R=u.reach?Math.min(u.reach,wRange(u)):wRange(u);   // (a hostile with a reach of his own shoots no further than he sees: Level 2's guards, level2.js)
   for(const f of foes){
-    if(hyp(f.x-u.x,f.y-u.y)>wRange(u))continue;
+    if(hyp(f.x-u.x,f.y-u.y)>R)continue;
     if(u.onGun){let da=Math.atan2(f.y-u.onGun.y,f.x-u.onGun.x)-u.onGun.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>u.onGun.arc)continue;}   // a mounted gun only swings so far
     const L=fireLine(u,f);if(!L)continue;
     let c=hitChance(u,f,L);if(u.focus===f)c+=1;if(u.watch&&inWatch(u,f))c+=.5;
@@ -421,7 +421,7 @@ function fireRPG(u,tx,ty){
 const routeLen=(u,p)=>{let L=0,x=u.x,y=u.y;for(const q of p){L+=hyp(q.x-x,q.y-y);x=q.x;y=q.y;}return L;};
 // would an enemy they know about see this spot? (an unaware one in his cone or close by, an alerted one all round)
 function watched(x,y,skip){
-  return enemies.some(e=>{if(e===skip||beaten(e)||e.dog||!e.seen)return false;const d=hyp(x-e.x,y-e.y);if(d>(e.alerted?380:eyeR()))return false;
+  return enemies.some(e=>{if(e===skip||beaten(e)||e.dog||!e.seen)return false;const d=hyp(x-e.x,y-e.y);if(d>(e.alerted?(e.reach||380):eyeR()))return false;
     if(!e.alerted&&d>80){let da=Math.atan2(y-e.y,x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)return false;}
     return los(e.x,e.y,x,y);});
 }
@@ -508,7 +508,7 @@ function sense(e,dt){
     gain+=g;if(g>best){best=g;src=p;}
   }
   if(e.jumpy)gain*=1.3;   // the checkpoint garrison is on edge
-  if(e.heavy)gain*=1.5;   // the run's searchlight
+  if(e.heavy&&!HEAVY.dark)gain*=1.5;   // the run's searchlight (dark once Level 2's power's cut: level2.js)
   if(gain>0){e.aware=Math.min(1,e.aware+gain*dt);e.susp={x:src.x,y:src.y};}
   else e.aware=Math.max(0,e.aware-AWARE_FADE*dt);
   if(e.aware>=AWARE_LOOK&&!e.wary){e.wary=true;if(e.vis)callout(e,'?',C.warn);chatHush(e);}   // ("Freeze. He heard something.": chatter.js)
@@ -749,7 +749,7 @@ function enemyThink(e){
   if(e.wave===2){assaultThink(e);return;}
   if(e.lkp&&simT-(e.sawT??-99)>LOST_T){huntThink(e);return;}   // they've lost you: the hunt (hunt.js)
   e.hunt=null;e.huntT0=0;
-  const vis=players.filter(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=380&&los(e.x,e.y,p.x,p.y));
+  const vis=players.filter(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<=(e.reach||380)&&los(e.x,e.y,p.x,p.y));
   const exposed=vis.some(p=>coverAt(e.x,e.y,p.x,p.y)===0);
   e.exposeT=exposed?e.exposeT+.4:0;
   const hurt=e.hp<40&&!e.fell;
@@ -864,7 +864,7 @@ function update(dt){
   takedownTick(dt);silentTick();throwTick();fireGoTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
-    vehTick(dt);waveTick(dt);l1Tick(dt);   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
+    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

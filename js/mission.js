@@ -67,7 +67,7 @@ function addSearchlight(u){
   const m=new T.Mesh(g,new T.MeshBasicMaterial({map:new T.CanvasTexture(c),color:0xfff1c8,transparent:true,opacity:.3,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide,toneMapped:false}));
   m.renderOrder=2;scene.add(m);u.slight=m;heavyPose(u);
 }
-function heavyPose(u){const m=u.slight;if(!m)return;m.visible=!u.dead;m.position.set(u.x,17,u.y);m.rotation.set(0,-u.ang,-.1);}
+function heavyPose(u){const m=u.slight;if(!m)return;m.visible=!u.dead&&!HEAVY.dark;m.position.set(u.x,17,u.y);m.rotation.set(0,-u.ang,-.1);}
 function heavyTick(){   // sweep the lane while unaware; keep the light on him
   for(const u of enemies){if(!u.heavy)continue;if(!u.dead&&!u.alerted)u.ang=Math.PI/2+Math.sin(simT*.55)*HEAVY.sweep;heavyPose(u);}
 }
@@ -162,18 +162,21 @@ function clearArea(n){
   addZones(REST_ZONES[A.k]);saveGame(A.k);setStatus();updateObjUI();
   // (Bryan: no tips in Level 2: the first checkpoint's camera tour of the station and the drop is gone; their rings say what they are)
 }
+function patrolTick(){   // patrols walk their route and back, pausing at each end, until they're alerted (Level 2's too: level2.js)
+  for(const e of enemies){
+    if(e.dead||e.alerted||e.surr||e.bodyGo||!e.route||e.path.length)continue;   // (gone to look at a body: layers.js)
+    if(!e.waitT){e.waitT=simT+2.5;continue;}
+    if(simT<e.waitT)continue;
+    e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
+  }
+}
 // every tick once the warehouse is taken (from hqTick)
 function missionTick(dt){
   heavyTick();
   chargeTick(dt);
   if(MAPID==='in')interiorTick(dt);   // inside the office building (interior.js)
   else if(pendingSpawns.length&&(spawnTick-=dt)<=0){spawnTick=.5;spawnPending();}   // twice a second is plenty
-  for(const e of enemies){   // patrols walk their route and back, pausing at each end, until they're alerted
-    if(e.dead||e.alerted||e.surr||e.bodyGo||!e.route||e.path.length)continue;   // (gone to look at a body: layers.js)
-    if(!e.waitT){e.waitT=simT+2.5;continue;}
-    if(simT<e.waitT)continue;
-    e.ri=(e.ri+1)%e.route.length;const p=e.route[e.ri],path=findPath(e.x,e.y,p.x,p.y,FOOT);if(path)e.path=path;e.waitT=0;
-  }
+  patrolTick();
   checkpointTick();truckTick(dt);towerTick(dt);
   if(panelGo){
     const u=panelGo;
@@ -435,6 +438,7 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
+  if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
   if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
   const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':'Take the Headquarters (coming next)';
@@ -472,7 +476,7 @@ function drawLastFoes(now){
 }
 function drawMission(rdt,now){
   drawGunMark(now);
-  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
+  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};

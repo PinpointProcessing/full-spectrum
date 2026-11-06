@@ -183,7 +183,7 @@ function banterPhase(){
   return finished[3]?'dco':finished[2]?'yard':finished[1]?'br':finished[0]?'wh':'any';   // (by the checkpoints they've cleared: mission.js)
 }
 function banterTick(dt){
-  if(state!=='play'||contact||talkQ.length||paused||MAPID==='l1')return;
+  if(state!=='play'||contact||talkQ.length||paused||MAPID==='l1'||MAPID==='l2')return;
   if((banterT+=dt)<150)return;   // (Bryan: they talked all the time)
   if(enemies.some(e=>!e.dead&&!e.surr&&(e.alerted||players.some(p=>up(p)&&hyp(p.x-e.x,p.y-e.y)<380))))return;   // not with anyone near
   const ph=banterPhase(),cand=BANTER.map((b,i)=>({b,i})).filter(({b,i})=>!banterUsed.has(i)&&(b.when===ph||(b.when==='any'&&ph!=='in'))&&b.lines.every(([id])=>up(players.find(p=>p.id===id))));

@@ -14,7 +14,7 @@ function mk(side,team,id,name,x,y,ang){
   units.push(u);return u;
 }
 function reset(){
-  leaveLevel1Now();   // (Level 1: level1.js)
+  leaveLevel1Now();leaveLevel2Now();   // (Level 1: level1.js; Level 2: level2.js)
   leaveInteriorNow();   // a new game or Continue from inside the office building: back to the outdoor map first
   for(const u of units){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);if(u.slight&&u.slight.parent)u.slight.parent.remove(u.slight);}
   units=[];

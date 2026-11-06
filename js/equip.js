@@ -110,7 +110,7 @@ function showEquip(next,title){
   eqNext=next;state='equip';paused=false;sel=[];cardGroup=[];preview=null;mode=null;
   for(const u of EQ.figs){const l=loadout[u.id];u.weapon=l.weapon;u.spec=l.spec;}
   $('#intro').hidden=true;$('#aar').hidden=true;$('#end').hidden=true;
-  $('#eqNext').textContent=title||'Next: Level 2 · The Data Center';
+  $('#eqNext').textContent=title||'Next: Level 3 · The Data Center';
   buildEquipUI();$('#equip').hidden=false;document.body.classList.add('equipping');hud();
 }
 function deployFromEquip(){

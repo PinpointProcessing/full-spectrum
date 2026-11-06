@@ -1,0 +1,50 @@
+# Soldier classes (Bryan's design, not built yet)
+
+Bryan: "Every private can use a basic assault rifle. When they reach level 3 their class type should be chosen... Each unit
+unlocks different Class Attribute Slots for skills and equipment." He wants Level 1 and Level 2 working first; this is the
+plan for when we get to it.
+
+## How it works
+
+- **Privates (levels 1 and 2):** the basic assault rifle (the M4, silenced from Level 2 on), a frag, and one common special
+  item (smoke or a medic kit). That's what the squad has now.
+- **Level 3: pick a class.** On the between-missions screen (the squad in the dinghy at sea, `equip.js`), anyone who has
+  reached level 3 gets "Promotion: choose a class". With today's XP (215 XP to level 3; a soldier earns roughly 150 to 250 a
+  mission) that lands after the second mission, before the data center.
+- **Class Attribute Slots:** each class has its own slots for skills and for equipment, and more of them open as the
+  soldier levels up (a suggestion: one of each at level 3, a second skill at 6, a second piece of gear at 10, when his rank
+  changes, and so on). Equipment slots take that class's gear; skill slots take passive or active skills, picked from a
+  short list per slot.
+
+## The classes
+
+| Class | Bryan's description | Weapons | Class gear | Skills (examples) |
+|---|---|---|---|---|
+| **Spec Ops** | stealth skills and equipment bonuses | silenced rifles | silencer, smoke, C4 (in the code, switched off), a distraction throw (new) | harder to spot while sneaking; faster, quieter takedowns; leads the silent volley |
+| **Medic** | heals units when down and up to 100%, uses med packs and carries far more of them; heal darts from a distance; an emergency medical station made in the field, to use under heavy fire | assault rifle | med packs (3 to 4, others carry 1), heal darts (new), field medical station (new: a medic ring he sets down anywhere) | revives anyone downed or critical to full health with a pack; faster revives; works while under fire |
+| **Support** | heavy machine gun, resupplies other units, RPGs and heavy rockets | M240, assault rifle | RPG (more rockets), heavy rockets (new, bigger blast), ammo bag (new: refills teammates near him, a walking ammo drop) | suppresses harder; carries more |
+| **Assault** | heavy firepower, strong and quick attacks | shotgun (in the code, dormant), assault rifle | extra grenades, breaching charge (new) | fires better on the move; a stronger Breach; tougher (more armour) |
+| **Recon** | sniper expert, scopes out areas, gets to places others can't; works well with Spec Ops | sniper rifle (in the game: the watchtower's), assault rifle | binoculars (new: mark enemies for the whole squad), climbing kit (new) | sees further (the sniper's 70 m), climbs ladders and towers faster, uses routes others can't (vents, rooftops) |
+| **Cyber Ops** | robotics, drones, hacks equipment, other tech bonuses | assault rifle | scout drone (new), hacking kit (new) | hacks card doors, the lift and cells without the card; takes over cameras and turrets; cuts a radio call short; a better contact sensor (it's in the game) |
+| **Captain** | a great leader who raises the whole team | assault rifle | radio (call-ins from HQ later) | an aura near him: better aim, steadier under fire, quicker reactions; rallies a pinned team; one per squad |
+
+What's already in the code and only needs handing to a class: the silencer, smoke, the medic kit and carrying, the RPG, the
+M240, the sniper rifle and climbing the tower, the shotgun, C4, Breach, the contact sensor, the ammo drop and medic station
+(today only at checkpoints). The squad's four already lean this way: Hayes is Support (M240, RPG), Okafor a Medic.
+
+## Order of work (a suggestion)
+
+1. The class choice at level 3 on the between-missions screen, each class's weapons and one passive bonus.
+2. Class gear that already exists, moved into the class slots.
+3. New gear, one at a time: heal darts, the field medical station, the ammo bag, heavy rockets, binoculars, the scout drone,
+   hacking, the Captain's aura.
+4. Skill slots opening with level, and the store (Bryan: "Maybe start upgrading them or going to the store?") selling class
+   gear.
+
+## Questions for Bryan
+
+1. Is a class for good, or can a soldier retrain later (at HQ, say)?
+2. Can two soldiers share a class? Only one Captain per squad?
+3. The Medic "can heal units when dead": back to full health from downed and critical, or can he bring a killed soldier
+   back too? (Today the dead stay dead; Bryan's earlier idea was life support at HQ.)
+4. Does the player pick the class, or does the game suggest one from how the soldier has been used?

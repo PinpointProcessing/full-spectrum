@@ -22,6 +22,7 @@ function setStatus(){
 }
 function finish(){
   if(typeof tutStop==='function'&&MAPID==='l1')tutStop();
+  if(LEVEL===2){$('#endEyebrow').textContent='Mission failed';$('#endTitle').textContent='Squad lost';state='end';setStatus();$('#status').textContent='Lost';$('#endText').textContent='The squad went down. Try again: the hole in the fence on the west side is the quiet way in, and a Breach takes the control building.';$('#againBtn').textContent='Try Level 2 again';$('#retryBtn').hidden=true;$('#end').hidden=false;return;}   // (level2.js)
   const win=players.some(alive)&&(wave.phase==='hq'?obj>=5:enemies.every(beaten));
   state='end';setStatus();$('#status').textContent=win?'Secured':'Lost';
   if(win){bigText('Mission complete!','complete');setTimeout(showAAR,2600);return;}   // then the after-action report, then the HQ
@@ -69,6 +70,7 @@ function hud(){
   else if(!preview&&enemies.some(e=>e.surr&&!e.tied&&!e.dead&&e.vis&&!offFloor(e)))h=act.length?'A hostile has surrendered: tap him to zip-tie him (2 s beside him).':'A hostile has surrendered: select a soldier, then tap him to zip-tie him.';   // (layers.js)
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(MAPID==='l1'&&!preview&&!act.length)h=l1Hint();   // (level1.js)
+  else if(MAPID==='l2'&&!preview&&!act.length)h=l2Hint();   // (level2.js)
   else if(MAPID==='in'&&!preview&&!act.length)h=officeHint();   // (office.js)
   else if(wave.phase==='hq'&&!preview&&!act.length)h=objHint()+(HQ_ZONES.length?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
@@ -115,7 +117,8 @@ function bindHud(){
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
-  $('#startBtn').addEventListener('click',()=>showEquip(startLevel2));   // the loadout first (equip.js)
+  $('#startBtn').addEventListener('click',()=>showEquip(startLevel3,'Next: Level 3 · The Data Center'));   // the loadout first (equip.js)
+  $('#l2Btn').addEventListener('click',()=>showEquip(startLevel2,'Next: Level 2 · Lights Out'));   // (level2.js)
   $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
   // the tutorial's bubble: a tap carries on from a notice or hides it (and stops there, so it never moves anyone); its button
   // turns the tutorial or the tips off; the "?" brings it back
@@ -124,11 +127,11 @@ function bindHud(){
     if(MAPID==='l1')tutTap();else $('#tut').hidden=true;   // (outside Level 1 it's the checkpoint's tour: hq.js)
   });
   $('#tutPin').addEventListener('click',()=>{tut.hid=false;tutShow();});
-  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){showEquip(startLevel2,'Next: Level 2 · The Data Center');return;}state='play';endAt=0;hud();});   // after Level 1's report: the squad at sea and the loadout (equip.js), then Level 2   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
+  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){showEquip(startLevel2,'Next: Level 2 · Lights Out');return;}if(LEVEL===2){showEquip(startLevel3,'Next: Level 3 · The Data Center');return;}state='play';endAt=0;hud();});   // after Level 1's report: the squad at sea and the loadout (equip.js), then Level 2   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
-  $('#againBtn').addEventListener('click',()=>{if(LEVEL===1){startLevel1(true);return;}startLevel2();});
+  $('#againBtn').addEventListener('click',()=>{if(LEVEL===1){startLevel1(true);return;}if(LEVEL===2){startLevel2(true);return;}startLevel3();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}

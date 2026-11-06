@@ -122,3 +122,21 @@ Bryan: "Here is everything from my testing."
    Level 1 again" starts on the beach without it.
 
 Open for Bryan: a store or upgrades (what you'd buy with, what's for sale), and the new Level 2 draft.
+
+# Bryan after v69 (the changes are in v70)
+
+1. "Yes lets keep designing the map then go to horizontal later." The new Level 2 is built from the draft
+   (`docs/map-draft-G.png`): Lights Out, the power station on the coast (`js/level2.js`, notes in `docs/level2.md`). In from
+   the sea at a cove, past a fishermen's camp, into a fenced station by the main gate (a machine gun over it) or a hole in the
+   fence, through a transformer yard with a patrol, to the control building (a Breach), where a panel shuts the power down:
+   every light goes out, the guards hunt with torches, and the squad gets out by boat. The data center is Level 3 now, and
+   after Lights Out its front is dark (its lamps, floodlights and the heavy gun's searchlight). The intro card has a button
+   for each level; Level 1's report leads to Level 2, Level 2's to Level 3, each through the sea and the loadout.
+2. "Lets wait to do the graphics enhance until level 1 and level 2 is working functionally." Noted: the graphics pass waits,
+   and so does the landscape layout (after the maps).
+3. The soldier classes (Spec Ops, Medic, Support, Assault, Recon, Cyber Ops, Captain; a class at level 3; Class Attribute
+   Slots): written up in `docs/classes.md`, not built. With today's XP the choice would come after the second mission,
+   before the data center.
+
+Open for Bryan: Lights Out to play; the four questions in `docs/classes.md` (can a soldier retrain, can two share a class,
+can the Medic bring back the dead, does the player pick); a store or upgrades.

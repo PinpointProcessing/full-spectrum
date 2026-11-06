@@ -40,6 +40,7 @@ function watchTick(){
 const WH_ROOM={x0:180,y0:270,x1:440,y1:550,name:'the warehouse'};
 function roomFor(wx,wy){
   if(MAPID==='in'){const f=floorOf(wx,wy),fl=f&&IN.floors[f],r=fl&&roomAt(fl,wx,wy);return r&&!/hall|lobby/i.test(r.name)?{x0:r.x0,y0:r.y0,x1:r.x1,y1:r.y1,name:r.name}:null;}
+  if(MAPID==='l2'){const r=L2_ROOMS.find(z=>wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1);return r?{...r}:null;}   // Level 2's control building (level2.js)
   const z=WH_ROOM;return wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1?{...z}:null;
 }
 // its doorways: runs of free ground along the walls' middle line (a 3-4 m doorway leaves a run of 10-20 once clearance is
@@ -70,6 +71,7 @@ let breachHere=null,breachT=-1;
 function breachRooms(){
   if(MAPID==='in'){const f=IN&&IN.floors[curFloor];return f?(f.rooms||[]).filter(r=>!/hall|lobby|lift|stair/i.test(r.name)).map(r=>({x0:r.x0,y0:r.y0,x1:r.x1,y1:r.y1,name:r.name})):[];}
   if(MAPID==='out'&&!finished[0])return[{...WH_ROOM}];
+  if(MAPID==='l2')return L2_ROOMS.filter(r=>enemies.some(e=>!beaten(e)&&e.x>=r.x0&&e.x<=r.x1&&e.y>=r.y0&&e.y<=r.y1)).map(r=>({...r}));   // Level 2's control building, while anyone's in there (level2.js)
   return[];
 }
 function breachSpot(){

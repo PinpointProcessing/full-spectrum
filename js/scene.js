@@ -189,6 +189,7 @@ function decalOn(g,d){
 }
 function paintDecal(d){
   if(MAPID==='l1'&&L1){const g=L1.canvas.getContext('2d');g.setTransform(L1S,0,0,L1S,-L1B.x0*L1S,-L1B.y0*L1S);decalOn(g,d);L1.tex.needsUpdate=true;return;}   // Level 1's own ground (level1.js)
+  if(MAPID==='l2'&&L2){const g=L2.canvas.getContext('2d');g.setTransform(L2S,0,0,L2S,-L2B.x0*L2S,-L2B.y0*L2S);decalOn(g,d);L2.tex.needsUpdate=true;return;}   // Level 2's (level2.js)
   const inside=MAPID==='in'&&IN,s=inside?1:GS,g=(inside?IN.canvas:gcan).getContext('2d');g.setTransform(s,0,0,s,0,-TOP*s);   // inside, onto the building's own floor
   decalOn(g,d);
   if(inside){IN.tex.needsUpdate=true;IN.marked=true;}else gtex.needsUpdate=true;
@@ -293,7 +294,7 @@ function seeThrough(rdt){
     if(done){o.fadeA=1;fadeObjs.delete(o);}
   }
 }
-const lamps=[
+const lamps=[   // (front: the data center's front, dark once Level 2's power is cut: darkFront in level2.js)
   {x:310,y:566,h:22,c:0xffa860,i:3.4,d:260,flick:1},
   {x:30,y:560,h:40,c:0xffa860,i:2.8,d:300,pole:1},
   {x:570,y:240,h:40,c:0xc4d6ff,i:2.4,d:300,pole:1},   // the yard's north end, by the canal
@@ -302,11 +303,11 @@ const lamps=[
   {x:150,y:846,h:14,c:0xffc27a,i:1.6,d:150,pole:1},   // the dock, at the pier
   {x:525,y:56,h:30,c:0xffa860,i:2.6,d:280,pole:1},    // the bridge's north end
   {x:640,y:-190,h:40,c:0xc4d6ff,i:2.2,d:280,pole:1},  // the container yard's east block
-  {x:495,y:-338,h:30,c:0xffa860,i:2.4,d:240,pole:1},  // over the front's machine-gun nest
-  {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260},          // the data center's doors
+  {x:495,y:-338,h:30,c:0xffa860,i:2.4,d:240,pole:1,front:1},  // over the front's machine-gun nest
+  {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260,front:1},          // the data center's doors
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
-let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null,meshObjs=null;   // (meshObjs: set by buildWorld)
+let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null,meshObjs=null;const FLOOD_HEADS=[];   // (the floodlights' lamp material: darkFront)   // (meshObjs: set by buildWorld)
 // Every light costs every pixel on screen (a phone feels it), so the street lamps share LAMP_POOL lights: each frame the lamps
 // nearest the middle of the view get them, the one at the edge of the set fading so nothing pops (lampLights in render)
 const LAMP_POOL=6;let lampPool=[];   // (the interior has its own pool and lights: interior.js swaps these)
@@ -536,6 +537,20 @@ function buildWorld(){
     }else if(o.kind==='desk'){   // office desk with a monitor
       addMesh(new T.BoxGeometry(o.w,8,o.h),new T.MeshStandardMaterial({color:0x5a4c3e,roughness:.8}),cx,4,cz);
       const mon=new T.Mesh(new T.BoxGeometry(8,5,1),new T.MeshBasicMaterial({color:0x6fb8e0,toneMapped:false}));mon.position.set(cx,11,cz);scene.add(mon);
+    }else if(o.kind==='xfmr'){   // Level 2's transformer: a ribbed steel tank on a plinth, cooling fins down its long sides, three insulators on top
+      const steel=new T.MeshStandardMaterial({color:0x5b6458,roughness:.55,metalness:.55}),hz2=o.w>=o.h;
+      addMesh(new T.BoxGeometry(o.w,2,o.h),concrete,cx,1,cz);addMesh(new T.BoxGeometry(o.w-4,15,o.h-6),steel,cx,9.5,cz);
+      for(let k=0;k<6;k++){const t=-((hz2?o.w:o.h)-8)/2+k*((hz2?o.w:o.h)-8)/5;for(const sd of[-1,1])addMesh(new T.BoxGeometry(hz2?1:3,12,hz2?3:1),steel,hz2?cx+t:cx+sd*(o.w/2-1.5),8.5,hz2?cz+sd*(o.h/2-1.5):cz+t);}
+      const por=new T.MeshStandardMaterial({color:0xc9c2b0,roughness:.35,metalness:.1});for(const k of[-1,0,1])addMesh(new T.CylinderGeometry(1.1,1.5,6,8),por,hz2?cx+k*(o.w/4):cx,20,hz2?cz:cz+k*(o.h/4));
+      addMesh(new T.BoxGeometry(hz2?7:.4,5,hz2?.4:7),new T.MeshStandardMaterial({color:0xd8b23a,roughness:.6}),cx,10,hz2?cz+o.h/2-2.8:cz);   // the warning plate
+    }else if(o.kind==='ctank'){   // Level 2's cooling tank: a pale steel drum, two bands, a pipe off its top
+      const tm=new T.MeshStandardMaterial({color:0xa9adaa,roughness:.5,metalness:.45}),R=Math.min(o.w,o.h)/2;
+      addMesh(new T.CylinderGeometry(R,R,28,20),tm,cx,14,cz);for(const y of[8,20])addMesh(new T.CylinderGeometry(R+.4,R+.4,1.4,20),darkMetal,cx,y,cz);
+      addMesh(new T.CylinderGeometry(R*.9,R,2,20),tm,cx,29,cz);const p=addMesh(new T.CylinderGeometry(1.4,1.4,R*1.6,8),darkMetal,cx+R*.5,30,cz);p.rotation.z=Math.PI/2;
+    }else if(o.kind==='console'){   // Level 2's generator panel: a steel desk of switches and dials, screens above, a big red lever
+      addMesh(new T.BoxGeometry(o.w,10,o.h),new T.MeshStandardMaterial({color:0x4a5155,roughness:.6,metalness:.5}),cx,5,cz);
+      for(const k of[-1,0,1]){const m=new T.Mesh(new T.BoxGeometry(o.w/3-2,5,1),new T.MeshBasicMaterial({color:0x6fb8e0,toneMapped:false}));m.position.set(cx+k*o.w/3,14,cz-o.h/2+1);scene.add(m);}
+      const lv=new T.Mesh(new T.BoxGeometry(1,5,1),new T.MeshStandardMaterial({color:0xb01e14,roughness:.4}));lv.position.set(cx+o.w/2-4,12.5,cz);scene.add(lv);o.lever=lv;
     }else if(o.kind==='core'){   // the server core: a glowing cabinet bank, the sabotage target
       addMesh(new T.BoxGeometry(o.w,18,o.h),new T.MeshStandardMaterial({color:0x1d2328,roughness:.4,metalness:.6}),cx,9,cz);
       const glow=new T.Mesh(new T.BoxGeometry(o.w+.4,3,o.h+.4),new T.MeshStandardMaterial({color:0x0b2a36,emissive:0x0a5a7a,emissiveIntensity:1.4,roughness:.3}));glow.position.set(cx,14,cz);scene.add(glow);o.mesh=glow;
@@ -587,7 +602,7 @@ function buildWorld(){
       for(let x=d.x0;x<=d.x1;x+=30)addMesh(new T.BoxGeometry(.8,7,.8),darkMetal,x,3.5,d.y);continue;}
     if(d.kind==='flood'){   // floodlight mast with a bank of lamps aimed at the approach (glow only, no extra light)
       addMesh(new T.CylinderGeometry(1,1.4,44,6),darkMetal,d.x,22,d.y);
-      const lm=new T.MeshBasicMaterial({color:0xfff3d6,toneMapped:false});for(const o of[-4,0,4]){const m=new T.Mesh(new T.BoxGeometry(3.4,2.6,1),lm);m.position.set(d.x+o,44,d.y+1.6);m.rotation.x=-.5;scene.add(m);}
+      const lm=new T.MeshBasicMaterial({color:0xfff3d6,toneMapped:false});FLOOD_HEADS.push({material:lm});for(const o of[-4,0,4]){const m=new T.Mesh(new T.BoxGeometry(3.4,2.6,1),lm);m.position.set(d.x+o,44,d.y+1.6);m.rotation.x=-.5;scene.add(m);}
       continue;}
     const ax=d.dir==='x';   // the arm runs along x (across a north-south road) or along y
     addMesh(new T.BoxGeometry(3,11,3),darkMetal,ax?d.x-2:d.x,5.5,ax?d.y:d.y-2);
@@ -604,7 +619,7 @@ function buildWorld(){
   scene.add(moon,moon.target);
   const poleM=new T.MeshStandardMaterial({color:0x1d2124,roughness:.6,metalness:.6});
   for(const L of lamps){   // the lamp heads and poles; their light comes from the shared pool (lampLights)
-    const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);scene.add(hd);
+    const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);scene.add(hd);L.head=hd;
     if(L.pole)addMesh(new T.CylinderGeometry(1.2,1.6,L.h+2,8),poleM,L.x,(L.h+2)/2,L.y);
   }
   for(let k=0;k<LAMP_POOL;k++){const p=new T.PointLight(0xffffff,0,100,1.4);scene.add(p);lampPool.push(p);}
@@ -711,7 +726,7 @@ function syncUnits(t){
 }
 function lampLights(now){   // hand the pooled lights to the lamps nearest the view's centre
   const by=lamps.filter(L=>!L.floor||L.floor===curFloor).map(L=>({L,d:hyp(L.x-camT.x,L.y-camT.z)})).sort((a,b)=>a.d-b.d),edge=by[LAMP_POOL]?by[LAMP_POOL].d:1e9;
-  lampPool.forEach((p,k)=>{const q=by[k];if(!q){p.intensity=0;return;}const L=q.L;let i=L.i*clamp((edge-q.d)/80,0,1);
+  lampPool.forEach((p,k)=>{const q=by[k];if(!q){p.intensity=0;return;}const L=q.L;let i=L.off?0:L.i*clamp((edge-q.d)/80,0,1);   /* (off: Level 2's lamps once the power's cut, the data center's front after it) */
     if(L.flick&&!reduced){const f=Math.sin(now*13.1)+Math.sin(now*7.3);if(f>1.85)i*=.3;}
     p.color.setHex(L.c);p.intensity=i;p.distance=L.d;p.position.set(L.x,L.h,L.y);});
 }

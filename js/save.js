@@ -30,7 +30,7 @@ function saveGame(stage){
 // put the game back at the saved checkpoint: the areas cleared stay cleared (their stations back), the rest get fresh defenders
 function continueGame(){
   const s=readSave();if(!s)return false;
-  reset();state='play';contact=false;clearTeams();landing=null;
+  reset();LEVEL=3;state='play';contact=false;clearTeams();landing=null;darkFront(l2Done());   // (the data center: Level 3; its front dark once Level 2's power was cut, level2.js)
   if(s.alert){alertT=s.alert.t||0;alertMax=s.alert.max||0;}
   const cleared=new Set(s.cleared||[]);
   hq={t0:simT,tour:null,toured:true};
@@ -60,7 +60,7 @@ function continueGame(){
 // intro and end screens: offer Continue / Retry when there's a save
 function refreshSaveButtons(){
   const s=readSave();
-  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level 2 · Continue · ${STAGES[s.stage]}`;
-  $('#startBtn').textContent=s?'Level 2 · New game':'Level 2 · The Data Center';
+  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level 3 · Continue · ${STAGES[s.stage]}`;
+  $('#startBtn').textContent=s?'Level 3 · New game':'Level 3 · The Data Center';
   $('#retryBtn').hidden=!s;$('#againBtn').textContent=s?'New game':'Run it again';
 }

@@ -284,6 +284,7 @@ function audioFrame(){
   {const H=MAPID==='l1'&&typeof heli!=='undefined'&&heli&&heli.pos;setLoop('heli',H&&state==='play'?.5:0,H?H.x:null,H?H.y:null,1);}   // Level 1's helicopter (level1.js)
   if(state==='equip')setLoop('boat',.12,camT.x,camT.z,.8);   // between missions: the outboard ticking over at sea
   else if(MAPID==='l1'&&typeof l1!=='undefined'&&l1.away!=null&&L1.boat)setLoop('boat',.22,L1.boat.position.x,L1.boat.position.z,1.4);   // Level 1's boat going out
+  else if(MAPID==='l2'&&typeof l2!=='undefined'&&L2&&(l2.land||l2.away!=null))setLoop('boat',live?.24:0,(l2.land?L2.landBoat:L2.boat).position.x,(l2.land?L2.landBoat:L2.boat).position.z,l2.land?1:1.4);   // Level 2's boat in and out
   else setLoop('boat',live&&landing?.26:0,DOCK.moor.x,DOCK.moor.y+100,landing&&landing.t>LAND_T*.7?1:1.5);
   {const tk=MAPID==='out'&&enemies.find(e=>e.veh&&!e.dead);setLoop('truck',live&&tk?(tk.path.length?.3:.1):0,tk?tk.x:null,tk?tk.y:null,tk&&tk.path.length?1.5:.8);}   // the gun truck: driving, or idling where it's parked
 }
