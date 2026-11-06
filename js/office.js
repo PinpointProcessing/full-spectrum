@@ -305,17 +305,18 @@ function sciTied(c,u){   // from zipTick (layers.js)
 }
 
 /* ---------- the bio scanner at the drawbridge (mission.js sends the soldier) ---------- */
-function startScan(u){
-  const s=detained().filter(c=>hyp(c.x-PANEL.x,c.y-PANEL.y)<140).sort((a,b)=>hyp(a.x-PANEL.x,a.y-PANEL.y)-hyp(b.x-PANEL.x,b.y-PANEL.y))[0];
-  if(!s){banner('The bio scanner only opens for one of the scientists. Bring one here: they follow the soldier who tied them.',3800);callout(u,'Needs a scientist',C.warn);return false;}
+function startScan(u){   // (from tapPanel: the soldier and a scientist set off together)
+  const s=detained().filter(c=>!c.dead&&!c.offMap&&!c.gone&&!c.railed).sort((a,b)=>hyp(a.x-PANEL.x,a.y-PANEL.y)-hyp(b.x-PANEL.x,b.y-PANEL.y))[0];   // (the nearest, whoever tied him: Bryan)
+  if(!s){banner('The bio scanner only opens for one of the scientists.',3000);callout(u,'Needs a scientist',C.warn);return false;}
   const spot={x:PANEL.x-14,y:PANEL.y+8},p=findPath(s.x,s.y,spot.x,spot.y,FOOT);
   s.scanning=true;s.path=p||[];s.pleadT=simT;scanGo={u,s,spot,t:0};chatScan(u);return true;
 }
 function scanTick(dt){
-  const g=scanGo;if(!g)return;const s=g.s;
-  if(!alive(g.u)){s.scanning=false;scanGo=null;return;}
+  const g=scanGo;if(!g)return;const s=g.s,u=g.u,uAt=hyp(u.x-PANEL.x,u.y-PANEL.y);
+  if(!alive(u)||s.dead||(panelGo!==u&&!u.path.length&&uAt>40)){s.scanning=false;scanGo=null;return;}   // (his soldier's down or sent somewhere else: back to the squad)
   if(s.path.length)return;
   if(hyp(s.x-g.spot.x,s.y-g.spot.y)>16){s.path=findPath(s.x,s.y,g.spot.x,g.spot.y,FOOT)||[];if(!s.path.length){s.scanning=false;scanGo=null;}return;}
+  if(uAt>40)return;   // (they scan together: wait for the soldier)
   s.ang=Math.atan2(PANEL.y-s.y,PANEL.x-s.x);if(!g.t&&typeof sfxScan==='function')sfxScan(PANEL.x,PANEL.y);g.t+=dt;
   if(g.t>=3){s.scanning=false;scanGo=null;lowerBridge(g.u);line(s,'end',SCI_END,0);}
 }

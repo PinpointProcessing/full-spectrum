@@ -205,7 +205,9 @@ function tapPanel(){
   const foot=sel.filter(u=>alive(u)&&!u.inVeh).sort((a,b)=>hyp(a.x-PANEL.x,a.y-PANEL.y)-hyp(b.x-PANEL.x,b.y-PANEL.y));
   if(!foot.length){banner('Select a soldier, then tap the bio scanner.',2000);return;}
   const u=foot[0],s=openSpot(PANEL.x,PANEL.y+14,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:PANEL.x,y:PANEL.y+14},p=findPath(u.x,u.y,s.x,s.y);
-  if(p){u.path=p;u.lastOrder=simT;callout(u,'Checking the controls',C.good);panelGo=u;}else banner('No way to reach the panel from here.',2000);
+  if(!p){banner('No way to reach the panel from here.',2000);return;}
+  if(obj===4&&!scanGo&&!startScan(u))return;   // a scientist goes over with him, whoever tied him (office.js)
+  u.path=p;u.lastOrder=simT;callout(u,obj===4?'To the scanner':'Checking the controls',C.good);panelGo=u;
 }
 
 /* ---------- the gun jeep (Bryan: "The jeep patrols that road, from left to right continuously (the user can sneak by or

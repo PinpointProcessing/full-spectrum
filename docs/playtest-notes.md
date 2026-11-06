@@ -396,3 +396,13 @@ Bryan: "the freed prisoners are now part of the players squad. They never say by
 the talk in the Headquarters it goes straight to the report. (Their recorded goodbye lines are still in their voice files,
 unused, and the voice tools no longer make them.) Bryan on the talk: "We will work on the script and after battle sequence
 more after the testing of the HQ battle."
+
+# v89: the bio scanner calls a scientist over
+
+Bryan: "When using the bio scanner, a scientist should be called over no matter who detained him. When I press the bio
+scanner, a unit and a scientist go over together. Right now, a scientist doesn't go." Before, only the soldier went, and
+on arriving he looked for a scientist already within 14 m of the scanner; the scientists follow whoever tied them, so
+usually none was. Now the press sends the soldier and the nearest scientist together, whoever tied him; the scan starts
+once both are there. If the soldier is sent somewhere else on the way, the scientist goes back to the squad.
+Tested from the "Scientists detained" checkpoint, about 70 m away, with a soldier who wasn't minding any scientist: they
+walked over side by side and the drawbridge came down 17 s after the press; sent elsewhere at 3 s, the scientist turned back.
