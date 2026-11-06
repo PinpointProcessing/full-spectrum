@@ -81,5 +81,7 @@ After v95, the two lines on the road east (`ROAD_TALK` in `js/road.js`; Bryan wr
 get our radio communication up." for Reyes and Hayes (A1, B1: whoever leads; 'firm', like the gate's leader) and `road_2`
 "There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need
 from there." for each scientist (S1-S4: whichever comes out with them; 'tell', even, a little wary), made with
-`gen_road.py` (no pause at the comma, as `gen_zonos.py` does), two or three takes each, scored by `check_zonos.py`, the
-best of each put on the end of the speakers' files with `add_lines.py` ('plain').
+`gen_road.py` (no pause at the comma, as `gen_zonos.py` does), scored by `check_zonos.py`, the best of each put on the
+end of the speakers' files with `add_lines.py` ('plain'). Two or three takes did for A1, B1, S1 and S3; S2 took four. S4's
+voice runs slower and every take at the usual rate stopped at about 8 s, before the last word, so his are made at a faster
+rate (`RATE` in `gen_road.py`).

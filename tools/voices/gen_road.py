@@ -19,12 +19,13 @@ SCI="There's a decommissioned radio tower accessible from the tunnel down the ro
 LINES=[(sp,'road_1',LEAD,'firm') for sp in ('A1','B1')]+[(sp,'road_2',SCI,'tell') for sp in ('S1','S2','S3','S4')]
 if ONLY:LINES=[l for l in LINES if l[0] in ONLY]
 spoken=lambda t:re.sub(r',\s*',' ',t)   # (Bryan, after v71: no pause at a comma)
+RATE={'S4':16.}   # (S4's voice runs slower: at 14.5 every take stopped at about 8 s, before the last word)
 torch.set_num_threads(int(os.environ.get('ZONOS_THREADS','4')));T0=time.time()
 m=Zonos.from_pretrained('Zyphra/Zonos-v0.1-transformer',device='cpu');SR=m.autoencoder.sampling_rate
 for sp,key,text,st in LINES:
     d=f'{CACHE}/{sp}';os.makedirs(d,exist_ok=True);mf=f'{d}/meta.json';meta=json.load(open(mf)) if os.path.exists(mf) else {}
     mt=meta.setdefault(key,{'text':text,'style':st,'takes':[]})
-    w,sr=torchaudio.load(f'refs/{sp}.flac');emo,pr,rate=STYLE[st];say=spoken(text)
+    w,sr=torchaudio.load(f'refs/{sp}.flac');emo,pr,rate=STYLE[st];rate=RATE.get(sp,rate) if key=='road_2' else rate;say=spoken(text)
     c=m.prepare_conditioning(make_cond_dict(text=say,speaker=m.make_speaker_embedding(w,sr),language='en-us',emotion=emo,pitch_std=pr,speaking_rate=rate))
     while len(mt['takes'])<NT:
         n=len(mt['takes'])
