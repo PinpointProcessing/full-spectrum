@@ -85,7 +85,7 @@ function monPrey(u,maxD=900){
 function monHit(u,tg,dmg,stun){
   if(tg.side==='C'){tg.hp=(tg.hp??100)-dmg*1.2;callout(tg,'Aaagh!','#ffd7cf');if(typeof sfxScream==='function')sfxScream(tg,.8);
     if(tg.hp<=0&&!tg.dead){tg.dead=true;tg.detained=false;tg.path=[];mon.sciLost=(mon.sciLost||0)+1;banner('A scientist is down.',2200);}return;}
-  damage(tg,dmg*(.85+Math.random()*.3),u);if(alive(tg)){tg.stunT=simT+stun;tg.path=[];}
+  damage(tg,dmg*(u.hitK||1)*(.85+Math.random()*.3),u);if(alive(tg)){tg.stunT=simT+stun;tg.path=[];}   // (a hatchling bites weaker: fortress.js)
 }
 function monMove(u,dx,dy,dist){   // a lunge or a step back: straight, stopping at anything solid
   const n=Math.max(1,Math.ceil(dist/4));for(let i=0;i<n;i++){const nx=u.x+dx*dist/n,ny=u.y+dy*dist/n;if(!isFree(nx,ny,6))return false;u.x=nx;u.y=ny;}return true;
@@ -94,7 +94,7 @@ function monMove(u,dx,dy,dist){   // a lunge or a step back: straight, stopping 
 /* ---------- what they do (every tick, from update) ---------- */
 function monTick(dt){
   if(state!=='play')return;
-  gateTick(dt);
+  gateTick(dt);sceneTick();
   for(const u of enemies){
     if(!u.mon||u.dead||u.dormant)continue;
     if(u.mon==='boss'){if(typeof bossThink==='function')bossThink(u,dt);continue;}
@@ -160,8 +160,8 @@ function gateTick(dt){
     if(o.wave===1&&!mon.first){mon.first=true;setTimeout(()=>{if(state==='play')banner('Hunters. They crouch before they lunge: shoot them then, or get out of the violet line.',4200);},1200);}
   }
   if(!o.done&&o.wave>=MON_WAVES.length&&!enemies.some(e=>e.mon==='hound'&&!e.dead)){
-    o.done=true;bigText('The gate is clear','clear');banner('Gather at the drawbridge to go in. The Headquarters is inside.',3600);
-    if(typeof saveGame==='function')saveGame('gate');updateObjUI();hud();
+    o.done=true;bigText('The gate is clear','clear');
+    if(typeof saveGame==='function')saveGame('gate');updateObjUI();hud();gateAftermath();
   }
 }
 // places on the moat's outer edge a short run from the squad (left and right of them): where a hound climbs out (ix,iy: down
@@ -182,7 +182,54 @@ function gateReady(){
 function monGateTap(wx,wy){
   const g=gateReady();if(!g)return false;const z=MON_OUT;if(wx<z.x0-20||wx>z.x1+20||wy<z.y0-20||wy>z.y1+20)return false;
   if(!g.ok){if(sel.some(alive))return false;banner(players.some(p=>p.downed&&!p.dead&&!p.carriedBy)?'Nobody goes in while someone’s down: revive him or carry him.':'Everyone who’s up has to be in the green area first.',2400);return true;}
-  if(typeof enterHQ==='function')enterHQ();return true;
+  if(mon.scene&&mon.scene.q.length){if(mon.scene.kind==='after')mon.goIn=true;return true;}   // (the leader's still talking: in once he's done)
+  if(typeof enterHQ==='function')tieScientists(()=>enterHQ());return true;
+}
+
+/* ---------- after the attack (Bryan: a soldier screams "what the hell was that", the scientists beg to leave, the leader
+   says no, they're going in, team on him; the scientists are told to stay on the bridge till it's cleared and zip-tied to
+   its railings). Natural, not word for word: fear from one of the soldiers and the scientists, then the leader, unshaken. ---------- */
+// a short scene: its lines one after another, each once the one before has finished (who, sp: whose voice, clip, text,
+// col, radio, fn: something that happens as it's said)
+function sceneStart(lines,gap=1,kind=''){mon.scene={q:lines.filter(Boolean),next:simT+gap,quiet:0,kind};}
+function sceneTick(){
+  const S=mon.scene;if(!S||!S.q.length||simT<S.next)return;
+  const w0=S.q[0];if(w0.wait){if(!w0.wait()&&simT<(w0.until||(w0.until=simT+(w0.max||5))))return;S.q.shift();S.next=simT;return;}   // (waiting for something to happen: someone to get there)
+  const now=performance.now()/1000;if(now<voiceBusyTill)return;
+  const l=S.q.shift();if(l.fn)l.fn();if(!S.q.length)S.quiet=simT+4;if(!l.text){S.next=simT;return;}
+  const w=l.who;if(!w||w.dead||(w.side==='P'&&!alive(w))){S.next=simT;return;}
+  const d=l.clip?voiceClip(l.sp||w.id,l.clip,{radio:!!l.radio,x:w.x,y:w.y,vol:1.2,gain:1.15}):0,len=d||Math.max(1.8,l.text.length/13);
+  callouts.push({x:w.x,y:w.y,t:0,dur:len+1.2,text:l.text,col:l.col||'#e6ecf0'});
+  voiceBusyTill=now+len+.35;if(l.radio&&d){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}S.next=simT+.2;
+}
+const sceneOn=()=>!!(mon.scene&&(mon.scene.q.length||simT<mon.scene.quiet));   // (the scientists keep their own lines to themselves meanwhile: office.js)
+const sceneUp=p=>!!p&&alive(p)&&!p.offMap&&!p.downed;
+const sciWith=()=>civs.filter(c=>c.sci&&c.detained&&!c.dead&&!c.offMap&&!c.gone);
+const gateLead=()=>['A1','B1'].map(id=>players.find(p=>p.id===id&&sceneUp(p))).find(Boolean)||null;
+// when the gate's clear: one of them screams, the scientists beg, the leader decides
+function gateAftermath(){
+  const lead=gateLead(),yell=['B2','A2','B1'].map(id=>players.find(p=>p.id===id&&sceneUp(p)&&p!==lead)).find(Boolean),sci=sciWith(),s2=sci[1]||sci[0];
+  sceneStart([yell&&{who:yell,clip:'gate_wth_1',text:'What the hell was that?!',col:'#ffb4a6',radio:!yell.joined},
+    sci[0]&&{who:sci[0],sp:speakerOf(sci[0]),clip:'sci_leave_1',text:'We can still leave! Please. We can save ourselves!',col:'#ffd7cf'},
+    s2&&{who:s2,sp:speakerOf(s2),clip:'sci_bred_1',text:'We bred those things. There’s worse in there!',col:'#ffd7cf'},
+    lead&&{who:lead,clip:'gate_lead_1',text:'No. We’re moving in. Team on me. Be careful.',radio:true},
+    {fn:()=>{if(state!=='play'||MAPID!=='out')return;const g=gateReady();if(mon.goIn&&g&&g.ok){mon.goIn=false;tieScientists(()=>enterHQ());return;}   // (they tapped to go in while he was talking)
+      mon.goIn=false;banner('Gather at the drawbridge to go in. The Headquarters is inside.',3600);}}],1.4,'after');
+}
+// at the gather, before going in: the scientists walked onto the drawbridge and tied to its railings, to wait till it's cleared
+const RAIL_SPOTS=[[826,-586,0],[874,-586,Math.PI],[826,-612,0],[874,-612,Math.PI]];   // (the deck: x 815-885, y -560 to -634; facing in)
+function tieScientists(then){
+  const sci=sciWith().filter(c=>!c.railed),lead=gateLead();if(!sci.length){then();return;}
+  sci.forEach((c,i)=>{const s=RAIL_SPOTS[i%4];c.railed={x:s[0]+(i>3?6:0),y:s[1],ang:s[2]};c.path=[{x:c.railed.x,y:c.railed.y}];c.minder=null;});
+  // one of the others walks them out and ties them (the leader stays with the squad)
+  const tier=players.filter(p=>sceneUp(p)&&p!==lead&&!p.carry).sort((a,b)=>hyp(a.x-850,a.y+580)-hyp(b.x-850,b.y+580))[0];
+  if(tier){tier.path=[{x:850,y:-572}];tier.lastOrder=simT;}
+  const there=()=>sci.every(c=>!c.path.length)&&(!tier||!tier.path.length||!alive(tier));
+  sceneStart([lead&&{who:lead,clip:'gate_stay_1',text:'You stay on the bridge till we’ve cleared it.',radio:true},
+    {wait:there,max:6},
+    {fn:()=>{sci.forEach((c,i)=>setTimeout(()=>sfxZip(c.x,c.y),i*380));if(tier){tier.ang=-Math.PI/2;callout(tier,'Zip-tied',C.good);}}},
+    {who:sci[0],sp:speakerOf(sci[0]),clip:'sci_left_1',text:'Don’t leave us out here! Please!',col:'#ffd7cf'},
+    {fn:()=>{if(state==='play'&&MAPID==='out')then();}}],.3,'tie');
 }
 
 /* ---------- on the overlay: the warnings, and the gather area ---------- */
@@ -201,8 +248,9 @@ function drawMonsters(now){
       const[lx,ly]=below(u.slamAt.x,u.slamAt.y+BOSS.slamR,6);label('SLAM · GET CLEAR',lx,ly,'#e2b8ff',10,700);}
   }
   const g=gateReady();
-  if(g){const z=MON_OUT;toSBack=false;const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));
+  if(g&&!(mon.scene&&mon.scene.kind==='tie'&&mon.scene.q.length)){   // (not while the scientists are being tied up: they're going in)
+    const z=MON_OUT;toSBack=false;const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));
     if(!toSBack){ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();ox.fillStyle=`rgba(95,224,142,${(.06+pulse*.05).toFixed(3)})`;ox.fill();
       ox.setLineDash([10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
-      const[lx,ly]=below((z.x0+z.x1)/2,z.y0,10);label(g.ok?'TAP TO GO IN':`HEADQUARTERS · ${g.n}/${g.of}`,lx,ly-26,C.good,10,700);}}
+      const[lx,ly]=below((z.x0+z.x1)/2,z.y0,10);label(g.ok?(mon.goIn?'GOING IN':'TAP TO GO IN'):`HEADQUARTERS · ${g.n}/${g.of}`,lx,ly-26,C.good,10,700);}}
 }

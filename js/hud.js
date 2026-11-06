@@ -78,7 +78,7 @@ function hud(){
   else if(MAPID==='l2'&&!preview&&!act.length)h=l2Hint();   // (level2.js)
   else if(MAPID==='hq'&&!preview&&!act.length)h=hqHint();   // (fortress.js)
   else if(MAPID==='in'&&!preview&&!act.length)h=officeHint();   // (office.js)
-  else if(wave.phase==='hq'&&!preview&&!act.length)h=objHint()+(HQ_ZONES.length?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');
+  else if(wave.phase==='hq'&&!preview&&!act.length){const o=objHint();h=o+(HQ_ZONES.length&&!/medic station/.test(o)?' Heal and refill at a checkpoint\'s medic station and ammo drop.':'');}   // (unless it says so already)
   else if(wave.phase==='count'&&!preview)h='A counterattack is coming over the bridge from the north. Get the squad into cover facing it.';
   else if(preview)h='Green is in cover, red is exposed. Tap the marker again to move.';
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';

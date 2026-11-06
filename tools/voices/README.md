@@ -49,3 +49,16 @@ radio, `PL.mp3`), and Reyes's `boatgo_1` "Tower's down. Everyone back to the boa
 with its manifest entry pointing past the old end. Three takes each, the best by `check_zonos.py`. A full repack of A1 with
 `pack_zonos.py` would drop `boatgo_1` (it isn't in `lines.json`): make it again the same way, or add it to the sheet for
 everyone who could say it.
+
+After v83, the scene after the gate (`gateAftermath` and `tieScientists` in `js/monsters.js`), 19 lines made with
+`gen_gate.py` (its own `STYLE`: 'scream', 'firm' for the leader, 'panic' for the scientists; two takes each, four of the
+scream): `gate_wth_1` "What the hell was that?!" for Kowalski, Hayes and Okafor (A2, B1, B2: whoever screams it),
+`gate_lead_1` "No. We're moving in. Team on me. Be careful." and `gate_stay_1` "You stay on the bridge till we've cleared
+it." for Reyes and Hayes (A1, B1: whoever leads), and for each scientist (S1-S4) `sci_leave_1` "We can still leave! Please.
+We can save ourselves!", `sci_bred_1` "We bred those things. There's worse in there!" and `sci_left_1` "Don't leave us out
+here! Please!". The best take of each by `check_zonos.py` (two more of S2's and S4's `sci_bred_1`, which came out slurred).
+Zonos shouts rather than screams: its scream takes came out at a man's speaking pitch (95-155 Hz) in under a second, so the
+chosen ones (A2's second take, B1's and B2's first) went through `scream.py` (the WORLD vocoder, `pyworld`): pitched up to
+about 300-350 Hz, rising to the last word, which is drawn out, with a waver, a crack, more breath, the formants opened up a
+little, then driven; a speech recogniser still hears every word. `add_lines.py` put them all on the end of the speakers'
+files. A full repack of any of these speakers drops them: add them again with `add_lines.py`.

@@ -126,6 +126,7 @@ function chat(kind,cd,...lines){
 // every frame: the next line once the radio's free
 function chatTick(){
   if(!talkQ.length||!AC||paused)return;const now=performance.now()/1000;if(now<voiceBusyTill)return;   // (held while paused: the tour after a location)
+  if(typeof sceneOn==='function'&&sceneOn())return;   // (a scene is playing: monsters.js)
   const s=talkQ[0];if(up(s.u)&&callouts.some(c=>!c.small&&c.t<1&&hyp(c.x-s.u.x,c.y-s.u.y)<24))return;   // his own callout first, so the words don't pile up
   talkQ.shift();if(!up(s.u)||simT-(s.at??simT)>8)return;   // (a line that waited too long is out of date)
   const radio=!s.u.joined,d=voiceClip(s.u.id,s.clip,{radio,x:s.u.x,y:s.u.y,vol:s.quiet?.55:.95,gain:s.quiet?.55:1});

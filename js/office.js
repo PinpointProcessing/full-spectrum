@@ -269,17 +269,19 @@ function civTick(u,dt){
   if(!u.sci)return;
   const f=MAPID==='in'?u.floor:null,near=players.filter(p=>alive(p)&&!p.offMap&&(!f||floorOf(p.x,p.y)===f));
   if(!u.cower&&!u.detained&&(near.some(p=>hyp(p.x-u.x,p.y-u.y)<240&&los(p.x,p.y,u.x,u.y))||(contact&&near.some(p=>hyp(p.x-u.x,p.y-u.y)<400))))u.cower=true;   // Bryan: they cower where they are
+  if(u.railed){if(!u.path.length)u.ang=u.railed.ang;return;}   // tied to the drawbridge's railings till the Headquarters is cleared (monsters.js)
   if(u.detained&&!u.scanning){
     let m=u.minder;if(!m||!alive(m)||m.offMap||(MAPID==='in'&&floorOf(m.x,m.y)!==floorOf(u.x,u.y))){m=near.slice().sort((a,b)=>hyp(a.x-u.x,a.y-u.y)-hyp(b.x-u.x,b.y-u.y))[0]||null;if(m)u.minder=m;}
     if(m&&simT>(u.followT||0)){u.followT=simT+.5;const d=hyp(m.x-u.x,m.y-u.y),end=u.path.length?u.path[u.path.length-1]:null;
       if(d>34&&(!end||hyp(end.x-m.x,end.y-m.y)>30)){const s=openSpot(m.x-Math.cos(m.ang)*18,m.y-Math.sin(m.ang)*18,players.filter(p=>!p.dead).map(destOf)),p=s&&findPath(u.x,u.y,s.x,s.y,FOOT);if(p)u.path=p;}}
   }
   // they talk, not much: defiant while they cower, grumbling on the way, and panicking near the fortress's gate (Bryan)
-  if(near.some(p=>hyp(p.x-u.x,p.y-u.y)<260)&&simT>u.pleadT&&(u.cower||u.detained)){
+  if(near.some(p=>hyp(p.x-u.x,p.y-u.y)<260)&&simT>u.pleadT&&(u.cower||u.detained)&&!(typeof sceneOn==='function'&&sceneOn())){   // (not over the scene after the gate: monsters.js)
     const panic=u.detained&&MAPID==='out'&&typeof PANEL!=='undefined'&&hyp(u.x-PANEL.x,u.y-PANEL.y)<SCI_HQ_NEAR;
     const g=u.scanning?'scan':panic?'panic':u.detained?'grumble':'defy',L={scan:SCI_SCAN,panic:SCI_PANIC,grumble:SCI_GRUMBLE,defy:SCI_DEFY}[g];
     u.pleadT=simT+(u.scanning?5:panic?7:u.detained?40:30)+Math.random()*(panic?5:15);
-    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<(panic?3:6))){u.saidT=simT;line(u,g,L,undefined,panic||u.scanning?3.4:3,panic||u.scanning?'#ffd7cf':'#e9eef2');}
+    const k=panic&&BRIDGE.lower>=1?[0,2,3,4,5][(Math.random()*5)|0]:undefined;   // (once it's open, not "Don't open it")
+    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<(panic?3:6))){u.saidT=simT;line(u,g,L,k,panic||u.scanning?3.4:3,panic||u.scanning?'#ffd7cf':'#e9eef2');}
   }
 }
 function civAtScreen(sx,sy){

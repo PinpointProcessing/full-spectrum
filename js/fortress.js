@@ -23,8 +23,22 @@ const HQ_HALL={x0:340,y0:140,x1:660,y1:780},HQ_LAMPS=[
   {x:500,y:520,h:30,c:0xd8e2ff,i:1.2,d:200,flick:1},   // one strip light left working in the middle of the hall
   {x:500,y:158,h:34,c:0xd88a3e,i:1.3,d:300},   // the lair: a low amber glow over her clutch
   {x:225,y:470,h:22,c:0xb06a2c,i:1.0,d:160},{x:775,y:470,h:22,c:0xb06a2c,i:1.0,d:160}];   // the nests
-let HQ=null,hqs={awake:false,phase:-1,won:false,t0:0,killed:0,pending:[]};
-function resetHQ(){hqs={awake:false,phase:-1,won:false,t0:simT,killed:0,pending:[]};for(const r of HQ_ROOMS)r.open=false;}   // (a Retry comes back to closed rooms)
+let HQ=null,hqs={awake:false,phase:-1,won:false,t0:0,killed:0,pending:[],hatch:[]};
+function resetHQ(){hqs={awake:false,phase:-1,won:false,t0:simT,killed:0,pending:[],hatch:[]};for(const r of HQ_ROOMS)r.open=false;}   // (a Retry comes back to closed rooms)
+// her eggs hatch (Bryan: her young swarm "from the side rooms and from the nest eggs"): n of clutch k burst, a hatchling crawls
+// out of each and comes for the squad. Hatchlings are newborn: less to kill (HATCH.hp) and a weaker bite
+const HATCH={hp:40,hit:.75,lair:1,room:1};   // (lair: how many her clutch hatches at each roar; enterHQ makes it two for a big squad)
+function hatch(k,n){
+  const D=HQ&&HQ.nest&&HQ.nest.userData.eggs;if(!D||MAPID!=='hq'||hqs.won)return;const c=D.clutches[k];if(!c)return;
+  const left=[];for(let i=c.a;i<c.b;i++)if(!D.list[i].burst)left.push(i);if(!left.length)return;
+  left.sort((i,j)=>D.list[j].y-D.list[i].y);   // (the eggs on top of the heap first)
+  for(let q=0;q<n&&q*5<left.length;q++){const e=D.list[left[q*5]];for(let r=0;r<5&&q*5+r<left.length;r++)crEggBurst(HQ.nest,left[q*5+r]);   // (five eggs split for each one that crawls out)
+    const tg=players.filter(alive).sort((a,b)=>hyp(a.x-e.x,a.y-e.z)-hyp(b.x-e.x,b.y-e.z))[0],ang=tg?Math.atan2(tg.y-e.z,tg.x-e.x):Math.PI/2;
+    const h=hound(e.x+Math.cos(ang)*6,e.z+Math.sin(ang)*6,{kind:'young',hatched:true,ang,hp:HATCH.hp,maxHp:HATCH.hp,againT:simT+1.5});h.hitK=HATCH.hit;}
+  sfxMon('mon_snarl',{x:c.x,y:c.z},.9,1.25);if(typeof playSample==='function')playSample('flesh',c.x,c.z,.9);
+  if(!hqs.hatched){hqs.hatched=true;banner('Her eggs are hatching!',2400);}
+}
+function hatchSoon(k,n,dt){hqs.hatch.push({k,n,at:simT+dt});}
 // a room opening a moment from now, on the game's clock (a pause holds it)
 function openSoon(r,dt){if(!r.open&&!hqs.pending.some(p=>p.r===r))hqs.pending.push({r,at:simT+dt});}
 function hqObjects(){
@@ -94,10 +108,10 @@ function enterHQ(){
     units=[...players];MAPID='hq';enemies=[];civs=[];resetHQ();addZones(HQ_REST);
     const keep=scene;scene=HQ.scene;
     try{const b=broodMother(500,300);b.ang=Math.PI/2;b.hp=b.maxHp=BOSS.hp+BOSS.perMan*live.filter(p=>!p.downed).length;b.dmgIn=BOSS.dmgIn;
-      const per=live.filter(p=>!p.downed).length>5?3:2;   // (a small squad meets two to a room, a big one three)
+      const per=live.filter(p=>!p.downed).length>5?2:1;   // (a small squad meets one to a room, a big one two; one more hatches from each room's clutch, hatch)
       for(const r of HQ_ROOMS)for(let k=0;k<per;k++){const h=hound((r.x0+r.x1)/2+(k-1)*26,(r.y0+r.y1)/2+(k%2?20:-14),{dormant:true,room:r.id,kind:'young',ang:r.side<0?0:Math.PI});}
     }finally{scene=keep;}
-    contact=false;clearTeams();sel=[];cardGroup=[];hqs.wakeAt=simT+.6;   // (she's awake: she roars as they come in, bossThink)
+    contact=false;clearTeams();sel=[];cardGroup=[];hqs.wakeAt=simT+.6;hqs.lairN=live.filter(p=>!p.downed).length>5?2:1;   // (she's awake: she roars as they come in, bossThink)
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
     zoom=2.0;yaw=0;tilt=0;camT={x:500,z:800};clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
@@ -117,6 +131,7 @@ function openRoom(r,quiet){
   if(r.open)return;r.open=true;
   const hs=enemies.filter(e=>e.room===r.id&&e.dormant);for(const h of hs){h.dormant=false;h.againT=simT+.8+Math.random();h.growlT=simT+Math.random()*2;}
   if(!quiet&&hs[0])sfxMon('mon_scream',hs[0],1,.85);
+  hatchSoon(3+HQ_ROOMS.indexOf(r),HATCH.room,.9+Math.random());   // (the room's own clutch hatches too)
 }
 // the Brood Mother (from monTick in monsters.js)
 function bossThink(u,dt){
@@ -144,6 +159,7 @@ function bossRoar(u,phase){
   u.ms='roar';u.mt0=simT;u.path=[];u.alerted=true;sfxMon('boss_roar',u,1.5,.95);shake(.8);hqs.phase=phase;
   if(!hqs.awake){hqs.awake=true;hqs.awakeT=simT;hqs.nextRoomT=simT+40;if(typeof startContact==='function')startContact('Contact! Here she comes!',false);banner('The Brood Mother. Keep clear of her slam: the violet ring. Medic station and ammo behind you.',4200);}
   for(const r of HQ_ROOMS)if(r.phase===phase)openSoon(r,.7+Math.random()*.6);
+  hatchSoon(0,hqs.lairN||HATCH.lair,1.2+Math.random()*.8);   // (her clutch answers her: one, two for a big squad)
 }
 function bossHurt(u){
   const k=u.hp/u.maxHp;if(u.ms==='sleep')return;
@@ -156,6 +172,7 @@ function bossDied(u){
 function hqTickWin(){
   if(MAPID!=='hq'||hqs.won||state!=='play')return;
   for(const p of hqs.pending.slice())if(simT>=p.at){hqs.pending.splice(hqs.pending.indexOf(p),1);openRoom(p.r);}
+  for(const h of hqs.hatch.slice())if(simT>=h.at){hqs.hatch.splice(hqs.hatch.indexOf(h),1);hatch(h.k,h.n);}
   if(enemies.some(e=>e.mon&&!e.dead))return;if(!enemies.some(e=>e.mon==='boss'))return;
   hqs.won=true;obj=6;objCompleted(4);updateObjUI();bigText('Headquarters taken','complete');banner('It’s yours now. This is your new HQ.',3600);
   setTimeout(()=>{if(state==='play'&&MAPID==='hq')farewell(()=>{if(state==='play'){endAt=performance.now()+1800;}});},OBJ_LIST_T+400);
@@ -164,7 +181,7 @@ function hqHint(){
   if(MAPID!=='hq')return'';
   if(!hqs.awake)return'Here she comes.';
   const b=enemies.find(e=>e.mon==='boss');
-  if(b&&!b.dead)return'Keep moving: get out of the violet ring before she slams, shoot her young when they rear up. Her roars open the side rooms.';
+  if(b&&!b.dead)return'Keep moving: get out of the violet ring before she slams, shoot her young when they rear up. Her roars open the side rooms and hatch her eggs.';
   return'Finish her young: the side rooms are open.';
 }
 function drawHQ(now){

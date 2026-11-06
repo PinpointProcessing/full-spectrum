@@ -308,3 +308,34 @@ the round-3 drafts.
 - Tested with the bot that only moves the squad: four soldiers won 2 of 2 (one or two down by the end: she now starts
   7 m nearer, coiled round her eggs), eight won with nobody down; the pour-out killed all 20 hunters each time.
 
+
+# v84: her eggs hatch, and the scene after the gate
+
+Bryan: "Her young as the swarm coming from the side rooms and from the nest eggs. The hunters pour out the gate." "The slime
+rocks look fine." And after the attack at the gate: a soldier screams "What the hell was that?!" ("scream it, not say it
+loudly"), the scientists say they can leave now and save themselves, the leader says no, they're moving in, team on him, be
+careful; the scientists follow behind and are told to stay on the bridge till it's cleared, zip-tied to the railings. "Make
+it feel natural, fear from scientists and one of the soldiers, then fearless reassurance from the leader."
+- The eggs: each side room's clutch hatches as the room opens, and her own clutch hatches every time she roars (as you come
+  in, at two thirds and at a third of her health). Five eggs split for each newborn that crawls out; newborns are smaller
+  game (40 HP, a weaker bite). So the swarm doesn't double, one young waits in each room for a squad of four (two for
+  eight), and the rest hatch. "Her eggs are hatching!" the first time.
+- The scene: once the last hunter's down, one of the soldiers screams it (Okafor, else Kowalski, else Hayes: whoever isn't
+  leading), a scientist begs to leave ("We can still leave! Please. We can save ourselves!"), another says what they made
+  ("We bred those things. There's worse in there!"), and the leader answers ("No. We're moving in. Team on me. Be
+  careful." Reyes, or Hayes if Reyes is down). The lines wait for each other; the chatter and the scientists' own panic
+  lines keep quiet meanwhile. At the gather, when you tap to go in: "You stay on the bridge till we've cleared it.", the
+  scientists walk out onto the drawbridge to its railings, one of the others follows and zip-ties them (they kneel, hands
+  behind them), a scientist pleads "Don't leave us out here! Please!", and in. A tap to go in while the leader's still
+  talking is kept for when he's done.
+- The scream: the voice model shouts rather than screams (its takes came out at a man's speaking pitch, under a second), so
+  the chosen takes were reshaped into screams with a vocoder: pitched up into a scream's range (about 300-350 Hz), rising to
+  the last word, which is drawn out, with a waver, a crack, more breath and strain, then driven. A speech recogniser still
+  hears every word. Bryan to judge by ear (`tools/voices/scream.py`).
+- Continue from the drawbridge's or the gate's save brings the scientists back too (before, they only came back from the
+  bio scanner's save), so they're there to be tied up.
+- Once the drawbridge is down the scientists no longer say "Don't open it!".
+- Found on the way: a hint line said "medic station and ammo drop" twice by the gate.
+- Tested: the scene plays in order on its own and from both saves; the bot that only moves the squad, tapping to go in the
+  moment the gate's clear: four soldiers won 2 of 2 (nobody down at the end), eight won; hatchlings and burst eggs
+  counted inside; every new line decodes in the browser and the scene finds and plays each one with sound on.

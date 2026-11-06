@@ -300,6 +300,7 @@ function figState(u){
   if(u.downed)return'downed';
   if(simT<(u.stunT||0))return'stun';
   if(u.strapped&&!u.joined)return'strapped';
+  if(u.railed&&!u.path.length)return'tied';   // (a scientist tied to the drawbridge's railings: monsters.js)
   if(u.grabbed)return'grabbed';
   if(u.climb)return'climb';
   if(u.crawl)return'crawl';

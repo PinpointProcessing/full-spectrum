@@ -38,7 +38,7 @@ function continueGame(){
   if(cleared.has(0))for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;e.gone=true;}   // the warehouse's four
   const n=STAGE_OBJ[s.stage],at0=STAGE_AT[s.stage];
   for(const[id,d]of Object.entries(s.squad))if(d.joined&&!players.some(p=>p.id===id))rejoin(id,d,at0);   // the freed prisoners who joined (office.js)
-  if(n===4)sciBack(s.sci||1,at0);else if(n>=5)sciOut=s.sci||1;   // the scientists brought out follow the squad again
+  if(n>=4)sciBack(s.sci||1,at0);   // the scientists brought out follow the squad again (to the bio scanner, then onto the drawbridge: monsters.js)
   if(n>=5){setBridge(1);addZones(REST_ZONES.dc);}
   objDone=n>=5?3:n>=4?2:0;
   startMissionAreas();obj=n;updateObjUI();

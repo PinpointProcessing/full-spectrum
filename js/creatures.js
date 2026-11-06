@@ -323,11 +323,13 @@ function hqNest(sc,objs){
     gooG.push(crStrand(a,b,.22+r()*.3,3+r()*6));}}
   {const m=new T.Mesh(crMerge(gooG),goo);m.receiveShadow=true;grp.add(m);const c=new T.Mesh(crMerge(creepG),cm);c.receiveShadow=true;grp.add(c);}
   // the clutches
-  const eggs=[];crClutch(L.x,L.y-10,44,230,2.6,77,eggs);crClutch(L.x-95,L.y+58,20,44,2.3,78,eggs);crClutch(L.x+98,L.y+52,19,40,2.3,79,eggs);
-  for(const q of HQ_ROOMS)crClutch((q.x0+q.x1)/2+q.side*40,(q.y0+q.y1)/2-30,16,26,1.8,q.x+q.y,eggs);
+  const eggs=[],clutches=[],cl=(x,z,R,n,sz,sd)=>{const a=eggs.length;crClutch(x,z,R,n,sz,sd,eggs);clutches.push({x,z,R,a,b:eggs.length});};
+  cl(L.x,L.y-10,44,230,2.6,77);cl(L.x-95,L.y+58,20,44,2.3,78);cl(L.x+98,L.y+52,19,40,2.3,79);   // (0: her clutch, 1 and 2 beside it, 3-8 the rooms' in HQ_ROOMS order)
+  for(const q of HQ_ROOMS)cl((q.x0+q.x1)/2+q.side*40,(q.y0+q.y1)/2-30,16,26,1.8,q.x+q.y);
   const eg=new T.SphereGeometry(1,8,6);{const p=eg.attributes.position,C=[];for(let i=0;i<p.count;i++){const y=p.getY(i);C.push(...crMix(crLin('#4e473d'),crLin('#a39a86'),crS(-.9,.8,y)));}eg.setAttribute('color',new T.Float32BufferAttribute(C,3));}
   const E=new T.InstancedMesh(eg,crEggMat(),eggs.length),m4=new T.Matrix4(),q4=new T.Quaternion(),e4=new T.Euler();E.receiveShadow=true;E.frustumCulled=false;
-  eggs.forEach((e,i)=>{q4.setFromEuler(e4.set(e.rx,e.ry,0));m4.compose(new T.Vector3(e.x,e.y,e.z),q4,new T.Vector3(e.s,e.s*1.22,e.s));E.setMatrixAt(i,m4);});grp.add(E);
+  const white=new T.Color(1,1,1);eggs.forEach((e,i)=>{q4.setFromEuler(e4.set(e.rx,e.ry,0));m4.compose(new T.Vector3(e.x,e.y,e.z),q4,new T.Vector3(e.s,e.s*1.22,e.s));E.setMatrixAt(i,m4);E.setColorAt(i,white);});grp.add(E);   // (a colour each, so one can split open: crEggBurst)
+  grp.userData.eggs={list:eggs,mesh:E,clutches};
   hqRocks(sc,objs);
   return grp;}
 // the floor under the nest (fortress.js's ground canvas, its own transform): old concrete gone dark with her secretions,
@@ -506,7 +508,7 @@ function crBake(root,nodes){
   return out.map(gs=>{const m=gs.length?crMerge(gs):new T.BufferGeometry();m.userData.keep=true;return m;});}
 // a scene's pools: young, hunter, mother (made the first time one is needed)
 function crPool(sc,kind){const P=sc.userData.crPools||(sc.userData.crPools={});
-  return P[kind]||(P[kind]=kind==='hunter'?crHunterPool(24,sc):kind==='young'?crCentiPool(BROOD,24,sc):crCentiPool(MOTHER,1,sc));}
+  return P[kind]||(P[kind]=kind==='hunter'?crHunterPool(24,sc):kind==='young'?crCentiPool(BROOD,36,sc):crCentiPool(MOTHER,1,sc));}
 function crPoolBase(cap,sc){const p={cap,g:new T.Group(),owner:new Array(cap).fill(null),seen:new Int32Array(cap).fill(-9),shown:new Uint8Array(cap),m:{}};sc.add(p.g);return p;}
 function crIM(p,k,geo,mat,per){const M=new T.InstancedMesh(geo,mat,per*p.cap);M.castShadow=true;M.receiveShadow=true;M.frustumCulled=false;M.userData.per=per;
   for(let i=0;i<M.count;i++)M.setMatrixAt(i,CR_ZERO);M.count=0;p.g.add(M);p.m[k]=M;}
@@ -579,3 +581,7 @@ function crTrailSpine(u,S,rear,kR,lift){
 // how far and how fast it's gone since the last frame (its legs keep step with it)
 function crGait(u,ref){const dt=Math.max(1e-3,Math.min(.1,simT-(u.gT??simT))),d=Math.hypot(u.x-(u.gx??u.x),u.y-(u.gy??u.y));u.gT=simT;u.gx=u.x;u.gy=u.y;
   if(d<30){u.wph=(u.wph||0)+d;u.spd=(u.spd||0)+((d/dt)-(u.spd||0))*Math.min(1,dt*8);}return Math.min(1,(u.spd||0)/ref);}
+
+// an egg bursts (Bryan: her young come from the side rooms and from the eggs): split open and slumped, darker
+function crEggBurst(nest,i){const D=nest.userData.eggs,e=D.list[i];if(!e||e.burst)return;e.burst=true;const m4=new T.Matrix4(),q4=new T.Quaternion().setFromEuler(new T.Euler(e.rx+.6,e.ry,.4));
+  m4.compose(new T.Vector3(e.x,Math.max(e.s*.3,e.y-e.s*.45),e.z),q4,new T.Vector3(e.s*1.3,e.s*.45,e.s*1.2));D.mesh.setMatrixAt(i,m4);D.mesh.setColorAt(i,new T.Color(.55,.2,.13));D.mesh.instanceMatrix.needsUpdate=true;if(D.mesh.instanceColor)D.mesh.instanceColor.needsUpdate=true;}   // (slumped where it lay, on top of the heap, so it's still seen; wet and dark inside)
