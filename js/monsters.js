@@ -182,8 +182,8 @@ function gateReady(){
 function monGateTap(wx,wy){
   const g=gateReady();if(!g)return false;const z=MON_OUT;if(wx<z.x0-20||wx>z.x1+20||wy<z.y0-20||wy>z.y1+20)return false;
   if(!g.ok){if(sel.some(alive))return false;banner(players.some(p=>p.downed&&!p.dead&&!p.carriedBy)?'Nobody goes in while someone’s down: revive him or carry him.':'Everyone who’s up has to be in the green area first.',2400);return true;}
-  if(mon.scene&&mon.scene.q.length){if(mon.scene.kind==='after')mon.goIn=true;return true;}   // (the leader's still talking: in once he's done)
-  if(typeof enterHQ==='function')tieScientists(()=>enterHQ());return true;
+  if(mon.scene&&mon.scene.q.length){if(mon.scene.kind==='after')mon.goIn=true;return true;}   // (the scene after the swarm is still going: in once it's over)
+  goIn();return true;
 }
 
 /* ---------- after the attack (Bryan: a soldier screams "what the hell was that", the scientists beg to leave, the leader
@@ -206,31 +206,47 @@ const sceneOn=()=>!!(mon.scene&&(mon.scene.q.length||simT<mon.scene.quiet));   /
 const sceneUp=p=>!!p&&alive(p)&&!p.offMap&&!p.downed;
 const sciWith=()=>civs.filter(c=>c.sci&&c.detained&&!c.dead&&!c.offMap&&!c.gone);
 const gateLead=()=>['A1','B1'].map(id=>players.find(p=>p.id===id&&sceneUp(p))).find(Boolean)||null;
-// when the gate's clear: one of them screams, the scientists beg, the leader decides
+// when the gate's clear (Bryan: the scientists are detained after the swarm and left outside before the squads go in): one
+// of them screams, the scientists beg, the leader decides, then tells the scientists to stay on the bridge, and they're tied
+// to its railings; then the squad gathers to go in
 function gateAftermath(){
   const lead=gateLead(),yell=['B2','A2','B1'].map(id=>players.find(p=>p.id===id&&sceneUp(p)&&p!==lead)).find(Boolean),sci=sciWith(),s2=sci[1]||sci[0];
   sceneStart([yell&&{who:yell,clip:'gate_wth_1',text:'What the hell was that?!',col:'#ffb4a6',radio:!yell.joined},
     sci[0]&&{who:sci[0],sp:speakerOf(sci[0]),clip:'sci_leave_1',text:'We can still leave! Please. We can save ourselves!',col:'#ffd7cf'},
     s2&&{who:s2,sp:speakerOf(s2),clip:'sci_bred_1',text:'We bred those things. There’s worse in there!',col:'#ffd7cf'},
     lead&&{who:lead,clip:'gate_lead_1',text:'No. We’re moving in. Team on me. Be careful.',radio:true},
-    {fn:()=>{if(state!=='play'||MAPID!=='out')return;const g=gateReady();if(mon.goIn&&g&&g.ok){mon.goIn=false;tieScientists(()=>enterHQ());return;}   // (they tapped to go in while he was talking)
-      mon.goIn=false;banner('Gather at the drawbridge to go in. The Headquarters is inside.',3600);}}],1.4,'after');
+    lead&&sci.length&&{wait:()=>false,max:.7},
+    ...tieSteps(lead),
+    {fn:()=>{if(state!=='play'||MAPID!=='out')return;const g=gateReady();if(mon.goIn&&g&&g.ok){mon.goIn=false;goIn();return;}
+      mon.goIn=false;banner('Gather at the drawbridge to go in. The Headquarters is inside.',3600);}}],1.4,'after');   // (a beat before he turns to them; a tap to go in during the scene is kept for its end)
 }
-// at the gather, before going in: the scientists walked onto the drawbridge and tied to its railings, to wait till it's cleared
+// the scientists left on the drawbridge, tied to its railings till the Headquarters is cleared: the leader tells them, they
+// walk out onto the deck, one of the others follows them out, ties them and comes back, and one of them pleads
 const RAIL_SPOTS=[[826,-586,0],[874,-586,Math.PI],[826,-612,0],[874,-612,Math.PI]];   // (the deck: x 815-885, y -560 to -634; facing in)
-function tieScientists(then){
-  const sci=sciWith().filter(c=>!c.railed),lead=gateLead();if(!sci.length){then();return;}
-  sci.forEach((c,i)=>{const s=RAIL_SPOTS[i%4];c.railed={x:s[0]+(i>3?6:0),y:s[1],ang:s[2]};c.path=[{x:c.railed.x,y:c.railed.y}];c.minder=null;});
-  // one of the others walks them out and ties them (the leader stays with the squad)
-  const tier=players.filter(p=>sceneUp(p)&&p!==lead&&!p.carry).sort((a,b)=>hyp(a.x-850,a.y+580)-hyp(b.x-850,b.y+580))[0];
-  if(tier){tier.path=[{x:850,y:-572}];tier.lastOrder=simT;}
-  const there=()=>sci.every(c=>!c.path.length)&&(!tier||!tier.path.length||!alive(tier));
-  sceneStart([lead&&{who:lead,clip:'gate_stay_1',text:'You stay on the bridge till we’ve cleared it.',radio:true},
-    {wait:there,max:6},
-    {fn:()=>{sci.forEach((c,i)=>setTimeout(()=>sfxZip(c.x,c.y),i*380));if(tier){tier.ang=-Math.PI/2;callout(tier,'Zip-tied',C.good);}}},
-    {who:sci[0],sp:speakerOf(sci[0]),clip:'sci_left_1',text:'Don’t leave us out here! Please!',col:'#ffd7cf'},
-    {fn:()=>{if(state==='play'&&MAPID==='out')then();}}],.3,'tie');
+const DECK={x:850,y:-546};   // (the bridge's foot, on the gather area's edge: from there straight out onto the deck)
+function toDeck(u,x,y){const p=hyp(u.x-DECK.x,u.y-DECK.y)>12&&findPath(u.x,u.y,DECK.x,DECK.y,FOOT)||[];return[...p,{x:DECK.x,y:DECK.y},{x,y}];}
+function tieSteps(lead){
+  const sci=sciWith().filter(c=>!c.railed);if(!sci.length)return[];
+  const T={};
+  const go=()=>{sci.forEach((c,i)=>{const s=RAIL_SPOTS[i%4];c.railed={x:s[0]+(i>3?6:0),y:s[1],ang:s[2]};c.minder=null;c.path=toDeck(c,c.railed.x,c.railed.y);});
+    const t=T.u=players.filter(p=>sceneUp(p)&&p!==lead&&!p.carry).sort((a,b)=>hyp(a.x-DECK.x,a.y-DECK.y)-hyp(b.x-DECK.x,b.y-DECK.y))[0];
+    if(t){T.back={x:t.x,y:t.y};t.path=toDeck(t,850,-572);t.lastOrder=simT;}};   // (the leader stays with the squad)
+  const there=()=>sci.every(c=>c.dead||!c.path.length)&&(!T.u||!alive(T.u)||!T.u.path.length);
+  const tied=()=>{sci.forEach((c,i)=>setTimeout(()=>sfxZip(c.x,c.y),i*380));const t=T.u;if(!t||!alive(t))return;t.ang=-Math.PI/2;callout(t,'Zip-tied',C.good);
+    if(t.y>-552)return;const z=MON_OUT,b=T.back,home=b.x>=z.x0&&b.x<=z.x1&&b.y>=z.y0&&b.y<=z.y1?b:(openSpot(850,-522,players.filter(p=>p!==t&&!p.dead).map(destOf))||{x:850,y:-522});
+    t.path=[{x:DECK.x,y:DECK.y},{x:home.x,y:home.y}];t.lastOrder=simT;};   // (back to the others, unless he's been sent somewhere else meanwhile)
+  return[lead?{who:lead,clip:'gate_stay_1',text:'You stay on the bridge till we’ve cleared it.',radio:true,fn:go}:{fn:go},
+    {wait:there,max:14},{fn:tied},
+    {who:sci[0],sp:speakerOf(sci[0]),clip:'sci_left_1',text:'Don’t leave us out here! Please!',col:'#ffd7cf'}];
 }
+// into the Headquarters (a tap on the gather area); any scientist not left on the bridge yet is tied up first
+function goIn(){
+  if(typeof enterHQ!=='function')return;
+  if(sciWith().some(c=>!c.railed)){sceneStart([...tieSteps(gateLead()),{fn:()=>{if(state==='play'&&MAPID==='out')enterHQ();}}],.3,'tie');return;}
+  enterHQ();
+}
+// a Continue from the gate's save: they're back at the railings, tied (the save is made as the gate clears; the scene isn't played again)
+function railNow(){sciWith().forEach((c,i)=>{const s=RAIL_SPOTS[i%4];c.railed={x:s[0]+(i>3?6:0),y:s[1],ang:s[2]};Object.assign(c,{x:c.railed.x,y:c.railed.y,ang:s[2],path:[],minder:null});});}
 
 /* ---------- on the overlay: the warnings, and the gather area ---------- */
 function drawMonsters(now){

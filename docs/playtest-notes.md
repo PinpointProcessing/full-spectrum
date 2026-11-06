@@ -339,3 +339,16 @@ it feel natural, fear from scientists and one of the soldiers, then fearless rea
 - Tested: the scene plays in order on its own and from both saves; the bot that only moves the squad, tapping to go in the
   moment the gate's clear: four soldiers won 2 of 2 (nobody down at the end), eight won; hatchlings and burst eggs
   counted inside; every new line decodes in the browser and the scene finds and plays each one with sound on.
+
+# v85: the scientists tied up straight after the swarm
+
+Bryan: "The scientists are detained AFTER the hunter swarm. Before the squads enter the HQ building the scientists are left
+outside when it's all clear." In v84 they were only tied up when you tapped to go in. Now it's all one scene the moment the
+last hunter is down: the scream, the two scientists, the leader's "No. We're moving in. Team on me. Be careful.", a beat,
+then to the scientists "You stay on the bridge till we've cleared it." They walk out onto the drawbridge (round anything in
+the way to its foot, then out along the deck), one of the soldiers follows them out, ties them to the railings and walks back
+to the others, one pleads "Don't leave us out here! Please!", and the banner says to gather to go in. The tap then goes
+straight in; they stay tied outside. A tap during the scene still waits for its end. A Continue from the gate's save puts
+them back at the railings, tied.
+Tested: in that order from the drawbridge's save, the tap straight in, the scientists outside on the bridge in the
+Headquarters' saved outdoor state; from the gate's save tied at the railings at once.
