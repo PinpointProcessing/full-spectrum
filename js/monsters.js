@@ -140,26 +140,26 @@ function monDied(u){
   paintDecal({k:'scorch',x:u.x,y:u.y,r:Math.random()});if(u.mon==='boss'){shake(.9);if(typeof bossDied==='function')bossDied(u);}
 }
 
-/* ---------- outside: they pour out over the drawbridge (from lowerBridge in mission.js) ---------- */
-const MON_WAVES=[{at:4,n:4,from:'gate'},{at:12,n:5,from:'moat'},{at:22,n:5,from:'both'},{at:32,n:6,from:'both'}];   // (out of the gate, and up over the moat's edge close by)
+/* ---------- outside: they pour out over the drawbridge (from lowerBridge in mission.js) ----------
+   Bryan: "all the hunters should attack at once, the waves were too long of a gap, make them run out of the HQ entrance
+   over the bridge continuously": one stream out of the gate's mouth and across the deck, one hunter about every 0.3 s
+   from her roar on, no gaps, none from anywhere else. */
+const MON_FLOOD={n:20,start:3,every:.3};   // (how many; the first a moment after the roar; seconds apart, on average: all twenty out in about 6 s)
 function monGateStart(){
-  if(mon.out)return;mon.out={t0:simT,spawned:0,wave:0,roared:false,done:false,ready:false};updateObjUI();
+  if(mon.out)return;mon.out={t0:simT,spawned:0,next:simT+MON_FLOOD.start,roared:false,done:false,ready:false};updateObjUI();
 }
 function gateTick(dt){
   const o=mon.out;if(!o||MAPID!=='out')return;
   const t=simT-o.t0;
   if(!o.roared&&t>2.6){o.roared=true;sfxMon('boss_roar',{x:MON_GATE.x,y:MON_GATE.y-60},1.5,.9);setTimeout(()=>{if(mon.out)sfxMon('mon_horde',MON_GATE,1.3,1);},900);shake(.5);
     banner('Something’s coming out of the gate!',2600);if(typeof startContact==='function')startContact('Contact! Out of the gate!',false);}
-  while(o.wave<MON_WAVES.length&&t>=MON_WAVES[o.wave].at){
-    const W=MON_WAVES[o.wave++];
-    const near=moatEdge(W.from==='moat'?W.n:W.from==='both'?Math.floor(W.n/2):0);
-    for(let i=0;i<W.n;i++){let h;
-      if(i<near.length){const s=near[i];h=hound(s.ix,s.iy,{entry:[{x:s.x,y:s.y}]});}   // up over the edge of the moat
-      else{const x=MON_GATE.x+(i-(W.n-1)/2)*14;h=hound(x,MON_GATE.y-i*10,{entry:[{x,y:-572},{x:x+(Math.random()-.5)*40,y:-528}]});}   // out of the gate and over the bridge
-      h.wave=o.wave;o.spawned++;}
-    if(o.wave===1&&!mon.first){mon.first=true;setTimeout(()=>{if(state==='play')banner('Hunters. They crouch before they lunge: shoot them then, or get out of the violet line.',4200);},1200);}
+  while(o.spawned<MON_FLOOD.n&&simT>=o.next){   // out of the gate's mouth, down the deck and off its south end
+    const x=MON_GATE.x+(Math.random()-.5)*44,y=MON_GATE.y-26-Math.random()*14;
+    hound(x,y,{entry:[{x:x+(Math.random()-.5)*16,y:-572},{x:x+(Math.random()-.5)*64,y:-524}]});o.spawned++;
+    o.next+=MON_FLOOD.every*(.5+Math.random());
+    if(!mon.first){mon.first=true;setTimeout(()=>{if(state==='play')banner('Hunters. They crouch before they lunge: shoot them then, or get out of the violet line.',4200);},1200);}
   }
-  if(!o.done&&o.wave>=MON_WAVES.length&&!enemies.some(e=>e.mon==='hound'&&!e.dead)){
+  if(!o.done&&o.spawned>=MON_FLOOD.n&&!enemies.some(e=>e.mon==='hound'&&!e.dead)){
     o.done=true;bigText('The gate is clear','clear');
     if(typeof saveGame==='function')saveGame('gate');updateObjUI();hud();gateAftermath();
   }
@@ -168,16 +168,6 @@ function gateTick(dt){
 function hqfTick(){
   if(mon.hqf||obj!==4||MAPID!=='out'||LEVEL!==3)return;const near=u=>hyp(u.x-PANEL.x,u.y-PANEL.y)<170;
   if(players.some(p=>alive(p)&&near(p))&&civs.some(c=>c.sci&&c.detained&&!c.dead&&near(c))){mon.hqf=true;if(typeof saveGame==='function')saveGame('hqf');}
-}
-// places on the moat's outer edge a short run from the squad (left and right of them): where a hound climbs out (ix,iy: down
-// in the moat, where it starts; x,y: up on the edge)
-function moatEdge(n){
-  if(!n)return[];const up=players.filter(p=>alive(p)&&!p.offMap);if(!up.length)return[];
-  const c=midOf(up),out=[];
-  for(let k=0;k<40&&out.length<n;k++){const a=Math.PI/2+(Math.random()-.5)*1.5,x=FORT.cx+Math.cos(a)*(FORT.r1+14),y=FORT.cy+Math.sin(a)*(FORT.r1+14);
-    const d=hyp(x-c.x,y-c.y);if(d<110||d>320||!isFree(x,y,8)||out.some(o=>hyp(o.x-x,o.y-y)<40))continue;
-    out.push({x,y,ix:FORT.cx+Math.cos(a)*(FORT.r1-16),iy:FORT.cy+Math.sin(a)*(FORT.r1-16)});}
-  return out;
 }
 // the gather area at the drawbridge: everyone up stands in it, then a tap takes them in (fortress.js)
 function gateReady(){

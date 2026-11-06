@@ -56,7 +56,7 @@ function continueGame(){
   setStatus();buildCards();hud();banner(`Continuing: ${STAGES[s.stage]}.`,2400);
   if(s.stage==='dci')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBuilding(true);},60);
   if(s.stage==='dc')monGateStart();   // the drawbridge down: they come out again (monsters.js)
-  if(s.stage==='gate'){mon.out={t0:simT-60,spawned:12,wave:MON_WAVES.length,roared:true,done:true};if(typeof railNow==='function')railNow();updateObjUI();}   // the gate cleared: gather at the drawbridge to go in   // the checkpoint inside the data center: straight back in (interior.js)
+  if(s.stage==='gate'){mon.out={t0:simT-60,spawned:MON_FLOOD.n,roared:true,done:true};if(typeof railNow==='function')railNow();updateObjUI();}   // the gate cleared: gather at the drawbridge to go in   // the checkpoint inside the data center: straight back in (interior.js)
   return true;
 }
 // intro and end screens: offer Continue / Retry when there's a save

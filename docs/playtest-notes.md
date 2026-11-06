@@ -406,3 +406,13 @@ usually none was. Now the press sends the soldier and the nearest scientist toge
 once both are there. If the soldier is sent somewhere else on the way, the scientist goes back to the squad.
 Tested from the "Scientists detained" checkpoint, about 70 m away, with a soldier who wasn't minding any scientist: they
 walked over side by side and the drawbridge came down 17 s after the press; sent elsewhere at 3 s, the scientist turned back.
+
+# v90: the hunters in one stream
+
+Bryan: "I think all the hunters should attack at once, the waves were too long of a gap, make them run out of the HQ
+entrance over the bridge continuously." The four waves over about half a minute (some climbing up over the moat's edge
+beside the squad) are gone: all 20 hunters run out of the gate's mouth and down the drawbridge in one stream, about 0.3 s
+apart, starting just after her roar, so all of them are out in about 6 s. The fight at the gate is over in 13-15 s.
+Tested with the bot that only moves the squad (the shooting is automatic): four soldiers had one or two men go down on
+each of 3 seeds and won every time (one man still down at the end on one seed); eight soldiers, nobody down. At a half
+second apart it was easier with four (one seed nobody went down, the other two men left at 31 and 8 HP).
