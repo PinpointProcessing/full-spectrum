@@ -17,15 +17,18 @@
      SKILL.flash.fuse s later it goes off, and every hostile within 9 m who has a line to it is stunned for SKILL.flash.stun
      s: he can't shoot and he's pinned. Loud (it's heard like a blast, but as an ambush: slow to react). Ours close by are
      shaken too. Throw one through a door, then breach. Twice a mission.
-   - Captain: later (call-ins from HQ). The Defender's build kit is his special item (build.js).
+   - Captain, rally (docs/classes.md: "rallies a pinned team"): every 60 s, everyone of ours within 20 m of him shakes off
+     being pinned (suppression gone) and aims better (+SKILL.rally.aim) for SKILL.rally.t s. Call-ins from HQ come later.
+   - The Defender's build kit is his special item (build.js).
    Counts start full at every mission start (reset). */
 const SKILL={station:{cls:'medic',label:'Field station',n:1,t:2},ammo:{cls:'support',label:'Ammo bag',n:1,t:2},
-  binos:{cls:'recon',label:'Binoculars',cd:30,range:600,r:200,mark:12},noise:{cls:'specops',label:'Distraction',n:2,range:200,r:120,look:4},flash:{cls:'assault',label:'Flashbang',n:2,range:200,r:90,stun:3.5,fuse:1.1},hack:{cls:'cyber',t:4}};
+  binos:{cls:'recon',label:'Binoculars',cd:30,range:600,r:200,mark:12},noise:{cls:'specops',label:'Distraction',n:2,range:200,r:120,look:4},flash:{cls:'assault',label:'Flashbang',n:2,range:200,r:90,stun:3.5,fuse:1.1},rally:{cls:'captain',label:'Rally',cd:60,r:200,t:8,aim:.1},hack:{cls:'cyber',t:4}};
 const SKILL_SVG={
   station:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1.5h4v4.5h4.5v4H10v4.5H6V10H1.5V6H6z"/></svg>',
   ammo:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h12v8.5H2z"/><path d="M4 3.2h2.2V6H4zM7 2h2v4H7zM9.8 3.2H12V6H9.8z"/></svg>',
   binos:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 7.5 4 3h3l.4 4.5H8.6L9 3h3l2.5 4.5v3.5a2.8 2.8 0 0 1-5.6 0V9.8H7.1v1.2a2.8 2.8 0 0 1-5.6 0z"/></svg>',
   flash:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1l1.3 4.2L13.5 3l-2.2 4.2L15.5 8l-4.2 1.3 2.2 4.2-4.2-2.2L8 15.5l-1.3-4.2-4.2 2.2 2.2-4.2L.5 8l4.2-.8L2.5 3l4.2 2.2z"/></svg>',
+  rally:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5h1.6v13H3z"/><path d="M4.6 2h9l-2.4 3.2L13.6 8.4h-9z"/></svg>',
   noise:'<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="5" cy="11" r="3"/><path d="M9.5 3.5a5 5 0 0 1 3 4.5M8.6 6a2.4 2.4 0 0 1 1.4 2.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'};
 const skillOf=u=>{const c=classOf(u);if(!c)return null;for(const k in SKILL)if(SKILL[k].cls===c&&SKILL_SVG[k])return k;return null;};   // (the one with a button)
 const skillFull=u=>{const k=skillOf(u);return k&&SKILL[k].n||0;};
@@ -35,8 +38,9 @@ let fieldKit=[],noises=[];   // stations and ammo drops set down; distraction th
 // the card's skill button
 function useSkill(u){
   const k=skillOf(u);if(!k||!alive(u))return;
-  if(!skillReady(u)){banner(SKILL[k].cd?`The binoculars again in ${Math.ceil((u.skillT||0)-simT)} s.`:`${u.name} has used his ${SKILL[k].label.toLowerCase()} this mission.`,1800);mode=null;return;}
+  if(!skillReady(u)){banner(SKILL[k].cd?`${SKILL[k].label} again in ${Math.ceil((u.skillT||0)-simT)} s.`:`${u.name} has used his ${SKILL[k].label.toLowerCase()} this mission.`,1800);mode=null;return;}
   if(k==='station'||k==='ammo'){mode=null;orderDeploy(u,k);return;}
+  if(k==='rally'){mode=null;rally(u);return;}
   mode=mode===k?null:k;   // binoculars, distraction: then tap where
 }
 // the Medic's station, the Support's ammo bag: set down where he stands
@@ -44,6 +48,13 @@ function orderDeploy(u,k){
   if(u.carry||u.inVeh){banner('Not while carrying a man.',1600);return;}
   const near=HQ_ZONES.find(z=>z.k===(k==='station'?'med':'sup')&&hyp(z.x-u.x,z.y-u.y)<ZONE_R*1.5);if(near){banner(k==='station'?'There’s a medic station right here.':'There’s an ammo drop right here.',1800);return;}
   Object.assign(u,{path:[],lastOrder:simT,supT:null,focus:null,deploy:{k,t0:simT,p:0}});callout(u,k==='station'?'Setting up a field station':'Dropping the ammo bag',C.good);
+}
+// the Captain's rally: everyone of ours close by gets his head up again
+let rallies=[];
+function rally(u){
+  const R=SKILL.rally;let n=0;
+  for(const p of players){if(!alive(p)||p.offMap||hyp(p.x-u.x,p.y-u.y)>R.r||offFloor(p)!==offFloor(u))continue;p.sup=0;p.saidPinned=false;p.rallyT=simT+R.t;n++;}
+  u.skillT=simT+R.cd;rallies.push({x:u.x,y:u.y,t:simT});callout(u,n>1?'On your feet! Push!':'Keep moving!',C.good);hud();
 }
 // binoculars and the distraction: the tap (input.js, in their modes)
 function skillTap(u,wx,wy){
@@ -126,7 +137,7 @@ function orderHack(a){
 // a reset: the stations set down go (the checkpoints' are cleared with the mission: mission.js), throws in the air too
 function clearSkills(){
   for(const z of fieldKit){if(z.mesh&&z.mesh.parent)z.mesh.parent.remove(z.mesh);let i=HQ_ZONES.indexOf(z);if(i>=0)HQ_ZONES.splice(i,1);if(IN&&IN.hq){i=IN.hq.indexOf(z);if(i>=0)IN.hq.splice(i,1);}}
-  fieldKit=[];noises=[];binoLook=null;flashes2=[];
+  fieldKit=[];noises=[];binoLook=null;flashes2=[];rallies=[];
 }
 function drawSkills(now){
   const u=sel[0];
@@ -137,6 +148,8 @@ function drawSkills(now){
     if(n.flash&&k>=1){gPath(n.x,n.y,SKILL.flash.r);ox.strokeStyle=`rgba(255,255,255,${.35+.3*Math.sin(simT*18)})`;ox.lineWidth=1.5;ox.setLineDash([4,4]);ox.stroke();ox.setLineDash([]);}}   // where it'll go off
   for(const f of flashes2){const a=simT-f.t;if(a>.5)continue;gPath(f.x,f.y,SKILL.flash.r*(.4+a*1.6));ox.fillStyle=`rgba(255,255,255,${.55*(1-a/.5)})`;ox.fill();}
   flashes2=flashes2.filter(f=>simT-f.t<.6);
+  for(const r of rallies){const a=simT-r.t;if(a>.8)continue;gPath(r.x,r.y,SKILL.rally.r*Math.min(1,a/.5));ox.strokeStyle=`rgba(127,224,138,${.7*(1-a/.8)})`;ox.lineWidth=2.5;ox.stroke();}
+  rallies=rallies.filter(r=>simT-r.t<.9);
   for(const e of enemies)if(e.dazeT>simT&&!beaten(e)&&e.vis){const[x,y]=toS(e.x,e.y,24);if(!toSBack)label('STUNNED',x,y-6,'#ffffff',9,700);}
   for(const p of players){const g=p.deploy;if(!g||!alive(p)||offFloor(p))continue;gPath(p.x,p.y,14,-Math.PI/2,-Math.PI/2+Math.min(1,g.p/SKILL[g.k].t)*TAU);ox.strokeStyle=g.k==='station'?'#7fe08a':'#ffa348';ox.lineWidth=2.4;ox.stroke();}
 }

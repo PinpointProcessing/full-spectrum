@@ -74,9 +74,10 @@ special item; on a narrow card the three buttons shrink to fit). Counts start fu
 | Recon | Binoculars ("scopes out areas") | every 30 s: tap a spot he can see, out to 60 m: every hostile within 20 m of it that he has a line to is marked for the squad for 12 s (shown wherever he goes, a blue pin over him) | a man 45 m off marked and shown; the button waits 30 s |
 | Spec Ops | Distraction (the stealth roadmap's "distraction throw") | twice a mission: tap a spot within 20 m he can throw to: a clatter, and unaware hostiles within 12 m who hear it (through a wall only within 6 m) go over to look for 4 s, then back to where they were. A man who goes to look may see someone on the way | a guard walked 4.6 m over, looked, went back to his post unalerted |
 | Assault | Flashbang (Bryan on the doors: "later incorporate C4s or flashbangs") | twice a mission: tap a spot within 20 m he can throw to: 1.1 s later every hostile within 9 m who has a line to it is stunned for 3.5 s (can't fire, pinned); loud, but heard as an ambush; ours within 6 m are shaken. Throw one through a door, then breach | both guards in the security office, through its opened door: stunned 3.5 s, no shots |
+| Captain | Rally ("rallies a pinned team") | every 60 s: everyone of ours within 20 m of him shakes off being pinned (suppression gone) and gets +0.1 to hit for 8 s | two pinned men 2–4 m off unpinned, one 24 m off not; the button waits 60 s |
 | Cyber Ops | Hacking ("hacks equipment") | no button: inside the office building anything that needs the access card (the computer, the lift, the stair door, the cells), a Cyber selected gets into without it, 4 s at it | the computer opened the steel door without the card; with no Cyber selected it still says "Find an access card." |
 
-Not yet: the Assault's breaching charge (C4 on a door), the Captain's call-ins (with the HQ), the Cyber's drone, cameras and turrets.
+Not yet: the Assault's breaching charge (C4 on a door), the Captain's call-ins from HQ, the Cyber's drone, cameras and turrets.
 
 ## Order of work (a suggestion)
 

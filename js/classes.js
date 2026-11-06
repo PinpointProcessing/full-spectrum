@@ -15,7 +15,7 @@ const CLASSES={
   recon:  {name:'Recon',ab:'RECON',line:'Sniper expert, scouts ahead, gets where others can\'t.',weapons:['m4s','sniper'],passive:'Eyes: sees 10 m further (and further still with the sniper rifle).',skill:'Binoculars (every 30 s): marks every hostile within 20 m of a spot he can see, for the whole squad.'},
   cyber:  {name:'Cyber Ops',ab:'CYBER',line:'Drones, hacking, tech.',weapons:['m4s'],passive:'Tracker: the contact sensor reaches 70 m and sweeps faster.',skill:'Hacking: gets into anything that needs the access card without it.'},
   defender:{name:'Defender',ab:'DEFENDER',line:'Builds mobile fortifications and walls, and holds the ground he takes.',weapons:['m4s'],gear:['build'],passive:'Bulwark: heavy armour takes a quarter off every hit. His build kit (3 uses): a barricade he can pack up and move on, or a wall that blocks sight and shots.'},
-  captain:{name:'Captain',ab:'CAPTAIN',line:'A great leader who raises the whole team.',weapons:['m4s'],passive:'Leader: men within 20 m of him aim better and pin a quarter slower. One per squad.'},
+  captain:{name:'Captain',ab:'CAPTAIN',line:'A great leader who raises the whole team.',weapons:['m4s'],passive:'Leader: men within 20 m of him aim better and pin a quarter slower. One per squad.',skill:'Rally (every 60 s): everyone within 20 m of him shakes off being pinned and aims better for 8 s.'},
 };
 let classes=readClasses();
 function readClasses(){try{const c=JSON.parse(localStorage.getItem(CLASS_KEY)||'{}');for(const k in c)if(!CLASSES[c[k]])delete c[k];return c;}catch(e){return{};}}

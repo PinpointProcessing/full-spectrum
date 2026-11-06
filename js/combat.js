@@ -103,7 +103,7 @@ function hitChance(s,t,L){
   if(s.side==='P'&&ambushing(s))c+=AMBUSH_BONUS;
   if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=isCls(s,'assault')?CLS.moveAim:0.15;
   if(t.path.length)c-=0.08;
-  if(s.side==='P')c+=rankAim(s)+ob+(nearCaptain(s)?CLS.leadAim:0);   // rank: steadier aim; on Watch / breaching: a bonus
+  if(s.side==='P')c+=rankAim(s)+ob+(nearCaptain(s)?CLS.leadAim:0)+(s.rallyT>simT?SKILL.rally.aim:0);   // (a Captain's rally: skills.js)   // rank: steadier aim; on Watch / breaching: a bonus
   if(s.side==='E')c-=ENEMY_AIM+(s.aimPen??(s.l1?L1E.aim:0));   // (Level 1's and Level 2's guards: worse still, level1.js, level2.js)
   if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);

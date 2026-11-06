@@ -253,3 +253,6 @@ Tested each one; on a phone's four cards the three gear buttons shrink to fit.
   off a flank. Tested: a guard walking out of the barred security office had to kick his way out; one of ours walking
   into a barred door kicked it in after 1.2 s.
 - The intro card's Controls list now covers doors, classes and the Defender.
+- The Captain's skill, rally (from docs/classes.md: "rallies a pinned team"): every 60 s, everyone of ours within 20 m
+  of him shakes off being pinned and gets +0.1 to hit for 8 s. Every class but the Defender (whose build kit is his
+  special item) and Cyber Ops (whose hacking needs no button) now has a skill button.
