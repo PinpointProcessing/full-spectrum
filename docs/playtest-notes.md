@@ -256,3 +256,14 @@ Tested each one; on a phone's four cards the three gear buttons shrink to fit.
 - The Captain's skill, rally (from docs/classes.md: "rallies a pinned team"): every 60 s, everyone of ours within 20 m
   of him shakes off being pinned and gets +0.1 to hit for 8 s. Every class but the Defender (whose build kit is his
   special item) and Cyber Ops (whose hacking needs no button) now has a skill button.
+
+# v80: the re-recorded squad voices
+
+Bryan: "Re-Recorded is the best, hands down." Every squad line whose words to the voice model changed was made again with
+Zonos, the commas taken out of what it's given and no names but for who's down and who's asked if he's alright, checked by
+the speech recogniser and made again where it was bad (two rounds), then packed: Reyes, Kowalski, Hayes, Okafor and the
+four freed men, and the scientists' files repacked with their best takes. The conversations' unnamed lines ("On me.",
+"Right behind you.", "Hang on. I've got you.", "Thanks. I owe you.", "Nice shot.") are voiced now; before they were skipped.
+Reyes keeps his "Tower's down. Everyone back to the boat." (made on its own). 32 of about 2,000 lines are still flagged by
+the recogniser, nearly all one- or two-word shouts ("Frag!", "Dog! Dog!") or names it mishears; their takes match the
+length of the ones already in the game.
