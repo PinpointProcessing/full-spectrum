@@ -19,7 +19,7 @@ let progress={};
 try{progress=JSON.parse(localStorage.getItem(PROG_KEY))||{};}catch(e){progress={};}
 function xpOf(id){return progress[id]||0;}
 function saveProgress(){try{localStorage.setItem(PROG_KEY,JSON.stringify(progress));}catch(e){}}
-function resetProgress(){progress={};saveProgress();for(const p of players)p.level=1;buildCards();hud();}
+function resetProgress(){progress={};saveProgress();resetClasses();for(const p of players)p.level=1;buildCards();hud();}   // (the classes go too: classes.js)
 
 // what a soldier earned this mission, itemised. The fallen earn nothing: they're lost.
 function missionXP(u){
@@ -73,7 +73,7 @@ function showAAR(){
       setTimeout(()=>{
         bar.style.transition='none';bar.style.width='0%';void bar.offsetWidth;bar.style.transition='';bar.style.width=pct(after,l1)+'%';
         rank.textContent=`${r1.ab} · Lv ${l1}`;
-        badge.textContent=r1.ab!==r0.ab?`Promoted: ${r1.name}`:`Level up`;badge.hidden=false;
+        badge.textContent=r1.ab!==r0.ab?`Promoted: ${r1.name}`:l0<CLASS_LEVEL&&l1>=CLASS_LEVEL&&!classes[u.id]&&!u.joined?'Level up · choose his class next':`Level up`;badge.hidden=false;
       },850);
     },500+i*700);
   });

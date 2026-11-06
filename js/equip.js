@@ -8,8 +8,9 @@
    startLevel2). Everyone carries a frag grenade as before. The frame loop draws this instead of the map while state is
    'equip' (equipFrame, from main.js). */
 const LOADOUT_KEY='warehouseYard.loadout.v1';
-const ARMORY={weapon:{m4s:9,hmg:1},spec:{smoke:4,medkit:2,rpg:1}};
-const EQ_OPTS={weapon:['m4s','hmg'],spec:['smoke','medkit','rpg']};
+const ARMORY={weapon:{m4s:9,hmg:1,shotgun:4,sniper:4},spec:{smoke:4,medkit:2,rpg:1}};
+const EQ_OPTS={weapon:['m4s','hmg','shotgun','sniper'],spec:['smoke','medkit','rpg']};
+const eqWeapons=id=>['m4s','hmg',...(classes[id]==='assault'?['shotgun']:[]),...(classes[id]==='recon'?['sniper']:[])];   // (the shotgun for Assault, the sniper rifle for Recon: classes.js)
 const DEFAULT_LOADOUT={A1:{weapon:'m4s',spec:'smoke'},A2:{weapon:'m4s',spec:'medkit'},B1:{weapon:'m4s',spec:'rpg'},B2:{weapon:'m4s',spec:'medkit'}};
 let loadout=readLoadout(),EQ=null,eqNext=null;
 function readLoadout(){
@@ -22,7 +23,7 @@ function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(loado
 const takenBy=(k,v,but)=>Object.keys(loadout).filter(id=>id!==but&&loadout[id][k]===v);
 const eqFree=(k,v,id)=>loadout[id][k]===v||takenBy(k,v,id).length<ARMORY[k][v];
 function applyLoadout(){   // the next mission's squad gets what was picked (startLevel2)
-  for(const p of players){const l=loadout[p.id];if(!l||p.joined)continue;Object.assign(p,{weapon:l.weapon,weapon2:null,spec:l.spec,grenade:1});p.specN=specFull(p);}
+  for(const p of players){const l=loadout[p.id];if(!l||p.joined)continue;if(!eqWeapons(p.id).includes(l.weapon))l.weapon='m4s';Object.assign(p,{weapon:l.weapon,weapon2:null,spec:l.spec,grenade:1});p.specN=specFull(p);classGear(p);}
   buildCards();
 }
 
@@ -78,18 +79,19 @@ function equipFrame(rdt,now){
 }
 
 /* ---------- the loadout ---------- */
-const EQ_LABEL={m4s:'M4 SD',hmg:'M240',smoke:'Smoke',medkit:'Medkit',rpg:'RPG'};
+const EQ_LABEL={m4s:'M4 SD',hmg:'M240',shotgun:'Shotgun',sniper:'Sniper',smoke:'Smoke',medkit:'Medkit',rpg:'RPG'};
 function eqIcon(k,v){return k==='weapon'?GUN_SVG[v]:SPECIALS[v].svg;}
 function buildEquipUI(){
   const box=$('#eqRows');box.innerHTML='';
   for(const id of['A1','A2','B1','B2']){
     const p=players.find(q=>q.id===id);if(!p)continue;
     const row=document.createElement('div');row.className='eq-row';row.style.setProperty('--tc',teamCol(p));row.dataset.id=id;
-    row.innerHTML=`<canvas class="eq-face" width="64" height="64"></canvas><div class="eq-who"><b>${id} · ${rankOf(p.level||1).ab}</b><span>${p.name}</span></div>`+
+    const ck=classes[id];
+    row.innerHTML=`<canvas class="eq-face" width="64" height="64"></canvas><div class="eq-who"><b>${id} · ${ck?CLASSES[ck].ab:rankOf(p.level||1).ab}</b><span>${p.name}</span>${canPromote(p)?`<button type="button" class="eq-promote" aria-label="Promotion: choose a class for ${p.name}">Promote</button>`:''}</div>`+
       ['weapon','spec'].map(k=>`<div class="eq-grp" data-k="${k}" role="radiogroup" aria-label="${k==='weapon'?'Weapon':'Special item'}">`+
-        EQ_OPTS[k].map(v=>`<button type="button" role="radio" data-v="${v}" style="--ic:${k==='spec'?SPECIALS[v].col:'#c9d2d8'}">${eqIcon(k,v)}<span>${EQ_LABEL[v]}</span><i></i></button>`).join('')+'</div>').join('');
+        (k==='weapon'?eqWeapons(id):EQ_OPTS[k]).map(v=>`<button type="button" role="radio" data-v="${v}" style="--ic:${k==='spec'?SPECIALS[v].col:'#c9d2d8'}">${eqIcon(k,v)}<span>${EQ_LABEL[v]}</span><i></i></button>`).join('')+'</div>').join('');
     drawFace(row.querySelector('.eq-face'),p);
-    row.addEventListener('click',ev=>{const bt=ev.target.closest('button[data-v]');if(!bt||bt.disabled)return;const k=bt.parentElement.dataset.k,v=bt.dataset.v;
+    row.addEventListener('click',ev=>{if(ev.target.closest('.eq-promote')){classPicker(id,()=>buildEquipUI());return;}const bt=ev.target.closest('button[data-v]');if(!bt||bt.disabled)return;const k=bt.parentElement.dataset.k,v=bt.dataset.v;
       if(!eqFree(k,v,id))return;loadout[id][k]=v;const f=EQ&&EQ.figs.find(u=>u.id===id);if(f){f.weapon=loadout[id].weapon;f.spec=loadout[id].spec;}refreshEquipUI();});
     box.appendChild(row);
   }

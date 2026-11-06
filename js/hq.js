@@ -33,7 +33,7 @@ function stationTick(dt){   // (Level 1 calls it too: level1.js)
     const z=zoneAt(p.x,p.y);
     if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;   // (the medic station)
     const short=p.grenade<1||(p.spec&&p.specN<specFull(p))||(C4_ON&&p.charges<1);   // (a freed prisoner has no special item, but takes a grenade)
-    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=1;if(p.spec)p.specN=specFull(p);p.charges=1;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
+    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=isCls(p,'assault')?CLS.frags:1;if(p.spec)p.specN=specFull(p);p.charges=1;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
   }
 }
 /* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes, say what they're for ---------- */

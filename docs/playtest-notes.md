@@ -191,3 +191,13 @@ sounds, doors to kick in, the scientists' and the unnamed lines voiced.
 4. The scientists' new lines are voiced.
 
 Next: the classes, then doors to kick in.
+
+# v73: the classes, step 1
+
+Built from `docs/classes.md` ("Every private can use a basic assault rifle. When they reach level 3 their class type
+should be chosen"): a PROMOTE button on the between-missions screen for anyone at level 3 without a class, the picker
+with the seven classes, the class on his card in place of his rank, each class's weapon (the shotgun for Assault, with
+its own 3D model; the sniper rifle for Recon) and one passive each, measured like for like in a test (table in
+`docs/classes.md`). Defaults until Bryan answers the four questions: the player picks, a class is for good, one Captain,
+the freed men have none. Fixed on the way: a frag throw emptied a soldier's grenades instead of using one (it didn't
+matter while everyone carried one). Still to come: the Class Attribute Slots, the new class gear, the store.

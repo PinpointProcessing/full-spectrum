@@ -164,8 +164,9 @@ function sensorTick(dt){
   if((sensorT-=dt)>0)return;
   const ups=players.filter(p=>alive(p)&&!p.offMap&&!offFloor(p));if(!ups.length||state!=='play'||landing){sensorT=.5;return;}
   const cx=ups.reduce((a,p)=>a+p.x,0)/ups.length,cy=ups.reduce((a,p)=>a+p.y,0)/ups.length;
-  let near=1e9;for(const e of enemies){if(e.dead||e.surr||e.vis||!e.path.length||offFloor(e))continue;const d=hyp(e.x-cx,e.y-cy);if(d>SENSOR.range)continue;near=Math.min(near,d);blips.push({x:e.x,y:e.y,t:simT});}
-  sensorT=near<200?.6:near<330?1:SENSOR.every;if(near>=1e9)return;   // nothing moving: quiet
+  const cy2=ups.some(p=>isCls(p,'cyber')),rng=cy2?CLS.sensorR:SENSOR.range;   // (Cyber Ops: classes.js)
+  let near=1e9;for(const e of enemies){if(e.dead||e.surr||e.vis||!e.path.length||offFloor(e)||e.dormant)continue;const d=hyp(e.x-cx,e.y-cy);if(d>rng)continue;near=Math.min(near,d);blips.push({x:e.x,y:e.y,t:simT});}
+  sensorT=(near<200?.6:near<330?1:SENSOR.every)*(cy2?.7:1);if(near>=1e9)return;   // nothing moving: quiet
   sweepT=simT;sensorC={x:cx,y:cy};
   if(typeof sfxPing==='function')sfxPing(clamp(1-near/SENSOR.range,0,1));
 }

@@ -192,7 +192,7 @@ function drawOverlay(rdt,now){
     if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(u.downed){
       const k=u.critical?(u.noBleed?1:u.crit/CRIT_T):u.bleed/BLEED_T;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=u.critical?'#ff3b30':C.bad;ox.lineWidth=u.critical?3:2;ox.stroke();
-      const medic=players.find(o=>o.medGo&&o.medGo.t===u&&!o.path.length),prog=u.revive>0?u.revive/3:medic?medic.medGo.prog/MEDKIT_T:u.boxRev>0?u.boxRev/BOXREV_T:0;
+      const medic=players.find(o=>o.medGo&&o.medGo.t===u&&!o.path.length),prog=u.revive>0?u.revive/(u.reviveNeed||3):medic?medic.medGo.prog/MEDKIT_T:u.boxRev>0?u.boxRev/BOXREV_T:0;
       if(prog>0){gPath(u.x,u.y,16,-Math.PI/2,-Math.PI/2+prog*TAU);ox.strokeStyle=C.good;ox.stroke();}
       const pinnedHelp=u.revive<=0&&players.some(o=>o!==u&&alive(o)&&!o.path.length&&hyp(o.x-u.x,o.y-u.y)<24&&o.sup>PINNED);   // a teammate beside him, but pinned: no reviving (Bryan)
       const txt=u.carriedBy?(u.noBleed?'CARRIED':`CARRIED · ${fmtT(u.crit)}`):medic?(medic.sup>PINNED?'MEDIC PINNED':'MEDIC KIT'):u.boxRev>0?'REVIVING':u.critical?(u.noBleed?'NEEDS A MEDIC KIT':`CRITICAL · ${fmtT(u.crit)}`):u.revive>0?'REVIVING':pinnedHelp?`HELPER PINNED · ${Math.ceil(u.bleed)}s`:`DOWN ${Math.ceil(u.bleed)}s`;

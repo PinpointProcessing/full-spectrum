@@ -13,7 +13,7 @@ const MEDKIT_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="4.6
 // (the silencer's count is how many quiet shots or bursts it has left before it's worn out). C4 and others can join later
 const SPECIALS={smoke:{label:'Smoke',a:'smoke',svg:SMOKE_SVG,col:'#cfd6dc',n:1},medkit:{label:'Medic kit',a:'a medic kit',svg:MEDKIT_SVG,col:'#ff8a7e',n:1},
   silencer:{label:'Silencer',a:'a silencer',svg:SILENCER_SVG,col:'#a9c4d6',n:6},rpg:{label:'RPG',a:'an RPG',svg:RPG_SVG,col:'#ffb36b',n:2}},SPEC_ORDER=['smoke','medkit','silencer','rpg'];
-const specFull=u=>(SPECIALS[u.spec]||{}).n||1;
+const specFull=u=>u.spec==='medkit'&&isCls(u,'medic')?CLS.kits:u.spec==='rpg'&&isCls(u,'support')?CLS.rockets:(SPECIALS[u.spec]||{}).n||1;   // (a Medic's kits, a Support's rockets: classes.js)
 const fmtT=s=>{const t=Math.max(0,Math.ceil(s));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;};
 const inSupply=u=>{const z=alive(u)&&zoneAt(u.x,u.y);return !!(z&&z.k==='sup');};
 const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy="10" rx="4.6" ry="5"/><rect x="5.8" y="2.6" width="3.4" height="2.6" rx=".6"/><path d="M9.2 3.6h2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
@@ -58,7 +58,7 @@ function buildCards(){
   for(const u of players){
     const el=document.createElement('div');el.className='ucard';el.style.setProperty('--tc',teamCol(u));
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
-    el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
+    el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${classOf(u)?CLASSES[classOf(u)].ab:rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<div class="uc-hpb"><i></i><span class="uc-hp">100</span></div>`+
       `<div class="uc-gun"></div>`+   // (filled by updateCards: gunHTML)
       `<div class="uc-bot">${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
@@ -127,7 +127,7 @@ function updateCards(){
     // his own slot (A3 third along); the name goes up beside the callsign and the rank comes off, a line less per row
     const ck=compact?'c':'n';if(c.el.dataset.k!==ck){c.el.dataset.k=ck;const n=+u.id.slice(1)||1;
       c.el.style.gridRow=compact?(u.team==='A'?'1':'2'):'';c.el.style.gridColumn=compact?String(Math.min(4,n)):'';
-      c.idb.textContent=compact?u.name:`${u.id} · ${rankOf(u.level).ab}`;}
+      c.idb.textContent=compact?u.name:`${u.id} · ${classOf(u)?CLASSES[classOf(u)].ab:rankOf(u.level).ab}`;}
     c.el.classList.toggle('sel',sel.includes(u));c.el.classList.toggle('downed',u.downed);c.el.classList.toggle('kia',u.dead);
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
     c.hp.textContent=u.dead?'KIA':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);

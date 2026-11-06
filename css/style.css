@@ -245,15 +245,33 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .eq-who b{font-size:10px;letter-spacing:.08em;color:var(--tc);font-weight:700}
 .eq-who span{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .eq-grp{display:flex;gap:4px;min-width:0}
-.eq-grp button{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;min-height:30px;padding:2px 5px;border:1px solid var(--line);border-radius:4px;background:#121a20;color:var(--dim);font-family:var(--font-hud);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;position:relative;cursor:pointer}
-.eq-grp button svg{flex:none;height:13px;width:auto;max-width:38px;fill:var(--ic,#c9d2d8);opacity:.75}
-.eq-grp[data-k="spec"] button svg{width:15px;height:15px}
-.eq-grp button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eq-grp button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:31px;padding:2px 3px;border:1px solid var(--line);border-radius:4px;background:#121a20;color:var(--dim);font-family:var(--font-hud);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;position:relative;cursor:pointer}
+.eq-grp button svg{flex:none;height:11px;width:auto;max-width:40px;fill:var(--ic,#c9d2d8);opacity:.75}
+.eq-grp[data-k="spec"] button svg{width:14px;height:14px}
+.eq-grp button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1;font-size:9px;letter-spacing:.04em}
 .eq-grp button.on{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 18%,#121a20);color:var(--text)}
 .eq-grp button.on svg{opacity:1}
 .eq-grp button:disabled{opacity:.38;cursor:default}
-.eq-grp button i{position:absolute;right:3px;bottom:1px;font-style:normal;font-size:7.5px;letter-spacing:.04em;color:var(--dim)}
+.eq-grp button i{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font-size:7.5px;line-height:1;letter-spacing:.04em;color:var(--dim)}   /* whose it is, under the label */
+.eq-grp button i:empty{display:none}
 .eq-note{margin:0;font-size:12px;color:var(--dim);line-height:1.35}
 #eqGo{min-height:44px;font-size:14px;background:#1d2a33;border:1px solid var(--alpha);color:var(--alpha);border-radius:6px;font-family:var(--font-hud);font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
 body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipping #floors,body.equipping #obj,body.equipping #status,body.equipping #pauseBtn,body.equipping #alert,body.equipping #alertLvl,body.equipping #banner,body.equipping #tl{visibility:hidden}
 @media (min-aspect-ratio:21/20){#equip{justify-content:center;align-items:flex-end}.eq-panel{width:min(440px,52%);margin:0 10px 0 0}}
+
+/* classes (classes.js): the promotion button on the between-missions screen, and the picker */
+.eq-promote{align-self:flex-start;margin-top:4px;min-height:22px;font:700 9px/1 var(--font-hud);letter-spacing:.08em;text-transform:uppercase;color:#1a1206;background:var(--warn);border:0;border-radius:3px;padding:4px 7px;cursor:pointer;animation:promo 1.4s ease-in-out infinite}
+@keyframes promo{50%{filter:brightness(1.3)}}
+@media (prefers-reduced-motion:reduce){.eq-promote{animation:none}}
+#clsPick{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;background:rgba(9,13,17,.97);border:1px solid var(--line);border-radius:8px;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;max-width:720px;margin:0 auto}
+#clsPick .cls-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+#clsPick .cls-head b{font:700 14px/1.2 var(--font-hud);letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
+#clsPick .cls-head span{grid-column:1;color:var(--dim);font-size:13px}
+#clsPick .cls-x{grid-row:1/3;grid-column:2;align-self:center;font:600 11px var(--font-hud);letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:8px 10px;cursor:pointer}
+#clsPick .cls-list{overflow:auto;padding:10px;display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));grid-auto-rows:max-content;align-content:start}
+#clsPick .cls-card{text-align:left;display:block;height:auto;min-height:auto;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:#121a20;color:var(--text);cursor:pointer;font-family:var(--font-body);font-weight:400;font-size:13px;letter-spacing:normal;text-transform:none;line-height:1.35;white-space:normal}
+#clsPick .cls-card>*{display:block}#clsPick .cls-card>*+*{margin-top:4px}
+#clsPick .cls-card:hover{border-color:var(--warn)}#clsPick .cls-card:focus-visible{outline:2px solid var(--warn);outline-offset:2px}
+#clsPick .cls-card b{font:700 14px/1.2 var(--font-hud);letter-spacing:.08em;text-transform:uppercase}
+#clsPick .cls-card span{font-size:13px;color:var(--text)}#clsPick .cls-card em{font-style:normal;font-size:13px;color:var(--good)}#clsPick .cls-card small{font-size:12px;color:var(--dim)}
+#clsPick .cls-card:disabled{opacity:.45;cursor:default}

@@ -63,7 +63,7 @@ function medTick(dt){   // medic kits being used, men being picked up, and carri
       if(!alive(u)||!t.downed||t.dead||(k==='carryGo'&&t.carriedBy)||(u.path.length&&hyp(dd.x-t.x,dd.y-t.y)>30)){u[k]=null;continue;}
       if(u.path.length)continue;
       if(hyp(u.x-t.x,u.y-t.y)>28){u[k]=null;continue;}
-      if(k==='medGo'){if(u.sup>PINNED)continue;g.prog+=dt;if(g.prog>=MEDKIT_T){u.medGo=null;u.specN--;u.stats.items++;reviveUp(t,50,u);callout(u,'Patched up',C.good);}}
+      if(k==='medGo'){if(u.sup>PINNED)continue;g.prog+=dt;if(g.prog>=MEDKIT_T){u.medGo=null;u.specN--;u.stats.items++;reviveUp(t,isCls(u,'medic')?CLS.kitHp:50,u);callout(u,'Patched up',C.good);}}
       else{g.prog+=dt;if(g.prog>=PICKUP_T){u.carryGo=null;u.carry=t;t.carriedBy=u;callout(u,'Got him',C.good);if(typeof sfxCloth==='function')sfxCloth(u.x,u.y);}}
     }
     if(u.carry){
@@ -101,9 +101,9 @@ function hitChance(s,t,L){
   if(cov===1)c-=sg?0.2:0.28;else if(cov===2)c-=sg?0.3:0.42;   // the pellet spread makes cover count for less
   c-=s.sup>0.65?0.25:s.sup*0.15;
   if(s.side==='P'&&ambushing(s))c+=AMBUSH_BONUS;
-  if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=0.15;
+  if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=isCls(s,'assault')?CLS.moveAim:0.15;
   if(t.path.length)c-=0.08;
-  if(s.side==='P')c+=rankAim(s)+ob;   // rank: steadier aim; on Watch / breaching: a bonus
+  if(s.side==='P')c+=rankAim(s)+ob+(nearCaptain(s)?CLS.leadAim:0);   // rank: steadier aim; on Watch / breaching: a bonus
   if(s.side==='E')c-=ENEMY_AIM+(s.aimPen??(s.l1?L1E.aim:0));   // (Level 1's and Level 2's guards: worse still, level1.js, level2.js)
   if(s.gunner)c-=0.05;   // machine gun: sprays
   return clamp(c,0.05,0.95);
@@ -320,8 +320,8 @@ function pickTarget(u){
 }
 // who a soldier sees: 36 m round him; with a sniper rifle, 70 m the way he's looking (all round when he's the one selected)
 function canSee(p,e){
-  const d=hyp(p.x-e.x,p.y-e.y);if(d<=360)return!!fireLine(p,e);
-  if(p.weapon!=='sniper'||d>700)return false;
+  const d=hyp(p.x-e.x,p.y-e.y),rc=isCls(p,'recon');if(d<=360+(rc?CLS.seeMore:0))return!!fireLine(p,e);
+  if(p.weapon!=='sniper'||d>700+(rc?CLS.sniperMore:0))return false;   // (Recon sees further: classes.js)
   let da=Math.atan2(e.y-p.y,e.x-p.x)-p.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
   return(Math.abs(da)<.45||(sel.length===1&&sel[0]===p))&&!!fireLine(p,e);
 }
@@ -353,7 +353,7 @@ function resolveShot(s){
   if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
   if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0,u});   // a silencer hides the flash
-  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t):1));   // machine guns, sniper rounds and shotgun blasts pin people down
+  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t)*(nearCaptain(t)?CLS.leadNerve:1):1)*(isCls(u,'support')?CLS.supMul:1));   // machine guns, sniper rounds and shotgun blasts pin people down (a Support harder; a Captain steadies the men near him: classes.js)
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');}   // the jeep: rounds spark off its body, and some find the crew
   else if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(t.side==='P'&&Math.random()<.45)sfxGrunt(t,false);}   // (an enemy's cry is in damage())   // a hit: the thud, and often a grunt
   if(s.hit){const W=wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,t.veh?dm*GJEEP.bullet:dm,u);}
@@ -381,7 +381,7 @@ function suppressShot(u){
   tracers.push({x1:L.fx,y1:L.fy,x2:ex,y2:ey,t:0,col:'255,231,163',q});if(q)lastNoiseT=simT;else flashes.push({x:L.fx,y:L.fy,t:0,u});
   if(typeof sfxShot==='function'&&q)sfxShot(u,true);
   if(!hit&&Math.random()<.6)sparks.push({x:ex,y:ey,t:0});
-  const hv=u.weapon==='hmg';for(const{e}of tg){e.sup=Math.min(1.2,e.sup+(hv?0.24:0.17));e.alerted=true;}   // (the heavy gun pins harder, and faster)
+  const hv=u.weapon==='hmg',sm=isCls(u,'support')?CLS.supMul:1;for(const{e}of tg){e.sup=Math.min(1.2,e.sup+(hv?0.24:0.17)*sm);e.alerted=true;}   // (the heavy gun pins harder, and faster)
   if(hit)damage(t,12,u);
   alertAll('Contact. Weapons free.',true,u.x,u.y,ex,ey,{x:u.x,y:u.y},q?SIL.open:undefined,q?SIL.wall:undefined,!q,u);squadNoise(u,u.x,u.y,q?SIL.open:undefined,q?SIL.wall:undefined);
   u.cool=hv?.26+Math.random()*.08:.42+Math.random()*.12;
@@ -417,7 +417,7 @@ function throwNade(u,tx,ty){
   const f=throwFrom(u,tx,ty,'nade');
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
-  u.grenade=0;u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
+  u.grenade=Math.max(0,(u.grenade||0)-1);u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);   // (one frag of his: an Assault carries two, classes.js)
   nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u});u.stats.items++;if(typeof sfxPin==='function')sfxPin(u.x,u.y);
   callout(u,'Frag out!',C.warn);
   return true;
@@ -541,6 +541,7 @@ function sense(e,dt){
         g=SEE_RATE*(1-d/(R*1.1));
         if(cone)g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least (in the sewer pipe nobody can see him at all: fireLine)
         else g*=p.path.length?(p.gait==='sneak'?0.04:0.65):0.03;   // close behind him: a man creeping up is hard to notice (takedowns), one running up isn't
+        if(p.gait==='sneak'&&isCls(p,'specops'))g*=CLS.sneakSpot;   // (Spec Ops: harder to spot sneaking, classes.js)
       }
     }
     if(p.path.length&&p.gait==='run'&&d<NOISE_R)g+=0.5*(1-d/NOISE_R);
@@ -565,6 +566,7 @@ function senseCovert(e,dt){
     if((cone||d<80)&&fireLine(e,p)){
       g=SEE_RATE*1.5*(1-d/(R*1.1));
       g*=cone?(p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45)):(p.path.length?(p.gait==='sneak'?0.1:0.8):0.06);
+      if(p.gait==='sneak'&&isCls(p,'specops'))g*=CLS.sneakSpot;
     }
     if(p.path.length&&p.gait==='run'&&d<NOISE_R)g+=0.5*(1-d/NOISE_R);
     gain+=g;if(g>best){best=g;src=p;}
@@ -604,7 +606,7 @@ function takedownTick(dt){
     const end=u.path.length?u.path[u.path.length-1]:null;
     if(!alive(u)||e.dead||(end&&!k.strike&&hyp(end.x-k.spot.x,end.y-k.spot.y)>4)){endTakedown(u,false);continue;}   // down, he's gone, or ordered elsewhere
     if(e.alerted&&!k.strike){endTakedown(u,false);u.path=[];continue;}   // spotted on the way in: off, and he stops where he is
-    if(k.strike){if(simT-k.strike>=TK_TIME){silentKill(e,u);endTakedown(u,true);}continue;}
+    if(k.strike){if(simT-k.strike>=(isCls(u,'specops')?CLS.tkGrab:TK_TIME)){silentKill(e,u);endTakedown(u,true);}continue;}
     const d=hyp(u.x-e.x,u.y-e.y);
     if(d<=TK_REACH+6){   // right behind him: grab
       k.strike=simT;e.grabbed=true;u.path=[];u.ang=Math.atan2(e.y-u.y,e.x-u.x);u.aimT=simT;callout(u,'Takedown',C.good);continue;
@@ -885,8 +887,8 @@ function update(dt){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
     if(!p.carriedBy){const z=zoneAt(p.x,p.y);if(z&&z.k==='med'){p.boxRev+=dt;if(p.boxRev>=BOXREV_T){reviveUp(p,35,null);continue;}}else p.boxRev=0;}   // lying in a medical box: back up
     if(!p.critical){
-      const helper=players.find(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED);   // Bryan: no reviving while pinned
-      if(helper){p.revive+=dt;if(p.revive>=3)reviveUp(p,35,helper);}
+      const hs=players.filter(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED),helper=hs.find(o=>isCls(o,'medic'))||hs[0];   // Bryan: no reviving while pinned (a Medic beside him does it if there is one)
+      if(helper){const md=isCls(helper,'medic');p.revive+=dt;p.reviveNeed=md?CLS.reviveT:3;if(p.revive>=p.reviveNeed)reviveUp(p,md?CLS.reviveHp:35,helper);}   // (a Medic: quicker, and he comes up better: classes.js)
       else{p.revive=Math.max(0,p.revive-dt);p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
     }else{
       if(!p.noBleed)p.crit-=dt;   // (the man off the basement wall has no clock: office.js)

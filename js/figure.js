@@ -68,7 +68,7 @@ function figLook(u){
 // silencer wears out, the base goes to Alert II...)
 function figKitKey(u,L){
   let w='none';
-  if(L.k==='sq')w=u.weapon==='hmg'?'hmg':u.weapon==='sniper'?'sniper':(u.weapon==='m4s'||u.spec==='silencer'&&u.specN>0?'m4s':'m4');   // (the silencer on the muzzle: a silenced rifle, or the silencer item while it lasts)
+  if(L.k==='sq')w=u.weapon==='hmg'?'hmg':u.weapon==='sniper'?'sniper':u.weapon==='shotgun'?'shotgun':(u.weapon==='m4s'||u.spec==='silencer'&&u.specN>0?'m4s':'m4');   // (the silencer on the muzzle: a silenced rifle, or the silencer item while it lasts)
   else if(L.k==='en')w=u.noGun?'none':u.weapon==='sniper'||(u.post&&/sniper/i.test(u.name||''))?'sniper':'ak';
   else if(L.k==='pri')w=u.weapon?(u.weapon==='sniper'?'sniper':'ak'):'none';
   const helm=L.k==='en'&&(u.gunner||(typeof alertStage==='function'&&alertStage()>=2));
@@ -176,6 +176,10 @@ function figParts(key){
     G(rbox(.42,1.0,.45,.12),COL.black,5,-.1,-.8,0,[0,0,-.35]);G(cyl(.16,.16,4.8),COL.metal,4,4.4,.05,0,ALONG_X);
     G(cyl(.32,.32,2.6,10),COL.dark,4,.6,.95,0,ALONG_X);G(cyl(.42,.36,.5,10),COL.dark,4,1.95,.95,0,ALONG_X);G(cyl(.36,.4,.4,10),COL.dark,4,-.75,.95,0,ALONG_X);
     G(rbox(.6,.9,.42,.1),COL.metal,4,.6,-.75,0);for(const s of[-1,1])G(rbox(.15,1.6,.15,.05),COL.metal,4,2.6,-.75,s*.25,[s*.25,0,.15]);
+  }else if(w==='shotgun'){   // a pump shotgun (Assault: classes.js): black furniture, a tube magazine under the barrel, the pump on it
+    G(rbox(2.5,.95,.58,.15),COL.metal,4,.45,0,0);G(rbox(2.2,.9,.5,.2),COL.black,5,-2.0,-.25,0,[0,0,-.1]);G(rbox(.42,1.0,.45,.12),COL.black,5,-.1,-.85,0,[0,0,-.35]);
+    G(cyl(.18,.18,4.3),COL.metal,4,3.75,.18,0,ALONG_X);G(cyl(.15,.15,3.3),COL.metal,4,3.2,-.22,0,ALONG_X);G(rbox(1.5,.6,.62,.22),COL.black,5,2.7,-.2,0);
+    G(rbox(.18,.22,.18,.05),COL.metal,4,5.8,.42,0);
   }else if(w==='ak'){
     G(rbox(3.0,.9,.56,.12),COL.metal,4,.5,0,0);G(rbox(2.3,.8,.46,.2),COL.wood,5,-1.95,-.38,0,[0,0,-.13]);G(rbox(.42,1.0,.45,.12),COL.wood,5,-.15,-.85,0,[0,0,-.3]);
     G(rbox(1.8,.78,.66,.25),COL.wood,5,2.4,-.05,0);G(rbox(1.6,.3,.35,.1),COL.metal,4,2.4,.45,0);G(cyl(.13,.13,1.9,6),COL.metal,4,4.3,0,0,ALONG_X);
@@ -185,7 +189,7 @@ function figParts(key){
 }
 // the grips (where his wrists go, in the gun's frame) and the back of the stock, per weapon
 const GRIP={m4:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},m4s:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},hmg:{R:[-.45,-.55,.25],L:[2.3,-.75,-.3],butt:-3.4},
-  sniper:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-3.4},ak:{R:[-.3,-.5,.22],L:[2.4,-.5,-.25],butt:-3.1},none:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-2.9}};
+  sniper:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-3.4},shotgun:{R:[-.3,-.45,.22],L:[2.7,-.45,-.25],butt:-3.1},ak:{R:[-.3,-.5,.22],L:[2.4,-.5,-.25],butt:-3.1},none:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-2.9}};
 function figGeometry(key){
   let G=FIG_GEO.get(key);if(G)return G;
   const parts=figParts(key);let nv=0,ni=0;

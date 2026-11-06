@@ -1,4 +1,4 @@
-# Soldier classes (Bryan's design, not built yet)
+# Soldier classes (Bryan's design; step 1 built in v73)
 
 Bryan: "Every private can use a basic assault rifle. When they reach level 3 their class type should be chosen... Each unit
 unlocks different Class Attribute Slots for skills and equipment." He wants Level 1 and Level 2 working first; this is the
@@ -32,9 +32,37 @@ What's already in the code and only needs handing to a class: the silencer, smok
 M240, the sniper rifle and climbing the tower, the shotgun, C4, Breach, the contact sensor, the ammo drop and medic station
 (today only at checkpoints). The squad's four already lean this way: Hayes is Support (M240, RPG), Okafor a Medic.
 
+## Built: step 1 (v73, `js/classes.js`)
+
+- **The choice.** On the between-missions screen a soldier at level 3 or above with no class has a pulsing PROMOTE button
+  under his name. It opens the picker: the seven classes, each with Bryan's line, its passive and any weapon it adds.
+  "Not now" closes it. The choice is kept in this browser (`warehouseYard.classes.v1`) and shown on his card and his
+  loadout row in place of his rank (A2 · RECON). The report says "Level up · choose his class next" when a soldier
+  reaches level 3 without one. "Reset squad XP, ranks and classes" on the intro card clears them.
+- **Defaults until Bryan answers the questions below:** the player picks; a class is for good (retraining at HQ later);
+  two soldiers can share a class, but there's only one Captain; the freed prisoners have no class.
+- **A class adds, it doesn't take away:** everyone still picks from the M4 SD, the armory's one M240, smoke, the two
+  medic kits and the RPG. Assault adds the shotgun to his loadout (a pump gun of his own in the 3D model), Recon the
+  sniper rifle.
+- **One passive each** (`CLS` in classes.js; every one measured like for like in a test, the same man, weapon and spot
+  with and without the class):
+
+| Class | Passive | Measured |
+|---|---|---|
+| Spec Ops | Ghost: a third harder to spot while sneaking (×0.65, in and out of a guard's cone, and for the hidden team's covert sense); takedowns 0.4 s instead of 0.6 | a guard's awareness 0.034/0.1 s instead of 0.052 |
+| Medic | Field medic: revives a man in 2 s (not 3) and brings him up at 60 (not 35); a medic kit in his hands has 3 uses and brings a man up at 80 (not 50); a Medic beside a downed man does the revive if there is one | 2.0 s, 60 HP |
+| Support | Suppressor: his fire pins half as hard again (shots and Suppress); an RPG in his hands has 3 rockets (not 2) | +0.09 pin a shot instead of +0.06 |
+| Assault | Breacher: carries 2 frags (a throw uses one), and loses half as much aim firing on the move (−0.075, not −0.15) | 0.72 to hit on the move instead of 0.64 |
+| Recon | Eyes: sees 46 m instead of 36, and 80 m with the sniper rifle instead of 70 | sees a man at 42 m |
+| Cyber Ops | Tracker: the contact sensor reaches 70 m (not 45) and sweeps faster (its interval ×0.7) | a mover at 60 m blips |
+| Captain | Leader: men within 20 m of him get +0.05 to hit and pin a quarter slower. One per squad | +0.05; pin ×0.75 |
+
+The class gear (a Medic's kits, a Support's rockets, an Assault's frags) is handed out at every mission start and at
+every ammo drop.
+
 ## Order of work (a suggestion)
 
-1. The class choice at level 3 on the between-missions screen, each class's weapons and one passive bonus.
+1. The class choice at level 3 on the between-missions screen, each class's weapons and one passive bonus. (Built.)
 2. Class gear that already exists, moved into the class slots.
 3. New gear, one at a time: heal darts, the field medical station, the ammo bag, heavy rockets, binoculars, the scout drone,
    hacking, the Captain's aura.
