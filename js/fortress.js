@@ -28,6 +28,9 @@ function resetHQ(){hqs={awake:false,phase:-1,won:false,t0:simT,killed:0,pending:
 // her eggs hatch (Bryan: her young swarm "from the side rooms and from the nest eggs"): n of clutch k burst, a hatchling crawls
 // out of each and comes for the squad. Hatchlings are newborn: less to kill (HATCH.hp) and a weaker bite
 const HATCH={hp:40,hit:.75,lair:1,room:1};   // (lair: how many her clutch hatches at each roar; enterHQ makes it two for a big squad)
+// her young waiting in each side room, for a squad of up to five and a bigger one, and how often another room opens while she
+// lives (Bryan, after v91: too easy; a big squad had her down in half a minute with nobody hurt)
+const HQ_BROOD={room:1,roomBig:3,every:30};   // (it was 1 and 2, every 40 s)
 function hatch(k,n){
   const D=HQ&&HQ.nest&&HQ.nest.userData.eggs;if(!D||MAPID!=='hq'||hqs.won)return;const c=D.clutches[k];if(!c)return;
   const left=[];for(let i=c.a;i<c.b;i++)if(!D.list[i].burst)left.push(i);if(!left.length)return;
@@ -36,7 +39,6 @@ function hatch(k,n){
     const tg=players.filter(alive).sort((a,b)=>hyp(a.x-e.x,a.y-e.z)-hyp(b.x-e.x,b.y-e.z))[0],ang=tg?Math.atan2(tg.y-e.z,tg.x-e.x):Math.PI/2;
     const h=hound(e.x+Math.cos(ang)*6,e.z+Math.sin(ang)*6,{kind:'young',hatched:true,ang,hp:HATCH.hp,maxHp:HATCH.hp,againT:simT+1.5});h.hitK=HATCH.hit;}
   sfxMon('mon_snarl',{x:c.x,y:c.z},.9,1.25);if(typeof playSample==='function')playSample('flesh',c.x,c.z,.9);
-  if(!hqs.hatched){hqs.hatched=true;banner('Her eggs are hatching!',2400);}
 }
 function hatchSoon(k,n,dt){hqs.hatch.push({k,n,at:simT+dt});}
 // a room opening a moment from now, on the game's clock (a pause holds it)
@@ -108,7 +110,7 @@ function enterHQ(){
     units=[...players];MAPID='hq';enemies=[];civs=[];resetHQ();addZones(HQ_REST);
     const keep=scene;scene=HQ.scene;
     try{const b=broodMother(500,300);b.ang=Math.PI/2;b.hp=b.maxHp=BOSS.hp+BOSS.perMan*live.filter(p=>!p.downed).length;b.dmgIn=BOSS.dmgIn;
-      const per=live.filter(p=>!p.downed).length>5?2:1;   // (a small squad meets one to a room, a big one two; one more hatches from each room's clutch, hatch)
+      const per=live.filter(p=>!p.downed).length>5?HQ_BROOD.roomBig:HQ_BROOD.room;   // (a small squad meets one to a room, a big one more; one more hatches from each room's clutch, hatch)
       for(const r of HQ_ROOMS)for(let k=0;k<per;k++){const h=hound((r.x0+r.x1)/2+(k-1)*26,(r.y0+r.y1)/2+(k%2?20:-14),{dormant:true,room:r.id,kind:'young',ang:r.side<0?0:Math.PI});}
     }finally{scene=keep;}
     contact=false;clearTeams();sel=[];cardGroup=[];hqs.wakeAt=simT+.6;hqs.lairN=live.filter(p=>!p.downed).length>5?2:1;   // (she's awake: she roars as they come in, bossThink)
@@ -138,7 +140,7 @@ function bossThink(u,dt){
   const inHall=p=>alive(p)&&p.x>HQ_HALL.x0&&p.x<HQ_HALL.x1&&p.y>HQ_HALL.y0&&p.y<HQ_HALL.y1;
   for(const r of HQ_ROOMS)if(!r.open&&players.some(p=>alive(p)&&p.x>r.x0&&p.x<r.x1&&p.y>r.y0&&p.y<r.y1))openRoom(r);   // walked in on them
   if(u.ms==='sleep'){if(simT>=(hqs.wakeAt??1e9)||players.some(inHall)||u.hp<u.maxHp)bossRoar(u,0);return;}   // (Bryan: awake when they come in: she roared at the drawbridge, she knows they're coming)
-  if(hqs.awakeT&&simT>(hqs.nextRoomT||0)){hqs.nextRoomT=simT+40;const r=HQ_ROOMS.find(q=>!q.open);if(r)openRoom(r);}   // and every 40 s another room, whatever her health
+  if(hqs.awakeT&&simT>(hqs.nextRoomT||0)){hqs.nextRoomT=simT+HQ_BROOD.every;const r=HQ_ROOMS.find(q=>!q.open);if(r)openRoom(r);}   // and every HQ_BROOD.every s another room, whatever her health
   if(u.ms==='roar'){u.path=[];if(simT-u.mt0>2.4){u.ms='walk';}return;}
   const tg=monPrey(u,2000);if(!tg){u.path=[];return;}monSaw(tg);
   const dx=tg.x-u.x,dy=tg.y-u.y,d=hyp(dx,dy)||1;
@@ -157,7 +159,7 @@ function bossThink(u,dt){
 }
 function bossRoar(u,phase){
   u.ms='roar';u.mt0=simT;u.path=[];u.alerted=true;sfxMon('boss_roar',u,1.5,.95);shake(.8);hqs.phase=phase;
-  if(!hqs.awake){hqs.awake=true;hqs.awakeT=simT;hqs.nextRoomT=simT+40;if(typeof startContact==='function')startContact('Contact! Here she comes!',false);banner('The Brood Mother. Keep clear of her slam: the violet ring. Medic station and ammo behind you.',4200);}
+  if(!hqs.awake){hqs.awake=true;hqs.awakeT=simT;hqs.nextRoomT=simT+HQ_BROOD.every;if(typeof startContact==='function')startContact('',false,null,true);}   // (no words on screen as she comes: Bryan)
   for(const r of HQ_ROOMS)if(r.phase===phase)openSoon(r,.7+Math.random()*.6);
   hatchSoon(0,hqs.lairN||HATCH.lair,1.2+Math.random()*.8);   // (her clutch answers her: one, two for a big squad)
 }

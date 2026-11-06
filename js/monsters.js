@@ -10,8 +10,11 @@
    Monsters are hostiles (side E) with mon set, and dog set too, so everything that's only for armed men leaves them alone
    (no shooting, no surrender, no bodies to find, no barks); they never need to notice anyone: they know where you are.
    Sounds: sounds/sfx mon_* and boss_* (tools/sfx/build_monsters.py, CC0 recordings layered and slowed). */
-const HOUND={hp:70,run:86,lungeR:92,crouchT:.45,lungeSpd:270,hit:18,bite:10,biteT:1.0,stun:.65,fadeT:1.2,reach:17,again:1.4};
-const BOSS={hp:600,perMan:180,dmgIn:.7,walk:21,slamR:64,slamT:1.3,slamDmg:55,slamCd:3.6,swipeR:36,swipeDmg:28,swipeCd:1.9};   // (her health: hp plus perMan for each soldier who comes in; a tough hide, dmgIn)
+// (Bryan, after v91: "the monsters are a bit too easy, make it a little challenging. I wouldn't mind if some units got knocked
+// down": 70 HP to 80, quicker on their feet (86 to 110), the lunge 18 to 22, a bite 10 to 12; out of the gate closer together and
+// more of them for a bigger squad, and most swing wide to come in from the sides: gateTick and houndThink)
+const HOUND={hp:80,run:110,lungeR:92,crouchT:.45,lungeSpd:270,hit:22,bite:12,biteT:1.0,stun:.65,fadeT:1.2,reach:17,again:1.4};
+const BOSS={hp:600,perMan:230,dmgIn:.7,walk:21,slamR:64,slamT:1.3,slamDmg:65,slamCd:3.6,swipeR:36,swipeDmg:34,swipeCd:1.9};   // (her health: hp plus perMan for each soldier who comes in; a tough hide, dmgIn. After v91, harder: perMan 180, slam 55, swipe 28 before)
 const MON_GATE={x:850,y:-604},MON_OUT={x0:790,x1:910,y0:-548,y1:-488};   // where they come out (the gate's mouth), and where the squad gathers to go in
 let mon={out:null,first:false};
 function resetMonsters(){mon={out:null,first:false};}
@@ -127,6 +130,13 @@ function houndThink(u,dt){
   }
   // hunting: run it down; right up close it bites; in range and in sight, it crouches to spring
   if(d<HOUND.reach+2){u.path=[];u.ang=Math.atan2(dy,dx);if(simT>(u.biteT||0)){u.biteT=simT+HOUND.biteT;u.biteAt=simT;monHit(u,tg,HOUND.bite,.25);sfxMon('mon_snarl',u,.7);}return;}
+  const f=u.flank;
+  if(f&&!f.done&&u.y>-548){   // off the deck: swing out to the side first, then in at the squad from there (not straight down its guns)
+    if(!f.p){for(const k of[1.5,1.15,.8]){const a=Math.atan2(u.y-tg.y,u.x-tg.x)+f.side*k,R=clamp(d*.8,110,170),p={x:tg.x+Math.cos(a)*R,y:tg.y+Math.sin(a)*R};
+      if(p.x>20&&p.x<980&&isFree(p.x,p.y,10)){f.p=p;break;}}if(!f.p)f.done=true;}
+    if(f.p&&(d<64||simT>f.until||hyp(f.p.x-u.x,f.p.y-u.y)<28))f.done=true;
+    if(!f.done){if(simT>(u.repath||0)){u.repath=simT+.6;const p=findPath(u.x,u.y,f.p.x,f.p.y,FOOT);if(p)u.path=p;else f.done=true;}return;}
+  }
   if(d<HOUND.lungeR&&d>24&&simT>u.againT&&los(u.x,u.y,tg.x,tg.y)){
     u.ms='crouch';u.mt0=simT;u.path=[];const L=Math.min(HOUND.lungeR+12,d+14);u.tele={x:u.x+dx/d*L,y:u.y+dy/d*L,t0:simT};u.ang=Math.atan2(dy,dx);sfxMon('mon_snarl',u,.9);return;}
   if(simT>(u.repath||0)){u.repath=simT+.4;
@@ -144,23 +154,25 @@ function monDied(u){
    Bryan: "all the hunters should attack at once, the waves were too long of a gap, make them run out of the HQ entrance
    over the bridge continuously": one stream out of the gate's mouth and across the deck, one hunter about every 0.3 s
    from her roar on, no gaps, none from anywhere else. */
-const MON_FLOOD={n:20,start:3,every:.3};   // (how many; the first a moment after the roar; seconds apart, on average: all twenty out in about 6 s)
+const MON_FLOOD={n:20,perMan:4,start:3,every:.2,wide:.67};   // (how many for four men, and per man beyond four: 36 for eight; the first a moment after the roar; seconds apart on average for twenty (all out in about 4 s), much closer for more (36: about 0.08 s, all out in about 3 s); wide: how many swing out to a side)
 function monGateStart(){
-  if(mon.out)return;mon.out={t0:simT,spawned:0,next:simT+MON_FLOOD.start,roared:false,done:false,ready:false};updateObjUI();
+  if(mon.out)return;const n=MON_FLOOD.n+MON_FLOOD.perMan*Math.max(0,players.filter(p=>!p.dead&&!p.offMap).length-4);   // (eight men: 36)
+  mon.out={t0:simT,spawned:0,n,every:MON_FLOOD.every*(MON_FLOOD.n/n)**1.5,next:simT+MON_FLOOD.start,roared:false,done:false,ready:false};updateObjUI();
 }
 function gateTick(dt){
   const o=mon.out;if(!o||MAPID!=='out')return;
   const t=simT-o.t0;
   if(!o.roared&&t>2.6){o.roared=true;sfxMon('boss_roar',{x:MON_GATE.x,y:MON_GATE.y-60},1.5,.9);setTimeout(()=>{if(mon.out)sfxMon('mon_horde',MON_GATE,1.3,1);},900);shake(.5);
-    banner('Something’s coming out of the gate!',2600);if(typeof startContact==='function')startContact('Contact! Out of the gate!',false);}
-  while(o.spawned<MON_FLOOD.n&&simT>=o.next){   // out of the gate's mouth, down the deck and off its south end
+    if(typeof startContact==='function')startContact('',false,null,true);}   // (no words on screen as they come: Bryan)
+  const N=o.n??MON_FLOOD.n;
+  while(o.spawned<N&&simT>=o.next){   // out of the gate's mouth, down the deck and off its south end
     const x=MON_GATE.x+(Math.random()-.5)*44,y=MON_GATE.y-26-Math.random()*14;
-    hound(x,y,{entry:[{x:x+(Math.random()-.5)*16,y:-572},{x:x+(Math.random()-.5)*64,y:-524}]});o.spawned++;
-    o.next+=MON_FLOOD.every*(.5+Math.random());
-    if(!mon.first){mon.first=true;setTimeout(()=>{if(state==='play')banner('Hunters. They crouch before they lunge: shoot them then, or get out of the violet line.',4200);},1200);}
+    const side=Math.random()<MON_FLOOD.wide?(o.spawned%2?1:-1):0;   // (two in three swing out to one side or the other once they're off the deck)
+    hound(x,y,{entry:[{x:x+(Math.random()-.5)*16,y:-572},{x:x+(Math.random()-.5)*64,y:-524}],flank:side?{side,until:simT+12}:null});o.spawned++;
+    o.next+=(o.every??MON_FLOOD.every)*(.5+Math.random());
   }
-  if(!o.done&&o.spawned>=MON_FLOOD.n&&!enemies.some(e=>e.mon==='hound'&&!e.dead)){
-    o.done=true;bigText('The gate is clear','clear');
+  if(!o.done&&o.spawned>=N&&!enemies.some(e=>e.mon==='hound'&&!e.dead)){
+    o.done=true;bigText('The gate is clear','clear');addZones(REST_ZONES.dc);   // (the stations now, not while they pour out: the medic ring healed 8 HP/s through the fight)
     if(typeof saveGame==='function')saveGame('gate');updateObjUI();hud();gateAftermath();
   }
 }

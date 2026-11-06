@@ -49,15 +49,15 @@ function alertOne(e,lk,ambush){
   if(lk)e.lkp={x:lk.x,y:lk.y,t:simT};
   if(ambush)e.cool=Math.max(e.cool,1.4+Math.random()*.6);
 }
-function startContact(msg,amb,who){
+function startContact(msg,amb,who,quiet){   // (quiet: no banner and no "Contact!" call-out: the monsters, monsters.js and fortress.js)
   const ts=teamsOf(who),fresh=ts.filter(t=>!teamSeen[t]);
   for(const t of ts){teamSeen[t]=true;teamSawT[t]=simT;if(amb&&fresh.includes(t))teamAmbT[t]=simT+AMBUSH_T;}
-  if(contact){if(fresh.length){banner(fresh.map(teamName).join(' and ')+(amb?' opened fire.':' spotted.'),1800);setStatus();}return;}   // (the other team was caught already)
+  if(contact){if(fresh.length&&!quiet){banner(fresh.map(teamName).join(' and ')+(amb?' opened fire.':' spotted.'),1800);setStatus();}return;}   // (the other team was caught already)
   contact=true;
-  chatContact(amb);   // "Contact, two o'clock!" ... "Return fire!" (chatter.js)
+  if(!quiet)chatContact(amb);   // "Contact, two o'clock!" ... "Return fire!" (chatter.js)
   if(amb)ambushT=simT+AMBUSH_T;
   const hid=[...new Set(players.filter(p=>alive(p)&&!teamSeen[p.team]).map(p=>p.team))];
-  banner((amb?'Ambush! They never saw it coming.':msg||'Contact. They know you are here.')+(hid.length?` ${hid.map(teamName).join(' and ')} still hidden.`:''),2400);setStatus();
+  if(!quiet)banner((amb?'Ambush! They never saw it coming.':msg||'Contact. They know you are here.')+(hid.length?` ${hid.map(teamName).join(' and ')} still hidden.`:''),2400);setStatus();
 }
 // a shot heard by men already alerted (fighting the other team): they know where it came from now, and so the shooter's team
 // is caught (a quiet silenced shot further off than SIL's reach isn't heard)

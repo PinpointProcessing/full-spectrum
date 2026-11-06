@@ -126,13 +126,13 @@ function orderZip(list,e){
   const u=pickFor(list,e.x,e.y);if(!u)return false;
   const s=openSpot(e.x,e.y,players.filter(o=>o!==u&&!o.dead).map(destOf))||{x:e.x,y:e.y},p=hyp(u.x-e.x,u.y-e.y)<20?[]:findPath(u.x,u.y,s.x,s.y);
   if(!p){banner('No way to reach him.');return false;}
-  u.path=p;u.lastOrder=simT;u.watch=null;zipGos=zipGos.filter(z=>z.u!==u);if(typeof useGos!=='undefined')useGos=useGos.filter(g=>g.u!==u);zipGos.push({u,e,prog:0});callout(u,'Hands where I can see them!',C.good);return true;
+  u.path=p;u.lastOrder=simT;u.watch=null;zipGos=zipGos.filter(z=>z.u!==u);if(typeof useGos!=='undefined')useGos=useGos.filter(g=>g.u!==u);zipGos.push({u,e,prog:0});markRet(u);callout(u,'Hands where I can see them!',C.good);return true;
 }
 function zipTick(dt){
   for(const z of[...zipGos]){const{u,e}=z,end=()=>{zipGos=zipGos.filter(q=>q!==z);};
   if(!alive(u)||e.dead||e.tied||e.detained||(u.path.length&&hyp(destOf(u).x-e.x,destOf(u).y-e.y)>30)){end();continue;}
   if(u.path.length)continue;if(hyp(u.x-e.x,u.y-e.y)>28){end();continue;}
-  z.prog+=dt;if(z.prog>=ZIP_T){end();if(typeof sfxZip==='function')sfxZip(e.x,e.y);u.stats.ties=(u.stats.ties||0)+1;callout(u,e.sci?'Detained':'Zip-tied',C.good);if(e.sci)sciTied(e,u);else e.tied=true;}}   // (a scientist follows him from now on: office.js)
+  z.prog+=dt;if(z.prog>=ZIP_T){end();if(typeof sfxZip==='function')sfxZip(e.x,e.y);u.stats.ties=(u.stats.ties||0)+1;callout(u,e.sci?'Detained':'Zip-tied',C.good);if(e.sci)sciTied(e,u);else e.tied=true;backSoon(u,.8);}}   // (a scientist follows him from now on: office.js)
 }
 
 /* ---------- enemy grenades ---------- */

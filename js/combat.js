@@ -41,7 +41,7 @@ function goBeside(u,t){const s=nearSpot(u,t);return hyp(u.x-t.x,u.y-t.y)<20?[]:f
 function orderMedkit(u,t){
   if(!hasKit(u)){banner(`${u.name} has no medic kit.`,1600);return false;}
   const p=goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
-  u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0};callout(u,'Medic kit, coming',C.good);return true;
+  u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0};markRet(u);callout(u,'Medic kit, coming',C.good);return true;
 }
 function orderCarry(u,t){
   if(u.carry){banner(`${u.name} is already carrying someone.`,1600);return false;}
@@ -52,7 +52,7 @@ function putDown(u){const t=u.carry;if(!t)return;t.carriedBy=null;u.carry=null;c
 function reviveUp(p,hp,by){
   if(p.carriedBy)putDown(p.carriedBy);
   Object.assign(p,{downed:false,critical:false,hp,revive:0,boxRev:0,bleed:BLEED_T,sup:.3,shyT:simT+SHY_T+1});
-  if(by)by.stats.revives++;
+  if(by){by.stats.revives++;if(by.ret){p.ret={ids:by.ret.ids.filter(id=>id!==p.id),lo:p.lastOrder,at:0,t0:simT};backSoon(p,1);}backSoon(by);}   // (sent over to do it: back to the others, and the man he got up with him: retTick)
   if(typeof onRevive==='function')onRevive(p);   // (Marsh's first time up: office.js)
   if(!chatRevived(p,by))callout(p,'Back in it',C.good);   // he thanks whoever got him up (chatter.js), or just this
 }
@@ -213,7 +213,38 @@ function boxAssign(list,z,tx,ty){   // everyone selected into a station's ring (
   return res;
 }
 function commit(as){if(as&&as[0]&&!chatMove(as)&&Math.random()<.3)say(as[0].u,'ack_move');   // (a group move: often the lead calls his partner instead: chatter.js)
-  for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;a.u.watch=null;}   // (a move ends a Watch: orders.js)
+  for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;a.u.watch=null;a.u.ret=null;}   // (a move ends a Watch: orders.js; and any way back to the group, below)
+}
+
+/* ---------- back to the group after a job (Bryan, after v91: "any time a unit does an action, they run back to the group if
+   they were originally with them. If not, they move independently, until the squad is back together") ----------
+   A soldier sent off to do something (the bio scanner, a thing to use, a zip tie, a revive or a medic kit, a takedown, a throw
+   he walks for) who was with others when he went goes back to them once it's done: to where they are by then, the way a group
+   move places a man (cover if there's any). One who was already off on his own stays where he finishes. Another order on the
+   way or in the moment after (lastOrder moves on) and he does that instead. The gun, the tower and a door he opens to look
+   through are posts: he stays. */
+const GROUP_LINK=80;   // within 8 m of one of them (who's within 8 m of another...): together
+function groupOf(u){
+  const ok=p=>alive(p)&&!p.offMap&&!p.away&&!p.inBoat&&!p.inHeli&&(MAPID!=='in'||floorOf(p.x,p.y)===floorOf(u.x,u.y));
+  const g=[u];for(let i=0;i<g.length;i++)for(const p of players)if(!g.includes(p)&&ok(p)&&hyp(p.x-g[i].x,p.y-g[i].y)<GROUP_LINK)g.push(p);
+  return g.slice(1);
+}
+function markRet(u){const m=groupOf(u);u.ret=m.length?{ids:m.map(p=>p.id),lo:u.lastOrder,at:0,t0:simT}:null;}   // (as he's given the job: after its lastOrder)
+function backSoon(u,delay,fresh){   // the job's done: back in a moment (fresh: the job itself just set lastOrder, a throw)
+  const r=u.ret;if(!r)return;if(!fresh&&u.lastOrder!==r.lo||simT-(r.t0??simT)>120){u.ret=null;return;}   // (ordered elsewhere since, or a job long since dropped)
+  r.lo=u.lastOrder;r.at=simT+(delay??.6);
+}
+function retTick(){
+  for(const u of players){const r=u.ret;if(!r||!r.at||simT<r.at)continue;u.ret=null;
+    if(u.lastOrder!==r.lo||!alive(u)||u.carry||u.inVeh||u.onGun||u.manGo||u.onTower||u.climb||u.tk||u.silent||u.path.length||onTask(u))continue;   // (something new to do)
+    const mates=players.filter(p=>r.ids.includes(p.id)&&alive(p)&&!p.offMap&&!p.away&&(MAPID!=='in'||floorOf(p.x,p.y)===floorOf(u.x,u.y)));if(!mates.length)continue;
+    const ds=mates.map(destOf);let n=ds[0];for(const d of ds)if(hyp(d.x-u.x,d.y-u.y)<hyp(n.x-u.x,n.y-u.y))n=d;   // where the nearest of them is going, and whoever's with him
+    if(hyp(n.x-u.x,n.y-u.y)<GROUP_LINK*.5)continue;   // (still with them)
+    const near=ds.filter(d=>hyp(d.x-n.x,d.y-n.y)<GROUP_LINK*1.5),c={x:near.reduce((a,d)=>a+d.x,0)/near.length,y:near.reduce((a,d)=>a+d.y,0)/near.length};
+    const at=isFree(c.x,c.y,8)?c:n,as=makeAssign([u],at.x,at.y);
+    let path=as.length?as[0].path:null;if(!path){const s=openSpot(at.x,at.y,players.filter(p=>p!==u&&!p.dead).map(destOf));path=s&&findPath(u.x,u.y,s.x,s.y);}
+    if(path&&path.length){u.path=path;u.lastOrder=simT;u.exposeT=0;u.watch=null;callout(u,'Regrouping',C.good);}
+  }
 }
 
 function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});if(u.side==='P'&&CALLOUT_VOICE[text])say(u,CALLOUT_VOICE[text]);}   // soldiers say their callouts over the radio (voice.js)
@@ -433,6 +464,7 @@ function fireSpot(u,tx,ty,range,minD=0,kind='nade',maxWalk=360){
 }
 // kind: 'nade', 'smoke' or 'rpg'
 function orderThrow(u,tx,ty,kind){
+  u.ret=null;   // (marked again below if he has to walk for it: retTick)
   const R=kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:170,minD=kind==='rpg'?PRPG.min:0;
   const d=hyp(tx-u.x,ty-u.y);
   if(kind!=='nade'){   // smoke and the rocket go from where he stands, never walking him off towards it (Bryan, after v70); a miss keeps the aim
@@ -440,14 +472,14 @@ function orderThrow(u,tx,ty,kind){
     if(d>=minD&&throwFrom(u,tx,ty,kind))return doThrow(u,tx,ty,kind);
     if(kind==='rpg'){   // too close, or a building in the way: a few steps (18 m at most) to where he can fire, then the rocket
       const s=fireSpot(u,tx,ty,R,minD,kind,180);
-      if(s&&!s.here){u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};callout(u,d<minD?'Backing off':'Getting a shot',C.warn);return true;}
+      if(s&&!s.here){u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};markRet(u);callout(u,d<minD?'Backing off':'Getting a shot',C.warn);return true;}
     }
     banner(kind==='rpg'?(d<minD?'Too close for a rocket.':'No clear shot from here: something’s in the way.'):'No clear throw from here.',1800);return false;
   }
   const s=fireSpot(u,tx,ty,R,minD,kind);
   if(!s){if(typeof gen==='function')chat('nadeno',5,gen(u,'nadeno'));banner(kind==='rpg'?`${u.name} can’t get a safe shot at that.`:`${u.name} can’t get a safe throw at that.`,2000);return false;}
   if(s.here)return doThrow(u,tx,ty,kind);
-  u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};
+  u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};markRet(u);
   if(typeof gen==='function')chat('nadego',6,gen(u,'nadego'));callout(u,kind==='rpg'?'Getting a shot':'Getting an angle',C.warn);
   return true;
 }
@@ -456,11 +488,11 @@ function throwTick(){
   for(const u of players){
     const g=u.throwGo;
     if(g){if(!alive(u)||u.carry||u.lastOrder>g.t0+.01)u.throwGo=null;   // (another order since: forget it)
-      else if(!u.path.length){u.throwGo=null;if(!doThrow(u,g.x,g.y,g.kind))callout(u,'No angle',C.warn);}}
+      else if(!u.path.length){u.throwGo=null;if(!doThrow(u,g.x,g.y,g.kind)){callout(u,'No angle',C.warn);backSoon(u,.6,true);}else if(g.kind!=='rpg')backSoon(u,.9,true);}}   // (thrown: back to the others; a rocket once it's gone, below)
     const a=u.rpgAim;if(!a||simT<a.at)continue;u.rpgAim=null;if(!alive(u))continue;   // the rocket goes
     const dd=hyp(a.x-a.f.x,a.y-a.f.y)||1;
     rockets.push({x:a.f.x,y:a.f.y,dx:(a.x-a.f.x)/dd,dy:(a.y-a.f.y)/dd,left:dd,total:dd,z0:RPG_SH,z1:a.th??8,by:u,trail:[],spec:PRPG,speed:PRPG.speed});u.rpgT=simT;
-    flashes.push({x:a.f.x,y:a.f.y,t:0});u.stats.items++;if(typeof gen==='function')chat('rpgout',3,gen(u,'rpgout'));
+    flashes.push({x:a.f.x,y:a.f.y,t:0});u.stats.items++;backSoon(u,.7,true);if(typeof gen==='function')chat('rpgout',3,gen(u,'rpgout'));
     alertAll('Contact. Weapons free.',true,a.f.x,a.f.y,a.x,a.y,{x:a.f.x,y:a.f.y},undefined,undefined,undefined,u);squadNoise(u,a.f.x,a.f.y);
   }
 }
@@ -562,7 +594,7 @@ function canTakedown(u,e){
 function orderTakedown(u,e){
   const sp=behindSpot(e),p=sp&&findPath(u.x,u.y,sp.x,sp.y);
   if(!p||pathTime(p,u.x,u.y)>TK_RANGE*1.7){banner('Can\u2019t get behind him from here.',1800);return false;}
-  u.path=p;u.lastOrder=simT;u.focus=null;u.supT=null;u.focusTank=null;u.plant=null;u.gaitForce='sneak';u.tk={e,spot:sp,t:simT,re:simT};
+  u.path=p;u.lastOrder=simT;u.focus=null;u.supT=null;u.focusTank=null;u.plant=null;u.gaitForce='sneak';u.tk={e,spot:sp,t:simT,re:simT};markRet(u);
   callout(u,'Moving in',C.good);return true;
 }
 function takedownTick(dt){
@@ -571,7 +603,7 @@ function takedownTick(dt){
     const end=u.path.length?u.path[u.path.length-1]:null;
     if(!alive(u)||e.dead||(end&&!k.strike&&hyp(end.x-k.spot.x,end.y-k.spot.y)>4)){endTakedown(u,false);continue;}   // down, he's gone, or ordered elsewhere
     if(e.alerted&&!k.strike){endTakedown(u,false);u.path=[];continue;}   // spotted on the way in: off, and he stops where he is
-    if(k.strike){if(simT-k.strike>=(isCls(u,'specops')?CLS.tkGrab:TK_TIME)){silentKill(e,u);endTakedown(u,true);}continue;}
+    if(k.strike){if(simT-k.strike>=(isCls(u,'specops')?CLS.tkGrab:TK_TIME)){silentKill(e,u);endTakedown(u,true);backSoon(u,.9);}continue;}
     const d=hyp(u.x-e.x,u.y-e.y);
     if(d<=TK_REACH+6){   // right behind him: grab
       k.strike=simT;e.grabbed=true;u.path=[];u.ang=Math.atan2(e.y-u.y,e.x-u.x);u.aimT=simT;callout(u,'Takedown',C.good);continue;
@@ -846,7 +878,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);s.u.shotT=simT;sfxShot(s.u,s.quiet);resolveShot(s);}   // (shotT: his rifle kicks: figure.js)
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);watchTick();breachTick();roomDoorTick(dt);buildTick(dt);skillTick(dt);layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
+  medTick(dt);retTick();huntTick(dt);watchTick();breachTick();roomDoorTick(dt);buildTick(dt);skillTick(dt);layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)

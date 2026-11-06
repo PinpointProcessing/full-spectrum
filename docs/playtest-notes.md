@@ -427,3 +427,34 @@ should go; a team's move is still the two-tap preview. Level 1's tutorial step 5
 (Reyes selected, tap the ring by the crate; the dotted guide line stays). The controls list on the intro card says so.
 Tested with real mouse input: a drag from Reyes moved the camera and nobody; tap, tap, tap the ground moved Reyes alone;
 the tutorial lock test passes all 25 checks with the new step 5.
+
+# v92: back to the group, harder monsters, no words over them, a natural yell
+
+Bryan: "1) the player at the bioscanner should run back to the group (any time a unit does an action, they run back to the
+group if they were originally with them. If not, they move independently, until the squad is back together. 2) the
+monsters are a bit too easy, make it a little challenging. I wouldn't mind if some units got knocked down. 3) the text
+above when they appear should be removed entirely. 4) “What the Hell was that” sounds weird."
+
+1. A soldier sent off on his own to do something (the bio scanner, the drawbridge's panel, a thing to use or hack, a zip
+   tie, a revive or a medic kit, a takedown, a frag or a rocket he has to walk for) who was with others when he went
+   (within 8 m of one of them) runs back to them once it's done, to wherever they are by then ("Regrouping"); a man he was
+   sent to revive comes back with him. One who was already off on his own stays where he finishes. Another order on the
+   way, or in the moment after, and he does that instead. Posts are kept: the pillbox's gun, the tower, a door opened to
+   look through. Tested from the "In front of the Headquarters" checkpoint: the scanner soldier walked over, the scan ran,
+   and he was back with the others 3 s later; one sent from 29 m away from everyone stayed by the scanner; one sent to
+   revive a man 15 m out of the group came back with him. Level 2's quiet run (takedowns, the panel) still wins unseen.
+2. The gate: hunters have 80 HP (70), run 110 (86), lunge for 22 (18) and bite for 12 (10); two in three swing out to one
+   side once off the drawbridge and come in from there; a bigger squad gets more of them closer together (four men: 20,
+   0.2 s apart; eight men: 36, about 0.08 s apart). The drawbridge's medic station and ammo drop now come once the gate is
+   clear: standing in the medic ring healed 8 HP a second through the whole fight. The bot (it only stands in a line and
+   revives; the shooting is automatic) with eight men: 0 to 3 down (usually 1) over 7 seeds, all won (before: nobody
+   down); four men: 0 or 1 down on 7 of 8 seeds, 3 on one, all won. Denser streams for four men wiped them now and then,
+   so they keep the wider spacing.
+   Inside: the Brood Mother has 600 + 230 a man (180), her slam does 65 (55) and her swipe 34 (28), a big squad (six or
+   more) meets three young in each side room (two), and another room opens every 30 s (40). Eight men: 3 down inside on the
+   test seed (before: nobody, her down in half a minute).
+3. No words over the monsters at all: no contact banner or "Contact!" call when they come, no PINNED, and no hit-chance
+   pill under them (with a swarm out that was a wall of numbers); their health bars stay.
+4. The scream is a natural yelled take now, no reshaping: Zonos made several takes per soldier with fear and surprise in
+   the voice, all checked by the speech recogniser, and the loudest, brightest one of each is in (Okafor's is the one
+   usually heard). The pitch-raised version (scream.py) is no longer used.

@@ -131,7 +131,7 @@ function orderHack(a){
   const cy=sel.filter(u=>alive(u)&&isCls(u,'cyber')&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y))[0];if(!cy)return false;
   const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),s=openSpot(sx,sy,players.filter(p=>p!==cy&&!p.dead).map(destOf))||{x:sx,y:sy},p=findPath(cy.x,cy.y,s.x,s.y);
   if(!p){banner('No way there from here.',1600);return true;}
-  cy.path=p;cy.lastOrder=simT;useGos=useGos.filter(g=>g.u!==cy);zipGos=zipGos.filter(z=>z.u!==cy);useGos.push({u:cy,a,prog:0,hack:true,secs:SKILL.hack.t});callout(cy,'I can get past that',C.good);
+  cy.path=p;cy.lastOrder=simT;useGos=useGos.filter(g=>g.u!==cy);zipGos=zipGos.filter(z=>z.u!==cy);useGos.push({u:cy,a,prog:0,hack:true,secs:SKILL.hack.t});markRet(cy);callout(cy,'I can get past that',C.good);
   return true;
 }
 // a reset: the stations set down go (the checkpoints' are cleared with the mission: mission.js), throws in the air too

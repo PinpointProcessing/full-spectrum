@@ -183,7 +183,7 @@ function missionTick(dt){
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
     else if(hyp(u.x-PANEL.x,u.y-PANEL.y)<=22){
       panelGo=null;
-      if(obj<4){banner('The drawbridge has a bio scanner. It only opens for one of the scientists inside the data center.',4000);callout(u,'Locked',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);}
+      if(obj<4){banner('The drawbridge has a bio scanner. It only opens for one of the scientists inside the data center.',4000);callout(u,'Locked',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);backSoon(u,1.2);}
       else if(obj===4&&!scanGo)startScan(u);   // a detained scientist's hand on the scanner (office.js)
     }
   }
@@ -197,7 +197,7 @@ function missionFx(dt){
 // the scan took: the drawbridge comes down (Bryan: the monsters start here, next build)
 function lowerBridge(u){
   if(obj!==4)return;callout(u,'Lowering the bridge',C.good);if(PANEL.button)PANEL.button.material.emissive.setHex(0x1a9930);bridgeDown=simT;obj=5;
-  bigText('Drawbridge down!','unlock');objCompleted(3);addZones(REST_ZONES.dc);saveGame('dc');updateObjUI();
+  bigText('Drawbridge down!','unlock');objCompleted(3);saveGame('dc');updateObjUI();   // (its medic station and ammo drop once the gate's clear: monsters.js)
   monGateStart();   // and what was behind it comes out (monsters.js); the freed men's goodbye waits for the end, in the Headquarters (fortress.js)
 }
 function setBridge(k){BRIDGE.lower=k;if(BRIDGE.grp)BRIDGE.grp.rotation.x=-.12-(Math.PI/2-.12)*(k<1?k*k*(3-2*k):1);if(!k)bridgeDown=0;}
@@ -207,7 +207,7 @@ function tapPanel(){
   const u=foot[0],s=openSpot(PANEL.x,PANEL.y+14,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:PANEL.x,y:PANEL.y+14},p=findPath(u.x,u.y,s.x,s.y);
   if(!p){banner('No way to reach the panel from here.',2000);return;}
   if(obj===4&&!scanGo&&!startScan(u))return;   // a scientist goes over with him, whoever tied him (office.js)
-  u.path=p;u.lastOrder=simT;callout(u,obj===4?'To the scanner':'Checking the controls',C.good);panelGo=u;
+  u.path=p;u.lastOrder=simT;callout(u,obj===4?'To the scanner':'Checking the controls',C.good);panelGo=u;markRet(u);   // (back to the others once it's done: retTick in combat.js)
 }
 
 /* ---------- the gun jeep (Bryan: "The jeep patrols that road, from left to right continuously (the user can sneak by or

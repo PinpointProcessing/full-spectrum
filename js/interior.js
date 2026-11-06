@@ -358,7 +358,7 @@ function orderUse(a){
   if(useFor(a))return;   // (someone's already on it)
   const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),u=pickFor(foot,a.x,a.y),s=openSpot(sx,sy,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:sx,y:sy},p=findPath(u.x,u.y,s.x,s.y);
   if(!p){banner('No way there from here.',1600);return;}
-  u.path=p;u.lastOrder=simT;useGos=useGos.filter(g=>g.u!==u);zipGos=zipGos.filter(z=>z.u!==u);useGos.push({u,a,prog:0});callout(u,'Moving',C.good);
+  u.path=p;u.lastOrder=simT;useGos=useGos.filter(g=>g.u!==u);zipGos=zipGos.filter(z=>z.u!==u);useGos.push({u,a,prog:0});markRet(u);callout(u,'Moving',C.good);
 }
 function useTick(dt){
   for(const a of actsHere())if(a.pickup){const u=players.find(p=>alive(p)&&!p.offMap&&hyp(p.x-a.x,p.y-a.y)<a.r);if(u)a.act(u);}
@@ -366,7 +366,7 @@ function useTick(dt){
     if(!alive(u)||!a.avail()||(u.path.length&&simT-u.lastOrder>.1&&hyp(u.path[u.path.length-1].x-a.x,u.path[u.path.length-1].y-a.y)>30)){end();continue;}
     if(u.path.length)continue;
     if(hyp(u.x-a.x,u.y-a.y)>a.r+18){end();continue;}
-    g.prog+=dt;if(g.prog>=(g.secs||a.secs||0)){end();if(g.hack){a.hacked=true;callout(u,'Bypassed',C.good);if(a.multi){banner(`${a.label}: unlocked. Tap it again to use it.`,2400);continue;}}a.act(u);}}
+    g.prog+=dt;if(g.prog>=(g.secs||a.secs||0)){end();if(g.hack){a.hacked=true;callout(u,'Bypassed',C.good);if(a.multi){banner(`${a.label}: unlocked. Tap it again to use it.`,2400);continue;}}a.act(u);backSoon(u);}}   // (done: back to the others: retTick in combat.js)
 }
 function drawActs(now){
   const pulse=(Math.sin(now*3)+1)/2,act=sel.some(alive);

@@ -62,3 +62,9 @@ chosen ones (A2's second take, B1's and B2's first) went through `scream.py` (th
 about 300-350 Hz, rising to the last word, which is drawn out, with a waver, a crack, more breath, the formants opened up a
 little, then driven; a speech recogniser still hears every word. `add_lines.py` put them all on the end of the speakers'
 files. A full repack of any of these speakers drops them: add them again with `add_lines.py`.
+
+After v91 Bryan found the reshaped scream weird, so `gate_wth_1` is a natural take again, nothing reshaped: six more takes
+for each of the three (`gen_yell.py`, styles 'yell' and 'yell2': fear and surprise up, a wide pitch range, quicker),
+all heard right by `check_zonos.py`, and the loudest, brightest of each by loudness, pitch and spectral brightness (A2's
+second 'yell', B1's third, B2's second) put in with `add_lines.py`'s replace (a fifth item, true, in its spec: the old take
+is cut off the file's end when it was the last line there, else left unused). `scream.py` stays, unused.

@@ -244,7 +244,7 @@ function tap(sx,sy){
       if(pu.critical){const medic=helpers.find(hasKit);if(medic)orderMedkit(medic,pu);else orderCarry(helpers[0],pu);return;}   // past the 60 s (Bryan): a medic kit if one of them has it, else carry him out
       const h=helpers[0],spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));
       const path=spot&&findPath(h.x,h.y,spot.x,spot.y);
-      if(path){h.path=path;h.lastOrder=simT;h.supT=null;callout(h,'On my way',C.good);}
+      if(path){h.path=path;h.lastOrder=simT;h.supT=null;markRet(h);callout(h,'On my way',C.good);}
       else banner('No way to reach him from here.');
       return;
     }

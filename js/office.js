@@ -318,7 +318,7 @@ function scanTick(dt){
   if(hyp(s.x-g.spot.x,s.y-g.spot.y)>16){s.path=findPath(s.x,s.y,g.spot.x,g.spot.y,FOOT)||[];if(!s.path.length){s.scanning=false;scanGo=null;}return;}
   if(uAt>40)return;   // (they scan together: wait for the soldier)
   s.ang=Math.atan2(PANEL.y-s.y,PANEL.x-s.x);if(!g.t&&typeof sfxScan==='function')sfxScan(PANEL.x,PANEL.y);g.t+=dt;
-  if(g.t>=3){s.scanning=false;scanGo=null;lowerBridge(g.u);line(s,'end',SCI_END,0);}
+  if(g.t>=3){s.scanning=false;scanGo=null;lowerBridge(g.u);line(s,'end',SCI_END,0);backSoon(g.u,1);}   // (and the soldier runs back to the others: retTick in combat.js)
 }
 
 /* ---------- the lab equipment (a bonus) ---------- */
