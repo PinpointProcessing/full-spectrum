@@ -458,3 +458,13 @@ above when they appear should be removed entirely. 4) â€œWhat the Hell was thatâ
 4. The scream is a natural yelled take now, no reshaping: Zonos made several takes per soldier with fear and surprise in
    the voice, all checked by the speech recogniser, and the loudest, brightest one of each is in (Okafor's is the one
    usually heard). The pitch-raised version (scream.py) is no longer used.
+
+# v93: the scream, screamed
+
+Bryan: "Can't the 'What the hell was that!?' be screamed?" The voice model (Zonos) only shouts: with any emotion and pitch
+settings, and even carrying on from a recorded scream, its takes stayed at a man's shouting pitch (115-155 Hz; real screams
+are 280-370). It copies a voice from a reference recording, though, and a reference of a man screaming brings the scream with
+it: five CC0 screams (HaelDB's yells, already used for the pain screams) end to end, blended with the soldier's own reference.
+Now Okafor screams it at about 340 Hz with some of his own voice kept (40 %); Kowalski and Hayes, who say it only when Okafor
+is down, from the screamer's voice alone, at about 310 and 390 Hz (their blends stayed under 260 Hz). Nothing reshaped
+afterwards, and a speech recogniser hears every word of all of them. Still over the radio, like the squad's other lines.

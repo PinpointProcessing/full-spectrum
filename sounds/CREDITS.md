@@ -28,7 +28,7 @@ CC0 packs by `tools/sfx/build_sfx.py`:
 | `hit_metal`, `hit_wood`, `hit_ground`, `flesh`, `bodyfall` | bullet and body impacts | Impact Sounds, Kenney |
 | `grunt` | hurt and strain sounds | [15 vocal male strain/hurt/pain/jump sounds](https://opengameart.org/content/15-vocal-male-strainhurtpainjump-sounds), qubodup |
 | `grunt_down` | pain and death grunts | [Pain sounds by EmoPreben](https://opengameart.org/content/pain-sounds-by-emopreben); [grunts of male death and pain](https://opengameart.org/content/grunts-male-death-and-pain), thebardofblasphemy |
-| `scream`, `yelp`, `fear` | screams, pained cries and yells of "No!" (Bryan: pain and fear should be screaming) | [Male Grunt/Yelling sounds](https://opengameart.org/content/male-gruntyelling-sounds), HaelDB (CC0 option) |
+| `scream`, `yelp`, `fear` | screams, pained cries and yells of "No!" (Bryan: pain and fear should be screaming); five of the same pack's yells (3yell1, 3yell2, 3yell6, 3yell9, 3yell11) are also `tools/voices/refs/SCREAM.flac`, the voice reference that makes "What the hell was that?!" a scream (`tools/voices/gen_scream.py`) | [Male Grunt/Yelling sounds](https://opengameart.org/content/male-gruntyelling-sounds), HaelDB (CC0 option) |
 | `dog` | dog barks | [Dog sounds](https://opengameart.org/content/dog-sounds), pauliuw; [Dog barking mono](https://opengameart.org/content/dog-barking-mono), HaelDB (CC0 option) |
 | `siren` | air-raid siren | [Sirens and Alarm Noise](https://opengameart.org/content/sirens-and-alarm-noise), aquinn |
 | `static` | radio static | [Static](https://opengameart.org/content/static), xhunterko |

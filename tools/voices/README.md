@@ -68,3 +68,11 @@ for each of the three (`gen_yell.py`, styles 'yell' and 'yell2': fear and surpri
 all heard right by `check_zonos.py`, and the loudest, brightest of each by loudness, pitch and spectral brightness (A2's
 second 'yell', B1's third, B2's second) put in with `add_lines.py`'s replace (a fifth item, true, in its spec: the old take
 is cut off the file's end when it was the last line there, else left unused). `scream.py` stays, unused.
+
+After v92 (Bryan: "Can't the 'What the hell was that!?' be screamed?") it is screamed: `gen_scream.py`. Zonos stayed at a
+shouting pitch (115-155 Hz) whatever the emotion and pitch settings, and even continuing from a recorded scream as an audio
+prefix, but it copies a voice from its reference, and a reference of a man screaming brings the scream with it:
+`refs/SCREAM.flac` is five of HaelDB's CC0 yells end to end (one man at 300-330 Hz; `sounds/CREDITS.md`), its speaker
+embedding blended with the soldier's own. Three takes at each of 0.6, 0.75 and 1.0 of the screamer for each of the three, all
+heard right by the speech recogniser; the pitch measured with WORLD's harvest (`pyworld`). In: B2 at 0.6 (342 Hz, still partly
+his own voice), A2 and B1 at 1.0 (306 and 385 Hz; their blends stayed under 260 Hz), packed as 'shout'.
