@@ -213,3 +213,18 @@ loud, but the men inside are caught off guard. Tested: sight blocked shut and cl
 walking through; a tap from the hall; a breach on the security office (kick at 1.7 s, both guards down by 4 s); the office
 suites (the story, stairs, carrying, floors, the tasks, the breach marker). The warehouse and Level 2's control building
 have no doors yet: their quiet routes were tested on open doorways. C4 and flashbangs on doors come later.
+
+# v75: the Defender
+
+Bryan: "Add another class 'defender' who can build mobile fortifications and wall amongst other things." The eighth
+class. Heavy armour (a quarter off every hit), and a build kit as his special item (three uses; a new Defender takes it,
+an ammo drop fills it). Tap the kit, then a spot inside the circle: he goes round behind it and builds across the line to
+the nearest threat:
+- a barricade (one use, 2.5 s): a steel shield on wheels, waist high, heavy cover the squad shoots over. Tap it with him
+  selected and he packs it up (2 s) and gets the use back: the mobile fortification, rolled on to the next position.
+- a wall (tap the kit again; two uses, 5 s): sand-filled barriers taller than a man. It blocks sight, shots, rockets
+  and blasts: cover a crossing, cut a machine gun's line. It stays.
+A frag close by wrecks a barricade; a wall takes two. Hostiles can use them for cover too. They're cleared at a level's
+start or a retry and not kept by a save. Tested: promotion and the kit on the loadout; both built and measured (see over
+the barricade, heavy cover; the wall blocks sight and the way); an empty kit refused; packing up; blasts; a reset.
+Still to come for him ("amongst other things"): razor wire, a sandbagged gun nest, barring a door, repairs.

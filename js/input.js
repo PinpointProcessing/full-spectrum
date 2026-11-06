@@ -240,6 +240,10 @@ function tap(sx,sy){
     if(en&&canSilent(u,en)){orderSilent(u,en);mode=null;preview=null;fireOrderAt=performance.now();return;}
     banner(en&&en.alerted?'He knows you are here: no silent shot.':en?'No clear shot at him from here (20 m, in sight).':'Tap a hostile marked SILENT SHOT. Tap the silencer on his card again to cancel.',2000);return;
   }
+  if(mode==='build'||mode==='buildwall'){   // a Defender's build kit: tap where (build.js)
+    const u=sel[0];if(!u){mode=null;return;}if(!inMap){banner('Tap a spot on the map.',1400);return;}
+    if(orderBuild(u,wx,wy,mode==='build'?'barricade':'wall')){mode=null;preview=null;fireOrderAt=performance.now();}return;
+  }
   if(mode==='grenade'||mode==='smoke'||mode==='rpg'){   // Bryan: tap where; if he can't throw or fire from where he is, he moves to where he can
     const u=sel[0];if(!u){mode=null;return;}
     const en=enemyAtScreen(sx,sy),t=en&&en.vis?{x:en.x,y:en.y}:{x:wx,y:wy};if(!en&&!inMap){banner('Tap a spot on the map.',1400);return;}
@@ -297,6 +301,7 @@ function tap(sx,sy){
   if(MAPID==='out'&&monGateTap(wx,wy)){preview=null;return;}   // into the Headquarters (monsters.js)
   if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
   if(doorTap(wx,wy)){preview=null;return;}   // a shut door: the nearest selected soldier opens it (orders.js)
+  if(fortTap(sx,sy)){preview=null;return;}   // a barricade, with a Defender selected: he packs it up (build.js)
   if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
   {const cv=civAtScreen(sx,sy);if(cv&&civTap(cv)){preview=null;return;}}
   if(MAPID==='out'&&sel.some(alive)&&hyp(wx-PBOX.gun.x,wy-PBOX.gun.y)<18&&!gunMan()){if(orderMan(sel))preview=null;return;}   // the pillbox's gun, nobody on it: the nearest selected soldier takes it (mission.js)

@@ -398,7 +398,7 @@ function rpgBlast(x,y,by,spec=RPG){
 /* ---------- fuel tanks ---------- */
 function tankHit(o,dmg,by){if(o.burst)return;o.hp=(o.hp??100)-dmg;if(o.hp<=0)tankExplode(o,by);}
 // a blast near the tanks (from explode): close enough and they go up
-function tankBlast(x,y,by){l1Blast(x,y,by);if(typeof labBlast==='function')labBlast(x,y,by);for(const o of objs)if(o.kind==='tank'&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
+function tankBlast(x,y,by){l1Blast(x,y,by);if(typeof labBlast==='function')labBlast(x,y,by);buildBlast(x,y);for(const o of objs)if(o.kind==='tank'&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
 function tankExplode(o,by){
   if(o.burst)return;o.burst=true;o.hp=0;shake(clamp(1.4-hyp(o.x-camT.x,o.y-camT.z)/600,0,1.2));
   const cx=o.x+o.w/2,cy=o.y+o.h/2;

@@ -61,6 +61,8 @@ function hud(){
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap where to throw. Inside the dashed circle he throws from where he is; further off he moves to a safe spot first. Tap the grenade on his card again to cancel.';
   else if(mode==='rpg')h=`Tap where to fire the rocket, inside the circle (big blast; not closer than 6 m). He fires from where he stands, or takes a step or two first if something's in the way. ${sel[0]?sel[0].specN:0} left. Tap the RPG on his card again to cancel.`;
+  else if(mode==='build')h='Tap where to set up a barricade, inside the circle: heavy cover the squad can shoot over, across the line to the threat. He can pack it up and move it on (tap it with him selected). Tap the kit again for a wall.';
+  else if(mode==='buildwall')h=`Tap where to build a wall, inside the circle: taller than a man, it blocks sight, shots and blasts (${BUILD.wall.cost} build kits). It stays. Tap the kit again to cancel.`;
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
   else if(mode==='silent')h=`Tap a hostile marked SILENT SHOT (one who hasn't noticed you, within 20 m): an aimed quiet shot. ${sel[0]?sel[0].specN:0} left on the silencer. Tap it again to cancel.`;
   else if(mode==='smoke')h='Tap where to throw smoke, inside the circle: he lobs it from where he stands, over low cover. Nobody sees through it, either way, for about 12 s. Tap the smoke on his card again to cancel.';

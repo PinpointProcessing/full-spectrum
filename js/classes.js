@@ -14,6 +14,7 @@ const CLASSES={
   assault:{name:'Assault',ab:'ASSAULT',line:'Heavy firepower, strong and quick attacks.',weapons:['m4s','shotgun'],passive:'Breacher: carries 2 frags, and loses half as much aim firing on the move.'},
   recon:  {name:'Recon',ab:'RECON',line:'Sniper expert, scouts ahead, gets where others can\'t.',weapons:['m4s','sniper'],passive:'Eyes: sees 10 m further (and further still with the sniper rifle).'},
   cyber:  {name:'Cyber Ops',ab:'CYBER',line:'Drones, hacking, tech.',weapons:['m4s'],passive:'Tracker: the contact sensor reaches 70 m and sweeps faster.'},
+  defender:{name:'Defender',ab:'DEFENDER',line:'Builds mobile fortifications and walls, and holds the ground he takes.',weapons:['m4s'],gear:['build'],passive:'Bulwark: heavy armour takes a quarter off every hit. His build kit (3 uses): a barricade he can pack up and move on, or a wall that blocks sight and shots.'},
   captain:{name:'Captain',ab:'CAPTAIN',line:'A great leader who raises the whole team.',weapons:['m4s'],passive:'Leader: men within 20 m of him aim better and pin a quarter slower. One per squad.'},
 };
 let classes=readClasses();
@@ -23,11 +24,13 @@ const classOf=u=>u&&u.side==='P'&&!u.joined?classes[u.id]||null:null;   // (the 
 const isCls=(u,k)=>classOf(u)===k;
 const canPromote=p=>!!p&&!p.joined&&!classes[p.id]&&(p.level||1)>=CLASS_LEVEL;
 const classTaken=(k,but)=>k==='captain'&&Object.entries(classes).some(([id,c])=>c==='captain'&&id!==but);
-function setClass(id,k){if(!CLASSES[k]||classTaken(k,id))return false;classes[id]=k;saveClasses();return true;}
+function setClass(id,k){if(!CLASSES[k]||classTaken(k,id))return false;classes[id]=k;saveClasses();
+  if(k==='defender'&&typeof loadout!=='undefined'&&loadout[id]&&ARMORY.spec.build>Object.values(loadout).filter(l=>l.spec==='build').length){loadout[id].spec='build';saveLoadout();}   // a new Defender takes his build kit (equip.js)
+  return true;}
 function resetClasses(){classes={};saveClasses();}
 
 /* ---------- what each class changes in the field (read by combat.js, layers.js, cards.js) ---------- */
-const CLS={sneakSpot:.65,tkGrab:.4,reviveT:2,reviveHp:60,kitHp:80,kits:3,supMul:1.5,rockets:3,frags:2,moveAim:.075,seeMore:100,sniperMore:100,sensorR:700,leadR:200,leadAim:.05,leadNerve:.75};
+const CLS={defArmor:.75,sneakSpot:.65,tkGrab:.4,reviveT:2,reviveHp:60,kitHp:80,kits:3,supMul:1.5,rockets:3,frags:2,moveAim:.075,seeMore:100,sniperMore:100,sensorR:700,leadR:200,leadAim:.05,leadNerve:.75};
 function nearCaptain(u){const c=players.find(p=>isCls(p,'captain')&&alive(p)&&p!==u);return !!c&&u.side==='P'&&hyp(c.x-u.x,c.y-u.y)<=CLS.leadR;}
 // a soldier's gear when a mission starts: a Medic's kits, a Support's rockets, an Assault's second frag
 function classGear(p){
@@ -41,7 +44,7 @@ function classPicker(id,done){
   const p=players.find(q=>q.id===id);if(!p)return;
   let box=$('#clsPick');if(!box){box=document.createElement('div');box.id='clsPick';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');$('#equip').appendChild(box);}
   box.innerHTML=`<div class="cls-head"><b>Promotion: ${p.name}</b><span>Level ${p.level} · choose a class. It stays with him.</span><button type="button" class="cls-x" aria-label="Not now">Not now</button></div>`+
-    `<div class="cls-list">${Object.entries(CLASSES).map(([k,c])=>{const off=classTaken(k,id);return`<button type="button" class="cls-card" data-k="${k}" ${off?'disabled':''}><b>${c.name}</b><span>${c.line}</span><em>${c.passive}</em>${(()=>{const add=c.weapons.filter(w=>w!=='m4s'&&w!=='hmg').map(w=>w==='sniper'?'sniper rifle':WEAPON[w]?WEAPON[w].label.toLowerCase():w);const t=[add.length?`Adds the ${add.join(' and ')} to his loadout.`:'',off?'The squad already has a Captain.':''].filter(Boolean).join(' ');return t?`<small>${t}</small>`:'';})()}</button>`;}).join('')}</div>`;
+    `<div class="cls-list">${Object.entries(CLASSES).map(([k,c])=>{const off=classTaken(k,id);return`<button type="button" class="cls-card" data-k="${k}" ${off?'disabled':''}><b>${c.name}</b><span>${c.line}</span><em>${c.passive}</em>${(()=>{const add=[...c.weapons.filter(w=>w!=='m4s'&&w!=='hmg').map(w=>w==='sniper'?'sniper rifle':WEAPON[w]?WEAPON[w].label.toLowerCase():w),...(c.gear||[]).map(g=>SPECIALS[g]?SPECIALS[g].label.toLowerCase():g)];const t=[add.length?`Adds the ${add.join(' and ')} to his loadout.`:'',off?'The squad already has a Captain.':''].filter(Boolean).join(' ');return t?`<small>${t}</small>`:'';})()}</button>`;}).join('')}</div>`;
   box.hidden=false;
   box.onclick=ev=>{if(ev.target.closest('.cls-x')){box.hidden=true;return;}const b=ev.target.closest('.cls-card');if(!b||b.disabled)return;
     if(setClass(id,b.dataset.k)){box.hidden=true;if(done)done();}};

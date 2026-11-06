@@ -26,6 +26,7 @@ plan for when we get to it.
 | **Assault** | heavy firepower, strong and quick attacks | shotgun (in the code, dormant), assault rifle | extra grenades, breaching charge (new) | fires better on the move; a stronger Breach; tougher (more armour) |
 | **Recon** | sniper expert, scopes out areas, gets to places others can't; works well with Spec Ops | sniper rifle (in the game: the watchtower's), assault rifle | binoculars (new: mark enemies for the whole squad), climbing kit (new) | sees further (the sniper's 70 m), climbs ladders and towers faster, uses routes others can't (vents, rooftops) |
 | **Cyber Ops** | robotics, drones, hacks equipment, other tech bonuses | assault rifle | scout drone (new), hacking kit (new) | hacks card doors, the lift and cells without the card; takes over cameras and turrets; cuts a radio call short; a better contact sensor (it's in the game) |
+| **Defender** (added after v74: "another class 'defender' who can build mobile fortifications and wall amongst other things") | builds mobile fortifications and walls | assault rifle | build kit: barricades he can pack up and move, walls (both in, v75); later: razor wire, a sandbagged gun nest, barring a door, repairs | heavy armour (in) |
 | **Captain** | a great leader who raises the whole team | assault rifle | radio (call-ins from HQ later) | an aura near him: better aim, steadier under fire, quicker reactions; rallies a pinned team; one per squad |
 
 What's already in the code and only needs handing to a class: the silencer, smoke, the medic kit and carrying, the RPG, the
@@ -56,6 +57,7 @@ M240, the sniper rifle and climbing the tower, the shotgun, C4, Breach, the cont
 | Recon | Eyes: sees 46 m instead of 36, and 80 m with the sniper rifle instead of 70 | sees a man at 42 m |
 | Cyber Ops | Tracker: the contact sensor reaches 70 m (not 45) and sweeps faster (its interval ×0.7) | a mover at 60 m blips |
 | Captain | Leader: men within 20 m of him get +0.05 to hit and pin a quarter slower. One per squad | +0.05; pin ×0.75 |
+| Defender (v75) | Bulwark: heavy armour takes a quarter off every hit (on top of the vest). His build kit (3 uses, his special item; a new Defender takes it): tap it, then a spot inside a 32 m circle; he builds across the line to the nearest threat: a barricade (1 use, 2.5 s: a steel shield on wheels, heavy cover you shoot over, packed up again in 2 s by tapping it with him selected) or, tapping the kit again, a wall (2 uses, 5 s: sand-filled barriers taller than a man that block sight, shots, rockets and blasts). A close frag wrecks a barricade; a wall takes two. Cleared at a reset; not kept by a save | barricade built 2.5 s after he's there, see over it, heavy cover; wall blocks sight and the way; one frag at 1.2 m wrecks a barricade, a wall stands one (76 HP left) and falls to the second |
 
 The class gear (a Medic's kits, a Support's rockets, an Assault's frags) is handed out at every mission start and at
 every ammo drop.

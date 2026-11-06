@@ -12,7 +12,8 @@ const MEDKIT_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="4.6
 // the special item each soldier carries beside his grenade (Bryan); swapped by tapping it in a supply box. n: how many he gets
 // (the silencer's count is how many quiet shots or bursts it has left before it's worn out). C4 and others can join later
 const SPECIALS={smoke:{label:'Smoke',a:'smoke',svg:SMOKE_SVG,col:'#cfd6dc',n:1},medkit:{label:'Medic kit',a:'a medic kit',svg:MEDKIT_SVG,col:'#ff8a7e',n:1},
-  silencer:{label:'Silencer',a:'a silencer',svg:SILENCER_SVG,col:'#a9c4d6',n:6},rpg:{label:'RPG',a:'an RPG',svg:RPG_SVG,col:'#ffb36b',n:2}},SPEC_ORDER=['smoke','medkit','silencer','rpg'];
+  silencer:{label:'Silencer',a:'a silencer',svg:SILENCER_SVG,col:'#a9c4d6',n:6},rpg:{label:'RPG',a:'an RPG',svg:RPG_SVG,col:'#ffb36b',n:2},
+  build:{label:'Build kit',a:'a build kit',svg:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 2.5h6.4v3.2H1zM8.4 2.5H15v3.2H8.4zM1 6.7h3v3.2H1zM5 6.7h6v3.2H5zM12 6.7h3v3.2h-3zM1 10.9h6.4v3.2H1zM8.4 10.9H15v3.2H8.4z"/></svg>',col:'#d9b46a',n:3}},SPEC_ORDER=['smoke','medkit','silencer','rpg','build'];   // (the build kit: a Defender's, build.js)
 const specFull=u=>u.spec==='medkit'&&isCls(u,'medic')?CLS.kits:u.spec==='rpg'&&isCls(u,'support')?CLS.rockets:(SPECIALS[u.spec]||{}).n||1;   // (a Medic's kits, a Support's rockets: classes.js)
 const fmtT=s=>{const t=Math.max(0,Math.ceil(s));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;};
 const inSupply=u=>{const z=alive(u)&&zoneAt(u.x,u.y);return !!(z&&z.k==='sup');};
@@ -73,6 +74,7 @@ function buildCards(){
       else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it (Bryan: ammo drops refill it, no swapping)
         select([u]);const sp=SPECIALS[u.spec];
         if(!u.specN||u.inVeh){mode=null;banner(`${u.name} has no ${sp.label==='RPG'?'rockets':sp.label.toLowerCase()} left. Refill at an ammo drop.`,1800);}
+        else if(u.spec==='build')mode=mode==='build'?(u.specN>=BUILD.wall.cost?'buildwall':null):mode==='buildwall'?null:'build';   // the build kit: a barricade; tap again for a wall, again to cancel (build.js)
         else{const m={medkit:'medkit',silencer:'silent',rpg:'rpg'}[u.spec]||'smoke';mode=mode===m?null:m;}   // (the silencer: tap a hostile who hasn't seen him; the RPG: tap where: combat.js)
       }
       else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
@@ -107,6 +109,7 @@ function statusText(u){
   if(u.crawl)return[u.path.length?'Crawling':'In the pipe',''];
   if(u.tk)return[u.tk.strike?'Takedown':'Sneaking up',''];
   if(u.doorT>0)return['Opening door',''];
+  if(u.build)return[u.build.p>0?'Building':'Going to build',''];if(u.pack)return['Packing up',''];
   if(u.silent)return['Taking aim',''];
   if(u.sup>0.65)return['Pinned','pin'];
   if(u.supT)return['Suppressing',''];
