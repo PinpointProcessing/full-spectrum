@@ -15,11 +15,11 @@ const HQ_ROOMS=[
   {id:'W2',x0:120,y0:370,x1:330,y1:570,door:{x:335,y:470},side:-1,phase:1},{id:'E2',x0:670,y0:370,x1:880,y1:570,door:{x:665,y:470},side:1,phase:1},
   {id:'W1',x0:120,y0:150,x1:330,y1:350,door:{x:335,y:250},side:-1,phase:2},{id:'E1',x0:670,y0:150,x1:880,y1:350,door:{x:665,y:250},side:1,phase:2}];
 const HQ_HALL={x0:340,y0:140,x1:660,y1:780},HQ_LAMPS=[
-  {x:500,y:640,h:30,c:0xffd8c8,i:1.6,d:230,flick:1},{x:420,y:400,h:30,c:0xff5544,i:1.5,d:220},{x:580,y:400,h:30,c:0xff5544,i:1.5,d:220},
+  {x:500,y:640,h:30,c:0xffd8c8,i:1.6,d:230,flick:1},{x:420,y:400,h:30,c:0xff5544,i:1.1,d:220},{x:580,y:400,h:30,c:0xff5544,i:1.1,d:220},
   {x:500,y:870,h:26,c:0xff4433,i:1.6,d:170},   // the entry hall: emergency red
   {x:380,y:740,h:26,c:0xff4433,i:1.4,d:180},{x:620,y:740,h:26,c:0xff4433,i:1.4,d:180},
   {x:500,y:520,h:30,c:0xd8e2ff,i:1.2,d:200,flick:1},   // one strip light left working in the middle of the hall
-  {x:500,y:230,h:30,c:0x9a55ff,i:2.4,d:260},   // the lair: the sacs' violet
+  {x:500,y:158,h:48,c:0x9a55ff,i:1.5,d:280},   // the lair: the sacs' violet, behind her and up high (it sat right on her and burned her out to white)
   {x:225,y:470,h:22,c:0x8a44ff,i:1.3,d:160},{x:775,y:470,h:22,c:0x8a44ff,i:1.3,d:160}];   // the nests glow
 let HQ=null,hqs={awake:false,phase:-1,won:false,t0:0,killed:0,pending:[]};
 function resetHQ(){hqs={awake:false,phase:-1,won:false,t0:simT,killed:0,pending:[]};for(const r of HQ_ROOMS)r.open=false;}   // (a Retry comes back to closed rooms)
@@ -105,11 +105,11 @@ function enterHQ(){
       const per=live.filter(p=>!p.downed).length>5?3:2;   // (a small squad meets two to a room, a big one three)
       for(const r of HQ_ROOMS)for(let k=0;k<per;k++){const h=hound((r.x0+r.x1)/2+(k-1)*26,(r.y0+r.y1)/2+(k%2?20:-14),{dormant:true,room:r.id});h.ang=r.side<0?0:Math.PI;}
     }finally{scene=keep;}
-    contact=false;clearTeams();sel=[];cardGroup=[];
+    contact=false;clearTeams();sel=[];cardGroup=[];hqs.wakeAt=simT+.6;   // (she's awake: she roars as they come in, bossThink)
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
     zoom=2.0;yaw=0;tilt=0;camT={x:500,z:800};clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
-    bigText('The Headquarters','inbound');banner('Something big is breathing in the dark at the far end. Medic station and ammo behind you.',3600);
+    bigText('The Headquarters','inbound');
     if(f)setTimeout(()=>f.classList.remove('on'),60);
   },380);
 }
@@ -130,7 +130,7 @@ function openRoom(r,quiet){
 function bossThink(u,dt){
   const inHall=p=>alive(p)&&p.x>HQ_HALL.x0&&p.x<HQ_HALL.x1&&p.y>HQ_HALL.y0&&p.y<HQ_HALL.y1;
   for(const r of HQ_ROOMS)if(!r.open&&players.some(p=>alive(p)&&p.x>r.x0&&p.x<r.x1&&p.y>r.y0&&p.y<r.y1))openRoom(r);   // walked in on them
-  if(u.ms==='sleep'){if(players.some(inHall)||u.hp<u.maxHp)bossRoar(u,0);return;}
+  if(u.ms==='sleep'){if(simT>=(hqs.wakeAt??1e9)||players.some(inHall)||u.hp<u.maxHp)bossRoar(u,0);return;}   // (Bryan: awake when they come in: she roared at the drawbridge, she knows they're coming)
   if(hqs.awakeT&&simT>(hqs.nextRoomT||0)){hqs.nextRoomT=simT+40;const r=HQ_ROOMS.find(q=>!q.open);if(r)openRoom(r);}   // and every 40 s another room, whatever her health
   if(u.ms==='roar'){u.path=[];if(simT-u.mt0>2.4){u.ms='walk';}return;}
   const tg=monPrey(u,2000);if(!tg){u.path=[];return;}monSaw(tg);
@@ -150,7 +150,7 @@ function bossThink(u,dt){
 }
 function bossRoar(u,phase){
   u.ms='roar';u.mt0=simT;u.path=[];u.alerted=true;sfxMon('boss_roar',u,1.5,.95);shake(.8);hqs.phase=phase;
-  if(!hqs.awake){hqs.awake=true;hqs.awakeT=simT;hqs.nextRoomT=simT+40;if(typeof startContact==='function')startContact('Contact! It’s awake!',false);banner('The Brood Mother. Keep clear of her slam: the violet ring.',3600);}
+  if(!hqs.awake){hqs.awake=true;hqs.awakeT=simT;hqs.nextRoomT=simT+40;if(typeof startContact==='function')startContact('Contact! Here she comes!',false);banner('The Brood Mother. Keep clear of her slam: the violet ring. Medic station and ammo behind you.',4200);}
   for(const r of HQ_ROOMS)if(r.phase===phase)openSoon(r,.7+Math.random()*.6);
 }
 function bossHurt(u){
@@ -170,7 +170,7 @@ function hqTickWin(){
 }
 function hqHint(){
   if(MAPID!=='hq')return'';
-  if(!hqs.awake)return'The hall is ahead, and something huge at the far end. Heal up and restock behind you first: step into the hall and it wakes.';
+  if(!hqs.awake)return'Here she comes.';
   const b=enemies.find(e=>e.mon==='boss');
   if(b&&!b.dead)return'Keep moving: get out of the violet ring before she slams, shoot the hounds when they crouch. Her roars open the side rooms.';
   return'Finish the hounds: the side rooms are open.';

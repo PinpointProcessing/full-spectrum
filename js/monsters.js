@@ -24,7 +24,7 @@ const varyRate=()=>.92+Math.random()*.16;
 let MONG=null;   // shared geometry and materials (made once)
 function monKit(){
   if(MONG)return MONG;
-  const skin=new T.MeshStandardMaterial({color:0x8d8189,roughness:.5,metalness:.05,emissive:0x140a1c,emissiveIntensity:1});
+  const skin=new T.MeshStandardMaterial({color:0x6f6575,roughness:.62,metalness:.05,emissive:0x140a1c,emissiveIntensity:1});   // (a little darker: under the Headquarters' lamps the paler skin burned out to white up close)
   const dark=new T.MeshStandardMaterial({color:0x2a2128,roughness:.7});
   const bone=new T.MeshStandardMaterial({color:0xd9cfc2,roughness:.45});
   const glow=new T.MeshBasicMaterial({color:0xc27bff,toneMapped:false});

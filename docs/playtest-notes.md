@@ -267,3 +267,19 @@ four freed men, and the scientists' files repacked with their best takes. The co
 Reyes keeps his "Tower's down. Everyone back to the boat." (made on its own). 32 of about 2,000 lines are still flagged by
 the recogniser, nearly all one- or two-word shouts ("Frag!", "Dog! Dog!") or names it mishears; their takes match the
 length of the ones already in the game.
+
+# v81: the Brood Mother awake when you come in
+
+Bryan: "I think they should be awake upon entering. The battle commences immediately, right? Why would it roar from
+inside before the fight then?" Right: she roared at the drawbridge, so she knows they're coming. Now she roars the moment
+the squad comes in (0.6 s after the fade) and comes down the hall for them; her roar opens the first two side rooms as
+before. The entry banner about something breathing in the dark is gone; her banner says where the medic station and ammo
+are. Tested with the bot that only moves the squad: four soldiers won 3 of 3, eight won. A squad that comes in and does
+nothing: she walks the hall under fire and reaches the entry hall in about 40 s; 1 of 2 won.
+Found while taking pictures of the monsters for Bryan:
+- She couldn't be seen beyond 36 m (everyone's sight limit), so from the entry hall she was invisible at the far end and
+  nobody shot at her until she was close. She's seen wherever there's a line to her now.
+- The lair's violet lamp sat right on her and burned her out to white up close: it's behind her and higher now, the two
+  red lamps in the hall are a little dimmer, and the monsters' skin a little darker.
+- "Flanked" came up over hounds (they don't take cover): not over monsters now.
+

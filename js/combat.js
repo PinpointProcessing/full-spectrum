@@ -321,7 +321,7 @@ function pickTarget(u){
 }
 // who a soldier sees: 36 m round him; with a sniper rifle, 70 m the way he's looking (all round when he's the one selected)
 function canSee(p,e){
-  const d=hyp(p.x-e.x,p.y-e.y),rc=isCls(p,'recon');if(d<=360+(rc?CLS.seeMore:0))return!!fireLine(p,e);
+  const d=hyp(p.x-e.x,p.y-e.y),rc=isCls(p,'recon');if(d<=360+(rc?CLS.seeMore:0)+(e.mon==='boss'?900:0))return!!fireLine(p,e);   // (the Brood Mother is huge: seen wherever there's a line to her, fortress.js)
   if(p.weapon!=='sniper'||d>700+(rc?CLS.sniperMore:0))return false;   // (Recon sees further: classes.js)
   let da=Math.atan2(e.y-p.y,e.x-p.x)-p.ang;da=Math.atan2(Math.sin(da),Math.cos(da));
   return(Math.abs(da)<.45||(sel.length===1&&sel[0]===p))&&!!fireLine(p,e);
@@ -336,7 +336,7 @@ function burst(u,t,L){
   const n=u.gunner?5:wOf(u).n;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun or a sniper rifle one round
   const q=silenced(u);if(q&&u.weapon!=='m4s'){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}   // a silencer: a quiet burst, and it wears a little (a silenced rifle doesn't)
   for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner||n>3?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
-  if(u.side==='P'&&t.alerted&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
+  if(u.side==='P'&&t.alerted&&!t.mon&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}   // (not a monster: they don't take cover)
 }
 function resolveShot(s){
   const u=s.u,t=s.t;if(u.dead||u.downed||t.dead)return;
