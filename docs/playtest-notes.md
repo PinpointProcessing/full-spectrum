@@ -228,3 +228,20 @@ A frag close by wrecks a barricade; a wall takes two. Hostiles can use them for 
 start or a retry and not kept by a save. Tested: promotion and the kit on the loadout; both built and measured (see over
 the barricade, heavy cover; the wall blocks sight and the way); an empty kit refused; packing up; blasts; a reset.
 Still to come for him ("amongst other things"): razor wire, a sandbagged gun nest, barring a door, repairs.
+
+# v76: class skills
+
+From the classes plan (step 3, Bryan's own descriptions of the classes): a third button on a classed soldier's card.
+- Medic, field station: once a mission he sets a medic station down where he stands (2 s). Heals inside, gets a carried
+  downed man back up.
+- Support, ammo bag: once a mission, an ammo drop where he stands (2 s). Grenades and special items refill inside.
+- Recon, binoculars: every 30 s, tap a spot he can see (out to 60 m): every hostile within 20 m of it that he has a line
+  to is marked for the whole squad for 12 s.
+- Spec Ops, distraction: twice a mission, a clatter where you tap (within 20 m): unaware guards within 12 m go to look,
+  then back. The stealth roadmap's distraction throw.
+- Assault, flashbang (Bryan, on the doors: "later incorporate C4s or flashbangs"): twice a mission, thrown where you tap
+  (within 20 m): 1.1 s later every hostile within 9 m who sees it is stunned for 3.5 s and can't shoot. Loud, but heard as
+  an ambush. Open or kick a door, throw one in, go in.
+- Cyber Ops, hacking: no button. Anything that needs the access card inside the office building, a selected Cyber gets
+  into without it (4 s).
+Tested each one; on a phone's four cards the three gear buttons shrink to fit.

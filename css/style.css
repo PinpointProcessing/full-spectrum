@@ -101,10 +101,18 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #cards.compact .uc-gun.swap{display:flex}#cards.compact .uc-gun.swap svg,#cards.compact .uc-gun.swap b{display:none}
 .uc-hp::after{content:' HP'}.uc-hp.kia::after{content:''}
 #cards.narrow .uc-hp::after{content:''}
+#cards.narrow .uc-id b{letter-spacing:.02em}
 #cards.narrow .uc-bot{gap:4px}#cards.narrow .uc-hp{font-size:13px}#cards.narrow .uc-nade,#cards.narrow .uc-spec,#cards.narrow .uc-rpg{padding:0 2px;gap:3px;font-size:12px;letter-spacing:0;min-height:30px}#cards.narrow .uc-nade svg,#cards.narrow .uc-spec svg{width:15px;height:15px}#cards.narrow .uc-rpg i{margin-left:2px}
 .uc-nade{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:13px}
 .uc-nade svg{width:17px;height:17px;fill:currentColor}
 .uc-nade.on{border-color:var(--warn);color:var(--warn)}
+.uc-skill{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:#9fd8ff}
+.uc-skill svg{width:16px;height:16px;fill:currentColor}.uc-skill i{font-style:normal;color:var(--text)}.uc-skill.on{border-color:#9fd8ff;background:rgba(159,216,255,.14)}
+#cards.compact .uc-skill{min-height:24px}#cards.narrow .uc-skill{padding:0 2px;gap:2px;font-size:11px;min-height:30px}
+.uc-bot>button{min-width:0}
+/* a third gear button (a class skill): everything a little smaller so the three fit a narrow card */
+.uc-bot.three{gap:3px}.uc-bot.three>button{padding:0 1px;gap:1px;font-size:11px;letter-spacing:0}.uc-bot.three svg{width:13px!important;height:13px!important}
+#cards.narrow .uc-bot.three>button{font-size:10px}#cards.narrow .uc-bot.three svg{width:12px!important;height:12px!important}
 .uc-spec{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:13px;color:var(--ic,#cfd6dc)}
 .uc-spec svg{width:17px;height:17px;fill:currentColor}
 .uc-spec i{font-style:normal;color:var(--text)}

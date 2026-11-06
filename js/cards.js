@@ -62,15 +62,16 @@ function buildCards(){
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${classOf(u)?CLASSES[classOf(u)].ab:rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<div class="uc-hpb"><i></i><span class="uc-hp">100</span></div>`+
       `<div class="uc-gun"></div>`+   // (filled by updateCards: gunHTML)
-      `<div class="uc-bot">${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
+      `<div class="uc-bot">${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-skill" aria-label="Class skill" hidden></button><button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
-      const g=ev&&ev.target.closest('.uc-rpg,.uc-spec,.uc-nade,.uc-gun.swap');   // (Level 1's tutorial lets through only what it asks for: level1.js)
+      const g=ev&&ev.target.closest('.uc-rpg,.uc-skill,.uc-spec,.uc-nade,.uc-gun.swap');   // (Level 1's tutorial lets through only what it asks for: level1.js)
       if(!tutAllows(g?'gear':'card',g?{u,id:u.id,item:g.classList.contains('uc-nade')?'nade':g.classList.contains('uc-spec')?'spec':g.classList.contains('uc-gun')?'gun':'c4'}:u))return;
       if(g&&g.classList.contains('uc-gun')){if(mode==='silent')mode=null;swapWeapon(u);hud();return;}   // his second gun (the sniper rifle): swap, nothing else changes
       if(!selectAway(sel.length===1&&sel[0]===u&&!g?cardGroup.filter(alive):[u])){hud();return;}   // (a man somewhere else: the camera goes to him, not while the men on screen are under fire: input.js)
       preview=null;
       if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.charges&&!u.inVeh)mode=mode==='charge'?null:'charge';else{mode=null;banner(`${u.name} has no charge left. Restock at a supply box.`,1800);}}   // demolition charge
+      else if(ev&&ev.target.closest('.uc-skill')){select([u]);useSkill(u);}   // his class's skill (skills.js)
       else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it (Bryan: ammo drops refill it, no swapping)
         select([u]);const sp=SPECIALS[u.spec];
         if(!u.specN||u.inVeh){mode=null;banner(`${u.name} has no ${sp.label==='RPG'?'rockets':sp.label.toLowerCase()} left. Refill at an ammo drop.`,1800);}
@@ -84,7 +85,7 @@ function buildCards(){
     el.addEventListener('click',act);
     el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act(null);}});
     box.appendChild(el);
-    u.card={el,idb:el.querySelector('.uc-id b'),gun:el.querySelector('.uc-gun'),st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),hpb:el.querySelector('.uc-hpb')};
+    u.card={el,idb:el.querySelector('.uc-id b'),gun:el.querySelector('.uc-gun'),st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),skill:el.querySelector('.uc-skill'),rpg:el.querySelector('.uc-rpg'),hpb:el.querySelector('.uc-hpb')};
     drawFace(el.querySelector('.uc-face'),u);
   }
 }
@@ -109,6 +110,7 @@ function statusText(u){
   if(u.crawl)return[u.path.length?'Crawling':'In the pipe',''];
   if(u.tk)return[u.tk.strike?'Takedown':'Sneaking up',''];
   if(u.doorT>0)return['Opening door',''];
+  if(u.deploy)return['Setting up',''];
   if(u.build)return[u.build.p>0?'Building':'Going to build',''];if(u.pack)return['Packing up',''];
   if(u.silent)return['Taking aim',''];
   if(u.sup>0.65)return['Pinned','pin'];
@@ -143,7 +145,11 @@ function updateCards(){
     if(u.spec){const sp=SPECIALS[u.spec]||SPECIALS.smoke,sw=false;   // his special item, left of the frag
      if(c.spec.dataset.k!==u.spec){c.spec.dataset.k=u.spec;c.spec.innerHTML=`${sp.svg}<i></i>`;c.spec.style.setProperty('--ic',sp.col);c.spec.setAttribute('aria-label',sp.label);}
      c.spec.querySelector('i').textContent=u.specN||0;c.spec.disabled=!alive(u)||(!u.specN&&!sw)||!!u.inVeh;
-     c.spec.classList.toggle('on',(mode==='smoke'||mode==='medkit'||mode==='silent'||mode==='rpg')&&sel[0]===u);}
+     c.spec.classList.toggle('on',(mode==='smoke'||mode==='medkit'||mode==='silent'||mode==='rpg'||mode==='build'||mode==='buildwall')&&sel[0]===u);}
+    {const k=skillOf(u);c.skill.hidden=!k;c.skill.parentElement.classList.toggle('three',!!k&&!c.spec.hidden);if(k){   // his class's skill, left of his special item (skills.js)
+      if(c.skill.dataset.k!==k){c.skill.dataset.k=k;c.skill.innerHTML=`${SKILL_SVG[k]}<i></i>`;c.skill.setAttribute('aria-label',SKILL[k].label);c.skill.title=SKILL[k].label;}
+      const cd=SKILL[k].cd?Math.max(0,Math.ceil((u.skillT||0)-simT)):0;c.skill.querySelector('i').textContent=SKILL[k].cd?(cd?cd+'s':''):(u.skillN||0);
+      c.skill.disabled=!alive(u)||!skillReady(u)||!!u.inVeh;c.skill.classList.toggle('on',mode===k&&sel[0]===u||!!u.deploy);}}
     if(c.rpg){c.rpg.querySelector('i').textContent=u.charges||0;c.rpg.disabled=!alive(u)||!u.charges||!!u.inVeh;c.rpg.classList.toggle('on',mode==='charge'&&sel[0]===u);}   // the demolition charge (off in this level)
   }
   $('#stage').style.setProperty('--cards-h',box.hidden?'0px':box.offsetHeight+6+'px');

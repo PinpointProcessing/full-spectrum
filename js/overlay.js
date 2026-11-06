@@ -130,7 +130,7 @@ function drawOverlay(rdt,now){
     const[sx,sy]=toS(x,y),[bx,by]=toS(x,y,h);ox.fillStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(sx,sy,2.5,0,TAU);ox.fill();
     ox.fillStyle=n.smoke?'#b9c0c6':'#c9d1a0';ox.beginPath();ox.arc(bx,by,3,0,TAU);ox.fill();
   }
-  drawSmoke();drawOrders(now);drawBuilds(now);drawLayers(now);drawHold(now);   // (orders.js, layers.js; the hold-to-suppress ring: input.js)
+  drawSmoke();drawOrders(now);drawBuilds(now);drawSkills(now);drawLayers(now);drawHold(now);   // (orders.js, layers.js; the hold-to-suppress ring: input.js)
 
   drawHQ(now);drawVehicle(rdt,now);drawMission(rdt,now);
   // where the hunters think the squad is (hunt.js): a faint ring where they're searching

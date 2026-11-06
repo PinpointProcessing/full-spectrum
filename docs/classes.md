@@ -62,12 +62,29 @@ M240, the sniper rifle and climbing the tower, the shotgun, C4, Breach, the cont
 The class gear (a Medic's kits, a Support's rockets, an Assault's frags) is handed out at every mission start and at
 every ammo drop.
 
+## Built: class skills (v76, `js/skills.js`)
+
+From Bryan's own descriptions of each class: a third button on the card of a soldier whose class has one (left of his
+special item; on a narrow card the three buttons shrink to fit). Counts start full at every mission start.
+
+| Class | Skill | How it works | Tested |
+|---|---|---|---|
+| Medic | Field station ("an emergency medical station made in the field, to use under heavy fire") | once a mission: 2 s and a medic station stands where he is; its green ring heals anyone inside and gets a downed man carried in back up, like a checkpoint's | a hurt man inside: 50 to 74 HP in 3 s |
+| Support | Ammo bag ("resupplies other units") | once a mission: 2 s and an ammo drop stands where he is; grenades and special items refill inside its ring | an empty grenade refilled |
+| Recon | Binoculars ("scopes out areas") | every 30 s: tap a spot he can see, out to 60 m: every hostile within 20 m of it that he has a line to is marked for the squad for 12 s (shown wherever he goes, a blue pin over him) | a man 45 m off marked and shown; the button waits 30 s |
+| Spec Ops | Distraction (the stealth roadmap's "distraction throw") | twice a mission: tap a spot within 20 m he can throw to: a clatter, and unaware hostiles within 12 m who hear it (through a wall only within 6 m) go over to look for 4 s, then back to where they were. A man who goes to look may see someone on the way | a guard walked 4.6 m over, looked, went back to his post unalerted |
+| Assault | Flashbang (Bryan on the doors: "later incorporate C4s or flashbangs") | twice a mission: tap a spot within 20 m he can throw to: 1.1 s later every hostile within 9 m who has a line to it is stunned for 3.5 s (can't fire, pinned); loud, but heard as an ambush; ours within 6 m are shaken. Throw one through a door, then breach | both guards in the security office, through its opened door: stunned 3.5 s, no shots |
+| Cyber Ops | Hacking ("hacks equipment") | no button: inside the office building anything that needs the access card (the computer, the lift, the stair door, the cells), a Cyber selected gets into without it, 4 s at it | the computer opened the steel door without the card; with no Cyber selected it still says "Find an access card." |
+
+Not yet: the Assault's breaching charge (C4 on a door), the Captain's call-ins (with the HQ), the Cyber's drone, cameras and turrets.
+
 ## Order of work (a suggestion)
 
 1. The class choice at level 3 on the between-missions screen, each class's weapons and one passive bonus. (Built.)
 2. Class gear that already exists, moved into the class slots.
 3. New gear, one at a time: heal darts, the field medical station, the ammo bag, heavy rockets, binoculars, the scout drone,
-   hacking, the Captain's aura.
+   hacking, the Captain's aura. (In: the field station, the ammo bag, binoculars, hacking, a distraction throw; the aura is
+   the Captain's passive.)
 4. Skill slots opening with level, and the store (Bryan: "Maybe start upgrading them or going to the store?") selling class
    gear.
 

@@ -351,7 +351,7 @@ const useOf=u=>useGos.find(g=>g.u===u)||null,useFor=a=>useGos.find(g=>g.a===a)||
 function actsHere(){return ACTS.filter(a=>a.map===MAPID&&a.avail());}
 function actAt(wx,wy){let best=null,bd=1e9;for(const a of actsHere()){let d=hyp(a.x-wx,a.y-wy);if(a.near){const o=a.near();if(o)d=Math.min(d,rectDist(wx,wy,o)+4);}if(d<=a.r+10&&d<bd){bd=d;best=a;}}return best;}   // (near: something with a body, a lab bench: a tap anywhere on it)
 function orderUse(a){
-  const why=a.need&&a.need();if(why){banner(why,2600);return;}   // locked: say what it needs, don't walk there
+  const why=a.need&&a.need();if(why){if(why===CARD_NEED&&orderHack(a))return;banner(why,2600);return;}   // locked: say what it needs, don't walk there (a Cyber Ops selected gets in without the card: skills.js)
   const foot=sel.filter(u=>alive(u)&&!u.inVeh&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));
   if(!foot.length){banner('Select a soldier first.',1600);return;}
   if(a.multi){a.go(foot);return;}   // the stairs and the lift: everyone selected goes (office.js)
@@ -366,7 +366,7 @@ function useTick(dt){
     if(!alive(u)||!a.avail()||(u.path.length&&simT-u.lastOrder>.1&&hyp(u.path[u.path.length-1].x-a.x,u.path[u.path.length-1].y-a.y)>30)){end();continue;}
     if(u.path.length)continue;
     if(hyp(u.x-a.x,u.y-a.y)>a.r+18){end();continue;}
-    g.prog+=dt;if(g.prog>=(a.secs||0)){end();a.act(u);}}
+    g.prog+=dt;if(g.prog>=(g.secs||a.secs||0)){end();if(g.hack){a.hacked=true;callout(u,'Bypassed',C.good);if(a.multi){banner(`${a.label}: unlocked. Tap it again to use it.`,2400);continue;}}a.act(u);}}
 }
 function drawActs(now){
   const pulse=(Math.sin(now*3)+1)/2,act=sel.some(alive);
@@ -375,7 +375,7 @@ function drawActs(now){
     gPath(a.x,a.y,a.r+pulse*3);ox.strokeStyle=a.pickup?'#7ff0ff':'#ffcf4a';ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);
     const[lx,ly]=below(a.x,a.y+a.r,6);if(act&&!a.pickup)pill(a.label,lx,ly,C.good);else label(a.label,lx,ly,a.pickup?'#7ff0ff':'#ffcf4a',9,700);
   }
-  for(const g of useGos)if(!g.u.path.length&&g.a.secs){const u=g.u;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+g.prog/g.a.secs*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
+  for(const g of useGos)if(!g.u.path.length&&(g.secs||g.a.secs)){const u=g.u,T2=g.secs||g.a.secs;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+g.prog/T2*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
 }
 // the gather areas: ENTER at the data center's front doors outside, EXIT at the lobby's front doors inside
 function gatherZone(){

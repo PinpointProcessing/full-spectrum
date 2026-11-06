@@ -100,6 +100,7 @@ function officeActs(){
   }
   // the lab equipment upstairs (a bonus from Bryan's first design): DESTROY wrecks a bench
   (f1.interact||[]).filter(q=>q.kind==='equipment').forEach((q,i)=>ACTS.push({id:'lab-'+i,map:'in',floor:'1F',x:q.x,y:q.y,r:14,standY:0,secs:3,label:'DESTROY',q,near:()=>labObj(q),avail:()=>!office.labs[i],act:u=>wreckLab(u,i,q)}));   // (near: a tap anywhere on the bench counts, Bryan)
+  for(const a of ACTS)if(a.map==='in'&&a.need){const n0=a.need;a.need=()=>a.hacked?null:n0();}   // a Cyber Ops got into it without the card (skills.js)
 }
 // orderUse (interior.js) hands these over: send everyone selected on this floor into the stairs zone
 function goStairs(list,tr,z){

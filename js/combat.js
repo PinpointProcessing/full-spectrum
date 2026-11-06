@@ -866,7 +866,7 @@ function updateUnit(u,dt){
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);
   if(u.rpg&&u.alerted&&u.aimAt)rpgThink(u);   // mid-aim: fire when ready
-  if(u.cool<=0&&!u.vaultK&&!u.carry&&!u.dog&&!(u.reloadT>simT)&&u.weapon!==null){   // (carrying a man: hands full; a freed prisoner without a rifle yet: office.js)
+  if(u.cool<=0&&!u.vaultK&&!u.carry&&!u.dog&&!(u.reloadT>simT)&&!(u.dazeT>simT)&&u.weapon!==null){   // (dazed by a flashbang: skills.js)   // (carrying a man: hands full; a freed prisoner without a rifle yet: office.js)
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank
@@ -882,7 +882,7 @@ function update(dt){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].at<=simT){const s=shots[i];shots.splice(i,1);s.u.shotT=simT;sfxShot(s.u,s.quiet);resolveShot(s);}   // (shotT: his rifle kicks: figure.js)
   visTick-=dt;if(visTick<=0){visTick=.1;computeVis();}
   for(const u of units)updateUnit(u,dt);
-  medTick(dt);huntTick(dt);watchTick();breachTick();roomDoorTick(dt);buildTick(dt);layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
+  medTick(dt);huntTick(dt);watchTick();breachTick();roomDoorTick(dt);buildTick(dt);skillTick(dt);layersTick(dt);officeEvery(dt);banterTick(dt);tutTick(dt);   // (layers.js: the base's alert, bodies, surrender, enemy grenades, the contact sensor)
   aiTick-=dt;if(aiTick<=0){aiTick=.4;for(const e of enemies)enemyThink(e);for(const p of players)playerThink(p);}
   for(const p of players){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)

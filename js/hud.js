@@ -61,6 +61,9 @@ function hud(){
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade')h='Tap where to throw. Inside the dashed circle he throws from where he is; further off he moves to a safe spot first. Tap the grenade on his card again to cancel.';
   else if(mode==='rpg')h=`Tap where to fire the rocket, inside the circle (big blast; not closer than 6 m). He fires from where he stands, or takes a step or two first if something's in the way. ${sel[0]?sel[0].specN:0} left. Tap the RPG on his card again to cancel.`;
+  else if(mode==='binos')h=`Tap a spot he can see, inside the circle: every hostile within ${SKILL.binos.r/10} m of it that he has a line to is marked for the whole squad for ${SKILL.binos.mark} s. Tap the binoculars again to cancel.`;
+  else if(mode==='flash')h=`Tap where to throw the flashbang, inside the circle: ${SKILL.flash.fuse} s later everyone within ${SKILL.flash.r/10} m who sees it is stunned for ${SKILL.flash.stun} s and can't shoot. Loud. Throw it through a door, then go in.`;
+  else if(mode==='noise')h=`Tap where to throw it, inside the circle: unaware hostiles within ${SKILL.noise.r/10} m who hear it go over to look, then back. Tap the button again to cancel.`;
   else if(mode==='build')h='Tap where to set up a barricade, inside the circle: heavy cover the squad can shoot over, across the line to the threat. He can pack it up and move it on (tap it with him selected). Tap the kit again for a wall.';
   else if(mode==='buildwall')h=`Tap where to build a wall, inside the circle: taller than a man, it blocks sight, shots and blasts (${BUILD.wall.cost} build kits). It stays. Tap the kit again to cancel.`;
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';

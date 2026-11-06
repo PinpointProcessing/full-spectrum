@@ -16,7 +16,7 @@ function mk(side,team,id,name,x,y,ang){
 function reset(){
   leaveLevel1Now();leaveLevel2Now();leaveHQNow();   // (Level 1: level1.js; Level 2: level2.js; the Headquarters: fortress.js)
   leaveInteriorNow();   // a new game or Continue from inside the office building: back to the outdoor map first
-  clearBuilds();   // the Defender's barricades and walls go (build.js)
+  clearBuilds();clearSkills();   // the Defender's barricades and walls go (build.js), and the field stations set down (skills.js)
   for(const u of units){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);if(u.slight&&u.slight.parent)u.slight.parent.remove(u.slight);}
   units=[];
   mk('P','A','A1','Reyes',70,775,-0.8);mk('P','A','A2','Kowalski',102,772,-0.8);
@@ -25,7 +25,7 @@ function reset(){
   mk('E','E','E3','Hostile',222,494,Math.PI/2);mk('E','E','E4','Hostile',398,494,Math.PI/2);
   players=units.filter(u=>u.side==='P');enemies=units.filter(u=>u.side==='E');for(const e of enemies)e.grp=0;   // (the warehouse's four: area 0)
   for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':DEFAULT_WEAPON[p.id]||'rifle';p.weapon2=null;p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=specFull(p);}
-  for(const p of players){p.level=levelOf(xpOf(p.id));classGear(p);}   // (a Medic's kits, a Support's rockets, an Assault's frags: classes.js)
+  for(const p of players){p.level=levelOf(xpOf(p.id));classGear(p);p.skillN=skillFull(p);p.skillT=0;}   // (a Medic's kits, a Support's rockets, an Assault's frags: classes.js)
   for(const u of units)makeSoldier(u);
   addRadioKit(enemies[1]);   // E2 carries the warehouse's radio (hunt.js)
   drawGround();

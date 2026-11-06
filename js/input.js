@@ -240,6 +240,10 @@ function tap(sx,sy){
     if(en&&canSilent(u,en)){orderSilent(u,en);mode=null;preview=null;fireOrderAt=performance.now();return;}
     banner(en&&en.alerted?'He knows you are here: no silent shot.':en?'No clear shot at him from here (20 m, in sight).':'Tap a hostile marked SILENT SHOT. Tap the silencer on his card again to cancel.',2000);return;
   }
+  if(mode==='binos'||mode==='noise'||mode==='flash'){   // a class skill: the Recon's binoculars, the Spec Ops' distraction (skills.js)
+    const u=sel[0];if(!u){mode=null;return;}if(!inMap){banner('Tap a spot on the map.',1400);return;}
+    if(skillTap(u,wx,wy)){preview=null;fireOrderAt=performance.now();}return;
+  }
   if(mode==='build'||mode==='buildwall'){   // a Defender's build kit: tap where (build.js)
     const u=sel[0];if(!u){mode=null;return;}if(!inMap){banner('Tap a spot on the map.',1400);return;}
     if(orderBuild(u,wx,wy,mode==='build'?'barricade':'wall')){mode=null;preview=null;fireOrderAt=performance.now();}return;
