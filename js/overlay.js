@@ -5,10 +5,10 @@ function initRain(){
   const n=reduced?0:Math.round(Math.min(150,cw*ch/2800));
   rain=[];for(let i=0;i<n;i++)rain.push({x:Math.random()*cw,y:Math.random()*ch,l:8+Math.random()*10,v:520+Math.random()*260});
 }
-function gPath(x,y,r,a0=0,a1=TAU,wedge=false){
+function gPath(x,y,r,a0=0,a1=TAU,wedge=false,h=0){   // (h: off the ground, e.g. up the watchtower)
   const n=32,pts=[];toSBack=false;
-  if(wedge)pts.push(toS(x,y));
-  for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;pts.push(toS(x+Math.cos(a)*r,y+Math.sin(a)*r));}
+  if(wedge)pts.push(toS(x,y,h));
+  for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;pts.push(toS(x+Math.cos(a)*r,y+Math.sin(a)*r,h));}
   ox.beginPath();if(toSBack)return;   // part of it is behind the camera: draw nothing rather than a shape turned inside out over the screen
   ox.moveTo(...pts[0]);for(let i=1;i<pts.length;i++)ox.lineTo(...pts[i]);
   if(wedge)ox.closePath();
@@ -150,15 +150,15 @@ function drawOverlay(rdt,now){
       const stalked=players.some(p=>p.tk&&p.tk.e===e);
       if(stalked||act.length){   // his label: TAKEDOWN if his back is to the one soldier selected (and while he's stalked), else the best hit chance. Worked out ~7 times a second, not every frame
         const key=act.map(u=>u.id).join(),nowMs=performance.now();let pc=e._pill;
-        if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150||(volley||markedBy(e))&&nowMs-pc.t>60){
+        if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150||volley&&nowMs-pc.t>60){
           let text,col;
           if(stalked||(act.length===1&&canTakedown(act[0],e))){text='TAKEDOWN';col=C.good;}
+          else if(volley&&volley.targets.includes(e)&&volley.at==null&&act.some(u=>volley.by.includes(u)||volley.movers.includes(u))){text=volley.movers.length?'MOVING UP · TAP TO FIRE':'ON MY MARK · TAP TO FIRE';col=C.good;}   // the volley getting set (combat.js)
           else if(act.length===1&&canSilent(act[0],e)){const pct=Math.round(silentChance(act[0],e)*100);text=`SILENT SHOT ${pct}%`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}   // a silencer (combat.js)
-          else if(act.length>1&&canVolley(act,e)){   // a volley (combat.js): who's on whom, and who'd take the next shot
-            const m=markedBy(e),pending=players.filter(u=>u.silent&&u.silent.hold).length;
-            if(m){const left=Math.max(0,Math.ceil(VOLLEY_WAIT-(simT-volleyMarkT)));text=`${m.id} ON HIM · TAP TO FIRE${left?' · '+left:''}`;col=C.good;}
-            else{const by=volleyFree(act).filter(u=>canSilent(u,e)).sort((a,b)=>silentChance(b,e)-silentChance(a,e))[0],pct=Math.round(silentChance(by,e)*100);
-              text=pending?`2ND SHOT · ${by.id} ${pct}%`:`SILENT SHOT ${pct}% · ${volleyFree(act).length} READY`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
+          else if(act.length>1&&canVolley(act,e)){   // a volley (combat.js): the silencers who'd take him, together
+            const crew=act.filter(u=>canSilent(u,e)),pct=Math.round(Math.max(...crew.map(u=>silentChance(u,e)))*100);
+            if(volley&&volley.targets.includes(e)){text=volley.at==null?'ON MY MARK · TAP TO FIRE':'ON MY MARK';col=C.good;}
+            else{text=`SILENT SHOT ${pct}% · ${crew.length} READY`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
           }
           else{
             let best=0,bc=0,lean=false,bu=null;
@@ -183,13 +183,13 @@ function drawOverlay(rdt,now){
   }
   // squad info
   for(const u of players){
-    if(u.seat==='driver'||u.offMap||offFloor(u))continue;   // behind the wheel: the jeep's own label covers him; left outside the office building: not on this map
+    if(u.seat==='driver'||u.offMap||u.inHeli||offFloor(u))continue;   // behind the wheel: the jeep's own label covers him; left outside the office building: not on this map
     // shoulder to shoulder with an earlier teammate: lift this one's bar so the two don't overlap
     const crowd=players.filter((o,i)=>i<players.indexOf(u)&&!o.dead&&o.seat!=='driver'&&hyp(o.x-u.x,o.y-u.y)<16).length;
-    const vx=u.x+u.lx,vy=u.y+u.ly,[hx,hy0]=toS(vx,vy,24),hy=hy0-crowd*10,[fx,fy]=toS(vx,vy);
+    const vx=u.x+u.lx,vy=u.y+u.ly,ev=u.onTower||u.climb?u.elev||0:0,[hx,hy0]=toS(vx,vy,24+ev),hy=hy0-crowd*10,[fx,fy]=toS(vx,vy,ev);   // (up the watchtower: on the platform)
     if(u.gone)continue;   // lost on an earlier visit (loaded save): no body here
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
-    if(sel.includes(u)){gPath(vx,vy,9.5);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
+    if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(u.downed){
       const k=u.critical?(u.noBleed?1:u.crit/CRIT_T):u.bleed/BLEED_T;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=u.critical?'#ff3b30':C.bad;ox.lineWidth=u.critical?3:2;ox.stroke();
       const medic=players.find(o=>o.medGo&&o.medGo.t===u&&!o.path.length),prog=u.revive>0?u.revive/3:medic?medic.medGo.prog/MEDKIT_T:u.boxRev>0?u.boxRev/BOXREV_T:0;

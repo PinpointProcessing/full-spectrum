@@ -46,6 +46,15 @@
     <div id="cards" hidden></div>
     <div id="floors" hidden aria-label="Floors"></div>
     <div id="fade" hidden></div>
+    <div id="equip" hidden><!-- between missions: the squad in the dinghy at sea, and the loadout (equip.js) -->
+      <div class="eq-head"><small>Between missions</small><b id="eqNext">Next: Level 2</b></div>
+      <div class="eq-panel">
+        <div class="eq-title">Loadout</div>
+        <div id="eqRows"></div>
+        <p class="eq-note">Silenced rifles for everyone. The armory has one M240, one RPG and two medic kits. A frag each.</p>
+        <button class="go" id="eqGo" type="button">Deploy</button>
+      </div>
+    </div>
     <button id="fitBtn" hidden>Fit map</button>
     <button id="gaitBtn" aria-pressed="false" disabled><small>Auto</small><span>Sneak</span></button>
   </div>
@@ -79,7 +88,8 @@
       <li><b>Watch:</b> in a fight, soldiers holding still watch the nearest enemy and fire first when one shows himself.</li>
       <li><b>Breach:</b> with soldiers next to a room, a BREACH marker shows at its doorway. Tap it and they stack up and go in together.</li>
       <li><b>Grenade:</b> one per soldier. Tap the grenade on his card, then tap inside the circle.</li>
-      <li><b>Special item:</b> each soldier also carries smoke, a medic kit or a silencer (shown on his card). Smoke blocks sight both ways. A silencer keeps his shots quiet and gives a silent shot at a hostile who hasn't seen you; it wears out after six. Swap them in a supply box.</li>
+      <li><b>Fire:</b> tap an enemy and everyone selected fires on him. Anyone without a clear shot moves to get one. Silenced soldiers take a man who hasn't seen them together, on a count; tap a second one during the count and they split, one each.</li>
+      <li><b>Special item:</b> each soldier also carries one (shown on his card): smoke, a medic kit, a silencer or an RPG. Smoke blocks sight both ways. A silencer keeps his shots quiet and wears out after six. In Level 2 every rifle is silenced, and you pick the items between missions. Ammo drops refill them.</li>
       <li><b>Corners:</b> a soldier at the edge of a wall or container leans out to shoot or throw round it. While he's leaned out, the enemy can hit him too.</li>
       <li><b>Downed men:</b> park a teammate next to him within a minute to revive him. After that only a medic kit, or carrying him to a medical box, will save him.</li>
     </ul>
@@ -158,6 +168,7 @@
 <script src="js/cards.js"></script>
 <script src="js/progress.js"></script>
 <script src="js/save.js"></script>
+<script src="js/equip.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/chatter.js"></script>

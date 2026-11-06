@@ -65,7 +65,7 @@ function hud(){
   else if(mode==='smoke')h='Tap where to throw smoke: nobody sees through it, either way, for about 12 s. Further off than the circle, he moves up first. Tap the smoke on his card again to cancel.';
   else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medic station's green ring. He moves slowly and can't shoot. Put down is bottom right.`;
   else if(act.length&&!preview&&players.some(p=>p.critical&&!p.dead&&!p.carriedBy&&!p.offMap))h='A soldier is critical: tap him with a medic (the red kit on a card) selected, or anyone to carry him to a medic station.';
-  else if(act.length===1&&act[0].onTower&&!preview)h=act[0].weapon==='sniper'?`${act[0].name} is up the tower with the sniper rifle: he sees 70 m the way he faces (all round while he's the one selected). Any move order brings him down first.`:`${act[0].name} is up the tower. Any move order brings him down first.`;
+  else if(act.length===1&&act[0].onTower&&!preview)h=act[0].weapon==='sniper'?`${act[0].name} is up the tower with the sniper rifle: he sees 70 m the way he faces (all round while he's the one selected). Tap the gun on his card to swap back to his ${WEAPON[act[0].weapon2||'rifle'].label}. Any move order brings him down first.`:`${act[0].name} is up the tower. Any move order brings him down first.`;
   else if(!preview&&enemies.some(e=>e.surr&&!e.tied&&!e.dead&&e.vis&&!offFloor(e)))h=act.length?'A hostile has surrendered: tap him to zip-tie him (2 s beside him).':'A hostile has surrendered: select a soldier, then tap him to zip-tie him.';   // (layers.js)
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
   else if(MAPID==='l1'&&!preview&&!act.length)h=l1Hint();   // (level1.js)
@@ -76,9 +76,9 @@ function hud(){
   else if(!act.length)h='Drag the map to look around. Tap a team tab or a soldier to select. Hold empty ground to lasso.';
   else if(act.length===1&&enemies.some(e=>canTakedown(act[0],e)))h=`A hostile has his back to ${act[0].name}: tap him (TAKEDOWN) to sneak up and take him out silently.`;
   else if(act.length===1&&act[0].onGun&&!preview)h=`${act[0].name} is on the pillbox gun: once you're in contact he fires at anything in its swing. Any move order takes him off it.`;
-  else if(act.length>1&&players.some(u=>u.silent&&u.silent.hold)){const m=players.find(u=>u.silent&&u.silent.hold),f=volleyFree(act)[0];h=`${m.name} is on his man. Tap a second hostile${f?` for ${f.name}`:''} and they fire together, or tap the marked one again to fire now. It goes by itself in ${Math.max(0,Math.ceil(VOLLEY_WAIT-(simT-volleyMarkT)))} s.`;}
-  else if(act.length>1&&volleyCrew(act).length>1&&enemies.some(e=>canVolley(act,e)))h='Two silencers: tap a hostile marked SILENT SHOT for one man, then a second for the other, and they fire together. Tap the same hostile twice to fire at once.';
-  else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
+  else if(volley&&volley.at==null&&act.some(u=>volley.by.includes(u)||volley.movers.includes(u)))h=volley.movers.length?'Moving up for a clear shot: they fire together when everyone\'s set. Tap him again to fire now.':'On him: they fire together on the count. Tap a second hostile and they split, one each.';
+  else if(act.length>1&&enemies.some(e=>canVolley(act,e)))h='Silencers: tap a hostile marked SILENT SHOT and they all take him at once, quietly.';
+  else if(act.length===1&&enemies.some(e=>canSilent(act[0],e)))h=act[0].weapon==='m4s'?`${act[0].name}'s rifle is silenced: tap a hostile marked SILENT SHOT to drop him quietly. A miss alerts him.`:`${act[0].name}'s silencer: tap a hostile marked SILENT SHOT to drop him quietly (${act[0].specN} left). A miss alerts him.`;
   else if(act.length===1)h=`Drag from ${act[0].name} to draw his route, or tap ground to send him. Grenade is on his card.`;
   else if(breachSpot())h='BREACH at the doorway: tap it and the team stacks up either side, then goes in together with a quick edge.';
   else h=act.some(caught)?'Tap the ground to preview positions. Tap an enemy to focus fire, hold on one to suppress him.':contact?'They haven\'t seen this team: it sneaks and holds fire. Tap a hostile to open fire (an ambush), or slip round them.':'Tap the ground to preview positions. Tap a hostile to open fire, hold on one to suppress him.';
@@ -115,7 +115,7 @@ function bindHud(){
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
-  $('#startBtn').addEventListener('click',()=>startLevel2());
+  $('#startBtn').addEventListener('click',()=>showEquip(startLevel2));   // the loadout first (equip.js)
   $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
   // the tutorial's bubble: a tap carries on from a notice or hides it (and stops there, so it never moves anyone); its button
   // turns the tutorial or the tips off; the "?" brings it back
@@ -124,7 +124,7 @@ function bindHud(){
     if(MAPID==='l1')tutTap();else $('#tut').hidden=true;   // (outside Level 1 it's the checkpoint's tour: hq.js)
   });
   $('#tutPin').addEventListener('click',()=>{tut.hid=false;tutShow();});
-  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){startLevel2();return;}state='play';endAt=0;hud();});   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
+  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){showEquip(startLevel2,'Next: Level 2 · The Data Center');return;}state='play';endAt=0;hud();});   // after Level 1's report: the squad at sea and the loadout (equip.js), then Level 2   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});

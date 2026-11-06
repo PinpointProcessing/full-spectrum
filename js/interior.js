@@ -62,7 +62,6 @@ function paintFloors(g,L){
       const cx=(r.x0+r.x1)/2,cy=(r.y0+r.y1)/2,vg=g.createRadialGradient(cx,cy,Math.min(w,h)*.2,cx,cy,Math.hypot(w,h)*.6);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.3)');g.fillStyle=vg;g.fillRect(r.x0,r.y0,w,h);
       g.restore();
     }
-    for(const z of f.zones||[])if(/stairs/.test(z.kind)){g.fillStyle='rgba(255,255,255,.06)';for(let y=z.y0;y<z.y1;y+=6)g.fillRect(z.x0,y,z.x1-z.x0,2);}   // stair treads
   }
   // story in glimpses: papers scattered in the offices, spent casings by the front desk, a blood trail down the east hall,
   // drag marks to the shared room, a scorched patch by the steel door
@@ -75,14 +74,16 @@ function paintFloors(g,L){
   }
   for(const f of L.floors)for(const o of f.objects)if(o.kind==='steeldoor'){const cx=o.x+o.w/2,cy=o.y+o.h+16,gr=g.createRadialGradient(cx,cy,0,cx,cy,30);gr.addColorStop(0,'rgba(0,0,0,.55)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(cx,cy,30,0,7);g.fill();}
   g.save();g.fillStyle='rgba(0,0,0,.5)';
-  for(const o of IN.objs){if(o.kind==='void')continue;const wall=/wall|pillar|steeldoor|cabinet|rack/.test(o.kind);g.shadowColor=wall?'rgba(0,0,0,.8)':'rgba(0,0,0,.6)';g.shadowBlur=wall?16:9;g.fillRect(o.x,o.y,o.w,o.h);}
+  for(const o of IN.objs){if(o.kind==='void'||o.kind==='srail')continue;const wall=/wall|pillar|steeldoor|cabinet|rack|carddoor/.test(o.kind);g.shadowColor=wall?'rgba(0,0,0,.8)':'rgba(0,0,0,.6)';g.shadowBlur=wall?16:9;g.fillRect(o.x,o.y,o.w,o.h);}
   g.restore();
+  for(const f of L.floors)for(const z of f.zones||[])if(z.kind==='stairs-down')g.clearRect(z.x0,z.y0,z.x1-z.x0,z.y1-z.y0);   // a hole in the floor: the flight goes down into it (buildFlight)
 }
 function buildInterior(){
   const L=OFFICE_LAYOUT;
   IN={L,floors:{},objs:[],lamps:[],hq:[],units:[],acts:[],scene:null,lights:null,canvas:null,tex:null};
   for(const f of L.floors)IN.floors[f.id]=f;
   for(const f of L.floors)for(const o of f.objects)IN.objs.push({kind:o.kind,x:o.x,y:o.y,w:o.w,h:o.h,full:FULL.has(o.kind),floor:f.id,gate:o.gate});
+  IN.flights=[];for(const f of L.floors)for(const z of f.zones||[])if(/^stairs-(up|down)$/.test(z.kind)&&z.dir){IN.flights.push({...z,floor:f.id,up:z.kind==='stairs-up'});IN.objs.push(...flightRails(z,f.id));}   // the stairs in 3D, and rails you can't walk through along their sides
   IN.objs.push(...voidRects(L.floors.map(f=>f.bounds)));IN.allObjs=IN.objs.slice();   // (allObjs: doors and gates that open come back on a fresh visit)
   // the light plan (docs/feel-plan.md: rooms you can read): rooms with people in them and the main spaces are lit, a hallway
   // tube sputters, empty rooms are dark or lit only by a red emergency light. One light every 12 m along anything long.
@@ -101,7 +102,7 @@ function buildInterior(){
   paintFloors(g,L);
   const tex=new T.CanvasTexture(fc);tex.encoding=T.sRGBEncoding;IN.tex=tex;
   // one group per floor (its floor tiles, walls and furniture): only the floor on screen is shown (setFloor)
-  const gmat=new T.MeshStandardMaterial({map:tex,roughness:.82,metalness:.06}),V=y=>1-(y-TOP)/(H-TOP);IN.groups={};
+  const gmat=new T.MeshStandardMaterial({map:tex,roughness:.82,metalness:.06,alphaTest:.5}),V=y=>1-(y-TOP)/(H-TOP);IN.groups={};
   for(const f of L.floors){
     const b=f.bounds,grp=new T.Group();grp.visible=false;sc.add(grp);IN.groups[f.id]=grp;
     const geo=new T.PlaneGeometry(b.x1-b.x0,b.y1-b.y0);geo.setAttribute('uv',new T.Float32BufferAttribute([b.x0/W,V(b.y0),b.x1/W,V(b.y0),b.x0/W,V(b.y1),b.x1/W,V(b.y1)],2));
@@ -119,6 +120,13 @@ function buildInterior(){
     if(o.kind==='owall'||o.kind==='iwall'||o.kind==='pillar'||o.kind==='liftwall'){   // cut away at waist height with a dark top, like Dark Descent
       box(o.w,hgt,o.h,o.kind==='liftwall'?mat.metal:o.kind==='owall'?mat.owall:mat.wall,cx,hgt/2,cz);box(o.w+.2,1.2,o.h+.2,mat.cap,cx,hgt+.6,cz);
     }else if(o.kind==='steeldoor'){box(o.w,hgt,o.h,mat.steel,cx,hgt/2,cz);for(let k=0;k<3;k++)box(o.w>o.h?o.w:1.2,1.4,o.w>o.h?1.2:o.h,mat.hazard,cx,3+k*4,cz);}
+    else if(o.kind==='srail')continue;   // (drawn with its flight: buildFlight)
+    else if(o.kind==='carddoor'){   // the stair door up top: plain steel with a wired glass panel; the card reader on the wall beside it, stairwell side (east)
+      box(o.w,hgt,o.h,mat.metal,cx,hgt/2,cz);box(o.w+.4,4,o.h*.4,mat.dark,cx,8.5,cz);box(o.w+.6,.8,o.h,new T.MeshBasicMaterial({color:0xd02818,toneMapped:false}),cx,hgt+.4,cz);   // a red strip along its top: locked
+      for(const e of[o.y-1,o.y+o.h+1])box(o.w+1,hgt+1,2,mat.hazard,cx,(hgt+1)/2,e);   // a yellow frame either side
+      tgt=IN.groups[o.floor]||sc;const rd=box(1.4,4,3,mat.dark,o.x+o.w+.7,8,o.y+o.h+4.5);const led=new T.MeshBasicMaterial({color:0xff2a1a,toneMapped:false});
+      const l=new T.Mesh(new T.BoxGeometry(.5,.8,.8),led);l.position.set(o.x+o.w+1.5,9.2,o.y+o.h+4.5);tgt.add(l);IN.readerLed=led;rd.userData.reader=true;
+    }
     else if(o.kind==='liftdoor'){const v=o.h>o.w;box(v?o.w:o.w/2-.4,hgt,v?o.h/2-.4:o.h,mat.steel,v?cx:o.x+o.w/4,hgt/2,v?o.y+o.h/4:cz);box(v?o.w:o.w/2-.4,hgt,v?o.h/2-.4:o.h,mat.steel,v?cx:o.x+o.w*.75,hgt/2,v?o.y+o.h*.75:cz);}
     else if(o.kind==='cabinet'){box(o.w,hgt,o.h,mat.metal,cx,hgt/2,cz);}
     else if(o.kind==='rack'){box(o.w,hgt,o.h,mat.dark,cx,hgt/2,cz);const r=rng(o.x+o.y);for(let k=0;k<6;k++){const l=new T.Mesh(new T.BoxGeometry(1,1,1),mat.led);l.position.set(o.x+2+r()*(o.w-4),3+r()*(hgt-6),o.w>o.h?o.y-.3:cz);tgt.add(l);}}
@@ -137,6 +145,7 @@ function buildInterior(){
     else if(o.kind==='bars'){const n=Math.max(2,Math.round(Math.max(o.w,o.h)/4));for(let k=0;k<=n;k++){const t=k/n,b=new T.Mesh(new T.CylinderGeometry(.5,.5,hgt,5),mat.bars);b.position.set(o.w>=o.h?o.x+o.w*t:cx,hgt/2,o.w>=o.h?cz:o.y+o.h*t);tgt.add(b);}box(o.w>=o.h?o.w:1,1,o.w>=o.h?1:o.h,mat.bars,cx,hgt,cz);}
     else box(o.w,Math.max(4,hgt),o.h,mat.light,cx,Math.max(4,hgt)/2,cz);
   }
+  {const fm={step:ML(0x50555b),nose:ML(0xb79a3c),pit:ML(0x16191c),rail:M(0x8a9097,{metalness:.6,roughness:.4})};for(const z of IN.flights)buildFlight(z,IN.groups[z.floor]||sc,fm);}
   const hemi2=new T.HemisphereLight(0x7d8aa0,0x120e0a,.15);hemi2.userData.base=.15;sc.add(hemi2);   // dark inside: the lit rooms and the torches carry it (more ambient zoomed out)
   const pool=[];for(let k=0;k<LAMP_POOL;k++){const p=new T.PointLight(0xffffff,0,100,1.4);sc.add(p);pool.push(p);}
   const mz=[];for(let k=0;k<2;k++){const m=new T.PointLight(0xffcf8a,0,95,2);sc.add(m);mz.push(m);}
@@ -172,7 +181,52 @@ function slotsIn(z,n,taken=[]){   // n free spots 20 apart inside zone z (any th
   while(out.length<n){const s=openSpot((z.x0+z.x1)/2,(z.y0+z.y1)/2,[...taken,...out]);if(!s)break;out.push(s);}
   return out;
 }
-function zoneOf(f,kind){const z=(f.zones||[]).find(q=>q.kind===kind);return z&&{x0:z.x0,x1:z.x1,y0:z.y0,y1:z.y1};}
+/* ---------- the stairs in 3D (Bryan: the painted stripes "don't look like they go up at all") ----------
+   Each flight in the layout's zones has a direction (dir: the way it climbs or goes down). One going up is a block of concrete
+   steps with yellow nosings and a handrail, rising to a little above the walls' cut-away height; one going down drops into a
+   hole in the floor (the floor canvas is clear there and the floor material cuts it out: alphaTest) with dark walls round the
+   pit. Rails along its sides (srail: they stop feet, not sight, shots or cover) mean you step on at the start and nowhere
+   else, and anyone on it rises or sinks with the steps (stairElev, from syncUnits). */
+const FLIGHT={up:17,down:20,step:10};
+function flightT(z,x,y){return clamp(z.dir==='n'?(z.y1-y)/(z.y1-z.y0):z.dir==='s'?(y-z.y0)/(z.y1-z.y0):z.dir==='w'?(z.x1-x)/(z.x1-z.x0):(x-z.x0)/(z.x1-z.x0),0,1);}   // 0 at its start, 1 at its far end
+function stairElev(x,y){
+  if(MAPID!=='in'||!IN||!IN.flights)return 0;
+  for(const z of IN.flights)if(x>=z.x0&&x<=z.x1&&y>=z.y0&&y<=z.y1){const t=flightT(z,x,y);return z.up?t*FLIGHT.up:-t*FLIGHT.down;}
+  return 0;
+}
+function flightRails(z,floor){   // both long sides and the far end (2 thick, just inside the zone)
+  const ns=z.dir==='n'||z.dir==='s',r=[],o=(x,y,w,h)=>r.push({kind:'srail',x,y,w,h,full:false,floor});
+  if(ns){o(z.x0,z.y0,2,z.y1-z.y0);o(z.x1-2,z.y0,2,z.y1-z.y0);o(z.x0,z.dir==='n'?z.y0:z.y1-2,z.x1-z.x0,2);}
+  else{o(z.x0,z.y0,z.x1-z.x0,2);o(z.x0,z.y1-2,z.x1-z.x0,2);o(z.dir==='w'?z.x0:z.x1-2,z.y0,2,z.y1-z.y0);}
+  return r;
+}
+function farPart(z,k=.42){   // the last stretch of a flight: where the men going up or down make for, so they take the whole flight
+  if(!z.dir)return z;const h=(z.y1-z.y0)*k,w=(z.x1-z.x0)*k;
+  return z.dir==='n'?{...z,y1:z.y0+h}:z.dir==='s'?{...z,y0:z.y1-h}:z.dir==='w'?{...z,x1:z.x0+w}:{...z,x0:z.x1-w};
+}
+function buildFlight(z,grp,M){
+  const ns=z.dir==='n'||z.dir==='s',len=ns?z.y1-z.y0:z.x1-z.x0,wid=ns?z.x1-z.x0:z.y1-z.y0,n=Math.max(4,Math.round(len/FLIGHT.step)),sd=len/n,cx=(z.x0+z.x1)/2,cy=(z.y0+z.y1)/2;
+  const at=(s,a=0)=>z.dir==='n'?[cx+a,z.y1-s]:z.dir==='s'?[cx+a,z.y0+s]:z.dir==='w'?[z.x1-s,cy+a]:[z.x0+s,cy+a];   // s along the flight from its start, a across it
+  const dims=(along,across)=>ns?[across,along]:[along,across];
+  const B=(sx,sy,sz,m,x,y,q)=>{const b=new T.Mesh(new T.BoxGeometry(sx,sy,sz),m);b.position.set(x,y,q);grp.add(b);return b;};
+  const D=FLIGHT.down,bot=-D-6;
+  for(let i=0;i<n;i++){
+    const s0=i*sd,[x,q]=at(s0+sd/2),[dx,dz]=dims(sd+.02,wid);
+    if(z.up){const h=(i+1)*FLIGHT.up/n;B(dx,h,dz,M.step,x,h/2,q);const[nx,nq]=at(s0+.7),[ex,ez]=dims(1.4,wid-.6);B(ex,.4,ez,M.nose,nx,h+.12,nq);}   // a solid block down to the floor; the nosing on its front edge
+    else{const top=-(i+1)*D/n,m=M.step.clone();m.color.lerp(new T.Color(0x0b0d0f),.85*(i+1)/n);B(dx,top-bot,dz,m,x,(top+bot)/2,q);const[nx,nq]=at(s0+sd-.7),[ex,ez]=dims(1.4,wid-.6);B(ex,.4,ez,M.nose,nx,top+.12,nq);}   // darker the deeper it goes
+  }
+  if(!z.up){   // the pit's walls: both long sides and the far end
+    for(const a of[-wid/2+.8,wid/2-.8]){const[x,q]=at(len/2,a),[dx,dz]=dims(len,1.6);B(dx,-bot,dz,M.pit,x,bot/2,q);}
+    const[x,q]=at(len-.8),[dx,dz]=dims(1.6,wid);B(dx,-bot,dz,M.pit,x,bot/2,q);
+  }
+  // handrails on both long sides: posts and a rail that follows the flight (level round the hole of one going down)
+  const RH=9;for(const a of[-wid/2+1,wid/2-1]){
+    const rise=z.up?FLIGHT.up:0,np=Math.max(2,Math.round(len/22));
+    for(let k=0;k<=np;k++){const s=len*k/np,[x,q]=at(s,a),h0=z.up?rise*s/len:0;B(.7,RH,.7,M.rail,x,h0+RH/2,q);}
+    const[x0,q0]=at(0,a),[x1,q1]=at(len,a),r=new T.Mesh(new T.BoxGeometry(.8,.8,Math.hypot(len,rise)),M.rail);r.position.set((x0+x1)/2,RH+rise/2,(q0+q1)/2);grp.add(r);r.lookAt(x1,RH+rise,q1);
+  }
+}
+function zoneOf(f,kind){const z=(f.zones||[]).find(q=>q.kind===kind);return z&&{x0:z.x0,x1:z.x1,y0:z.y0,y1:z.y1,dir:z.dir};}
 function fadeThen(fn){
   const el=$('#fade');fading=true;el.hidden=false;void el.offsetWidth;el.classList.add('on');
   setTimeout(()=>{fn();requestAnimationFrame(()=>{el.classList.remove('on');setTimeout(()=>{el.hidden=true;fading=false;},380);});},380);

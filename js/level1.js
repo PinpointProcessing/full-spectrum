@@ -5,7 +5,7 @@
    South to north, one lesson each:
    1 the beach: no enemies; the boot camp (tutorial steps, below)
    2 the shed: one guard with his back to the beach (a takedown)
-   3 the gate: two guards looking away from each other (Alpha's silencers, a volley)
+   3 the gate: two guards looking away from each other (Alpha's silencers: both take one, then the other)
    4 the yard: four guards round a fire barrel and the sandbags, who fight once they find you (a forgiving firefight)
    5 the relay hut: a wounded scout to bring round; clearing the yard makes a checkpoint there (a medic station, an ammo drop)
    6 the radio relay, a mast beside the hut: a rocket or a grenade close to it brings it down. Mission complete, then Level 2.
@@ -118,7 +118,7 @@ function buildLevel1(){
     const water=new T.Mesh(new T.PlaneGeometry(gw+2*E,E),new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7}));
     water.rotation.x=-Math.PI/2;water.position.set((L1B.x0+L1B.x1)/2,.15,862+E/2);water.receiveShadow=true;sc.add(water);
     meshObjs(objsL.filter(o=>o.kind!=='void'&&o.kind!=='water'));
-    const d=makeDinghy();d.position.set(138,.1,858);d.rotation.y=.4;d.rotation.z=.05;   // pulled up on the beach
+    const d=makeDinghy();if(d.parent)d.parent.remove(d);sc.add(d);d.position.set(138,.1,858);d.rotation.y=.4;d.rotation.z=.05;L1.boat=d;   // pulled up on the beach: the way out (l1Exfil)
     const poleM=new T.MeshStandardMaterial({color:0x1d2124,roughness:.6,metalness:.6});
     for(const L of L1.lamps){const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);sc.add(hd);if(L.pole)addMesh(new T.CylinderGeometry(1.2,1.6,L.h+2,8),poleM,L.x,(L.h+2)/2,L.y);}
     // the wounded scout, lying by the hut's door (a soldier's model, no torch)
@@ -148,7 +148,7 @@ function spawnL1(){
 }
 
 /* ---------- in and out ---------- */
-function resetL1(){Object.assign(l1,{yardClear:false,scoutUp:false,relayHP:100,relayDown:false,won:false,t0:simT});}
+function resetL1(){Object.assign(l1,{yardClear:false,scoutUp:false,relayHP:100,relayDown:false,won:false,exfil:false,away:null,t0:simT});leaveHeli();}
 // Level 1 in play: the big map stashed, Level 1's built fresh (a clean ground, the relay standing, the scout down)
 function enterLevel1(){
   buildLevel1();
@@ -166,24 +166,66 @@ function enterLevel1(){
 }
 // back to the big map at once (a new game, Level 2 after this one, or Run it again)
 function leaveLevel1Now(){
-  if(MAPID!=='l1')return;const out=STASH.out;tut.on=false;extraFigs.length=0;tut.tip=null;for(const el of document.querySelectorAll('.tutGlow'))el.classList.remove('tutGlow');
+  if(MAPID!=='l1')return;const out=STASH.out;tut.on=false;extraFigs.length=0;leaveHeli();for(const p of players)p.inBoat=false;tut.tip=null;for(const el of document.querySelectorAll('.tutGlow'))el.classList.remove('tutGlow');
   for(const u of units)if(u.side!=='P'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';
   for(const p of players){p.offMap=false;moveMesh(p,out.scene);}
   units=[...out.units,...players.filter(p=>!out.units.includes(p))];enemies=units.filter(u=>u.side==='E');civs=[];
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();tutShow();
 }
-function startLevel1(again){   // again: "Try Level 1 again"
+function startLevel1(again){   // again: "Try Level 1 again" (straight onto the beach, no helicopter)
   reset();   // (Level 2's squad, outdoors; back from Level 1 first if need be)
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
-  enterLevel1();state='play';tutStart(again);
-  banner('Level 1: knock out the enemy radio tower up north.',3200);hud();
+  enterLevel1();state='play';
+  const go=()=>{tutStart(again);banner('Level 1: knock out the enemy radio tower up north.',3200);hud();};
+  if(again)go();else startHeli(go);
+  hud();
 }
 function startLevel2(){
-  LEVEL=2;clearSave();refreshSaveButtons();reset();startView();
+  LEVEL=2;clearSave();refreshSaveButtons();reset();if(typeof applyLoadout==='function')applyLoadout();startView();   // (what was picked between missions: equip.js)
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   state='play';startLanding();banner('Coming in to the dock…',2400);hud();
 }
+
+/* ---------- the start: a helicopter drops them on the beach (Bryan: "To start level 1, maybe a helicopter drops off the
+   players, and a voice says, you're on your own now - good luck!") ----------
+   It comes in low over the river from the south-east, hovers over the sand, the four jump out one after another and move
+   up to their spots, and it climbs away to the south-west; the pilot on the radio as it comes in and as it goes. No orders
+   until they're all down (heliBusy, input.js); the tutorial starts as it lifts away. */
+const HELI={hover:{x:250,y:824,h:34},from:{x:600,y:1240,h:150},to:{x:-300,y:1200,h:190},T:{in:4.8,drop:5.3,gap:.42,out:7.6,gone:12}};
+let heli=null;
+function startHeli(onDone){
+  const m=makeHeli();if(m.parent)m.parent.remove(m);L1.scene.add(m);
+  heli={t:0,m,done:onDone,out:0,said:{}};
+  for(const p of players){p.inHeli=true;p.x=HELI.hover.x;p.y=HELI.hover.y;p.path=[];}
+  zoom=2.1;camT={x:240,z:790};clampCam();updateCamera();heliTick(0);
+}
+const heliBusy=()=>!!heli&&heli.out<players.length;   // (input.js: no orders until they're all on the ground)
+function heliTick(dt){
+  const H=heli;if(!H)return;H.t+=dt;const t=H.t,T=HELI.T,m=H.m,ud=m.userData,A=HELI.from,P=HELI.hover,Z=HELI.to;
+  let x,y,h,yaw,pitch=0,roll=0;
+  if(t<T.in){const k=t/T.in,e=1-Math.pow(1-k,2.4);x=A.x+(P.x-A.x)*e;y=A.y+(P.y-A.y)*e;h=A.h+(P.h-A.h)*(1-Math.pow(1-k,1.6));yaw=Math.atan2(P.x-A.x,P.y-A.y);pitch=k<.75?.12:-.18*(k-.75)/.25;}   // nose down coming in, flaring at the end
+  else if(t<T.out){x=P.x+Math.sin(t*1.3)*1.5;y=P.y+Math.cos(t*1.1)*1.2;h=P.h+Math.sin(t*2.1)*.8;yaw=Math.atan2(P.x-A.x,P.y-A.y)+Math.sin(t*.6)*.03;}
+  else{const k=Math.min(1,(t-T.out)/(T.gone-T.out)),e=k*k;x=P.x+(Z.x-P.x)*e;y=P.y+(Z.y-P.y)*e;h=P.h+(Z.h-P.h)*Math.min(1,k*1.6);const y0=Math.atan2(P.x-A.x,P.y-A.y),y1=Math.atan2(Z.x-P.x,Z.y-P.y);yaw=y0+(y1-y0)*Math.min(1,k*3);pitch=.14*Math.min(1,k*4);roll=-.2*Math.sin(Math.min(1,k*3)*Math.PI);}
+  m.position.set(x,h,y);m.rotation.set(0,0,0);m.rotateY(yaw);m.rotateX(pitch);m.rotateZ(roll);
+  ud.rotor.rotation.y+=dt*15;ud.tr.rotation.x+=dt*42;ud.strobe.visible=Math.sin(t*9)>.85;ud.beacon.visible=Math.sin(t*5)>.2;ud.lamp.intensity=t<T.out+1.5?3:0;
+  H.pos={x,y,h};
+  if(t>=T.drop){const n=Math.min(players.length,Math.floor((t-T.drop)/T.gap)+1);   // out of the doors one after another
+    while(H.out<n){const i=H.out++,p=players[i];if(!p)break;const sd=i%2?1:-1,c=Math.cos(yaw),sn=Math.sin(yaw);
+      p.inHeli=false;p.x=x+sd*12*c+(i<2?6:-6)*sn;p.y=y-sd*12*sn+(i<2?6:-6)*c;p.elev=24;p.ang=-Math.PI/2;
+      const st=L1_START[i]||L1_START[0],path=findPath(p.x,p.y,st[0],st[1]);p.path=path||[];p.lastOrder=simT;}}
+  if(t>.8&&!H.said.in&&(pilotSay('heli_in','Thirty seconds to the beach. Get ready.',t>2.4)))H.said.in=1;   // (a moment for his file to load: voice.js)
+  if(t>T.out+.3&&!H.said.out&&(pilotSay('heli_out','You\u2019re on your own now. Good luck.',t>T.out+1.6)))H.said.out=1;
+  if(t>=T.out+2.6&&H.done){const f=H.done;H.done=null;f();}   // (after the pilot's last word: the tutorial and the mission's line)
+  if(t>=T.gone){if(m.parent)m.parent.remove(m);heli=null;}
+}
+function pilotSay(key,text,anyway){   // the pilot over the radio (his voice: sounds/voice/PL.mp3); false while his file's still loading, unless anyway
+  const d=typeof voiceClip==='function'?voiceClip('PL',key+'_1',{radio:true}):0;
+  if(!d&&!anyway&&sndOn&&typeof VSPR!=='undefined'&&VSPR&&VSPR.speakers.PL)return false;
+  if(d&&typeof squelch==='function'){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}
+  banner(`Pilot: \u201c${text}\u201d`,Math.max(2400,(d||1.8)*1000+700));return true;
+}
+function leaveHeli(){if(heli&&heli.m&&heli.m.parent)heli.m.parent.remove(heli.m);heli=null;for(const p of players)p.inHeli=false;}   // (leaving Level 1, or starting it again)
 
 /* ---------- the scout, the checkpoint, the relay ---------- */
 function l1Acts(){
@@ -210,10 +252,38 @@ function relayDown(){
   for(let k=0;k<6;k++)sparks.push({x:cx+(Math.random()-.5)*20,y:cy+(Math.random()-.5)*20,t:-k*.06});
   booms.push({x:cx,y:cy,t:0});shake(.9);if(typeof sfxSparks==='function')sfxSparks(cx,cy);
   banner('Radio tower down. They\'re deaf and blind.',2600);
-  setTimeout(()=>l1Win(),1800);
+  setTimeout(()=>l1Exfil(),2200);
+}
+/* ---------- the way out (Bryan: "after blowing the radio tower, you hop on a dinghy, which brings you to where level 2 is
+   now"): back to the boat on the beach; once everyone who's alive is in its ring (a man who's down carried in), they push
+   off, the boat heads out over the river, and the mission's complete. ---------- */
+const L1_BOAT={x0:110,x1:240,y0:804,y1:858};
+function l1Exfil(){
+  if(l1.exfil||l1.won||state!=='play'||MAPID!=='l1')return;l1.exfil=true;updateObjUI();
+  const r=players.find(p=>p.id==='A1'&&alive(p)&&!p.joined)||players.find(alive);
+  const d=r&&typeof voiceClip==='function'?voiceClip(r.id,'boatgo_1',{radio:true}):0;if(d&&typeof squelch==='function'){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}
+  if(r)callouts.push({x:r.x,y:r.y,t:0,dur:3,text:'Tower\u2019s down. Everyone back to the boat.',col:'#dfe6ea',small:true});
+  banner('Back to the boat on the beach.',2600);hud();
+}
+const boatNeed=()=>players.filter(p=>!p.dead);
+const boatIn=p=>p.x>=L1_BOAT.x0&&p.x<=L1_BOAT.x1&&p.y>=L1_BOAT.y0&&p.y<=L1_BOAT.y1;
+function exfilTick(dt){
+  if(!l1.exfil||l1.won)return;
+  if(l1.away!=null){   // pushing off: the boat heads out over the river with them in it
+    l1.away+=dt;const B=L1.boat,k=Math.min(1,l1.away/3.2),e=k*k,bx=138,by=858+e*190;
+    if(B){B.position.set(bx,.2,by);B.rotation.y=Math.PI;B.rotation.z=Math.sin(simT*1.7)*.035;}
+    players.filter(p=>!p.dead).forEach((p,i)=>{const s=LAND_SEATS[i%4];p.x=bx-s[0];p.y=by-s[1];p.path=[];p.ang=Math.PI/2;});
+    if(l1.away>=1.4&&!l1.won)l1Win();return;
+  }
+  const need=boatNeed();if(!need.length)return;
+  if(need.every(boatIn)&&need.every(p=>!p.downed||p.carriedBy||boatIn(p))){   // all aboard: push off
+    l1.away=0;tutStop();sel=[];cardGroup=[];preview=null;mode=null;
+    for(const p of need){if(p.carry){const c=p.carry;c.carriedBy=null;p.carry=null;}Object.assign(p,{inBoat:true,path:[],supT:null,focus:null,silent:null,elev:1.2});}
+    bigText('Pushing off','clear');hud();
+  }
 }
 function l1Win(){
-  if(l1.won||state!=='play'||MAPID!=='l1')return;l1.won=true;tutStop();
+  if(l1.won||state!=='play'||MAPID!=='l1')return;l1.won=true;tutStop();if(typeof setLoop==='function'&&AC)setLoop('boat',0,null,null);
   try{localStorage.setItem(L1_DONE_KEY,'1');}catch(e){}
   state='end';setStatus();bigText('Mission complete!','complete');setTimeout(showAAR,2600);
 }
@@ -224,7 +294,7 @@ function l1Threat(){   // before anyone's seen: where previews judge cover from
 /* ---------- every tick (from update) ---------- */
 function l1Tick(dt){
   if(MAPID!=='l1'||!L1)return;
-  stationTick(dt);useTick(dt);tutTickL1(dt);   // the medic station and ammo drop; the scout (interior.js's things to use); the tutorial
+  stationTick(dt);useTick(dt);tutTickL1(dt);heliTick(dt);exfilTick(dt);   // the medic station and ammo drop; the scout (interior.js's things to use); the tutorial; the helicopter in, the boat out
   if(L1.relay&&L1.relay.light)L1.relay.light.visible=!l1.relayDown&&Math.sin(simT*4)>0;   // the mast's warning light blinks
   if(!l1.yardClear&&L1.yard.every(beaten)&&simT-lastNoiseT>2){   // the yard clear: a checkpoint by the relay hut
     l1.yardClear=true;addZones(L1_REST);bigText('Checkpoint','clear');
@@ -233,7 +303,7 @@ function l1Tick(dt){
 }
 function l1Hint(){
   if(tutStep())return '';   // (the boot camp's box says it)
-  if(l1.relayDown)return 'Radio tower down.';
+  if(l1.relayDown)return l1.exfil?'Get everyone back to the boat on the beach (the green ring). Carry anyone who\'s down.':'Radio tower down.';
   if(!L1.yard.every(beaten))return L1.fence.every(beaten)?(L1.gate.every(beaten)?'Clear the yard: get into cover first, then fire. The ambush gives you an edge.':'Two guards at the gate: Alpha\'s silencers can drop them together. Select Alpha and tap each one.'):'One guard by the shed has his back to you: select one soldier and tap him to take him down.';
   if(!l1.scoutUp)return 'A wounded scout lies by the hut: select a soldier and tap him to bring him round.';
   return 'Bring down the radio tower east of the hut: Hayes\'s RPG (on his card) at the ring under it, or a grenade close to it.';
@@ -249,6 +319,13 @@ function drawL1(now){
     if(u&&alive(u)){toSBack=false;const a=toS(u.x,u.y,1),b=toS(g.x,g.y,1);if(!toSBack){ox.setLineDash([3,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(77,243,255,.85)';ox.lineWidth=2.6;ox.lineCap='round';ox.beginPath();ox.moveTo(...a);ox.lineTo(...b);ox.stroke();ox.setLineDash([]);ox.lineCap='butt';}}
   }
   if(m0){const p=(Math.sin(now*4)+1)/2,col=m0.col||'#4df3ff';toSBack=false;gPath(m0.x,m0.y,m0.r+p*4);if(!toSBack){ox.strokeStyle=col;ox.lineWidth=2.6;ox.setLineDash([6,5]);ox.lineDashOffset=-now*12;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(m0.x,m0.y+m0.r,6);label(m0.label||'HERE',lx,ly,col,10,700);}}   // the spot to tap
+  if(l1.exfil&&l1.away==null){   // the way out: the boat's ring on the beach, and how many are in it
+    const z=L1_BOAT,need=boatNeed(),n=need.filter(boatIn).length,pulse=(Math.sin(now*4)+1)/2;toSBack=false;
+    const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));
+    if(!toSBack){ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();ox.fillStyle=`rgba(95,224,142,${(.06+pulse*.07).toFixed(3)})`;ox.fill();
+      ox.setLineDash([10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
+      const[lx,ly]=below((z.x0+z.x1)/2,z.y0,10);label(`BOAT ${n}/${need.length}`,lx,ly-26,C.good,10,700);}
+  }
   const R=L1.relay,cx=R.x+R.w/2,cy=R.y+R.h/2;
   if(l1.scoutUp&&!l1.relayDown&&!(tip&&tip.k==='rpg')){const p=(Math.sin(now*3)+1)/2;toSBack=false;gPath(cx,cy,30+p*3);if(!toSBack){ox.strokeStyle='rgba(255,138,106,.85)';ox.lineWidth=2.4;ox.setLineDash([7,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);}}   // the ring under the tower: what to aim at (Bryan)
   if(!l1.relayDown){const[lx,ly]=below(cx,cy+R.h/2,10);label(l1.relayHP<100?`RADIO TOWER · RPG · ${Math.max(0,Math.round(l1.relayHP))}%`:'RADIO TOWER · RPG',lx,ly,'#ff8a6a',10,700);}   // (Bryan: "it should say Radio Tower - RPG")
@@ -332,10 +409,10 @@ const TUT_TIPS=[
    done:()=>headedTo(players.filter(p=>p.team==='A'&&alive(p)),VOL_SPOT,60),
    text:'<b>Silent shots.</b> Both of Alpha\'s rifles are silenced. Tap <b>ALPHA</b>, then the ring by the gate, twice.'},
   {k:'volley',gap:.4,when:()=>L1.fence.every(beaten)&&sel.filter(alive).length>=2&&L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e)),
-   still:()=>L1.gate.some(e=>!beaten(e)&&!e.alerted&&canVolley(sel,e))||players.some(p=>p.silent),
-   mark:()=>ringOn(L1.gate.find(e=>!beaten(e)&&!markedBy(e)&&canVolley(sel,e)),'TAP'),
-   need:(k,x)=>k==='tap'&&!!x.e&&canVolley(sel,x.e),act:k=>k==='tap',progress:()=>players.some(p=>p.silent),done:()=>!!volley||L1.gate.every(beaten),
-   text:'<b>Silent shots.</b> Tap one guard, then the other: Reyes and Kowalski fire together on a count.'},
+   still:()=>L1.gate.some(e=>!beaten(e)&&!e.alerted&&canQuiet(sel,e))||players.some(p=>p.silent),   // (the second guard: one silent shooter in reach is enough)
+   mark:()=>ringOn(L1.gate.find(e=>!beaten(e)&&canQuiet(sel,e)&&!players.some(p=>p.silent&&p.silent.e===e)),'TAP'),
+   need:(k,x)=>k==='tap'&&!!x.e&&canQuiet(sel,x.e),act:k=>k==='tap',progress:()=>!!volley||players.some(p=>p.silent)||L1.gate.some(beaten),done:()=>L1.gate.every(beaten),
+   text:'<b>Silent shots.</b> Tap one guard, then the other: Reyes and Kowalski take one each, on the same count.'},
   // the yard: everyone into cover by the barrels, then suppress and a grenade
   {k:'yardmove',when:()=>L1.gate.every(beaten)&&L1.yard.some(e=>!beaten(e))&&quiet()&&!atSpot(players.filter(alive),YARD_SPOT,75),
    still:()=>L1.yard.some(e=>!beaten(e))&&quiet(),
@@ -355,7 +432,7 @@ const TUT_TIPS=[
    done:()=>players.some(p=>p.throwGo&&p.throwGo.kind==='nade')||fromUs(nades),
    text:'<b>Grenade.</b> Tap the grenade on a soldier\'s card (it glows), then tap the guards behind the sandbags.'},
   {k:'contact',when:()=>contact&&enemies.some(e=>e.vis&&!beaten(e)),still:()=>contact&&enemies.some(e=>e.vis&&!beaten(e)),
-   need:(k,x)=>tutPick(k,x)||(k==='tap'&&!!x.e),act:(k,x)=>k==='tap'&&!!x.e&&sel.some(alive),done:()=>players.some(p=>alive(p)&&p.focus),
+   need:(k,x)=>tutPick(k,x)||(k==='tap'&&!!x.e),act:(k,x)=>k==='tap'&&!!x.e&&sel.some(alive),done:()=>players.some(p=>alive(p)&&(p.focus||p.silent))||volleyPending(),
    text:'<b>You\'ve been seen.</b> Your men fire on their own now. Tap an enemy to focus fire: the % is the chance to hit. Cover cuts theirs.'},
   {k:'down',when:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),still:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),modes:['medkit'],
    need:(k,x)=>tutPick(k,x)||(k==='tap'&&(mode==='medkit'||(!!x.u&&x.u.downed)))||(k==='gear'&&x.item==='spec'&&x.u.spec==='medkit'),
@@ -429,7 +506,7 @@ function tutShow(){
   const box=$('#tut'),pin=$('#tutPin');if(!box)return;
   const s=MAPID==='l1'&&state==='play'?tutStep():null,tip=MAPID==='l1'&&state==='play'&&tut.on&&!s?tut.tip:null,has=!!(s||tip);
   const note=s?!!s.ack:tut.ack,nudged=tut.nudgeT>0&&!(tip&&tut.loose);
-  if(has)box.innerHTML=`<small>${s?`Boot camp ${tut.i+1}/${TUT_STEPS.length}`:'Tip'}</small>${(s||tip).text}<span class="tfoot"><span${nudged?' class="now"':''}>${note?'Tap to continue':nudged?'Do this first':'Tap to hide'}</span><button type="button" class="tskip">${s?'Skip tutorial':'Turn off tips'}</button></span>`;
+  if(has)box.innerHTML=`<small>${s?`Tutorial ${tut.i+1}/${TUT_STEPS.length}`:'Tip'}</small>${(s||tip).text}<span class="tfoot"><span${nudged?' class="now"':''}>${note?'Tap to continue':nudged?'Do this first':'Tap to hide'}</span><button type="button" class="tskip">${s?'Skip tutorial':'Turn off tips'}</button></span>`;
   box.hidden=!has||tut.hid;if(pin)pin.hidden=!has||!tut.hid;
 }
 function tutTap(){   // a tap on the bubble (hud.js)

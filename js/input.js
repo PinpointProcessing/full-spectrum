@@ -3,12 +3,13 @@
 let ptr=null;
 function unitAtScreen(sx,sy,activeOnly){
   let best=null,bd=26;
-  for(const u of players){if(u.dead||u.seat==='driver'||u.offMap||u.carriedBy)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
+  for(const u of players){if(u.dead||u.seat==='driver'||u.offMap||u.carriedBy)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8+(u.onTower||u.climb?u.elev||0:0));const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
   return best;
 }
+const noOrders=()=>!!landing||(typeof heliBusy==='function'&&heliBusy())||(MAPID==='l1'&&l1&&l1.away!=null);   // in the dinghy coming in, the helicopter, or the boat going out
 function enemyAtScreen(sx,sy){
   let best=null,bd=26;
-  for(const e of enemies){if(e.dead||!e.vis)continue;const[x,y]=toS(e.x+e.lx,e.y+e.ly,8);const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=e;}}
+  for(const e of enemies){if(e.dead||!e.vis)continue;const[x,y]=toS(e.x+e.lx,e.y+e.ly,8+(e.elev||0));const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=e;}}
   return best;
 }
 function localXY(ev){const r=ov.getBoundingClientRect();return[ev.clientX-r.left,ev.clientY-r.top];}
@@ -89,13 +90,13 @@ function bindInput(){
     if(ptr)return;
     ptr={id:ev.pointerId,sx,sy,cx:sx,cy:sy,lx:sx,ly:sy,lt:performance.now(),t0:performance.now(),vx:0,vy:0,kind:null,lp:false,
       unit:state==='play'?unitAtScreen(sx,sy,true):null,trail:[]};
-    ptr.supPt=state==='play'&&!ptr.unit&&!mode&&!landing&&sel.some(alive)?suppressAt(sx,sy):null;   // (for the filling ring: drawHold)
+    ptr.supPt=state==='play'&&!ptr.unit&&!mode&&!noOrders()&&sel.some(alive)?suppressAt(sx,sy):null;   // (for the filling ring: drawHold)
     ptr.timer=setTimeout(()=>{
       if(!ptr||ptr.kind||state!=='play')return;
       const u=unitAtScreen(ptr.sx,ptr.sy,true);
       ptr.lp=true;
       try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}
-      const sp=!u&&!mode&&!landing&&suppressAt(ptr.sx,ptr.sy);   // holding on an enemy, or where one was seen: suppress
+      const sp=!u&&!mode&&!noOrders()&&suppressAt(ptr.sx,ptr.sy);   // holding on an enemy, or where one was seen: suppress
       if(u){if(tutAllows('hold',u)){select([u]);preview=null;mode=null;callout(u,u.name,teamCol(u));}}
       else if(sp){if(!sel.some(alive))banner('Select soldiers, then hold your finger on an enemy to suppress him.',2400);else if(tutAllows('suppress',sp))orderSuppress(sel,sp);}
       else if(tutAllows('lasso')){ptr.kind='lasso';ptr.loop=[[ptr.cx,ptr.cy]];}
@@ -130,7 +131,7 @@ function bindInput(){
     ptr.cx=x;ptr.cy=y;
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind=ptr.unit&&alive(ptr.unit)&&!landing&&!mode&&tutAllows('draw',ptr.unit)?'draw':'pan';   // no orders while the dinghy is still coming in; aiming a suppress/grenade/charge never starts a route; nor does Level 1's tutorial lock unless that's what it asks for
+      ptr.kind=ptr.unit&&alive(ptr.unit)&&!noOrders()&&!mode&&tutAllows('draw',ptr.unit)?'draw':'pan';   // no orders while the dinghy is still coming in; aiming a suppress/grenade/charge never starts a route; nor does Level 1's tutorial lock unless that's what it asks for
       if(ptr.kind==='draw'){select([ptr.unit]);preview=null;mode=null;hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
@@ -195,7 +196,7 @@ function drawHold(now){
   label('SUPPRESS',x,y-30,C.warn,10,700);
 }
 function tap(sx,sy){
-  if(landing)return;   // the squad is still in the dinghy
+  if(noOrders())return;   // the squad is still in the dinghy (Level 2) or the helicopter (Level 1)
   if(!tutAllows('tap',sx,sy))return;   // Level 1's tutorial: only what the step or tip asks for (level1.js)
   const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)
   sel=sel.filter(alive);
@@ -251,11 +252,8 @@ function tap(sx,sy){
     if(sel.length===1&&sel[0]===pu&&cardGroup.filter(alive).length>1){select(cardGroup.filter(alive));preview=null;mode=null;return;}
     selectTeam(pu.team);return;
   }
-  if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
-  if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
-  {const cv=civAtScreen(sx,sy);if(cv&&civTap(cv)){preview=null;return;}}
-  if(MAPID==='out'&&sel.some(alive)&&hyp(wx-PBOX.gun.x,wy-PBOX.gun.y)<18&&!gunMan()){if(orderMan(sel))preview=null;return;}   // the pillbox's gun, nobody on it: the nearest selected soldier takes it (mission.js)
-  if(MAPID==='out'&&sel.some(alive)&&(hyp(wx-TOWER.x,wy-TOWER.y)<20||hyp(wx-TOWER.ladder.x,wy-TOWER.ladder.y)<12)&&!sel.some(u=>u.onTower)){orderClimb(sel);preview=null;return;}   // the watchtower: climb it (mission.js)   // a scientist (zip-tie him), a locked-up prisoner (open his cell), the man on the wall (office.js)
+  // a hostile under the finger comes before anything on the ground (Bryan couldn't shoot the operator: he sits on the
+  // computer's ring, and the tap went to the computer)
   const en=enemyAtScreen(sx,sy);
   if(en&&en.surr){   // he gave up: the nearest selected soldier zip-ties him (layers.js)
     if(en.tied){banner('He is tied up.',1400);return;}
@@ -264,12 +262,22 @@ function tap(sx,sy){
   }
   if(en&&sel.length===1&&canTakedown(sel[0],en)){if(orderTakedown(sel[0],en))preview=null;return;}   // his back is to the one soldier selected: a silent takedown (combat.js)
   if(en&&sel.length===1&&canSilent(sel[0],en)){if(!(sel[0].silent&&sel[0].silent.e===en))orderSilent(sel[0],en);preview=null;return;}   // the one soldier selected has a silencer and the man hasn't seen him: a silent shot (a second tap doesn't restart his aim)
-  if(en&&sel.length>1&&canVolley(sel,en)){if(orderVolley(sel,en))preview=null;return;}   // two or more silencers selected: mark him for one of them (combat.js)
-  if(en&&sel.length){
-    for(const u of sel){u.focus=en;u.supT=null;u.focusTank=null;}
+  if(en&&sel.length){   // Bryan: whoever's selected opens fire on him; anyone without a clear shot goes and gets one (combat.js)
+    if(volleyPending()&&sel.some(u=>volley.by.includes(u)||volley.movers.includes(u))){   // they're getting set on a man:
+      if(volley.targets.includes(en)){if(volley.at==null){volleyNow();callout(en,'Now!',C.good);}preview=null;return;}   // him again: fire now
+      if(volleySplit(en)){preview=null;return;}   // another one: they split, one each, on the same count (combat.js)
+    }
+    const r=orderFire(sel,en);preview=null;if(!r)return;
     if(selCrew().length){const jv=jeepOf();jv.engage=en;jv.engageT=0;}   // the driver lines the turret up
-    callout(en,sel.some(caught)?'Focus fire':'Open fire!',C.warn);say(sel[0],'ack_attack');return;
+    if(r.crew.length||r.moveQ.length)callout(en,'On my mark',C.good);
+    else if(r.fire.length||r.move.length){callout(en,sel.some(caught)?'Focus fire':'Open fire!',C.warn);say(sel[0],'ack_attack');}
+    return;
   }
+  if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
+  if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
+  {const cv=civAtScreen(sx,sy);if(cv&&civTap(cv)){preview=null;return;}}
+  if(MAPID==='out'&&sel.some(alive)&&hyp(wx-PBOX.gun.x,wy-PBOX.gun.y)<18&&!gunMan()){if(orderMan(sel))preview=null;return;}   // the pillbox's gun, nobody on it: the nearest selected soldier takes it (mission.js)
+  if(MAPID==='out'&&sel.some(alive)&&(hyp(wx-TOWER.x,wy-TOWER.y)<20||hyp(wx-TOWER.ladder.x,wy-TOWER.ladder.y)<12)&&!sel.some(u=>u.onTower)){orderClimb(sel);preview=null;return;}   // the watchtower: climb it (mission.js)   // a scientist (zip-tie him), a locked-up prisoner (open his cell), the man on the wall (office.js)
   if(!inMap){preview=null;return;}
   if(!sel.length){banner('Select soldiers first.',1600);return;}
   const sinceFire=performance.now()-fireOrderAt;

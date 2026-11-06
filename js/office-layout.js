@@ -92,7 +92,7 @@ const OFFICE_LAYOUT={floors:[
    {name:'Main lobby',x0:190,y0:650,x1:550,y1:880,doorway:'front doors (south, 80 wide); open to both hallways, the reception alcove, the elevator lobby (120 opening) and the stairwell door (60)',contents:'front desk counter, two pillars, sofas, planters; entry and exit at the front doors'},
    {name:'Elevator lobby',x0:30,y0:650,x1:180,y1:880,doorway:'120-wide opening east into the main lobby',contents:'the elevator car on the west wall (locked until the access card), a bench'},
    {name:'Lift car GF',x0:30,y0:710,x1:90,y1:820,doorway:'car doors east, 40 wide',contents:'ride up to 1F (needs the access card)'},
-   {name:'Stairwell GF',x0:560,y0:650,x1:710,y1:880,doorway:'60-wide doorway west into the main lobby',contents:'the stairs up to 1F along the east wall (locked until the access card)'},
+   {name:'Stairwell GF',x0:560,y0:650,x1:710,y1:880,doorway:'60-wide doorway west into the main lobby',contents:'the stairs up to 1F along the east wall (open: the door at the top needs the access card)'},
    {name:'Lobby reception',x0:250,y0:540,x1:490,y1:650,doorway:'open south onto the main lobby, round both ends of the front desk',contents:'behind the front desk: the medical and supply boxes once the floor is clear'},
    {name:'West hall',x0:190,y0:350,x1:240,y1:650,doorway:'open to the main lobby (south) and the shared room (north mouth)',contents:'doors to W1, W2 (west) and W3 (east); its north end is watched by the door guard'},
    {name:'East hall',x0:500,y0:350,x1:550,y1:650,doorway:'open to the main lobby (south) and the shared room (north mouth)',contents:'doors to E1, E2 (east) and E3 (west); R3 watches its middle through the E3 door'},
@@ -127,7 +127,7 @@ const OFFICE_LAYOUT={floors:[
    {kind:'steeldoor',x:370,y:160,note:'the basement door; faint cries behind it; opens from the computer and springs the ambush'},
    {kind:'keycard-drop',x:370,y:185,note:'the access card: drops where G2 falls once all three shared-room guards are down (walk over it)'},
    {kind:'lift-call',x:115,y:740,note:'elevator call button: locked until the access card'},
-   {kind:'stairs',x:625,y:790,note:'card reader at the foot of the stairs up: locked until the access card'},
+   {kind:'stairs',x:625,y:790,note:'the foot of the stairs up (open; the stair door at the top has the card reader)'},
    {kind:'stairs',x:440,y:104,note:'the stairs down to the basement'},
   ],
   zones:[
@@ -135,8 +135,8 @@ const OFFICE_LAYOUT={floors:[
    {kind:'exit',x0:310,y0:800,x1:430,y1:878,note:'gather here with the scientists to leave'},
    {kind:'rest-med',x0:256,y0:548,x1:356,y1:633,note:'medical box behind the front desk'},
    {kind:'rest-sup',x0:384,y0:548,x1:484,y1:633,note:'supply box behind the front desk'},
-   {kind:'stairs-up',x0:640,y0:660,x1:704,y1:780,note:'the flight up to 1F (locked until the access card)'},
-   {kind:'stairs-down',x0:400,y0:34,x1:466,y1:112,note:'the flight down to B1 behind the steel door'},
+   {kind:'stairs-up',x0:640,y0:660,x1:704,y1:780,dir:'n',note:'the flight up to 1F, climbing north'},
+   {kind:'stairs-down',x0:400,y0:34,x1:466,y1:112,dir:'n',note:'the flight down to B1 behind the steel door, going down to the north'},
    {kind:'lift-car',x0:30,y0:710,x1:90,y1:820,note:'the elevator car (up to 1F, needs the access card)'},
   ],
  },
@@ -189,7 +189,7 @@ const OFFICE_LAYOUT={floors:[
    {kind:'stairs',x:820,y:-452,note:'the stairs up to GF (the landing behind the steel door)'},
   ],
   zones:[
-   {kind:'stairs-up',x0:790,y0:-440,x1:850,y1:-364,note:'the flight up to GF'},
+   {kind:'stairs-up',x0:790,y0:-440,x1:850,y1:-364,dir:'s',note:'the flight up to GF, climbing south'},
    {kind:'cells',x0:660,y0:-740,x1:740,y1:-655,note:'C1 (empty)'},
    {kind:'cells',x0:660,y0:-645,x1:740,y1:-560,note:'C2 (prisoner)'},
    {kind:'cells',x0:900,y0:-740,x1:980,y1:-655,note:'C3 (prisoner)'},
@@ -212,6 +212,7 @@ const OFFICE_LAYOUT={floors:[
    {kind:'iwall',x:380,y:-400,w:10,h:50},
    {kind:'iwall',x:420,y:-340,w:10,h:100},
    {kind:'iwall',x:420,y:-200,w:10,h:100},
+   {kind:'carddoor',x:420,y:-240,w:10,h:40,note:'the stair door: a card reader on the stairwell side; shut until the access card (Bryan: go up the stairs and find a card door at the top)'},
    {kind:'liftwall',x:20,y:-285,w:70,h:10,note:'car north wall'},
    {kind:'liftwall',x:20,y:-165,w:70,h:10,note:'car south wall'},
    {kind:'liftwall',x:80,y:-275,w:10,h:35,note:'car front, north of the doors (the only cover)'},
@@ -248,7 +249,7 @@ const OFFICE_LAYOUT={floors:[
    {name:'Security office',x0:390,y0:-480,x1:570,y1:-350,doorway:'west onto the hallway (y -440..-400)',contents:'empty: CCTV desk, lockers'},
    {name:'Turret room',x0:20,y0:-340,x1:420,y1:-100,doorway:'west: the elevator car doors (40); east: the stair door (40) behind the nest; north: the hallway (50)',contents:'manned MG nest and two guards facing the elevator across 20 m of open floor; ammo crates behind the nest'},
    {name:'Lift car 1F',x0:20,y0:-275,x1:80,y1:-165,doorway:'car doors east, 40 wide',contents:'the only cover: against the front walls either side of the doors'},
-   {name:'Stairwell 1F',x0:430,y0:-340,x1:570,y1:-100,doorway:'west: the stair door (40) into the turret room, straight behind the MG nest',contents:'stairs up from GF along the east wall; two guards at the door with their backs to the stairs'},
+   {name:'Stairwell 1F',x0:430,y0:-340,x1:570,y1:-100,doorway:'west: the stair door (40, card reader: needs the access card) into the turret room, straight behind the MG nest',contents:'stairs up from GF along the east wall; two guards at the door with their backs to the stairs'},
   ],
   posts:[
    {role:'mg',x:316,y:-220,ang:3.1416,group:'turret',note:'the gunner: manned machine gun aimed at the elevator doors; can be taken down from behind (stair door 11 m behind him)'},
@@ -275,7 +276,7 @@ const OFFICE_LAYOUT={floors:[
    {kind:'stairs',x:536,y:-170,note:'the stairs down to GF'},
   ],
   zones:[
-   {kind:'stairs-down',x0:506,y0:-250,x1:566,y1:-150,note:'the flight down to GF; you come up at its south end'},
+   {kind:'stairs-down',x0:506,y0:-250,x1:566,y1:-150,dir:'n',note:'the flight down to GF, going down to the north; you come up at its south end'},
    {kind:'lift-car',x0:20,y0:-275,x1:80,y1:-165,note:'the elevator car (down to GF)'},
    {kind:'lift-wallspot',x0:20,y0:-275,x1:80,y1:-250,note:'against the car front north of the doors: out of the nest\'s line of fire'},
    {kind:'lift-wallspot',x0:20,y0:-190,x1:80,y1:-165,note:'against the car front south of the doors: out of the nest\'s line of fire'},
@@ -283,9 +284,9 @@ const OFFICE_LAYOUT={floors:[
  },
 ],transitions:[
  {kind:'stairs',"from":'GF',fromZone:'GF stairs-up (stairwell GF, x 640..704 y 660..780)',to:'1F',arrive:{x:540,y:-122}},
- {kind:'stairs',"from":'1F',fromZone:'1F stairs-down (stairwell 1F, x 506..566 y -250..-150)',to:'GF',arrive:{x:610,y:740}},
+ {kind:'stairs',"from":'1F',fromZone:'1F stairs-down (stairwell 1F, x 506..566 y -250..-150)',to:'GF',arrive:{x:672,y:800}},   // (at the foot of the flight up)
  {kind:'stairs',"from":'GF',fromZone:'GF stairs-down (basement landing, x 400..466 y 34..112)',to:'B1',arrive:{x:820,y:-462}},
- {kind:'stairs',"from":'B1',fromZone:'B1 stairs-up (x 790..850 y -440..-364)',to:'GF',arrive:{x:340,y:62}},
+ {kind:'stairs',"from":'B1',fromZone:'B1 stairs-up (x 790..850 y -440..-364)',to:'GF',arrive:{x:433,y:126}},   // (at the top of the flight down)
  {kind:'elevator',"from":'GF',fromZone:'GF lift-car (x 30..90 y 710..820)',to:'1F',arrive:{x:50,y:-220}},
  {kind:'elevator',"from":'1F',fromZone:'1F lift-car (x 20..80 y -275..-165)',to:'GF',arrive:{x:60,y:765}},
 ]};

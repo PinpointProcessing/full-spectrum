@@ -28,7 +28,7 @@ The plan as approved:
 
 The enemy has a radio relay on the river. Knock it out so the main landing (Level 2) goes in unseen.
 
-1. **The beach** (no enemies): the dinghy lands, then boot camp. Move the camera, tap ALPHA, move into cover (green and red
+1. **The beach** (no enemies): a helicopter drops the squad (v69: Bryan's idea; it was a dinghy landing), then the tutorial's first steps. Move the camera, tap ALPHA, move into cover (green and red
    ghosts), tap a card to order one man, draw a route, bring Bravo up, how sneaking and the detection ring work.
 2. **The fence**: one guard with his back to you. TAKEDOWN. He's alone, so getting it wrong is cheap.
 3. **The gate**: two guards looking away from each other. Alpha's silencers: mark both, they fire together.
@@ -36,7 +36,7 @@ The enemy has a radio relay on the river. Knock it out so the main landing (Leve
    the card. These guards aim far worse, go down faster, and have no machine guns, radio, reinforcements, grenades or dogs.
 5. **The wounded scout**: a friendly soldier down by the relay hut. Revive him, or carry him to the medic station; the
    checkpoint's medic station and ammo drop are explained here.
-6. **The relay**: destroy it with Hayes's RPG or a grenade. Mission complete, a short report, and Level 2 opens.
+6. **The relay**: destroy it with Hayes's RPG or a grenade. Then back to the boat on the beach and away (v69), mission complete, a short report, the squad at sea with the loadout, and Level 2.
 
 ## How it's built
 

@@ -39,3 +39,13 @@ Kokoro's `gen.py` stays for quick drafts. Each speaker's voice is copied from a 
 
 How each line is said (`style_of` in `voicelib.py`, settings in `STYLE` in `gen_zonos.py`) comes from the line's group;
 names Zonos gets wrong are respelled for it (`SAY`).
+
+## Lines made on their own (not in the main sheet)
+
+Three lines were added after the cast was done, outside `extract.js`'s sheet, with the same Zonos settings: Level 1's
+helicopter pilot (a new speaker, `PL`, voice from `refs/PL.flac`, made with Kokoro's `am_michael` like the other refs):
+`heli_in_1` "Thirty seconds to the beach. Get ready." and `heli_out_1` "You're on your own now. Good luck." (calm, over the
+radio, `PL.mp3`), and Reyes's `boatgo_1` "Tower's down. Everyone back to the boat." (urgent), added onto the end of `A1.mp3`
+with its manifest entry pointing past the old end. Three takes each, the best by `check_zonos.py`. A full repack of A1 with
+`pack_zonos.py` would drop `boatgo_1` (it isn't in `lines.json`): make it again the same way, or add it to the sheet for
+everyone who could say it.

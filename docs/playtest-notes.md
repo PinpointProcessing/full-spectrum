@@ -80,3 +80,45 @@ Bryan: "Here is everything from my testing."
 14. "If one squad is caught and the other remains undetected, then that squad can continue in a covert fashion." Detection is
    by fire team now: the hidden team keeps sneaking, holds fire, can take men down quietly and ambush, and isn't shot at;
    alerted men have to notice it (their cone, or close by) instead of seeing it all round; each team breaks contact on its own.
+
+# Playtest notes (Bryan, testing v68; the changes are in v69)
+
+1. "My unit doesn't stand in the sniper nest." The height of whoever climbed was eased back to the ground every tick (the
+   vault hop's easing); he stands on the platform now, his label and ring with him.
+2. "When I get a sniper, how can I switch back?" He keeps his own rifle on his back: the gun on his card shows a SWAP tag
+   (⇄ M4); tap it to swap, and again for the sniper rifle. Both are saved.
+3. "'The lift needs and access card from a shared room' just say 'Find an access card'." The lift, the computer and the
+   cells all say "Find an access card." now.
+4. "Can they go up the stairs just to see an access card door at the top? Also, the stairs look terrible." The stairs up
+   are open without the card; at the top the stairwell's door is locked (a red strip, LOCKED, a card reader beside it) and
+   opens with the card. Every flight is real 3D steps now (yellow nosings, handrails): up a block of steps, down into a
+   hole in the floor, and men climb and sink with them. You step on at the bottom or top only.
+5. "The last unit in the data warehouse was unkillable. Nothing happened when I clicked him." The operator sits right on the
+   COMPUTER's ring, and a tap there went to the computer ("needs the access card") before it reached him. A hostile under
+   the finger now comes before anything on the ground.
+6. "When I select an enemy unit, whoever I have selected on my squad should open fire on that individual. If they don't have
+   an open line of fire, they need to find one." Done: everyone selected takes him; anyone without a clear shot walks to the
+   nearest spot that has one (in a fight in cover, unseen out of the other guards' sight) and fires from there. Against a man
+   who hasn't noticed them, the silenced ones take him together on a count (those not in range move up first; tap him again
+   to fire at once), and anyone without a silencer waits for that shot. Tapping a second man during the count splits them,
+   one each, still together. Found on the way: in a volley only the first shot ever went off (his miss alerted the man and
+   called off the second); the shots land together now.
+7. "All the units should have silenced assault rifles for this level. Maybe start upgrading them or going to the store?"
+   Level 2 hands out silenced M4s (M4 SD: quiet like the silencer, never wears out). The store is a question for Bryan
+   (below).
+8. "Maybe level 2 can be level 3 and something a little easier for level 2." A draft for the new Level 2 is in
+   `docs/map-draft-G.png` ("Lights Out", the power station), waiting for his OK before anything is built.
+9. "I also want a screen between missions to equip your soldiers." Between missions: the squad in the dinghy on a night sea
+   (swell, rain, a far light or two, the camera drifting round), and each soldier's main weapon (M4 SD or the one M240) and
+   special item (smoke, one of two medic kits, the one RPG). Kept for next time. It comes after Level 1's report and before
+   Level 2 from the intro card.
+10. "The first training level should be a real level with a tutorial (no trainer on the grounds) then after blowing the
+   radio tower, you hop on a dinghy... In between the missions, you see your squad in the middle of the ocean." The tutorial
+   box says "Tutorial n/7" (no "boot camp"); after the radio tower they go back to the boat on the beach (a green ring,
+   BOAT n/4; anyone down is carried), push off, and the report and the sea come after.
+11. "To start level 1, maybe a helicopter drops off the players, and a voice says, you're on your own now - good luck!" A
+   helicopter comes in low over the river, hovers over the beach, the four jump out, and it flies off; the pilot on the
+   radio: "Thirty seconds to the beach. Get ready." and "You're on your own now. Good luck." (a new Zonos voice). "Try
+   Level 1 again" starts on the beach without it.
+
+Open for Bryan: a store or upgrades (what you'd buy with, what's for sale), and the new Level 2 draft.

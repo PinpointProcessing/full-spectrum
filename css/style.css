@@ -95,6 +95,10 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #cards.narrow .uc-gun b{display:none}
 #cards.compact{gap:4px}#cards.compact .ucard{padding:3px 4px;gap:2px}#cards.compact .uc-gun{display:none}#cards.compact .uc-hpb{height:13px}#cards.compact .uc-hp{font-size:11px}#cards.compact .uc-nade,#cards.compact .uc-spec{min-height:24px}#cards.compact .uc-face{width:22px;height:22px}#cards.compact .uc-name{font-size:10.5px}#cards.compact .uc-id b{font-size:9px}   /* more than four cards (freed prisoners joined): two rows, no monitor */
 .uc-gun b.unarmed{color:var(--warn)}
+.uc-gun.swap{cursor:pointer;height:18px;margin:-2px 0}
+.uc-swap{margin-left:auto;flex:none;font-style:normal;font-weight:700;padding:1px 5px;border:1px solid var(--tc);border-radius:3px;color:#e8eef2;background:rgba(255,255,255,.06);letter-spacing:.08em}
+.uc-gun.swap:active .uc-swap{background:var(--tc);color:#0b0f12}
+#cards.compact .uc-gun.swap{display:flex}#cards.compact .uc-gun.swap svg,#cards.compact .uc-gun.swap b{display:none}
 .uc-hp::after{content:' HP'}.uc-hp.kia::after{content:''}
 #cards.narrow .uc-hp::after{content:''}
 #cards.narrow .uc-bot{gap:4px}#cards.narrow .uc-hp{font-size:13px}#cards.narrow .uc-nade,#cards.narrow .uc-spec,#cards.narrow .uc-rpg{padding:0 2px;gap:3px;font-size:12px;letter-spacing:0;min-height:30px}#cards.narrow .uc-nade svg,#cards.narrow .uc-spec svg{width:15px;height:15px}#cards.narrow .uc-rpg i{margin-left:2px}
@@ -225,3 +229,31 @@ button.on{border-color:var(--warn);color:var(--warn)}
 @media (prefers-reduced-motion: reduce){#hitFlash{display:none}}
 
 #crashNote{margin:10px 0 0;padding:8px 10px;border:1px solid color-mix(in srgb,var(--warn) 55%,transparent);border-radius:6px;background:rgba(255,200,80,.08);color:var(--warn);font-size:13px;line-height:1.4}
+
+/* between missions (equip.js): the squad in the dinghy at sea, the loadout over it */
+#equip{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+#equip>*{pointer-events:auto}
+.eq-head{position:absolute;top:12px;left:0;right:0;text-align:center;font-family:var(--font-hud);text-transform:uppercase;letter-spacing:.14em;pointer-events:none!important;text-shadow:0 1px 8px #000}
+.eq-head small{display:block;font-size:10px;color:var(--dim);font-weight:600}
+.eq-head b{font-size:15px;font-weight:700;color:var(--text)}
+.eq-panel{margin:0 0 10px;padding:10px 10px 12px;background:linear-gradient(180deg,rgba(9,13,17,.80),rgba(9,13,17,.94));border:1px solid var(--line);border-radius:8px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;flex-direction:column;gap:8px;max-height:calc(100% - 64px);overflow:auto}
+.eq-title{font-family:var(--font-hud);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+#eqRows{display:flex;flex-direction:column;gap:6px}
+.eq-row{display:grid;grid-template-columns:40px 62px minmax(0,1fr);grid-template-rows:auto auto;column-gap:8px;row-gap:4px;align-items:center;padding:6px;border:1px solid color-mix(in srgb,var(--tc) 35%,var(--line));border-left:3px solid var(--tc);border-radius:6px;background:rgba(255,255,255,.02)}
+.eq-face{grid-row:1/3;width:40px;height:40px;border-radius:4px;border:1px solid color-mix(in srgb,var(--tc) 50%,transparent)}
+.eq-who{grid-row:1/3;display:flex;flex-direction:column;min-width:0;font-family:var(--font-hud);line-height:1.15}
+.eq-who b{font-size:10px;letter-spacing:.08em;color:var(--tc);font-weight:700}
+.eq-who span{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eq-grp{display:flex;gap:4px;min-width:0}
+.eq-grp button{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;min-height:30px;padding:2px 5px;border:1px solid var(--line);border-radius:4px;background:#121a20;color:var(--dim);font-family:var(--font-hud);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;position:relative;cursor:pointer}
+.eq-grp button svg{flex:none;height:13px;width:auto;max-width:38px;fill:var(--ic,#c9d2d8);opacity:.75}
+.eq-grp[data-k="spec"] button svg{width:15px;height:15px}
+.eq-grp button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eq-grp button.on{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 18%,#121a20);color:var(--text)}
+.eq-grp button.on svg{opacity:1}
+.eq-grp button:disabled{opacity:.38;cursor:default}
+.eq-grp button i{position:absolute;right:3px;bottom:1px;font-style:normal;font-size:7.5px;letter-spacing:.04em;color:var(--dim)}
+.eq-note{margin:0;font-size:12px;color:var(--dim);line-height:1.35}
+#eqGo{min-height:44px;font-size:14px;background:#1d2a33;border:1px solid var(--alpha);color:var(--alpha);border-radius:6px;font-family:var(--font-hud);font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipping #floors,body.equipping #obj,body.equipping #status,body.equipping #pauseBtn,body.equipping #alert,body.equipping #alertLvl,body.equipping #banner,body.equipping #tl{visibility:hidden}
+@media (min-aspect-ratio:21/20){#equip{justify-content:center;align-items:flex-end}.eq-panel{width:min(440px,52%);margin:0 10px 0 0}}

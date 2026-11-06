@@ -239,12 +239,14 @@ const ENGINES={
   truck:{fire:24,body:72,cycles:24,rough:.4,cut:800,vol:1.1},
   boat:{fire:55,body:170,cycles:40,rough:.25,cut:1800,vol:.8,wash:true},
   tank:{fire:17,body:52,cycles:16,rough:.45,cut:650,vol:1.4,clank:1.5},
+  heli:{fire:11,body:38,cycles:22,rough:.12,cut:1100,vol:1.7,whine:1850},   // Level 1's helicopter: the blades' thump, and the turbine's whine over it
 };
 function engineLoop(id){
   if(loops[id])return loops[id];
   const E=ENGINES[id],src=AC.createBufferSource();src.buffer=engineBuffer(E.fire,E.body,E.cycles,E.rough,E.clank);src.loop=true;
   const hp=AC.createBiquadFilter(),lp=AC.createBiquadFilter(),g=AC.createGain();hp.type='highpass';hp.frequency.value=28;lp.type='lowpass';lp.frequency.value=E.cut;g.gain.value=0;
   src.connect(hp);hp.connect(lp);lp.connect(g);
+  if(E.whine){const o=AC.createOscillator(),og=AC.createGain();o.type='sawtooth';o.frequency.value=E.whine;og.gain.value=.025;o.connect(og);og.connect(g);o.start();}
   if(E.wash){const w=loopNoise(),wl=AC.createBiquadFilter(),wg=AC.createGain();wl.type='lowpass';wl.frequency.value=600;wg.gain.value=.35;w.connect(wl);wl.connect(wg);wg.connect(g);w.start();}   // water churned by the prop
   let pan=null,out=g;if(AC.createStereoPanner){pan=AC.createStereoPanner();g.connect(pan);out=pan;}
   out.connect(sndMuffle);const send=AC.createGain();send.gain.value=.15;out.connect(send);send.connect(sndVerb);
@@ -279,7 +281,10 @@ function audioFrame(){
   if(jv&&jv.state==='ok'&&crewOf(jv).some(u=>u.seat==='driver'))setLoop('jeep',live?(jv.moving?.32:.16):0,jv.x,jv.y,jv.moving?1.9:1);
   else if(wj&&wave.phase==='drive')setLoop('jeep',live?.32:0,wj.x,wj.y,1.9);
   else setLoop('jeep',0,null,null);
-  setLoop('boat',live&&landing?.26:0,DOCK.moor.x,DOCK.moor.y+100,landing&&landing.t>LAND_T*.7?1:1.5);
+  {const H=MAPID==='l1'&&typeof heli!=='undefined'&&heli&&heli.pos;setLoop('heli',H&&state==='play'?.5:0,H?H.x:null,H?H.y:null,1);}   // Level 1's helicopter (level1.js)
+  if(state==='equip')setLoop('boat',.12,camT.x,camT.z,.8);   // between missions: the outboard ticking over at sea
+  else if(MAPID==='l1'&&typeof l1!=='undefined'&&l1.away!=null&&L1.boat)setLoop('boat',.22,L1.boat.position.x,L1.boat.position.z,1.4);   // Level 1's boat going out
+  else setLoop('boat',live&&landing?.26:0,DOCK.moor.x,DOCK.moor.y+100,landing&&landing.t>LAND_T*.7?1:1.5);
   {const tk=MAPID==='out'&&enemies.find(e=>e.veh&&!e.dead);setLoop('truck',live&&tk?(tk.path.length?.3:.1):0,tk?tk.x:null,tk?tk.y:null,tk&&tk.path.length?1.5:.8);}   // the gun truck: driving, or idling where it's parked
 }
 function bindAudio(){

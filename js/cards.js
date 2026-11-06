@@ -20,9 +20,15 @@ const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy
 // weapon silhouettes for the cards (our own drawings): an assault rifle with a curved magazine, a pump shotgun
 const GUN_SVG={
   rifle:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.2 8.5 5H11v5H8.5L1 12.2z"/><path d="M11 4h19v5.2H11z"/><path d="M13 2.4h7.5v1.6H13z"/><path d="M15.5 9.2h3.4l-1 4.8h-3.3z"/><path d="M21 9.2h4.2l1.4 4.6-3.2 1.2z"/><path d="M30 4.6h8.5v3.6H30z"/><path d="M38.5 5.6H47v1.3h-8.5z"/><path d="M34.6 2.8h1.2v1.8h-1.2z"/></svg>',
+  m4s:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.2 8.5 5H11v5H8.5L1 12.2z"/><path d="M11 4h17v5.2H11z"/><path d="M13 2.4h7.5v1.6H13z"/><path d="M15.5 9.2h3.4l-1 4.8h-3.3z"/><path d="M21 9.2h4.2l1.4 4.6-3.2 1.2z"/><path d="M28 4.6h6v3.6h-6z"/><rect x="34" y="4.2" width="13.6" height="4.4" rx="1.4"/><path d="M31.6 2.8h1.2v1.8h-1.2z"/></svg>',   // (an M4 with a suppressor on the muzzle)
   hmg:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6 7.5 4.8H10v5H7.5L1 11.6z"/><path d="M10 3.6h16v5.6H10z"/><path d="M12 1.8h9v1.8h-9z"/><path d="M14 9.2h7v3.6h-7z"/><path d="M22 9.2h3l.8 3.8-2.6.8z"/><path d="M26 4.4h6v3.8h-6z"/><path d="M32 5.4h15v1.6H32z"/><path d="M36.5 7l-2.4 7h1.2l2.6-6.4zM38 7l2.6 6.8h1.2L39.2 7z"/></svg>',
   sniper:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 7 9 5.6h3v4.6H9L1 12.4z"/><path d="M12 6h15v3.6H12z"/><path d="M14 2.2h12v2.6H14z"/><path d="M13 2.8h2v1.4h-2zM25 2.8h2.4v1.4H25z"/><path d="M18.5 4.8h2v1.2h-2z"/><path d="M16 9.6h3l-.6 3.4h-2.8z"/><path d="M27 6.8h20v1.2H27z"/><path d="M22 9.6h2.6l1 2.6-2.2.6z"/></svg>',
   shotgun:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.4 10 5h1v4.4h-1L1 12z"/><path d="M11 4.6h9.5v4.8H11z"/><path d="M13.8 9.4h3.2l-1 4.2h-3.1z"/><path d="M20.5 5h26.5v1.5H20.5z"/><path d="M20.5 7h19.5v1.5H20.5z"/><path d="M24 6.3h9.5v3.4H24z"/><path d="M45.6 3.9h1v1.1h-1z"/></svg>'};
+// the gun row: his weapon, and with a second gun (the sniper rifle off the tower) a SWAP tag naming the other one: tap to swap
+function gunHTML(u){
+  if(!u.weapon)return'<b class="unarmed">Unarmed</b>';   // (a freed prisoner until he picks one up: office.js)
+  return `${GUN_SVG[u.weapon]}<b>${WEAPON[u.weapon].label}</b>`+(u.weapon2?`<i class="uc-swap">&#8644; ${WEAPON[u.weapon2].label}</i>`:'');
+}
 function hpCol(u){return u.dead?'#5b636a':u.downed?'#ff3b2a':u.hp>=70?C.good:u.hp>=35?C.warn:'#ff8a3d';}
 function shade(hex,k){const n=parseInt(hex.slice(1),16),f=v=>clamp(Math.round(v*(1+k)),0,255);return`rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`;}
 // a small procedural portrait: helmeted head and shoulders, skin tone and details varied per soldier
@@ -54,12 +60,13 @@ function buildCards(){
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
     el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<div class="uc-hpb"><i></i><span class="uc-hp">100</span></div>`+
-      `<div class="uc-gun" title="${u.weapon?WEAPON[u.weapon].label:'Unarmed'}">${u.weapon?`${GUN_SVG[u.weapon]}<b>${WEAPON[u.weapon].label}</b>`:'<b class="unarmed">Unarmed</b>'}</div>`+   // (a freed prisoner until he picks one up: office.js)
+      `<div class="uc-gun"></div>`+   // (filled by updateCards: gunHTML)
       `<div class="uc-bot">${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
     const act=ev=>{
       if(state!=='play'||!alive(u))return;
-      const g=ev&&ev.target.closest('.uc-rpg,.uc-spec,.uc-nade');   // (Level 1's tutorial lets through only what it asks for: level1.js)
-      if(!tutAllows(g?'gear':'card',g?{u,id:u.id,item:g.classList.contains('uc-nade')?'nade':g.classList.contains('uc-spec')?'spec':'c4'}:u))return;
+      const g=ev&&ev.target.closest('.uc-rpg,.uc-spec,.uc-nade,.uc-gun.swap');   // (Level 1's tutorial lets through only what it asks for: level1.js)
+      if(!tutAllows(g?'gear':'card',g?{u,id:u.id,item:g.classList.contains('uc-nade')?'nade':g.classList.contains('uc-spec')?'spec':g.classList.contains('uc-gun')?'gun':'c4'}:u))return;
+      if(g&&g.classList.contains('uc-gun')){if(mode==='silent')mode=null;swapWeapon(u);hud();return;}   // his second gun (the sniper rifle): swap, nothing else changes
       preview=null;
       if(ev&&ev.target.closest('.uc-rpg')){select([u]);if(u.charges&&!u.inVeh)mode=mode==='charge'?null:'charge';else{mode=null;banner(`${u.name} has no charge left. Restock at a supply box.`,1800);}}   // demolition charge
       else if(ev&&ev.target.closest('.uc-spec')){   // his special item: use it (Bryan: ammo drops refill it, no swapping)
@@ -74,7 +81,7 @@ function buildCards(){
     el.addEventListener('click',act);
     el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();act(null);}});
     box.appendChild(el);
-    u.card={el,st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),hpb:el.querySelector('.uc-hpb')};
+    u.card={el,gun:el.querySelector('.uc-gun'),st:el.querySelector('.uc-st'),hp:el.querySelector('.uc-hp'),nade:el.querySelector('.uc-nade'),spec:el.querySelector('.uc-spec'),rpg:el.querySelector('.uc-rpg'),hpb:el.querySelector('.uc-hpb')};
     drawFace(el.querySelector('.uc-face'),u);
   }
 }
@@ -118,6 +125,7 @@ function updateCards(){
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
     c.hp.textContent=u.dead?'KIA':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);
     c.hpb.style.setProperty('--hp',(u.dead?0:clamp(u.hp,0,100))+'%');c.hpb.style.setProperty('--hc',hpCol(u));
+    const gk=(u.weapon||'-')+'|'+(u.weapon2||'');if(c.gun.dataset.k!==gk){c.gun.dataset.k=gk;c.gun.innerHTML=gunHTML(u);c.gun.classList.toggle('swap',!!u.weapon2);c.gun.title=u.weapon2?`Swap to the ${WEAPON[u.weapon2].label}`:u.weapon?WEAPON[u.weapon].label:'Unarmed';}
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
     c.spec.hidden=!u.spec;c.nade.hidden=!!u.joined&&!u.grenade;   // a freed prisoner has no gear

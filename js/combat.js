@@ -78,10 +78,17 @@ function medTick(dt){   // medic kits being used, men being picked up, and carri
 // SHOTGUNNERS (e.g. ['A2','B2']) to hand them out again. n: rounds a burst, cool: s between bursts, sup: suppression per round
 const WEAPON={
   rifle:  {label:'M4',range:380,n:3,cool:[1.6,2.2],dmg:[11,16],sup:.06},
+  m4s:    {label:'M4 SD',range:380,n:3,cool:[1.6,2.2],dmg:[11,16],sup:.06,quiet:true},   // (Bryan: silenced assault rifles for the data center mission: quiet like a silencer, and it never wears out; the equip screen hands them out, equip.js)
   hmg:    {label:'M240',range:420,n:6,cool:[1.5,2.1],dmg:[10,14],sup:.11,acc:-.06,move:-.12},
   sniper: {label:'Sniper',range:700,n:1,cool:[2.4,3.1],dmg:[85,110],sup:.3,far:true},
   shotgun:{label:'Shotgun',range:200,n:1,cool:[1.1,1.5],sup:.14}},SHOTGUNNERS=[],DEFAULT_WEAPON={B1:'hmg'};
 const wOf=u=>WEAPON[u.weapon||'rifle']||WEAPON.rifle;
+// a second gun (the sniper rifle off the tower: his own goes on his back, mission.js): tap the gun on his card to swap (cards.js)
+function swapWeapon(u){
+  if(!u||!u.weapon2||!alive(u)||u.climb||u.carry||u.inVeh)return false;
+  [u.weapon,u.weapon2]=[u.weapon2,u.weapon];u.cool=Math.max(u.cool||0,.8);u.silent=null;
+  callout(u,WEAPON[u.weapon].label,C.good);return true;
+}
 function wRange(u){return u.gunner?440:wOf(u).range;}
 function hitChance(s,t,L){
   L=L||lineOf(s,t);
@@ -297,6 +304,7 @@ function damage(t,dmg,src){
 
 function pickTarget(u){
   // undetected, the squad holds fire except at a hostile you've told them to shoot (or into a room they're breaching)
+  if(u.side==='P'&&volleyHeld(u))return null;   // the silencers are about to take him: wait for it
   const foes=u.side==='P'?(caught(u)||simT<(u.breachT||0)?enemies.filter(e=>!beaten(e)):u.focus&&!beaten(u.focus)?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(p=>alive(p)&&(!contact||caught(p)));   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;
   for(const f of foes){
@@ -322,7 +330,7 @@ function burst(u,t,L){
   u.target=t;u.aimT=simT;if(u.veh)u.aimA=Math.atan2(L.ty-L.fy,L.tx-L.fx);else{u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);}
   const c=hitChance(u,t,L);
   const n=u.gunner?5:wOf(u).n;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun or a sniper rifle one round
-  const q=silenced(u);if(q){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}   // a silencer: a quiet burst, and it wears a little
+  const q=silenced(u);if(q&&u.weapon!=='m4s'){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}   // a silencer: a quiet burst, and it wears a little (a silenced rifle doesn't)
   for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner||n>3?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
   if(u.side==='P'&&t.alerted&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}
 }
@@ -363,7 +371,7 @@ function suppressShot(u){
     L={fx:f.x,fy:f.y,tx:a.x,ty:a.y,lean:f.x!==u.x||f.y!==u.y,atPeek:false};
   }
   u.noLine=0;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;leanOut(u,L);
-  const q=silenced(u);if(q){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}
+  const q=silenced(u);if(q&&u.weapon!=='m4s'){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}
   const hit=t&&Math.random()<hitChance(u,t,L)*0.35;
   const aa=u.ang+(Math.random()-.5)*0.12,dd=hyp(L.tx-L.fx,L.ty-L.fy)+(hit?0:Math.random()*20-14);
   const ex=hit?L.tx:L.fx+Math.cos(aa)*dd,ey=hit?L.ty:L.fy+Math.sin(aa)*dd;
@@ -412,8 +420,8 @@ function fireRPG(u,tx,ty){
    and says so if there's no safe way). Allies never block a throw (only walls and the like do). ---------- */
 const routeLen=(u,p)=>{let L=0,x=u.x,y=u.y;for(const q of p){L+=hyp(q.x-x,q.y-y);x=q.x;y=q.y;}return L;};
 // would an enemy they know about see this spot? (an unaware one in his cone or close by, an alerted one all round)
-function watched(x,y){
-  return enemies.some(e=>{if(beaten(e)||e.dog||!e.seen)return false;const d=hyp(x-e.x,y-e.y);if(d>(e.alerted?380:eyeR()))return false;
+function watched(x,y,skip){
+  return enemies.some(e=>{if(e===skip||beaten(e)||e.dog||!e.seen)return false;const d=hyp(x-e.x,y-e.y);if(d>(e.alerted?380:eyeR()))return false;
     if(!e.alerted&&d>80){let da=Math.atan2(y-e.y,x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)return false;}
     return los(e.x,e.y,x,y);});
 }
@@ -578,7 +586,7 @@ function endTakedown(u,done){const e=u.tk&&u.tk.e;if(e&&!done)e.grabbed=false;u.
 // and fires once. A hit drops him without a sound (a body others may find: layers.js); a miss alerts him and anyone right by
 // him. If the man notices the squad first, the shot's off.
 const SIL={range:200,aim:.45,bonus:.2,open:90,wall:40,missOpen:70,missWall:30};
-const silenced=u=>!!u&&u.side==='P'&&u.spec==='silencer'&&u.specN>0;
+const silenced=u=>!!u&&u.side==='P'&&(u.weapon==='m4s'||u.spec==='silencer'&&u.specN>0);   // a silenced rifle, or the silencer item while it lasts
 function canSilent(u,e){
   if(!u||!e||!alive(u)||!silenced(u)||u.inVeh||u.carry||u.crawl||u.tk||u.climb||e.dead||e.veh||e.surr||e.alerted||!e.vis||e.grabbed)return false;
   return hyp(u.x-e.x,u.y-e.y)<=SIL.range&&!!fireLine(u,e);
@@ -589,52 +597,126 @@ function orderSilent(u,e){
   u.ang=Math.atan2(e.y-u.y,e.x-u.x);callout(u,'Taking aim',C.good);return true;
 }
 function silentTick(){
-  if(simT-volleyMarkT>=VOLLEY_WAIT&&players.some(u=>u.silent&&u.silent.hold))fireVolley();   // nobody marked a second man: the marked shot goes on its own
+  volleyCheck();
+  const due=new Map();   // the man → the shots that go now: a volley's shots land together, so one man's miss can't call off the others'
   for(const u of players){
     const k=u.silent;if(!k)continue;const e=k.e;
     if(!alive(u)||u.path.length||e.dead||e.surr||!silenced(u)){u.silent=null;continue;}   // down, given a move, or the man's gone
     if(e.alerted){u.silent=null;callout(u,'He\u2019s seen us',C.warn);continue;}   // too late: no quiet shot now
     const L=fireLine(u,e);if(!L){u.silent=null;callout(u,'Lost the shot',C.warn);continue;}
     u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;
-    if(k.hold)continue;   // marked for a volley: aiming, waiting for the others (VOLLEY_WAIT below)
-    if(simT<(k.at??k.t+SIL.aim))continue;
-    u.silent=null;u.specN--;leanOut(u,L);
-    const hit=Math.random()<clamp(hitChance(u,e,L)+SIL.bonus,.05,.95),mx=hit?0:(Math.random()-.5)*18,my=hit?0:(Math.random()-.5)*18;
-    tracers.push({x1:L.fx,y1:L.fy,x2:L.tx+mx,y2:L.ty+my,t:0,col:'214,228,238',q:true});lastNoiseT=simT;
-    if(typeof sfxShot==='function')sfxShot(u,true);
-    if(hit)silentKill(e,u);
-    else{alertOne(e,{x:u.x,y:u.y},false);alertAll(null,false,L.fx,L.fy,L.tx+mx,L.ty+my,{x:u.x,y:u.y},SIL.missOpen,SIL.missWall,false);callout(u,'Missed',C.warn);setStatus();}
-    if(!u.specN)callout(u,'Silencer worn out',C.warn);
+    if(k.hold||simT<(k.at??k.t+SIL.aim))continue;   // (hold: on him, waiting for the others to get set: volleyCheck)
+    u.silent=null;if(!due.has(e))due.set(e,[]);due.get(e).push({u,L});
   }
-  if(volley&&simT>=volley.at&&!volley.by.some(u=>u.silent)){   // the volley's gone: a word if it was clean
-    const v=volley;volley=null;if(v.targets.length>1&&v.targets.every(e=>e.dead)&&!contact&&typeof gen==='function'){const w=v.by.find(alive);if(w)chat('volleyok',10,gen(partnerOf(w)||w,'volleyok'));}
+  for(const[e,shots]of due){
+    let killer=null,miss=null;
+    for(const{u,L}of shots){
+      if(u.weapon!=='m4s')u.specN--;leanOut(u,L);   // (a silenced rifle doesn't wear; the silencer as an item does)
+      const hit=Math.random()<clamp(hitChance(u,e,L)+SIL.bonus,.05,.95),mx=hit?0:(Math.random()-.5)*18,my=hit?0:(Math.random()-.5)*18;
+      tracers.push({x1:L.fx,y1:L.fy,x2:L.tx+mx,y2:L.ty+my,t:0,col:'214,228,238',q:true});lastNoiseT=simT;
+      if(typeof sfxShot==='function')sfxShot(u,true);
+      if(hit){if(!killer)killer=u;}else miss={u,L,mx,my};
+      if(u.weapon!=='m4s'&&!u.specN)callout(u,'Silencer worn out',C.warn);
+    }
+    if(killer)silentKill(e,killer);
+    else{const{u,L,mx,my}=miss;alertOne(e,{x:u.x,y:u.y},false);alertAll(null,false,L.fx,L.fy,L.tx+mx,L.ty+my,{x:u.x,y:u.y},SIL.missOpen,SIL.missWall,false);callout(u,'Missed',C.warn);setStatus();}
+  }
+  if(volley&&volley.at!=null&&simT>=volley.at&&!volley.by.some(u=>u.silent)){   // the volley's gone: a word if it was clean
+    const v=volley;volley=null;if(v.by.length>1&&v.targets.every(e=>e.dead)&&!contact&&typeof gen==='function'){const w=v.by.find(alive);if(w)chat('volleyok',10,gen(partnerOf(w)||w,'volleyok'));}
   }
 }
-/* ---------- silenced volleys (Bryan: two or more with silencers drop several men at the same moment) ----------
-   With two or more silenced soldiers selected, tapping a hostile who hasn't noticed them marks him for the nearest one who
-   can take him (he aims and holds); tap another for the next. When each has a mark, or you tap a marked man again, they fire
-   together on the lead's count. */
-let volley=null,volleyMarkT=-99;
-const VOLLEY_WAIT=5;   // (Bryan was left wondering why nothing fired: a mark waits this long for the next, then they fire anyway)
+/* ---------- silenced volleys (Bryan: two or more with silencers take their shots at the same time) ----------
+   A hostile who hasn't noticed them, tapped with silenced soldiers selected: the ones who can take him aim, the ones who
+   can't yet move up to where they can (unseen, inside SIL.range), and when they're all set (or after VOLLEY_WAIT s) they fire
+   together on the lead's count. Tapping him again fires at once with whoever's ready. Anyone selected without a silencer
+   holds his fire until the volley goes (pickTarget), then joins in. Their shots land together (silentTick). */
+let volley=null;   // {by: aiming, movers: on their way, e, t0, at: when they fire (null: not yet)}
+const VOLLEY_WAIT=6;
 const volleyCrew=list=>list.filter(u=>silenced(u)&&alive(u));
-const volleyFree=list=>volleyCrew(list).filter(u=>!(u.silent&&u.silent.hold));
-const markedBy=e=>players.find(u=>u.silent&&u.silent.hold&&u.silent.e===e)||null;
-function canVolley(list,e){return volleyCrew(list).length>1&&(!!markedBy(e)||volleyFree(list).some(u=>canSilent(u,e)));}
-function orderVolley(list,e){
-  if(markedBy(e)){fireVolley();return true;}   // a marked man tapped again: fire now
-  const u=volleyFree(list).filter(q=>canSilent(q,e)).sort((a,b)=>hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y))[0];if(!u)return false;
-  orderSilent(u,e);u.silent.hold=true;volleyMarkT=simT;callout(u,'On him',C.good);
-  if(!volleyFree(list).length)fireVolley();   // everyone has a mark
-  else banner(`${u.name} is on him. Tap a second hostile for ${volleyFree(list)[0].name}, or tap the same one again to fire now.`,2600);
+function canVolley(list,e){return list.filter(u=>canSilent(u,e)).length>1;}
+const canQuiet=(list,e)=>list.some(u=>canSilent(u,e));   // at least one of them can take him silently
+const volleyHeld=u=>!!volley&&(volley.at==null||simT<volley.at)&&volley.targets.includes(u.focus)&&!caught(u)&&!u.silent;   // (a man without a silencer waits for the silent shots)
+function orderVolley(crew,e,movers=[]){
+  if(volley&&volley.at==null)volleyCheck(true);   // (another team's volley still getting set: it goes now rather than hang)
+  for(const u of crew){orderSilent(u,e);u.silent.hold=true;}
+  volley={by:[...crew],movers:[...movers],e,t0:simT,at:null,targets:[e]};volleyCheck();return true;
+}
+function volleyCheck(now){
+  const v=volley;if(!v||v.at!=null)return;
+  for(const u of[...v.movers]){
+    const gone=!alive(u)||u.lastOrder>v.t0+.01;if(!gone&&u.path.length)continue;   // (another order since: he's out of it)
+    v.movers.splice(v.movers.indexOf(u),1);
+    if(!gone&&canSilent(u,v.e)){orderSilent(u,v.e);u.silent.hold=true;v.by.push(u);}
+    else if(!gone)u.focus=v.e;   // no quiet shot from there after all: he fires with the rest
+  }
+  v.by=v.by.filter(u=>u.silent&&v.targets.includes(u.silent.e));
+  if(!now&&!v.e.dead&&!v.e.alerted&&v.movers.length&&simT-v.t0<VOLLEY_WAIT)return;
+  for(const u of v.movers)u.focus=v.e;v.movers=[];
+  if(!v.by.length){v.at=simT;return;}
+  const lead=v.by.find(u=>/1$/.test(u.id))||v.by[0];let d=SIL.aim+.2;
+  if(v.by.length>1){const l=typeof gen==='function'?gen(lead,'volley'):null;if(l&&chat('volley',4,l)){const c=VSPR&&VSPR.speakers[lead.id]&&VSPR.speakers[lead.id].clips[l.clip];d=clamp(c?c[2]-.1:1,SIL.aim,1.8);}}   // they fire on the count
+  v.at=Math.max(simT+(now?.15:d),...v.by.map(u=>u.silent.t+SIL.aim));for(const u of v.by){u.silent.hold=false;u.silent.at=v.at;}
+}
+const volleyNow=()=>volleyCheck(true);
+const volleyPending=()=>!!volley&&(volley.at==null||simT<volley.at);
+// a second man tapped while they get set: they split, one each (at least one on each man), and still fire on the same count
+function volleySplit(e2){
+  const v=volley;if(!volleyPending()||v.targets.includes(e2)||e2.alerted)return false;
+  const crew=v.by.filter(u=>u.silent);if(crew.length<2)return false;
+  const can=crew.filter(u=>canSilent(u,e2)).sort((a,b)=>(silentChance(b,e2)-silentChance(b,v.e))-(silentChance(a,e2)-silentChance(a,v.e)));if(!can.length)return false;
+  for(const u of can.slice(0,Math.max(1,Math.floor(crew.length/2)))){u.silent.e=e2;u.silent.t=simT;u.ang=Math.atan2(e2.y-u.y,e2.x-u.x);callout(u,'On him',C.good);}
+  v.targets.push(e2);if(v.at!=null){v.at=Math.max(v.at,simT+SIL.aim);for(const u of v.by)if(u.silent)u.silent.at=v.at;}
   return true;
 }
-function fireVolley(){
-  const by=players.filter(u=>u.silent&&u.silent.hold);if(!by.length)return;
-  const lead=by.find(u=>/1$/.test(u.id))||by[0],l=typeof gen==='function'&&by.length>1?gen(lead,'volley'):null;let d=.3;
-  if(l&&chat('volley',4,l)){const c=VSPR&&VSPR.speakers[lead.id]&&VSPR.speakers[lead.id].clips[l.clip];d=clamp(c?c[2]-.1:1,.3,2.6);}   // they fire on the count
-  const at=Math.max(simT+d,...by.map(u=>u.silent.t+SIL.aim));
-  for(const u of by){u.silent.hold=false;u.silent.at=at;}
-  volley={by,at,targets:by.map(u=>u.silent.e)};
+/* ---------- the fire order (Bryan: tap a hostile and whoever's selected opens fire on him; anyone without a clear shot goes
+   and finds one) ----------
+   Unseen, against a man who hasn't noticed them: the volley above. Otherwise everyone gets him as their focus: from where
+   they are if they have a line, else from the nearest spot that has one, a short walk away (in a fight, in cover if there is
+   any; unseen, out of the hostiles' sight). */
+function lineSpot(u,e,range,quiet){
+  const t=e.vis||!e.last?{x:e.x,y:e.y}:e.last,R=range||Math.min(wRange(u),360)*.95,ok=(x,y)=>hyp(t.x-x,t.y-y)<=R&&hideAt(x,y)===hideAt(t.x,t.y)&&!!sightFrom(x,y,t.x,t.y);
+  const th=threats(),cg=caught(u),cand=[];
+  for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<300)cand.push({x:c.x,y:c.y});
+  for(let dx=-200;dx<=200;dx+=20)for(let dy=-200;dy<=200;dy+=20)if(dx*dx+dy*dy<=200*200)cand.push({x:u.x+dx,y:u.y+dy});   // and the ground round him
+  const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
+  // cheapest: a short walk; in a fight, in cover; unseen, out of the hostiles' sight (for a quiet shot, his too) and behind something; never right on top of him
+  const cost=c=>{const dt=hyp(t.x-c.x,t.y-c.y);return hyp(c.x-u.x,c.y-u.y)+(dt<(quiet?60:110)?((quiet?60:110)-dt)*2:0)+(cg?(isCovered(c,th)?0:90):(watched(c.x,c.y,quiet?null:e)?220:0)+(coverAt(c.x,c.y,t.x,t.y)?0:30));};
+  const good=cand.filter(c=>isFree(c.x,c.y,7)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<12)&&ok(c.x,c.y)).map(c=>({...c,cost:cost(c)})).sort((a,b)=>a.cost-b.cost).slice(0,8);
+  for(const c of good){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=330&&L<=hyp(c.x-u.x,c.y-u.y)*1.8+60)return{x:c.x,y:c.y,path:p};}}
+  return null;
+}
+function orderFire(list,e){
+  const go=list.filter(u=>alive(u)&&!u.inVeh&&!u.carry);if(!go.length)return null;
+  for(const u of go){if(u.tk)endTakedown(u,false);Object.assign(u,{focus:null,supT:null,focusTank:null,silent:null,fireGo:null,throwGo:null});}
+  const crew=[],moveQ=[],fire=[],move=[],none=[];
+  if(!e.alerted&&!e.veh&&!e.surr)for(const u of go){   // he hasn't noticed them: the silencers take him together
+    if(!silenced(u)||u.onGun||u.onTower||u.climb||u.crawl||caught(u))continue;
+    if(canSilent(u,e)){crew.push(u);continue;}
+    const s=lineSpot(u,e,SIL.range*.9,true);
+    if(s){Object.assign(u,{path:s.path,lastOrder:simT,watch:null,exposeT:0});moveQ.push(u);callout(u,'Moving up',C.good);}
+  }
+  if(crew.length||moveQ.length)orderVolley(crew,e,moveQ);
+  for(const u of go){
+    if(crew.includes(u)||moveQ.includes(u))continue;
+    u.focus=e;
+    if(u.onGun||u.onTower||u.climb){fire.push(u);continue;}   // on a gun or up the tower: he fires from there if he can
+    if(fireLine(u,e)&&hyp(e.x-u.x,e.y-u.y)<=wRange(u)){fire.push(u);continue;}
+    const s=lineSpot(u,e);
+    if(s){Object.assign(u,{path:s.path,lastOrder:simT,watch:null,exposeT:0,fireGo:{e,t0:simT,tries:1}});move.push(u);callout(u,'Getting a line',C.warn);}
+    else none.push(u);
+  }
+  if(!crew.length&&!moveQ.length&&!fire.length&&!move.length)banner(go.length>1?'Nobody can get a clear shot at him from here.':`${go[0].name} can\u2019t get a clear shot at him from here.`,2000);
+  return{crew,moveQ,fire,move,none};
+}
+function fireGoTick(){   // on his way to a spot with a line: there, he fires (his focus); the man moved, he looks again (once)
+  for(const u of players){
+    const g=u.fireGo;if(!g)continue;
+    if(!alive(u)||u.carry||u.lastOrder>g.t0+.01||u.focus!==g.e||beaten(g.e)){u.fireGo=null;continue;}
+    if(u.path.length)continue;
+    if(fireLine(u,g.e)&&hyp(g.e.x-u.x,g.e.y-u.y)<=wRange(u)){u.fireGo=null;continue;}
+    const s=g.tries<2&&lineSpot(u,g.e);if(!s){u.fireGo=null;callout(u,'No line',C.warn);continue;}
+    u.path=s.path;u.lastOrder=g.t0=simT;g.tries++;
+  }
 }
 function silentKill(e,u){   // like damage(), but quiet: nobody hears it
   e.grabbed=false;e.hp=0;e.dead=true;e.path=[];callout(e,'Silent kill',C.good);creditKill(u);if(typeof sfxCloth==='function'){sfxCloth(e.x,e.y);sfxBodyFall(e.x,e.y);}
@@ -712,6 +794,7 @@ function playerThink(p){
 
 /* ---------- update ---------- */
 function updateUnit(u,dt){
+  if(u.inHeli)return;   // still in Level 1's helicopter (level1.js)
   if(u.dead||u.grabbed)return;   // grabbed from behind (a takedown): he's done
   if(u.side==='C'){civTick(u,dt);return;}   // a prisoner still locked up, a scientist: office.js
   if(u.surr){u.hitFlash=Math.max(0,u.hitFlash-dt);u.sup=Math.max(0,u.sup-0.18*dt);u.path=[];return;}   // he gave up: kneeling, hands up (layers.js)
@@ -722,7 +805,7 @@ function updateUnit(u,dt){
   const vw=u.path.length&&u.path[0].vault,vd=vw?Math.abs((vw.vert?u.x:u.y)-vw.c):99;
   {const z=slowAt(u.x,u.y);u.crawl=!!(z&&z.crawl)&&!u.inVeh;}   // in the sewer pipe: prone, crawling
   u.vaultK=vw&&vd<VAULT_HALF&&!u.downed?1-(vd/VAULT_HALF)**2:0;
-  if(u.side==='P'&&!u.inVeh&&!u.inBoat){const e0=u.elev||0;u.elev=e0+((u.carriedBy?6:VAULT_H*u.vaultK)-e0)*Math.min(1,dt*16);}   // carried: over his shoulder
+  if(u.side==='P'&&!u.inVeh&&!u.inBoat&&!u.onTower&&!u.climb){const e0=u.elev||0;u.elev=e0+((u.carriedBy?6:VAULT_H*u.vaultK)-e0)*Math.min(1,dt*16);}   // carried: over his shoulder
   if(u.downed)return;
   if(u.side==='P'&&simT<(u.stunT||0))return;   // knocked off his feet by a dog
   if(u.seat==='driver')return;   // the driver drives; riders and the gunner fight from the jeep
@@ -778,7 +861,7 @@ function update(dt){
   tracers=tracers.filter(f=>f.t<.12);flashes=flashes.filter(f=>f.t<.07);sparks=sparks.filter(f=>f.t<.22);booms=booms.filter(f=>f.t<.6);callouts=callouts.filter(f=>f.t<(f.dur||1.7));
   if((coverTick-=dt)<=0){coverTick=.25;for(const p of players)if(alive(p))p.covered=isCovered(p,threats());}   // four times a second is plenty (it was every tick)
   for(const u of units)if(u.focus&&beaten(u.focus))u.focus=null;
-  takedownTick(dt);silentTick();throwTick();manTick();
+  takedownTick(dt);silentTick();throwTick();fireGoTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
     vehTick(dt);waveTick(dt);l1Tick(dt);   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete

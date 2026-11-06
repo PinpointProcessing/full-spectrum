@@ -287,12 +287,12 @@ function towerTick(dt){
       if(k<1)continue;u.climb=null;
       if(c.up){u.onTower=true;callout(u,'Up the tower',C.good);
         const pk=pickups.find(q=>q.tower&&q.kind!==u.weapon);
-        if(pk){u.weapon=pk.kind;pickups=pickups.filter(q=>q!==pk);if(pk.mesh&&pk.mesh.parent)pk.mesh.parent.remove(pk.mesh);callout(u,'Sniper rifle',C.good);buildCards();hud();
+        if(pk){u.weapon2=u.weapon||'rifle';u.weapon=pk.kind;pickups=pickups.filter(q=>q!==pk);if(pk.mesh&&pk.mesh.parent)pk.mesh.parent.remove(pk.mesh);callout(u,'Sniper rifle',C.good);buildCards();hud();
           if(typeof gen==='function')chat('gotrifle',20,gen(u,'gotrifle'));}}
       else{const p=c.then&&findPath(u.x,u.y,c.then.x,c.then.y);u.path=p||[];}
       continue;
     }
-    if(u.onTower){
+    if(u.onTower){u.elev=TOWER.elev;
       if(u.downed||u.dead){u.onTower=false;u.elev=0;u.x=TOWER.ladder.x;u.y=TOWER.ladder.y;continue;}   // he goes down with the ladder (no reviving him up there)
       if(u.path.length){const dst=u.path[u.path.length-1];u.path=[];u.onTower=false;u.climb={t:0,up:false,then:{x:dst.x,y:dst.y}};callout(u,'Climbing down',C.good);}   // sent somewhere: down the ladder first
       continue;
@@ -435,7 +435,7 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
-  if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
+  if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
   const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':'Take the Headquarters (coming next)';
   el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;

@@ -655,6 +655,33 @@ function makeTank(){
   scene.add(g);return{g,tur,mg};
 }
 // the squad's inflatable boat: two grey tubes meeting at a raised bow, a wooden floor, an outboard motor. Bow is -z (north).
+// Level 1's helicopter (level1.js): a utility helicopter in olive drab, nose to +z: the cabin with its doors open, the
+// cockpit glass, the tail boom, fin and tail rotor, skids, a two-blade main rotor with a faint blur disc, and its lights
+// (red and green on the sides, a white strobe on the tail, a red beacon on top). Rotors and lights are animated by level1.js.
+function makeHeli(){
+  const g=new T.Group(),body=new T.MeshStandardMaterial({color:0x3b4132,roughness:.68,metalness:.25}),dark=new T.MeshStandardMaterial({color:0x14171a,roughness:.6,metalness:.4}),
+    glass=new T.MeshStandardMaterial({color:0x16242e,roughness:.12,metalness:.7}),inside=new T.MeshStandardMaterial({color:0x0b0d0f,roughness:.9});
+  const part=(geo,mat,x,y,z,par=g)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;par.add(m);return m;};
+  part(new T.BoxGeometry(19,15,40),body,0,0,2);                                   // the cabin
+  for(const sx of[-1,1])part(new T.BoxGeometry(.4,10,20),inside,sx*9.6,-.5,4);     // its doors, open: dark inside
+  const nose=part(new T.SphereGeometry(10,14,10),body,0,-.5,22);nose.scale.set(.95,.78,1.15);
+  const cg=part(new T.SphereGeometry(9.4,14,10,0,TAU,0,Math.PI*.55),glass,0,1.2,23);cg.scale.set(.98,.8,1.1);cg.rotation.x=-.35;   // the cockpit glass
+  part(new T.BoxGeometry(15,5,22),body,0,9.5,-2);                                 // the engine housing on the roof
+  const boom=part(new T.CylinderGeometry(2.2,4.2,62,10),body,0,3.5,-48);boom.rotation.x=Math.PI/2;
+  part(new T.BoxGeometry(1.4,15,9),body,0,10,-77).rotation.x=-.25;               // the fin
+  part(new T.BoxGeometry(14,1,5),body,0,4,-66);                                  // the tail plane
+  const tr=new T.Group();tr.position.set(1.4,12,-79);g.add(tr);for(let k=0;k<2;k++){const b=part(new T.BoxGeometry(.3,13,1.6),dark,0,0,0,tr);b.rotation.x=k*Math.PI/2;}
+  for(const sx of[-1,1]){part(new T.CylinderGeometry(.9,.9,52,8),dark,sx*11,-12.5,2).rotation.x=Math.PI/2;   // the skids and their struts
+    for(const z of[-10,14])part(new T.BoxGeometry(1.2,6,1.4),dark,sx*9.5,-9.5,z).rotation.z=sx*.35;}
+  part(new T.CylinderGeometry(1.3,1.6,6,8),dark,0,14,0);                          // the mast
+  const rotor=new T.Group();rotor.position.set(0,17.5,0);g.add(rotor);
+  for(let k=0;k<2;k++){const b=part(new T.BoxGeometry(148,.5,5),dark,0,0,0,rotor);b.rotation.y=k*Math.PI;}
+  const disc=new T.Mesh(new T.CircleGeometry(74,40),new T.MeshBasicMaterial({color:0x8a949c,transparent:true,opacity:.07,depthWrite:false,side:T.DoubleSide}));disc.rotation.x=-Math.PI/2;disc.position.y=17.4;g.add(disc);
+  const L=(c,x,y,z,r=.9)=>{const m=new T.Mesh(new T.SphereGeometry(r,8,6),new T.MeshBasicMaterial({color:c,toneMapped:false}));m.position.set(x,y,z);g.add(m);return m;};
+  L(0xff2a1a,-9.8,2,8);L(0x2aff6a,9.8,2,8);const strobe=L(0xffffff,0,17,-80,1.1),beacon=L(0xff3020,0,12.6,-8,1.1);
+  const lamp=new T.SpotLight(0xdfe8ff,0,320,.5,.6,1.4);lamp.position.set(0,-6,20);const lt=new T.Object3D();lt.position.set(0,-60,40);g.add(lamp,lt);lamp.target=lt;   // a landing light under the nose
+  scene.add(g);g.userData={rotor,tr,strobe,beacon,lamp,disc};return g;
+}
 function makeDinghy(){
   const g=new T.Group(),tube=new T.MeshStandardMaterial({color:0x34383a,roughness:.55,metalness:.1}),dark=new T.MeshStandardMaterial({color:0x151719,roughness:.6,metalness:.4});
   const part=(geo,mat,x,y,z)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;g.add(m);return m;};
@@ -670,8 +697,8 @@ function syncUnits(t){
   for(const u of units){
     const m=u.m;if(!m)continue;
     const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
-    m.g.position.set(u.x+u.lx,u.elev||0,u.y+u.ly);m.g.rotation.y=-u.ang;
-    m.g.visible=!u.gone&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!u.detained));   // (a detained scientist is always with the squad: office.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
+    m.g.position.set(u.x+u.lx,(u.elev||0)+(MAPID==='in'?stairElev(u.x,u.y):0),u.y+u.ly);m.g.rotation.y=-u.ang;   // (on the office stairs: up or down with the steps, interior.js)
+    m.g.visible=!u.gone&&!u.inHeli&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!u.detained));   // (a detained scientist is always with the squad: office.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)
     if(u.veh){truckPose(u);continue;}   // the gun truck (mission.js)
     const lying=u.downed||u.dead||simT<(u.stunT||0),cr=!lying&&u.crawl;

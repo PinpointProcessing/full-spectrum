@@ -32,7 +32,7 @@ const FAREWELL={Marsh:'We owe you our lives. We’ll see you back at HQ.',Abara:
 const LIFT_RIDE=2.2,DOOR_OPEN=2.4,LOOT_R=240;
 let office=null,civs=[],sciOut=0,scanGo=null;   // this visit's state; civilians (prisoners still locked up, the man on the wall, scientists); scientists brought out
 function resetOffice(){
-  office={card:false,cardAt:null,door:0,doorT:0,liftUp:false,ride:null,liftDoor:false,cryT:0,heard:false,found:false,freed:0,tied:0,cutT:0,labs:[false,false,false,false],labN:0,sparks:[]};
+  office={card:false,cardAt:null,door:0,doorT:0,liftUp:false,ride:null,liftDoor:false,stairDoor:false,cryT:0,heard:false,found:false,freed:0,tied:0,cutT:0,labs:[false,false,false,false],labN:0,sparks:[]};
 }
 resetOffice();
 const detained=()=>civs.filter(c=>c.sci&&c.detained);
@@ -66,7 +66,7 @@ function officeActs(){
   const it=(f,kind,pred)=>(f.interact||[]).find(q=>q.kind===kind&&(!pred||pred(q)));
   const comp=it(gf,'computer');
   if(comp)ACTS.push({id:'computer',map:'in',floor:'GF',x:comp.x,y:comp.y,r:14,standY:24,secs:2,label:'COMPUTER',avail:()=>office.door===0,
-    need:()=>office.card?null:'The computer needs the access card. One of the guards in this room carries it.',act:u=>openSteel(u)});
+    need:()=>office.card?null:CARD_NEED,act:u=>openSteel(u)});
   ACTS.push({id:'card',map:'in',floor:'GF',x:0,y:0,r:14,label:'ACCESS CARD',pickup:true,avail:()=>!!office.cardAt&&!office.card,act:u=>takeCard(u)});
   // stairs and the lift: everyone selected goes, each on his own (Bryan: the teams can split between floors)
   for(const tr of L.transitions){
@@ -75,17 +75,21 @@ function officeActs(){
     if(tr.kind==='elevator'){
       const call=tr.from==='GF'?it(gf,'lift-call'):it(f1,'lift-call');
       ACTS.push({id:'lift-'+tr.from,map:'in',floor:tr.from,x:call?call.x:(z.x0+z.x1)/2,y:call?call.y:(z.y0+z.y1)/2,r:14,label:tr.from==='GF'?'LIFT UP':'LIFT DOWN',multi:true,
-        avail:()=>!office.ride&&(tr.from==='GF'?!office.liftUp:office.liftUp),need:()=>office.card?null:'The lift needs the access card from the shared room.',go:list=>goLift(list,tr,z)});
+        avail:()=>!office.ride&&(tr.from==='GF'?!office.liftUp:office.liftUp),need:()=>office.card?null:CARD_NEED,go:list=>goLift(list,tr,z)});
     }else{
       ACTS.push({id:'stairs-'+tr.from+tr.to,map:'in',floor:tr.from,x:(z.x0+z.x1)/2,y:(z.y0+z.y1)/2,r:16,label:up?'UP':'DOWN',multi:true,avail:()=>tr.to!=='B1'||office.door===2,
-        need:()=>tr.from==='GF'&&tr.to==='1F'&&!office.card?'The stairs up are behind a card reader: get the access card from the shared room.':null,go:list=>goStairs(list,tr,z)});
+        go:list=>goStairs(list,tr,z)});   // (open without the card: the door at the top has the card reader, Bryan)
     }
   }
+  // the stair door up top (Bryan: go up the stairs and find a card door at the top): a reader on the stairwell side
+  const sd=IN.objs.find(q=>q.kind==='carddoor');
+  if(sd)ACTS.push({id:'stairdoor',map:'in',floor:'1F',x:sd.x+sd.w+14,y:sd.y+sd.h/2,r:14,standX:6,standY:0,secs:.8,get label(){return office.card?'OPEN':'LOCKED';},
+    avail:()=>!office.stairDoor,need:()=>office.card?null:CARD_NEED,act:u=>openStairDoor(u)});
   const door=it(f1,'lift-call');   // up top: the car doors stay shut after the ride until someone inside taps OPEN
   if(door)ACTS.push({id:'liftdoor',map:'in',floor:'1F',x:86,y:-220,r:14,standX:-14,standY:0,secs:.6,label:'OPEN',avail:()=>office.liftUp&&!office.liftDoor&&!office.ride,act:()=>openLiftDoor()});
   for(const q of b1.interact||[]){
     if(q.kind==='cells'){const c=q.cell;ACTS.push({id:'cell-'+c,map:'in',floor:'B1',x:q.x,y:q.y,r:14,standY:0,secs:2,label:'OPEN CELL',avail:()=>civs.some(v=>v.cell===c&&!v.freed),
-      need:()=>office.card?null:'The cells open with the access card from the shared room upstairs.',act:u=>openCell(u,c)});}
+      need:()=>office.card?null:CARD_NEED,act:u=>openCell(u,c)});}
     if(q.kind==='strapped')ACTS.push({id:'cutdown',map:'in',floor:'B1',x:q.x,y:q.y,r:14,standY:16,secs:3,label:'CUT DOWN',avail:()=>!!wallMan(),act:u=>cutDown(u)});
   }
   // the lab equipment upstairs (a bonus from Bryan's first design): DESTROY wrecks a bench
@@ -94,7 +98,7 @@ function officeActs(){
 // orderUse (interior.js) hands these over: send everyone selected on this floor into the stairs zone
 function goStairs(list,tr,z){
   const go=list.filter(u=>floorOf(u.x,u.y)===tr.from);if(!go.length){banner('Select soldiers on this floor first.',1600);return;}
-  const spots=slotsIn(z,go.length,players.filter(p=>!go.includes(p)&&!p.dead).map(destOf));
+  const spots=slotsIn(farPart(z),go.length,players.filter(p=>!go.includes(p)&&!p.dead).map(destOf));   // (up or down the whole flight: interior.js)
   go.forEach((u,i)=>{const s=spots[i]||{x:(z.x0+z.x1)/2,y:(z.y0+z.y1)/2},p=findPath(u.x,u.y,s.x,s.y);if(!p)return;
     Object.assign(u,{path:p,lastOrder:simT,stairs:{tr,z,t0:simT},lift:null,watch:null,supT:null,focus:null,silent:null});});
   callout(go[0],tr.to==='1F'?'Going up':'Going down',C.good);
@@ -147,6 +151,10 @@ function stairsTick(){
   }
   if(moved.length)afterTransit(floorOf(moved[0].x,moved[0].y),moved);
 }
+function openStairDoor(u){
+  const o=IN.objs.find(q=>q.kind==='carddoor');office.stairDoor=true;if(typeof sfxComputer==='function')sfxComputer(u.x,u.y);if(typeof sfxLift==='function')sfxLift(u.x,u.y,'door');
+  if(IN.readerLed)IN.readerLed.color.setHex(0x37e08a);callout(u,'Door open',C.good);if(o)removeObj(o);
+}
 function openLiftDoor(){
   const o=IN.objs.find(q=>q.kind==='liftdoor');office.liftDoor=true;if(typeof sfxLift==='function')sfxLift(86,-220,'door');
   if(o){removeObj(o);}
@@ -161,7 +169,8 @@ function restoreObjs(){   // a fresh visit: the doors and gates back where they 
 }
 
 /* ---------- the shared room, the card and the steel door ---------- */
-function takeCard(u){office.card=true;callout(u,'Got the access card',C.good);banner('Access card. It opens the steel door from the computer, and works the stairs and the lift.',3400);hud();}
+const CARD_NEED='Find an access card.';   // (Bryan: just that, not where it is)
+function takeCard(u){office.card=true;callout(u,'Got the access card',C.good);banner('Access card: the steel door, the lift and the stair door upstairs.',3000);hud();}
 function openSteel(u){
   if(office.door)return;office.door=1;office.doorT=simT;callout(u,'Door’s opening',C.warn);if(typeof sfxComputer==='function')sfxComputer(u.x,u.y);
   if(typeof sfxGrind==='function')sfxGrind(370,145);
@@ -335,7 +344,7 @@ function officeHint(){
   const n=detained().length,left=office.heard&&office.freed<4?' The prisoners in the basement can still be freed.':'';
   const lab=players.some(p=>alive(p)&&floorOf(p.x,p.y)==='1F')&&office.labN<4?` Bonus: wreck the lab equipment (${office.labN}/4).`:'';
   if(n)return `Bring the scientists out: everyone who's up to the front doors. Detained scientists follow the soldier who tied them.${left}${lab}`;
-  if(!office.card)return 'The scientists are on the top floor. The stairs and the lift need the access card: the shared room\u2019s guards carry it (the big room at the end of the hallways).';
+  if(!office.card)return 'The scientists are on the top floor. Find an access card: the lift and the door at the top of the stairs need one.';
   return `Up to the top floor by the stairs (east side) or the lift (west side). The stairs come out behind the gun that watches the lift.${office.door===2?left:' The computer in the shared room opens the steel door.'}${lab}`;
 }
 

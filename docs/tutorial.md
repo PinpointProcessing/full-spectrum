@@ -23,6 +23,12 @@ What came out differently from the draft below:
   Suppress button is gone) and a grenade; then the checkpoint, the scout and the radio tower (a ring under it, the RPG button
   lit in Bravo's colour). Move steps end once the move is ordered, so the game isn't in slow motion while they walk. No tips
   in Level 2.
+- Bryan, playtesting v68: Level 1 is a real mission with a tutorial, not a training ground. It opens with a helicopter that
+  drops the squad on the beach (the pilot on the radio, "You're on your own now. Good luck."), and the tutorial starts as it
+  flies off; the bubble says "Tutorial n/7" (no "boot camp"). The double silent shot is now: tap one guard, then the other,
+  and they split, one each, on the same count (a single tap has both shoot that one, and the tip then asks for the other).
+  After the radio tower: back to the boat on the beach (a green ring), push off, the report, and the squad at sea with the
+  loadout before Level 2.
 - Text only, as planned.
 
 The draft:

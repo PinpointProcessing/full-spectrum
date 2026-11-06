@@ -14,6 +14,7 @@ function resize(){
 let last=performance.now(),hudT=0;
 function frame(nowMs){
   const raw=(nowMs-last)/1000,rdt=Math.min(.05,raw);last=nowMs;postWatch(raw);
+  if(state==='equip'){equipFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);requestAnimationFrame(frame);return;}   // between missions: the squad at sea (equip.js)
   if(state==='play'){
     const dt=rdt*timeScale();if(dt>0)update(dt);
     if(!reduced&&!paused&&MAPID!=='in'){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
@@ -47,7 +48,7 @@ addEventListener('pagehide',()=>{try{sessionStorage.removeItem('wy.alive');}catc
 if(!initGL())$('#nogl').hidden=false;
 else{
   postInit();
-  bindInput();bindHud();bindAudio();bindVoice();bindFloors();refreshSaveButtons();crashNote();
+  bindInput();bindHud();bindAudio();bindVoice();bindFloors();bindEquip();refreshSaveButtons();crashNote();
   buildWorld();reset();
   new ResizeObserver(resize).observe(stage);resize();
   hud();

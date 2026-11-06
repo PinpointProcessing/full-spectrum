@@ -68,7 +68,7 @@ function clipBuf(sp,clip){
 }
 // who's fetched when: the squad and the hostiles once sound has started (audio.js); the prisoners and scientists on the way into
 // the office building (interior.js) or when a save brings them back (office.js)
-const VOICE_OUT=['A1','A2','B1','B2','E1','E2','E3'],VOICE_IN=['A3','A4','B3','B4','S1','S2','S3','S4'];
+const VOICE_OUT=['A1','A2','B1','B2','E1','E2','E3','PL'],VOICE_IN=['A3','A4','B3','B4','S1','S2','S3','S4'];
 function preloadVoices(list=VOICE_OUT){if(VSPR&&AC)for(const sp of list)if(VSPR.speakers[sp])spriteBuf(sp);}
 // one line: over the radio (o.radio) or out loud where he stands (o.x,o.y; o.muffle: behind a door). Returns its length in s
 // (0 if it isn't there or the file isn't loaded yet); it starts as soon as it's decoded. Louder while there's shooting (Bryan).
