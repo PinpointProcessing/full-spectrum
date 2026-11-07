@@ -42,6 +42,13 @@ names Zonos gets wrong are respelled for it (`SAY`).
 
 ## Lines made on their own (not in the main sheet)
 
+After v101, Level 3's sniper nest (Bryan: "The players should say Sniper Nest NorthWest of us against the data center or
+something like that"): `chat_snipernest_1` "Sniper nest. Up north, against the data center. Stay out of his sights." for A1,
+A2, B1 and B2 (chatter.js's `CHAT.snipernest`, said a few seconds after they're out by whoever leads), made with
+`gen_sniper.py` (the leader's steady 'firm' style from `gen_road.py`; two takes each), every take heard word for word by
+`check_zonos.py`, the first take of each put on the end of the speakers' files by `add_lines.py` (B2's second added a word).
+A full repack of these four with `pack_zonos.py` drops it: add it again the same way.
+
 Three lines were added after the cast was done, outside `extract.js`'s sheet, with the same Zonos settings: Level 1's
 helicopter pilot (a new speaker, `PL`, voice from `refs/PL.flac`, made with Kokoro's `am_michael` like the other refs):
 `heli_in_1` "Thirty seconds to the beach. Get ready." and `heli_out_1` "You're on your own now. Good luck." (calm, over the
