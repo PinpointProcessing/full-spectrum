@@ -761,3 +761,13 @@ has all seven of the front's men in sight.
    his voice, rather than flashing text at the top: it says who (with two teams and eight men a banner doesn't), it's where
    the player is looking when giving the order, and the top of the screen already carries the objective, the detection
    ring and the banners he found piling up before.
+2. "All actions should work like that. But there should be a limit on how far they can move. Let make a small imaginary
+   circle around the unit. You can draft it if you want a precise distance". The circle is 10 m round the soldier (one
+   number, `ACT_R`; a picture of it sent with v105 as the draft). Every action now works the same way: from where he
+   stands if he can, else he goes where he can, but only inside that circle and by a way that stays inside it: throws,
+   shots, hold-to-suppress, silent shots and volleys, takedowns, revives, medic kits, carrying, zip ties, anything to use,
+   the pillbox gun, the watchtower, the bio scanner, doors, Breach, the class skills and building. Beyond it he says "Too far.
+   Move me closer." (a bubble and his voice, recorded for all eight) and stays put. Getting about has no circle: moves, the
+   stairs, the lift, the gather areas, and sending a man out for the scientists. While aiming a throw a dotted ring outside
+   the dashed one shows how far it reaches once he's moved up. Things that used to go further: frags walked up to 36 m to a
+   safe spot, revives, kits, zip ties and things to use had no limit, a takedown worked from 14 m and Breach from 15 m.

@@ -1,7 +1,7 @@
 "use strict";
 /* The Defender's fortifications (Bryan: "Add another class 'defender' who can build mobile fortifications and wall amongst
    other things"). His special item is a build kit (BUILD.kits uses; an ammo drop fills it again). Tap it on his card, then
-   a spot within BUILD.range of him: he walks round behind the spot and builds there, across the line to the nearest threat
+   a spot within BUILD.range of him (his circle, ACT_R in combat.js: Bryan, after v104): he walks round behind the spot and builds there, across the line to the nearest threat
    (the one he can see or last saw, else where the area's defenders are):
    - a barricade (one use, BUILD.barricade.t s): a steel shield on wheels, waist high. Heavy cover for whoever's behind it,
      and it doesn't block sight, so the men behind it can shoot over it. He can pack it up again (tap it with him
@@ -11,7 +11,7 @@
    A frag or a rocket close by wrecks a barricade; a wall takes two. Like everything on the map they're axis-aligned (the
    collision is), so a fortification runs north-south or east-west, whichever is more across the threat's line. Built
    things are cleared at a reset (a level's start, a retry; clearBuilds from reset). Hostiles can use them for cover too. */
-const BUILD={kits:3,range:320,bar:1.5,barricade:{len:40,th:6,h:9,t:2.5,cost:1,hp:100,pack:2},wall:{len:40,th:10,h:22,t:5,cost:2,hp:200}};
+const BUILD={kits:3,range:ACT_R,bar:1.5,barricade:{len:40,th:6,h:9,t:2.5,cost:1,hp:100,pack:2},wall:{len:40,th:10,h:22,t:5,cost:2,hp:200}};
 let builds=[];   // {o, mesh}
 
 // where a fortification goes: centred on (x,y), across the line to the nearest threat; n points at the threat
@@ -34,9 +34,9 @@ const buildCost=kind=>BUILD[kind].cost;
 function orderBuild(u,x,y,kind){
   if(!u||!alive(u)||u.spec!=='build'){mode=null;return false;}
   if(u.specN<buildCost(kind)){banner(kind==='wall'?`A wall takes ${BUILD.wall.cost} build kits; ${u.name} has ${u.specN}.`:`${u.name}'s build kit is empty. Refill at an ammo drop.`,2200);return false;}
-  if(hyp(x-u.x,y-u.y)>BUILD.range){banner('Too far. Build inside the circle.',1600);return false;}
+  if(hyp(x-u.x,y-u.y)>BUILD.range+20)return tooFar(u);   // (his circle, combat.js: Bryan, after v104)
   const pl=fortPlan(kind,x,y),why=fortBlocked(pl.r);if(why){banner(why+' Pick another spot.',1800);return false;}
-  const p=findPath(u.x,u.y,pl.spot.x,pl.spot.y);if(!p){banner('No way to get behind that spot from here.',1800);return false;}
+  const p=findPath(u.x,u.y,pl.spot.x,pl.spot.y);if(!reachOK(u,p,'No way to get behind that spot from here.'))return false;
   Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:null,pack:null,build:{...pl,t0:simT,p:0}});
   callout(u,kind==='wall'?'Building a wall':'Setting up a barricade',C.good);return true;
 }
@@ -46,7 +46,7 @@ function orderBar(u,o){
   if(!u||!alive(u)||u.spec!=='build'){mode=null;return false;}
   if(u.specN<1){banner(`${u.name}'s build kit is empty. Refill at an ammo drop.`,2000);return false;}
   const cx=o.x+o.w/2,cy=o.y+o.h/2,side=Math.sign(u.x-cx)||1,p=findPath(u.x,u.y,cx+side*12,cy);
-  if(!p){banner('No way to that door from here.',1800);return false;}
+  if(!reachOK(u,p,'No way to that door from here.'))return false;
   Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:null,build:null,pack:null,bar:{o,side,t0:simT,p:0}});callout(u,'Barring the door',C.good);return true;
 }
 function barMesh(o,side){
@@ -63,7 +63,7 @@ function fortTap(sx,sy){
   const cx=o.x+o.w/2,cy=o.y+o.h/2,u=ds.reduce((a,b)=>hyp(b.x-cx,b.y-cy)<hyp(a.x-cx,a.y-cy)?b:a);
   if(u.specN>=BUILD.kits){banner(`${u.name}'s build kit is full: he leaves the barricade where it is.`,2000);return true;}
   const v=o.w>o.h,s=v?Math.sign(u.y-cy)||1:Math.sign(u.x-cx)||1,gx=v?cx:cx+s*(o.w/2+10),gy=v?cy+s*(o.h/2+10):cy;   // (his side of it)
-  const p=findPath(u.x,u.y,gx,gy);if(!p){banner('No way to that barricade from here.',1800);return true;}
+  const p=findPath(u.x,u.y,gx,gy);if(!reachOK(u,p,'No way to that barricade from here.'))return true;
   Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:null,build:null,pack:{o,t0:simT,p:0}});callout(u,'Packing it up',C.good);
   return true;
 }

@@ -35,7 +35,7 @@ function sciCopy(o,x,y,ang){
 /* ---------- after the fight: the wounded, then someone out for the scientists ---------- */
 function baseActs(){   // (from enterHQ: fortress.js)
   for(let i=ACTS.length-1;i>=0;i--)if(ACTS[i].map==='hq')ACTS.splice(i,1);
-  ACTS.push({id:'fetchsci',map:'hq',x:HQ_DOOR.x,y:HQ_DOOR.y-12,r:20,standY:2,secs:.3,label:'BRING THE SCIENTISTS',
+  ACTS.push({id:'fetchsci',far:true,map:'hq',x:HQ_DOOR.x,y:HQ_DOOR.y-12,r:20,standY:2,secs:.3,label:'BRING THE SCIENTISTS',
     avail:()=>hqs.won&&!hqEnd&&tiedSci().length>0,need:()=>anyDown()?'Get the wounded up first.':null,act:u=>startFetch(u)});
 }
 function startFetch(f){   // he goes out of the south door into the dark (fortress.js's hqEndTick brings him back with them)

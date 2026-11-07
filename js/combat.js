@@ -42,15 +42,15 @@ function orderMedkit(u,t){
   if(!hasKit(u)){banner(`${u.name} has no medic kit.`,1600);return false;}
   if(!t.downed){   // a man who's hurt but still up, or the medic himself: back to 100 in HEAL_T s (Bryan, after v100: "The med pack should cure players to 100% health while they stand")
     if(t.hp>=100){banner(`${t.name} isn't hurt.`,1600);return false;}
-    const p=t===u?[]:goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
+    const p=t===u?[]:goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.'))return false;   // (inside his circle: Bryan, after v104)
     u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0,heal:true,lo:simT};if(t!==u)markRet(u);callout(u,t===u?'Patching myself up':'Medic kit, coming',C.good);return true;
   }
-  const p=goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
+  const p=goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.'))return false;
   u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0};markRet(u);callout(u,'Medic kit, coming',C.good);return true;
 }
 function orderCarry(u,t){
   if(u.carry){banner(`${u.name} is already carrying someone.`,1600);return false;}
-  const p=goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
+  const p=goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.'))return false;
   u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.medGo=null;u.carryGo={t,prog:0};callout(u,'Getting him out',C.good);return true;
 }
 function putDown(u){const t=u.carry;if(!t)return;t.carriedBy=null;u.carry=null;callout(u,'Setting him down',C.good);}
@@ -312,6 +312,49 @@ function refusePinned(u){
   const now=performance.now();if(now-cantSaidT>1500&&typeof say==='function'){cantSaidT=now;say(u,'cant');}   // (one voice at a time: the rest just show it)
   return false;
 }
+/* the circle round a soldier (Bryan, after v104: "All actions should work like that. But there should be a limit on how far
+   they can move. Let make a small imaginary circle around the unit"): whatever he's told to do (throw, shoot, suppress, a
+   silent shot, a takedown, a revive, a medic kit, carry a man, a zip tie, something to use, the gun, the tower, a door, a
+   skill, building), he goes where he can do it by himself, as long as it's inside ACT_R of where he stands and the way there
+   stays inside it too (every waypoint: a straight leg between two points inside a circle stays inside it). Beyond it, a
+   bubble, "Too far. Move me closer.", his voice ('far'), and he stays put. Pinned, he won't leave his spot at all. Getting
+   about has no circle: a move order, the stairs, the lift, a gather area. One number: ACT_R. */
+const ACT_R=100;   // (10 m)
+const inCircle=(p,o)=>!!p&&p.every(q=>hyp(q.x-o.x,q.y-o.y)<=ACT_R+3);
+let farSaidT=-1e9;
+function tooFar(u){
+  bubble(u,'Too far. Move me closer.',C.warn);
+  const now=performance.now();if(now-farSaidT>1500&&now-cantSaidT>1500&&typeof say==='function'){farSaidT=now;say(u,'far');}
+  return false;
+}
+// may he walk this way (p, from where he stands; [] for no walk) to do something? true, or he says why not and it's false
+function reachOK(u,p,noWay){
+  if(!p){if(noWay)banner(noWay,1800);return false;}
+  if(!p.length)return true;
+  if(pinnedNow(u))return refusePinned(u);
+  return inCircle(p,u)||tooFar(u);
+}
+// which of them goes (list nearest first; pathOf(u) his way there, or null): the first who isn't pinned and whose way stays in
+// his circle, as {u,p}; none: the nearest free one says it's too far, or a pinned one that he's pinned (null)
+function reachFor(list,pathOf,noWay,quiet){   // (quiet: nobody says anything, the caller tries something else)
+  let far=null,pin=null,any=false;
+  for(const u of list){const p=pathOf(u);if(!p)continue;any=true;if(!p.length)return{u,p};if(pinnedNow(u)){pin=pin||u;continue;}if(inCircle(p,u))return{u,p};far=far||u;}
+  if(quiet)return null;
+  if(far)tooFar(far);else if(pin)refusePinned(pin);else if(!any&&noWay)banner(noWay,1800);
+  return null;
+}
+// a spot inside his circle (round o, where he was told; his spot by default) where ok(x,y) holds, and the way to it: safe ones
+// first (safe(c), if given), then the nearest; extra: more places worth trying (round a target). null: nowhere in it works
+function circleSpot(u,ok,safe,extra=[],o){
+  o=o||{x:u.x,y:u.y};const cand=[...extra];
+  for(const c of coverPts)if(hyp(c.x-o.x,c.y-o.y)<=ACT_R)cand.push({x:c.x,y:c.y});
+  for(const r of[20,40,60,80,98])for(let k=0;k<16;k++){const a=(k+(r/20)%2*.5)/16*TAU;cand.push({x:o.x+Math.cos(a)*r,y:o.y+Math.sin(a)*r});}
+  const others=players.filter(q=>q!==u&&!q.dead).map(destOf);
+  const fit=cand.filter(c=>hyp(c.x-o.x,c.y-o.y)<=ACT_R&&isFree(c.x,c.y,7)&&!others.some(q=>hyp(q.x-c.x,q.y-c.y)<10)&&ok(c.x,c.y))
+    .map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y),safe:safe?!!safe(c):true})).sort((a,b)=>(b.safe-a.safe)||(a.d-b.d)).slice(0,10);
+  for(const c of fit){const p=findPath(u.x,u.y,c.x,c.y);if(p&&inCircle(p,o))return{x:c.x,y:c.y,path:p,open:!c.safe};}
+  return null;
+}
 // Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
 // and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.
 const AMBUSH_T=1.5,AMBUSH_BONUS=0.15;
@@ -432,7 +475,7 @@ function suppressShot(u){
   if(tg.length){const k=tg[(Math.random()*tg.length)|0];t=k.e;L=k.L;}
   else{
     const f=sightOf(u,a.x,a.y);
-    if(!f){u.cool=.6;if(++u.noLine>4){u.supT=null;callout(u,'No line of fire',C.warn);}return;}
+    if(!f){u.cool=.6;if(!u.path.length&&++u.noLine>4){u.supT=null;callout(u,'No line of fire',C.warn);}return;}   // (on his way to a line: orderSuppress)
     L={fx:f.x,fy:f.y,tx:a.x,ty:a.y,lean:f.x!==u.x||f.y!==u.y,atPeek:false};
   }
   u.noLine=0;u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);u.aimT=simT;leanOut(u,L);
@@ -525,29 +568,22 @@ function watched(x,y,skip){
     if(!e.alerted&&d>80){let da=Math.atan2(y-e.y,x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)return false;}
     return los(e.x,e.y,x,y);});
 }
-/* where he goes to throw or fire from: a spot in reach with a clear lob (or a clear flight for a rocket). A safe one first, as
-   before (out of sight of the hostiles they know about; in cover once they're caught), within maxWalk; with none, the nearest
-   that works, safe or not (Bryan, after v104: only being pinned stops him), however far it is to walk (a spot out of reach
-   included: he goes up to it). null only when nowhere works (a tap inside a building from outside) */
-function fireSpot(u,tx,ty,range,minD=0,kind='nade',maxWalk=360){
+/* where he goes to throw or fire from: a spot inside his circle (circleSpot, round o: where he was told) in reach with a clear
+   lob, or a clear flight for a rocket; a safe one first, as before (out of sight of the hostiles they know about; in cover
+   once they're caught), else the nearest (Bryan, after v104: only being pinned stops him, and he doesn't go further than the
+   circle). null: nowhere in his circle works */
+function fireSpot(u,tx,ty,range,minD=0,kind='nade',o){
   const ok=(x,y)=>{const d=hyp(tx-x,ty-y);return d<=range&&d>=minD&&hideAt(x,y)===hideAt(tx,ty)&&(kind==='rpg'?!rocketHits(x,y,tx,ty,RPG_SH,rocketAim(tx,ty)):lobOK(x,y,tx,ty)||!!sightFrom(x,y,tx,ty,true));};
   const D=hyp(tx-u.x,ty-u.y);if(D<=range&&D>=minD&&throwFrom(u,tx,ty,kind))return{here:true};
-  const th=threats(),safe=c=>caught(u)?isCovered(c,th):!watched(c.x,c.y),cand=[];
-  for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<340||hyp(c.x-tx,c.y-ty)<range)cand.push({x:c.x,y:c.y});
-  for(const r of[range*.5,range*.8,range*.95])for(let k=0;k<16;k++){const a=k/16*TAU;cand.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
-  for(const r of[45,90])for(let k=0;k<12;k++){const a=k/12*TAU;cand.push({x:u.x+Math.cos(a)*r,y:u.y+Math.sin(a)*r});}   // (a step or two from where he is)
-  if(D>range*.8)for(let s=40;s<D;s+=40){const k=s/D,x=u.x+(tx-u.x)*k,y=u.y+(ty-u.y)*k;for(const o of[-30,0,30])cand.push({x:x+(ty-u.y)/D*o,y:y-(tx-u.x)/D*o});}   // (on the way to a spot out of his reach)
-  const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
-  const fit=cand.filter(c=>isFree(c.x,c.y,7)&&ok(c.x,c.y)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<10)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y),safe:safe(c)})).sort((a,b)=>a.d-b.d);
-  for(const c of fit.filter(c=>c.safe).slice(0,6)){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=maxWalk&&L<=c.d*1.7+60)return{x:c.x,y:c.y,path:p};}}
-  let best=null;
-  for(const c of fit.slice(0,10)){const p=findPath(u.x,u.y,c.x,c.y);if(!p)continue;const L=routeLen(u,p),cost=L+(c.safe?0:60);if(L<=1200&&(!best||cost<best.cost))best={x:c.x,y:c.y,path:p,cost,open:!c.safe};}
-  return best;
+  const th=threats(),safe=c=>caught(u)?isCovered(c,th):!watched(c.x,c.y),extra=[];
+  for(const r of[range*.5,range*.8,range*.95])for(let k=0;k<16;k++){const a=k/16*TAU;extra.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
+  return circleSpot(u,ok,safe,extra,o);
 }
 const throwReach=(u,kind)=>({R:kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:nadeRange(u),minD:kind==='rpg'?PRPG.min:0});   // (an M203 reaches further than a frag)
 const hasThrow=(u,kind)=>kind==='nade'?(u.grenade||0)>0:kind==='rpg'?u.spec==='rpg'&&u.specN>0:u.spec==='smoke'&&u.specN>0;
 // kind: 'nade', 'smoke' or 'rpg'. From where he stands if he can (Bryan, after v70: at once, no walking off); if he can't, he
-// moves to where he can and throws or fires there (a frag, smoke or a rocket alike); pinned, he won't leave his spot for it
+// moves to where he can inside his circle and throws or fires there (a frag, smoke or a rocket alike); pinned, he won't leave
+// his spot for it
 function orderThrow(u,tx,ty,kind){
   u.ret=null;   // (marked again below if he has to walk for it: retTick)
   if(!hasThrow(u,kind)){if(kind==='nade'){banner(u.gl?`${u.name} has no M203 rounds left.`:`${u.name} has no grenades left.`,1600);return false;}return doThrow(u,tx,ty,kind);}   // (none left: it says so)
@@ -555,9 +591,9 @@ function orderThrow(u,tx,ty,kind){
   if(d<=R&&d>=minD&&throwFrom(u,tx,ty,kind))return doThrow(u,tx,ty,kind);
   if(pinnedNow(u))return refusePinned(u);
   const s=fireSpot(u,tx,ty,R,minD,kind);
-  if(!s){bubble(u,kind==='rpg'?'No way to get a shot at that':'No way to get a throw there');return false;}
+  if(!s)return tooFar(u);   // (nowhere inside his circle: he says so and stays)
   if(s.here)return doThrow(u,tx,ty,kind);
-  u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT,tries:1};markRet(u);
+  u.throwGo={x:tx,y:ty,kind,t0:simT,tries:1,o:{x:u.x,y:u.y}};u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;markRet(u);
   if(kind==='nade'&&!u.gl&&typeof gen==='function')chat('nadego',6,gen(u,'nadego'));   // ("Moving up for the frag": not for smoke)
   callout(u,kind==='rpg'?(d<minD?'Backing off':'Getting a shot'):d>R?'Moving up':'Getting an angle',C.warn);
   return true;
@@ -569,7 +605,7 @@ function throwTick(){
     if(g){if(!alive(u)||u.carry||u.lastOrder>g.t0+.01)u.throwGo=null;   // (another order since: forget it)
       else if(!u.path.length){   // there: he throws (or fires); if it doesn't work from there after all, he tries another spot (twice)
         const{R,minD}=throwReach(u,g.kind),d=hyp(g.x-u.x,g.y-u.y),can=d<=R&&d>=minD&&!!throwFrom(u,g.x,g.y,g.kind);
-        const s=!can&&g.tries<3&&!pinnedNow(u)&&fireSpot(u,g.x,g.y,R,minD,g.kind);
+        const s=!can&&g.tries<3&&!pinnedNow(u)&&fireSpot(u,g.x,g.y,R,minD,g.kind,g.o);   // (still inside the circle round where he was told)
         if(s&&!s.here){u.path=s.path;u.lastOrder=g.t0=simT;g.tries++;}
         else{u.throwGo=null;if(!can&&pinnedNow(u)){refusePinned(u);backSoon(u,.6,true);}else if(!doThrow(u,g.x,g.y,g.kind))backSoon(u,.6,true);else if(g.kind!=='rpg')backSoon(u,.9,true);}}}   // (thrown: back to the others; a rocket once it's gone, below)
     const a=u.rpgAim;if(!a||simT<a.at)continue;u.rpgAim=null;if(!alive(u))continue;   // the rocket goes
@@ -663,7 +699,7 @@ function detection(){const mine=sel.filter(alive).length?sel.filter(alive):playe
 // (forced sneak; he follows if the man moves). Close behind him he grabs him (TK_TIME s, the man frozen) and kills him
 // silently: no shot, no blast, no alarm; it counts as a kill. If the man is alerted on the way in, it's off and the
 // soldier stops where he is. Not a sentry inside a structure (the pillbox).
-const TK_RANGE=140,TK_REACH=10,TK_TIME=.6;
+const TK_RANGE=ACT_R,TK_REACH=10,TK_TIME=.6;   // (TK_RANGE: his circle, Bryan after v104; it was 14 m)
 function behindSpot(e){   // a free spot at his back: straight behind first, then round to either side, still outside his cone (his back may be to a wall)
   for(const r of[TK_REACH,TK_REACH+4])for(const da of[0,.6,-.6,1.1,-1.1,1.5,-1.5]){const a=e.ang+Math.PI+da,x=e.x+Math.cos(a)*r,y=e.y+Math.sin(a)*r;if(isFree(x,y,7)&&los(e.x,e.y,x,y))return{x,y};}
   return null;
@@ -676,7 +712,7 @@ function canTakedown(u,e){
 }
 function orderTakedown(u,e){
   const sp=behindSpot(e),p=sp&&findPath(u.x,u.y,sp.x,sp.y);
-  if(!p||pathTime(p,u.x,u.y)>TK_RANGE*1.7){banner('Can\u2019t get behind him from here.',1800);return false;}
+  if(!p)return tooFar(u);if(pathTime(p,u.x,u.y)>TK_RANGE*1.7||!inCircle(p,u))return tooFar(u);   // (round to his back, inside the circle: Bryan, after v104)
   u.path=p;u.lastOrder=simT;u.focus=null;u.supT=null;u.focusTank=null;u.plant=null;u.gaitForce='sneak';u.tk={e,spot:sp,t:simT,re:simT};markRet(u);
   callout(u,'Moving in',C.good);return true;
 }
@@ -794,16 +830,16 @@ function volleySplit(e2){
    Unseen, against a man who hasn't noticed them: the volley above. Otherwise everyone gets him as their focus: from where
    they are if they have a line, else from the nearest spot that has one, a short walk away (in a fight, in cover if there is
    any; unseen, out of the hostiles' sight). */
-function lineSpot(u,e,range,quiet){
+function lineSpot(u,e,range,quiet,o){   // o: the middle of his circle (where he was told; his spot by default)
   const t=e.vis||!e.last?{x:e.x,y:e.y}:e.last,R=range||Math.min(wRange(u),360)*.95,ok=(x,y)=>hyp(t.x-x,t.y-y)<=R&&hideAt(x,y)===hideAt(t.x,t.y)&&!!sightFrom(x,y,t.x,t.y);
-  const th=threats(),cg=caught(u),cand=[];
-  for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<300)cand.push({x:c.x,y:c.y});
-  for(let dx=-200;dx<=200;dx+=20)for(let dy=-200;dy<=200;dy+=20)if(dx*dx+dy*dy<=200*200)cand.push({x:u.x+dx,y:u.y+dy});   // and the ground round him
-  const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
+  o=o||{x:u.x,y:u.y};const th=threats(),cg=caught(u),cand=[];
+  for(const c of coverPts)if(hyp(c.x-o.x,c.y-o.y)<=ACT_R)cand.push({x:c.x,y:c.y});
+  for(let dx=-ACT_R;dx<=ACT_R;dx+=20)for(let dy=-ACT_R;dy<=ACT_R;dy+=20)if(dx*dx+dy*dy<=ACT_R*ACT_R)cand.push({x:o.x+dx,y:o.y+dy});   // and the ground round him, inside his circle (Bryan, after v104)
+  const others=players.filter(q=>q!==u&&!q.dead).map(destOf);
   // cheapest: a short walk; in a fight, in cover; unseen, out of the hostiles' sight (for a quiet shot, his too) and behind something; never right on top of him
   const cost=c=>{const dt=hyp(t.x-c.x,t.y-c.y);return hyp(c.x-u.x,c.y-u.y)+(dt<(quiet?60:110)?((quiet?60:110)-dt)*2:0)+(cg?(isCovered(c,th)?0:90):(watched(c.x,c.y,quiet?null:e)?220:0)+(coverAt(c.x,c.y,t.x,t.y)?0:30));};
-  const good=cand.filter(c=>isFree(c.x,c.y,7)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<12)&&ok(c.x,c.y)).map(c=>({...c,cost:cost(c)})).sort((a,b)=>a.cost-b.cost).slice(0,8);
-  for(const c of good){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=330&&L<=hyp(c.x-u.x,c.y-u.y)*1.8+60)return{x:c.x,y:c.y,path:p};}}
+  const good=cand.filter(c=>isFree(c.x,c.y,7)&&!others.some(q=>hyp(q.x-c.x,q.y-c.y)<12)&&ok(c.x,c.y)).map(c=>({...c,cost:cost(c)})).sort((a,b)=>a.cost-b.cost).slice(0,8);
+  for(const c of good){const p=findPath(u.x,u.y,c.x,c.y);if(p&&inCircle(p,o))return{x:c.x,y:c.y,path:p};}
   return null;
 }
 function orderFire(list,e){
@@ -823,25 +859,11 @@ function orderFire(list,e){
     if(u.onGun||u.onTower||u.climb){fire.push(u);continue;}   // on a gun or up the tower: he fires from there if he can
     if(fireLine(u,e)&&hyp(e.x-u.x,e.y-u.y)<=wRange(u)){fire.push(u);continue;}
     if(pinnedNow(u)){refusePinned(u);none.push(u);continue;}   // (he'd have to leave his spot for a line: not while he's pinned, Bryan after v104; he fires on him once he can)
-    const s=lineSpot(u,e)||lineSpotFar(u,e);
-    if(s){Object.assign(u,{path:s.path,lastOrder:simT,watch:null,exposeT:0,fireGo:{e,t0:simT,tries:1}});move.push(u);callout(u,'Getting a line',C.warn);}
-    else{none.push(u);bubble(u,'No way to get a shot at him');}
+    const s=lineSpot(u,e);
+    if(s){Object.assign(u,{fireGo:{e,t0:simT,tries:1,o:{x:u.x,y:u.y}},path:s.path,lastOrder:simT,watch:null,exposeT:0});move.push(u);callout(u,'Getting a line',C.warn);}
+    else{none.push(u);tooFar(u);}   // (no line anywhere inside his circle: he says so; he fires on him once he can)
   }
   return{crew,moveQ,fire,move,none};
-}
-// further afield, when there's no line within a short walk (Bryan, after v104: only being pinned stops him): a spot in his
-// weapon's reach with a line to the man, the shortest walk (in a fight, in cover if it isn't much further), however far it is
-function lineSpotFar(u,e){
-  const t=e.vis||!e.last?{x:e.x,y:e.y}:e.last,R=Math.min(wRange(u),360)*.95,ok=(x,y)=>hyp(t.x-x,t.y-y)<=R&&hideAt(x,y)===hideAt(t.x,t.y)&&!!sightFrom(x,y,t.x,t.y);
-  const th=threats(),cg=caught(u),cand=[],D=hyp(t.x-u.x,t.y-u.y)||1;
-  for(const c of coverPts)if(hyp(c.x-t.x,c.y-t.y)<R)cand.push({x:c.x,y:c.y});
-  for(const r of[R*.5,R*.8])for(let k=0;k<16;k++){const a=k/16*TAU;cand.push({x:t.x+Math.cos(a)*r,y:t.y+Math.sin(a)*r});}
-  for(let s=40;s<D;s+=40){const k=s/D;for(const o of[-30,0,30])cand.push({x:u.x+(t.x-u.x)*k+(t.y-u.y)/D*o,y:u.y+(t.y-u.y)*k-(t.x-u.x)/D*o});}   // (on the way to him)
-  const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
-  const fit=cand.filter(c=>isFree(c.x,c.y,7)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<12)&&hyp(t.x-c.x,t.y-c.y)>60&&ok(c.x,c.y)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y)})).sort((a,b)=>a.d-b.d).slice(0,10);
-  let best=null;
-  for(const c of fit){const p=findPath(u.x,u.y,c.x,c.y);if(!p)continue;const L=routeLen(u,p),cost=L+(cg&&!isCovered(c,th)?90:0);if(L<=1200&&(!best||cost<best.cost))best={x:c.x,y:c.y,path:p,cost};}
-  return best;
 }
 function fireGoTick(){   // on his way to a spot with a line: there, he fires (his focus); the man moved, he looks again (once)
   for(const u of players){
@@ -849,7 +871,7 @@ function fireGoTick(){   // on his way to a spot with a line: there, he fires (h
     if(!alive(u)||u.carry||u.lastOrder>g.t0+.01||u.focus!==g.e||beaten(g.e)){u.fireGo=null;continue;}
     if(u.path.length)continue;
     if(fireLine(u,g.e)&&hyp(g.e.x-u.x,g.e.y-u.y)<=wRange(u)){u.fireGo=null;continue;}
-    const s=g.tries<2&&lineSpot(u,g.e);if(!s){u.fireGo=null;callout(u,'No line',C.warn);continue;}
+    const s=g.tries<2&&lineSpot(u,g.e,undefined,false,g.o);if(!s){u.fireGo=null;callout(u,'No line',C.warn);continue;}
     u.path=s.path;u.lastOrder=g.t0=simT;g.tries++;
   }
 }

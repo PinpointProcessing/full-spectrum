@@ -209,8 +209,16 @@ function suppressAt(sx,sy){
 }
 function orderSuppress(list,pt){
   const sh=list.filter(alive);if(!sh.length)return false;
-  for(const u of sh){u.supT={x:pt.x,y:pt.y};u.focus=null;u.noLine=0;u.lastOrder=simT;u.watch=null;}
-  callout(sh[0],'Suppressing!',C.warn);chatSuppress(sh[0]);
+  // a line on the spot from where he is (or leaning out); without one he steps to one inside his circle; pinned, he doesn't
+  // go anywhere, and too far, he says so (Bryan, after v104: "All actions should work like that")
+  const go=[];
+  for(const u of sh){
+    const here=u.onGun||u.onTower||!!sightOf(u,pt.x,pt.y)||enemies.some(e=>!beaten(e)&&hyp(e.x-pt.x,e.y-pt.y)<55&&fireLine(u,e));let s=null;   // (suppressShot's own test)
+    if(!here){if(pinnedNow(u)){refusePinned(u);continue;}s=lineSpot(u,{x:pt.x,y:pt.y,vis:true});if(!s){tooFar(u);continue;}}
+    Object.assign(u,{supT:{x:pt.x,y:pt.y},focus:null,noLine:0,lastOrder:simT,watch:null});if(s){u.path=s.path;u.exposeT=0;callout(u,'Getting a line',C.warn);}go.push(u);
+  }
+  if(!go.length)return false;
+  callout(go[0],'Suppressing!',C.warn);chatSuppress(go[0]);
   mode=null;preview=null;fireOrderAt=performance.now();return true;
 }
 // while a finger rests on something it would suppress: a ring fills round it until the hold takes (drawn from the overlay)
@@ -276,11 +284,14 @@ function tap(sx,sy){
       const helpers=sel.filter(u=>u!==pu&&!u.inVeh&&alive(u)&&!u.carry);
       if(!helpers.length){banner('Select a soldier, then tap the downed man.');return;}
       helpers.sort((a,b)=>hyp(a.x-pu.x,a.y-pu.y)-hyp(b.x-pu.x,b.y-pu.y));
-      if(pu.critical){const medic=helpers.find(hasKit);if(medic)orderMedkit(medic,pu);else orderCarry(helpers[0],pu);return;}   // past the 60 s (Bryan): a medic kit if one of them has it, else carry him out
-      const h=helpers[0],spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));
-      const path=spot&&findPath(h.x,h.y,spot.x,spot.y);
-      if(path){h.path=path;h.lastOrder=simT;h.supT=null;markRet(h);callout(h,'On my way',C.good);}
-      else banner('No way to reach him from here.');
+      // whoever goes has to be able to get to him inside his circle (Bryan, after v104; combat.js's reachFor): the nearest who can
+      if(pu.critical){   // past the 60 s (Bryan): a medic kit if one of them has it and can get to him, else carry him out
+        const kits=helpers.filter(hasKit),rk=kits.length?reachFor(kits,h=>goBeside(h,pu),null,true):null;
+        if(rk){orderMedkit(rk.u,pu);return;}
+        const r=reachFor(helpers,h=>goBeside(h,pu),'No way to reach him from here.');if(r)orderCarry(r.u,pu);return;
+      }
+      const r=reachFor(helpers,h=>{const spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));return spot&&findPath(h.x,h.y,spot.x,spot.y);},'No way to reach him from here.');
+      if(r){const h=r.u;h.path=r.p;h.lastOrder=simT;h.supT=null;markRet(h);callout(h,'On my way',C.good);}
       return;
     }
     // Bryan: with several selected, tapping one of them picks just him, like tapping his card (the cards on show stay);

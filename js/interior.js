@@ -362,8 +362,12 @@ function orderUse(a){
   if(!foot.length){banner('Select a soldier first.',1600);return;}
   if(a.multi){a.go(foot);return;}   // the stairs and the lift: everyone selected goes (office.js)
   if(useFor(a))return;   // (someone's already on it)
-  const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),u=pickFor(foot,a.x,a.y),s=openSpot(sx,sy,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:sx,y:sy},p=findPath(u.x,u.y,s.x,s.y);
-  if(!p){banner('No way there from here.',1600);return;}
+  // the nearest who isn't busy and can get there inside his circle (Bryan, after v104: combat.js's reachFor); a.far: a walk, not
+  // a job (bringing the scientists in at the Headquarters' door): no circle
+  const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),pathOf=u=>{const s=openSpot(sx,sy,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:sx,y:sy};return findPath(u.x,u.y,s.x,s.y);};
+  const cand=foot.filter(u=>!u.carry).sort((p,q)=>(onTask(p)-onTask(q))||(hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y)));if(!cand.length)return;
+  let u,p;if(a.far){u=cand[0];p=pathOf(u);if(!p){banner('No way there from here.',1600);return;}}
+  else{const r=reachFor(cand,pathOf,'No way there from here.');if(!r)return;u=r.u;p=r.p;}
   u.path=p;u.lastOrder=simT;useGos=useGos.filter(g=>g.u!==u);zipGos=zipGos.filter(z=>z.u!==u);useGos.push({u,a,prog:0});markRet(u);callout(u,'Moving',C.good);
 }
 function useTick(dt){

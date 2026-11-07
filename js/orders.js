@@ -7,7 +7,7 @@
    the room's nearest doorway; tapping it, the team stacks up either side of the doorway, and once both are set they go in
    together to spots either side inside. For BREACH.t s they have +BREACH.bonus to hit, and anyone inside who hadn't seen
    them is slow to react (BREACH.stun s). */
-const WATCH={half:.62,range:300,bonus:.05},BREACH={t:2.5,bonus:.2,stun:.9,near:150};   // (the watch's bonus was +0.15 as an order; automatic, it's a small edge for holding still)
+const WATCH={half:.62,range:300,bonus:.05},BREACH={t:2.5,bonus:.2,stun:.9,near:ACT_R};   // (near: the marker shows for a team inside the circle of the doorway, Bryan after v104; it was 15 m)   // (the watch's bonus was +0.15 as an order; automatic, it's a small edge for holding still)
 let breach=null;
 function resetOrders(){breach=null;breachHere=null;doorCache.clear();}
 
@@ -81,9 +81,9 @@ function doorTap(wx,wy){
   if(MAPID!=='in')return false;
   const o=objs.find(q=>q.door&&!q.open&&rectDist(wx,wy,q)<9);if(!o)return false;
   const team=sel.filter(u=>alive(u)&&!u.carry&&!offFloor(u));if(!team.length){banner('Select a soldier, then tap the door to open it.',1800);return true;}
-  const dx=o.x+o.w/2,dy=o.y+o.h/2,u=team.reduce((a,b)=>hyp(b.x-dx,b.y-dy)<hyp(a.x-dx,a.y-dy)?b:a);
-  const side=Math.sign(u.x-dx)||1,p=findPath(u.x,u.y,dx+side*12,dy);   // (the doors are in north-south walls: his side is east or west of it)
-  if(!p){banner('No way to that door from here.',1800);return true;}
+  const dx=o.x+o.w/2,dy=o.y+o.h/2;team.sort((a,b)=>hyp(a.x-dx,a.y-dy)-hyp(b.x-dx,b.y-dy));
+  const r=reachFor(team,u=>findPath(u.x,u.y,dx+(Math.sign(u.x-dx)||1)*12,dy),'No way to that door from here.');if(!r)return true;   // (the doors are in north-south walls: his side is east or west of it; inside his circle, Bryan after v104)
+  const u=r.u,p=r.p;
   Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:{o,t:simT}});callout(u,'Opening the door',C.good);
   return true;
 }

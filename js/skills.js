@@ -57,33 +57,45 @@ function rally(u){
   u.skillT=simT+R.cd;rallies.push({x:u.x,y:u.y,t:simT});callout(u,n>1?'On your feet! Push!':'Keep moving!',C.good);hud();
 }
 // binoculars and the distraction: the tap (input.js, in their modes)
-function skillTap(u,wx,wy){
-  const k=mode;if(!u||skillOf(u)!==k){mode=null;return true;}
+function skillTap(u,wx,wy,k0,there){   // (k0, there: on arrival at a spot he walked to for it, skillTick)
+  const k=k0||mode;if(!u||skillOf(u)!==k){mode=null;return true;}
   const d=hyp(wx-u.x,wy-u.y);
   if(k==='binos'){
-    if(d>SKILL.binos.range){banner('Too far. Inside the circle.',1500);return false;}
-    if(!sightFrom(u.x,u.y,wx,wy)){banner('He can’t see there from here.',1600);return false;}
+    const can=(x,y)=>hyp(wx-x,wy-y)<=SKILL.binos.range&&!!sightFrom(x,y,wx,wy);
+    if(!(d<=SKILL.binos.range&&sightFrom(u.x,u.y,wx,wy)))return skillMove(u,k,wx,wy,can,there);
     let n=0;for(const e of enemies){if(beaten(e)||hyp(e.x-wx,e.y-wy)>SKILL.binos.r||!sightFrom(u.x,u.y,e.x,e.y))continue;e.seen=true;e.last={x:e.x,y:e.y};e.markT=simT+SKILL.binos.mark;e.revealT=Math.max(e.revealT||0,simT+SKILL.binos.mark);n++;}
     u.skillT=simT+SKILL.binos.cd;u.ang=Math.atan2(wy-u.y,wx-u.x);u.aimT=simT;mode=null;
     callout(u,n?`${n} marked`:'Nobody there',n?C.good:C.warn);binoLook={x:wx,y:wy,t:simT};hud();return true;
   }
   if(k==='flash'){
-    if(d>SKILL.flash.range){banner('Too far. Throw inside the circle.',1500);return false;}
-    if(!(los(u.x,u.y,wx,wy,true)||lobOK(u.x,u.y,wx,wy))){banner('No clear throw from here.',1600);return false;}
+    const can=(x,y)=>hyp(wx-x,wy-y)<=SKILL.flash.range&&(los(x,y,wx,wy,true)||lobOK(x,y,wx,wy));
+    if(!can(u.x,u.y))return skillMove(u,k,wx,wy,can,there);
     u.skillN=(u.skillN||0)-1;u.ang=Math.atan2(wy-u.y,wx-u.x);u.aimT=simT;u.throwT=simT;u.lastOrder=simT;mode=null;
     noises.push({x0:u.x,y0:u.y,x:wx,y:wy,t:0,dur:SKILL.flash.fuse,by:u,flash:true});callout(u,'Flashbang out!',C.warn);if(typeof sfxPin==='function')sfxPin(u.x,u.y);hud();return true;
   }
   if(k==='noise'){
-    if(d>SKILL.noise.range){banner('Too far. Throw inside the circle.',1500);return false;}
-    if(!(los(u.x,u.y,wx,wy,true)||lobOK(u.x,u.y,wx,wy))){banner('No clear throw from here.',1600);return false;}
+    const can=(x,y)=>hyp(wx-x,wy-y)<=SKILL.noise.range&&(los(x,y,wx,wy,true)||lobOK(x,y,wx,wy));
+    if(!can(u.x,u.y))return skillMove(u,k,wx,wy,can,there);
     u.skillN=(u.skillN||0)-1;u.ang=Math.atan2(wy-u.y,wx-u.x);u.aimT=simT;u.throwT=simT;mode=null;
     noises.push({x0:u.x,y0:u.y,x:wx,y:wy,t:0,dur:.8,by:u});callout(u,'Over there…',C.good);hud();return true;
   }
   return false;
 }
+// he can't from where he is: a spot inside his circle he can do it from, and he does it there (Bryan, after v104: "All actions
+// should work like that. But there should be a limit on how far they can move"); pinned, he doesn't go; nowhere: too far
+function skillMove(u,k,wx,wy,can,there){
+  if(there){bubble(u,k==='binos'?'Can\u2019t see it from here':'No clear throw from here');return false;}   // (got there, and it still won't go)
+  if(pinnedNow(u))return refusePinned(u);
+  const s=circleSpot(u,can);if(!s)return tooFar(u);
+  Object.assign(u,{path:s.path,lastOrder:simT,supT:null,focus:null,skillGo:{k,x:wx,y:wy,t0:simT}});mode=null;markRet(u);
+  callout(u,'Getting an angle',C.warn);return true;
+}
 let binoLook=null;
 // every tick (update)
 function skillTick(dt){
+  for(const u of players){const g=u.skillGo;if(!g)continue;   // walked to a spot for a skill (skillMove): there, he does it
+    if(!alive(u)||u.lastOrder>g.t0+.01||u.carry){u.skillGo=null;continue;}
+    if(u.path.length)continue;u.skillGo=null;skillTap(u,g.x,g.y,g.k,true);backSoon(u,.9,true);}
   for(const u of players){const g=u.deploy;if(!g)continue;   // setting a station or an ammo drop down
     if(!alive(u)||u.lastOrder>g.t0+.01||u.path.length||u.carry){u.deploy=null;continue;}
     g.p+=dt;if(g.p<SKILL[g.k].t)continue;
@@ -128,9 +140,10 @@ function flashLands(n){
 }
 // Cyber Ops: something that needs the access card, a Cyber selected: he goes and gets into it without one (orderUse)
 function orderHack(a){
-  const cy=sel.filter(u=>alive(u)&&isCls(u,'cyber')&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y))[0];if(!cy)return false;
-  const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14),s=openSpot(sx,sy,players.filter(p=>p!==cy&&!p.dead).map(destOf))||{x:sx,y:sy},p=findPath(cy.x,cy.y,s.x,s.y);
-  if(!p){banner('No way there from here.',1600);return true;}
+  const cs=sel.filter(u=>alive(u)&&isCls(u,'cyber')&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));if(!cs.length)return false;
+  const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14);
+  const r=reachFor(cs,c=>{const s=openSpot(sx,sy,players.filter(p=>p!==c&&!p.dead).map(destOf))||{x:sx,y:sy};return findPath(c.x,c.y,s.x,s.y);},'No way there from here.');   // (inside his circle: Bryan, after v104)
+  if(!r)return true;const cy=r.u,p=r.p;
   cy.path=p;cy.lastOrder=simT;useGos=useGos.filter(g=>g.u!==cy);zipGos=zipGos.filter(z=>z.u!==cy);useGos.push({u:cy,a,prog:0,hack:true,secs:SKILL.hack.t});markRet(cy);callout(cy,'I can get past that',C.good);
   return true;
 }
@@ -142,6 +155,7 @@ function clearSkills(){
 function drawSkills(now){
   const u=sel[0];
   if(u&&(mode==='binos'||mode==='noise'||mode==='flash')){gPath(u.x,u.y,SKILL[mode].range);ox.setLineDash([6,5]);ox.strokeStyle=mode==='binos'?'#9fd8ff':mode==='flash'?'#ffffff':'#cfd6dc';ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
+  if(u&&(mode==='binos'||mode==='noise'||mode==='flash')){gPath(u.x,u.y,SKILL[mode].range+ACT_R);ox.setLineDash([2,6]);ox.strokeStyle=mode==='binos'?'#9fd8ff':mode==='flash'?'#ffffff':'#cfd6dc';ox.globalAlpha=.4;ox.lineWidth=1.2;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}   // (as far as it goes once he's moved up inside his circle: Bryan, after v104)
   if(binoLook&&simT-binoLook.t<1.2){const k=(simT-binoLook.t)/1.2;gPath(binoLook.x,binoLook.y,SKILL.binos.r*(.6+k*.4));ox.strokeStyle=`rgba(159,216,255,${.8*(1-k)})`;ox.lineWidth=2;ox.stroke();}
   for(const e of enemies)if(e.markT>simT&&!beaten(e)&&!offFloor(e)){const[x,y]=toS(e.x,e.y,22);if(toSBack)continue;ox.fillStyle='#9fd8ff';ox.beginPath();ox.moveTo(x,y+5);ox.lineTo(x-5,y-3);ox.lineTo(x+5,y-3);ox.closePath();ox.fill();}   // marked: a blue pin over him
   for(const n of noises){const k=Math.min(1,n.t/Math.min(n.dur,.8)),x=n.x0+(n.x-n.x0)*k,y=n.y0+(n.y-n.y0)*k,[sx,sy]=toS(x,y,6+Math.sin(k*Math.PI)*20);if(toSBack)continue;ox.fillStyle=n.flash?'#e8eef2':'#cfd6dc';ox.beginPath();ox.arc(sx,sy,2.5,0,TAU);ox.fill();

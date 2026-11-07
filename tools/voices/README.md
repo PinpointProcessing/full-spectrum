@@ -49,12 +49,14 @@ A2, B1 and B2 (chatter.js's `CHAT.snipernest`, said a few seconds after they're 
 `check_zonos.py`, the first take of each put on the end of the speakers' files by `add_lines.py` (B2's second added a word).
 A full repack of these four with `pack_zonos.py` drops it: add it again the same way.
 
-A pinned soldier told to do something he'd have to leave his spot for (Bryan, after v104: "it would say I'm Pinned, I can't
-do that!... maybe even have them say it"): `cant_1`, "I'm pinned! I can't do that!", for all eight (voice.js's
-`VOICE_LINES.cant`), made by `gen_pinned.py` in the 'urgent' style the other pinned lines have (Reyes from his shouted
-reference; two takes each), scored by `check_zonos.py` (every speaker had a take heard word for word: Reyes's second, the
-others' first) and put on the end of the files by `add_lines.py` as 'shout', packed like the pinned group. A full repack of
-a speaker drops it: add it again the same way (voice.js falls back to his "Can't move, I'm pinned!" meanwhile).
+A soldier who can't do what he's told says why (Bryan, after v104: "it would say I'm Pinned, I can't do that!... maybe even
+have them say it", then the circle round him, "Let make a small imaginary circle around the unit"), for all eight (voice.js's
+`VOICE_LINES`), both made by `gen_refusals.py` (two takes each) and scored by `check_zonos.py`: `cant_1`, "I'm pinned! I
+can't do that!", in the 'urgent' style the other pinned lines have (Reyes from his shouted reference), put on the end of the
+files by `add_lines.py` as 'shout', packed like the pinned group (every speaker had a take heard word for word: Reyes's
+second, the others' first); and `far_1`, "Too far. Move me closer.", said steady ('calm'), added as 'plain' (Okafor's second
+take, the others' first: his first lost "Too far"). A full repack of a speaker drops them: add them again the same way
+(voice.js falls back to his "Can't move, I'm pinned!" for the first meanwhile, and says nothing for the second).
 
 Three lines were added after the cast was done, outside `extract.js`'s sheet, with the same Zonos settings: Level 1's
 helicopter pilot (a new speaker, `PL`, voice from `refs/PL.flac`, made with Kokoro's `am_michael` like the other refs):
