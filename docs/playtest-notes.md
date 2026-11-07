@@ -566,3 +566,7 @@ Maybe [any] class upgrades happen when the team returns to the HQ." And: "each c
 they can equip. Like support can get a mobile turret. Medic gets a heal dart, assault gets C4. And they continue to unlock
 as the game progresses. They don't unlock on every level, just big milestones. We can discuss more." Recorded in
 docs/classes.md with a draft table of tools per class and milestone for him to adjust; built with radio control.
+Then, on the draft's three questions: "1) Free/unlocked. The equipment is radio'd in and arrives in a helicopter on the top
+floor (needs a radio tower). 2) hmm I'm not sure, maybe unlock slots as they level up. 3) tools and better versions of the
+class. As the game progresses enemies get stronger too." Recorded in docs/classes.md; the order of work in docs/hq-base.md
+now puts radio control and the roof (helipad, radio tower) before classes at the HQ.

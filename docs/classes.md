@@ -142,6 +142,12 @@ skills. Each class gets one new tool at each big milestone, never every level.
 | **Defender** | deployable shield: cover he carries and sets down anywhere | barricade upgrade: a firing slit | a fixed gun on a barricade |
 
 Milestones, as a suggestion: taking the HQ (classes open, first tools), the radio tower (radio control comes online: second
-tools and the Captain's call-ins), then whatever big missions come after. Questions for Bryan: free at the milestone, or
-built at the HQ (the weapon station) with supplies once unlocked? One tool slot per soldier, or more with level? Do the
-class upgrades he mentioned (back at the HQ) mean these tools, or better versions of the passive and the skill too?
+tools and the Captain's call-ins), then whatever big missions come after.
+
+Bryan's answers on the draft (after v96):
+1. **Free once unlocked.** The equipment is radioed in and arrives by helicopter on the HQ's top floor, so it needs the
+   radio tower (the roof's helipad and tower: docs/hq-base.md).
+2. **Tool slots:** not decided; maybe more slots open as a soldier levels up.
+3. **Class upgrades** are both: the tools, and better versions of the class itself (its passive and its skill).
+
+And: as the game goes on, the enemies get stronger too.

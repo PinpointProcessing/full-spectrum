@@ -99,10 +99,17 @@ single player and uses what we have, and it builds what an asynchronous PvP raid
 their own, and an HQ map someone else's squad could attack. If PvP never happens, it's still a good mission type.
 
 ## Next steps
+Bryan, after v96: class tools are free once unlocked, radioed in and flown by helicopter to the HQ's top floor, so they need
+the radio tower; class upgrades are the tools and better versions of each class; and the enemies get stronger as the game
+goes on. That puts the roof on the class path, so the order is now:
 1. **The next mission: the old radio tower**, through the tunnel down the road. Its supplies are what the radio control
    station needs. Yours to design: the map, the guards, what's left of the tower, how they get there and back.
 2. Supplies and intel counted from each mission and shown at the command center.
-3. Tap an EMPTY ROOM: a build menu with radio control, the weapon station and the armor station, each with its cost.
-4. The radio's reinforcements as a HUD button: level 1 men, a few per mission.
-5. Later: the yard, the garage and the quay outside the HQ; the second floor and the roof; strikes from the radio; the
-   attack on the HQ.
+3. **Radio control, and the HQ's second floor and roof**: stairs and a lift up, the helipad and the radio tower on the
+   roof (built with the supplies from step 1).
+4. **Classes at the HQ**: promotion at the command center for anyone at level 3 (the freed men too); the first class tools
+   flown in by helicopter to the roof once the radio tower stands; better versions of each class at later milestones.
+5. Tap an EMPTY ROOM: a build menu with the weapon station and the armor station, each with its cost; the radio's
+   reinforcements as a HUD button (level 1 men, a few per mission).
+6. Enemies that get stronger with each milestone.
+7. Later: the yard, the garage and the quay outside the HQ; strikes from the radio; the attack on the HQ.
