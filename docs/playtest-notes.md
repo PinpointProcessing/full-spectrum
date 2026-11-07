@@ -812,4 +812,6 @@ has all seven of the front's men in sight.
    then "Moving!". Defaults I took: he holds where you put him for 1.5 s after an order; he keeps at a job you gave him
    (suppressing, a zip tie, a thing to use, a throw, a takedown, a door), and the man getting a downed teammate up or using
    a medic kit keeps at it unless he's pinned (then he can't do it anyway, so he runs too); monsters don't shoot, so nobody
-   runs from them.
+   runs from them. Measured: the squad put in the open on our bank against the alerted bridge for 30 s and left to it,
+   three seeds: before, 1.3 men down on average (1, 2, 1); now 0.3 (0, 0, 1), all four running for cover, the damage taken
+   about the same (they're hit before and while they run) and the bridge's five down as before (4.7 of 5).
