@@ -91,6 +91,16 @@ const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
 // adjacent to the road?": out from the wall onto the sidewalk at the road's edge. Its ladder's on its west side, behind him
 const TOWER={x:50,y:-353,elev:40,ladder:{x:28,y:-353}};
 O('wtower',TOWER.x-12,TOWER.y-12,24,24);
+// cover by the tower (Bryan, after v108: "Could we also add some cover near the sniper tower?"): sandbags piled against its legs
+// on the ladder's side, either side of the ladder, and along its north side (the men by the ladder covered from the front, the
+// men north of it from the road), and an L east of it: a wall from the road's edge to 3 m short of the building (the way
+// along the front goes through that gap, or over the bags) and a run along the road's edge back to the tower's corner, a pocket
+// between them covered from the front and from the road. The way in to the ladder from the yard's west strip stays open, and
+// sandbags don't block sight: the sniper's cone and the guards' views are as they were. (A man counts as in cover only within
+// 1.5 m of it, combat.js's coverAt, so the bags sit close to where men stand: a spot 11 out from each face, pathfinding.js)
+{const tx=TOWER.x-12,ty=TOWER.y-12;
+O('sandbag',tx,ty-8,6,16);O('sandbag',tx,ty+16,6,16);O('sandbag',tx,ty,24,6);   // round its legs: the ladder's side (the ladder clear between them), the north side
+O('sandbag',tx+46,ty-35,8,68);O('sandbag',tx+24,ty+25,22,8);}   // the L: its east wall, its run along the road's edge
 // the container yard along the canal (Bryan's draft F: "Make the containers horizontal and run along the canal... The whole
 // point of the containers is for stealth"): three rows on the north bank, long sides east-west, most double-stacked (nobody
 // sees over), with gaps to slip through and no long sight lines; the bridge's road runs north through the middle. From the

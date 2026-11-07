@@ -12,20 +12,37 @@ function resize(){
 
 /* ---------- loop ---------- */
 let last=performance.now(),hudT=0;
+/* The next frame is asked for first, and each part of a frame runs on its own (guard): an error in one used to stop the loop
+   for good, the picture frozen on its last frame (Bryan, v108: "The game froze when I was at the sniper tower": the see-through
+   fade threw on the data center's block). Now that frame's part is skipped, the game carries on, and the error is shown once,
+   short, so a screenshot says where (gameError), and kept in localStorage (warehouseYard.lastError). */
+const ERR={seen:new Set(),t:-1e9};
+function gameError(where,err){
+  const msg=String(err&&err.message||err),key=where+':'+msg;if(ERR.seen.has(key))return;ERR.seen.add(key);
+  const at=String(err&&err.stack||'').split('\n').map(l=>l.trim()).find(l=>/\.js:\d+/.test(l))||'';
+  const spot=(at.match(/([\w-]+\.js):(\d+)/)||[]).slice(1).join(':');
+  console.error('[game]',where,err);
+  try{localStorage.setItem('warehouseYard.lastError',JSON.stringify({where,msg,at:spot,stack:String(err&&err.stack||'').split('\n').slice(0,6).join(' | '),when:Date.now()}));}catch(e){}
+  const now=performance.now();if(now-ERR.t<8000)return;ERR.t=now;
+  try{banner(`Something went wrong (${where}${spot?' · '+spot:''}: ${msg.slice(0,90)}). The game carried on.`,7000);}catch(e){}
+}
+function guard(where,f){try{f();}catch(err){gameError(where,err);}}
 function frame(nowMs){
-  const raw=(nowMs-last)/1000,rdt=Math.min(.05,raw);last=nowMs;postWatch(raw);
-  if(state==='equip'){equipFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);requestAnimationFrame(frame);return;}   // between missions: the squad at sea (equip.js)
-  if(state==='play'){
+  requestAnimationFrame(frame);   // (first: whatever goes wrong below, the next frame still comes)
+  const raw=(nowMs-last)/1000,rdt=Math.min(.05,raw);last=nowMs;guard('frame',()=>postWatch(raw));
+  if(state==='equip'){guard('equip',()=>{equipFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);});return;}   // between missions: the squad at sea (equip.js)
+  if(state==='play')guard('update',()=>{
     const dt=rdt*timeScale();if(dt>0)update(dt);
     if(!reduced&&!paused&&MAPID!=='in'&&MAPID!=='tun'&&!hqIndoors()&&!l4In()){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
     if(endAt&&nowMs>=endAt)finish();
-  }
-  if(!ptr&&!pinch&&(Math.abs(inertia.vx)+Math.abs(inertia.vy))>3){camT.x+=inertia.vx*rdt;camT.z+=inertia.vy*rdt;clampCam();const k=Math.exp(-rdt*5);inertia.vx*=k;inertia.vy*=k;}
-  storm=Math.max(0,storm-rdt*6);
-  edgePan(rdt);alertMeter();waveHud();threatHud();alertHud();aimTurret();panTick(rdt);audioFrame();markAlive(rdt);   // (edgePan: a route being drawn near the view's edge, input.js)
-  render(rdt,nowMs/1000);
-  hudT-=rdt;if(hudT<=0){hudT=.15;hud();}
-  requestAnimationFrame(frame);
+  });
+  guard('frame',()=>{
+    if(!ptr&&!pinch&&(Math.abs(inertia.vx)+Math.abs(inertia.vy))>3){camT.x+=inertia.vx*rdt;camT.z+=inertia.vy*rdt;clampCam();const k=Math.exp(-rdt*5);inertia.vx*=k;inertia.vy*=k;}
+    storm=Math.max(0,storm-rdt*6);
+    edgePan(rdt);alertMeter();waveHud();threatHud();alertHud();aimTurret();panTick(rdt);audioFrame();markAlive(rdt);   // (edgePan: a route being drawn near the view's edge, input.js)
+  });
+  guard('render',()=>render(rdt,nowMs/1000));
+  hudT-=rdt;if(hudT<=0){hudT=.15;guard('hud',hud);}
 }
 
 /* ---------- an unexpected restart ----------

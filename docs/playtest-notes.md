@@ -815,3 +815,22 @@ has all seven of the front's men in sight.
    runs from them. Measured: the squad put in the open on our bank against the alerted bridge for 30 s and left to it,
    three seeds: before, 1.3 men down on average (1, 2, 1); now 0.3 (0, 0, 1), all four running for cover, the damage taken
    about the same (they're hit before and while they run) and the bridge's five down as before (4.7 of 5).
+
+# Bryan, after v108 (the changes are in v109)
+
+1. "The game froze when I was at the sniper tower." Found and fixed. When something tall stands between the camera and one
+   of ours, it fades so he can be seen. The data center's block is built with a separate material for each face, the fade
+   tried to copy that list as if it were a single material, and that threw an error. The frame loop asked for its next frame
+   only at the end of each frame, so that one error stopped the game for good on its last picture. It had been possible ever
+   since the tower moved to the building's corner (a man by the ladder with the camera turned), and v108 made it likely: a
+   man shot at by the tower now runs for cover behind that corner. My first two reproductions only ran the game's logic and
+   found nothing; the third drew the frames too, with the camera turned the way his screenshot was, and hit it every time.
+   Fixed the fade, and the frame loop now asks for the next frame first and runs each part on its own: if anything else ever
+   goes wrong, the game carries on, and a short line at the top says where (worth a screenshot), once.
+2. "Could we also add some cover near the sniper tower?" Sandbags piled against the tower's legs either side of its ladder
+   and along its north side, and an L of sandbags east of it: a wall from the road's edge to 3 m short of the building and a
+   short run along the road's edge back to the tower, a pocket between them for two or three men, covered from the data
+   center's front and from the road. Men by the ladder are covered from the front, and one north of the tower from the road
+   where the jeep turns. The quiet way in to the ladder from the yard's west strip is as it was, the walk along the front to
+   the doors goes through the gap by the building (or over the bags), sandbags don't block anyone's sight, and the jeep's
+   route clears them.
