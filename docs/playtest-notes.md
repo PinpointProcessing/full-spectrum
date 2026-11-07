@@ -641,3 +641,10 @@ Bryan: "Show me a draft". `docs/map-draft-H.png` and `docs/level4-draft.md`: Lev
 through the tunnel. The Crawler in the tunnel, a valley road with a roadblock, woods with hunters in them, the compound
 on the hill (a sniper on the dead mast, a machine gun at the gate, a radio man who calls a truck in), three supplies to
 carry home and a radio log for intel. Five questions for him at the end of the write-up. Nothing built yet.
+Bryan: "No, so the east road is over a bridge to the tunnel. In the tunnel there's an interior that leads to a tunnel which
+will reach the radio tower on top of the hill the tunnel is under." Redrawn as `docs/map-draft-I.png`: a side view of the
+hill (the road tunnel along its foot, its north end caved in; a service door in it up into the plant, the tunnel's control
+rooms in the rock, where the brood has nested; the incline, an access tunnel with steps and a rail car up through the rock,
+where the Crawler lives; the old radio tower on the summit, a militia outpost that watches its own track and the road, not
+the bunker the squad comes out of), with plans of the plant and the summit. `docs/level4-draft.md` rewritten to match, with
+five questions.
