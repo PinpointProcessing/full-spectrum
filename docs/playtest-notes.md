@@ -729,3 +729,11 @@ NEST over the tower; the hint line says where he is; and a few seconds after the
 against the data center. Stay out of his sights." (from where they come ashore the nest is due north, so not "north-west";
 recorded for Reyes, Kowalski, Hayes and Okafor). A silent shot from the doors takes him quietly. Scripted: the old quiet way
 and the way up the west strip both reach the doors unseen.
+
+Bryan, after v102, with an arrow drawn on a screenshot (his camera turned so the road ran up the screen; the arrow from the
+road's far west end, by the data center, up the screen to the doors): "No I want the watchtower to look like this, looking
+north." Up his screen is east on the map. Built in v103: the tower stands at the road's far west end against the data
+center's south-west corner, looking along the building's front to its doors and up the road (his cone, the label and the
+warning line as before). Hugging the left side (up the yard's west strip, over the road's far west end) gets to the foot of
+his tower unseen; up there he only watches his cone, so a silent shot from his ladder takes him; then along the front to the
+doors. Coming straight up from the bridge, the bridge road's mouth is in his sight.

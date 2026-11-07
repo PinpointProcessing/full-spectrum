@@ -265,8 +265,8 @@ function truckWreck(u,src){
 const CLIMB_T=1.6;
 let pickups=[];
 function towerSniper(id){
-  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(-150-TOWER.y,520-TOWER.x)});
-  if(typeof T!=='undefined'&&scene)addSniperCone(u);return u;   // (his cone shows from the start, below; he isn't marked as seen: known men count as threats anywhere for the squad's cover, and a sniper 30 m off put them on the yard's patrol aisle)   // facing out over the runway road and down the bridge's road (SSE): the road east of him, the bridge road's mouth and the road down to the canal in his cone; the doors, the strip in front of the building, the road's far west end and the yard's west side behind him or out of it
+  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(-340-TOWER.y,500-TOWER.x)});
+  if(typeof T!=='undefined'&&scene)addSniperCone(u);return u;   // facing along the building's front to its doors and up the runway road (just south of east): the doors, the strip before them, the road east to the bridge road's mouth and his own front in his cone; the road's far west end, the yard and the pipe behind him. (His cone shows from the start, below; he isn't marked as seen: known men count as threats anywhere for the squad's cover, and a sniper 30 m off put them on the yard's patrol aisle)   // facing out over the runway road and down the bridge's road (SSE): the road east of him, the bridge road's mouth and the road down to the canal in his cone; the doors, the strip in front of the building, the road's far west end and the yard's west side behind him or out of it
 }
 const towerMan=()=>units.find(u=>u.onTower&&!u.dead&&!u.downed)||null;
 // his cone on the ground (Bryan, after v101: "We should also put a large red cone where the sniper sees... Really make sure the

@@ -595,7 +595,7 @@ function sense(e,dt){
     if(d<=R){
       let da=Math.atan2(p.y-e.y,p.x-e.x)-fwd;da=Math.atan2(Math.sin(da),Math.cos(da));
       const cone=Math.abs(da)<CONE;
-      if((cone||d<80)&&fireLine(e,p)){
+      if((cone||(d<80&&!e.onTower))&&fireLine(e,p)){   // (up the watchtower he watches his cone: men sneaking round the foot of it, behind him, aren't noticed; Bryan, "hugging the left side all the way down will get to it")
         g=SEE_RATE*(1-d/(R*1.1));
         if(cone)g*=p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45);   // moving draws the eye; still in cover least (in the sewer pipe nobody can see him at all: fireLine)
         else g*=p.path.length?(p.gait==='sneak'?0.04:0.65):0.03;   // close behind him: a man creeping up is hard to notice (takedowns), one running up isn't
@@ -621,7 +621,7 @@ function senseCovert(e,dt){
   for(const p of players){
     if(!alive(p)||p.offMap||caught(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d>R)continue;let g=0;
     let da=Math.atan2(p.y-e.y,p.x-e.x)-fwd;da=Math.atan2(Math.sin(da),Math.cos(da));const cone=Math.abs(da)<CONE;
-    if((cone||d<80)&&fireLine(e,p)){
+    if((cone||(d<80&&!e.onTower))&&fireLine(e,p)){
       g=SEE_RATE*1.5*(1-d/(R*1.1));
       g*=cone?(p.path.length?(p.gait==='sneak'?0.6:1.3):(coverAt(p.x,p.y,e.x,e.y)>0?0.3:0.45)):(p.path.length?(p.gait==='sneak'?0.1:0.8):0.06);
       if(p.gait==='sneak'&&isCls(p,'specops'))g*=CLS.sneakSpot;
