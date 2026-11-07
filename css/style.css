@@ -1,0 +1,309 @@
+:root{
+  /* Layout: full-screen tactical HUD. Status bar on top, night map in the middle, squad panel at the bottom. Single dark look by design. */
+  --bg:#07090b;
+  --panel:#0f1418;
+  --panel-2:#161d22;
+  --line:#26313a;
+  --text:#d7dee3;
+  --dim:#7d8a94;
+  --alpha:#5ec8ff;
+  --bravo:#ffb547;
+  --enemy:#ff5a48;
+  --good:#5fe08e;
+  --warn:#ffcf4a;
+  --bad:#ff5a48;
+  --font-hud:"Chakra Petch","Rajdhani",ui-sans-serif,system-ui,sans-serif;
+  --font-body:"Barlow",ui-sans-serif,system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box;background:var(--bg)}
+*,*::before,*::after{box-sizing:border-box}
+body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar{display:flex;align-items:center;gap:8px;padding-block:8px 6px;min-width:0}
+.title{font-family:var(--font-hud);font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;line-height:1.15;margin-right:auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#speed{position:absolute;left:8px;bottom:calc(var(--cards-h) + 8px);z-index:2;background:rgba(10,14,18,.85)}
+.title small{display:block;font-weight:500;font-size:10px;letter-spacing:.1em;color:var(--dim)}
+.chip{font-family:var(--font-hud);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:4px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.chip.contact{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent)}
+.chip.slow{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+button{font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);background:var(--panel-2);border:1px solid var(--line);border-radius:5px;min-height:36px;padding:0 12px;cursor:pointer}
+button:hover:not(:disabled){border-color:#3b4955}
+button:focus-visible{outline:2px solid var(--alpha);outline-offset:2px}
+button:disabled{opacity:.38;cursor:default}
+button.on{border-color:var(--warn);color:var(--warn)}
+#stage{position:relative;min-height:0;border-radius:6px;overflow:hidden;background:#050607}
+#stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.5) 100%)}
+#cv,#ov{position:absolute;inset:0;width:100%;height:100%;display:block}
+#cv{pointer-events:none}
+#ov{touch-action:none}
+#nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--dim);z-index:3}
+#banner{position:absolute;top:66px;left:50%;transform:translate(-50%,-6px);z-index:2;font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:4px;background:rgba(8,11,14,.86);border:1px solid var(--line);color:var(--text);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;width:max-content;max-width:calc(100% - 24px);text-align:center}
+/* (max-content: centred with left:50%, it otherwise wrapped at half the screen's width) */
+#banner.show{opacity:1;transform:translate(-50%,0)}
+#tl{position:absolute;left:8px;top:8px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:min(calc(50% - 42px),240px);pointer-events:none}   /* clear of the ring at the top centre and its label */
+#tl.lvl{max-width:min(calc(50% - 68px),240px)}   /* and of the base's alert line under the ring, while it shows (layers.js's alertHud) */
+#tl>*{pointer-events:auto}
+#savedChip{background:rgba(10,14,18,.88);color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent)}
+#sndBtn{min-width:40px;padding:0 9px;display:inline-grid;place-items:center}
+#sndBtn svg{width:18px;height:18px;fill:currentColor}
+#sndBtn .mute{display:none}#sndBtn.off{color:var(--dim)}#sndBtn.off .mute{display:inline}#sndBtn.off .wave{display:none}
+#obj{position:relative;max-width:100%;padding:5px 9px;border-radius:5px;background:rgba(8,11,14,.86);border:1px solid var(--line);cursor:pointer;display:grid;gap:1px}
+#obj b{font-family:var(--font-hud);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--warn)}
+#obj span{font-size:12px;font-weight:600;line-height:1.25}
+#obj ol{display:none;margin:4px 0 0;padding-left:16px;font-size:11.5px;line-height:1.45;color:var(--dim)}
+#obj.open ol{display:block}#obj.open span{display:none}
+#obj li.done{color:var(--good);background:linear-gradient(currentColor,currentColor) no-repeat 0 58%/100% 1.5px}
+#obj li.justdone{animation:objStrike .7s ease-out .3s both}
+@keyframes objStrike{from{background-size:0% 1.5px;color:var(--text)}to{background-size:100% 1.5px}}#obj li.now{color:var(--text);font-weight:600}
+#fitBtn{position:absolute;right:8px;top:8px;z-index:2;min-height:32px;padding:0 10px;font-size:11px;background:rgba(10,14,18,.85)}
+.panel{display:grid;gap:7px;padding-block:8px 8px}
+.hint{font-size:12.5px;color:var(--dim);height:2.6em;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.dock{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:5px}
+.dock button[hidden]{display:none}
+
+.dock button{padding:0 4px;font-size:11px;min-height:40px}
+.tab{display:grid;place-items:center;gap:3px;align-content:center;border-color:color-mix(in srgb,var(--tc) 35%,var(--line))}
+.tab .tname{color:var(--tc);letter-spacing:.12em}
+.tab .pips{display:flex;gap:3px;min-height:6px}
+.tab .pips i{width:6px;height:6px;border-radius:50%;background:var(--good)}
+.tab .pips.many{gap:2px}.tab .pips.many i{width:4px;height:4px}   /* eight men (the freed prisoners joined) */
+.tab.part{border-color:color-mix(in srgb,var(--tc) 60%,transparent)}
+.tab.sel{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 14%,var(--panel-2))}
+/* unit cards: float over the bottom of the map for the selected team(s) */
+#cards{position:absolute;left:8px;right:8px;bottom:8px;z-index:2;display:grid;gap:6px;grid-template-columns:repeat(var(--n,2),minmax(0,1fr))}
+.ucard{background:rgba(9,13,16,.86);border:1px solid color-mix(in srgb,var(--tc) 40%,var(--line));border-radius:6px;padding:5px 6px 5px;display:grid;gap:3px;min-width:0;cursor:pointer;backdrop-filter:blur(2px)}
+.ucard.sel{border-color:var(--tc);box-shadow:0 0 0 1px var(--tc) inset}
+.ucard.hit{border-color:var(--bad)}
+.uc-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center}
+.uc-face{width:30px;height:30px;border-radius:4px;border:1px solid color-mix(in srgb,var(--tc) 55%,transparent);display:block}
+.uc-id{display:grid;line-height:1.15;min-width:0}
+.uc-id b{font-family:var(--font-hud);font-size:10px;letter-spacing:.1em;color:var(--tc)}
+.uc-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uc-st{font-family:var(--font-hud);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uc-st.pin{color:var(--warn)}.uc-st.down{color:var(--bad)}
+.uc-hpb{position:relative;height:18px;border-radius:3px;background:#05080a;overflow:hidden;display:flex;align-items:center;justify-content:flex-end;padding:0 6px}
+.uc-hpb i{position:absolute;left:0;top:0;bottom:0;width:var(--hp,100%);background:color-mix(in srgb,var(--hc,#7fe08a) 34%,transparent);border-right:2px solid var(--hc,#7fe08a);transition:width .3s ease-out}
+.ucard.downed .uc-hpb i{animation:hpPulse 1s ease-in-out infinite}
+@keyframes hpPulse{50%{opacity:.45}}
+.uc-bot{display:flex;align-items:stretch;gap:6px;min-width:0}
+.uc-hp{position:relative;font-family:var(--font-hud);font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--hc,#7fe08a);text-shadow:0 1px 2px #000}
+/* the weapon: its picture and name on a line under the heart monitor (four across: the picture only) */
+.uc-gun{display:flex;align-items:center;gap:6px;min-width:0;height:14px;font-family:var(--font-hud);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden}
+.uc-gun svg{width:40px;height:13px;flex:none;fill:#c9d2d8}
+.uc-gun b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+#cards.narrow .uc-gun b{display:none}
+#cards.compact{gap:4px}#cards.compact .ucard{padding:3px 4px;gap:2px}#cards.compact .uc-gun{display:none}#cards.compact .uc-hpb{height:13px}#cards.compact .uc-hp{font-size:11px}#cards.compact .uc-nade,#cards.compact .uc-spec{min-height:24px}#cards.compact .uc-face{width:22px;height:22px}#cards.compact .uc-name{display:none}#cards.compact .uc-id b{font-size:9px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* more than four cards (freed prisoners joined): two rows, no monitor */
+.uc-gun b.unarmed{color:var(--warn)}
+.uc-gun.swap{cursor:pointer;height:18px;margin:-2px 0}
+.uc-swap{margin-left:auto;flex:none;font-style:normal;font-weight:700;padding:1px 5px;border:1px solid var(--tc);border-radius:3px;color:#e8eef2;background:rgba(255,255,255,.06);letter-spacing:.08em}
+.uc-gun.swap:active .uc-swap{background:var(--tc);color:#0b0f12}
+#cards.compact .uc-gun.swap{display:flex}#cards.compact .uc-gun.swap svg,#cards.compact .uc-gun.swap b{display:none}
+.uc-hp::after{content:' HP'}.uc-hp.kia::after{content:''}
+#cards.narrow .uc-hp::after{content:''}
+#cards.narrow .uc-id b{letter-spacing:.02em}
+#cards.narrow .uc-bot{gap:4px}#cards.narrow .uc-hp{font-size:13px}#cards.narrow .uc-nade,#cards.narrow .uc-spec,#cards.narrow .uc-rpg{padding:0 2px;gap:3px;font-size:12px;letter-spacing:0;min-height:30px}#cards.narrow .uc-nade svg,#cards.narrow .uc-spec svg{width:15px;height:15px}#cards.narrow .uc-rpg i{margin-left:2px}
+.uc-nade{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:13px}
+.uc-nade svg{width:17px;height:17px;fill:currentColor}
+.uc-nade.gl{color:#ffcf6b}   /* the M203 in the grenade's place (Level 4's find) */
+.uc-nade.on{border-color:var(--warn);color:var(--warn)}
+.uc-skill{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:#9fd8ff}
+.uc-skill svg{width:16px;height:16px;fill:currentColor}.uc-skill i{font-style:normal;color:var(--text)}.uc-skill.on{border-color:#9fd8ff;background:rgba(159,216,255,.14)}
+#cards.compact .uc-skill{min-height:24px}#cards.narrow .uc-skill{padding:0 2px;gap:2px;font-size:11px;min-height:30px}
+.uc-bot>button{min-width:0}
+/* a third gear button (a class skill): everything a little smaller so the three fit a narrow card */
+.uc-bot.three{gap:3px}.uc-bot.three>button{padding:0 1px;gap:1px;font-size:11px;letter-spacing:0}.uc-bot.three svg{width:13px!important;height:13px!important}
+#cards.narrow .uc-bot.three>button{font-size:10px}#cards.narrow .uc-bot.three svg{width:12px!important;height:12px!important}
+.uc-spec{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:13px;color:var(--ic,#cfd6dc)}
+.uc-spec svg{width:17px;height:17px;fill:currentColor}
+.uc-spec i{font-style:normal;color:var(--text)}
+.uc-spec.on{border-color:var(--ic,#cfd6dc);background:rgba(220,226,232,.14)}
+.uc-spec.swap{border-color:var(--warn)}
+.uc-spec.swap::after{content:'⇄';font-size:10px;color:var(--warn);margin-left:1px}
+.uc-rpg{min-height:24px;padding:0 6px;display:inline-flex;align-items:center;gap:3px;font-size:10px;font-family:var(--font-hud);font-weight:700;letter-spacing:.06em;color:#4df3ff;border-color:rgba(77,243,255,.5)}
+.uc-rpg i{font-style:normal;color:var(--text)}
+.uc-rpg.on{border-color:#4df3ff;background:rgba(77,243,255,.16)}
+.uc-rpg.tut{animation:tutPulse 1s ease-in-out infinite}
+@keyframes tutPulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--tc,#4df3ff) 75%,transparent)}50%{box-shadow:0 0 0 7px transparent}}
+#tut{position:absolute;left:8px;bottom:calc(var(--cards-h) + 46px);z-index:4;max-width:min(290px,calc(100% - 104px));padding:8px 11px 6px;border-radius:12px;background:rgba(8,14,18,.94);border:1px solid rgba(77,243,255,.7);box-shadow:0 4px 18px rgba(0,0,0,.45),0 0 12px rgba(77,243,255,.18);color:var(--text);font-size:12.5px;cursor:pointer;transition:bottom .15s;line-height:1.36;pointer-events:auto}
+#tut::after{content:'';position:absolute;left:16px;bottom:-6px;width:10px;height:10px;background:#081014;border-right:1px solid rgba(77,243,255,.7);border-bottom:1px solid rgba(77,243,255,.7);transform:rotate(45deg)}
+#tut .tfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:5px;font-size:10px;color:#7fcbd3;letter-spacing:.03em}
+#tut .tskip{min-height:26px;padding:2px 10px;font-size:10px;background:transparent;border:1px solid rgba(77,243,255,.4);color:#9feaf2;border-radius:13px}
+#tutPin{position:absolute;left:8px;bottom:calc(var(--cards-h) + 46px);z-index:4;width:36px;height:36px;min-height:0;padding:0;border-radius:50%;font-family:var(--font-hud);font-weight:700;font-size:16px;color:#4df3ff;background:rgba(8,14,18,.9);border:1px solid rgba(77,243,255,.7);box-shadow:0 0 10px rgba(77,243,255,.25);transition:bottom .15s}
+.tutGlow{outline:2px solid var(--tc,#4df3ff);outline-offset:2px;animation:tutPulse 1s ease-in-out infinite}   /* in the team's colour where there is one: tabs, cards (Bryan) */
+.ucard button.tutGlow{outline:3px solid var(--tc);outline-offset:1px;background:color-mix(in srgb,var(--tc) 50%,#0b1014);color:#fff;border-color:var(--tc);animation:tutPulseGear .9s ease-in-out infinite}   /* the gear the tip asks for: bold, in his team's colour */
+@keyframes tutPulseGear{0%,100%{box-shadow:0 0 4px var(--tc)}50%{box-shadow:0 0 16px 2px var(--tc)}}
+#tut small{display:block;font-family:var(--font-hud);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#4df3ff;margin-bottom:3px}
+#tut b{color:#4df3ff}
+@keyframes tutNudge{0%,100%{transform:translateX(0)}18%{transform:translateX(-7px)}38%{transform:translateX(6px)}58%{transform:translateX(-4px)}78%{transform:translateX(2px)}}
+#tut.nudge{animation:tutNudge .45s ease-in-out;border-color:#4df3ff;box-shadow:0 4px 18px rgba(0,0,0,.45),0 0 20px rgba(77,243,255,.55)}   /* an input the tutorial holds back (level1.js) */
+#tut .tfoot .now{color:#fff;font-weight:700}
+.ucard.downed .uc-face{filter:grayscale(.6) brightness(.7)}
+.ucard.kia{opacity:.6}.ucard.kia .uc-face{filter:grayscale(1) brightness(.45)}
+#stage{--cards-h:0px}
+#gaitBtn,#speed{transition:bottom .15s}
+.overlay{position:fixed;inset:0;z-index:10;display:grid;justify-items:center;background:rgba(4,6,8,.82);backdrop-filter:blur(3px);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.overlay>.card{margin-block:auto}   /* centred, but a tall card (eight rows in the report) scrolls from its top instead of being cut off */
+.card{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 18px;display:grid;gap:12px}
+.card h1{margin:0;font-family:var(--font-hud);font-weight:700;font-size:24px;letter-spacing:.12em;text-transform:uppercase;text-wrap:balance}
+.card .eyebrow{font-family:var(--font-hud);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--warn)}
+.card p{margin:0;line-height:1.45;font-size:14.5px;color:var(--text)}
+.card ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13.5px;line-height:1.4;color:#b9c3ca}
+.card ul b{color:var(--text);font-weight:600}
+.card .go{min-height:44px;font-size:14px;background:#1d2a33;border-color:var(--alpha);color:var(--alpha)}
+.card .go.alt{background:#1a2026;border-color:#5d6a74;color:#c9d3da}
+.card details.controls{display:grid;gap:8px}
+.card details.controls summary{cursor:pointer;color:var(--dim);font-size:13px;min-height:28px}
+.card details.controls[open] summary{margin-bottom:6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--dim)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;display:inline-block}
+/* sneak/run toggle: shows the selected soldiers' gait; amber when you've overridden the automatic choice */
+#gaitBtn{position:absolute;right:8px;bottom:calc(var(--cards-h) + 8px);z-index:2;min-width:76px;min-height:48px;padding:4px 12px;display:grid;place-items:center;gap:1px;background:rgba(10,14,18,.88);line-height:1}
+#gaitBtn span{font-size:14px;letter-spacing:.12em}
+#gaitBtn small{font-size:9px;letter-spacing:.14em;color:var(--dim)}
+#gaitBtn.on{border-color:var(--warn);color:var(--warn);background:rgba(40,32,10,.9)}
+#gaitBtn.on small{color:color-mix(in srgb,var(--warn) 70%,transparent)}
+/* detection indicator: the ring fills clockwise from the top, white to red, as the most suspicious enemy notices the squad; "!!" once spotted */
+#alert{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:2;width:38px;height:38px;pointer-events:none;display:grid;place-items:center}
+/* securing a location: a green ring in the detection ring's place, filling over the quiet spell */
+#secure{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:2;width:38px;pointer-events:none;display:grid;justify-items:center;gap:2px}
+#secure svg{width:38px;height:38px;display:block}
+#secure .ring{fill:rgba(0,0,0,.3);stroke:rgba(95,224,142,.25);stroke-width:3}
+#secureArc{fill:none;stroke:var(--good);stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .15s linear}
+#secure small{font-family:var(--font-hud);font-weight:700;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--good);white-space:nowrap;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
+#secure.move small{color:#e8eef2}#secure.move .ring{stroke:rgba(232,238,242,.3)}
+#alert svg{width:100%;height:100%;display:block}
+#alert .ring{fill:rgba(0,0,0,.25);stroke:rgba(255,255,255,.22);stroke-width:3}
+#alert #alertArc{fill:none;stroke-width:3;stroke-linecap:round}
+#alert b{display:none;font-family:var(--font-hud);font-weight:700;font-size:22px;letter-spacing:.02em;color:#ff3b2a;text-shadow:0 0 8px rgba(255,45,30,.95),0 0 18px rgba(255,45,30,.6),0 1px 2px #000}
+#alert.spotted svg{display:none}
+#alert.spotted b{display:block;animation:alertPop .35s ease-out}
+#alert.hot #alertArc{animation:alertPulse .8s ease-in-out infinite}
+@keyframes alertPop{from{transform:scale(1.8);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes alertPulse{50%{stroke-width:4.5}}
+/* big centre messages: "All clear!" (grey-blue) and "Enemy inbound!" (red), fading in and out */
+#bigText{position:absolute;left:0;right:0;top:32%;z-index:3;text-align:center;pointer-events:none;font-family:var(--font-hud);font-weight:700;font-size:34px;letter-spacing:.14em;text-transform:uppercase;opacity:0;padding-inline:12px}
+#bigText.clear{color:#bccddd;text-shadow:0 0 2px #000,0 0 3px #000,0 2px 10px rgba(0,0,0,.9),0 0 22px rgba(140,170,200,.55);animation:bigFade 2.6s ease-in-out forwards}
+#bigText.inbound{color:#ff4a3a;text-shadow:0 0 2px #000,0 0 3px #000,0 2px 10px rgba(0,0,0,.9),0 0 22px rgba(255,60,40,.7);animation:bigFade 2.6s ease-in-out forwards}
+@keyframes bigFade{0%{opacity:0;transform:scale(.96)}18%{opacity:1;transform:scale(1)}68%{opacity:1}100%{opacity:0}}
+/* reinforcement countdown, where the detection ring sits */
+/* the base's alert level (layers.js): under the detection ring, a word and three segments filling towards Alert I, II and lockdown */
+#alertLvl{position:absolute;top:48px;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:6px;pointer-events:none;--c:#c9d1d6}
+#alertLvl b{font-family:var(--font-hud);font-weight:700;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--c);white-space:nowrap;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
+#alertLvl span{display:flex;gap:2px}
+#alertLvl i{display:block;width:10px;height:3px;border-radius:1px;background:rgba(255,255,255,.16);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+#alertLvl i::after{content:'';position:absolute;inset:0;background:var(--c);transform-origin:left center;transform:scaleX(var(--k,0));transition:transform .4s}
+#alertLvl.s1{--c:#ffcf4a}#alertLvl.s2{--c:#ff8a3a}#alertLvl.s3{--c:#ff3b2a}
+#countdown{position:absolute;top:4px;left:50%;transform:translateX(-50%);z-index:2;display:grid;justify-items:center;pointer-events:none;color:#ff3b2a;font-family:var(--font-hud);text-shadow:0 0 10px rgba(255,45,30,.8),0 1px 2px #000}
+#countdown small{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+#countdown b{font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+#countdown.tick small,#countdown.tick b{animation:cdPulse .9s ease-out}
+@keyframes cdPulse{0%{transform:scale(1.28);text-shadow:0 0 20px rgba(255,45,30,1),0 1px 2px #000}100%{transform:scale(1)}}
+/* mission complete, after-action report, HQ popup */
+#bigText.unlock{color:#b8f2c9;text-shadow:0 0 2px #000,0 0 3px #000,0 2px 10px rgba(0,0,0,.9),0 0 24px rgba(95,224,142,.6);animation:bigFade 3s ease-in-out forwards}
+#bigText.complete{color:#f4f1e6;text-shadow:0 0 2px #000,0 0 3px #000,0 2px 10px rgba(0,0,0,.9),0 0 24px rgba(255,212,121,.6);animation:bigFade 2.6s ease-in-out forwards}
+.overlay.light{background:rgba(4,6,8,.35);backdrop-filter:none}
+.card.aar{max-width:520px}
+#aarRows{display:grid;gap:8px}
+.aar-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:8px;border:1px solid color-mix(in srgb,var(--tc) 35%,var(--line));border-radius:6px;background:var(--panel-2)}
+.aar-row.kia{opacity:.55}.aar-row.kia .aar-face{filter:grayscale(1) brightness(.5)}
+.aar-face{width:44px;height:44px;border-radius:5px;border:1px solid color-mix(in srgb,var(--tc) 55%,transparent);display:block}
+.aar-main{display:grid;gap:4px;min-width:0}
+.aar-head{display:flex;align-items:baseline;gap:6px;min-width:0}
+.aar-head b{font-family:var(--font-hud);font-size:11px;letter-spacing:.1em;color:var(--tc)}
+.aar-name{font-weight:600;font-size:14px;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aar-rank{font-family:var(--font-hud);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--warn);white-space:nowrap}
+.aar-stats{font-size:12px;color:var(--dim)}
+.aar-xp{height:7px;border-radius:4px;background:#1c252b;overflow:hidden}
+.aar-xp i{display:block;height:100%;background:linear-gradient(90deg,#3f9bd0,#7fd8ff);transition:width .8s ease-out}
+.aar-gain{font-family:var(--font-hud);font-size:11px;font-weight:600;letter-spacing:.06em;color:#9fd9f5;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}
+.aar-gain>span{white-space:nowrap}   /* the XP stays on one line; a long badge wraps under it */
+.aar-gain em{font-style:normal;color:var(--warn);text-transform:uppercase;letter-spacing:.12em;animation:alertPop .35s ease-out}
+.linkish{background:none;border:none;min-height:28px;color:var(--dim);font-size:11px;text-decoration:underline;text-underline-offset:3px;justify-self:center}
+@media (prefers-reduced-motion: reduce){.aar-xp i{transition:none}.aar-gain em{animation:none}}
+@media (prefers-reduced-motion: reduce){.uc-rpg.tut,.tutGlow{animation:none;box-shadow:0 0 0 2px var(--tc,#4df3ff)}#tut.nudge{animation:none}#banner{transition:none}#countdown.tick small,#countdown.tick b{animation:none}#alert.spotted b,#alert.hot #alertArc{animation:none}}
+
+/* inside the office building: the floor switcher (right side, under Fit map; dots show who's on each floor) and the fade between maps */
+#floors{position:absolute;right:8px;top:56px;z-index:2;display:grid;gap:4px}
+#floors button{min-width:46px;padding:5px 7px;border-radius:5px;background:rgba(8,11,14,.86);border:1px solid var(--line);color:var(--dim);font-family:var(--font-hud);font-weight:700;font-size:11px;letter-spacing:.08em;display:grid;justify-items:center;gap:3px;cursor:pointer}
+#floors button.on{color:var(--text);border-color:color-mix(in srgb,var(--good) 60%,transparent)}
+#floors i{display:flex;gap:2px;min-height:5px}
+#floors i span{width:5px;height:5px;border-radius:50%}
+#fade{position:absolute;inset:0;z-index:6;background:#000;opacity:0;transition:opacity .35s;pointer-events:none}
+#fade.on{opacity:1}
+
+
+/* our soldier hit: the screen's edge flashes red (feel: weight to the hits) */
+#hitFlash{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 52%,rgba(150,10,4,.55) 82%,rgba(190,16,8,.85) 100%)}
+@media (prefers-reduced-motion: reduce){#hitFlash{display:none}}
+
+#crashNote{margin:10px 0 0;padding:8px 10px;border:1px solid color-mix(in srgb,var(--warn) 55%,transparent);border-radius:6px;background:rgba(255,200,80,.08);color:var(--warn);font-size:13px;line-height:1.4}
+
+/* between missions (equip.js): the squad in the dinghy at sea, the loadout over it */
+#equip{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+#equip>*{pointer-events:auto}
+.eq-head{position:absolute;top:12px;left:0;right:0;text-align:center;font-family:var(--font-hud);text-transform:uppercase;letter-spacing:.14em;pointer-events:none!important;text-shadow:0 1px 8px #000}
+.eq-head small{display:block;font-size:10px;color:var(--dim);font-weight:600}
+.eq-head b{font-size:15px;font-weight:700;color:var(--text)}
+.eq-panel{margin:0 0 10px;padding:10px 10px 12px;background:linear-gradient(180deg,rgba(9,13,17,.80),rgba(9,13,17,.94));border:1px solid var(--line);border-radius:8px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;flex-direction:column;gap:8px;max-height:calc(100% - 64px);overflow:auto}
+.eq-title{font-family:var(--font-hud);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+#eqRows{display:flex;flex-direction:column;gap:6px}
+.eq-row{display:grid;grid-template-columns:40px 62px minmax(0,1fr);grid-template-rows:auto auto;column-gap:8px;row-gap:4px;align-items:center;padding:6px;border:1px solid color-mix(in srgb,var(--tc) 35%,var(--line));border-left:3px solid var(--tc);border-radius:6px;background:rgba(255,255,255,.02)}
+.eq-face{grid-row:1/3;width:40px;height:40px;border-radius:4px;border:1px solid color-mix(in srgb,var(--tc) 50%,transparent)}
+.eq-who{grid-row:1/3;display:flex;flex-direction:column;min-width:0;font-family:var(--font-hud);line-height:1.15}
+.eq-who b{font-size:10px;letter-spacing:.08em;color:var(--tc);font-weight:700}
+.eq-who span{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eq-grp{display:flex;gap:4px;min-width:0}
+.eq-grp button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:31px;padding:2px 3px;border:1px solid var(--line);border-radius:4px;background:#121a20;color:var(--dim);font-family:var(--font-hud);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;position:relative;cursor:pointer}
+.eq-grp button svg{flex:none;height:11px;width:auto;max-width:40px;fill:var(--ic,#c9d2d8);opacity:.75}
+.eq-grp[data-k="spec"] button svg{width:14px;height:14px}
+.eq-grp button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1;font-size:9px;letter-spacing:.04em}
+.eq-grp button.on{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 18%,#121a20);color:var(--text)}
+.eq-grp button.on svg{opacity:1}
+.eq-grp button:disabled{opacity:.38;cursor:default}
+.eq-grp button i{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font-size:7.5px;line-height:1;letter-spacing:.04em;color:var(--dim)}   /* whose it is, under the label */
+.eq-grp button i:empty{display:none}
+.eq-note{margin:0;font-size:12px;color:var(--dim);line-height:1.35}
+#eqGo{min-height:44px;font-size:14px;background:#1d2a33;border:1px solid var(--alpha);color:var(--alpha);border-radius:6px;font-family:var(--font-hud);font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipping #floors,body.equipping #obj,body.equipping #status,body.equipping #pauseBtn,body.equipping #alert,body.equipping #alertLvl,body.equipping #banner,body.equipping #tl{visibility:hidden}
+@media (min-aspect-ratio:21/20){#equip{justify-content:center;align-items:flex-end}.eq-panel{width:min(440px,52%);margin:0 10px 0 0}}
+
+/* classes (classes.js): the promotion button on the between-missions screen, and the picker */
+.eq-promote{align-self:flex-start;margin-top:4px;min-height:22px;font:700 9px/1 var(--font-hud);letter-spacing:.08em;text-transform:uppercase;color:#1a1206;background:var(--warn);border:0;border-radius:3px;padding:4px 7px;cursor:pointer;animation:promo 1.4s ease-in-out infinite}
+@keyframes promo{50%{filter:brightness(1.3)}}
+@media (prefers-reduced-motion:reduce){.eq-promote{animation:none}}
+.eq-lock{margin-top:4px;font:600 9px/1.3 var(--font-hud);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}   /* no classes until the radio tower (classes.js's classLocked) */
+#clsPick{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;background:rgba(9,13,17,.97);border:1px solid var(--line);border-radius:8px;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;max-width:720px;margin:0 auto}
+#clsPick .cls-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+#clsPick .cls-head b{font:700 14px/1.2 var(--font-hud);letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
+#clsPick .cls-head span{grid-column:1;color:var(--dim);font-size:13px}
+#clsPick .cls-x{grid-row:1/3;grid-column:2;align-self:center;font:600 11px var(--font-hud);letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:8px 10px;cursor:pointer}
+#clsPick .cls-list{overflow:auto;padding:10px;display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));grid-auto-rows:max-content;align-content:start}
+#clsPick .cls-card{text-align:left;display:block;height:auto;min-height:auto;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:#121a20;color:var(--text);cursor:pointer;font-family:var(--font-body);font-weight:400;font-size:13px;letter-spacing:normal;text-transform:none;line-height:1.35;white-space:normal}
+#clsPick .cls-card>*{display:block}#clsPick .cls-card>*+*{margin-top:4px}
+#clsPick .cls-card:hover{border-color:var(--warn)}#clsPick .cls-card:focus-visible{outline:2px solid var(--warn);outline-offset:2px}
+#clsPick .cls-card b{font:700 14px/1.2 var(--font-hud);letter-spacing:.08em;text-transform:uppercase}
+#clsPick .cls-card span{font-size:13px;color:var(--text)}#clsPick .cls-card em{font-style:normal;font-size:13px;color:var(--good)}#clsPick .cls-card small{font-size:12px;color:var(--dim)}
+#clsPick .cls-card:disabled{opacity:.45;cursor:default}
+
+/* a conversation outside battle (story.js): a veil over the map, the speaker's box along the bottom; a tap goes on */
+#talk{position:absolute;inset:0;z-index:5;cursor:pointer;--tc:var(--text);background:linear-gradient(to top,rgba(4,6,8,.8) 0,rgba(4,6,8,.4) 30%,rgba(4,6,8,0) 50%)}
+#talk .tk-box{position:absolute;left:8px;right:8px;bottom:8px;max-width:640px;margin:0 auto;display:flex;gap:12px;align-items:flex-start;padding:12px 14px 9px;background:rgba(9,13,16,.95);border:1px solid var(--line);border-top:2px solid var(--tc);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+#talk .tk-face{width:72px;height:72px;flex:none;border-radius:6px;border:1px solid color-mix(in srgb,var(--tc) 45%,var(--line))}
+#talk .tk-body{min-width:0;flex:1;display:grid;gap:5px}
+#talk .tk-name{font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--tc)}
+#talk .tk-text{margin:0;font-size:16px;line-height:1.38;color:var(--text);min-height:2.76em}
+#talk .tk-more{justify-self:end;font-family:var(--font-hud);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);opacity:0;transition:opacity .2s}
+#talk.more .tk-more{opacity:1}
+#talk .tk-skip{position:absolute;right:8px;top:8px;min-height:28px;padding:0 10px;font-size:10px;background:rgba(10,14,18,.88)}
+#talk .tk-name{padding-right:64px}
+
+/* Level 3's checkpoints on the intro card (save.js) */
+.card details.cps summary{cursor:pointer;color:var(--dim);font-size:13px;min-height:28px;text-align:center}
+.card details.cps[open] summary{margin-bottom:6px}
+#cpBtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+#cpBtns .cp{min-height:36px;font-size:12px;background:#151c22;border-color:var(--line);color:#c9d3da;text-align:left;padding:4px 10px}
+/* the montage after the Headquarters (base.js): just the picture */
+#app.cine .panel,#app.cine #cards,#app.cine #gaitBtn,#app.cine #fitBtn,#app.cine #floors,#app.cine #tl,#app.cine #speed,#app.cine #talk,#app.cine #banner{visibility:hidden}
