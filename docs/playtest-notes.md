@@ -737,3 +737,11 @@ center's south-west corner, looking along the building's front to its doors and 
 warning line as before). Hugging the left side (up the yard's west strip, over the road's far west end) gets to the foot of
 his tower unseen; up there he only watches his cone, so a silent shot from his ladder takes him; then along the front to the
 doors. Coming straight up from the bridge, the bridge road's mouth is in his sight.
+
+Bryan, after v103: "Yes the location is good but can you just it out and put it on the sidewalk adjacent to the road?"
+Built in v104: the tower stands out from the wall on the sidewalk at the road's far west end, its south side at the road's
+edge, still looking east up the road to the doors (his cone, the label and the warning line as before). The way to it is
+the same: up the yard's west strip and over the road's far west end to his ladder, out of his cone. A single silent shot
+from there hits about 9 times in 10 (the rails are half cover) and a miss wakes him, so two silenced men on the count are
+the sure way. Scripted: unseen to the doors on 6 of 7 runs; the seventh was that miss. From the platform the rifle still
+has all seven of the front's men in sight.

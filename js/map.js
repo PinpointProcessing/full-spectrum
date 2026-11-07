@@ -86,9 +86,10 @@ const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
 // bridge, but sneaking through the pipes can avoid the tower's sights. The sniper should be able to be reached so fighting across the
 // road is doable", then the far left corner of the containers, then across the road against the data center (v102), then (after v102,
 // an arrow drawn on a screenshot whose camera was turned, the road running up the screen: "No I want the watchtower to look like this,
-// looking north"): at the road's far west end, against the data center's south-west corner, looking along the building's front to its
-// doors and up the road (up his screen). Its ladder's on its west side, by the map's edge, behind him
-const TOWER={x:50,y:-414,elev:40,ladder:{x:28,y:-414}};
+// looking north"): at the road's far west end by the data center's south-west corner, looking along the building's front to its doors
+// and up the road (up his screen); then (after v103): "Yes the location is good but can you just it out and put it on the sidewalk
+// adjacent to the road?": out from the wall onto the sidewalk at the road's edge. Its ladder's on its west side, behind him
+const TOWER={x:50,y:-353,elev:40,ladder:{x:28,y:-353}};
 O('wtower',TOWER.x-12,TOWER.y-12,24,24);
 // the container yard along the canal (Bryan's draft F: "Make the containers horizontal and run along the canal... The whole
 // point of the containers is for stealth"): three rows on the north bank, long sides east-west, most double-stacked (nobody
