@@ -17,6 +17,7 @@ const HQF={GF:{x0:60,y0:80,x1:940,y1:940},'2F':{x0:1040,y0:240,x1:1700,y1:880},R
 const HQ_FLOOR_IDS=['RF','2F','GF'];
 function hqFloorOf(x,y){for(const id of HQ_FLOOR_IDS){const b=HQF[id];if(x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1)return id;}return null;}
 const hqFloors=()=>MAPID==='hq'&&!!HQ&&!!HQ.floors;
+const FLOORS_HQ={ids:HQ_FLOOR_IDS,of:(x,y)=>hqFloorOf(x,y),set:(id,at)=>setHQFloor(id,at),get flights(){return HQ.flights;}};   // (interior.js's mapFloors)
 const hqRoof=()=>hqFloors()&&curFloor==='RF';        // outdoors: rain on the overlay, the storm's lightning (overlay.js, main.js)
 const hqIndoors=()=>hqFloors()&&curFloor!=='RF';     // the rain a hiss on the roof (audio.js)
 const HQ_HEMI={GF:.75,'2F':.58,RF:.3};

@@ -119,9 +119,14 @@ const MOTHER={pal:'mother',n:21,seg:6.4,head:{w:21,l:16,h:9.5},w:u=>17+4.5*Math.
   leg:{cx:3.2,fe:u=>10.5+2*u,ti:u=>11+3*u,ta:u=>6.5+2*u,r:u=>2+.3*(1-u)},spread:u=>19+5*u,stride:5,lift:3,ult:[19,17,14],ultR:2.5,ant:50,forc:16,spines:true,raise:24};
 const BROOD={pal:'brood',n:15,seg:2.3,head:{w:6.2,l:4.8,h:2.6},w:u=>5.8+1.3*Math.sin(Math.PI*u)-.8*u,h:2.8,ride:3.3,
   leg:{cx:1.1,fe:u=>4.3+1*u,ti:u=>4.7+1.3*u,ta:u=>3+.8*u,r:u=>.55},spread:u=>9+3*u,stride:2.2,lift:1.2,ult:[6.6,6.4,5.6],ultR:.8,ant:16,forc:4.4,spines:false,raise:8};
+// a centipede made bigger (every size times k), with a key of its own for its shapes, and its own colours (pal)
+function crScale(S,k,key,pal){const f=v=>u=>v(u)*k;
+  return Object.assign({},S,{key,pal:pal||S.pal,seg:S.seg*k,head:{w:S.head.w*k,l:S.head.l*k,h:S.head.h*k},w:f(S.w),h:S.h*k,ride:S.ride*k,
+    leg:{cx:S.leg.cx*k,fe:f(S.leg.fe),ti:f(S.leg.ti),ta:f(S.leg.ta),r:f(S.leg.r)},spread:f(S.spread),stride:S.stride*k,lift:S.lift*k,ult:S.ult.map(v=>v*k),ultR:S.ultR*k,ant:S.ant*k,forc:S.forc*k,raise:S.raise*k});}
+const CRAWLER=crScale(BROOD,2.1,'crawler','mother');   // the Crawler (Level 4's stairs): one of her young grown big, in her dark colours
 
 function crCentiGeo(S){
-  const key=S.pal+'@'+CR_DET;if(CR.geo[key])return CR.geo[key];
+  const key=(S.key||S.pal)+'@'+CR_DET;if(CR.geo[key])return CR.geo[key];   // (S.key: a scaled one of its own, the Crawler)
   const P=CR_PAL[S.pal],L=k=>crLin(P[k]);
   const plateCol=(r,z,top)=>top?crMix(crMix(L('c'),L('m'),crS(.4,.8,r)),L('e'),Math.min(1,crS(.82,1,r)*.7+crS(.6,.92,-z)*.8)):L('under2');
   const terg=crPlate({sq:4.2,dome:.5,keel:.16,rim:.2,front:.7,col:plateCol});
@@ -508,7 +513,7 @@ function crBake(root,nodes){
   return out.map(gs=>{const m=gs.length?crMerge(gs):new T.BufferGeometry();m.userData.keep=true;return m;});}
 // a scene's pools: young, hunter, mother (made the first time one is needed)
 function crPool(sc,kind){const P=sc.userData.crPools||(sc.userData.crPools={});
-  return P[kind]||(P[kind]=kind==='hunter'?crHunterPool(24,sc):kind==='young'?crCentiPool(BROOD,36,sc):crCentiPool(MOTHER,1,sc));}
+  return P[kind]||(P[kind]=kind==='hunter'?crHunterPool(24,sc):kind==='young'?crCentiPool(BROOD,36,sc):kind==='crawler'?crCentiPool(CRAWLER,2,sc):crCentiPool(MOTHER,1,sc));}
 function crPoolBase(cap,sc){const p={cap,g:new T.Group(),owner:new Array(cap).fill(null),seen:new Int32Array(cap).fill(-9),shown:new Uint8Array(cap),m:{}};sc.add(p.g);return p;}
 function crIM(p,k,geo,mat,per){const M=new T.InstancedMesh(geo,mat,per*p.cap);M.castShadow=true;M.receiveShadow=true;M.frustumCulled=false;M.userData.per=per;
   for(let i=0;i<M.count;i++)M.setMatrixAt(i,CR_ZERO);M.count=0;p.g.add(M);p.m[k]=M;}
@@ -524,8 +529,8 @@ function crPoolsFrame(){
   crFrame++;}   // (each pool draws only up to its last slot in use)
 // centipedes (her young, and the Brood Mother herself: a pool of one)
 function crCentiPool(S,cap,sc){
-  const det=S===MOTHER?.55:.24,keep=CR_DET;CR_DET=det;let B,G;
-  try{const key='cp-'+S.pal+'@'+det;B=CR.geo[key];
+  const det=S===MOTHER?.55:S.key==='crawler'?.38:.24,keep=CR_DET;CR_DET=det;let B,G;
+  try{const key='cp-'+(S.key||S.pal)+'@'+det;B=CR.geo[key];
     if(!B){const t=makeCentipede(S),hd=t.head,nodes=[hd,t.forc[0].pv,t.forc[1].pv,t.ant[0].pv,t.ant[1].pv,t.mand[0].pv,t.mand[1].pv];
       B=CR.geo[key]={bk:crBake(hd,nodes),pv:nodes.slice(1).map(nd=>nd.position.clone())};}
     G=crCentiGeo(S);for(const k in G)if(G[k]&&G[k].userData)G[k].userData.keep=true;}finally{CR_DET=keep;}
@@ -569,7 +574,7 @@ function crTrailStep(u,S){
 // the spine from the trail at `lift` off the floor; rear (0..1) lifts the first kR segments in an arc off the kR-th
 const CR_SP={},_ra=new T.Vector3(),_rd=new T.Vector3();
 function crTrailSpine(u,S,rear,kR,lift){
-  const tr=u.trail,n=S.n,gap=S.head.l*.55+S.seg*.5,out=CR_SP[S.pal]||(CR_SP[S.pal]=Array.from({length:n+1},()=>new T.Vector3()));
+  const tr=u.trail,n=S.n,gap=S.head.l*.55+S.seg*.5,out=CR_SP[S.key||S.pal]||(CR_SP[S.key||S.pal]=Array.from({length:n+1},()=>new T.Vector3()));
   let i=0,acc=0;const L=j=>Math.hypot(tr[j+1].x-tr[j].x,tr[j+1].y-tr[j].y);
   for(let s=0;s<=n;s++){const d=s?gap+(s-1)*S.seg:0;
     while(i<tr.length-2&&acc+L(i)<d){acc+=L(i);i++;}

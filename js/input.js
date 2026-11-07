@@ -153,8 +153,7 @@ function mayLeave(list){
 }
 // the camera to them: their floor inside the office building, and over them
 function goTo(list){const live=list.filter(p=>alive(p)&&!p.offMap);if(!live.length)return;const m=midOf(live);
-  if(MAPID==='in'){const f=floorOf(live[0].x,live[0].y);if(f&&f!==curFloor){setFloor(f,m);return;}}
-  if(hqFloors()){const f=hqFloorOf(live[0].x,live[0].y);if(f&&f!==curFloor){setHQFloor(f,m);return;}}
+  {const F=mapFloors();if(F){const f=F.of(live[0].x,live[0].y);if(f&&f!==curFloor){F.set(f,m);return;}}}   // (their floor first: the office building, the Headquarters, the hill)
   camT={x:m.x,z:m.y};clampCam();updateCamera();}
 // pick these men; if they're somewhere else the camera goes to them, or nothing happens and the banner says why (false)
 function selectAway(list){const far=elsewhere(list);if(far&&!mayLeave(list))return false;select(list);if(far)goTo(list);return true;}

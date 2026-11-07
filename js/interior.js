@@ -31,7 +31,13 @@ function voidRects(bs,x1=W){   // (x1: the frame's east edge; the Headquarters' 
   }
   return out;
 }
-const offFloor=u=>(MAPID==='in'&&!!IN&&floorOf(u.x,u.y)!==curFloor)||(MAPID==='hq'&&!!HQ&&!!HQ.floors&&hqFloorOf(u.x,u.y)!==curFloor);   // on another floor of the building than the one on screen: not drawn (the office building, the Headquarters: hqfloors.js)
+// the floors of the map in play, one interface for each map that has them: the office building (here), the Headquarters'
+// upstairs (hqfloors.js), the hill in Level 4 (level4.js): which there are (ids, top first), which one a point is on (of),
+// putting one on screen (set), and their flights of stairs (flights)
+const FLOORS_IN={get ids(){return['1F','GF','B1'].filter(id=>IN.floors[id]&&IN_OPEN.includes(id));},of:(x,y)=>floorOf(x,y),set:(id,at)=>setFloor(id,at),get flights(){return IN.flights;}};
+function mapFloors(){return MAPID==='in'&&IN?FLOORS_IN:MAPID==='hq'&&HQ&&HQ.floors?FLOORS_HQ:MAPID==='l4'&&L4&&L4.built?FLOORS_L4:null;}
+const offFloor=u=>{const F=mapFloors();return!!F&&F.of(u.x,u.y)!==curFloor;};   // on another floor than the one on screen: not drawn
+const sameFloor=(ax,ay,bx,by)=>{const F=mapFloors();return!F||F.of(ax,ay)===F.of(bx,by);};   // (noise and sight don't cross floors)
 function roomAt(f,x,y){return (f.rooms||[]).find(r=>x>=r.x0&&x<=r.x1&&y>=r.y0&&y<=r.y1);}
 function floorOf(x,y){if(!IN)return null;for(const f of IN.L.floors){const b=f.bounds;if(x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1)return f.id;}return null;}
 const IN_FLOOR_COL={lobby:'#565b60',hall:'#464b50',office:'#36414c',meeting:'#3d3933',shared:'#4b4e52',store:'#414244',stair:'#404144',lift:'#43464a',cell:'#323436',basement:'#343638',turret:'#434649',lab:'#61686f',science:'#61686f',security:'#38404a'};
@@ -196,7 +202,7 @@ function slotsIn(z,n,taken=[]){   // n free spots 20 apart inside zone z (any th
 const FLIGHT={up:17,down:20,step:10};
 function flightT(z,x,y){return clamp(z.dir==='n'?(z.y1-y)/(z.y1-z.y0):z.dir==='s'?(y-z.y0)/(z.y1-z.y0):z.dir==='w'?(z.x1-x)/(z.x1-z.x0):(x-z.x0)/(z.x1-z.x0),0,1);}   // 0 at its start, 1 at its far end
 function stairElev(x,y){
-  const fl=MAPID==='in'&&IN?IN.flights:MAPID==='hq'&&HQ?HQ.flights:null;if(!fl)return 0;   // (the Headquarters' stairs: hqfloors.js)
+  const F=mapFloors(),fl=F&&F.flights;if(!fl)return 0;   // (the office's stairs, the Headquarters', the hill's: mapFloors)
   for(const z of fl)if(x>=z.x0&&x<=z.x1&&y>=z.y0&&y<=z.y1){const t=flightT(z,x,y);return z.up?t*FLIGHT.up:-t*FLIGHT.down;}
   return 0;
 }
@@ -305,19 +311,19 @@ function setFloor(id,at){
   VB={x0:b.x0,z0:b.y0,x1:b.x1,z1:b.y1};FIT.w=b.x1-b.x0+40;FIT.h=b.y1-b.y0+40;fitDist();
   camT=at?{x:at.x,z:at.y}:{x:(b.x0+b.x1)/2,z:(b.y0+b.y1)/2};clampCam();updateCamera();floorChip();
 }
-const FLOOR_NAMES={'1F':'1F','GF':'GF','B1':'B1','2F':'2F',RF:'ROOF'};
-function floorChip(){   // the floor switcher, right side: which floor you're looking at, and dots for who's on each (the office building, or the Headquarters once it has its upstairs)
-  const el=$('#floors');if(!el)return;const hqF=hqFloors();el.hidden=MAPID!=='in'&&!hqF;if(el.hidden)return;
-  const ids=hqF?HQ_FLOOR_IDS:['1F','GF','B1'].filter(id=>IN.floors[id]&&IN_OPEN.includes(id)),fo=hqF?hqFloorOf:floorOf,key=ids.join();
+const FLOOR_NAMES={'1F':'1F','GF':'GF','B1':'B1','2F':'2F',RF:'ROOF',SU:'SUMMIT',ST:'STAIRS',PL:'PLANT'};
+function floorChip(){   // the floor switcher, right side: which floor you're looking at, and dots for who's on each (any map with floors: mapFloors)
+  const el=$('#floors');if(!el)return;const F=mapFloors();el.hidden=!F;if(!F)return;
+  const ids=F.ids,fo=F.of,key=ids.join();
   if(el.dataset.ids!==key){el.dataset.ids=key;el.innerHTML=ids.map(id=>`<button data-f="${id}"><b>${FLOOR_NAMES[id]||id}</b><i></i></button>`).join('');}
   for(const b of el.children){const id=b.dataset.f;b.classList.toggle('on',id===curFloor);
     b.querySelector('i').innerHTML=players.filter(p=>!p.dead&&!p.offMap&&fo(p.x,p.y)===id).map(p=>`<span style="background:${teamCol(p)}"></span>`).join('');}
 }
 function bindFloors(){
   const el=$('#floors');if(!el)return;
-  el.addEventListener('click',ev=>{const b=ev.target.closest('button'),hqF=hqFloors();if(!b||(MAPID!=='in'&&!hqF))return;const id=b.dataset.f,fo=hqF?hqFloorOf:floorOf;
-    const on=players.filter(p=>alive(p)&&!p.offMap&&fo(p.x,p.y)===id);if(id!==curFloor&&!mayLeave(on))return;   // (not away from men under fire: input.js)
-    const at=on.length?{x:on.reduce((a,p)=>a+p.x,0)/on.length,y:on.reduce((a,p)=>a+p.y,0)/on.length}:null;if(hqF)setHQFloor(id,at);else setFloor(id,at);});
+  el.addEventListener('click',ev=>{const b=ev.target.closest('button'),F=mapFloors();if(!b||!F)return;const id=b.dataset.f;
+    const on=players.filter(p=>alive(p)&&!p.offMap&&F.of(p.x,p.y)===id);if(id!==curFloor&&!mayLeave(on))return;   // (not away from men under fire: input.js)
+    F.set(id,on.length?{x:on.reduce((a,p)=>a+p.x,0)/on.length,y:on.reduce((a,p)=>a+p.y,0)/on.length}:null);});
 }
 
 /* ---------- noise and contact inside ---------- */

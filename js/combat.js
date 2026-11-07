@@ -303,7 +303,8 @@ function damage(t,dmg,src){
 function pickTarget(u){
   // undetected, the squad holds fire except at a hostile you've told them to shoot (or into a room they're breaching)
   if(u.side==='P'&&volleyHeld(u))return null;   // the silencers are about to take him: wait for it
-  const foes=u.side==='P'?(caught(u)||simT<(u.breachT||0)?enemies.filter(e=>!beaten(e)):u.focus&&!beaten(u.focus)?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(p=>alive(p)&&(!contact||caught(p)));   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
+  let foes=u.side==='P'?(caught(u)||simT<(u.breachT||0)?enemies.filter(e=>!beaten(e)):u.focus&&!beaten(u.focus)?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(p=>alive(p)&&(!contact||caught(p)));
+  if(u.side==='E'&&u.l4&&!u.mon)foes=foes.concat(enemies.filter(m=>m.mon&&!beaten(m)));   // Level 4: the summit's men shoot the monsters too (level4.js)   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;const R=u.reach?Math.min(u.reach,wRange(u)):wRange(u);   // (a hostile with a reach of his own shoots no further than he sees: Level 2's guards, level2.js)
   for(const f of foes){
     if(hyp(f.x-u.x,f.y-u.y)>R)continue;
@@ -769,7 +770,7 @@ function computeVis(){
     if(e.dead||e.dormant){e.vis=false;continue;}   // (a monster still in its room: fortress.js)
     e.vis=players.some(p=>alive(p)&&canSee(p,e))||(simT<(e.revealT||0)&&!offFloor(e));   // (revealT: he gave himself away firing at us, or one of ours is shooting at him; Bryan couldn't find who was shooting)
     if(e.vis){
-      if(!e.seen){e.seen=true;callout(e,e.mon==='boss'?'Brood Mother':e.mon?(e.kind==='young'?'Her young!':'Hunter!'):'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(e.grp===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
+      if(!e.seen){e.seen=true;callout(e,e.mon==='boss'?'Brood Mother':e.mon?(e.kind==='crawler'?'The Crawler!':e.kind==='young'?'Her young!':'Hunter!'):'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(e.grp===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
       e.last={x:e.x,y:e.y};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}

@@ -27,9 +27,9 @@ const varyRate=()=>.92+Math.random()*.16;
 function monRing(u,g,s){const ring=new T.Mesh(SG.ring,new T.MeshBasicMaterial({color:new T.Color(teamCol(u)),transparent:true,opacity:.85,depthWrite:false,toneMapped:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.5;ring.scale.setScalar(s);g.add(ring);return ring;}
 // u.m.g only carries the ring (syncUnits moves it with the monster); the body is a slot in its scene's pool
 function makeHound(u){
-  const g=new T.Group(),young=u.kind==='young',ring=monRing(u,g,young?1.15:1.05);scene.add(g);
-  const pool=crPool(scene,young?'young':'hunter');u.m={g,ring,spot:null,pool,slot:crSlotFor(pool,u)};
-  if(young)crTrailInit(u,BROOD);else u.m.rig=crHunterRig();
+  const crawl=u.kind==='crawler',centi=u.kind==='young'||crawl,g=new T.Group(),ring=monRing(u,g,crawl?2:centi?1.15:1.05);scene.add(g);
+  const pool=crPool(scene,centi?u.kind:'hunter');u.m={g,ring,spot:null,pool,slot:crSlotFor(pool,u)};
+  if(centi)crTrailInit(u,crawl?CRAWLER:BROOD);else u.m.rig=crHunterRig();   // (the Crawler: one of her young grown big, Level 4)
 }
 // she starts coiled round her clutch (the lair at 500,205), her head toward the hall
 function makeBoss(u){
@@ -39,8 +39,8 @@ function makeBoss(u){
 }
 function monPose(u,t){
   const m=u.m;if(!m)return;m.ring.visible=!u.dead&&!u.dormant;
-  const boss=u.mon==='boss',young=u.kind==='young',walk=crGait(u,boss?BOSS.walk:HOUND.run*.8);
-  if(boss)crTrailStep(u,MOTHER);else if(young)crTrailStep(u,BROOD);
+  const boss=u.mon==='boss',young=u.kind==='young'||u.kind==='crawler',S=u.kind==='crawler'?CRAWLER:BROOD,walk=crGait(u,boss?BOSS.walk:HOUND.run*.8);
+  if(boss)crTrailStep(u,MOTHER);else if(young)crTrailStep(u,S);
   if(!m.g.visible||u.dormant||m.slot<0)return;   // (out of sight: its slot is hidden, crPoolsFrame)
   if(boss){motherPose(u,walk);return;}
   const st=u.ms||'hunt',bite=simT-(u.biteAt||-9)<.25;
@@ -48,7 +48,7 @@ function monPose(u,t){
     if(u.dead)o={dead:1,flip:1,jaw:.6,walk:0};
     else{if(st==='crouch'){rear=.9*Math.min(1,(simT-u.mt0)/HOUND.crouchT);jaw=.9;look=.35;}else if(st==='lunge'){rear=.15;jaw=1;look=.2;}
       o={walk:st==='lunge'?1:walk,jaw,look,antUp:.3,flail:.6};}
-    crCentiSlot(m.pool,m.slot,crTrailSpine(u,BROOD,u.dead?0:rear,6,u.dead?BROOD.ride*.7:BROOD.ride),(u.wph||0)*.3,o);return;}
+    crCentiSlot(m.pool,m.slot,crTrailSpine(u,S,u.dead?0:rear,6,u.dead?S.ride*.7:S.ride),(u.wph||0)*.3/(S===BROOD?1:2.1),o);return;}
   const o={walk,jaw:bite?1:.25};
   if(u.dead)o.dead=1;else if(st==='crouch'){o.crouch=1;o.threat=.6;o.jaw=.7;}else if(st==='lunge'){o.lunge=1;o.jaw=1;o.walk=1;}
   crHunterSlot(m.pool,m.slot,m.rig,u.x,u.y,Math.PI/2-u.ang,(u.wph||0)*.13+(o.walk?0:t*.2),o);
@@ -68,7 +68,7 @@ function motherPose(u,walk){
 /* ---------- the units ---------- */
 let monN=0;
 function hound(x,y,o={}){
-  const young=o.kind==='young',u=mk('E','E','H'+(++monN),young?'Brood':'Hunter',x,y,o.ang??Math.PI/2);
+  const young=o.kind==='young',u=mk('E','E','H'+(++monN),o.kind==='crawler'?'The Crawler':young?'Brood':'Hunter',x,y,o.ang??Math.PI/2);
   Object.assign(u,{mon:'hound',kind:young?'young':'hunter',dog:true,hp:HOUND.hp,maxHp:HOUND.hp,alerted:true,aware:1,jumpy:true,seen:false,grp:null,ms:'hunt',growlT:simT+1+Math.random()*3,againT:simT+1.2},o);
   makeHound(u);enemies.push(u);return u;
 }
@@ -80,8 +80,9 @@ function broodMother(x,y){
 // who a monster goes for: the nearest man on his feet, or a scientist (Bryan: "attack the units and scientists")
 function monPrey(u,maxD=900){
   let best=null,bd=maxD;
-  for(const p of players){if(!alive(p)||p.offMap)continue;const d=hyp(p.x-u.x,p.y-u.y);if(d<bd){bd=d;best=p;}}
+  for(const p of players){if(!alive(p)||p.offMap||!sameFloor(u.x,u.y,p.x,p.y))continue;const d=hyp(p.x-u.x,p.y-u.y);if(d<bd){bd=d;best=p;}}   // (not on another floor: Level 4's hill)
   for(const c of civs){if(!c.sci||c.dead||c.offMap||c.gone)continue;const d=hyp(c.x-u.x,c.y-u.y)+40;if(d<bd){bd=d;best=c;}}   // (a man close by comes first)
+  if(u.brawl)for(const e of enemies){if(e.mon||e.dog||e.dead||e.surr||!sameFloor(u.x,u.y,e.x,e.y))continue;const d=hyp(e.x-u.x,e.y-u.y)+20;if(d<bd){bd=d;best=e;}}   // Level 4: their men too (Bryan: "attack not only the player but the enemy troops too")
   return best;
 }
 // a monster's blow: a soldier loses health and is knocked off his feet; a scientist can die
@@ -108,6 +109,8 @@ function monSaw(tg){if(tg&&tg.side==='P'&&tg.team){teamSawT[tg.team]=simT;if(!te
 function houndThink(u,dt){
   const tg=monPrey(u);if(!tg){u.path=[];return;}
   if(hyp(tg.x-u.x,tg.y-u.y)<420)monSaw(tg);
+  if(tg.side==='E'&&!tg.alerted&&hyp(tg.x-u.x,tg.y-u.y)<300)alertOne(tg,{x:u.x,y:u.y},false);   // (one of their men it comes for: he's up and fighting it)
+  const RE=u.reachX||HOUND.reach,LR=u.lungeX||HOUND.lungeR;   // (the Crawler reaches further)
   const dx=tg.x-u.x,dy=tg.y-u.y,d=hyp(dx,dy)||1;
   if(u.entry&&u.entry.length){u.path=u.entry;u.entry=null;return;}   // out of the gate first
   if(simT>u.growlT&&u.ms==='hunt'){u.growlT=simT+3+Math.random()*4;sfxMon('mon_growl',u,.55);}
@@ -118,10 +121,10 @@ function houndThink(u,dt){
       return;
     case 'lunge':{
       const ux=Math.cos(u.ang),uy=Math.sin(u.ang),step=HOUND.lungeSpd*dt;
-      const ok=monMove(u,ux,uy,Math.min(step,HOUND.lungeR+12-u.lunged));u.lunged+=step;
-      const hit=[...players,...civs.filter(c=>c.sci&&!c.dead)].find(p=>(p.side==='C'||alive(p))&&!p.offMap&&hyp(p.x-u.x,p.y-u.y)<HOUND.reach);
+      const ok=monMove(u,ux,uy,Math.min(step,LR+12-u.lunged));u.lunged+=step;
+      const hit=[...players,...civs.filter(c=>c.sci&&!c.dead),...(u.brawl?enemies.filter(e=>!e.mon&&!e.dog&&!e.dead):[])].find(p=>(p.side==='C'||alive(p))&&!p.offMap&&hyp(p.x-u.x,p.y-u.y)<RE);
       if(hit){monHit(u,hit,HOUND.hit,HOUND.stun);u.biteAt=simT;u.ms='fade';u.mt0=simT;u.fadeA=Math.atan2(u.y-hit.y,u.x-hit.x)+(Math.random()-.5)*.8;return;}
-      if(!ok||u.lunged>=HOUND.lungeR+12){u.ms='fade';u.mt0=simT;u.fadeA=u.ang+Math.PI+(Math.random()-.5);}
+      if(!ok||u.lunged>=LR+12){u.ms='fade';u.mt0=simT;u.fadeA=u.ang+Math.PI+(Math.random()-.5);}
       return;}
     case 'fade':{   // hit and fade (the feel plan): it pulls back, then comes again
       u.path=[];const ok=monMove(u,Math.cos(u.fadeA),Math.sin(u.fadeA),HOUND.run*.9*dt);u.ang=Math.atan2(dy,dx);
@@ -129,7 +132,7 @@ function houndThink(u,dt){
       return;}
   }
   // hunting: run it down; right up close it bites; in range and in sight, it crouches to spring
-  if(d<HOUND.reach+2){u.path=[];u.ang=Math.atan2(dy,dx);if(simT>(u.biteT||0)){u.biteT=simT+HOUND.biteT;u.biteAt=simT;monHit(u,tg,HOUND.bite,.25);sfxMon('mon_snarl',u,.7);}return;}
+  if(d<RE+2){u.path=[];u.ang=Math.atan2(dy,dx);if(simT>(u.biteT||0)){u.biteT=simT+HOUND.biteT;u.biteAt=simT;monHit(u,tg,HOUND.bite,.25);sfxMon('mon_snarl',u,.7);}return;}
   const f=u.flank;
   if(f&&!f.done&&u.y>-548){   // off the deck: swing out to the side first, then in at the squad from there (not straight down its guns)
     if(!f.p){for(const k of[1.5,1.15,.8]){const a=Math.atan2(u.y-tg.y,u.x-tg.x)+f.side*k,R=clamp(d*.8,110,170),p={x:tg.x+Math.cos(a)*R,y:tg.y+Math.sin(a)*R};
@@ -137,8 +140,8 @@ function houndThink(u,dt){
     if(f.p&&(d<64||simT>f.until||hyp(f.p.x-u.x,f.p.y-u.y)<28))f.done=true;
     if(!f.done){if(simT>(u.repath||0)){u.repath=simT+.6;const p=findPath(u.x,u.y,f.p.x,f.p.y,FOOT);if(p)u.path=p;else f.done=true;}return;}
   }
-  if(d<HOUND.lungeR&&d>24&&simT>u.againT&&los(u.x,u.y,tg.x,tg.y)){
-    u.ms='crouch';u.mt0=simT;u.path=[];const L=Math.min(HOUND.lungeR+12,d+14);u.tele={x:u.x+dx/d*L,y:u.y+dy/d*L,t0:simT};u.ang=Math.atan2(dy,dx);sfxMon('mon_snarl',u,.9);return;}
+  if(d<LR&&d>24&&simT>u.againT&&los(u.x,u.y,tg.x,tg.y)){
+    u.ms='crouch';u.mt0=simT;u.path=[];const L=Math.min(LR+12,d+14);u.tele={x:u.x+dx/d*L,y:u.y+dy/d*L,t0:simT};u.ang=Math.atan2(dy,dx);sfxMon('mon_snarl',u,.9);return;}
   if(simT>(u.repath||0)){u.repath=simT+.4;
     if(d<140&&los(u.x,u.y,tg.x,tg.y))u.path=[{x:tg.x-dx/d*12,y:tg.y-dy/d*12}];
     else{const p=findPath(u.x,u.y,tg.x,tg.y,FOOT);if(p)u.path=p;}}

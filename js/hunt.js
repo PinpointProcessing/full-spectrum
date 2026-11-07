@@ -64,7 +64,7 @@ function startContact(msg,amb,who,quiet){   // (quiet: no banner and no "Contact
 function heardNow(x,y,open,wall){
   let any=false;
   for(const e of enemies){
-    if(e.dead||e.surr||!e.alerted||(MAPID==='in'&&e.floor!==floorOf(x,y)))continue;
+    if(e.dead||e.surr||!e.alerted||!sameFloor(e.x,e.y,x,y))continue;   // (not from another floor: interior.js)
     const d=hyp(e.x-x,e.y-y);if(d<=wall||(d<=open&&gridSight(x,y,e.x,e.y))){e.lkp={x,y,t:simT};e.sawT=simT;any=true;}
   }
   return any;
@@ -73,7 +73,7 @@ function heardNow(x,y,open,wall){
 function alertOut(x,y,msg,ambush,x2,y2,lk,open=OUT_HEAR_OPEN,wall=OUT_HEAR_WALL,who){
   const pts=x2==null?[[x,y]]:[[x,y],[x2,y2]];let any=false;
   for(const e of enemies){
-    if(e.dead||e.alerted||e.surr)continue;
+    if(e.dead||e.alerted||e.surr||!sameFloor(e.x,e.y,x,y))continue;   // (the hill's floors in Level 4: noise stays on its own)
     if(!pts.some(([px,py])=>{const d=hyp(e.x-px,e.y-py);return d<=wall||(d<=open&&gridSight(px,py,e.x,e.y));}))continue;
     alertOne(e,lk||{x,y},ambush);any=true;
   }
