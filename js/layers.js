@@ -52,7 +52,7 @@ function alertLayerTick(dt){
 let lvlEl=null,lvlShown='';
 function alertHud(){
   const el=lvlEl||(lvlEl=$('#alertLvl'));if(!el)return;
-  const show=state==='play'&&alertT>0&&!threatOn();if(el.hidden===show)el.hidden=!show;if(!show)return;
+  const show=state==='play'&&alertT>0&&!threatOn();if(el.hidden===show){el.hidden=!show;const tl=$('#tl');if(tl)tl.classList.toggle('lvl',show);}if(!show)return;   // (the objective box narrower while this line shows under the ring: it ran into it on a phone)
   const s=alertStage(),k=(alertT-s*ALERT_TICKS)/ALERT_TICKS,key=s+':'+k;if(key===lvlShown)return;lvlShown=key;
   el.className='s'+s;el.querySelector('b').textContent='Base · '+ALERT_NAMES[s];el.setAttribute('aria-label','Base alert: '+ALERT_NAMES[s]);
   el.querySelectorAll('i').forEach((seg,i)=>seg.style.setProperty('--k',i<s?'1':i===s?k.toFixed(2):'0'));

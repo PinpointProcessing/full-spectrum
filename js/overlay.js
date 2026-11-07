@@ -126,7 +126,7 @@ function drawOverlay(rdt,now){
   }
   drawSmoke();drawOrders(now);drawBuilds(now);drawSkills(now);drawLayers(now);drawHold(now);   // (orders.js, layers.js; the hold-to-suppress ring: input.js)
 
-  drawHQ(now);drawVehicle(rdt,now);drawMission(rdt,now);
+  drawStations(now);drawVehicle(rdt,now);drawMission(rdt,now);   // (the medic stations' and ammo drops' rings: hq.js; the Headquarters' own bar is drawn from drawMission)
   // where the hunters think the squad is (hunt.js): a faint ring where they're searching
   {const done=[];for(const e of enemies){if(e.dead||!e.alerted||!e.hunt||!e.lkp||offFloor(e))continue;const L=e.lkp;if(done.some(d=>hyp(d.x-L.x,d.y-L.y)<80))continue;done.push(L);
     gPath(L.x,L.y,22+Math.sin(now*3)*2);ox.setLineDash([3,5]);ox.strokeStyle='rgba(205,210,215,.55)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(L.x,L.y+22,4);label('SEARCHING',lx,ly,'rgba(205,210,215,.75)',8,700);}}

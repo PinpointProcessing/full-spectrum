@@ -65,7 +65,8 @@ function panTick(rdt){
 
 /* ---------- drawn on the overlay ---------- */
 // a ring round each station (the station itself is a 3D model), its name under it, and each soldier's refill filling round him
-function drawHQ(now){
+// (it was called drawHQ, the same name as fortress.js's boss bar, which loads later and replaced it: from v71 no ring was drawn)
+function drawStations(now){
   if(!HQ_ZONES.length)return;
   for(const z of HQ_ZONES){
     if(z.mesh&&z.mesh.userData.strobe)z.mesh.userData.strobe.visible=Math.sin(now*7)>.2;   // the ammo drop's strobe

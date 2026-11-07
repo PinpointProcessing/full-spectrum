@@ -43,6 +43,7 @@ button.on{border-color:var(--warn);color:var(--warn)}
 /* (max-content: centred with left:50%, it otherwise wrapped at half the screen's width) */
 #banner.show{opacity:1;transform:translate(-50%,0)}
 #tl{position:absolute;left:8px;top:8px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:min(calc(50% - 42px),240px);pointer-events:none}   /* clear of the ring at the top centre and its label */
+#tl.lvl{max-width:min(calc(50% - 68px),240px)}   /* and of the base's alert line under the ring, while it shows (layers.js's alertHud) */
 #tl>*{pointer-events:auto}
 #savedChip{background:rgba(10,14,18,.88);color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent)}
 #sndBtn{min-width:40px;padding:0 9px;display:inline-grid;place-items:center}

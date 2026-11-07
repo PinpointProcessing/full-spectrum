@@ -653,3 +653,23 @@ bridge and they can make a quick route back. 4) let the player choose. Going up 
 guards hear them coming. Enemy monsters will come up and attack not only the player but the enemy troops too. Taking the
 stairs is quiet and the enemy troops are unaware. The player can split the teams and keep one group undetected. 5) The Old
 Radio Tower is a good name". Recorded in `docs/level4.md` (renamed from level4-draft.md), drawn as `docs/map-draft-J.png`.
+
+# Bryan testing v100 (from Level 1; the changes once he's done)
+
+Bryan: "Im testing from level 1 - I'l write down what needs to be improved or changed. When I am done I will tell you."
+Then: "No upgrades until I sy im done testing - so we can go over them all togerther." His notes, collected here as they
+come; nothing new is published until he's done and we've gone over them together.
+
+1. "The tutorial level doesnt show the yellow and green circles for the suplly and med" (Level 1's checkpoint by the hut).
+   Found: no checkpoint anywhere has drawn its rings since v71. hq.js's ring drawing was called `drawHQ`, the same name as
+   fortress.js's health bar for the Brood Mother, which loads later and replaced it. Fixed after v100 (renamed
+   `drawStations`), committed, not published; the ammo drops' strobes blink again too (the same function blinked them).
+   Seen in the same screenshot: on a phone the "BASE · CALM" line under the ring at the top ran into the objective box.
+   Fixed (the box is narrower while that line shows), committed, not published.
+2. "After Level 1 my units leveled up to select a new class - but it is not available. It should say Unlock Radio Tower
+   for upgrades." The report said "Level up · choose his class next"; the class choice is on the boat screen after it
+   (PROMOTE under his name). Then: "or maybe we should allow level ups but no new equipment until the Radio Tower is
+   built. - Yeah lets do that." To do: soldiers keep levelling up; the report's line says Unlock Radio Tower for upgrades;
+   no PROMOTE, no classes and no new equipment until the radio tower is built at the HQ (radio control, after Level 4).
+3. "Also a level up should make a sound. Maybe the exp bar moving up can make a noise too." To do. They'd be the game's
+   first interface sounds (the beeps and jingles were taken out as too arcade), so they should be low-key.
