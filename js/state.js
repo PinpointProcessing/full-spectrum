@@ -31,7 +31,7 @@ function reset(){
   addRadioKit(enemies[1]);   // E2 carries the warehouse's radio (hunt.js)
   drawGround();
   sel=[];cardGroup=[];preview=null;mode=null;contact=false;paused=false;simT=0;downCount=0;ambushT=-9;
-  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];decals=[];smokes=[];endAt=0;
+  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];bubbles=[];decals=[];smokes=[];endAt=0;
   landing=null;if(dinghy)dinghy.position.set(DOCK.moor.x,.2,DOCK.moor.y);
   civs=[];volley=null;resetOffice();resetChatter();resetMonsters();   // (office.js, chatter.js, monsters.js)
   resetWaves();resetHunt();resetOrders();resetLayers();setStatus();buildCards();

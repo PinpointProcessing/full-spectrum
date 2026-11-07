@@ -23,6 +23,7 @@ const VOICE_LINES={
   kill:      ['Tango down.','Got him.','Hostile down.','Target down.','He\'s done.'],
   suppress:  ['Suppressing!','Keep their heads down!','Laying it on!'],
   pinned:    ['I\'m pinned!','Can\'t move, I\'m pinned!','Taking heavy fire!','Need covering fire!'],
+  cant:      ['I\'m pinned! I can\'t do that!'],   // (Bryan, after v104: pinned, told to do something he'd have to leave his spot for; combat.js's refusePinned)
   charge:    ['Charge set! Get clear!','Fire in the hole!','Charge is live, move!'],
   rpg:       ['RPG!','Rocket! Move!','RPG, get down!'],
   objective: ['Objective secure.','Area clear.','That\'s done. Moving on.'],
@@ -36,7 +37,7 @@ const VOICE_LINES={
   card:      ['Got the access card.','The card\'s ours.','I\'ve got the card.'],
   lab:       ['Equipment\'s wrecked.','One less lab.','Smashed it.'],
 };
-const URGENT=new Set(['man_down','rpg','contact','charge']);
+const URGENT=new Set(['man_down','rpg','contact','charge','cant']);   // ('cant': the answer to an order, said at once)
 // Bryan: "everyone is talking all the time". After anyone speaks, nothing that isn't urgent for TALK_GAP s; a man doesn't
 // repeat the same kind of line within SAY_AGAIN s; most orders and actions go unspoken (CALLOUT_VOICE)
 const TALK_GAP=6,SAY_AGAIN=25;
@@ -163,11 +164,12 @@ function nextVariant(id,key,n){const k=id+key;let q=vOrder[k];if(!q||!q.length){
 function say(u,key){
   if(!u||u.side!=='P'||!sndOn||!VOICE_LINES[key]||state!=='play')return;
   const now=performance.now()/1000,k=u.id+key;
-  if(voiceLast[k]&&now-voiceLast[k]<SAY_AGAIN)return;
+  if(voiceLast[k]&&now-voiceLast[k]<(key==='cant'?4:SAY_AGAIN))return;
   if(!URGENT.has(key)&&now<voiceBusyTill+TALK_GAP)return;
   voiceLast[k]=now;
   const n=nextVariant(u.id,key,VOICE_LINES[key].length),text=VOICE_LINES[key][n-1],radio=!u.joined;   // the freed prisoners have no radios: they say it out loud
-  const d=voiceClip(u.id,`${key}_${n}`,{radio,x:u.x,y:u.y});
+  const old=key==='cant'&&VSPR&&!(VSPR.speakers[u.id]&&VSPR.speakers[u.id].clips.cant_1);   // (a voice file without the line yet: his "Can't move, I'm pinned!")
+  const d=voiceClip(u.id,old?'pinned_2':`${key}_${n}`,{radio,x:u.x,y:u.y});
   if(d){voiceBusyTill=now+d+.3;if(radio){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}return;}
   voiceBusyTill=now+1.8;if(radio){squelch(0);speakSystem(u.id,text);}   // not loaded (or opened from a file): the browser's voice stands in
 }

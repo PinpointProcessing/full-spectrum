@@ -745,3 +745,19 @@ the same: up the yard's west strip and over the road's far west end to his ladde
 from there hits about 9 times in 10 (the rails are half cover) and a miss wakes him, so two silenced men on the count are
 the sure way. Scripted: unseen to the doors on 6 of 7 runs; the seventh was that miss. From the platform the rifle still
 has all seven of the front's men in sight.
+
+# Bryan testing v104 (the changes are in v105)
+
+1. "So I am trying to throw smoke with Alpha up ahead near the dead body but they say I can't. He's not pinned, so he should
+   be able to move to the corner and throw it. The only time someone can't do an action is if they are pinned and it would
+   say I'm Pinned, I can't do that! And it should be a voice bubble above them, maybe even have them say it. Or do you think
+   the flashing on top would be better". Since v71 smoke and the rocket only ever went from where he stood: round a corner,
+   past a stacked container or out of reach, the game said "No clear throw from here" and he stayed put. Now a frag, smoke
+   and the RPG all go from where he stands when they can, and otherwise he walks to where they can (a safe spot first, else
+   the nearest that works, however far) and throws there. A fire order with no line within a short walk looks further, and
+   the silencer's aim moves him up for a quiet shot. Pinned, he still throws from where he stands if he can, but won't
+   leave his spot: a speech bubble over him, "I'm pinned! I can't do that!", and he says it (recorded for all eight).
+   Moving him is still an order he takes, so he can always be got out. My answer to his question: the bubble over him, with
+   his voice, rather than flashing text at the top: it says who (with two teams and eight men a banner doesn't), it's where
+   the player is looking when giving the order, and the top of the screen already carries the objective, the detection
+   ring and the banners he found piling up before.

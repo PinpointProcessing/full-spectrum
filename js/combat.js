@@ -299,6 +299,19 @@ function retTick(){
 }
 
 function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});if(u.side==='P'&&CALLOUT_VOICE[text])say(u,CALLOUT_VOICE[text]);}   // soldiers say their callouts over the radio (voice.js)
+/* A soldier who can't do what he's told says why in a speech bubble over his head (Bryan, after v104: "The only time someone
+   can't do an action is if they are pinned and it would say I'm Pinned, I can't do that! And it should be a voice bubble above
+   them, maybe even have them say it"): drawn by overlay.js's drawBubbles, timed in real seconds (slow-mo doesn't stretch it),
+   following him. Pinned (PINNED), he won't leave his spot for an order: a throw or a shot he'd have to move for. He says so
+   out loud too (voice.js's 'cant'). Moving him is still an order he takes: that's how he gets out of it. */
+let bubbles=[],cantSaidT=-1e9;
+function bubble(u,text,col){bubbles=bubbles.filter(b=>b.u!==u);bubbles.push({u,text,col:col||C.warn,t0:performance.now()});}
+const pinnedNow=u=>u.sup>PINNED;
+function refusePinned(u){
+  bubble(u,'I’m pinned! I can’t do that!',C.bad);
+  const now=performance.now();if(now-cantSaidT>1500&&typeof say==='function'){cantSaidT=now;say(u,'cant');}   // (one voice at a time: the rest just show it)
+  return false;
+}
 // Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
 // and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.
 const AMBUSH_T=1.5,AMBUSH_BONUS=0.15;
@@ -469,9 +482,9 @@ const nadeRange=u=>u&&u.gl?M203.range:170;
 const nadeFull=u=>u.gl?M203.rounds:isCls(u,'assault')?CLS.frags:1;   // (stations refill to this: hq.js)
 function throwNade(u,tx,ty){
   const gl=!!u.gl;
-  if(hyp(tx-u.x,ty-u.y)>nadeRange(u)){banner(gl?'Out of range for the M203. Fire inside the circle.':'Too far. Throw inside the circle.');return false;}
+  if(hyp(tx-u.x,ty-u.y)>nadeRange(u)){bubble(u,gl?'Out of range from here':'Too far from here');return false;}   // (orderThrow walks him into reach first: this is a last check)
   const f=throwFrom(u,tx,ty,'nade');
-  if(!f){banner('No clear throw from here.');return false;}
+  if(!f){bubble(u,'No clear throw from here');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.grenade=Math.max(0,(u.grenade||0)-1);u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);   // (one frag of his: an Assault carries two, classes.js)
   if(gl){nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:M203.dur*(.6+.4*hyp(tx-f.x,ty-f.y)/M203.range),by:u,R:M203.R,D:M203.D,gl:true});u.stats.items++;flashes.push({x:f.x,y:f.y,t:0,u});if(typeof playSample==='function')playSample('launch',u.x,u.y,.32,1.7);callout(u,'Grenade out!',C.warn);return true;}   // (a thump, a little flash at the muzzle)
@@ -482,9 +495,9 @@ function throwNade(u,tx,ty){
 // a smoke grenade: thrown like the frag, it pops a cloud that blocks sight both ways (SMOKE in map.js). Quiet: no alarm
 function throwSmoke(u,tx,ty){
   if(u.spec!=='smoke'||!u.specN){banner(`${u.name} has no smoke.`,1600);return false;}
-  if(hyp(tx-u.x,ty-u.y)>SMOKE.range){banner('Too far. Throw inside the circle.');return false;}
+  if(hyp(tx-u.x,ty-u.y)>SMOKE.range){bubble(u,'Too far from here');return false;}
   const f=throwFrom(u,tx,ty,'smoke');
-  if(!f){banner('No clear throw from here.');return false;}
+  if(!f){bubble(u,'No clear throw from here');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.specN--;u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);
   nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u,smoke:true});u.stats.items++;if(typeof sfxPin==='function')sfxPin(u.x,u.y);
@@ -496,14 +509,15 @@ function popSmoke(x,y){smokes.push({x,y,t0:simT});if(typeof sfxSmoke==='function
 const PRPG={range:380,min:60,aim:.6,blast:55,dmg:120,speed:300};
 function fireRPG(u,tx,ty){
   if(u.spec!=='rpg'||!u.specN){banner(`${u.name} has no rockets left.`,1600);return false;}
-  const d=hyp(tx-u.x,ty-u.y);if(d<PRPG.min){banner('Too close for a rocket.',1600);return false;}
-  if(d>PRPG.range){banner('Out of range for the RPG.',1600);return false;}
-  const f=throwFrom(u,tx,ty,'rpg');if(!f){banner('No clear shot from here: something’s in the way.');return false;}
+  const d=hyp(tx-u.x,ty-u.y);if(d<PRPG.min){bubble(u,'Too close for a rocket');return false;}
+  if(d>PRPG.range){bubble(u,'Out of range from here');return false;}
+  const f=throwFrom(u,tx,ty,'rpg');if(!f){bubble(u,'Something’s in the way');return false;}
   u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT+PRPG.aim+.5;leanOut(u,{fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y});
   u.rpgAim={x:tx,y:ty,f,at:simT+PRPG.aim,th:rocketAim(tx,ty)};callout(u,'Rocket!',C.warn);return true;
 }
-/* ---------- getting into position (Bryan: tap where to throw or fire; if he can't from where he is, he moves to where he can,
-   and says so if there's no safe way). Allies never block a throw (only walls and the like do). ---------- */
+/* ---------- getting into position (Bryan: tap where to throw or fire; if he can't from where he is, he moves to where he can;
+   after v104: "He's not pinned, so he should be able to move to the corner and throw it. The only time someone can't do an
+   action is if they are pinned"). Allies never block a throw (only walls and the like do). ---------- */
 const routeLen=(u,p)=>{let L=0,x=u.x,y=u.y;for(const q of p){L+=hyp(q.x-x,q.y-y);x=q.x;y=q.y;}return L;};
 // would an enemy they know about see this spot? (an unaware one in his cone or close by, an alerted one all round)
 function watched(x,y,skip){
@@ -511,37 +525,41 @@ function watched(x,y,skip){
     if(!e.alerted&&d>80){let da=Math.atan2(y-e.y,x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)return false;}
     return los(e.x,e.y,x,y);});
 }
+/* where he goes to throw or fire from: a spot in reach with a clear lob (or a clear flight for a rocket). A safe one first, as
+   before (out of sight of the hostiles they know about; in cover once they're caught), within maxWalk; with none, the nearest
+   that works, safe or not (Bryan, after v104: only being pinned stops him), however far it is to walk (a spot out of reach
+   included: he goes up to it). null only when nowhere works (a tap inside a building from outside) */
 function fireSpot(u,tx,ty,range,minD=0,kind='nade',maxWalk=360){
   const ok=(x,y)=>{const d=hyp(tx-x,ty-y);return d<=range&&d>=minD&&hideAt(x,y)===hideAt(tx,ty)&&(kind==='rpg'?!rocketHits(x,y,tx,ty,RPG_SH,rocketAim(tx,ty)):lobOK(x,y,tx,ty)||!!sightFrom(x,y,tx,ty,true));};
-  {const d=hyp(tx-u.x,ty-u.y);if(d<=range&&d>=minD&&throwFrom(u,tx,ty,kind))return{here:true};}
+  const D=hyp(tx-u.x,ty-u.y);if(D<=range&&D>=minD&&throwFrom(u,tx,ty,kind))return{here:true};
   const th=threats(),safe=c=>caught(u)?isCovered(c,th):!watched(c.x,c.y),cand=[];
-  for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<340)cand.push({x:c.x,y:c.y});
-  for(const r of[range*.5,range*.8])for(let k=0;k<16;k++){const a=k/16*TAU;cand.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
+  for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<340||hyp(c.x-tx,c.y-ty)<range)cand.push({x:c.x,y:c.y});
+  for(const r of[range*.5,range*.8,range*.95])for(let k=0;k<16;k++){const a=k/16*TAU;cand.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
   for(const r of[45,90])for(let k=0;k<12;k++){const a=k/12*TAU;cand.push({x:u.x+Math.cos(a)*r,y:u.y+Math.sin(a)*r});}   // (a step or two from where he is)
+  if(D>range*.8)for(let s=40;s<D;s+=40){const k=s/D,x=u.x+(tx-u.x)*k,y=u.y+(ty-u.y)*k;for(const o of[-30,0,30])cand.push({x:x+(ty-u.y)/D*o,y:y-(tx-u.x)/D*o});}   // (on the way to a spot out of his reach)
   const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
-  const good=cand.filter(c=>isFree(c.x,c.y,7)&&ok(c.x,c.y)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<10)&&safe(c)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y)})).sort((a,b)=>a.d-b.d).slice(0,6);
-  for(const c of good){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=maxWalk&&L<=c.d*1.7+60)return{x:c.x,y:c.y,path:p};}}
-  return null;
+  const fit=cand.filter(c=>isFree(c.x,c.y,7)&&ok(c.x,c.y)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<10)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y),safe:safe(c)})).sort((a,b)=>a.d-b.d);
+  for(const c of fit.filter(c=>c.safe).slice(0,6)){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=maxWalk&&L<=c.d*1.7+60)return{x:c.x,y:c.y,path:p};}}
+  let best=null;
+  for(const c of fit.slice(0,10)){const p=findPath(u.x,u.y,c.x,c.y);if(!p)continue;const L=routeLen(u,p),cost=L+(c.safe?0:60);if(L<=1200&&(!best||cost<best.cost))best={x:c.x,y:c.y,path:p,cost,open:!c.safe};}
+  return best;
 }
-// kind: 'nade', 'smoke' or 'rpg'
+const throwReach=(u,kind)=>({R:kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:nadeRange(u),minD:kind==='rpg'?PRPG.min:0});   // (an M203 reaches further than a frag)
+const hasThrow=(u,kind)=>kind==='nade'?(u.grenade||0)>0:kind==='rpg'?u.spec==='rpg'&&u.specN>0:u.spec==='smoke'&&u.specN>0;
+// kind: 'nade', 'smoke' or 'rpg'. From where he stands if he can (Bryan, after v70: at once, no walking off); if he can't, he
+// moves to where he can and throws or fires there (a frag, smoke or a rocket alike); pinned, he won't leave his spot for it
 function orderThrow(u,tx,ty,kind){
   u.ret=null;   // (marked again below if he has to walk for it: retTick)
-  const R=kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:nadeRange(u),minD=kind==='rpg'?PRPG.min:0;   // (an M203 reaches further than a frag)
-  const d=hyp(tx-u.x,ty-u.y);
-  if(kind!=='nade'){   // smoke and the rocket go from where he stands, never walking him off towards it (Bryan, after v70); a miss keeps the aim
-    if(d>R){banner(kind==='rpg'?'Out of range for the RPG. Fire inside the circle.':'Too far for smoke. Throw inside the circle.',1800);return false;}
-    if(d>=minD&&throwFrom(u,tx,ty,kind))return doThrow(u,tx,ty,kind);
-    if(kind==='rpg'){   // too close, or a building in the way: a few steps (18 m at most) to where he can fire, then the rocket
-      const s=fireSpot(u,tx,ty,R,minD,kind,180);
-      if(s&&!s.here){u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};markRet(u);callout(u,d<minD?'Backing off':'Getting a shot',C.warn);return true;}
-    }
-    banner(kind==='rpg'?(d<minD?'Too close for a rocket.':'No clear shot from here: something’s in the way.'):'No clear throw from here.',1800);return false;
-  }
+  if(!hasThrow(u,kind)){if(kind==='nade'){banner(u.gl?`${u.name} has no M203 rounds left.`:`${u.name} has no grenades left.`,1600);return false;}return doThrow(u,tx,ty,kind);}   // (none left: it says so)
+  const{R,minD}=throwReach(u,kind),d=hyp(tx-u.x,ty-u.y);
+  if(d<=R&&d>=minD&&throwFrom(u,tx,ty,kind))return doThrow(u,tx,ty,kind);
+  if(pinnedNow(u))return refusePinned(u);
   const s=fireSpot(u,tx,ty,R,minD,kind);
-  if(!s){if(typeof gen==='function')chat('nadeno',5,gen(u,'nadeno'));banner(kind==='rpg'?`${u.name} can’t get a safe shot at that.`:`${u.name} can’t get a safe throw at that.`,2000);return false;}
+  if(!s){bubble(u,kind==='rpg'?'No way to get a shot at that':'No way to get a throw there');return false;}
   if(s.here)return doThrow(u,tx,ty,kind);
-  u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT};markRet(u);
-  if(typeof gen==='function')chat('nadego',6,gen(u,'nadego'));callout(u,kind==='rpg'?'Getting a shot':'Getting an angle',C.warn);
+  u.path=s.path;u.lastOrder=simT;u.watch=null;u.supT=null;u.focus=null;u.exposeT=0;u.throwGo={x:tx,y:ty,kind,t0:simT,tries:1};markRet(u);
+  if(kind==='nade'&&!u.gl&&typeof gen==='function')chat('nadego',6,gen(u,'nadego'));   // ("Moving up for the frag": not for smoke)
+  callout(u,kind==='rpg'?(d<minD?'Backing off':'Getting a shot'):d>R?'Moving up':'Getting an angle',C.warn);
   return true;
 }
 function doThrow(u,tx,ty,kind){return kind==='rpg'?fireRPG(u,tx,ty):kind==='smoke'?throwSmoke(u,tx,ty):throwNade(u,tx,ty);}
@@ -549,7 +567,11 @@ function throwTick(){
   for(const u of players){
     const g=u.throwGo;
     if(g){if(!alive(u)||u.carry||u.lastOrder>g.t0+.01)u.throwGo=null;   // (another order since: forget it)
-      else if(!u.path.length){u.throwGo=null;if(!doThrow(u,g.x,g.y,g.kind)){callout(u,'No angle',C.warn);backSoon(u,.6,true);}else if(g.kind!=='rpg')backSoon(u,.9,true);}}   // (thrown: back to the others; a rocket once it's gone, below)
+      else if(!u.path.length){   // there: he throws (or fires); if it doesn't work from there after all, he tries another spot (twice)
+        const{R,minD}=throwReach(u,g.kind),d=hyp(g.x-u.x,g.y-u.y),can=d<=R&&d>=minD&&!!throwFrom(u,g.x,g.y,g.kind);
+        const s=!can&&g.tries<3&&!pinnedNow(u)&&fireSpot(u,g.x,g.y,R,minD,g.kind);
+        if(s&&!s.here){u.path=s.path;u.lastOrder=g.t0=simT;g.tries++;}
+        else{u.throwGo=null;if(!can&&pinnedNow(u)){refusePinned(u);backSoon(u,.6,true);}else if(!doThrow(u,g.x,g.y,g.kind))backSoon(u,.6,true);else if(g.kind!=='rpg')backSoon(u,.9,true);}}}   // (thrown: back to the others; a rocket once it's gone, below)
     const a=u.rpgAim;if(!a||simT<a.at)continue;u.rpgAim=null;if(!alive(u))continue;   // the rocket goes
     const dd=hyp(a.x-a.f.x,a.y-a.f.y)||1;
     rockets.push({x:a.f.x,y:a.f.y,dx:(a.x-a.f.x)/dd,dy:(a.y-a.f.y)/dd,left:dd,total:dd,z0:RPG_SH,z1:a.th??8,by:u,trail:[],spec:PRPG,speed:PRPG.speed});u.rpgT=simT;
@@ -800,12 +822,26 @@ function orderFire(list,e){
     u.focus=e;
     if(u.onGun||u.onTower||u.climb){fire.push(u);continue;}   // on a gun or up the tower: he fires from there if he can
     if(fireLine(u,e)&&hyp(e.x-u.x,e.y-u.y)<=wRange(u)){fire.push(u);continue;}
-    const s=lineSpot(u,e);
+    if(pinnedNow(u)){refusePinned(u);none.push(u);continue;}   // (he'd have to leave his spot for a line: not while he's pinned, Bryan after v104; he fires on him once he can)
+    const s=lineSpot(u,e)||lineSpotFar(u,e);
     if(s){Object.assign(u,{path:s.path,lastOrder:simT,watch:null,exposeT:0,fireGo:{e,t0:simT,tries:1}});move.push(u);callout(u,'Getting a line',C.warn);}
-    else none.push(u);
+    else{none.push(u);bubble(u,'No way to get a shot at him');}
   }
-  if(!crew.length&&!moveQ.length&&!fire.length&&!move.length)banner(go.length>1?'Nobody can get a clear shot at him from here.':`${go[0].name} can\u2019t get a clear shot at him from here.`,2000);
   return{crew,moveQ,fire,move,none};
+}
+// further afield, when there's no line within a short walk (Bryan, after v104: only being pinned stops him): a spot in his
+// weapon's reach with a line to the man, the shortest walk (in a fight, in cover if it isn't much further), however far it is
+function lineSpotFar(u,e){
+  const t=e.vis||!e.last?{x:e.x,y:e.y}:e.last,R=Math.min(wRange(u),360)*.95,ok=(x,y)=>hyp(t.x-x,t.y-y)<=R&&hideAt(x,y)===hideAt(t.x,t.y)&&!!sightFrom(x,y,t.x,t.y);
+  const th=threats(),cg=caught(u),cand=[],D=hyp(t.x-u.x,t.y-u.y)||1;
+  for(const c of coverPts)if(hyp(c.x-t.x,c.y-t.y)<R)cand.push({x:c.x,y:c.y});
+  for(const r of[R*.5,R*.8])for(let k=0;k<16;k++){const a=k/16*TAU;cand.push({x:t.x+Math.cos(a)*r,y:t.y+Math.sin(a)*r});}
+  for(let s=40;s<D;s+=40){const k=s/D;for(const o of[-30,0,30])cand.push({x:u.x+(t.x-u.x)*k+(t.y-u.y)/D*o,y:u.y+(t.y-u.y)*k-(t.x-u.x)/D*o});}   // (on the way to him)
+  const others=players.filter(o=>o!==u&&!o.dead).map(destOf);
+  const fit=cand.filter(c=>isFree(c.x,c.y,7)&&!others.some(o=>hyp(o.x-c.x,o.y-c.y)<12)&&hyp(t.x-c.x,t.y-c.y)>60&&ok(c.x,c.y)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y)})).sort((a,b)=>a.d-b.d).slice(0,10);
+  let best=null;
+  for(const c of fit){const p=findPath(u.x,u.y,c.x,c.y);if(!p)continue;const L=routeLen(u,p),cost=L+(cg&&!isCovered(c,th)?90:0);if(L<=1200&&(!best||cost<best.cost))best={x:c.x,y:c.y,path:p,cost};}
+  return best;
 }
 function fireGoTick(){   // on his way to a spot with a line: there, he fires (his focus); the man moved, he looks again (once)
   for(const u of players){

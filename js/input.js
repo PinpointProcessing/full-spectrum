@@ -243,6 +243,7 @@ function tap(sx,sy){
     const u=sel[0];if(!u||!silenced(u)){mode=null;return;}
     const en=enemyAtScreen(sx,sy);
     if(en&&canSilent(u,en)){orderSilent(u,en);mode=null;preview=null;fireOrderAt=performance.now();return;}
+    if(en&&!en.alerted&&!en.surr&&!beaten(en)){mode=null;preview=null;const r=orderFire([u],en);if(r&&(r.moveQ.length||r.move.length))fireOrderAt=performance.now();return;}   // no quiet shot from here: he moves up to where he has one, and takes it (Bryan, after v104: only being pinned stops him)
     banner(en&&en.alerted?'He knows you are here: no silent shot.':en?'No clear shot at him from here (20 m, in sight).':'Tap a hostile marked SILENT SHOT. Tap the silencer on his card again to cancel.',2000);return;
   }
   if(mode==='binos'||mode==='noise'||mode==='flash'){   // a class skill: the Recon's binoculars, the Spec Ops' distraction (skills.js)

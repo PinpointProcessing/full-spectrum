@@ -185,7 +185,7 @@ function stashOut(going){
 function useMap(st){   // put a map's objects, boxes, lamps, scene and lights in play
   objs.length=0;objs.push(...st.objs);HQ_ZONES.length=0;HQ_ZONES.push(...st.hq);SLOW.length=0;SLOW.push(...st.slow);lamps.length=0;lamps.push(...st.lamps);
   EAST_X=st.x1||W;rebuildNav();scene=st.scene;({hemi,moon,lampPool,muzzle,boomL}=st.lights);
-  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];smokes=[];preview=null;mode=null;
+  shots=[];tracers=[];flashes=[];sparks=[];nades=[];booms=[];callouts=[];bubbles=[];smokes=[];preview=null;mode=null;
 }
 function moveMesh(u,to){if(u.m&&u.m.g.parent!==to){if(u.m.g.parent)u.m.g.parent.remove(u.m.g);to.add(u.m.g);}}
 function slotsIn(z,n,taken=[]){   // n free spots 20 apart inside zone z (any that don't fit go just outside it)

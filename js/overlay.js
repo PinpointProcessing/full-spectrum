@@ -52,6 +52,34 @@ function pill(text,x,y,col){
   ox.beginPath();ox.roundRect?ox.roundRect(x-w/2,y-7,w,14,3):ox.rect(x-w/2,y-7,w,14);ox.fill();ox.stroke();
   ox.fillStyle=col;ox.textAlign='center';ox.textBaseline='middle';ox.fillText(text,x,y+.5);
 }
+/* speech bubbles (combat.js's bubble(): Bryan, after v104, a soldier who can't do what he's told says why "as a voice bubble
+   above them"): a white rounded box over his head with a tail down to him, popping in, gone after BUBBLE_MS real milliseconds;
+   kept on screen at its edge (no tail) when he's off it */
+const BUBBLE_MS=2600;
+function bubblePath(x0,y0,w,h,r,ax,ay){   // the box, and with ay a tail from its bottom edge down to (ax,ay)
+  const x1=x0+w,y1=y0+h,tx=clamp(ax,x0+r+7,x1-r-7);
+  ox.beginPath();ox.moveTo(x0+r,y0);ox.lineTo(x1-r,y0);ox.quadraticCurveTo(x1,y0,x1,y0+r);ox.lineTo(x1,y1-r);ox.quadraticCurveTo(x1,y1,x1-r,y1);
+  if(ay!=null){ox.lineTo(tx+6,y1);ox.lineTo(ax,ay);ox.lineTo(tx-6,y1);}
+  ox.lineTo(x0+r,y1);ox.quadraticCurveTo(x0,y1,x0,y1-r);ox.lineTo(x0,y0+r);ox.quadraticCurveTo(x0,y0,x0+r,y0);ox.closePath();
+}
+function drawBubbles(){
+  if(!bubbles.length)return;
+  const now=performance.now();bubbles=bubbles.filter(b=>now-b.t0<BUBBLE_MS&&!b.u.dead&&units.includes(b.u));
+  for(const b of bubbles){
+    const u=b.u;if(offFloor(u)||u.away)continue;
+    const age=now-b.t0,pop=Math.min(1,age/140),A=Math.min(1,(BUBBLE_MS-age)/450);
+    const ev=u.onTower||u.climb?u.elev||0:0;toSBack=false;const[ax,ay0]=toS(u.x+(u.lx||0),u.y+(u.ly||0),24+ev),back=toSBack,ay=ay0-22;   // (its tail stops above his bar and PINNED)
+    ox.font=`700 12px ${HUDFONT}`;const w=ox.measureText(b.text).width+18,h=22,minY=58,maxY=ch-76;
+    let x0=ax-w/2,y0=ay-10-h,tail=!back;
+    if(back){x0=cw/2-w/2;y0=maxY-h;}
+    else{const cx0=clamp(x0,6,cw-w-6),cy0=clamp(y0,minY,maxY-h);if(cx0!==x0||cy0!==y0){tail=false;x0=cx0;y0=cy0;}}
+    ox.save();ox.globalAlpha=A;const s=.85+.15*pop,px=x0+w/2,py=y0+h;ox.translate(px,py);ox.scale(s,s);ox.translate(-px,-py);
+    bubblePath(x0,y0,w,h,6,ax,tail?ay:null);
+    ox.fillStyle='rgba(244,246,247,.96)';ox.fill();ox.lineWidth=2;ox.strokeStyle=b.col;ox.stroke();
+    ox.fillStyle='#101418';ox.textAlign='center';ox.textBaseline='middle';ox.fillText(b.text,px,y0+h/2+.5);
+    ox.restore();
+  }
+}
 // smoke clouds (map.js SMOKE): soft grey puffs at a few heights, drifting a little downwind and rising as they thin out
 function drawSmoke(){
   for(const c of smokes){
@@ -212,6 +240,7 @@ function drawOverlay(rdt,now){
     else if(u.sup>0.08)bar(hx-9,hy-1,18,u.sup/0.65,C.warn);
   }
   for(const c of callouts){if(offFloor(c))continue;const[sx,sy]=toS(c.x,c.y,30),k=c.t/(c.dur||1.7);ox.globalAlpha=(c.small?.85:1)*(1-Math.max(0,k-.6)/.4);label(c.text,sx,sy-k*16,c.col,c.small?9:11,c.small?600:700);ox.globalAlpha=1;}
+  drawBubbles();
   if(ptr&&ptr.kind==='lasso'&&ptr.loop.length>1){   // lasso loop, closed back to its start
     ox.beginPath();ox.moveTo(...ptr.loop[0]);for(const p of ptr.loop)ox.lineTo(...p);ox.closePath();
     ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);
