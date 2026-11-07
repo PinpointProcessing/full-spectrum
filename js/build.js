@@ -46,7 +46,7 @@ function orderBar(u,o){
   if(!u||!alive(u)||u.spec!=='build'){mode=null;return false;}
   if(u.specN<1){banner(`${u.name}'s build kit is empty. Refill at an ammo drop.`,2000);return false;}
   const cx=o.x+o.w/2,cy=o.y+o.h/2,side=Math.sign(u.x-cx)||1,p=findPath(u.x,u.y,cx+side*12,cy);
-  if(!reachOK(u,p,'No way to that door from here.'))return false;
+  if(!reachOK(u,p,'No way to that door from here.',true))return false;   // (a door to bar: however far, like a thing to use)
   Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:null,build:null,pack:null,bar:{o,side,t0:simT,p:0}});callout(u,'Barring the door',C.good);return true;
 }
 function barMesh(o,side){
@@ -63,7 +63,7 @@ function fortTap(sx,sy){
   const cx=o.x+o.w/2,cy=o.y+o.h/2,u=ds.reduce((a,b)=>hyp(b.x-cx,b.y-cy)<hyp(a.x-cx,a.y-cy)?b:a);
   if(u.specN>=BUILD.kits){banner(`${u.name}'s build kit is full: he leaves the barricade where it is.`,2000);return true;}
   const v=o.w>o.h,s=v?Math.sign(u.y-cy)||1:Math.sign(u.x-cx)||1,gx=v?cx:cx+s*(o.w/2+10),gy=v?cy+s*(o.h/2+10):cy;   // (his side of it)
-  const p=findPath(u.x,u.y,gx,gy);if(!reachOK(u,p,'No way to that barricade from here.'))return true;
+  const p=findPath(u.x,u.y,gx,gy);if(!reachOK(u,p,'No way to that barricade from here.',true))return true;
   Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:null,build:null,pack:{o,t0:simT,p:0}});callout(u,'Packing it up',C.good);
   return true;
 }

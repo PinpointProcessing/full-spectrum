@@ -771,3 +771,13 @@ has all seven of the front's men in sight.
    stairs, the lift, the gather areas, and sending a man out for the scientists. While aiming a throw a dotted ring outside
    the dashed one shows how far it reaches once he's moved up. Things that used to go further: frags walked up to 36 m to a
    safe spot, revives, kits, zip ties and things to use had no limit, a takedown worked from 14 m and Breach from 15 m.
+
+# Bryan, after v105 (the changes are in v106)
+
+1. "We can keep all these like this: Frags used to walk up to 36 m to a safe spot. Revives, medic kits, zip ties and using
+   things had no limit at all. Takedowns worked from 14 m, and Breach from 15 m." Those are back as they were before the
+   circle: a frag (and the M203) walks up to 36 m, a safe spot first; a revive, a medic kit, carrying a man, a zip tie and
+   anything to use (with the pillbox gun, the watchtower, the bio scanner and doors, all "using things") go however far; a
+   takedown from 14 m; Breach within 15 m. The 10 m circle stays for the actions where the soldier picks the spot himself:
+   smoke, the RPG, getting a line on a man you tap, suppressing, a silent shot, the class skills and building. Pinned, he
+   still won't leave his spot for any of them.

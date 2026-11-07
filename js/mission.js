@@ -30,7 +30,7 @@ function pillGunner(id){const g=PBOX.gun,u=hostile(id,g.x,g.y-7,{name:'Gunner',g
 const gunMan=()=>units.find(u=>u.onGun===PBOX.gun&&!u.dead&&!u.downed)||null;
 function orderMan(list){
   const g=PBOX.gun,c=list.filter(p=>alive(p)&&!p.carry).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y));if(!c.length)return false;
-  const r=reachFor(c,u=>findPath(u.x,u.y,g.x,g.y-7),'No way to the gun from here.');if(!r)return false;const u=r.u,path=r.p;   // (inside his circle: Bryan, after v104)
+  const r=reachFor(c,u=>findPath(u.x,u.y,g.x,g.y-7),'No way to the gun from here.',false,true);if(!r)return false;const u=r.u,path=r.p;   // (however far; not pinned)
   Object.assign(u,{path,lastOrder:simT,watch:null,supT:null,focus:null,manGo:{t0:simT}});callout(u,'To the gun',C.good);return true;
 }
 function manTick(){
@@ -203,8 +203,8 @@ function setBridge(k){BRIDGE.lower=k;if(BRIDGE.grp)BRIDGE.grp.rotation.x=-.12-(M
 function tapPanel(){
   const foot=sel.filter(u=>alive(u)&&!u.inVeh).sort((a,b)=>hyp(a.x-PANEL.x,a.y-PANEL.y)-hyp(b.x-PANEL.x,b.y-PANEL.y));
   if(!foot.length){banner('Select a soldier, then tap the bio scanner.',2000);return;}
-  const r=reachFor(foot,u=>{const s=openSpot(PANEL.x,PANEL.y+14,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:PANEL.x,y:PANEL.y+14};return findPath(u.x,u.y,s.x,s.y);},'No way to reach the panel from here.');
-  if(!r)return;const u=r.u,p=r.p;   // (inside his circle: Bryan, after v104)
+  const r=reachFor(foot,u=>{const s=openSpot(PANEL.x,PANEL.y+14,players.filter(p=>p!==u&&!p.dead).map(destOf))||{x:PANEL.x,y:PANEL.y+14};return findPath(u.x,u.y,s.x,s.y);},'No way to reach the panel from here.',false,true);
+  if(!r)return;const u=r.u,p=r.p;   // (however far; not pinned)
   if(obj===4&&!scanGo&&!startScan(u))return;   // a scientist goes over with him, whoever tied him (office.js)
   u.path=p;u.lastOrder=simT;callout(u,obj===4?'To the scanner':'Checking the controls',C.good);panelGo=u;markRet(u);   // (back to the others once it's done: retTick in combat.js)
 }
@@ -309,7 +309,7 @@ function orderClimb(list){
   if(enemies.some(e=>e.onTower&&!beaten(e))){banner('The sniper is still up there.',1800);return false;}
   if(towerMan()){banner(`${towerMan().name} is already up the tower.`,1600);return false;}
   const L=TOWER.ladder,c=list.filter(p=>alive(p)&&!p.carry).sort((a,b)=>hyp(a.x-L.x,a.y-L.y)-hyp(b.x-L.x,b.y-L.y));if(!c.length)return false;
-  const r=reachFor(c,u=>hyp(u.x-L.x,u.y-L.y)<6?[]:findPath(u.x,u.y,L.x,L.y),'No way to the ladder from here.');if(!r)return false;const u=r.u,path=r.p;   // (inside his circle: Bryan, after v104)
+  const r=reachFor(c,u=>hyp(u.x-L.x,u.y-L.y)<6?[]:findPath(u.x,u.y,L.x,L.y),'No way to the ladder from here.',false,true);if(!r)return false;const u=r.u,path=r.p;   // (however far; not pinned)
   Object.assign(u,{path,lastOrder:simT,watch:null,supT:null,focus:null,climbGo:{t0:simT}});callout(u,'To the tower',C.good);return true;
 }
 function towerTick(dt){

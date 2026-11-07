@@ -131,9 +131,9 @@ function moraleBreak(e){
 }
 function orderZip(list,e){
   if(zipFor(e))return true;   // (someone's already on him)
-  // the nearest who isn't busy, and who can get to him inside his circle (Bryan, after v104: combat.js's reachFor)
+  // the nearest who isn't busy and isn't pinned, however far (combat.js's reachFor; Bryan, after v105)
   const c=list.filter(p=>alive(p)&&!p.carry&&!p.inVeh).sort((a,b)=>(onTask(a)-onTask(b))||(hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y)));
-  const r=reachFor(c,u=>{const s=openSpot(e.x,e.y,players.filter(o=>o!==u&&!o.dead).map(destOf))||{x:e.x,y:e.y};return hyp(u.x-e.x,u.y-e.y)<20?[]:findPath(u.x,u.y,s.x,s.y);},'No way to reach him.');
+  const r=reachFor(c,u=>{const s=openSpot(e.x,e.y,players.filter(o=>o!==u&&!o.dead).map(destOf))||{x:e.x,y:e.y};return hyp(u.x-e.x,u.y-e.y)<20?[]:findPath(u.x,u.y,s.x,s.y);},'No way to reach him.',false,true);
   if(!r)return false;const u=r.u,p=r.p;
   u.path=p;u.lastOrder=simT;u.watch=null;zipGos=zipGos.filter(z=>z.u!==u);if(typeof useGos!=='undefined')useGos=useGos.filter(g=>g.u!==u);zipGos.push({u,e,prog:0});markRet(u);callout(u,'Hands where I can see them!',C.good);return true;
 }

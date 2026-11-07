@@ -142,7 +142,7 @@ function flashLands(n){
 function orderHack(a){
   const cs=sel.filter(u=>alive(u)&&isCls(u,'cyber')&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));if(!cs.length)return false;
   const sx=a.x+(a.standX||0),sy=a.y+(a.standY??14);
-  const r=reachFor(cs,c=>{const s=openSpot(sx,sy,players.filter(p=>p!==c&&!p.dead).map(destOf))||{x:sx,y:sy};return findPath(c.x,c.y,s.x,s.y);},'No way there from here.');   // (inside his circle: Bryan, after v104)
+  const r=reachFor(cs,c=>{const s=openSpot(sx,sy,players.filter(p=>p!==c&&!p.dead).map(destOf))||{x:sx,y:sy};return findPath(c.x,c.y,s.x,s.y);},'No way there from here.',false,true);   // (however far, like any thing to use; not pinned)
   if(!r)return true;const cy=r.u,p=r.p;
   cy.path=p;cy.lastOrder=simT;useGos=useGos.filter(g=>g.u!==cy);zipGos=zipGos.filter(z=>z.u!==cy);useGos.push({u:cy,a,prog:0,hack:true,secs:SKILL.hack.t});markRet(cy);callout(cy,'I can get past that',C.good);
   return true;

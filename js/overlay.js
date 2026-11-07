@@ -142,11 +142,11 @@ function drawOverlay(rdt,now){
     toSBack=false;ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of ptr.trail){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}if(!toSBack)ox.stroke();ox.globalAlpha=1;
     gPath(e.x,e.y,8);ox.fillStyle=cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=cov?C.good:C.bad;ox.lineWidth=2;ox.stroke();
   }
-  // aiming a throw: the dashed ring, from where he stands; the fainter dotted one outside it, as far as it goes once he's moved
-  // up inside his circle (combat.js's ACT_R: Bryan, after v104); further than that he says it's too far. A medic kit: his circle
+  // aiming a throw: the dashed ring, from where he stands; for smoke and a rocket the fainter dotted one outside it, as far as
+  // it goes once he's moved up inside his circle (combat.js's ACT_R: Bryan, after v104); further than that he says it's too
+  // far. A frag walks up to 36 m (Bryan, after v105): no dotted ring
   if((mode==='grenade'||mode==='smoke'||mode==='rpg')&&sel[0]){const R0=mode==='smoke'?SMOKE.range:mode==='rpg'?PRPG.range:nadeRange(sel[0]);gPath(sel[0].x,sel[0].y,R0);ox.setLineDash([6,5]);ox.strokeStyle=mode==='smoke'?'#cfd6dc':mode==='rpg'?'#ffb36b':C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();
-    gPath(sel[0].x,sel[0].y,R0+ACT_R);ox.setLineDash([2,6]);ox.globalAlpha=.4;ox.lineWidth=1.2;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
-  if(mode==='medkit'&&sel[0]){gPath(sel[0].x,sel[0].y,ACT_R);ox.setLineDash([2,6]);ox.strokeStyle=C.good;ox.globalAlpha=.45;ox.lineWidth=1.2;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
+    if(mode!=='grenade'){gPath(sel[0].x,sel[0].y,R0+ACT_R);ox.setLineDash([2,6]);ox.globalAlpha=.4;ox.lineWidth=1.2;ox.stroke();}ox.setLineDash([]);ox.globalAlpha=1;}
 
   // tracers, flashes, sparks, blasts
   ox.globalCompositeOperation='lighter';

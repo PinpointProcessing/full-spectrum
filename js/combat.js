@@ -42,15 +42,15 @@ function orderMedkit(u,t){
   if(!hasKit(u)){banner(`${u.name} has no medic kit.`,1600);return false;}
   if(!t.downed){   // a man who's hurt but still up, or the medic himself: back to 100 in HEAL_T s (Bryan, after v100: "The med pack should cure players to 100% health while they stand")
     if(t.hp>=100){banner(`${t.name} isn't hurt.`,1600);return false;}
-    const p=t===u?[]:goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.'))return false;   // (inside his circle: Bryan, after v104)
+    const p=t===u?[]:goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.',true))return false;   // (however far: Bryan, after v105; not pinned)
     u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0,heal:true,lo:simT};if(t!==u)markRet(u);callout(u,t===u?'Patching myself up':'Medic kit, coming',C.good);return true;
   }
-  const p=goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.'))return false;
+  const p=goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.',true))return false;
   u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0};markRet(u);callout(u,'Medic kit, coming',C.good);return true;
 }
 function orderCarry(u,t){
   if(u.carry){banner(`${u.name} is already carrying someone.`,1600);return false;}
-  const p=goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.'))return false;
+  const p=goBeside(u,t);if(!reachOK(u,p,'No way to reach him from here.',true))return false;
   u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.medGo=null;u.carryGo={t,prog:0};callout(u,'Getting him out',C.good);return true;
 }
 function putDown(u){const t=u.carry;if(!t)return;t.carriedBy=null;u.carry=null;callout(u,'Setting him down',C.good);}
@@ -313,12 +313,14 @@ function refusePinned(u){
   return false;
 }
 /* the circle round a soldier (Bryan, after v104: "All actions should work like that. But there should be a limit on how far
-   they can move. Let make a small imaginary circle around the unit"): whatever he's told to do (throw, shoot, suppress, a
-   silent shot, a takedown, a revive, a medic kit, carry a man, a zip tie, something to use, the gun, the tower, a door, a
-   skill, building), he goes where he can do it by himself, as long as it's inside ACT_R of where he stands and the way there
-   stays inside it too (every waypoint: a straight leg between two points inside a circle stays inside it). Beyond it, a
-   bubble, "Too far. Move me closer.", his voice ('far'), and he stays put. Pinned, he won't leave his spot at all. Getting
-   about has no circle: a move order, the stairs, the lift, a gather area. One number: ACT_R. */
+   they can move. Let make a small imaginary circle around the unit"): for smoke, a rocket, a shot on a man he's told to take,
+   suppressing, a silent shot or a volley's move up, a class skill and building, he goes where he can do it by himself, as
+   long as it's inside ACT_R of where he stands and the way there stays inside it too (every waypoint: a straight leg between
+   two points inside a circle stays inside it). Beyond it, a bubble, "Too far. Move me closer.", his voice ('far'), and he
+   stays put. Bryan, after v105, kept the rest as they were: "Frags used to walk up to 36 m to a safe spot. Revives, medic
+   kits, zip ties and using things had no limit at all. Takedowns worked from 14 m, and Breach from 15 m": those go however
+   far (reachOK, reachFor with free), a frag up to NADE_WALK (fireSpot). Pinned, he won't leave his spot for any of it.
+   Getting about has no circle: a move order, the stairs, the lift, a gather area. One number: ACT_R. */
 const ACT_R=100;   // (10 m)
 const inCircle=(p,o)=>!!p&&p.every(q=>hyp(q.x-o.x,q.y-o.y)<=ACT_R+3);
 let farSaidT=-1e9;
@@ -327,18 +329,19 @@ function tooFar(u){
   const now=performance.now();if(now-farSaidT>1500&&now-cantSaidT>1500&&typeof say==='function'){farSaidT=now;say(u,'far');}
   return false;
 }
-// may he walk this way (p, from where he stands; [] for no walk) to do something? true, or he says why not and it's false
-function reachOK(u,p,noWay){
+// may he walk this way (p, from where he stands; [] for no walk) to do something? true, or he says why not and it's false.
+// free: no circle (the revives, the kits, the zip ties, the things to use: Bryan, after v105), only pinned stops him
+function reachOK(u,p,noWay,free){
   if(!p){if(noWay)banner(noWay,1800);return false;}
   if(!p.length)return true;
   if(pinnedNow(u))return refusePinned(u);
-  return inCircle(p,u)||tooFar(u);
+  return free||inCircle(p,u)||tooFar(u);
 }
 // which of them goes (list nearest first; pathOf(u) his way there, or null): the first who isn't pinned and whose way stays in
 // his circle, as {u,p}; none: the nearest free one says it's too far, or a pinned one that he's pinned (null)
-function reachFor(list,pathOf,noWay,quiet){   // (quiet: nobody says anything, the caller tries something else)
+function reachFor(list,pathOf,noWay,quiet,free){   // (quiet: nobody says anything, the caller tries something else; free: no circle)
   let far=null,pin=null,any=false;
-  for(const u of list){const p=pathOf(u);if(!p)continue;any=true;if(!p.length)return{u,p};if(pinnedNow(u)){pin=pin||u;continue;}if(inCircle(p,u))return{u,p};far=far||u;}
+  for(const u of list){const p=pathOf(u);if(!p)continue;any=true;if(!p.length)return{u,p};if(pinnedNow(u)){pin=pin||u;continue;}if(free||inCircle(p,u))return{u,p};far=far||u;}
   if(quiet)return null;
   if(far)tooFar(far);else if(pin)refusePinned(pin);else if(!any&&noWay)banner(noWay,1800);
   return null;
@@ -577,7 +580,21 @@ function fireSpot(u,tx,ty,range,minD=0,kind='nade',o){
   const D=hyp(tx-u.x,ty-u.y);if(D<=range&&D>=minD&&throwFrom(u,tx,ty,kind))return{here:true};
   const th=threats(),safe=c=>caught(u)?isCovered(c,th):!watched(c.x,c.y),extra=[];
   for(const r of[range*.5,range*.8,range*.95])for(let k=0;k<16;k++){const a=k/16*TAU;extra.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
+  if(kind==='nade')return walkSpot(u,tx,ty,range,ok,safe,extra,o?120:NADE_WALK);   // a frag or an M203: up to 36 m (Bryan, after v105, kept it so; a second look on arrival, 12 m)
   return circleSpot(u,ok,safe,extra,o);
+}
+/* a frag's spot (Bryan, after v105: "Frags used to walk up to 36 m to a safe spot"): a safe one within a walk of maxWalk (and
+   not much round about), else the nearest that works within it (v105: only being pinned stops him). null: none in reach */
+const NADE_WALK=360;
+function walkSpot(u,tx,ty,range,ok,safe,extra,maxWalk){
+  const cand=[...extra];
+  for(const c of coverPts)if(hyp(c.x-u.x,c.y-u.y)<maxWalk||hyp(c.x-tx,c.y-ty)<range)cand.push({x:c.x,y:c.y});
+  for(const r of[45,90])for(let k=0;k<12;k++){const a=k/12*TAU;cand.push({x:u.x+Math.cos(a)*r,y:u.y+Math.sin(a)*r});}   // (a step or two from where he is)
+  const D=hyp(tx-u.x,ty-u.y)||1;if(D>range*.8)for(let s=40;s<D;s+=40){const k=s/D,x=u.x+(tx-u.x)*k,y=u.y+(ty-u.y)*k;for(const q of[-30,0,30])cand.push({x:x+(ty-u.y)/D*q,y:y-(tx-u.x)/D*q});}   // (on the way to a spot out of his reach)
+  const others=players.filter(q=>q!==u&&!q.dead).map(destOf);
+  const fit=cand.filter(c=>isFree(c.x,c.y,7)&&ok(c.x,c.y)&&!others.some(q=>hyp(q.x-c.x,q.y-c.y)<10)).map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y),safe:!!safe(c)})).filter(c=>c.d<=maxWalk).sort((a,b)=>a.d-b.d);
+  for(const pass of[true,false])for(const c of fit.filter(c=>c.safe===pass).slice(0,6)){const p=findPath(u.x,u.y,c.x,c.y);if(p){const L=routeLen(u,p);if(L<=maxWalk&&L<=c.d*1.7+60)return{x:c.x,y:c.y,path:p,open:!pass};}}
+  return null;
 }
 const throwReach=(u,kind)=>({R:kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:nadeRange(u),minD:kind==='rpg'?PRPG.min:0});   // (an M203 reaches further than a frag)
 const hasThrow=(u,kind)=>kind==='nade'?(u.grenade||0)>0:kind==='rpg'?u.spec==='rpg'&&u.specN>0:u.spec==='smoke'&&u.specN>0;
@@ -699,7 +716,7 @@ function detection(){const mine=sel.filter(alive).length?sel.filter(alive):playe
 // (forced sneak; he follows if the man moves). Close behind him he grabs him (TK_TIME s, the man frozen) and kills him
 // silently: no shot, no blast, no alarm; it counts as a kill. If the man is alerted on the way in, it's off and the
 // soldier stops where he is. Not a sentry inside a structure (the pillbox).
-const TK_RANGE=ACT_R,TK_REACH=10,TK_TIME=.6;   // (TK_RANGE: his circle, Bryan after v104; it was 14 m)
+const TK_RANGE=140,TK_REACH=10,TK_TIME=.6;   // (TK_RANGE 14 m: Bryan, after v105, kept it so, not the circle)
 function behindSpot(e){   // a free spot at his back: straight behind first, then round to either side, still outside his cone (his back may be to a wall)
   for(const r of[TK_REACH,TK_REACH+4])for(const da of[0,.6,-.6,1.1,-1.1,1.5,-1.5]){const a=e.ang+Math.PI+da,x=e.x+Math.cos(a)*r,y=e.y+Math.sin(a)*r;if(isFree(x,y,7)&&los(e.x,e.y,x,y))return{x,y};}
   return null;
@@ -712,7 +729,7 @@ function canTakedown(u,e){
 }
 function orderTakedown(u,e){
   const sp=behindSpot(e),p=sp&&findPath(u.x,u.y,sp.x,sp.y);
-  if(!p)return tooFar(u);if(pathTime(p,u.x,u.y)>TK_RANGE*1.7||!inCircle(p,u))return tooFar(u);   // (round to his back, inside the circle: Bryan, after v104)
+  if(!p||pathTime(p,u.x,u.y)>TK_RANGE*1.7){bubble(u,'Can\u2019t get behind him from here');return false;}
   u.path=p;u.lastOrder=simT;u.focus=null;u.supT=null;u.focusTank=null;u.plant=null;u.gaitForce='sneak';u.tk={e,spot:sp,t:simT,re:simT};markRet(u);
   callout(u,'Moving in',C.good);return true;
 }

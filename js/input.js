@@ -284,13 +284,13 @@ function tap(sx,sy){
       const helpers=sel.filter(u=>u!==pu&&!u.inVeh&&alive(u)&&!u.carry);
       if(!helpers.length){banner('Select a soldier, then tap the downed man.');return;}
       helpers.sort((a,b)=>hyp(a.x-pu.x,a.y-pu.y)-hyp(b.x-pu.x,b.y-pu.y));
-      // whoever goes has to be able to get to him inside his circle (Bryan, after v104; combat.js's reachFor): the nearest who can
+      // whoever goes: the nearest who isn't pinned (combat.js's reachFor; however far, Bryan after v105)
       if(pu.critical){   // past the 60 s (Bryan): a medic kit if one of them has it and can get to him, else carry him out
-        const kits=helpers.filter(hasKit),rk=kits.length?reachFor(kits,h=>goBeside(h,pu),null,true):null;
+        const kits=helpers.filter(hasKit),rk=kits.length?reachFor(kits,h=>goBeside(h,pu),null,true,true):null;
         if(rk){orderMedkit(rk.u,pu);return;}
-        const r=reachFor(helpers,h=>goBeside(h,pu),'No way to reach him from here.');if(r)orderCarry(r.u,pu);return;
+        const r=reachFor(helpers,h=>goBeside(h,pu),'No way to reach him from here.',false,true);if(r)orderCarry(r.u,pu);return;
       }
-      const r=reachFor(helpers,h=>{const spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));return spot&&findPath(h.x,h.y,spot.x,spot.y);},'No way to reach him from here.');
+      const r=reachFor(helpers,h=>{const spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));return spot&&findPath(h.x,h.y,spot.x,spot.y);},'No way to reach him from here.',false,true);
       if(r){const h=r.u;h.path=r.p;h.lastOrder=simT;h.supT=null;markRet(h);callout(h,'On my way',C.good);}
       return;
     }
