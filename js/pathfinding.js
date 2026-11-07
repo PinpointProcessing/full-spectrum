@@ -22,7 +22,7 @@ fillBlk();
 // Foot soldiers use blk. Vehicles use vblk (built on demand, see buildVehGrid): free only where something jeep-sized fits.
 const vblk=new Uint8Array(GW*GH);
 // FOOT: plain walking (the enemy). SQUAD: the squad's moves (windows, and the safest way when it isn't much longer).
-const FOOT={blk,pad:6.5,end:7},VEH={blk:vblk,pad:15,end:16},SQUAD={blk,pad:6.5,end:7,vault:true,safe:true};
+const FOOT={blk,pad:6.5,end:7},VEH={blk:vblk,pad:15,end:16},SQUAD={blk,pad:6.5,end:7,vault:true,safe:true},TRAIL={blk,pad:6.5,end:7,vault:true};   // (TRAIL: a route drawn with a finger, input.js: windows, but no detours, it follows your line)
 function buildVehGrid(){for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)vblk[gy*GW+gx]=isFree(cx0(gx),cy0(gy),VEH.end)?0:1;}
 function nearestFreeCell(gx,gy,b=blk){
   for(let r=0;r<7;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
@@ -110,7 +110,7 @@ function dangerAt(i){
   if(dSt[i]===dEpoch)return dVal[i];
   const x=cx0(i%GW),y=cy0((i/GW)|0);let d=0;
   for(const t of dThreats){
-    const r=hyp(t.x-x,t.y-y);if(r>(t.alert?SAFE_R:300))continue;
+    const r=hyp(t.x-x,t.y-y);if(r>(t.alert?SAFE_R:eyeR()))continue;   // (eyeR: layers.js, loaded later; only called in play)
     if(!t.alert&&r>80){let da=Math.atan2(y-t.y,x-t.x)-t.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08)continue;}   // behind an unaware man: he won't see you
     if(gridSight(t.x,t.y,x,y))d+=t.w*(t.alert?1-.6*r/SAFE_R:1);
   }

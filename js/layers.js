@@ -27,7 +27,13 @@ const zipOf=u=>zipGos.find(z=>z.u===u)||null,zipFor=e=>zipGos.find(z=>z.e===e)||
 const onTask=u=>!!(zipOf(u)||(typeof useOf==='function'&&useOf(u))||u.medGo||u.carryGo||u.throwGo);
 function pickFor(list,x,y){const c=list.filter(p=>alive(p)&&!p.carry&&!p.inVeh).sort((a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y));return c.find(u=>!onTask(u))||c[0]||null;}
 const alertStage=()=>Math.min(3,Math.floor(alertT/ALERT_TICKS));
-const eyeR=()=>alertStage()>=1?345:300;   // how far an unaware hostile's eyes reach: 15 % further once the base is on alert (sense in combat.js, the cones)
+// how far an unaware hostile's eyes reach: 15 % further once the base is on alert (sense in combat.js, the cones). EYE_K: Bryan,
+// after v100, "I dont want to make the enemies easier but I want to make it easier for the player to sneak around. Can we lower
+// the enemies sights a tad bit?": every unaware man's eyes, a guard's own (e.eye: the snipers, the jeep, Levels 1 and 2) too, a
+// tenth shorter; an alerted man's all-round sight and reach in a fight are as they were
+const EYE_K=.9;
+const eyeR=()=>(alertStage()>=1?345:300)*EYE_K;
+const eyeOf=e=>e.eye?{r:e.eye.r*EYE_K*(alertStage()>=1?1.15:1),cone:e.eye.cone}:{r:eyeR(),cone:1.08};
 
 /* ---------- the base alert level ---------- */
 // msg: what to say if the stage doesn't change (false: say nothing at all, the caller has its own message)

@@ -23,6 +23,32 @@ function tiltCam(t){tilt=clamp(t,0,basePitch()-PITCH_MIN);clampCam();updateCamer
 let inertia={vx:0,vy:0};
 // is screen point (x,y) inside the polygon pts (the lasso loop, closed automatically)?
 function inLoop(x,y,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[a,b]=pts[i],[p,q]=pts[j];if((b>y)!==(q>y)&&x<(p-a)*(y-b)/(q-b)+a)c=!c;}return c;}
+// drawing a route (Bryan, after v100: "Maybe I liked the dragging the troops before, but I kept on accidentally moving them
+// scrolling around"): hold a soldier (he's picked out), then drag; a drag that moves straight away still moves the map. In world coordinates
+function addTrail(sx,sy){
+  const[wx,wy]=toW(sx,sy),p={x:clamp(wx,10,EAST_X-10),y:clamp(wy,TOP+10,H-10)},l=ptr.trail[ptr.trail.length-1];
+  if(!l||hyp(p.x-l.x,p.y-l.y)>=6)ptr.trail.push(p);
+}
+// while drawing near the edge of the view, slide the camera that way so long routes fit (main.js, every frame)
+function edgePan(rdt){
+  if(!ptr||ptr.kind!=='draw')return;
+  const m=48,sp=260/zoom;let vx=0,vy=0;
+  if(ptr.cx<m)vx=-1;else if(ptr.cx>cw-m)vx=1;
+  if(ptr.cy<m)vy=-1;else if(ptr.cy>ch-m)vy=1;
+  if(!vx&&!vy)return;
+  const c=Math.cos(yaw),s=Math.sin(yaw);   // screen direction -> world, for a turned camera
+  camT.x+=(vx*c+vy*s)*sp*rdt;camT.z+=(vy*c-vx*s)*sp*rdt;clampCam();updateCamera();addTrail(ptr.cx,ptr.cy);
+}
+function finishDraw(){
+  const u=ptr.unit,t=ptr.trail;
+  if(!alive(u)||state!=='play'||noOrders())return;
+  const e=t[t.length-1];
+  if(!e||hyp(e.x-u.x,e.y-u.y)<16)return;            // dragged back onto him, or barely moved: no route
+  if(!tutAllows('drawEnd',e))return;                 // (Level 1's tutorial: a route that has to end at its ring)
+  const r=routeFromTrail(u,t);
+  if(!r){banner('Can’t get there.');return;}
+  commit([r]);u.peek=null;
+}
 function endPtr(ev,cancel){
   touches.delete(ev.pointerId);
   if(pinch){if(touches.size===0)pinch=null;return;}
@@ -34,6 +60,8 @@ function endPtr(ev,cancel){
       const got=loop.length>2?players.filter(u=>{if(!alive(u))return false;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8);return inLoop(x,y,loop);}):[];
       if(got.length){select(got);preview=null;mode=null;}
       else if(loop.length>2)banner('No soldiers inside the loop.',1400);
+    }else if(ptr.kind==='draw'){
+      if(!cancel)finishDraw();
     }else if(ptr.kind==='pan'){
       // the glide: the drag's speed over its last ~0.1 s (not between two touch events, which can come 1 ms apart and
       // made the speed look huge: the camera flew off), capped, and only if the finger was still moving when it lifted
@@ -62,7 +90,7 @@ function bindInput(){
     if(touches.size>2||pinch)return;
     if(ptr)return;
     ptr={id:ev.pointerId,sx,sy,cx:sx,cy:sy,lx:sx,ly:sy,lt:performance.now(),t0:performance.now(),vx:0,vy:0,kind:null,lp:false,
-      unit:state==='play'?unitAtScreen(sx,sy,true):null};
+      unit:state==='play'?unitAtScreen(sx,sy,true):null,trail:[]};
     ptr.supPt=state==='play'&&!ptr.unit&&!mode&&!noOrders()&&sel.some(alive)?suppressAt(sx,sy):null;   // (for the filling ring: drawHold)
     ptr.timer=setTimeout(()=>{
       if(!ptr||ptr.kind||state!=='play')return;
@@ -104,9 +132,13 @@ function bindInput(){
     ptr.cx=x;ptr.cy=y;
     if(!ptr.kind&&(!ptr.lp||ptr.unit)&&hyp(x-ptr.sx,y-ptr.sy)>12){
       clearTimeout(ptr.timer);
-      ptr.kind='pan';   // (Bryan: no dragging soldiers to move them, "Too many times I accidentally dragged a unit to a different spot": a drag that starts on one moves the map; tap him, then tap where)
+      // a drag straight away moves the map, even one that starts on a soldier (after v90 Bryan kept moving them by accident);
+      // after holding him (ptr.lp: he's picked out) it draws his route (after v100). Not while aiming, or in the dinghy coming in
+      const u=ptr.unit;ptr.kind=ptr.lp&&u&&alive(u)&&sel.length===1&&sel[0]===u&&!noOrders()&&!mode&&tutAllows('draw',u)?'draw':'pan';
+      if(ptr.kind==='draw'){addTrail(ptr.sx,ptr.sy);hud();}
       ptr.lx=x;ptr.ly=y;ptr.lt=performance.now();
     }
+    if(ptr.kind==='draw')addTrail(x,y);
     if(ptr.kind==='lasso'){const l=ptr.loop[ptr.loop.length-1];if(hyp(x-l[0],y-l[1])>4)ptr.loop.push([x,y]);}
     if(ptr.kind==='pan'){
       const now=performance.now();
@@ -143,7 +175,9 @@ const underFire=list=>list.some(p=>alive(p)&&simT-(p.firedOnT??-99)<UNDER_FIRE_T
 const midOf=list=>({x:list.reduce((a,p)=>a+p.x,0)/list.length,y:list.reduce((a,p)=>a+p.y,0)/list.length});
 function inView(p){toSBack=false;const[sx,sy]=toS(p.x,p.y,4);return !toSBack&&sx>=0&&sy>=0&&sx<=cw&&sy<=ch;}
 // are these men somewhere other than what's on screen (another floor, or off the edge)?
-function elsewhere(list){const live=list.filter(p=>alive(p)&&!p.offMap);return live.length>0&&live.every(p=>offFloor(p)||!inView(p));}
+// (Bryan, after v100: "Don't move the camera to the other squad UNLESS they are in another screen": another floor only, not
+// just off the edge of the view; it used to cut straight to them)
+function elsewhere(list){const live=list.filter(p=>alive(p)&&!p.offMap);return live.length>0&&live.every(p=>offFloor(p));}
 // may the view leave the men on screen (the ones selected, else everyone on this floor) for these? Not while those are being shot
 // at, unless these are too (then both need you)
 function mayLeave(list){
@@ -199,10 +233,10 @@ function tap(sx,sy){
     const tg=tapTarget(sx,sy),t=chargeTargetAt(tg.x,tg.y)?{x:tg.x,y:tg.y}:{x:wx,y:wy};
     if(orderCharge(u,t.x,t.y)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
-  if(mode==='medkit'){   // a medic kit (his special item): tap a downed teammate
+  if(mode==='medkit'){   // a medic kit (his special item): tap a downed teammate, or one who's hurt but up, or him: back to 100 (combat.js)
     const u=sel[0];let pu=unitAtScreen(sx,sy,false);if(!u){mode=null;return;}
     if(pu&&pu.carry)pu=pu.carry;   // tapping a carrier: the man he carries
-    if(!pu||!pu.downed||pu===u){banner('Tap a downed teammate to use the medic kit. Tap the kit on his card again to cancel.');return;}
+    if(!pu||pu.dead){banner('Tap a hurt or downed teammate, or him, to use the medic kit. Tap the kit on his card again to cancel.');return;}
     if(orderMedkit(u,pu)){mode=null;preview=null;}return;
   }
   if(mode==='silent'){   // the silencer (combat.js): tap a hostile who hasn't noticed him

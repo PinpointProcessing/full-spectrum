@@ -370,7 +370,7 @@ const TUT_STEPS=[
   {text:'<b>One man.</b> Tap Reyes\'s card to give orders to him alone. Tap it again for the whole team.',glow:()=>cardOf('A1'),
    need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tap'&&!!x.u&&x.u.id==='A1'),done:()=>sel.length===1&&sel[0].id==='A1'},
   {text:'<b>Send him.</b> With one man selected, a single tap sends him: tap the ring by the crate.',guide:{id:'A1',...ROUTE_SPOT},mark:{...ROUTE_SPOT,label:'REYES HERE'},   // (it was drawing a route, Bryan's dotted line to the box right of the container; he took drawing out after v90)
-   need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,ROUTE_SPOT.x,ROUTE_SPOT.y,60)),
+   need:(k,x)=>((k==='card'||k==='hold'||k==='draw')&&x.id==='A1')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,ROUTE_SPOT.x,ROUTE_SPOT.y,60))||(k==='drawEnd'&&hyp(x.x-ROUTE_SPOT.x,x.y-ROUTE_SPOT.y)<60),   // (or hold him and draw his route there: input.js)
    done:()=>{const r=reyes();return!!r&&headedTo([r],ROUTE_SPOT,48);}},
   {text:'<b>Bring Bravo up.</b> Tap <b>BRAVO</b>, then the ring by the container, twice. <b>ALL</b> selects everyone.',glow:()=>$('.tab[data-team="B"]'),
    pick:()=>{const far=c=>Math.min(...players.filter(p=>p.team==='A'&&alive(p)).map(p=>hyp(p.x-c.x,p.y-c.y)));return[{x:266,y:781,r:24},{x:334,y:781,r:24}].sort((a,b)=>far(b)-far(a))[0];},   // the half of the container Alpha isn't in (a tap on one of Alpha would pick him instead)
@@ -395,7 +395,7 @@ const TUT_TIPS=[
   {k:'tkmove',when:()=>{const g=shedG(),r=reyes();return!!g&&!beaten(g)&&!g.alerted&&quiet()&&!!r&&alive(r)&&!r.tk&&!canTakedown(r,g)&&!atSpot([r],TK_SPOT,45);},
    still:()=>{const g=shedG(),r=reyes();return!!g&&!beaten(g)&&!g.alerted&&quiet()&&!!r&&alive(r);},
    mark:{...TK_SPOT,label:'REYES HERE'},glow:()=>onlyReyes()?null:cardUp(cardOf('A1'))?cardOf('A1'):$('.tab[data-team="A"]'),
-   need:(k,x)=>((k==='card'||k==='hold')&&x.id==='A1')||(k==='tab'&&x==='A')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,TK_SPOT.x,TK_SPOT.y,60)),
+   need:(k,x)=>((k==='card'||k==='hold'||k==='draw')&&x.id==='A1')||(k==='tab'&&x==='A')||(k==='tap'&&!!x.u&&x.u.id==='A1')||(k==='tap'&&onlyReyes()&&tutNear(x,TK_SPOT.x,TK_SPOT.y,60))||(k==='drawEnd'&&hyp(x.x-TK_SPOT.x,x.y-TK_SPOT.y)<60),
    done:()=>{const r=reyes();return!!r&&(!!r.tk||headedTo([r],TK_SPOT,45)||(onlyReyes()&&canTakedown(r,shedG())));},
    text:'<b>Takedown.</b> Tap Reyes\'s card to take him alone, then the ring behind the guard by the shed. Stay out of his red wedge.'},
   {k:'tk',gap:.4,when:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),still:()=>sel.length===1&&enemies.some(e=>canTakedown(sel[0],e)),
@@ -438,7 +438,7 @@ const TUT_TIPS=[
   {k:'down',when:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),still:()=>players.some(p=>p.downed&&!p.dead)&&players.some(p=>alive(p)&&!p.downed),modes:['medkit'],
    need:(k,x)=>tutPick(k,x)||(k==='tap'&&(mode==='medkit'||(!!x.u&&x.u.downed)))||(k==='gear'&&x.item==='spec'&&x.u.spec==='medkit'),
    act:(k,x)=>k==='tap'&&!!x.u&&x.u.downed&&(mode==='medkit'||sel.some(u=>u!==x.u&&alive(u)&&!u.downed&&!u.carry)),
-   done:()=>{const d=players.filter(p=>p.downed&&!p.dead);return!d.length||players.some(p=>p.medGo||p.carryGo||p.carry)||d.some(q=>q.revive>0||players.some(h=>h!==q&&alive(h)&&!h.downed&&h.path.length&&hyp(h.path[h.path.length-1].x-q.x,h.path[h.path.length-1].y-q.y)<30));},
+   done:()=>{const d=players.filter(p=>p.downed&&!p.dead);return!d.length||players.some(p=>(p.medGo&&!p.medGo.heal)||p.carryGo||p.carry)||d.some(q=>q.revive>0||players.some(h=>h!==q&&alive(h)&&!h.downed&&h.path.length&&hyp(h.path[h.path.length-1].x-q.x,h.path[h.path.length-1].y-q.y)<30));},
    text:'<b>Man down.</b> Select another soldier and tap him to revive him. You have 60 seconds.'},
   {k:'cp',when:()=>l1.yardClear,need:(k,x)=>tutPick(k,x)||(k==='tap'&&!x.u&&!x.e&&!!(zoneAt(x.tx,x.ty)||zoneAt(x.x,x.y))),
    done:()=>players.some(p=>alive(p)&&!p.downed&&(zoneAt(p.x,p.y)||(p.path.length&&zoneAt(p.path[p.path.length-1].x,p.path[p.path.length-1].y)))),

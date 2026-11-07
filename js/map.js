@@ -82,7 +82,10 @@ const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
    - the road across the middle, where a gun truck drives (mission.js), and the killing field: open ground in front of the
      data center, raked by its guns, a patrol marching across it
    - a few containers scattered down the east side, the flank from the rail bridge */
-const TOWER={x:712,y:46,elev:40,ladder:{x:712,y:24}};   // the watchtower: its middle, its platform's height, the foot of its ladder (north side)
+// the watchtower: its middle, its platform's height, the foot of its ladder. Bryan, after v100: "Move the sniper to the left side of the
+// bridge, but sneaking through the pipes can avoid the tower's sights"; taken, its rifle reaches across the runway road. It stands on the
+// strip between the containers' last row and the road, west of the bridge's road; the ladder's on its west side, by the gap in that row
+const TOWER={x:345,y:-190,elev:40,ladder:{x:323,y:-190}};
 O('wtower',TOWER.x-12,TOWER.y-12,24,24);
 // the container yard along the canal (Bryan's draft F: "Make the containers horizontal and run along the canal... The whole
 // point of the containers is for stealth"): three rows on the north bank, long sides east-west, most double-stacked (nobody

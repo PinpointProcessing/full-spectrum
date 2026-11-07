@@ -34,12 +34,17 @@ const SQUAD_VEST=.8,ENEMY_AIM=.15,ESNIPER={dmg:.35,slow:1.5};
 // For BLEED_T s a teammate standing beside him (not pinned) revives him. After that he's critical for CRIT_T s: no hand revive.
 // A medic kit (MEDKIT_T s beside him, not pinned; up at 50 HP) saves him, or carrying him into a medical box (up after
 // BOXREV_T s there). The carrier moves at sneaking speed and can't shoot or climb. Otherwise he's KIA.
-const CRIT_T=120,MEDKIT_T=5,PICKUP_T=1,BOXREV_T=3;
+const CRIT_T=120,MEDKIT_T=5,PICKUP_T=1,BOXREV_T=3,HEAL_T=3;   // (HEAL_T: a kit on a man who's still up, back to 100: below)
 const hasKit=u=>u.spec==='medkit'&&u.specN>0;
 function nearSpot(u,t){return openSpot(t.x,t.y,players.filter(o=>o!==u&&o!==t&&!o.dead).map(destOf))||{x:t.x,y:t.y};}
 function goBeside(u,t){const s=nearSpot(u,t);return hyp(u.x-t.x,u.y-t.y)<20?[]:findPath(u.x,u.y,s.x,s.y);}
 function orderMedkit(u,t){
   if(!hasKit(u)){banner(`${u.name} has no medic kit.`,1600);return false;}
+  if(!t.downed){   // a man who's hurt but still up, or the medic himself: back to 100 in HEAL_T s (Bryan, after v100: "The med pack should cure players to 100% health while they stand")
+    if(t.hp>=100){banner(`${t.name} isn't hurt.`,1600);return false;}
+    const p=t===u?[]:goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
+    u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0,heal:true,lo:simT};if(t!==u)markRet(u);callout(u,t===u?'Patching myself up':'Medic kit, coming',C.good);return true;
+  }
   const p=goBeside(u,t);if(!p){banner('No way to reach him from here.');return false;}
   u.path=p;u.lastOrder=simT;u.supT=null;u.focus=null;u.carryGo=null;u.medGo={t,prog:0};markRet(u);callout(u,'Medic kit, coming',C.good);return true;
 }
@@ -60,6 +65,16 @@ function medTick(dt){   // medic kits being used, men being picked up, and carri
   for(const u of players){
     for(const k of['medGo','carryGo']){
       const g=u[k];if(!g)continue;const t=g.t,dd=destOf(u);
+      if(g.heal&&t.downed){g.heal=false;g.prog=0;const p=t!==u&&goBeside(u,t);if(p)u.path=p;}   // he went down before the kit reached him: it gets him up instead
+      if(g.heal){   // a man who's up: the medic goes to him, keeping up if he's on the move; another order calls it off
+        if(!alive(u)||t.dead||t.hp>=100||u.lastOrder!==g.lo){u.medGo=null;continue;}
+        if(t!==u){const end=u.path.length?u.path[u.path.length-1]:u;
+          if(hyp(end.x-t.x,end.y-t.y)>24&&simT>=(g.re||0)){g.re=simT+.4;const p=goBeside(u,t);if(!p){u.medGo=null;banner('No way to reach him from here.');continue;}u.path=p;}
+          if(u.path.length||hyp(u.x-t.x,u.y-t.y)>28)continue;}
+        if(u.sup>PINNED)continue;g.prog+=dt;
+        if(g.prog>=HEAL_T){u.medGo=null;u.specN--;u.stats.items++;t.hp=100;t.shyT=0;callout(t,'Good as new',C.good);if(t!==u)backSoon(u);}
+        continue;
+      }
       if(!alive(u)||!t.downed||t.dead||(k==='carryGo'&&t.carriedBy)||(u.path.length&&hyp(dd.x-t.x,dd.y-t.y)>30)){u[k]=null;continue;}
       if(u.path.length)continue;
       if(hyp(u.x-t.x,u.y-t.y)>28){u[k]=null;continue;}
@@ -211,6 +226,42 @@ function boxAssign(list,z,tx,ty){   // everyone selected into a station's ring (
     res.push({u,x:c.x,y:c.y,cp:false,path,cov:isCovered(c,th)});
   }
   return res;
+}
+// A route drawn with a finger (input.js: hold a soldier, then drag) turned into a walkable one that keeps its shape: skip points
+// inside objects, route round any stretch that cuts through something, and settle the end onto cover if there is some close by
+function routeFromTrail(u,trail){
+  const start={x:u.x,y:u.y},pts=[];let last=start;
+  const len=a=>{let s=0,q=start;for(const p of a){s+=hyp(p.x-q.x,p.y-q.y);q=p;}return s;};
+  for(const p of trail){
+    if(hyp(p.x-last.x,p.y-last.y)<10||!isFree(p.x,p.y,7))continue;
+    if(clearLine(last.x,last.y,p.x,p.y)){pts.push({x:p.x,y:p.y});last=p;continue;}
+    // blocked: go round from whichever recent point is shortest overall, dropping any bit of line that led into a dead end
+    const k0=Math.max(0,pts.length-12),shared=len(pts.slice(0,k0));
+    let best=null,bl=1e9;
+    for(let k=pts.length;k>=k0;k--){
+      const head=pts.slice(0,k),from=k?head[k-1]:start,br=findPath(from.x,from.y,p.x,p.y,TRAIL);if(!br)continue;
+      const r=head.concat(br),l=(len(r)-shared)*(k===pts.length?0.85:1);if(l<bl){bl=l;best=r;}   // keep the drawn line unless cutting it saves 15% here
+    }
+    if(!best)continue;
+    pts.length=0;pts.push(...best);last=pts[pts.length-1];
+  }
+  if(!pts.length)return null;
+  const th=threats(),others=players.filter(o=>o!==u&&!o.dead).map(destOf);
+  let end=pts[pts.length-1];
+  const taken=(p,gap=SPACE_OPEN)=>others.some(o=>hyp(o.x-p.x,o.y-p.y)<gap);
+  let snap=null,bs=taken(end)?-1e9:protStats(end,th).prot/(th.length||1)*3;
+  for(const c of coverPts){
+    const d=hyp(c.x-end.x,c.y-end.y);if(d>18||taken(c,SPACE_COVER))continue;
+    const s=protStats(c,th).prot/(th.length||1)*3-d/6;if(s>bs){bs=s;snap=c;}
+  }
+  if(!snap&&taken(end))snap=openSpot(end.x,end.y,others);
+  if(snap){
+    const prev=pts.length>1?pts[pts.length-2]:{x:u.x,y:u.y};
+    if(clearLine(prev.x,prev.y,snap.x,snap.y))pts[pts.length-1]={x:snap.x,y:snap.y};
+    else{const br=findPath(end.x,end.y,snap.x,snap.y,TRAIL);if(br)pts.push(...br);}
+    end=pts[pts.length-1];
+  }
+  return{u,path:pts,x:end.x,y:end.y,cov:isCovered(end,th)};
 }
 function commit(as){if(as&&as[0]&&!chatMove(as)&&Math.random()<.3)say(as[0].u,'ack_move');   // (a group move: often the lead calls his partner instead: chatter.js)
   for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;a.u.watch=null;a.u.ret=null;}   // (a move ends a Watch: orders.js; and any way back to the group, below)
@@ -537,7 +588,7 @@ function autoGait(p){
 const SEE_RATE=1.6,NOISE_R=110,AWARE_FADE=0.15,AWARE_LOOK=0.35;
 function sense(e,dt){
   if(e.dog){dogSense(e,dt);return;}
-  let gain=0,best=0,src=null;const R=e.eye?e.eye.r*(alertStage()>=1?1.15:1):eyeR(),CONE=e.eye?e.eye.cone:1.08;   // on alert their eyes reach further (layers.js); the sniper's and the truck's are their own
+  let gain=0,best=0,src=null;const{r:R,cone:CONE}=eyeOf(e);   // on alert their eyes reach further (layers.js); the sniper's and the truck's are their own
   const fwd=e.veh&&e.drive&&e.drive.parked?e.aimA:e.ang;
   for(const p of players){
     if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);let g=0;
@@ -566,7 +617,7 @@ function sense(e,dt){
 // them the way an unaware man does (his cone, or close behind him), only quicker; then that team is caught too
 function senseCovert(e,dt){
   if(e.dog||e.surr)return;
-  let gain=0,best=0,src=null;const R=e.eye?e.eye.r:eyeR(),CONE=e.eye?e.eye.cone:1.08,fwd=e.veh&&e.drive&&e.drive.parked?e.aimA:e.ang;
+  let gain=0,best=0,src=null;const R=e.eye?e.eye.r*EYE_K:eyeR(),CONE=e.eye?e.eye.cone:1.08,fwd=e.veh&&e.drive&&e.drive.parked?e.aimA:e.ang;
   for(const p of players){
     if(!alive(p)||p.offMap||caught(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d>R)continue;let g=0;
     let da=Math.atan2(p.y-e.y,p.x-e.x)-fwd;da=Math.atan2(Math.sin(da),Math.cos(da));const cone=Math.abs(da)<CONE;

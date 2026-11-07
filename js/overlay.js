@@ -72,7 +72,7 @@ function drawOverlay(rdt,now){
   // enemy view cones (unaware, seen)
   for(const e of enemies){
     if(e.dead||e.alerted||e.surr||!e.vis||offFloor(e))continue;
-    if(MAPID==='in')conePath(e);else{const R=e.eye?e.eye.r*(alertStage()>=1?1.15:1):eyeR(),A=e.eye?e.eye.cone:1.08;gPath(e.x,e.y,R,e.ang-A,e.ang+A,true);}   // indoors the cone stops at walls; a man with eyes of his own (Level 1's guards, the sniper) shows his own reach
+    if(MAPID==='in')conePath(e);else{const{r:R,cone:A}=eyeOf(e);gPath(e.x,e.y,R,e.ang-A,e.ang+A,true);}   // indoors the cone stops at walls; a man with eyes of his own (Level 1's guards, the sniper) shows his own reach
     ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
   }
   // suppression zones
@@ -106,6 +106,13 @@ function drawOverlay(rdt,now){
       const covN=preview.as.filter(a=>a.cov).length,[px,py]=below(preview.x,preview.y,24);
       label(`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',10,700);
     }
+  }
+  // a route being drawn (hold a soldier, then drag: input.js): the line, and a ring where it ends, green in cover, red in the open
+  if(ptr&&ptr.kind==='draw'&&ptr.trail.length){
+    const u=ptr.unit,e=ptr.trail[ptr.trail.length-1],cov=isCovered(e,threats());
+    ox.strokeStyle=teamCol(u);ox.globalAlpha=.85;ox.lineWidth=3;ox.lineJoin='round';ox.lineCap='round';
+    toSBack=false;ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of ptr.trail){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}if(!toSBack)ox.stroke();ox.globalAlpha=1;
+    gPath(e.x,e.y,8);ox.fillStyle=cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=cov?C.good:C.bad;ox.lineWidth=2;ox.stroke();
   }
   if((mode==='grenade'||mode==='smoke'||mode==='rpg')&&sel[0]){gPath(sel[0].x,sel[0].y,mode==='smoke'?SMOKE.range:mode==='rpg'?PRPG.range:nadeRange(sel[0]));ox.setLineDash([6,5]);ox.strokeStyle=mode==='smoke'?'#cfd6dc':mode==='rpg'?'#ffb36b':C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
 
@@ -185,6 +192,7 @@ function drawOverlay(rdt,now){
     if(u.gone)continue;   // lost on an earlier visit (loaded save): no body here
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
     if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
+    {const md=!u.downed&&players.find(o=>o.medGo&&o.medGo.heal&&o.medGo.t===u&&o.medGo.prog>0);if(md){gPath(vx,vy,13,-Math.PI/2,-Math.PI/2+md.medGo.prog/HEAL_T*TAU,false,ev);ox.strokeStyle=md.sup>PINNED?C.warn:C.good;ox.lineWidth=2.4;ox.stroke();}}   // a medic kit on a man who's up (combat.js)
     if(u.downed){
       const k=u.critical?(u.noBleed?1:u.crit/CRIT_T):u.bleed/BLEED_T;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=u.critical?'#ff3b30':C.bad;ox.lineWidth=u.critical?3:2;ox.stroke();
       const medic=players.find(o=>o.medGo&&o.medGo.t===u&&!o.path.length),prog=u.revive>0?u.revive/(u.reviveNeed||3):medic?medic.medGo.prog/MEDKIT_T:u.boxRev>0?u.boxRev/BOXREV_T:0;

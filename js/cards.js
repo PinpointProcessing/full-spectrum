@@ -11,7 +11,7 @@ const RPG_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="6.6" w
 const MEDKIT_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="4.6" width="12" height="9" rx="1.6"/><rect x="5.7" y="2.5" width="4.6" height="2.6" rx=".8" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 6.7v4.8M5.6 9.1h4.8" stroke="#10151a" stroke-width="1.9"/></svg>';
 // the special item each soldier carries beside his grenade (Bryan); swapped by tapping it in a supply box. n: how many he gets
 // (the silencer's count is how many quiet shots or bursts it has left before it's worn out). C4 and others can join later
-const SPECIALS={smoke:{label:'Smoke',a:'smoke',svg:SMOKE_SVG,col:'#cfd6dc',n:1},medkit:{label:'Medic kit',a:'a medic kit',svg:MEDKIT_SVG,col:'#ff8a7e',n:1},
+const SPECIALS={smoke:{label:'Smoke',a:'smoke',svg:SMOKE_SVG,col:'#cfd6dc',n:2},medkit:{label:'Medic kit',a:'a medic kit',svg:MEDKIT_SVG,col:'#ff8a7e',n:1},
   silencer:{label:'Silencer',a:'a silencer',svg:SILENCER_SVG,col:'#a9c4d6',n:6},rpg:{label:'RPG',a:'an RPG',svg:RPG_SVG,col:'#ffb36b',n:2},
   build:{label:'Build kit',a:'a build kit',svg:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 2.5h6.4v3.2H1zM8.4 2.5H15v3.2H8.4zM1 6.7h3v3.2H1zM5 6.7h6v3.2H5zM12 6.7h3v3.2h-3zM1 10.9h6.4v3.2H1zM8.4 10.9H15v3.2H8.4z"/></svg>',col:'#d9b46a',n:3}},SPEC_ORDER=['smoke','medkit','silencer','rpg','build'];   // (the build kit: a Defender's, build.js)
 const specFull=u=>u.spec==='medkit'&&isCls(u,'medic')?CLS.kits:u.spec==='rpg'&&isCls(u,'support')?CLS.rockets:(SPECIALS[u.spec]||{}).n||1;   // (a Medic's kits, a Support's rockets: classes.js)

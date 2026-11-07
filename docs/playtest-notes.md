@@ -680,3 +680,25 @@ come; nothing new is published until he's done and we've gone over them together
    Bryan: "if selecting the other squad, it should bring you to them"); dragging soldiers was taken out in v91 (after
    v90: "Too many times I accidentally dragged a unit to a different spot"). Neither changed in v99-v100 (the floors were
    made one interface for Level 4; Level 1 has no floors). To answer when he's done.
+5. "The med pack should cure players to 100% health while they stand." Built in v101: the kit on a man who's hurt but
+   up, or on the man carrying it, brings him back to 100 in 3 s (the medic walks over and keeps up if he's moving; not
+   while pinned; another order calls it off). A downed man still gets up at 50.
+6. "Players should hold two smoke and 1 grenade." His answer to which: the smoke item holds 2 (a soldier who takes smoke
+   gets two); the frag stays one each. Built in v101.
+7. "Move the sniper to the left side of the bridge, but sneaking through the pipes can avoid the tower's sights. The
+   sniper should be able to be reached so fighting across the road is doable. It's still a little tough." His answer
+   to which road: the runway road. Built in v101: the tower stands west of the bridge's road on the strip between the
+   containers' last row and the runway road, its ladder by the gap in that row; its sniper (one of the data center
+   front's men now) faces up the road to the east, so nothing on the pipe route, the road's far west end or the strip to
+   the doors is in his sight (checked by script); from the gap a soldier gets a clear silent shot at him; up there the
+   rifle covers the whole front across the road, 20-40 m. The bridge is lighter for it (no sniper over it).
+8. "I dont want to make the enemies easier but I want to make it eaesier for the player to sneak around. Can we lower the
+   enemies sights a tad bit?" Built in v101: every unaware man sees a tenth less far (30 m to 27; the snipers 62 to 56,
+   Level 1's guards 21 to 19, Level 2's 25 to 22.5); an alerted man's sight in a fight is unchanged.
+
+Bryan: "Im ready for these changes." Then, on his questions: the camera "Don't move the camera to the other squad
+UNLESS they are in another screen. I think that is where I confused you." (note 4: built in v101, the camera goes only
+to another floor; a team merely off the screen is just selected), and dragging: "Hold, then drag" (built: hold a soldier
+a moment, he's picked out, then drag his route; a drag that starts straight away moves the map). Notes 2 and 3 built in
+v101 too: classes wait on the radio tower (the report and the boat screen say Unlock Radio Tower for upgrades), and the
+report has a level-up chime and soft ticks as the XP bars fill.

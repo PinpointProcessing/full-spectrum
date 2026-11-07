@@ -456,8 +456,9 @@ function buildWorld(){
       addMesh(new T.BoxGeometry(24,1.6,24),wood,cx,40,cz);
       for(const[w2,d2,ox,oz]of[[24,1,0,-12],[24,1,0,12],[1,24,-12,0],[1,24,12,0]])addMesh(new T.BoxGeometry(w2,5,d2),wood,cx+ox,43.3,cz+oz);
       const roof=addMesh(new T.ConeGeometry(18,7,4),new T.MeshStandardMaterial({color:0x2a2d30,roughness:.7,metalness:.4}),cx,53,cz);roof.rotation.y=Math.PI/4;
-      if(o.kind==='wtower'){addMesh(new T.BoxGeometry(5,40,1),darkMetal,cx,20,cz-11);   // the canal's watchtower: its ladder on the north side, a lamp (no real light: phones)
-        const lamp=new T.Mesh(new T.CylinderGeometry(1.4,2,2.6,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx-9,46,cz+9);scene.add(lamp);
+      if(o.kind==='wtower'){const lx=Math.sign(TOWER.ladder.x-TOWER.x),lz=Math.sign(TOWER.ladder.y-TOWER.y);   // the watchtower: its ladder on the side TOWER says (map.js), a lamp (no real light: phones)
+        addMesh(lx?new T.BoxGeometry(1,40,5):new T.BoxGeometry(5,40,1),darkMetal,cx+lx*11,20,cz+lz*11);
+        const lamp=new T.Mesh(new T.CylinderGeometry(1.4,2,2.6,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx+9,46,cz-9);scene.add(lamp);
       }else{addMesh(new T.BoxGeometry(1,40,5),darkMetal,cx-10.5,20,cz);
       const lamp=new T.Mesh(new T.CylinderGeometry(1.6,2.2,3,10),new T.MeshBasicMaterial({color:0xfff4d6,toneMapped:false}));lamp.position.set(cx-6,46,cz+11);scene.add(lamp);
       const sl=new T.SpotLight(0xfff1d6,2.4,420,.22,.5,1.1);sl.position.set(cx-6,46,cz+11);sl.target.position.set(CKPT.x,0,CKPT.y+330);scene.add(sl,sl.target);}

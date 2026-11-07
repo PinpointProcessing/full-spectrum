@@ -8,7 +8,7 @@ function objHint(){
   if(obj===4)return'Take a scientist to the drawbridge\'s bio scanner (north-east): send a soldier to the panel by the moat.';
   if(obj>=5)return mon.out&&!mon.out.done?'Hold them off at the drawbridge: shoot the hunters when they crouch, step out of the violet line. Keep the scientists close.':'The gate is clear. Heal and restock at the medic station and ammo drop west of the drawbridge, then gather everyone in the green area at the drawbridge to go in.';   // (monsters.js)
   const ups=players.filter(p=>alive(p)&&!p.offMap),north=ups.some(p=>p.y<CANAL.y0);
-  if(!north)return'Get into the data center, across the canal to the north-west. Ways over: the bridge (guarded, a sniper in the tower), the sewer pipe to the west, or the broken rail bridge to the east.';
+  if(!north)return'Get into the data center, across the canal to the north-west. Ways over: the bridge (guarded), the sewer pipe to the west, or the broken rail bridge to the east. A sniper in a tower watches the runway road.';
   if(dcLocked())return'The data center\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then gather at the doors.';
   return'The containers along the canal are the quiet way: weave north through the gaps, wait for the jeep on the road to pass, cross behind it, and keep to the strip west of the doors. The data center\'s front is heavily guarded. Gather everyone at the front doors to go in.';
 }
@@ -59,6 +59,7 @@ function hud(){
   const sp=$('#speed');sp.hidden=!(state==='play'&&ts<1);sp.textContent=paused?'Paused':'Slow-mo';
   let h;
   if(ptr&&ptr.kind==='lasso')h='Draw a loop round the soldiers you want.';
+  else if(ptr&&ptr.kind==='draw')h=`Draw ${ptr.unit.name}'s route. Lift your finger to go. The end settles on cover nearby.`;
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
   else if(mode==='grenade'&&sel[0]&&sel[0].gl)h=`Tap where to fire the M203, inside the dashed circle (${M203.range/10} m): a bigger blast than a frag. ${sel[0].grenade} round${sel[0].grenade===1?'':'s'} left; ammo drops refill them. Tap the M203 on his card again to cancel.`;   // (Level 4's find: combat.js)
   else if(mode==='grenade')h='Tap where to throw. Inside the dashed circle he throws from where he is; further off he moves to a safe spot first. Tap the grenade on his card again to cancel.';
@@ -68,7 +69,7 @@ function hud(){
   else if(mode==='noise')h=`Tap where to throw it, inside the circle: unaware hostiles within ${SKILL.noise.r/10} m who hear it go over to look, then back. Tap the button again to cancel.`;
   else if(mode==='build')h='Tap where to set up a barricade, inside the circle: heavy cover the squad can shoot over, across the line to the threat. He can pack it up and move it on (tap it with him selected). Tap the kit again for a wall. Inside, tap a shut door to bar it: then it only opens by being kicked in.';
   else if(mode==='buildwall')h=`Tap where to build a wall, inside the circle: taller than a man, it blocks sight, shots and blasts (${BUILD.wall.cost} build kits). It stays. Tap the kit again to cancel.`;
-  else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
+  else if(mode==='medkit')h='Tap a hurt teammate, or him, to heal him to 100 (3 s), or a downed one to get him up (5 s); not while pinned. Tap the kit again to cancel.';
   else if(mode==='silent')h=`Tap a hostile marked SILENT SHOT (one who hasn't noticed you, within 20 m): an aimed quiet shot. ${sel[0]?sel[0].specN:0} left on the silencer. Tap it again to cancel.`;
   else if(mode==='smoke')h='Tap where to throw smoke, inside the circle: he lobs it from where he stands, over low cover. Nobody sees through it, either way, for about 12 s. Tap the smoke on his card again to cancel.';
   else if(act.length===1&&act[0].cargo&&!preview)h=`${act[0].name} is carrying ${act[0].cargo.name}: slow, and he can't shoot. Get it to the zip line on the summit's south edge. Put down is bottom right.`;   // (level4.js)

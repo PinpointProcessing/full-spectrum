@@ -63,18 +63,20 @@ function showAAR(){
       `<div class="aar-head"><b>${u.id}</b><span class="aar-name">${u.name}</span><span class="aar-rank">${r0.ab} · Lv ${l0}</span></div>`+
       `<div class="aar-stats">${statLine(u)}</div>`+
       `<div class="aar-xp"><i style="width:${pct(before,l0)}%"></i></div>`+
-      `<div class="aar-gain">${u.dead?'Lost in action. No XP.':`+${gain} XP`}<em hidden></em></div></div>`;
+      `<div class="aar-gain"><span>${u.dead?'Lost in action. No XP.':`+${gain} XP`}</span><em hidden></em></div></div>`;
     rows.appendChild(row);drawFace(row.querySelector('.aar-face'),u);
     if(u.dead)return;
     // fill the bar after a stagger; levelling up fills it, flashes, and carries on from empty
     const bar=row.querySelector('.aar-xp i'),badge=row.querySelector('em'),rank=row.querySelector('.aar-rank');
+    const snd=(f,k)=>{if(typeof f==='function')f(k);};   // (the report's sounds: audio.js)
     setTimeout(()=>{
-      if(l1===l0){bar.style.width=pct(after,l1)+'%';return;}
-      bar.style.width='100%';
+      if(l1===l0){bar.style.width=pct(after,l1)+'%';snd(window.sfxXpFill,(pct(after,l1)-pct(before,l0))/100);return;}
+      bar.style.width='100%';snd(window.sfxXpFill,(100-pct(before,l0))/100);
       setTimeout(()=>{
         bar.style.transition='none';bar.style.width='0%';void bar.offsetWidth;bar.style.transition='';bar.style.width=pct(after,l1)+'%';
+        snd(window.sfxLevelUp,r1.ab!==r0.ab);   // (the chime covers the bar's refill: no ticks under it)
         rank.textContent=`${r1.ab} · Lv ${l1}`;
-        badge.textContent=r1.ab!==r0.ab?`Promoted: ${r1.name}`:l0<CLASS_LEVEL&&l1>=CLASS_LEVEL&&!classes[u.id]&&!u.joined?'Level up · choose his class next':`Level up`;badge.hidden=false;
+        badge.textContent=r1.ab!==r0.ab?`Promoted: ${r1.name}`:l0<CLASS_LEVEL&&l1>=CLASS_LEVEL&&!classes[u.id]?(!classesOpen()?'Level up · Unlock Radio Tower for upgrades':u.joined?'Level up':'Level up · choose his class next'):`Level up`;badge.hidden=false;   // (classes wait on the radio tower: classes.js)
       },850);
     },500+i*700);
   });

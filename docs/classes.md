@@ -122,7 +122,7 @@ And the class tools: "each class will start to unlock special tools they can equ
 Medic gets a heal dart, assault gets C4. And they continue to unlock as the game progresses. They don't unlock on every
 level, just big milestones. We can discuss more."
 
-Not built yet. Until promotion moves to the HQ, the boat screen's PROMOTE stays, so classes can still be tried.
+Not built yet. Bryan, after v100 (playtesting from Level 1, the report said "choose his class next" and he found no way to): "It should say Unlock Radio Tower for upgrades", then "allow level ups but no new equipment until the Radio Tower is built. - Yeah lets do that." Built in v101: soldiers keep levelling up; the report says "Level up · Unlock Radio Tower for upgrades" at level 3, the boat screen's PROMOTE is a note saying the same, and nobody picks a class until radio control is built (`classesOpen()` in classes.js, the one switch). A class picked before stays.
 
 ## Class tools at milestones (a draft to discuss)
 

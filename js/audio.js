@@ -171,6 +171,31 @@ function sfxThunder(){   // a crack, then a long roll that comes and goes (recor
   for(let k=0;k<4;k++)noiseHit(out,t+.2+k*(.5+Math.random()*.5),2+Math.random()*1.5,'lowpass',260+Math.random()*120,0,.5+Math.random()*.4,.25,45);
 }
 
+/* ---------- the report (progress.js's showAAR) ---------- */
+// Bryan, after v100: "a level up should make a sound. Maybe the exp bar moving up can make a noise too." The game's only interface
+// sounds, kept low-key (he had the beeps and jingles taken out as too arcade): soft ticks climbing as a bar fills, timed to its
+// ease-out, and a short warm swell on a level up, a third note for a promotion. Unplaced, nearly dry.
+function uiOut(vol,life){
+  if(!AC||!sndOn)return null;const g=AC.createGain();g.gain.value=vol;g.connect(sndMuffle);
+  const send=AC.createGain();send.gain.value=.12;g.connect(send);send.connect(sndVerb);
+  setTimeout(()=>{g.disconnect();send.disconnect();},(life+.5)*1000);return g;
+}
+function sfxXpFill(frac,dur=.8){   // frac: how much of the bar fills (0..1); dur: its CSS transition
+  if(!(frac>0))return;const out=uiOut(.2,dur);if(!out)return;const t0=AC.currentTime,n=Math.max(3,Math.round(3+frac*13));
+  for(let i=1;i<=n;i++){const p=i/n,t=t0+dur*(1-Math.sqrt(1-p));   // (the bar's ease-out: about 1-(1-t)^2)
+    noiseHit(out,t,.025,'bandpass',2600+p*1800,5,.22,.001);toneHit(out,t,.06,'sine',480+p*420,0,.1,.003);}
+}
+function sfxLevelUp(promoted){
+  const out=uiOut(.32,1.6);if(!out)return;const t=AC.currentTime,notes=promoted?[392,523.25,659.25]:[392,587.33];   // G and D a fifth up; promoted, G C E
+  notes.forEach((f,i)=>{const s=t+i*.12;
+    for(const det of[-5,5]){const o=AC.createOscillator(),flt=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o.frequency.value=f;o.detune.value=det;
+      flt.type='lowpass';flt.frequency.setValueAtTime(500,s);flt.frequency.exponentialRampToValueAtTime(2000,s+.12);flt.frequency.exponentialRampToValueAtTime(700,s+1);
+      g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.13,s+.06);g.gain.exponentialRampToValueAtTime(.0001,s+1.15);
+      o.connect(flt);flt.connect(g);g.connect(out);o.start(s);o.stop(s+1.25);}
+  });
+  toneHit(out,t,.35,'sine',110,70,.35,.006);noiseHit(out,t,.3,'highpass',6000,0,.04,.002);   // a soft thump under it, a breath of air on top
+}
+
 /* ---------- recorded effects (sounds/sfx) ---------- */
 // what a bullet that hits something sounds like, by what it hit
 const MAT_METAL=/container|truck|tank|booth|armor|rack|liftwall|liftdoor|steeldoor|cabinet|bars|terminal|copier|pylon|gatehouse/,MAT_WOOD=/crate|pallet|desk|counter|sofa|plank|wood|lab/;

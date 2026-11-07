@@ -88,7 +88,7 @@ function buildEquipUI(){
     const p=players.find(q=>q.id===id);if(!p)continue;
     const row=document.createElement('div');row.className='eq-row';row.style.setProperty('--tc',teamCol(p));row.dataset.id=id;
     const ck=classes[id];
-    row.innerHTML=`<canvas class="eq-face" width="64" height="64"></canvas><div class="eq-who"><b>${id} · ${ck?CLASSES[ck].ab:rankOf(p.level||1).ab}</b><span>${p.name}</span>${canPromote(p)?`<button type="button" class="eq-promote" aria-label="Promotion: choose a class for ${p.name}">Promote</button>`:''}</div>`+
+    row.innerHTML=`<canvas class="eq-face" width="64" height="64"></canvas><div class="eq-who"><b>${id} · ${ck?CLASSES[ck].ab:rankOf(p.level||1).ab}</b><span>${p.name}</span>${canPromote(p)?`<button type="button" class="eq-promote" aria-label="Promotion: choose a class for ${p.name}">Promote</button>`:classLocked(p)?'<small class="eq-lock">Unlock Radio Tower for upgrades</small>':''}</div>`+
       ['weapon','spec'].map(k=>`<div class="eq-grp" data-k="${k}" role="radiogroup" aria-label="${k==='weapon'?'Weapon':'Special item'}">`+
         (k==='weapon'?eqWeapons(id):eqSpecs(id)).map(v=>`<button type="button" role="radio" data-v="${v}" style="--ic:${k==='spec'?SPECIALS[v].col:'#c9d2d8'}">${eqIcon(k,v)}<span>${EQ_LABEL[v]}</span><i></i></button>`).join('')+'</div>').join('');
     drawFace(row.querySelector('.eq-face'),p);

@@ -76,20 +76,19 @@ function heavyTick(){   // sweep the lane while unaware; keep the light on him
 // after SPAWN_WAIT s the man turns up out of sight nearby instead and walks to his post (stay: he waits instead).
 function groupSpecs(n){
   const g=[];
-  if(n===1){   // the bridge: an MG nest at its north end, a gunner on the pillbox's gun, riflemen behind sandbags, a sniper up the watchtower; calm, not on edge
+  if(n===1){   // the bridge: an MG nest at its north end, a gunner on the pillbox's gun, riflemen behind sandbags; calm, not on edge
     g.push([476,20,()=>mgGunner('E20',476,20)],[PBOX.gun.x,PBOX.gun.y-7,()=>pillGunner('E21'),true]);   // (the pillbox's: he never walks in)
     for(const[i,[x,y]]of[[422,14],[614,16],[372,12]].entries())g.push([x,y,()=>hostile('E'+(22+i),x,y,{zone:BR_ZONE,radio:i===0})]);   // E22 carries the radio
-    g.push([TOWER.x,TOWER.y,()=>towerSniper('E25'),true]);
     for(const q of g){const make0=q[2];q[2]=()=>{const u=make0();u.jumpy=false;return u;};}
   }else if(n===2){   // the container yard (Bryan: "lightly guarded"): one posted with the radio and one walking the west half's middle aisle, one posted in the east half
     g.push([250,-107,()=>hostile('E30',250,-107,{zone:CONT_W,ang:0,radio:true})],
       [60,-107,()=>hostile('E32',60,-107,{name:'Patrol',zone:CONT_W,route:[{x:400,y:-107},{x:60,y:-107}],ri:0,waitT:0})],
       [760,-107,()=>hostile('E31',760,-107,{zone:CONT_E,ang:Math.PI})]);
-  }else if(n===3){   // the data center's front (Bryan: most of the guards here): the heavy gun and an MG in nests, five riflemen behind the sandbags, the gun jeep on the road
+  }else if(n===3){   // the data center's front (Bryan: most of the guards here): the heavy gun and an MG in nests, five riflemen behind the sandbags, the gun jeep on the road, the sniper up the watchtower across it (after v100)
     const N=DC_NESTS;
     g.push([N[0].x,N[0].y,()=>{const u=mgGunner('E40',N[0].x,N[0].y);Object.assign(u,{heavy:true,name:'Heavy MG'});addSearchlight(u);return u;},true],[N[1].x,N[1].y,()=>mgGunner('E41',N[1].x,N[1].y),true]);
     for(const[i,[x,y]]of[[468,-398],[370,-404],[576,-404],[630,-392],[682,-400]].entries())g.push([x,y,()=>hostile('E'+(42+i),x,y,{zone:DC_OUT,radio:i===0})]);   // E42 carries the radio
-    g.push([GJEEP.route[0].x,GJEEP.route[0].y,()=>makeTruck('E48'),true]);
+    g.push([GJEEP.route[0].x,GJEEP.route[0].y,()=>makeTruck('E48'),true],[TOWER.x,TOWER.y,()=>{const u=towerSniper('E25');u.jumpy=false;return u;},true]);
   }
   return g;
 }
@@ -266,7 +265,7 @@ function truckWreck(u,src){
 const CLIMB_T=1.6;
 let pickups=[];
 function towerSniper(id){
-  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(258-TOWER.y,500-TOWER.x)});return u;   // facing the bridge's south approach (SW): the bridge in his cone, the first aisle west of it not (Bryan opened its east end)
+  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(-315-TOWER.y,560-TOWER.x)});return u;   // facing up the runway road past the bridge's road (ENE): the road east, the bridge road's mouth and his own front in his cone; the far west end of the road, the strip in front of the building and the pipe's way up behind him
 }
 const towerMan=()=>units.find(u=>u.onTower&&!u.dead&&!u.downed)||null;
 function enemyDown(e){   // from damage() and silentKill(): the sniper's rifle stays up the tower
@@ -276,6 +275,7 @@ function enemyDown(e){   // from damage() and silentKill(): the sniper's rifle s
   g.position.set(TOWER.x,TOWER.elev+10,TOWER.y);scene.add(g);pickups.push({kind:'sniper',x:TOWER.x,y:TOWER.y,tower:true,mesh:g});
   setTimeout(()=>{if(state==='play'&&typeof tutLine==='function')tutLine('sniperdown',tutBy(e.x,e.y));},1200);   // "Sniper's down. That rifle's ours if we want it." (chatter.js)
 }
+const towerTop=()=>{const L=TOWER.ladder,d=hyp(L.x-TOWER.x,L.y-TOWER.y)||1;return{x:TOWER.x+(L.x-TOWER.x)/d*4,y:TOWER.y+(L.y-TOWER.y)/d*4};};   // where the ladder comes up onto the platform
 function orderClimb(list){
   if(enemies.some(e=>e.onTower&&!beaten(e))){banner('The sniper is still up there.',1800);return false;}
   if(towerMan()){banner(`${towerMan().name} is already up the tower.`,1600);return false;}
@@ -286,7 +286,7 @@ function orderClimb(list){
 function towerTick(dt){
   for(const u of players){
     if(u.climb){   // on the ladder
-      const c=u.climb;c.t+=dt;const k=clamp(c.t/CLIMB_T,0,1),L=TOWER.ladder,top={x:TOWER.x,y:TOWER.y-4};
+      const c=u.climb;c.t+=dt;const k=clamp(c.t/CLIMB_T,0,1),L=TOWER.ladder,top=towerTop();
       if(!alive(u)){u.climb=null;u.elev=0;u.onTower=false;u.x=L.x;u.y=L.y;continue;}
       const f=c.up?k:1-k;u.x=L.x+(top.x-L.x)*f;u.y=L.y+(top.y-L.y)*f;u.elev=TOWER.elev*f;
       if(k<1)continue;u.climb=null;
@@ -305,7 +305,7 @@ function towerTick(dt){
     const g=u.climbGo;if(!g)continue;
     if(!alive(u)||u.lastOrder>g.t0+.01||towerMan()){u.climbGo=null;continue;}
     if(u.path.length)continue;u.climbGo=null;
-    if(hyp(u.x-TOWER.ladder.x,u.y-TOWER.ladder.y)<10){u.climb={t:0,up:true};u.ang=-Math.PI/2;}
+    if(hyp(u.x-TOWER.ladder.x,u.y-TOWER.ladder.y)<10){u.climb={t:0,up:true};u.ang=Math.atan2(TOWER.y-TOWER.ladder.y,TOWER.x-TOWER.ladder.x);}
   }
 }
 // CLIMB at the ladder once the tower's free and a soldier's near; the sniper's rifle floating over the platform

@@ -23,7 +23,12 @@ function readClasses(){try{const c=JSON.parse(localStorage.getItem(CLASS_KEY)||'
 function saveClasses(){try{localStorage.setItem(CLASS_KEY,JSON.stringify(classes));}catch(e){}}
 const classOf=u=>u&&u.side==='P'&&!u.joined?classes[u.id]||null:null;   // (the freed prisoners have no class)
 const isCls=(u,k)=>classOf(u)===k;
-const canPromote=p=>!!p&&!p.joined&&!classes[p.id]&&(p.level||1)>=CLASS_LEVEL;
+// Bryan, after v100: "allow level ups but no new equipment until the Radio Tower is built": soldiers keep levelling up, but
+// nobody picks a class until radio control is up at the HQ (after Level 4: coming next); the report and the boat screen say
+// so (classLocked). A class picked before stays. classesOpen() is the one switch for when it's built.
+const classesOpen=()=>false;
+const canPromote=p=>classesOpen()&&!!p&&!p.joined&&!classes[p.id]&&(p.level||1)>=CLASS_LEVEL;
+const classLocked=p=>!classesOpen()&&!!p&&!classes[p.id]&&(p.level||1)>=CLASS_LEVEL;   // at the level for one, waiting on the radio tower
 const classTaken=(k,but)=>k==='captain'&&Object.entries(classes).some(([id,c])=>c==='captain'&&id!==but);
 function setClass(id,k){if(!CLASSES[k]||classTaken(k,id))return false;classes[id]=k;saveClasses();
   if(k==='defender'&&typeof loadout!=='undefined'&&loadout[id]&&ARMORY.spec.build>Object.values(loadout).filter(l=>l.spec==='build').length){loadout[id].spec='build';saveLoadout();}   // a new Defender takes his build kit (equip.js)

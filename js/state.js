@@ -36,4 +36,4 @@ function reset(){
   civs=[];volley=null;resetOffice();resetChatter();resetMonsters();   // (office.js, chatter.js, monsters.js)
   resetWaves();resetHunt();resetOrders();resetLayers();setStatus();buildCards();
 }
-function timeScale(){return paused?0:(preview||mode||tutSlow())?0.25:1;}   // (tutSlow: a tip of Level 1's tutorial waiting, level1.js)
+function timeScale(){return paused?0:(preview||mode||(ptr&&ptr.kind==='draw')||tutSlow())?0.25:1;}   // (tutSlow: a tip of Level 1's tutorial waiting, level1.js)
