@@ -559,3 +559,10 @@ the tunnel down the road. You'll probably find the supplies you need from there.
   a real fight, the fetch and the montage; Continue from every Level 3 checkpoint; a new game. Regressions: Level 1's
   tutorial lock (0 fails), Level 2's quiet run (won, never seen), back to the group after a job, the gate and the HQ fight
   (eight men, won, three down at the end), the HQ's end.
+
+## After v96: classes (decisions, not built yet)
+Bryan, on the two class questions: "1) yes, freed men turn into normal soldiers. 2) I think it first unlocks at the HQ.
+Maybe [any] class upgrades happen when the team returns to the HQ." And: "each class will start to unlock special tools
+they can equip. Like support can get a mobile turret. Medic gets a heal dart, assault gets C4. And they continue to unlock
+as the game progresses. They don't unlock on every level, just big milestones. We can discuss more." Recorded in
+docs/classes.md with a draft table of tools per class and milestone for him to adjust; built with radio control.

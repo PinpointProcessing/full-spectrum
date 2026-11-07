@@ -111,5 +111,37 @@ out).
 The plan, as Bryan suggests: wait for radio control (docs/hq-base.md). Once it's built, promotion happens at the
 Headquarters (the command center, or the barracks when there is one), and a class's weapons and gear (the shotgun, the
 sniper rifle, the Support's extra rockets, the Defender's build kit, the Medic's kits) come in on a supply drop called on
-the radio. Open: should the freed men be able to take a class too, and does the choice stay on the boat screen as well, or
-move to the HQ only?
+the radio.
+
+Bryan's answers (after v96):
+1. **The freed men turn into normal soldiers**: they get classes like everyone else (today `canPromote`, `classOf` and the
+   report's "choose his class next" all leave them out).
+2. **Classes first unlock at the HQ**, not on the boat screen, and class upgrades happen when the team returns to the HQ.
+
+And the class tools: "each class will start to unlock special tools they can equip. Like support can get a mobile turret.
+Medic gets a heal dart, assault gets C4. And they continue to unlock as the game progresses. They don't unlock on every
+level, just big milestones. We can discuss more."
+
+Not built yet. Until promotion moves to the HQ, the boat screen's PROMOTE stays, so classes can still be tried.
+
+## Class tools at milestones (a draft to discuss)
+
+Bryan's three are fixed; the rest are suggestions for him to keep, swap or drop. A tool is something a soldier equips in
+his class's tool slot (on top of his weapon, grenade and special item), used from a button on his card like the class
+skills. Each class gets one new tool at each big milestone, never every level.
+
+| Class | First tool (the HQ taken) | Second (the radio tower) | Later |
+|---|---|---|---|
+| **Support** | mobile turret (Bryan): set down, fires on its own at what the squad can see, limited ammo | turret upgrade: armoured, more ammo | resupply drop on call (needs the radio) |
+| **Medic** | heal dart (Bryan): heals a soldier from range | adrenaline: a downed man back up from range | life support at the HQ (Bryan's earlier idea): a fallen man brought back |
+| **Assault** | C4 (Bryan): on doors, walls and vehicles (the demolition charge code is already in the game, switched off) | breaching charge: blow a door and stun the room | heavy rockets |
+| **Recon** | motion sensor: marks movement round where he puts it | scout drone | marks guards before a mission starts |
+| **Spec Ops** | throwing knife: a silent kill from a short range | grappling hook: up onto roofs and walls | a disguise to walk past one post |
+| **Cyber Ops** | jammer: a radio man can't call it in while he's near | turret hack: an enemy gun fights for us for a while | camera network: see what their cameras see |
+| **Captain** | radio call-in: the radio's reinforcements (level 1 men, a few a mission) | mortar strike | air strike |
+| **Defender** | deployable shield: cover he carries and sets down anywhere | barricade upgrade: a firing slit | a fixed gun on a barricade |
+
+Milestones, as a suggestion: taking the HQ (classes open, first tools), the radio tower (radio control comes online: second
+tools and the Captain's call-ins), then whatever big missions come after. Questions for Bryan: free at the milestone, or
+built at the HQ (the weapon station) with supplies once unlocked? One tool slot per soldier, or more with level? Do the
+class upgrades he mentioned (back at the HQ) mean these tools, or better versions of the passive and the skill too?
