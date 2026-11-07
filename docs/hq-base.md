@@ -121,8 +121,8 @@ Bryan, after v96: class tools are free once unlocked, radioed in and flown by he
 the radio tower; class upgrades are the tools and better versions of each class; and the enemies get stronger as the game
 goes on. That puts the roof on the class path, so the order is now:
 1. **The next mission: the old radio tower**, through the tunnel down the road. Its supplies are what the radio control
-   station needs. A draft for Bryan after v98: `docs/level4-draft.md` and `docs/map-draft-I.png` (the tower on top of the
-   hill the road tunnel runs under, reached through an interior off the tunnel and an access tunnel up through the rock).
+   station needs. Level 4, The Old Radio Tower: `docs/level4.md` and `docs/map-draft-J.png` (the tower on top of the hill
+   the road tunnel runs under, reached through the plant off the tunnel, then the stairs or the lift; a zip line home).
 2. Supplies and intel counted from each mission and shown at the command center.
 3. **Radio control, and the radio tower on the roof** (the second floor, the roof, the helipad and the tower's base are in:
    v97): built with the supplies from step 1.

@@ -648,3 +648,8 @@ rooms in the rock, where the brood has nested; the incline, an access tunnel wit
 where the Crawler lives; the old radio tower on the summit, a militia outpost that watches its own track and the road, not
 the bunker the squad comes out of), with plans of the plant and the summit. `docs/level4-draft.md` rewritten to match, with
 five questions.
+Bryan's answers: "1) yes caved in (for now) 2) enemy soldiers are in the radio tower/summit 3) a zip line leads to the
+bridge and they can make a quick route back. 4) let the player choose. Going up the lift alerts more enemy monsters and the
+guards hear them coming. Enemy monsters will come up and attack not only the player but the enemy troops too. Taking the
+stairs is quiet and the enemy troops are unaware. The player can split the teams and keep one group undetected. 5) The Old
+Radio Tower is a good name". Recorded in `docs/level4.md` (renamed from level4-draft.md), drawn as `docs/map-draft-J.png`.
