@@ -201,7 +201,7 @@ function addCoverPts(o){
   for(let i=0;i<nx;i++){const x=o.x+(i+.5)*o.w/nx;add(x,o.y-off);add(x,o.y+o.h+off);}
   for(let i=0;i<ny;i++){const y=o.y+(i+.5)*o.h/ny;add(o.x-off,y);add(o.x+o.w+off,y);}
 }
-const NO_COVER=new Set(['fence','water','pit','fortwall','bars','void','wtower','door']);   // no cover points round these (cover points that land in a 'void' or outside a building's walls aren't free, so they're dropped anyway)
+const NO_COVER=new Set(['drop','fence','water','pit','fortwall','bars','void','wtower','door']);   // no cover points round these (cover points that land in a 'void' or outside a building's walls aren't free, so they're dropped anyway)
 function fillCover(){coverPts.length=0;for(const o of objs)if(!NO_COVER.has(o.kind))addCoverPts(o);}
 fillCover();
 

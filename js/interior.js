@@ -358,7 +358,7 @@ function actsHere(){return ACTS.filter(a=>a.map===MAPID&&a.avail());}
 function actAt(wx,wy){let best=null,bd=1e9;for(const a of actsHere()){let d=hyp(a.x-wx,a.y-wy);if(a.near){const o=a.near();if(o)d=Math.min(d,rectDist(wx,wy,o)+4);}if(d<=a.r+10&&d<bd){bd=d;best=a;}}return best;}   // (near: something with a body, a lab bench: a tap anywhere on it)
 function orderUse(a){
   const why=a.need&&a.need();if(why){if(why===CARD_NEED&&orderHack(a))return;banner(why,2600);return;}   // locked: say what it needs, don't walk there (a Cyber Ops selected gets in without the card: skills.js)
-  const foot=sel.filter(u=>alive(u)&&!u.inVeh&&!u.carry).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));
+  const foot=sel.filter(u=>alive(u)&&!u.inVeh&&!u.carry&&!(a.part&&u.cargo)).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));
   if(!foot.length){banner('Select a soldier first.',1600);return;}
   if(a.multi){a.go(foot);return;}   // the stairs and the lift: everyone selected goes (office.js)
   if(useFor(a))return;   // (someone's already on it)
@@ -392,6 +392,7 @@ function gatherZone(){
 const gatherZones=()=>{const G=gatherZone();return !G?[]:Array.isArray(G)?G:[G];};   // (the tunnel has one at each end: road.js)
 function drawGather(now){for(const G of gatherZones())drawGatherOne(G,now);}
 function drawGatherOne(G,now){
+  if(G.floor&&G.floor!==curFloor)return;   // (Level 4's: on its own floor, level4.js)
   const z=G.z,pulse=(Math.sin(now*4)+1)/2;
   toSBack=false;const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));if(toSBack)return;
   ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();

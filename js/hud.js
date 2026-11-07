@@ -15,7 +15,7 @@ function objHint(){
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
-  const quiet=enemies.some(e=>!e.dead&&e.alerted)?'Hunted':'Undetected';   // hunted: they're searching for you (hunt.js)
+  const quiet=enemies.some(e=>!e.dead&&e.alerted&&!e.dormant&&!(MAPID==='l4'&&e.mon))?'Hunted':'Undetected';   // (not her brood asleep, or Level 4's monsters: they hunt everyone)   // hunted: they're searching for you (hunt.js)
   const hid=contact?[...new Set(players.filter(p=>alive(p)&&!p.offMap&&!caught(p)).map(p=>teamName(p.team)))]:[],cTxt=hid.length?hid.join(' & ')+' hidden':'Contact';   // (one team caught, the other still covert: hunt.js)
   if(wave.phase==='hq'){s.textContent=contact?cTxt:obj>=6?quiet:obj>=5?'Bridge down':quiet;s.className='chip'+(contact?' contact':'');return;}
   if(wavePhase('clear','count')){s.textContent=wave.phase==='count'?'Incoming':'All clear';s.className='chip'+(wave.phase==='count'?' contact':'');return;}
@@ -31,6 +31,7 @@ function finish(){
   const kia=players.filter(p=>p.dead).length;
   $('#endEyebrow').textContent=win?'Mission complete':'Mission failed';
   $('#endTitle').textContent=win?'Warehouse secured':'Squad lost';
+  if(LEVEL===4&&!win){$('#endTitle').textContent='Squad lost';$('#endText').textContent='The squad went down on the hill. Retry from the last save: the stairs are the quiet way up; the lift wakes the brood and brings their men to the bunker. Split the teams and one can stay hidden.';refreshSaveButtons();$('#end').hidden=false;return;}   // (level4.js)
   if(LEVEL===1&&!win){$('#endText').textContent='The squad went down. Try again: keep to cover, and let the guards come to you.';$('#againBtn').textContent='Try Level 1 again';$('#retryBtn').hidden=true;$('#end').hidden=false;return;}
   $('#endText').textContent=win
     ?`Cleared in ${mm}:${ss}. ${downCount} time${downCount===1?'':'s'} a soldier went down, ${kia} killed in action.`
@@ -48,7 +49,7 @@ function hud(){
    gb.disabled=!act.length;gb.classList.toggle('on',forced);gb.setAttribute('aria-pressed',forced);
    gb.querySelector('span').textContent=g==='sneak'?'Sneak':'Run';gb.querySelector('small').textContent=forced?'Manual':'Auto';
    gb.setAttribute('aria-label',`${g==='sneak'?'Sneaking':'Running'}, ${forced?'manual':'automatic'}. Press to ${forced?'go back to automatic':g==='sneak'?'run':'sneak'}.`);
-   if(act.some(u=>u.carry)){   // carrying a man: the same spot becomes Put down
+   if(act.some(u=>u.carry||u.cargo)){   // carrying a man (or one of Level 4's parts): the same spot becomes Put down
      gb.disabled=false;gb.classList.add('on');gb.removeAttribute('aria-pressed');
      gb.querySelector('span').textContent='Put down';gb.querySelector('small').textContent='Carrying';gb.setAttribute('aria-label','Put the carried soldier down here');}
    if(selCrew().length){   // crew selected: the same spot becomes the Dismount button
@@ -69,6 +70,7 @@ function hud(){
   else if(mode==='medkit')h='Tap a downed teammate to use the medic kit: 5 s beside him, not while pinned. Tap the kit on his card again to cancel.';
   else if(mode==='silent')h=`Tap a hostile marked SILENT SHOT (one who hasn't noticed you, within 20 m): an aimed quiet shot. ${sel[0]?sel[0].specN:0} left on the silencer. Tap it again to cancel.`;
   else if(mode==='smoke')h='Tap where to throw smoke, inside the circle: he lobs it from where he stands, over low cover. Nobody sees through it, either way, for about 12 s. Tap the smoke on his card again to cancel.';
+  else if(act.length===1&&act[0].cargo&&!preview)h=`${act[0].name} is carrying ${act[0].cargo.name}: slow, and he can't shoot. Get it to the zip line on the summit's south edge. Put down is bottom right.`;   // (level4.js)
   else if(act.length===1&&act[0].carry&&!preview)h=`${act[0].name} is carrying ${act[0].carry.name}: get him into a medic station's green ring. He moves slowly and can't shoot. Put down is bottom right.`;
   else if(act.length&&!preview&&players.some(p=>p.critical&&!p.dead&&!p.carriedBy&&!p.offMap))h='A soldier is critical: tap him with a medic (the red kit on a card) selected, or anyone to carry him to a medic station.';
   else if(act.length===1&&act[0].onTower&&!preview)h=act[0].weapon==='sniper'?`${act[0].name} is up the tower with the sniper rifle: he sees 70 m the way he faces (all round while he's the one selected). Tap the gun on his card to swap back to his ${WEAPON[act[0].weapon2||'rifle'].label}. Any move order brings him down first.`:`${act[0].name} is up the tower. Any move order brings him down first.`;
@@ -117,7 +119,7 @@ function bindHud(){
   // (Level 1's tutorial lets through only what its step or tip asks for: tutAllows in level1.js; the camera, Pause and Fit map always work)
   for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>{if(tutAllows('tab',tab.dataset.team))tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p)));});
   $('#allBtn').addEventListener('click',()=>{if(tutAllows('tab','all'))tabSelect(players.filter(alive));});
-  const gaitOrDismount=()=>{if(state!=='play'||!tutAllows('btn','gait'))return;const cr=sel.filter(u=>u.carry),c=selCrew();if(cr.length){for(const u of cr)putDown(u);}else if(c.length){const out=dismount(c);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
+  const gaitOrDismount=()=>{if(state!=='play'||!tutAllows('btn','gait'))return;const cr=sel.filter(u=>u.carry||u.cargo),c=selCrew();if(cr.length){for(const u of cr){if(u.carry)putDown(u);else dropCargo(u);}}else if(c.length){const out=dismount(c);if(out.length)select(out);}else toggleGait();hud();};   // the ones who got out stay selected, ready to move   // one soldier on his own: out he gets, gunner included
   $('#gaitBtn').addEventListener('click',gaitOrDismount);
   $('#clearBtn').addEventListener('click',()=>{if(!tutAllows('btn','clear'))return;if(mode||preview){mode=null;preview=null;}else select([]);hud();});
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
@@ -125,7 +127,8 @@ function bindHud(){
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
   $('#startBtn').addEventListener('click',()=>showEquip(startLevel3,'Next: Level 3 · The Data Center'));   // the loadout first (equip.js)
   $('#l2Btn').addEventListener('click',()=>showEquip(startLevel2,'Next: Level 2 · Lights Out'));   // (level2.js)
-  $('#l1Btn').addEventListener('click',()=>startLevel1());   // (level1.js)
+  $('#l1Btn').addEventListener('click',()=>startLevel1());
+  {const b=$('#l4Btn');if(b)b.addEventListener('click',()=>startCheckpoint('road'));}   // Level 4: from the road east, in sight of the tunnel (level4.js)   // (level1.js)
   // the tutorial's bubble: a tap carries on from a notice or hides it (and stops there, so it never moves anyone); its button
   // turns the tutorial or the tips off; the "?" brings it back
   $('#tut').addEventListener('click',e=>{
@@ -133,7 +136,7 @@ function bindHud(){
     if(MAPID==='l1')tutTap();else $('#tut').hidden=true;   // (outside Level 1 it's the checkpoint's tour: hq.js)
   });
   $('#tutPin').addEventListener('click',()=>{tut.hid=false;tutShow();});
-  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){showEquip(startLevel2,'Next: Level 2 · Lights Out');return;}if(LEVEL===2){showEquip(startLevel3,'Next: Level 3 · The Data Center');return;}state='play';endAt=0;hud();});   // after Level 1's report: the squad at sea and the loadout (equip.js), then Level 2   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
+  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){showEquip(startLevel2,'Next: Level 2 · Lights Out');return;}if(LEVEL===2){showEquip(startLevel3,'Next: Level 3 · The Data Center');return;}if(LEVEL===4)LEVEL=3;state='play';endAt=0;updateObjUI();hud();});   // (after Level 4's: back on the road east, at the bridge: level4.js)   // after Level 1's report: the squad at sea and the loadout (equip.js), then Level 2   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
   {const ob=$('#obj'),tg=()=>{ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});

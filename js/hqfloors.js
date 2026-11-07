@@ -298,7 +298,7 @@ function drawHQFloors(now){
   if(curFloor==='2F'){for(const q of HQ_2F_ROOMS){toSBack=false;const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;label(q.name,x,y,q.name==='EMPTY ROOM'?'rgba(200,210,220,.55)':'#8fe6f2',q.name==='EMPTY ROOM'?9:10,700);}}
   else if(curFloor==='RF'){
     toSBack=false;let[x,y]=below(PAD.x,PAD.y+PAD.r,8);if(!toSBack)label('HELIPAD',x,y,'#8fe6f2',10,700);
-    toSBack=false;[x,y]=below(MAST.x,MAST.y1,8);if(!toSBack){label('RADIO TOWER',x,y,'#8fe6f2',10,700);label('NEEDS PARTS',x,y+13,'#ffcf4a',9,700);}
+    toSBack=false;[x,y]=below(MAST.x,MAST.y1,8);if(!toSBack){label('RADIO TOWER',x,y,'#8fe6f2',10,700);label(typeof l4Done==='function'&&l4Done()?'PARTS BROUGHT BACK · COMING NEXT':'NEEDS PARTS',x,y+13,'#ffcf4a',9,700);}
   }
   if(HQ.ride){const R=HQ.ride,z=HQ_CAR[R.from];if(R.from===curFloor){const k=(simT-R.t)/LIFT_RIDE,[lx,ly]=toS((z.x0+z.x1)/2,(z.y0+z.y1)/2,30);label(R.to==='2F'?'GOING UP':'GOING DOWN',lx,ly,'#ffcf4a',10,700);bar(lx-20,ly+8,40,k,'#ffcf4a');}}
 }

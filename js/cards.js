@@ -95,6 +95,7 @@ function statusText(u){
   if(u.downed)return[u.carriedBy?'Carried':u.critical?(u.noBleed?'Critical':`Critical ${fmtT(u.crit)}`):u.revive>0?'Reviving':`Down ${Math.ceil(u.bleed)}s`,'down'];
   if(simT<(u.stunT||0))return['Knocked down','pin'];
   if(u.carry)return['Carrying',''];
+  if(u.cargo)return['Carrying '+u.cargo.label.toLowerCase(),''];   // (Level 4's parts: level4.js)
   if(u.onGun)return['On the gun',''];
   if(u.climb)return['Climbing',''];
   if(u.onTower)return[u.weapon==='sniper'?'Sniping':'On the tower',''];

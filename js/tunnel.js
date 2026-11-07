@@ -11,24 +11,26 @@
    barrier arm, a car slewed across the west lane and a lorry in the east one, more cars left where they stopped, a jet fan
    fallen from the roof, a collapse that leaves one way through on the east side; the dead hanging out of the cars and lying
    in the road, blood pooled round them and dragged off in trails (TUN_DEAD, tunDead; the pools and trails painted on its
-   floor, paintTunnel). At the north end the portal opens on the night: the old radio tower's mission, the next one, isn't
-   built yet, and the gather area there says so (tunnelEnd). */
+   floor, paintTunnel). Its north end has caved in (Bryan, on draft I: "yes caved in (for now)"): a heap of the roof from wall
+   to wall just short of the north portal. The way on is the service door in the east wall just south of it, under a red
+   light, a blood trail dragged to it: walk everyone in and it fades into the hill by itself (TUN_SVC, level4.js's enterHill,
+   Level 4: The Old Radio Tower). */
 const TUNB={x0:560,x1:880,y0:-440,y1:900};   // the map's frame (its ground canvas)
 const TW={x0:655,x1:785,walk:12,len:{n:-380,s:880},h:18};   // the inside: wall faces at x0 and x1, walkways walk wide along both, from the north portal (n) to the south one (s); the walls cut away at h
 const TUN_IN={x0:702,y0:800,x1:778,y1:878};   // the south end: walk into it to go back out (beside the coach)
-const TUN_END={x0:662,y0:-376,x1:778,y1:-300};   // the north end: the way on
+const TUN_SVC={x0:716,y0:-280,x1:782,y1:-196};   // the service door in the east wall, just short of the cave-in: the way on (into the hill: level4.js)
+const TUN_CAVE={x0:655,y0:-350,x1:785,y1:-300};   // the cave-in, wall to wall
 const TUN_START=[[690,760],[720,760],[750,760],[705,738],[735,738],[690,716],[720,716],[750,716]];
 const TUN_LAMPS=[   // all that's left of the light (dead fixtures line the walls: buildTunnel): pitch black but for these and the squad's torches
   {x:660,y:560,h:12,c:0xff3020,i:.8,d:100},   // red, by the west cross-passage door
   {x:660,y:440,h:14,c:0xffb060,i:.55,d:110,flick:1},   // one tube still sputtering
-  {x:780,y:-250,h:12,c:0xff3020,i:.7,d:100,flick:1},   // red, by the east cross-passage door
-  {x:720,y:-400,h:34,c:0x8fa4d8,i:1.0,d:200},   // the night beyond the north portal
+  {x:780,y:-250,h:12,c:0xff3020,i:.85,d:120,flick:1},   // red, over the service door in the east wall (the way on)
   {x:720,y:896,h:30,c:0x8fa4d8,i:.6,d:130},    // and behind them, the way they came in
   {x:700,y:486,h:3,c:0xff3414,i:1.5,d:120,flick:1,flare:1},{x:752,y:572,h:3,c:0xff3414,i:1.3,d:110,flick:1,flare:1},{x:708,y:-80,h:3,c:0xff3414,i:1.4,d:120,flick:1,flare:1}];   // road flares someone lit by the wrecks, still burning
 // the dead: [x, y, facing, clothes, how: 'out' half out of a car's door (legs still in), 'road' in the road]; and where blood was dragged
 const TUN_DEAD=[[704,428,-1.9,'#3c4a5a','out'],[722,598,2.8,'#6a4a3a','road'],[667,586,3.14,'#4a5a3a','road'],[712,318,1.4,'#5a3a4a','road'],[738,150,-.6,'#2e3a44','road'],
   [732,-150,-2.6,'#7a6a52','out'],[714,-30,-1.57,'#4b4b4b','road'],[706,834,-.4,'#5a5040','out']];
-const TUN_TRAILS=[[[712,452],[690,500],[668,560],[663,578]],[[725,610],[748,650],[770,668]],[[714,-20],[716,-120],[722,-230],[728,-300],[730,-360]],[[712,846],[722,790],[730,700],[724,640]]];
+const TUN_TRAILS=[[[712,452],[690,500],[668,560],[663,578]],[[725,610],[748,650],[770,668]],[[714,-20],[716,-120],[738,-190],[764,-224],[784,-236]],[[712,846],[722,790],[730,700],[724,640]]];
 let TUN=null;   // the map while it's built: {objs, lamps, scene, lights, tex, rtex}
 
 function tunObjects(){
@@ -46,6 +48,8 @@ function tunObjects(){
   O('fan',690,190,54,18);   // a jet fan down from the roof
   O('rubble',655,58,62,54,{full:true});   // the collapse: a heap of the roof against the west wall,
   for(const[x,y,w,h]of[[704,40,16,14],[716,96,18,16],[722,128,14,12],[666,122,20,16],[690,30,12,10],[730,64,12,12]])O('rock',x,y,w,h);   // and its broken slabs out across the road (the way through is on the east side)
+  O('rubble',TUN_CAVE.x0,TUN_CAVE.y0,TUN_CAVE.x1-TUN_CAVE.x0,TUN_CAVE.y1-TUN_CAVE.y0,{full:true,cave:1});   // the north end caved in, wall to wall
+  for(const[x,y,w,h]of[[668,-298,18,14],[698,-294,14,12],[738,-298,12,10],[760,-296,12,10]])O('rock',x,y,w,h);   // (its slabs spilled south; the way to the service door stays clear)
   return o;
 }
 // the floor: walkways of concrete slabs either side, the road between (worn lines, oil, puddles), grit round the collapse,
@@ -146,6 +150,7 @@ function buildTunnel(){
     // the cross-passage doors: steel, a green sign over each
     const steel=new T.MeshStandardMaterial({color:0x56606a,roughness:.5,metalness:.6}),green=new T.MeshBasicMaterial({color:0x2fe07a,toneMapped:false});
     for(const[x,y,s]of[[TW.x0,575,1],[TW.x1,-235,-1]]){const d=new T.Mesh(new T.BoxGeometry(1,14,16),steel);d.position.set(x+s*.6,7,y);sc.add(d);const sg=new T.Mesh(new T.BoxGeometry(.8,2.4,7),green);sg.position.set(x+s*.6,16,y);sc.add(sg);}
+    {const d=new T.Mesh(new T.BoxGeometry(1,14,16),steel);d.position.set(TW.x1-6,7,-229);d.rotation.y=-.9;sc.add(d);}   // the service door stands open (into the hill: level4.js)
     { const ph=new T.Mesh(new T.BoxGeometry(1.4,5,4),new T.MeshStandardMaterial({color:0xd8661c,roughness:.6}));ph.position.set(TW.x1-.8,9,600);sc.add(ph);}   // an emergency phone
     // the jet fan down on the road: a drum with its brackets torn off
     {const o=TUN.objs.find(q=>q.kind==='fan'),fm=new T.MeshStandardMaterial({color:0x6d7377,roughness:.45,metalness:.7}),fd=new T.MeshStandardMaterial({color:0x1b1d1f,roughness:.8});
@@ -153,12 +158,14 @@ function buildTunnel(){
      for(const sx of[-1,1]){const c=addMesh(new T.CircleGeometry(8.6,18),fd,o.x+o.w/2+sx*(o.w/2-3.2),9,o.y+o.h/2);c.rotation.y=sx*Math.PI/2;}
      const b=addMesh(new T.BoxGeometry(4,2,20),fm,o.x+o.w/2-14,18.5,o.y+o.h/2);b.rotation.z=.4;meshOwner=null;}
     // the collapse, and the rock beyond each portal: rough slabs (road.js's rockMesh), rebar out of the heap
-    const rub=TUN.objs.find(q=>q.kind==='rubble'),rr=rng(515),L=[];
+    const rub=TUN.objs.find(q=>q.kind==='rubble'&&!q.cave),cave=TUN.objs.find(q=>q.cave),rr=rng(515),L=[];
     for(let k=0;k<9;k++){const sy=8+rr()*14;L.push([rub.x+8+rr()*(rub.w-16),rub.y+8+rr()*(rub.h-16),10+rr()*12,sy,9+rr()*10,rr()*6,(rr()*1e4)|0,sy*.35]);}
+    for(let k=0;k<16;k++){const sy=14+rr()*20;L.push([cave.x+8+rr()*(cave.w-16),cave.y+6+rr()*(cave.h-12),12+rr()*14,sy,10+rr()*10,rr()*6,(rr()*1e4)|0,sy*.45]);}   // the cave-in: piled to the roof
+    for(let k=0;k<6;k++){const sy=18+rr()*10;L.push([TW.x0+10+rr()*(TW.x1-TW.x0-20),TW.len.n-6+rr()*40,22+rr()*12,sy,18+rr()*10,rr()*6,(rr()*1e4)|0,sy*.5]);}   // (and behind it, more)
     for(const o of TUN.objs)if(o.kind==='rock'){const sy=5+rr()*3;L.push([o.x+o.w/2,o.y+o.h/2,o.w*.6,sy,o.h*.6,rr()*6,(rr()*1e4)|0,sy*.4]);}
     sc.add(rockMesh(L,[.09,.03,.26]));
     const rebar=new T.MeshStandardMaterial({color:0x5a3a28,roughness:.7,metalness:.5});
-    for(let k=0;k<7;k++){const m=new T.Mesh(new T.CylinderGeometry(.35,.35,10+rr()*8,5),rebar);m.position.set(rub.x+10+rr()*(rub.w-20),10+rr()*6,rub.y+10+rr()*(rub.h-20));m.rotation.set(rr()*1.2-.6,0,rr()*1.4-.7);sc.add(m);}
+    for(const q of[rub,cave])for(let k=0;k<7;k++){const m=new T.Mesh(new T.CylinderGeometry(.35,.35,10+rr()*8,5),rebar);m.position.set(q.x+10+rr()*(q.w-20),10+rr()*6+(q===cave?8:0),q.y+10+rr()*(q.h-20));m.rotation.set(rr()*1.2-.6,0,rr()*1.4-.7);sc.add(m);}
     const out=[];for(const[y0,y1,dir]of[[TUNB.y0,TW.len.n-14,-1],[TW.len.s+14,TUNB.y1,1]])for(let x=TW.x0-60;x<=TW.x1+60;x+=26){
       if(x>TW.x0-6&&x<TW.x1+6)continue;const sy=18+rr()*26;out.push([x+(rr()-.5)*10,(dir<0?y1:y0)+dir*(10+rr()*20),18+rr()*10,sy,16+rr()*10,rr()*6,(rr()*1e4)|0,sy*.3]);}
     sc.add(rockMesh(out));
@@ -173,7 +180,7 @@ function buildTunnel(){
     TUN.lights={hemi,moon:null,lampPool:pool,muzzle:mz,boomL:bl};
   }finally{scene=keep;meshOwner=null;}
 }
-const tunCam=()=>{VB={x0:TW.x0-30,z0:TW.len.n-40,x1:TW.x1+30,z1:TW.len.s+20};FIT.w=TW.x1-TW.x0+80;FIT.h=TW.len.s-TW.len.n+60;fitDist();};
+const tunCam=()=>{VB={x0:TW.x0-30,z0:TUN_CAVE.y0-10,x1:TW.x1+30,z1:TW.len.s+20};FIT.w=TW.x1-TW.x0+80;FIT.h=TW.len.s-TW.len.n+60;fitDist();};
 const tunReset=p=>Object.assign(p,{path:[],peek:null,tk:null,plant:null,supT:null,focus:null,elev:0,vaultK:0,crawl:false,lx:0,ly:0,offMap:false,throwGo:null,medGo:null,work:null,away:false,ret:null});
 // in: from the mouth at the end of the road east (road.js, when everyone who's up has walked into it)
 function enterTunnel(){
@@ -206,6 +213,4 @@ function leaveTunnel(){
     zoom=2.2;yaw=0;tilt=0;camT={x:1700,z:-380};camPan=null;clampCam();updateCamera();updateObjUI();setStatus();buildCards();hud();});
 }
 function leaveTunnelNow(){if(MAPID==='tun')tunnelOut();}   // (a Retry, a New game: state.js's reset)
-// the far end: the old radio tower is the next mission, not built yet
-function tunnelEnd(){banner('The old radio tower is through here: the next mission. It isn\'t built yet: coming next.',4200);}
-function tunHint(){return'The tunnel runs north under the hill, pitch black: only your torches. At its far end: the old radio tower, the next mission (coming next). Walk back to the south end to go out.';}
+function tunHint(){return obj>=9?'The tunnel runs north under the hill, pitch black: only your torches. Its north end has caved in. Walk back to the south end to go out.':'The tunnel runs north under the hill, pitch black: only your torches. Its north end has caved in: the way on is the service door in the east wall just short of it, under the red light. Walk everyone to it to go into the hill. Walk back to the south end to go out.';}

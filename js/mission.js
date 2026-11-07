@@ -440,9 +440,10 @@ function objCompleted(n){
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
+  if(MAPID==='l4'&&typeof l4ObjUI==='function'&&L4){l4ObjUI(el);return;}   // (level4.js)
   if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
   if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
-  if(typeof road!=='undefined'&&road&&road.talked){el.querySelector('b').textContent='Next mission';el.querySelector('span').textContent='The old radio tower: through the tunnel down the road (east)';   // (road.js)
+  if(typeof road!=='undefined'&&road&&road.talked){el.querySelector('b').textContent=obj>=9?'Next':'Next mission';el.querySelector('span').textContent=obj>=9?'Radio control at the HQ (coming next)':'Level 4 · The old radio tower: through the tunnel down the road (east)';   // (road.js)
     el.querySelector('ol').innerHTML=OBJ_LIST.map(t=>`<li class="done">${t}</li>`).join('');el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
   const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':typeof hqs!=='undefined'&&hqs.won?'Headquarters taken':MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
@@ -480,7 +481,7 @@ function drawLastFoes(now){
 }
 function drawMission(rdt,now){
   drawGunMark(now);
-  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);drawMonsters(now);drawHQ(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
+  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);if(typeof drawL4==='function')drawL4(now);drawMonsters(now);drawHQ(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};

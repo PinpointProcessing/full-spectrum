@@ -17,7 +17,7 @@ function frame(nowMs){
   if(state==='equip'){equipFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);requestAnimationFrame(frame);return;}   // between missions: the squad at sea (equip.js)
   if(state==='play'){
     const dt=rdt*timeScale();if(dt>0)update(dt);
-    if(!reduced&&!paused&&MAPID!=='in'&&MAPID!=='tun'&&!hqIndoors()){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
+    if(!reduced&&!paused&&MAPID!=='in'&&MAPID!=='tun'&&!hqIndoors()&&!l4In()){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
     if(endAt&&nowMs>=endAt)finish();
   }
   if(!ptr&&!pinch&&(Math.abs(inertia.vx)+Math.abs(inertia.vy))>3){camT.x+=inertia.vx*rdt;camT.z+=inertia.vy*rdt;clampCam();const k=Math.exp(-rdt*5);inertia.vx*=k;inertia.vy*=k;}
@@ -36,7 +36,7 @@ let aliveT=0;
 function markAlive(rdt){
   if((aliveT-=rdt)>0)return;aliveT=3;
   try{if(state!=='play'){sessionStorage.removeItem('wy.alive');return;}
-    sessionStorage.setItem('wy.alive',MAPID==='l1'?'in Level 1':MAPID==='l2'?'in Level 2':MAPID==='in'?`inside the data center, ${{GF:'ground floor',B1:'basement','1F':'top floor'}[curFloor]||curFloor}`:`outside, objective ${Math.min(5,obj+1)}`);}catch(e){}
+    sessionStorage.setItem('wy.alive',MAPID==='l4'?`in Level 4, ${{SU:'the summit',ST:'the stairs',PL:'the plant'}[curFloor]||'the hill'}`:MAPID==='l1'?'in Level 1':MAPID==='l2'?'in Level 2':MAPID==='in'?`inside the data center, ${{GF:'ground floor',B1:'basement','1F':'top floor'}[curFloor]||curFloor}`:`outside, objective ${Math.min(5,obj+1)}`);}catch(e){}
 }
 function crashNote(){
   try{const w=sessionStorage.getItem('wy.alive');if(!w)return;const n=$('#crashNote');

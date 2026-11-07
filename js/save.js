@@ -6,9 +6,9 @@
    dead unless the game is restarted, and wounds are kept. A soldier who is down when it saves is stored badly wounded
    (5 HP) rather than bleeding out. XP and ranks are saved separately (progress.js) and survive a New game. */
 const SAVE_KEY='warehouseYard.save.v3';   // (v3: the checkpoints rework; older saves are ignored)
-const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Data center front cleared',dci:'Inside the data center',sci:'Scientists detained',hqf:'In front of the Headquarters',dc:'Drawbridge down',gate:'The gate cleared',base:'The Headquarters',road:'The road east'};
-const STAGE_OBJ={wh:3,br:3,maze:3,dco:3,dci:3,sci:4,hqf:4,dc:5,gate:5,base:6,road:7};   // obj (mission.js) after each
-const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},hqf:{x:860,y:-462},dc:{x:700,y:-470},gate:{x:850,y:-470},base:{x:500,y:600},road:{x:850,y:-392}};   // (hqf: at the drawbridge with the scientists, before the bio scanner: monsters.js's hqfTick)
+const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Data center front cleared',dci:'Inside the data center',sci:'Scientists detained',hqf:'In front of the Headquarters',dc:'Drawbridge down',gate:'The gate cleared',base:'The Headquarters',road:'The road east',hill:'Inside the hill',summit:'The summit',home:'Back with the parts'};   // (the last three: Level 4, level4.js)
+const STAGE_OBJ={wh:3,br:3,maze:3,dco:3,dci:3,sci:4,hqf:4,dc:5,gate:5,base:6,road:7,hill:8,summit:8,home:9};   // obj (mission.js) after each
+const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},hqf:{x:860,y:-462},dc:{x:700,y:-470},gate:{x:850,y:-470},base:{x:500,y:600},road:{x:850,y:-392},hill:{x:1520,y:-275},summit:{x:1520,y:-275},home:{x:1290,y:-280}};   // (hqf: at the drawbridge with the scientists, before the bio scanner: monsters.js's hqfTick)
 const AREA_STAGE=['wh','br','maze','dco'];   // the areas' checkpoints (AREAS in mission.js)
 function readSave(){
   try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&STAGES[s.stage])return s;}catch(e){}
@@ -20,7 +20,7 @@ function clearSave(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeIt
 let savedTimer=0;
 function saveGame(stage,quiet){   // (quiet: no Saved chip, the drawbridge coming down: mission.js)
   const data={v:3,stage,when:Date.now(),sci:sciOut,cleared:[0,1,2,3].filter(n=>finished[n]),   // (sci: scientists brought out of the data center: office.js; cleared: the areas that are checkpoints)
-    alert:{t:alertT,max:alertMax},   // the base's alert level only goes up within the mission (layers.js)
+    alert:{t:alertT,max:alertMax},l4:typeof l4Save==='function'&&MAPID==='l4'?l4Save():null,   // (Level 4: the parts taken, the crates, the radio log, the generator, the Crawler: level4.js)   // the base's alert level only goes up within the mission (layers.js)
     squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges,weapon:p.weapon,weapon2:p.weapon2||null,
       ...(p.joined?{joined:true,name:p.name,weapon:p.weapon}:{})}]))};   // (joined: a freed prisoner, office.js)
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
@@ -39,7 +39,7 @@ function continueGame(){
   const n=STAGE_OBJ[s.stage],at0=STAGE_AT[s.stage];
   for(const[id,d]of Object.entries(s.squad))if(d.joined&&!players.some(p=>p.id===id))rejoin(id,d,at0);   // the freed prisoners who joined (office.js)
   if(n>=6){sciOut=s.sci||1;if(typeof preloadVoices==='function')preloadVoices(['S1','S2','S3','S4']);}   // (the Headquarters' staff now: they're inside it, base.js)
-  else if(n>=4)sciBack(s.sci||1,at0);if(['hqf','dc','gate','base','road'].includes(s.stage))mon.hqf=true;   // the scientists brought out follow the squad again (to the bio scanner, then onto the drawbridge: monsters.js)
+  else if(n>=4)sciBack(s.sci||1,at0);if(['hqf','dc','gate','base','road','hill','summit','home'].includes(s.stage))mon.hqf=true;   // the scientists brought out follow the squad again (to the bio scanner, then onto the drawbridge: monsters.js)
   if(n>=5){setBridge(1);if(s.stage!=='dc')addZones(REST_ZONES.dc);}   // (from 'dc' they pour out again first: the stations once the gate's clear, monsters.js)
   objDone=n>=6?4:n>=5?3:n>=4?2:0;
   startMissionAreas();obj=n;updateObjUI();
@@ -58,6 +58,8 @@ function continueGame(){
   if(s.stage==='dci')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBuilding(true);},60);
   if(s.stage==='base')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBase();},60);   // the finished Headquarters: straight back in (base.js)
   if(s.stage==='road')roadContinue();   // outside it, the road east open (road.js)
+  if(s.stage==='hill'||s.stage==='summit'){roadContinue();const d=s.l4,st=s.stage;setTimeout(()=>{if(state==='play'&&MAPID==='out')enterHill({cont:st,l4:d});},60);}   // Level 4: back into the hill (level4.js)
+  if(s.stage==='home'){roadContinue();homeContinue();}   // back on the bridge with the parts
   if(s.stage==='dc')monGateStart();   // the drawbridge down: they come out again (monsters.js)
   if(s.stage==='gate'){mon.out={t0:simT-60,spawned:MON_FLOOD.n,roared:true,done:true};if(typeof railNow==='function')railNow();updateObjUI();}   // the gate cleared: gather at the drawbridge to go in   // the checkpoint inside the data center: straight back in (interior.js)
   return true;
@@ -65,7 +67,7 @@ function continueGame(){
 // intro and end screens: offer Continue / Retry when there's a save
 function refreshSaveButtons(){
   const s=readSave();buildCheckpoints();
-  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level 3 · Continue · ${STAGES[s.stage]}`;
+  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level ${['hill','summit','home'].includes(s.stage)?4:3} · Continue · ${STAGES[s.stage]}`;
   $('#startBtn').textContent=s?'Level 3 · New game':'Level 3 · The Data Center';
   $('#retryBtn').hidden=!s;$('#againBtn').textContent=s?'New game':'Run it again';
 }
@@ -76,7 +78,7 @@ function refreshSaveButtons(){
    under Level 3: Continue (the last save) and New game as before, and the list of checkpoints, every one open for now, like
    the levels. A checkpoint starts with everyone at full health and the loadout from the between-missions screen; from the
    scientists on, with the four freed men armed and all four scientists. It becomes the save. ---------- */
-const CP_ORDER=['wh','br','maze','dco','dci','sci','hqf','dc','gate','base','road'];
+const CP_ORDER=['wh','br','maze','dco','dci','sci','hqf','dc','gate','base','road','hill','summit','home'];
 function startCheckpoint(st){
   const n=STAGE_OBJ[st],after=n>=4,lo=typeof loadout!=='undefined'?loadout:DEFAULT_LOADOUT,squad={};
   for(const id of['A1','A2','B1','B2']){const l=lo[id]||DEFAULT_LOADOUT[id];squad[id]={dead:false,hp:100,grenade:1,spec:l.spec,weapon:l.weapon};}

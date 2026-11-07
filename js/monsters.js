@@ -80,7 +80,7 @@ function broodMother(x,y){
 // who a monster goes for: the nearest man on his feet, or a scientist (Bryan: "attack the units and scientists")
 function monPrey(u,maxD=900){
   let best=null,bd=maxD;
-  for(const p of players){if(!alive(p)||p.offMap||!sameFloor(u.x,u.y,p.x,p.y))continue;const d=hyp(p.x-u.x,p.y-u.y);if(d<bd){bd=d;best=p;}}   // (not on another floor: Level 4's hill)
+  for(const p of players){if(!alive(p)||p.offMap||p.away||!sameFloor(u.x,u.y,p.x,p.y))continue;const d=hyp(p.x-u.x,p.y-u.y);if(d<bd){bd=d;best=p;}}   // (not on another floor: Level 4's hill)
   for(const c of civs){if(!c.sci||c.dead||c.offMap||c.gone)continue;const d=hyp(c.x-u.x,c.y-u.y)+40;if(d<bd){bd=d;best=c;}}   // (a man close by comes first)
   if(u.brawl)for(const e of enemies){if(e.mon||e.dog||e.dead||e.surr||!sameFloor(u.x,u.y,e.x,e.y))continue;const d=hyp(e.x-u.x,e.y-u.y)+20;if(d<bd){bd=d;best=e;}}   // Level 4: their men too (Bryan: "attack not only the player but the enemy troops too")
   return best;
@@ -105,8 +105,10 @@ function monTick(dt){
     houndThink(u,dt);
   }
 }
-function monSaw(tg){if(tg&&tg.side==='P'&&tg.team){teamSawT[tg.team]=simT;if(!teamSeen[tg.team]){teamSeen[tg.team]=true;contact=true;setStatus();}}}
+function monSaw(tg){if(MAPID==='l4')return;if(tg&&tg.side==='P'&&tg.team){   // (Level 4: the brood tells their men nothing; a team stays hidden from them, level4.js)
+  teamSawT[tg.team]=simT;if(!teamSeen[tg.team]){teamSeen[tg.team]=true;contact=true;setStatus();}}}
 function houndThink(u,dt){
+  if(u.shaft&&typeof l4Shaft==='function'&&l4Shaft(u))return;   // (Level 4: woken by the lift, up the shaft after it)
   const tg=monPrey(u);if(!tg){u.path=[];return;}
   if(hyp(tg.x-u.x,tg.y-u.y)<420)monSaw(tg);
   if(tg.side==='E'&&!tg.alerted&&hyp(tg.x-u.x,tg.y-u.y)<300)alertOne(tg,{x:u.x,y:u.y},false);   // (one of their men it comes for: he's up and fighting it)

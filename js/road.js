@@ -256,7 +256,7 @@ function buildEast(sc){
     const leaves=[{kind:'gate',x:1000,y:-354,w:66,h:4},{kind:'gate',x:1000,y:-200,w:66,h:4}];meshObjs(leaves);
     leaves.forEach((o,i)=>{const a=i?.55:-.55,hz=i?-198:-352;if(o.mesh){o.mesh.position.set(1000+Math.cos(a)*33,0,hz+Math.sin(a)*33);o.mesh.rotation.y=-a;}});
   }finally{scene=keep;}
-  grp.add(rockMesh(eastRocks()));grp.add(rockMesh(farRocks()));portalMesh(grp);
+  grp.add(rockMesh(eastRocks()));grp.add(rockMesh(farRocks()));portalMesh(grp);if(typeof l4Cable==='function')l4Cable(grp);   // (the zip line down from the summit to the bridge: level4.js)
   const poleM=new T.MeshStandardMaterial({color:0x1d2124,roughness:.6,metalness:.6});
   for(const L of EAST.lamps){const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);grp.add(hd);L.head=hd;
     if(L.pole){const pm=new T.Mesh(new T.CylinderGeometry(1.2,1.6,L.h+2,8),poleM);pm.position.set(L.x,(L.h+2)/2,L.y);pm.castShadow=true;grp.add(pm);}}
@@ -288,7 +288,8 @@ function roadGather(){   // (interior.js's gatherZone: GO OUT in the Headquarter
   const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&need.every(p=>inZone(p,z));
   if(MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive()&&(!HQ.floors||curFloor==='GF'))return{z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',need,fn:leaveBase};
   if(MAPID==='out'&&road&&road.talked&&state==='play')return{z:TUN_ZONE,ready:all(TUN_ZONE),go:'GOING IN',name:'TUNNEL',auto:'in',need,fn:enterTunnel};   // (auto: it goes by itself, Bryan: "When approaching it it changes to it": tunnel.js)
-  if(MAPID==='tun'&&state==='play')return[{z:TUN_IN,ready:all(TUN_IN),go:'GOING OUT',name:'OUT',auto:'out',need,fn:leaveTunnel},{z:TUN_END,ready:all(TUN_END),go:'NEXT MISSION · COMING NEXT',name:'THE RADIO TOWER',auto:'end',need,fn:tunnelEnd}];
+  if(MAPID==='tun'&&state==='play')return[{z:TUN_IN,ready:all(TUN_IN),go:'GOING OUT',name:'OUT',auto:'out',need,fn:leaveTunnel},...(obj<9?[{z:TUN_SVC,ready:all(TUN_SVC),go:'GOING IN',name:'SERVICE DOOR',auto:'svc',need,fn:()=>enterHill()}]:[])];   // (the service door: into the hill, Level 4: level4.js)
+  if(MAPID==='l4')return l4Gather();   // (out by the service door, down the zip line: level4.js)
   return null;
 }
 function leaveBase(){
@@ -365,7 +366,9 @@ function roadIntroEnd(cut){
   obj=Math.max(obj,7);updateObjUI();setStatus();hud();saveGame('road');
 }
 function roadHint(){
+  if(MAPID==='l4')return l4Hint();   // (level4.js)
   if(MAPID==='tun')return tunHint();
+  if(obj>=9&&MAPID==='out'&&road&&!road.intro)return l4AfterHint();
   if(MAPID!=='out'||!road||road.intro)return'';
   return'The road east runs on past the gate, over the bridge, to a tunnel in the hill: the way to the old radio tower. Walk everyone into its mouth to go in. The green area at the drawbridge takes you back into the Headquarters.';
 }

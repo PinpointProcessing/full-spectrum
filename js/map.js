@@ -165,7 +165,7 @@ function smokeBlocks(ax,ay,bx,by){
 function coverAt(tx,ty,sx,sy){
   let best=0;
   for(const o of objs){
-    if(o.kind==='fence'||o.kind==='water'||o.kind==='pit'||o.kind==='bars'||o.kind==='void'||o.kind==='wtower'||o.kind==='srail'||o.door&&o.open)continue;   // (an open door isn't cover)   // cell bars, the void between floors and the watchtower's legs are never cover
+    if(o.kind==='drop'||o.kind==='fence'||o.kind==='water'||o.kind==='pit'||o.kind==='bars'||o.kind==='void'||o.kind==='wtower'||o.kind==='srail'||o.door&&o.open)continue;   // (an open door isn't cover)   // cell bars, the void between floors and the watchtower's legs are never cover
     if(rectDist(tx,ty,o)>15)continue;
     if(rectDist(sx,sy,o)<15)continue;
     if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)

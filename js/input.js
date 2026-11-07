@@ -6,7 +6,7 @@ function unitAtScreen(sx,sy,activeOnly){
   for(const u of players){if(u.dead||u.seat==='driver'||u.offMap||u.carriedBy)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8+(u.onTower||u.climb?u.elev||0:0));const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
   return best;
 }
-const noOrders=()=>!!landing||(typeof heliBusy==='function'&&heliBusy())||(typeof endingBusy==='function'&&endingBusy())||(MAPID==='l1'&&l1&&l1.away!=null)||(MAPID==='l2'&&(!!l2.land||l2.away!=null));   // in the dinghy coming in, the helicopter, or the boat going out
+const noOrders=()=>!!landing||(typeof l4Busy==='function'&&l4Busy())||(typeof heliBusy==='function'&&heliBusy())||(typeof endingBusy==='function'&&endingBusy())||(MAPID==='l1'&&l1&&l1.away!=null)||(MAPID==='l2'&&(!!l2.land||l2.away!=null));   // in the dinghy coming in, the helicopter, or the boat going out
 function enemyAtScreen(sx,sy){
   let best=null,bd=26;
   for(const e of enemies){if(e.dead||!e.vis)continue;const[x,y]=toS(e.x+e.lx,e.y+e.ly,8+(e.elev||0));const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=e;}}

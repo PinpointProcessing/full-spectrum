@@ -41,6 +41,7 @@ const WH_ROOM={x0:180,y0:270,x1:440,y1:550,name:'the warehouse'};
 function roomFor(wx,wy){
   if(MAPID==='in'){const f=floorOf(wx,wy),fl=f&&IN.floors[f],r=fl&&roomAt(fl,wx,wy);return r&&!/hall|lobby/i.test(r.name)?{x0:r.x0,y0:r.y0,x1:r.x1,y1:r.y1,name:r.name}:null;}
   if(MAPID==='l2'){const r=L2_ROOMS.find(z=>wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1);return r?{...r}:null;}   // Level 2's control building (level2.js)
+  if(MAPID==='l4'){const r=L4_ROOMS.find(z=>wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1);return r?{...r}:null;}   // Level 4's radio building (level4.js)
   const z=WH_ROOM;return wx>=z.x0&&wx<=z.x1&&wy>=z.y0&&wy<=z.y1?{...z}:null;
 }
 /* ---------- doors (Bryan: "can we add doors to break down. We can have them kick it in, later incorporate C4s or flashbangs") ----------
@@ -134,6 +135,7 @@ let breachHere=null,breachT=-1;
 function breachRooms(){
   if(MAPID==='in'){const f=IN&&IN.floors[curFloor];return f?(f.rooms||[]).filter(r=>!/hall|lobby|lift|stair/i.test(r.name)).map(r=>({x0:r.x0,y0:r.y0,x1:r.x1,y1:r.y1,name:r.name})):[];}
   if(MAPID==='out'&&!finished[0])return[{...WH_ROOM}];
+  if(MAPID==='l4')return curFloor==='SU'?L4_ROOMS.filter(r=>enemies.some(e=>!beaten(e)&&e.x>=r.x0&&e.x<=r.x1&&e.y>=r.y0&&e.y<=r.y1)).map(r=>({...r})):[];   // Level 4's radio building, while anyone's in there (level4.js)
   if(MAPID==='l2')return L2_ROOMS.filter(r=>enemies.some(e=>!beaten(e)&&e.x>=r.x0&&e.x<=r.x1&&e.y>=r.y0&&e.y<=r.y1)).map(r=>({...r}));   // Level 2's control building, while anyone's in there (level2.js)
   return[];
 }

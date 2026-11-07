@@ -77,7 +77,7 @@ function alertOut(x,y,msg,ambush,x2,y2,lk,open=OUT_HEAR_OPEN,wall=OUT_HEAR_WALL,
     if(!pts.some(([px,py])=>{const d=hyp(e.x-px,e.y-py);return d<=wall||(d<=open&&gridSight(px,py,e.x,e.y));}))continue;
     alertOne(e,lk||{x,y},ambush);any=true;
   }
-  if(any)startContact(msg,ambush,who||lk);
+  if(any&&!(lk&&lk.mon))startContact(msg,ambush,who||lk);   // (their men shooting at a monster: no one of ours is given away, level4.js)
   return any;
 }
 // a man who spots the squad shouts: those near him know too
@@ -103,7 +103,7 @@ function huntThink(e){
   }
   if(simT-e.huntT0>HUNT_T){giveUp(e);return;}
   if(simT<e.moveCool)return;
-  const ok=c=>hyp(c.x-e.home.x,c.y-e.home.y)<=LEASH&&(MAPID!=='in'||floorOf(c.x,c.y)===e.floor);
+  const ok=c=>hyp(c.x-e.home.x,c.y-e.home.y)<=LEASH&&sameFloor(c.x,c.y,e.home.x,e.home.y);
   if(e.hunt==='push'){
     const d0=hyp(e.x-L.x,e.y-L.y);
     if(d0<45){e.hunt='search';return;}
@@ -144,7 +144,7 @@ function flankThink(e,vis,hurt){
   const th=players.filter(alive).map(p=>({x:p.x,y:p.y}));let best=null,bs=-1e9;
   for(const c of coverPts){
     const dp=hyp(c.x-tg.x,c.y-tg.y),de=hyp(c.x-e.x,c.y-e.y);if(dp<70||dp>200||de>220||de<20)continue;
-    if(hyp(c.x-e.home.x,c.y-e.home.y)>LEASH||(MAPID==='in'&&floorOf(c.x,c.y)!==e.floor))continue;
+    if(hyp(c.x-e.home.x,c.y-e.home.y)>LEASH||!sameFloor(c.x,c.y,e.home.x,e.home.y))continue;
     if(coverAt(tg.x,tg.y,c.x,c.y)>0||!los(c.x,c.y,tg.x,tg.y))continue;   // from there his cover doesn't help him
     const sc=protStats(c,th).prot/th.length-de/150;if(sc>bs){bs=sc;best=c;}
   }
@@ -165,8 +165,8 @@ function radioTick(dt){
 }
 function callIn(e){
   const lk=e.lkp||{x:e.x,y:e.y};
-  for(const o of enemies)if(!o.dead&&!o.alerted&&(MAPID!=='in'||o.floor===e.floor))alertOne(o,lk,false);
-  startContact(null,false,lk);   // (the team they had: whoever's near where he last saw the squad)
+  for(const o of enemies)if(!o.dead&&!o.alerted&&sameFloor(o.x,o.y,e.x,e.y))alertOne(o,lk,false);
+  if(MAPID!=='l4'||players.some(p=>alive(p)&&hyp(p.x-lk.x,p.y-lk.y)<90))startContact(null,false,lk);   // (Level 4: only if he had one of ours in sight)   // (the team they had: whoever's near where he last saw the squad)
   if(typeof sfxSiren==='function')sfxSiren(e.x,e.y);
   const g=e.grp??nearArea(),left=reinfLeft[g]??REINF_MAX;   // (per area: at most REINF_MAX waves each)
   if(MAPID==='out'&&left>0&&!reinf){reinfLeft[g]=left-1;reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:e.x,y:e.y},obj:g};banner('They called it in. Reinforcements are coming.',3000);}
@@ -204,7 +204,7 @@ const BARKS={spot:['There!','Contact!','Over there!'],lost:['Lost him!','Where d
 function bark(e,k,force){
   if(!e||e.dead||e.dog||e.veh)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;if(simT<barkHardT)return;   // (Bryan: everyone talked all the time: even urgent shouts don't pile up)
   if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-e.x,p.y-e.y)<340))return;   // out of earshot
-  if(MAPID==='in'&&offFloor(e))return;
+  if(offFloor(e))return;
   const L=BARKS[k];if(!L)return;e.barkT=simT+9;barkAllT=simT+4;barkHardT=simT+1.5;
   const i=Math.floor(Math.random()*L.length);callout(e,L[i],'#ff9a80');
   if(typeof voiceClip==='function')voiceClip('E'+(1+(hashId(e.id)%3)),`bark_${k}_${i+1}`,{x:e.x,y:e.y,vol:contact?1.25:.95});   // his voice (voice.js): one of three; shouted over the shooting

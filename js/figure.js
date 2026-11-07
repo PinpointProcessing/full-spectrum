@@ -71,7 +71,7 @@ function figKitKey(u,L){
   if(L.k==='sq')w=u.weapon==='hmg'?'hmg':u.weapon==='sniper'?'sniper':u.weapon==='shotgun'?'shotgun':(u.weapon==='m4s'||u.spec==='silencer'&&u.specN>0?'m4s':'m4');   // (the silencer on the muzzle: a silenced rifle, or the silencer item while it lasts)
   else if(L.k==='en')w=u.noGun?'none':u.weapon==='sniper'||(u.post&&/sniper/i.test(u.name||''))?'sniper':'ak';
   else if(L.k==='pri')w=u.weapon?(u.weapon==='sniper'?'sniper':'ak'):'none';
-  const helm=L.k==='en'&&(u.gunner||(typeof alertStage==='function'&&alertStage()>=2));
+  const helm=L.k==='en'&&(u.gunner||u.helm||(typeof alertStage==='function'&&alertStage()>=2));
   const role=L.k==='sq'?(u.id==='A1'?'lead':u.id==='B2'||u.spec==='med'?'med':u.id==='B1'?'mg':''):'';
   return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;
 }

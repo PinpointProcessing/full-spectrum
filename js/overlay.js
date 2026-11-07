@@ -209,7 +209,7 @@ function drawOverlay(rdt,now){
     ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);
   }
   // rain (outdoors only)
-  if(MAPID==='out'||hqRoof()){
+  if(MAPID==='out'||hqRoof()||l4Out()){
   const rts=state==='play'?timeScale():1;
   ox.strokeStyle='rgba(170,195,220,.2)';ox.lineWidth=1;ox.beginPath();
   for(const d of rain){
