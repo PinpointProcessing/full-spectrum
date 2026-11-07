@@ -176,7 +176,7 @@ function missionTick(dt){
   if(MAPID==='in')interiorTick(dt);   // inside the office building (interior.js)
   else if(pendingSpawns.length&&(spawnTick-=dt)<=0){spawnTick=.5;spawnPending();}   // twice a second is plenty
   patrolTick();
-  checkpointTick();truckTick(dt);towerTick(dt);
+  checkpointTick();truckTick(dt);towerTick(dt);for(const e of enemies)if(e.cone)sniperConePose(e);
   if(panelGo){
     const u=panelGo;
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
@@ -265,9 +265,38 @@ function truckWreck(u,src){
 const CLIMB_T=1.6;
 let pickups=[];
 function towerSniper(id){
-  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(-318-TOWER.y,330-TOWER.x)});return u;   // facing between the data center's doors and up the runway road (ENE): the doors, the road east and his own front in his cone; the yard's west strip, the pipe and the road's far west end behind him
+  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(-150-TOWER.y,520-TOWER.x)});
+  if(typeof T!=='undefined'&&scene)addSniperCone(u);return u;   // (his cone shows from the start, below; he isn't marked as seen: known men count as threats anywhere for the squad's cover, and a sniper 30 m off put them on the yard's patrol aisle)   // facing out over the runway road and down the bridge's road (SSE): the road east of him, the bridge road's mouth and the road down to the canal in his cone; the doors, the strip in front of the building, the road's far west end and the yard's west side behind him or out of it
 }
 const towerMan=()=>units.find(u=>u.onTower&&!u.dead&&!u.downed)||null;
+// his cone on the ground (Bryan, after v101: "We should also put a large red cone where the sniper sees... Really make sure the
+// players knows the sniper tower is there"): big and red from the start, alerted or not, as far as he sees and cut off where
+// the buildings and containers block his view (the sight grid, sightBlk); it turns with him and goes when he's down. In 3D on
+// the ground, so it's there zoomed in too (on the overlay, a cone this size often has corners behind the camera)
+const NEST_N=48;
+function addSniperCone(u){
+  const g=new T.Group(),fg=new T.BufferGeometry(),lg=new T.BufferGeometry(),idx=[];
+  for(let i=1;i<=NEST_N;i++)idx.push(0,i,i+1);
+  fg.setAttribute('position',new T.BufferAttribute(new Float32Array((NEST_N+2)*3),3));fg.setIndex(idx);
+  lg.setAttribute('position',new T.BufferAttribute(new Float32Array((NEST_N+2)*3),3));
+  const fill=new T.Mesh(fg,new T.MeshBasicMaterial({color:0xff2414,transparent:true,opacity:.2,depthWrite:false,side:T.DoubleSide,toneMapped:false}));
+  const edge=new T.LineLoop(lg,new T.LineBasicMaterial({color:0xff5040,transparent:true,opacity:.85,depthWrite:false,toneMapped:false}));
+  fill.renderOrder=2;edge.renderOrder=3;fill.frustumCulled=edge.frustumCulled=false;g.add(fill,edge);scene.add(g);
+  u.cone=g;u.coneAng=null;u.coneT=-1;sniperConePose(u);
+}
+function sniperConePose(u){
+  const g=u.cone;if(!g)return;
+  if(u.dead||beaten(u)){g.visible=false;return;}
+  g.visible=true;const[fill,edge]=g.children;fill.material.opacity=.22+.1*(Math.sin(simT*2.4)+1)/2+(u.alerted?.08:0);
+  if(u.coneAng!==null&&Math.abs(u.ang-u.coneAng)<.01&&simT-u.coneT<.5)return;   // (re-cut when he turns, and twice a second: a Defender's wall)
+  u.coneAng=u.ang;u.coneT=simT;
+  const{r:R,cone:A}=eyeOf(u),fp=fill.geometry.attributes.position,lp=edge.geometry.attributes.position,set=(i,x,y)=>{fp.setXYZ(i,x,1.2,y);lp.setXYZ(i,x,1.6,y);};
+  set(0,u.x,u.y);
+  for(let i=0;i<=NEST_N;i++){const a=u.ang-A+2*A*i/NEST_N,dx=Math.cos(a),dy=Math.sin(a);let r=14;
+    for(;r<R;r+=8){const x=u.x+dx*r,y=u.y+dy*r,gx=Math.floor(x/CS),gy=Math.floor((y-TOP)/CS);if(gx<0||gy<0||gx>=GW||gy>=GH||sightBlk[gy*GW+gx])break;}
+    r=Math.min(r,R);set(i+1,u.x+dx*r,u.y+dy*r);}
+  fp.needsUpdate=lp.needsUpdate=true;fill.geometry.computeBoundingSphere();
+}
 function enemyDown(e){   // from damage() and silentKill(): the sniper's rifle stays up the tower
   if(e.weapon!=='sniper'||!e.onTower)return;
   const g=new T.Group(),m=new T.MeshStandardMaterial({color:0x1d2124,roughness:.5,metalness:.5,emissive:0x2a4a2a});
@@ -310,6 +339,7 @@ function towerTick(dt){
 }
 // CLIMB at the ladder once the tower's free and a soldier's near; the sniper's rifle floating over the platform
 function drawTower(now){
+  {const s=enemies.find(e=>e.onTower&&!beaten(e));if(s){toSBack=false;const[lx,ly]=toS(TOWER.x,TOWER.y,TOWER.elev+28);if(!toSBack)label('SNIPER NEST',lx,ly,'#ff6a55',10,800);}}   // (Bryan, after v101: make sure they know it's there)
   for(const p of pickups)if(p.mesh){p.mesh.rotation.y=now*1.6;p.mesh.position.y=TOWER.elev+10+Math.sin(now*2.2)*1.4;
     toSBack=false;const[lx,ly]=toS(p.x,p.y,TOWER.elev+20);if(!toSBack&&players.some(q=>alive(q)&&hyp(q.x-p.x,q.y-p.y)<420))label('SNIPER RIFLE',lx,ly,'#9fe8a0',9,700);}
   if(towerMan()||enemies.some(e=>e.onTower&&!beaten(e))||!players.some(p=>alive(p)&&hyp(p.x-TOWER.x,p.y-TOWER.y)<300))return;

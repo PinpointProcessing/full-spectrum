@@ -716,3 +716,16 @@ will fight it." Built in v101: the tower's sniper is off the radio check-in and 
 below, so taking him quietly from the west strip doesn't send anyone; the loud way up the bridge's road comes out onto the
 runway road in his sight. Scripted: timing the yard's patrol, up the west strip, a silent shot from his ladder, across the
 road's far west end behind the jeep: at the doors unseen on 4 of 4.
+
+# After v101: the sniper nest
+
+Bryan: "Or what if it was across the road, and the sniper looked out towards the road and the entrance from the bridge. We
+should also put a large red cone where the sniper sees. The players should say Sniper Nest NorthWest of us against the data
+center or something like that. Really make sure the players knows the sniper tower is there." Built in v102: the nest stands
+against the data center's south wall, between its doors and the heavy gun's nest; the sniper looks out over the runway road
+and down the bridge's road to the canal (straight up from the bridge you fight him; the quiet ways in are behind him). A big
+red cone on the ground shows where he sees, from the start, cut off where the buildings and containers block his view; SNIPER
+NEST over the tower; the hint line says where he is; and a few seconds after they're out the leader says "Sniper nest. Up north,
+against the data center. Stay out of his sights." (from where they come ashore the nest is due north, so not "north-west";
+recorded for Reyes, Kowalski, Hayes and Okafor). A silent shot from the doors takes him quietly. Scripted: the old quiet way
+and the way up the west strip both reach the doors unseen.

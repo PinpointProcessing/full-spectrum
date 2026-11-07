@@ -49,6 +49,7 @@ const CHAT={
   pipe:     ['There\'s a drain pipe west of the bridge. We can crawl through.','Sewer pipe on the left. Quiet way across.','West side, the pipe. Nobody watches it.'],
   dark:     ['Let\'s go dark. Nobody fires unless I say.','Stay quiet. Silencers first.','Keep it quiet. Takedowns where we can.'],
   sniper:   ['Sniper in the tower! Stay out of his sights.','Watch the tower. Sniper.','Tower! Sniper! Keep your heads down.'],
+  snipernest:['Sniper nest. Up north, against the data center. Stay out of his sights.'],   // (Bryan, after v101: "The players should say Sniper Nest NorthWest of us against the data center or something like that": from where they come ashore it's due north; tools/voices/gen_sniper.py)
   sniperdown:['Sniper\'s down. That rifle\'s ours if we want it.','Tower\'s clear. Grab his rifle.','He dropped the rifle. Somebody pick it up.'],
   gotrifle: ['Got the sniper rifle.','Sniper rifle. Now we\'re talking.','I\'ve got his rifle. I\'ll cover you.'],
   tower:    ['Get up in that tower. You\'ll see the whole yard.','From the tower I can cover the whole approach.','The tower. Best view on the map.'],
@@ -66,7 +67,7 @@ const CHAT={
   volleyok: ['Both down. Clean.','Nobody heard a thing.','Good shooting. Quiet.'],
 };
 const QUIET=new Set(['hush','clear','tkdone','tknice','dark','maze','patrol','volley','volleyok','pipe','tower','dcopen']);
-const TUT=new Set(['bridge','pipe','dark','sniper','sniperdown','gotrifle','tower','vehicle','killfield','maze','patrol','dclock','dcopen','mgman','rpgout','nadego','nadeno','volley','volleyok']);   // (voiced for A1-B2 only)
+const TUT=new Set(['bridge','pipe','dark','snipernest','sniper','sniperdown','gotrifle','tower','vehicle','killfield','maze','patrol','dclock','dcopen','mgman','rpgout','nadego','nadeno','volley','volleyok']);   // (voiced for A1-B2 only)
 // contact with a direction: the clock round where he's facing, and one or more of them
 const CLOCK={12:'twelve',2:'two',3:'three',4:'four',6:'six',8:'eight',9:'nine',10:'ten'};
 const CDIR={one:'Contact, {D} o\'clock!',many:'Contact! Tangos, {D} o\'clock!'};
@@ -94,8 +95,8 @@ const BANTER=[
  {when:'in',lines:[['B1','This place gives me the creeps.'],['A2','Then stop talking about it.']]},
 ];
 const BANTER_MAX=2;
-let talkQ=[],chatCD={},banterT=0,banterUsed=new Set(),hushBy=null,tutSaid=new Set(),tutT=0;
-function resetChatter(){talkQ=[];chatCD={};banterT=0;banterUsed=new Set();hushBy=null;tutSaid=new Set();tutT=0;}
+let talkQ=[],chatCD={},banterT=0,banterUsed=new Set(),hushBy=null,tutSaid=new Set(),tutT=0,nestAt=null;
+function resetChatter(){talkQ=[];chatCD={};banterT=0;banterUsed=new Set();hushBy=null;tutSaid=new Set();tutT=0;nestAt=null;}
 const up=u=>!!u&&alive(u)&&!u.offMap;
 const pick=n=>1+((Math.random()*n)|0);
 let chatWho='';   // (whose turn it is for nextVariant)
@@ -204,6 +205,7 @@ function tutTick(dt){
   if(state!=='play'||MAPID!=='out'||landing||(tutT-=dt)>0)return;tutT=.5;
   const ups=players.filter(p=>up(p)&&!p.joined);if(!ups.length)return;
   const sees=f=>enemies.find(e=>!e.dead&&e.vis&&f(e));
+  if(!tutSaid.has('snipernest')&&enemies.some(e=>e.onTower&&!e.dead)){if(nestAt==null)nestAt=simT+8;else if(simT>=nestAt)for(const id of['A1','B1','A2','B2']){const u=ups.find(p=>p.id===id);if(u&&tutLine('snipernest',u))break;}}   // the sniper nest, a few seconds after they're out (the leader, or whoever has the line)
   if(!tutSaid.has('bridge')&&ups.every(p=>p.y>CANAL.y0)){const e=sees(e=>e.grp===1&&!e.onTower);if(e&&tutLine('bridge',tutBy(e.x,e.y)))setTimeout(()=>tutLine('pipe',tutBy(CULVERT.x0,CANAL.y1)),3800);}   // the bridge is covered; the pipe's the quiet way
   if(!tutSaid.has('sniper')){const e=sees(e=>e.onTower);if(e)tutLine('sniper',tutBy(e.x,e.y));}
   if(!tutSaid.has('tower')&&tutSaid.has('sniperdown')&&pickups.length){const w=tutBy(TOWER.x,TOWER.y);if(w&&hyp(w.x-TOWER.x,w.y-TOWER.y)<300)tutLine('tower',w);}
