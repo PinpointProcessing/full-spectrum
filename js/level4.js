@@ -49,7 +49,7 @@ const L4_FL={
 const L4_TR=[
   {from:'PL',to:'ST',z:L4_FL.plUp,arrive:{x:1100,y:780},label:'STAIRS UP'},
   {from:'ST',to:'PL',z:L4_FL.stDown,arrive:{x:636,y:716},label:'DOWN'},
-  {from:'ST',to:'SU',z:L4_FL.stUp,arrive:{x:172,y:-180},label:'UP TO THE HUT'},
+  {from:'ST',to:'SU',z:L4_FL.stUp,arrive:{x:186,y:-180},label:'UP TO THE HUT'},
   {from:'SU',to:'ST',z:L4_FL.suDown,arrive:{x:1270,y:-250},label:'DOWN'}];
 const L4_CAR={PL:{x0:536,y0:616,x1:600,y1:696},SU:{x0:410,y0:-214,x1:510,y1:-150}};   // the lift's car: in the lower station, and in the bunker on the summit
 const L4_RIDE=6;   // the ride up through the rock (s)
@@ -63,7 +63,7 @@ const L4_REST=[{k:'med',x:330,y:-380},{k:'sup',x:600,y:-380}];   // on the summi
 const L4_INTEL={x:314,y:-520};   // the radio log, on the office desk
 const L4_AMBUSH=[[400,-62],[462,-40],[524,-52],[582,-84],[612,-150],[380,-100],[560,-18],[430,-8],[650,-62],[350,-56],[500,4]];   // round the bunker's door: where the guards wait for the lift
 const L4E={dmgIn:.8};   // their men: helmets and vests (20 % less damage, Alert II's)
-const L4_BROOD={young:3,youngBig:5,hatch:2,hatchBig:4,wave:2,waveBig:4,waveHatch:2,waveHatchBig:3,delay:5,gap:.45};   // the fan hall's brood (asleep), what the lift wakes below it, the wave out of the hatch
+const L4_BROOD={young:2,youngBig:3,hatch:1,hatchBig:2,wave:3,waveBig:5,waveHatch:2,waveHatchBig:3,delay:5,gap:.45};   // the fan hall's brood (asleep), what the lift wakes below it, the wave out of the hatch
 const L4_CRAWLER={hp:360,perMan:40,reach:26,lunge:120,hit:1.5,spd:84,wake:230};
 const L4_KEY='warehouseYard.l4';   // what came back (supplies, intel): for the HQ's radio control, next
 const L4_PARTS=[{id:'tx',name:'the transmitter',label:'TRANSMITTER',x:204,y:-528,standY:20,secs:4},{id:'amp',name:'the amplifier',label:'AMPLIFIER',x:651,y:-461,standY:20,secs:3},{id:'drum',name:'the cable drum',label:'CABLE DRUM',x:511,y:-291,standY:22,secs:3}];
@@ -103,8 +103,9 @@ function l4Objects(){
   // the bunker over the lift (its door south, x 440-480) and the shaft's vent by it
   O(U,'owall',390,-230,140,10);O(U,'owall',390,-220,10,90);O(U,'owall',520,-220,10,90);O(U,'owall',390,-140,50,10);O(U,'owall',480,-140,50,10);
   O(U,'vent',L4_HATCH.x-12,L4_HATCH.y-12,24,24,{hatch:1});
-  // the hut over the stairs (its door east, y -200..-160)
-  O(U,'owall',100,-220,100,10);O(U,'owall',100,-210,10,70);O(U,'owall',100,-150,100,10);O(U,'owall',190,-210,10,10);O(U,'owall',190,-160,10,10);
+  // the hut over the stairs (its door east, y -200..-160; room inside for everyone)
+  O(U,'owall',100,-220,130,10);O(U,'owall',100,-210,10,70);O(U,'owall',100,-150,130,10);O(U,'owall',220,-210,10,10);O(U,'owall',220,-160,10,10);
+  O(U,'container',262,-238,34,98,{col:'#4f565b',tag:'TGHU 5512'});   // a container screening the hut's door from their camp (the way out: round either end)
   // the mast's concrete base, their containers and generator, the amplifier on its pallet, the cable drum on its pallet
   O(U,'plinth',448,-352,44,44);
   O(U,'container',620,-560,110,34,{col:'#4a5230',tag:'CMAU 7241'});O(U,'container',620,-518,110,34,{col:'#5b2f2a',tag:'HLXU 3390'});
@@ -136,9 +137,9 @@ function paintSU(x){
   for(let i=0;i<5200;i++){x.fillStyle=r()<.5?'rgba(200,205,190,.06)':'rgba(0,0,0,.28)';x.fillRect(b.x0+r()*(b.x1-b.x0),b.y0+r()*(b.y1-b.y0),r()*2+.4,r()*2+.4);}
   const track=(pts,w,c)=>{x.strokeStyle=c;x.lineWidth=w;x.lineCap='round';x.lineJoin='round';x.beginPath();x.moveTo(...pts[0]);for(const p of pts.slice(1))x.lineTo(...p);x.stroke();};
   track([[630,-760],[630,-690],[600,-610],[560,-520],[520,-440],[470,-400]],40,'rgba(62,58,50,.85)');track([[630,-760],[630,-690],[600,-610],[560,-520],[520,-440],[470,-400]],2,'rgba(0,0,0,.35)');   // their track up the north side
-  track([[200,-180],[300,-240],[400,-280],[470,-300]],14,'rgba(70,66,56,.55)');track([[225,-450],[300,-400],[420,-380]],14,'rgba(70,66,56,.55)');track([[460,-120],[480,-40],[500,40]],16,'rgba(70,66,56,.6)');   // worn paths
+  track([[232,-180],[300,-240],[400,-280],[470,-300]],14,'rgba(70,66,56,.55)');track([[225,-450],[300,-400],[420,-380]],14,'rgba(70,66,56,.55)');track([[460,-120],[480,-40],[500,40]],16,'rgba(70,66,56,.6)');   // worn paths
   const pad=(px,py,w,h,c)=>{x.fillStyle=c;x.fillRect(px,py,w,h);x.strokeStyle='rgba(0,0,0,.4)';x.lineWidth=1.5;x.strokeRect(px,py,w,h);};
-  pad(164,-566,202,122,'#55585a');pad(384,-236,152,112,'#4e5153');pad(94,-226,112,92,'#4b4e50');pad(612,-566,126,96,'#3e403c');pad(440,-360,60,60,'#5d5f5c');   // concrete under the buildings, the containers, the mast
+  pad(164,-566,202,122,'#55585a');pad(384,-236,152,112,'#4e5153');pad(94,-226,142,92,'#4b4e50');pad(612,-566,126,96,'#3e403c');pad(440,-360,60,60,'#5d5f5c');   // concrete under the buildings, the containers, the mast
   {x.fillStyle='#4b4f4e';x.fillRect(180,-550,85,90);x.fillStyle='#575a58';x.fillRect(275,-550,75,90);}   // the radio building's floors
   hGrid(x,{x0:180,y0:-550,x1:265,y1:-460},15,.2);hGrid(x,{x0:275,y0:-550,x1:350,y1:-460},15,.2);
   {const c=L4_CAR.SU;x.fillStyle='#2a2d30';x.fillRect(c.x0,c.y0,c.x1-c.x0,c.y1-c.y0);hStripes(x,440,-150,40,8);}   // the lift's car in the bunker
@@ -322,7 +323,7 @@ function l4Dead(g,list){
 function l4SummitLook(g,m){
   const fl=L4.objs.filter(o=>o.floor==='SU');
   for(const o of fl){
-    if(o.kind==='owall'){const bunk=o.x>=390&&o.x<=520&&o.y>=-230&&o.y<=-140,hut=o.x<=200&&o.y>=-220&&o.y<=-150;hWall(g,o,bunk?m.bunker:hut?m.conc:m.owall,m.cap,bunk?20:15);}
+    if(o.kind==='owall'){const bunk=o.x>=390&&o.x<=520&&o.y>=-230&&o.y<=-140,hut=o.x<=220&&o.y>=-220&&o.y<=-150;hWall(g,o,bunk?m.bunker:hut?m.conc:m.owall,m.cap,bunk?20:15);}
     else if(o.kind==='iwall')hWall(g,o,m.wall,m.cap,13);}
   const keepS=scene;scene=g;try{meshObjs(fl.filter(o=>['crate','barrel','sandbag','container','pallet'].includes(o.kind)));}finally{scene=keepS;}
   // inside the radio building: the transmitter's rack (dials glowing), old equipment, the office desk with the radio set, a filing cabinet
@@ -372,7 +373,7 @@ function l4SummitLook(g,m){
   // light: floodlights on poles round their camp, the radio building, the hut's door, the zip line, the genset
   for(const[x,y]of[[300,-420],[650,-420],[470,-86],[624,-606]])l4Lamp(g,x,y,30,0xc4d6ff,2.2,260,'SU',{pole:1});
   l4Lamp(g,226,-500,16,0xffd9a8,1.4,140,'SU');l4Lamp(g,312,-500,16,0xffd9a8,1.2,130,'SU');l4Lamp(g,790,-498,14,0xffb060,1.1,120,'SU',{flick:1});
-  l4Lamp(g,206,-180,14,0xffe2b0,.9,110,'SU');l4Lamp(g,510,58,18,0xffc98a,1.1,140,'SU');
+  l4Lamp(g,238,-180,14,0xffe2b0,.9,110,'SU');l4Lamp(g,510,58,18,0xffc98a,1.1,140,'SU');
 }
 
 /* ---------- which floor is on screen ---------- */
@@ -538,7 +539,7 @@ function l4LiftNoise(set,to){
 /* ---------- the brood ---------- */
 function l4WakeNest(why){
   if(L4.woke)return;L4.woke=why;const big=players.filter(p=>alive(p)&&!p.offMap&&!p.away).length>5||players.filter(p=>!p.dead).length>5;
-  for(const h of L4.brood){if(h.dead)continue;h.dormant=false;h.againT=simT+.8+Math.random();h.growlT=simT+Math.random()*2;h.alerted=true;if(why==='lift')h.shaft=true;}
+  for(const h of L4.brood){if(h.dead)continue;h.dormant=false;h.againT=simT+1.6+Math.random();h.growlT=simT+Math.random()*2;h.alerted=true;h.slowT=simT+1.2;if(why==='lift')h.shaft=true;}   // (a moment to uncurl: the squad gets the first shots)
   // her eggs hatch too: five split for each newborn that crawls out
   const D=L4.nest&&L4.nest.userData.eggs,n=big?L4_BROOD.hatchBig:L4_BROOD.hatch;
   if(D)for(let q=0;q<n;q++){const c=D.clutches[q%D.clutches.length],left=[];for(let i=c.a;i<c.b;i++)if(!D.list[i].burst)left.push(i);if(!left.length)continue;
@@ -774,7 +775,7 @@ function drawL4(now){
   if(curFloor==='PL'){for(const k of['staff','ctrl','gen','store','fan','stn']){const q=PL_ROOMS[k];lb(q.name,(q.x0+q.x1)/2,q.y0+16,'rgba(200,210,220,.55)',9);}
     lb('SERVICE DOOR',85,846,'rgba(200,210,220,.55)',9);
     if(!L4.woke){const pulse=(Math.sin(now*2)+1)/2;lb('THE NEST',410,760,`rgba(214,160,255,${(.35+pulse*.3).toFixed(2)})`,9);}}
-  else if(curFloor==='SU'){lb('THE OLD RADIO TOWER',L4_MAST.x-60,L4_MAST.y+8,'#8fe6f2',10);lb('RADIO BUILDING',265,-446,'rgba(200,210,220,.6)',9);lb('BUNKER · LIFT',460,-118,'rgba(200,210,220,.6)',9);lb('HUT · STAIRS',150,-136,'rgba(200,210,220,.6)',9);}
+  else if(curFloor==='SU'){lb('THE OLD RADIO TOWER',L4_MAST.x-60,L4_MAST.y+8,'#8fe6f2',10);lb('RADIO BUILDING',265,-446,'rgba(200,210,220,.6)',9);lb('BUNKER · LIFT',460,-118,'rgba(200,210,220,.6)',9);lb('HUT · STAIRS',165,-136,'rgba(200,210,220,.6)',9);}
   for(const u of players){if(!u.cargo||offFloor(u)||!alive(u))continue;toSBack=false;const[x,y]=toS(u.x,u.y,26);if(!toSBack)label(u.cargo.label,x,y,'#ffcf4a',8,700);}
   if(L4.ride){const R=L4.ride,z=L4_CAR[R.from];if(R.from===curFloor){const k=(simT-R.t)/L4_RIDE;toSBack=false;const[lx,ly]=toS((z.x0+z.x1)/2,(z.y0+z.y1)/2,30);if(!toSBack){label(R.to==='SU'?'GOING UP':'GOING DOWN',lx,ly,'#ffcf4a',10,700);bar(lx-20,ly+8,40,k,'#ffcf4a');}}}
   const W=L4.wave;if(W&&W.at&&curFloor==='SU'&&(L4.waveQ.length||simT<W.at)){const pulse=(Math.sin(now*8)+1)/2;toSBack=false;const[x,y]=toS(L4_HATCH.x,L4_HATCH.y,10);if(!toSBack){gPath(L4_HATCH.x,L4_HATCH.y,20+pulse*6);ox.strokeStyle=`rgba(214,160,255,${(.5+pulse*.4).toFixed(2)})`;ox.lineWidth=2.5;ox.stroke();label(simT<W.at?'SOMETHING\'S COMING UP':'THE SHAFT',x,y-16,'#e2b8ff',9,700);}}

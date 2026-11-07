@@ -52,3 +52,38 @@ would have them: it stands on top of the hill the road tunnel runs under, and th
   stronger too"), one sniper, one machine gun. No guards inside the hill: it belongs to the monsters.
 - The brood in the fan hall: hatchlings like the HQ's newborns, and her young. The Crawler: one of her young grown big.
 - About 15 to 20 minutes.
+
+## Built (v99)
+
+Level 4 is in the game (`js/level4.js`). How to get there: the intro card's **Level 4 · The Old Radio Tower** button starts
+at the road east in sight of the tunnel (the 'road' checkpoint), or play on from Level 3's end. Walk everyone into the
+tunnel, up to its caved-in north end, and into the service door under the red light in the east wall: the hill fades in by
+itself.
+
+- **The plant**: dark until the generator's started (red emergency lights, the squad's torches). The control room's
+  cameras mark every man on the summit for two and a half minutes. A crate of supplies in the staff room and one in the
+  store. The fan hall: the brood asleep among her eggs (two young, three for a squad of more than five); walk in, or
+  shoot or throw near it, and they wake, a newborn or two hatching. The lower station: the lift and the foot of the
+  stairs. The service door is the way back out (a tap; the hill starts fresh next time).
+- **The stairs**: a long climb through the rock, red lamps, the Crawler in its chamber halfway (it wakes when you're
+  about 23 m off). Nothing done in the rock is heard on the summit. Out of a hut on the summit's west edge.
+- **The lift**: needs the generator. The moment it starts up, the team riding it counts as heard (caught), every man on
+  the summit is alerted and the riflemen leave their posts to wait round the bunker's door, the sniper and the machine
+  gun turn to it, and the brood wakes and goes up the shaft after it. Five seconds after the car's up they come out of
+  the shaft's vent by the bunker, more from below with them, one after another, and go for whoever's nearest: their men
+  too, and their men shoot back. A team that went up the stairs stays hidden while the guards are hurrying to the bunker.
+- **The summit**: 9 men (11 for a squad of more than five) in helmets and vests: a sniper up the mast facing their track,
+  a machine gun over the track, the radio man and another in the radio building (two rooms: a Breach), two by the
+  containers, a patrol round the mast, one at the bunker's door, one out by the zip line. All of them down: a checkpoint
+  (a medic station and an ammo drop by the mast, saved).
+- **The parts**: the transmitter (radio building), the amplifier (by their containers), the cable drum (the mast's
+  foot). A man carrying one moves at sneaking speed and can't shoot; Put down is on the run/sneak button; it drops
+  where he falls and anyone can take it up. The radio log on the office desk is intel (walk over it).
+- **Home**: the zip line's gather area on the south edge, ready once everyone who's up is in it with the three parts
+  (anyone down carried). Tap it: they go one after another out over the edge, then down the last of the cable onto the
+  bridge on the road east. Mission complete and the report. The cable can be seen from the bridge from the start.
+- Saves: inside the hill, the summit taken, back at the bridge with the parts. The supplies and the radio log are kept
+  for what's next at the HQ (radio control). The HQ roof's radio tower base says the parts are back.
+
+Not done yet: voiced lines for this level (callouts are text), the Crawler doesn't crawl on the ceiling in the fight (it
+does in the road's cutscene), and the plant's lift is always at both ends (no calling it down).

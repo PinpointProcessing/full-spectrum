@@ -777,7 +777,7 @@ function computeVis(){
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
     if(e.surr)continue;   // he gave up (layers.js)
     if(!e.alerted&&!e.grabbed){sense(e,0.1);seeBodies(e);}   // (a body he didn't know about: layers.js)
-    else if(e.alerted&&!e.grabbed&&!(MAPID==='l4'&&e.mon)){const p=seenBy(e);if(p){e.sawT=simT;e.lkp={x:p.x,y:p.y,t:simT};if(e.hunt){e.hunt=null;e.huntT0=0;e.path=[];bark(e,'spot');}startContact('Contact.',false,p);}if(contact)senseCovert(e,0.1);}   // an alerted man who sees the squad: contact goes on, and he knows where they are (it ends when nobody has for a while: hunt.js)
+    else if(e.alerted&&!e.grabbed&&!(MAPID==='l4'&&e.mon)){const p=seenBy(e);if(p){e.sawT=simT;e.lkp={x:p.x,y:p.y,t:simT};if(e.hunt){e.hunt=null;e.huntT0=0;e.path=[];bark(e,'spot');}startContact('Contact.',false,p);}if(contact&&!(e.l4wait&&e.path.length))senseCovert(e,0.1);}   // (Level 4: running to the bunker the lift's coming up into, his mind's on that, level4.js)   // an alerted man who sees the squad: contact goes on, and he knows where they are (it ends when nobody has for a while: hunt.js)
   }
 }
 // where an alerted enemy may shift between cover: inside the warehouse, unless he has his own zone (the checkpoint garrison)

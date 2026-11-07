@@ -108,6 +108,7 @@ function monTick(dt){
 function monSaw(tg){if(MAPID==='l4')return;if(tg&&tg.side==='P'&&tg.team){   // (Level 4: the brood tells their men nothing; a team stays hidden from them, level4.js)
   teamSawT[tg.team]=simT;if(!teamSeen[tg.team]){teamSeen[tg.team]=true;contact=true;setStatus();}}}
 function houndThink(u,dt){
+  if(simT<(u.slowT||0)){u.path=[];return;}   // (just woken: uncurling, Level 4's nest)
   if(u.shaft&&typeof l4Shaft==='function'&&l4Shaft(u))return;   // (Level 4: woken by the lift, up the shaft after it)
   const tg=monPrey(u);if(!tg){u.path=[];return;}
   if(hyp(tg.x-u.x,tg.y-u.y)<420)monSaw(tg);
