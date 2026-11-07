@@ -85,3 +85,6 @@ from there." for each scientist (S1-S4: whichever comes out with them; 'tell', e
 end of the speakers' files with `add_lines.py` ('plain'). Two or three takes did for A1, B1, S1 and S3; S2 took four. S4's
 voice runs slower and every take at the usual rate stopped at about 8 s, before the last word, so his are made at a faster
 rate (`RATE` in `gen_road.py`).
+After v96 (Bryan: "make the conversation end with once we get the radio tower we can request more advanced equipment"), a
+third line for the leader, `road_3` "Once we get that radio tower running, we can request more advanced equipment." (A1, B1;
+'firm'), made, scored and added the same way: three takes each, all heard word for word, the first kept.

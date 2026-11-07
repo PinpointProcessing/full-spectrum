@@ -16,7 +16,8 @@ STYLE={'firm':([.00,.00,.00,.00,.05,.15,.15,.65],40,14.),   # (the leader: stead
        'tell':([.00,.10,.00,.12,.00,.00,.15,.63],50,14.5)}   # (the scientist: telling them what he knows, still wary of them)
 LEAD="Alright, we need to get our radio communication up."
 SCI="There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need from there."
-LINES=[(sp,'road_1',LEAD,'firm') for sp in ('A1','B1')]+[(sp,'road_2',SCI,'tell') for sp in ('S1','S2','S3','S4')]
+LEAD2="Once we get that radio tower running, we can request more advanced equipment."   # (Bryan, after v96: the talk ends with what the tower is for)
+LINES=[(sp,'road_1',LEAD,'firm') for sp in ('A1','B1')]+[(sp,'road_2',SCI,'tell') for sp in ('S1','S2','S3','S4')]+[(sp,'road_3',LEAD2,'firm') for sp in ('A1','B1')]
 if ONLY:LINES=[l for l in LINES if l[0] in ONLY]
 spoken=lambda t:re.sub(r',\s*',' ',t)   # (Bryan, after v71: no pause at a comma)
 RATE={'S4':16.}   # (S4's voice runs slower: at 14.5 every take stopped at about 8 s, before the last word)

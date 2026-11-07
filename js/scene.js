@@ -43,7 +43,7 @@ function updateCamera(){
 }
 function clampCam(){
   // Bryan: the view may go past the map's edge; the centre stays within CAM_OVER of the area that's open
-  const over=MAPID==='in'?40:MAPID==='tun'?70:CAM_OVER;   // inside, the view stays on the floor you're looking at
+  const over=MAPID==='in'?40:MAPID==='tun'?70:MAPID==='hq'&&HQ&&HQ.floors?80:CAM_OVER;   // inside, the view stays on the floor you're looking at
   camT.x=clamp(camT.x,VB.x0-over,VB.x1+over);camT.z=clamp(camT.z,VB.z0-over,VB.z1+over);
   const fb=$('#fitBtn');if(fb)fb.hidden=zoom<1.02&&Math.abs(yaw)<0.02&&tilt<0.02;
 }
@@ -715,7 +715,7 @@ function syncUnits(t){
   for(const u of units){
     const m=u.m;if(!m)continue;
     const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
-    m.g.position.set(u.x+u.lx,(u.elev||0)+(MAPID==='in'?stairElev(u.x,u.y):0),u.y+u.ly);m.g.rotation.y=-u.ang;   // (on the office stairs: up or down with the steps, interior.js)
+    m.g.position.set(u.x+u.lx,(u.elev||0)+stairElev(u.x,u.y),u.y+u.ly);m.g.rotation.y=-u.ang;   // (on the office stairs: up or down with the steps, interior.js)
     m.g.visible=!u.gone&&!u.inHeli&&!u.away&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!u.detained));   // (a detained scientist is always with the squad: office.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     if(u.mon){monPose(u,t);continue;}   // (monsters.js)
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)

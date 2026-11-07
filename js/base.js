@@ -133,6 +133,7 @@ function montageEnd(){
 function baseTick(dt){   // (every tick: combat.js's update)
   if(MAPID!=='hq')return;
   if(hqs.won)useTick(dt);   // (BRING THE SCIENTISTS: interior.js)
+  hqFloorTick();   // (the stairs and the lift: hqfloors.js)
   if(hqs.won&&!hqEnd&&!base&&!tiedSci().length&&!anyDown()&&simT-(hqs.wonT||0)>5){hqEnd={ph:'montage',t:simT,sci:[]};montageStart();return;}   // (nobody left on the drawbridge to fetch: straight on to the clean-up)
   const b=base;if(!b||!b.cine)return;const t=simT-b.t0;
   while(b.i<MONTAGE.length&&t>=MONTAGE[b.i][0]){MONTAGE[b.i][1]();b.i++;if(base!==b)return;}
@@ -188,6 +189,7 @@ function makeBase(){
   objs.push(O(c.x-c.w/2,c.y-c.h/2,c.w,c.h),O(c.x-34,c.y-c.h/2-8,68,4),O(BASE_ST.med.x-17,BASE_ST.med.y-7,34,14),O(BASE_ST.sup.x-20,BASE_ST.sup.y-8,40,16));HQ.objs=objs.slice();rebuildNav();
   const keep=scene;scene=HQ.scene;try{cmdMesh();medMesh();supMesh();}finally{scene=keep;}
   addZones([{k:'med',x:BASE_ST.med.x,y:BASE_ST.med.y,label:'MEDIC TABLE',noMesh:true},{k:'sup',x:BASE_ST.sup.x,y:BASE_ST.sup.y,label:'SUPPLY TABLE',noMesh:true}]);
+  hqFloorsBuild();   // the stairs and the lift where her lair was, the second floor and the roof (hqfloors.js)
 }
 const bBox=(g,w,h,d,m,x,y,z,ry)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);if(ry)o.rotation.y=ry;o.castShadow=o.receiveShadow=true;g.add(o);return o;};
 const bLit=(tex,w,h)=>new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tex,toneMapped:false}));
@@ -233,6 +235,8 @@ function supMesh(){
 // the labels: what each thing is, and the empty rooms waiting
 function drawBase(now){
   if(MAPID!=='hq'||!HQ||!HQ.base||cineOn())return;
+  if(HQ.floors&&curFloor!=='GF'){drawHQFloors(now);return;}   // (the second floor, the roof: hqfloors.js)
+  if(HQ.ride)drawHQFloors(now);
   const c=BASE_ST.cmd,[lx,ly]=below(c.x,c.y+c.h/2+16,6);label('COMMAND CENTER',lx,ly,'#8fe6f2',10,700);
   for(const q of HQ_ROOMS){const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;label('EMPTY ROOM',x,y,'rgba(200,210,220,.55)',9,700);}
 }
@@ -253,6 +257,7 @@ function enterBase(fromOut){
     else camShot(500,600,1.6,0,.1);
     contact=false;clearTeams();sel=[];cardGroup=[];obj=Math.max(obj,6);objDone=4;
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
+    if(HQ.floors)setHQFloor('GF',{x:camT.x,y:camT.z});   // (the ground floor on screen: hqfloors.js)
     updateObjUI();setStatus();buildCards();hud();fadeTo(false);
   },380);
 }

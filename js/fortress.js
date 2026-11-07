@@ -125,7 +125,7 @@ function enterHQ(){
 function leaveHQNow(){   // back to the big map at once (a Retry, a New game)
   if(MAPID!=='hq')return;const out=STASH.out;hqEnd=null;base=null;$('#app').classList.remove('cine');if(typeof talkStop==='function')talkStop();
   for(const u of units)if(u.side!=='P'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
-  useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';
+  useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';curFloor='GF';floorChip();
   for(const p of players){p.offMap=false;moveMesh(p,out.scene);}
   units=[...out.units,...players.filter(p=>!out.units.includes(p))];enemies=units.filter(u=>u.side==='E');civs=units.filter(u=>u.side==='C');
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();disposeHQ();
@@ -212,7 +212,7 @@ function hqEndTick(){   // (every tick once she's dead: hqTickWin)
 }
 function hqHint(){
   if(MAPID!=='hq')return'';
-  if(hqs.won){if(HQ&&HQ.base)return'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now. Gather everyone at the south door to go out.';
+  if(hqs.won){if(HQ&&HQ.base){if(HQ.floors&&curFloor!=='GF')return hqFloorHint();return HQ.floors?'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now. The stairs and the lift at the north end go up to the second floor and the roof. Gather everyone at the south door to go out.':'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now. Gather everyone at the south door to go out.';}
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now.':'Send someone for the scientists: select a soldier, then tap BRING THE SCIENTISTS at the south door.';}
   if(!hqs.awake)return'Here she comes.';

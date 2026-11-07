@@ -9,7 +9,8 @@ that goes to the roof where a helipad and the radio tower could go. I am open to
 decided if PvP can be applied to these HQs yet."
 
 This started as a proposal (v95). Bryan answered its six questions after v95; his answers are below and the plan follows
-them. Built so far: the finished HQ (v95) and the way out of it, onto the road east (v96).
+them. Built so far: the finished HQ (v95), the way out of it onto the road east (v96), and its upstairs: the stairs and the
+lift, the second floor and the roof (v97).
 
 ## Bryan's answers (after v95)
 1. **Resources:** supplies and intel to start.
@@ -25,7 +26,7 @@ leader says, alright, we need to get our radio communication up. Then a scientis
 tower accessible from the tunnel down the road. You'll probably find the supplies you need from there. And that opens up to
 the next mission."
 
-## What's there now (v96)
+## What's there now (v97)
 - The hall, cleaned: a **command center** in the middle (a map table and screens), a **medic table** (heals, like a medic
   station) and a **supply table** (refills grenades and special items, like an ammo drop).
 - The **six side rooms** are empty and labelled EMPTY ROOM. They're the build slots.
@@ -40,6 +41,17 @@ the next mission."
   built yet, so for now it says so.
 - **Back in:** the drawbridge's green area takes the squad back into the HQ.
 - A save on the road ("The road east"); Continue comes back to it.
+- **Upstairs (v97)**, Bryan after v96: "I think we should build the HQ, and then the story". Where her lair was, at the north
+  end of the hall: a flight of stairs up and a lift (UP, LIFT UP: everyone selected goes). The floor chip on the right
+  switches between GF, 2F and ROOF, like the office building's.
+  - **The second floor**: a corridor north to the stairs up to the roof; the **briefing room** (a long table, a wall screen
+    with the area's map and the old radio tower marked, a whiteboard) and the **barracks** (ten bunks, lockers, a table)
+    to the west of it; two **empty rooms** to the east, for what's built next; a landing along the south with the stairs
+    down and the lift.
+  - **The roof**: a parapet, the stairs' housing, the **helipad** (a yellow ring and an H, green lights round it, a
+    windsock), the **radio tower's base** (a concrete plinth and the stub of a lattice mast with a blinking red light:
+    NEEDS PARTS, which the next mission brings), air conditioning units, vents and lamps. Outdoors: rain and lightning.
+  - Nothing to build up there yet: the radio tower, radio control and the class tools come with the next steps.
 
 ## Resources: two to start
 - **Supplies**: salvage, materials and money. Every mission brings some back: each area you clear, and crates you find on
@@ -105,8 +117,8 @@ goes on. That puts the roof on the class path, so the order is now:
 1. **The next mission: the old radio tower**, through the tunnel down the road. Its supplies are what the radio control
    station needs. Yours to design: the map, the guards, what's left of the tower, how they get there and back.
 2. Supplies and intel counted from each mission and shown at the command center.
-3. **Radio control, and the HQ's second floor and roof**: stairs and a lift up, the helipad and the radio tower on the
-   roof (built with the supplies from step 1).
+3. **Radio control, and the radio tower on the roof** (the second floor, the roof, the helipad and the tower's base are in:
+   v97): built with the supplies from step 1.
 4. **Classes at the HQ**: promotion at the command center for anyone at level 3 (the freed men too); the first class tools
    flown in by helicopter to the roof once the radio tower stands; better versions of each class at later milestones.
 5. Tap an EMPTY ROOM: a build menu with the weapon station and the armor station, each with its cost; the radio's

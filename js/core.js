@@ -2,9 +2,10 @@
 /* Shared constants, DOM handles and small helpers. Loaded first; every other file uses these globals. */
 const W=1000,H=900,TOP=-760;   // the map runs x 0–W, y TOP–H; north is -y. The warehouse yard is the south-west (x 0–600, y 220–900),
 const YARD_W=600;              // the canal crosses at y 150–214, the depot, data center and fortress gate are north of it. YARD_W sizes the camera fit.
-// the nav grid runs wider than the map, x 0–NAV_W, for the road east that opens once the Headquarters is the squad's (road.js);
-// EAST_X is the east edge of the map in play: W, or further on the big map once that road is open (useMap sets it)
-const NAV_W=1440;let EAST_X=W;
+// the nav grid runs wider than the map, x 0–NAV_W, for the road east that opens once the Headquarters is the squad's (road.js)
+// and the Headquarters' second floor (hqfloors.js); EAST_X is the east edge of the map in play: W, or further on the big map
+// once that road is open, or in the finished Headquarters (useMap sets it)
+const NAV_W=1800;let EAST_X=W;
 const C={alpha:'#5ec8ff',bravo:'#ffb547',enemy:'#ff5a48',good:'#5fe08e',warn:'#ffcf4a',bad:'#ff5a48'};
 const HUDFONT='"Chakra Petch","Rajdhani",ui-sans-serif,system-ui,sans-serif';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;

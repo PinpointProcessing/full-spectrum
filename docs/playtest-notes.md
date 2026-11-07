@@ -570,3 +570,34 @@ Then, on the draft's three questions: "1) Free/unlocked. The equipment is radio'
 floor (needs a radio tower). 2) hmm I'm not sure, maybe unlock slots as they level up. 3) tools and better versions of the
 class. As the game progresses enemies get stronger too." Recorded in docs/classes.md; the order of work in docs/hq-base.md
 now puts radio control and the roof (helipad, radio tower) before classes at the HQ.
+
+# v97: the HQ's upstairs (the stairs and the lift, the second floor, the roof)
+Bryan, after v96: "I think we should build the HQ, and then the story to continue to the radio tower. Let's make the
+conversation end with once we get the radio tower we can request more advanced equipment. Or something like that." The
+road east and the tunnel the way he describes them next (the bridge, the lake, the lighthouse, the bus, the centipede, the
+dark tunnel): v98.
+- Where her lair was, at the north end of the hall: a flight of stairs up (UP) and a lift (LIFT UP). With soldiers
+  selected, tap one: everyone selected on that floor goes, each up the whole flight on his own, or into the car (it goes
+  once they're all in, a ride of about 2 s). The camera follows them when nobody selected is left on the floor on screen.
+  The floor chip on the right (ROOF, 2F, GF) switches floors, with a dot for each man on each, like the office building's;
+  picking a team or a card whose men are upstairs takes the camera there too.
+- The second floor: a corridor north to the stairs up to the roof; the briefing room (a long table, a wall screen with the
+  area's map and the old radio tower marked, a whiteboard) and the barracks (ten bunks, lockers, a table) west of it; two
+  empty rooms east of it, for what's built next; a landing along the south side with the stairs down and the lift.
+- The roof: a parapet round it, the stairs' housing, the helipad (a yellow ring and a white H, green lights round it, a
+  windsock), the radio tower's base (a concrete plinth and the stub of a lattice mast with a blinking red light; it says
+  NEEDS PARTS: the next mission), air conditioning units, vents and lamps. It's outdoors: rain and lightning up there, and
+  the rain is only a hiss on the floors below.
+- The road talk ends with the leader: "Once we get that radio tower running, we can request more advanced equipment."
+  Voiced for Reyes and Hayes (whoever leads); the speech recogniser heard every take word for word.
+- Under the hood: the pathfinding grid is wider again (1800), with the second floor east of the ground floor in the same
+  frame, and the roof north of it.
+- Found on the way: the lift could set a man down outside the hall's north wall (the nearest free spot to where he stood
+  in the car); the ground outside the walls is closed off now.
+- Tested headless: from the HQ's save, all eight up the stairs by real paths (about 11 s) with the camera following, every
+  room on the second floor reachable, up to the roof (about 13 s), the helipad, the tower's base and the corners reachable,
+  everyone over to the helipad, down to the second floor and the lift down (a 2.2 s ride), two men up in the lift, the
+  floor chip and picking the men upstairs taking the camera there, GO OUT only on the ground floor, out, Continue back in.
+  The road talk's three lines in order. Regressions: the road east and the tunnel, Continue from every Level 3 checkpoint,
+  the HQ's end and its montage, the office building's stairs, lift, doors, breach and carrying (its floors share the chip),
+  back to the group after a job, Level 1's tutorial lock (0 fails), Level 2's quiet run (won, never seen); no page errors.

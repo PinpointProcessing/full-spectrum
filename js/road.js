@@ -22,7 +22,8 @@ const TUN_ZONE={x0:1238,y0:-472,x1:1322,y1:-394};   // the gather area at the mo
 const HQ_EXIT={x0:410,y0:858,x1:590,y1:922};   // the gather area in the Headquarters' entry hall, at its south door
 const ROAD_OUT={x:850,y:-392};   // where the squad comes to off the drawbridge, just south of its gather area
 const ROAD_TALK=["Alright, we need to get our radio communication up.",
-  "There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need from there."];   // (Bryan's words; clips road_1, road_2)
+  "There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need from there.",
+  "Once we get that radio tower running, we can request more advanced equipment."];   // (Bryan's words; clips road_1, road_2; the last, the leader again, after v96: road_3)
 let road=null;   // {open, talked, intro:{t0, ph}, guide}
 const EAST={grp:null,objs:null,lamps:null,gate:null,tex:null,rc:null,dirty:false};   // built once, into the big map's scene (tex: its ground, where scorch marks and blood go: scene.js's paintDecal)
 const roadBusy=()=>!!(road&&road.intro);   // (the camera down the road and the talk: no orders, fortress.js's endingBusy)
@@ -163,7 +164,7 @@ function resetRoad(){closeEast();road=null;hqStaff=[];}   // (state.js's reset)
 /* ---------- out of the Headquarters, and back in ---------- */
 function roadGather(){   // (interior.js's gatherZone: GO OUT in the Headquarters' entry hall, TUNNEL at the tunnel's mouth)
   const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&need.every(p=>inZone(p,z));
-  if(MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive())return{z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',need,fn:leaveBase};
+  if(MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive()&&(!HQ.floors||curFloor==='GF'))return{z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',need,fn:leaveBase};
   if(MAPID==='out'&&road&&road.talked&&state==='play')return{z:TUN_ZONE,ready:all(TUN_ZONE),go:'GOING IN',name:'TUNNEL',auto:'in',need,fn:enterTunnel};   // (auto: it goes by itself, Bryan: "When approaching it it changes to it": tunnel.js)
   if(MAPID==='tun'&&state==='play')return[{z:TUN_IN,ready:all(TUN_IN),go:'GOING OUT',name:'OUT',auto:'out',need,fn:leaveTunnel},{z:TUN_END,ready:all(TUN_END),go:'NEXT MISSION · COMING NEXT',name:'THE RADIO TOWER',auto:'end',need,fn:tunnelEnd}];
   return null;
@@ -177,7 +178,7 @@ function leaveBase(){
     out.units=out.units.filter(u=>!u.sci);if(road)road.guide=null;
     for(const u of units)if(u.side!=='P'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);   // (the Headquarters' own people stay in)
     hqEnd=null;base=null;$('#app').classList.remove('cine');talkStop();
-    useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';
+    useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';curFloor='GF';floorChip();
     if(!mon.out||!mon.out.done)mon.out={t0:simT-60,spawned:MON_FLOOD.n,roared:true,done:true};   // (after a Continue into the HQ: the drawbridge's gather area, the way back in)
     obj=Math.max(obj,7);   // (the road east: hud.js's objHint asks roadHint)
     for(const p of players){p.offMap=false;moveMesh(p,out.scene);Object.assign(p,{path:[],peek:null,tk:null,plant:null,supT:null,focus:null,elev:0,vaultK:0,crawl:false,lx:0,ly:0,throwGo:null,medGo:null,work:null,away:false,ret:null});}
@@ -209,7 +210,7 @@ function roadTick(dt){   // (every tick: combat.js's update)
     if(contact||state!=='play'){roadIntroEnd(true);return;}   // (trouble on the way: the talk can wait)
     if(I.ph==='walk'&&simT-I.t0>1.3){I.ph='pan';camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:1238,z:-402,zoom:1.75},t:0,dur:3.4};}
     else if(I.ph==='pan'&&!camPan){I.t1=I.t1||simT;if(simT-I.t1>.6){I.ph='talk';const lead=roadLead();
-      talkStart([{who:lead,to:g,text:ROAD_TALK[0],clip:'road_1'},g&&{who:g,to:lead,text:ROAD_TALK[1],clip:'road_2'}],()=>roadIntroEnd(false));}}
+      talkStart([{who:lead,to:g,text:ROAD_TALK[0],clip:'road_1'},g&&{who:g,to:lead,text:ROAD_TALK[1],clip:'road_2'},{who:lead,to:g,text:ROAD_TALK[2],clip:'road_3'}],()=>roadIntroEnd(false));}}
   }
   if(g&&road.back&&MAPID==='out'&&!g.path.length){   // back in through the gate
     if(g.m&&g.m.g.parent)g.m.g.parent.remove(g.m.g);units=units.filter(u=>u!==g);civs=civs.filter(c=>c!==g);road.guide=null;road.back=false;}
