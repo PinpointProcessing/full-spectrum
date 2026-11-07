@@ -83,9 +83,11 @@ const BR_ZONE={x0:330,x1:660,y0:-40,y1:62};
      data center, raked by its guns, a patrol marching across it
    - a few containers scattered down the east side, the flank from the rail bridge */
 // the watchtower: its middle, its platform's height, the foot of its ladder. Bryan, after v100: "Move the sniper to the left side of the
-// bridge, but sneaking through the pipes can avoid the tower's sights"; taken, its rifle reaches across the runway road. It stands on the
-// strip between the containers' last row and the road, west of the bridge's road; the ladder's on its west side, by the gap in that row
-const TOWER={x:345,y:-190,elev:40,ladder:{x:323,y:-190}};
+// bridge, but sneaking through the pipes can avoid the tower's sights. The sniper should be able to be reached so fighting across the
+// road is doable", then: "Actually can we place it at the far left corner against the containers looking towards the entrance of the
+// data warehouse and up the road?" It stands at the container yard's north-west corner, against the west end of the last row, by the
+// runway road; its ladder's on its west side, on the strip up the yard's west edge, behind him
+const TOWER={x:57,y:-178,elev:40,ladder:{x:35,y:-178}};
 O('wtower',TOWER.x-12,TOWER.y-12,24,24);
 // the container yard along the canal (Bryan's draft F: "Make the containers horizontal and run along the canal... The whole
 // point of the containers is for stealth"): three rows on the north bank, long sides east-west, most double-stacked (nobody

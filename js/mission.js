@@ -265,7 +265,7 @@ function truckWreck(u,src){
 const CLIMB_T=1.6;
 let pickups=[];
 function towerSniper(id){
-  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(-315-TOWER.y,560-TOWER.x)});return u;   // facing up the runway road past the bridge's road (ENE): the road east, the bridge road's mouth and his own front in his cone; the far west end of the road, the strip in front of the building and the pipe's way up behind him
+  const u=hostile(id,TOWER.x,TOWER.y,{name:'Sniper',post:true,onTower:true,elev:TOWER.elev,weapon:'sniper',eye:{r:620,cone:.75},ang:Math.atan2(-318-TOWER.y,330-TOWER.x)});return u;   // facing between the data center's doors and up the runway road (ENE): the doors, the road east and his own front in his cone; the yard's west strip, the pipe and the road's far west end behind him
 }
 const towerMan=()=>units.find(u=>u.onTower&&!u.dead&&!u.downed)||null;
 function enemyDown(e){   // from damage() and silentKill(): the sniper's rifle stays up the tower

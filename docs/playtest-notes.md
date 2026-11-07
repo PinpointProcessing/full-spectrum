@@ -702,3 +702,12 @@ to another floor; a team merely off the screen is just selected), and dragging: 
 a moment, he's picked out, then drag his route; a drag that starts straight away moves the map). Notes 2 and 3 built in
 v101 too: classes wait on the radio tower (the report and the boat screen say Unlock Radio Tower for upgrades), and the
 report has a level-up chime and soft ticks as the XP bars fill.
+
+Bryan, before v101 went up: "Actually can we place it at the far left corner against the containers looking towards the
+entrance of the data warehouse and up the road?" Moved: the tower stands at the container yard's north-west corner,
+against the west end of the last row, its ladder on the yard's west strip behind him; the sniper faces between the doors
+and up the road. The pipe, the first aisle and the west strip are out of his sight, so the squad can come up behind him
+and take him with a silent shot from the foot of his ladder; from the platform the rifle covers the doors and the whole
+front (31-66 m). The old quiet way (behind the barrier, along the building to the doors) is in his sight now. Found in a
+scripted run: killing him quietly starts the radio's clock; the check-in came 9 s later and sent the yard's patrol to
+him, who saw the squad crossing the road. Question for Bryan: take the sniper off the radio check-in?
