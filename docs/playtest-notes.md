@@ -673,3 +673,10 @@ come; nothing new is published until he's done and we've gone over them together
    no PROMOTE, no classes and no new equipment until the radio tower is built at the HQ (radio control, after Level 4).
 3. "Also a level up should make a sound. Maybe the exp bar moving up can make a noise too." To do. They'd be the game's
    first interface sounds (the beeps and jingles were taken out as too arcade), so they should be low-key.
+4. "for some reason controlling units is harder. I dont like the hard switch to the squad I select. Maybe I liked the
+   dragging the troops before, but I kept on accidentally moving them scrolling around - is there any way we can fix that
+   (answer when testing is done.)" What's there now: picking a team (its tab, a card, one of its men) whose men are all
+   off the screen or on another floor cuts the camera straight to them, no glide (`selectAway`, `goTo` in input.js;
+   Bryan: "if selecting the other squad, it should bring you to them"); dragging soldiers was taken out in v91 (after
+   v90: "Too many times I accidentally dragged a unit to a different spot"). Neither changed in v99-v100 (the floors were
+   made one interface for Level 4; Level 1 has no floors). To answer when he's done.
