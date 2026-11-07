@@ -65,7 +65,7 @@ function alertHud(){
 }
 
 /* ---------- bodies and check-ins ---------- */
-function addBody(e){if(!e.dog&&!e.veh)bodies.push({x:e.x,y:e.y,t:simT,found:false,id:e.id,area:MAPID==='in'?'in':obj,map:MAPID,floor:e.floor});}
+function addBody(e){if(!e.dog&&!e.veh)bodies.push({x:e.x,y:e.y,t:simT,found:false,id:e.id,area:MAPID==='in'?'in':obj,map:MAPID,floor:e.floor,high:!!e.onTower});}   // (high: up the watchtower, out of sight from below)
 // a body he didn't already know about: one of his own area, from after the last time he was alerted (a man who heard the
 // fight knows; and a fresh garrison doesn't care about the last area's dead)
 const newsTo=(e,b)=>!b.found&&b.map===MAPID&&b.area===(MAPID==='in'?'in':obj)&&(MAPID!=='in'||b.floor===e.floor)&&(e.alertAt??-99)<b.t-.5;
@@ -90,7 +90,7 @@ function seeBodies(e){
   // it takes him a moment to take it in (about 1 s close up, 2-3 s far off): he turns to look, and the detection ring fills
   let best=null,bk=0;
   for(const b of bodies){
-    if(!newsTo(e,b))continue;
+    if(b.high||!newsTo(e,b))continue;   // (the watchtower's sniper lies on his platform: nobody below sees him)
     const d=hyp(b.x-e.x,b.y-e.y);if(d>250)continue;
     let da=Math.atan2(b.y-e.y,b.x-e.x)-e.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>1.08||!los(e.x,e.y,b.x,b.y))continue;
     const k=1.4*(1-d/280);if(k>bk){bk=k;best=b;}
@@ -108,7 +108,9 @@ function checkInTick(dt){
   if((checkT-=dt)>0)return;checkT=45+Math.random()*20;
   const g=enemies.filter(e=>!e.dog&&!e.veh&&e.grp!=null&&!finished[e.grp]);if(g.length<3)return;   // (every area still held)
   const live=g.filter(e=>!e.dead&&!e.surr),bodyOf=e=>bodies.find(b=>b.id===e.id&&b.map==='out');
-  const silent=g.filter(e=>{if(!e.dead||e.checked)return false;const b=bodyOf(e);return!!b&&!b.found&&!live.some(o=>(o.alertAt??-99)>=b.t-.5);});   // nobody knew he'd gone
+  // (not the watchtower's sniper, alone up there: Bryan, after v100, "hugging the left side all the way down will get to it. But
+  // going straight through the bridge means you will fight it": taken quietly from the yard's west strip, nobody comes to look)
+  const silent=g.filter(e=>{if(!e.dead||e.checked||e.onTower)return false;const b=bodyOf(e);return!!b&&!b.found&&!live.some(o=>(o.alertAt??-99)>=b.t-.5);});   // nobody knew he'd gone
   if(!silent.length)return;
   const v=silent[0],b=bodyOf(v);v.checked=true;
   const go=live.filter(e=>!e.alerted&&!e.post&&!e.gunner&&!e.bodyGo).sort((a,c)=>hyp(a.x-b.x,a.y-b.y)-hyp(c.x-b.x,c.y-b.y)).slice(0,2);

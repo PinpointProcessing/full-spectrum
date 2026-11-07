@@ -711,3 +711,8 @@ and take him with a silent shot from the foot of his ladder; from the platform t
 front (31-66 m). The old quiet way (behind the barrier, along the building to the doors) is in his sight now. Found in a
 scripted run: killing him quietly starts the radio's clock; the check-in came 9 s later and sent the yard's patrol to
 him, who saw the squad crossing the road. Question for Bryan: take the sniper off the radio check-in?
+Bryan: "That way, hugging the left side all the way down will get to it. But going straight through the bridge means you
+will fight it." Built in v101: the tower's sniper is off the radio check-in and his body up on the platform isn't seen from
+below, so taking him quietly from the west strip doesn't send anyone; the loud way up the bridge's road comes out onto the
+runway road in his sight. Scripted: timing the yard's patrol, up the west strip, a silent shot from his ladder, across the
+road's far west end behind the jeep: at the doors unseen on 4 of 4.
