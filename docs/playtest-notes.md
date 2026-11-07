@@ -635,3 +635,9 @@ hanging outside the car and on the road. Blood is pools around the bodies and tr
   dead to the far end (about 20 s); back out by itself; Continue from the road's save. Regressions: Continue from every
   Level 3 checkpoint, the HQ's end, its upstairs, the office building's stairs and doors, back to the group after a job,
   Level 1's tutorial lock (0 fails), Level 2's quiet run (won, never seen), the HQ fight (won); no page errors.
+
+## After v98: a draft of the next mission
+Bryan: "Show me a draft". `docs/map-draft-H.png` and `docs/level4-draft.md`: Level 4, "Dead Air", the old radio tower
+through the tunnel. The Crawler in the tunnel, a valley road with a roadblock, woods with hunters in them, the compound
+on the hill (a sniper on the dead mast, a machine gun at the gate, a radio man who calls a truck in), three supplies to
+carry home and a radio log for intel. Five questions for him at the end of the write-up. Nothing built yet.
