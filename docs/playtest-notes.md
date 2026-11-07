@@ -795,5 +795,8 @@ has all seven of the front's men in sight.
    alone. Who stays put: anyone pinned, anyone busy with a job of his own, and anyone already standing within 4 m of the
    spot with a line to it. Defaults I took: they go even when there's nothing to hide behind there, they sneak if the team
    is hidden, and the lift's doors and the card door at the top of the office's stairs stay one-man jobs so the men put
-   beside those doors don't move. Found on the way: the spot-finder ignores doors, so it could put a man in a shut door's
-   doorway; it can't now.
+   beside those doors don't move. Level 1's wounded scout is a one-man job too: his hut is inside the radio tower's blast,
+   and the tip that comes next is the rocket at the tower with nothing else allowed meanwhile, so with the whole team at
+   the hut the rocket hurt two of them (Level 1's bot ended at 89 and 75 HP). Found on the way: the spot-finder ignores
+   doors, so it could put a man in a shut door's doorway; it can't now. Still true, as before: our own rockets and frags
+   hurt our own men in the blast, so a team gathered round a job is in it if a blast goes off there.

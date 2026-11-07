@@ -230,7 +230,9 @@ function leaveHeli(){if(heli&&heli.m&&heli.m.parent)heli.m.parent.remove(heli.m)
 /* ---------- the scout, the checkpoint, the relay ---------- */
 function l1Acts(){
   for(let i=ACTS.length-1;i>=0;i--)if(ACTS[i].map==='l1')ACTS.splice(i,1);
-  ACTS.push({id:'scout',map:'l1',x:L1_SCOUT.x,y:L1_SCOUT.y,r:16,standY:16,secs:3,label:'WOUNDED SCOUT',avail:()=>!l1.scoutUp,act:u=>scoutUp(u)});
+  // (solo: one man goes even with the team selected, combat.js's escort: the hut is inside the radio tower's blast, and the
+  //  tip that comes next is the rocket at the tower, with nothing else allowed meanwhile; the yard's clear by then anyway)
+  ACTS.push({id:'scout',map:'l1',x:L1_SCOUT.x,y:L1_SCOUT.y,r:16,standY:16,secs:3,solo:true,label:'WOUNDED SCOUT',avail:()=>!l1.scoutUp,act:u=>scoutUp(u)});
 }
 function scoutUp(u){
   l1.scoutUp=true;const s=L1.scout;
