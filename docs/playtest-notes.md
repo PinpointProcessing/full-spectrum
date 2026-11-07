@@ -800,3 +800,16 @@ has all seven of the front's men in sight.
    the hut the rocket hurt two of them (Level 1's bot ended at 89 and 75 HP). Found on the way: the spot-finder ignores
    doors, so it could put a man in a shut door's doorway; it can't now. Still true, as before: our own rockets and frags
    hurt our own men in the blast, so a team gathered round a job is in it if a blast goes off there.
+
+# Bryan, after v107 (the changes are in v108)
+
+1. "When a player is being shot out in the open, they will run to the nearest cover." There was already a shift to cover,
+   but it seldom happened: it only looked 5 m round him, only for a spot covered from every hostile in sight, only after
+   about 2 s, and never while he was pinned, and a man being shot at is pinned within a couple of seconds. Now a soldier
+   standing still whom a hostile has fired on, with nothing between him and that man, runs within half a second to the
+   nearest spot with cover from whoever's shooting at him (half cover will do; up to 25 m, the nearest by the way there; not
+   up close to them), pinned or not, at a run even with the gait button on sneak, "Moving to cover" over him and now and
+   then "Moving!". Defaults I took: he holds where you put him for 1.5 s after an order; he keeps at a job you gave him
+   (suppressing, a zip tie, a thing to use, a throw, a takedown, a door), and the man getting a downed teammate up or using
+   a medic kit keeps at it unless he's pinned (then he can't do it anyway, so he runs too); monsters don't shoot, so nobody
+   runs from them.

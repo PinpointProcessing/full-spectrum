@@ -464,7 +464,7 @@ function burst(u,t,L){
   if(u.side==='E')u.revealT=simT+3;else if(t.side==='E')t.revealT=Math.max(t.revealT||0,simT+1.6);   // a muzzle flash gives him away; and you can see who your men are shooting at
   if(u.gunner&&hyp(u.x-camT.x,u.y-camT.z)<260)shake(.14);
   if(u.heavy&&++u.rounds>=HEAVY.bursts){u.rounds=0;u.reloadT=simT+HEAVY.reload+1;bark(u,'reload',true);if(typeof sfxReload==='function')setTimeout(()=>sfxReload(u.x,u.y),600);}   // the run's heavy gun: a reload after this burst
-  u.target=t;u.aimT=simT;if(u.veh)u.aimA=Math.atan2(L.ty-L.fy,L.tx-L.fx);else{u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);}
+  u.target=t;u.aimT=simT;u.shotAtT=simT;if(u.veh)u.aimA=Math.atan2(L.ty-L.fy,L.tx-L.fx);else{u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);}
   const c=hitChance(u,t,L);
   const n=u.gunner?5:wOf(u).n;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun or a sniper rifle one round
   const q=silenced(u);if(q&&u.weapon!=='m4s'){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}   // a silencer: a quiet burst, and it wears a little (a silenced rifle doesn't)
@@ -678,7 +678,7 @@ function explode(x,y,by,quiet,R=58,D=95){   // (R, D: the blast's reach and its 
 /* ---------- stealth ---------- */
 // Gait is automatic: sneak while undetected with a live enemy within SNEAK_R, otherwise run. The gait button flips it (gaitForce).
 const SNEAK_R=300,RUN_SPEED=54,SNEAK_SPEED=24,CRAWL_SPEED=13;   // crawling through the sewer pipe: about 6 s end to end
-function gaitOf(p){return p.carry||p.cargo?'sneak':p.gaitForce||autoGait(p);}   // carrying a man: always at sneaking speed
+function gaitOf(p){return p.carry||p.cargo?'sneak':p.dash&&p.path.length&&p.path[p.path.length-1]===p.dash?'run':p.gaitForce||autoGait(p);}   // (running for cover under fire: a run, whatever the button says, playerThink)   // carrying a man: always at sneaking speed
 function autoGait(p){
   if(MAPID==='in'){const f=floorOf(p.x,p.y);return !caught(p)&&enemies.some(e=>!beaten(e)&&e.floor===f&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R&&(hyp(e.x-p.x,e.y-p.y)<120||gridSight(p.x,p.y,e.x,e.y)))?'sneak':'run';}   // indoors there's always someone behind a wall: sneak when one's close or in sight
   return !caught(p)&&enemies.some(e=>!beaten(e)&&hyp(e.x-p.x,e.y-p.y)<SNEAK_R&&sameFloor(e.x,e.y,p.x,p.y))?'sneak':'run';   // (a covert team keeps sneaking while the other fights)
@@ -972,8 +972,55 @@ function enemyThink(e){
     if(p){e.path=p;e.moveCool=simT+5;e.exposeT=0;if(hurt)e.fell=true;if(e.vis)callout(e,hurt?'Falling back':'Shifting',C.bad);}
   }else e.moveCool=simT+2;
 }
+/* ---------- shot at in the open: he runs for the nearest cover (Bryan, after v107: "When a player is being shot out in the
+   open, they will run to the nearest cover") ----------
+   A soldier standing still whom a hostile has fired on in the last DASH.recent s, with nothing between him and that man,
+   runs to the nearest spot that has cover from everyone shooting at him (half cover will do): the nearest by the way there,
+   heavy cover and cover from every hostile in sight breaking ties, out to DASH.r by the way there, not one that puts him
+   within 10 m of a man shooting at him or 6 m of any hostile. Pinned or not (pinned, he goes at the pinned crawl), at a run
+   whatever the gait button says (carrying a man or a part, at a walk), "Moving to cover" over him and now and then "Moving!"
+   (chatter.js's movingcov). Not within DASH.order s of an order of yours, and not while he's doing something you gave him:
+   suppressing, a job (a zip tie, a thing to use, a throw or a rocket, a takedown, a silent shot, a door, a skill, the gun or
+   the tower on his way), and a revive or a medic kit unless he's pinned (then he can't do it anyway); not while hidden, on
+   the gun or the tower, in a breach or just after a throw (as before). Monsters don't shoot: nobody runs from them. Not shot
+   at, only seen by a hostile who's alerted, he still shifts to full cover close by after ~2 s (below, as before). */
+const DASH={r:250,order:1.5,recent:2,near:100,crowd:60};
+const shootersOf=p=>enemies.filter(e=>!beaten(e)&&!e.mon&&e.target===p&&simT-(e.shotAtT??-99)<DASH.recent);
+const helperOf=d=>{const hs=players.filter(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-d.x,o.y-d.y)<24&&o.sup<=PINNED);return hs.find(o=>isCls(o,'medic'))||hs[0]||null;};   // who's getting a downed man up (update, below)
+const gettingUp=p=>players.some(d=>d!==p&&d.downed&&!d.dead&&!d.critical&&!d.carriedBy&&!d.offMap&&helperOf(d)===p);   // (he's the one getting a downed man up; figure.js has its own reviving() for the pose)
+const onJob=p=>(typeof zipOf==='function'&&zipOf(p))||(typeof useOf==='function'&&useOf(p))||p.carryGo||p.throwGo||p.rpgAim||p.tk||p.silent||p.doorGo||p.skillGo||p.manGo||p.climbGo||(!pinnedNow(p)&&(p.medGo||gettingUp(p)));
+function dashToCover(p,sh){
+  const vis=enemies.filter(e=>!beaten(e)&&!e.mon&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
+  const foes=enemies.filter(e=>!beaten(e)&&e.alerted&&!e.dormant);
+  const others=players.filter(o=>o!==p&&!o.dead).map(destOf);
+  const cand=[];
+  for(const c of coverPts){
+    const d=hyp(c.x-p.x,c.y-p.y);if(d<8||d>DASH.r)continue;
+    if(!sameFloor(c.x,c.y,p.x,p.y)||others.some(o=>hyp(o.x-c.x,o.y-c.y)<SPACE_COVER))continue;
+    if(sh.some(e=>hyp(e.x-c.x,e.y-c.y)<Math.min(DASH.near,hyp(e.x-p.x,e.y-p.y)))||foes.some(e=>hyp(e.x-c.x,e.y-c.y)<DASH.crowd))continue;   // (not up close to them)
+    let ok=true,heavy=true;
+    for(const e of sh){if(!los(e.x,e.y,c.x,c.y))continue;const v=coverAt(c.x,c.y,e.x,e.y);if(!v){ok=false;break;}if(v<2)heavy=false;}
+    if(!ok)continue;
+    const all=vis.every(e=>!los(e.x,e.y,c.x,c.y)||coverAt(c.x,c.y,e.x,e.y)>0);
+    cand.push({c,d,bonus:(heavy?15:0)+(all?25:0)});
+  }
+  cand.sort((a,b)=>(a.d-a.bonus)-(b.d-b.bonus));
+  let best=null,bs=1e9;
+  for(const k of cand.slice(0,8)){   // the nearest few by the way there (a spot just behind a wall can be a long way round)
+    const path=findPath(p.x,p.y,k.c.x,k.c.y);if(!path||!path.length)continue;
+    const L=routeLen(p,path);if(L>DASH.r*1.3)continue;
+    const sc=L-k.bonus;if(sc<bs){bs=sc;best={path,c:k.c};}
+  }
+  if(!best)return false;
+  p.path=best.path;p.dash=best.path[best.path.length-1];p.lastOrder=simT;p.exposeT=0;p.watch=null;p.peek=null;
+  callout(p,'Moving to cover',C.warn);if(typeof chat==='function'&&typeof gen==='function')chat('dash',15,gen(p,'movingcov'));
+  return true;
+}
 function playerThink(p){
-  if(!alive(p)||p.path.length||p.inVeh||p.onTower||p.climb||p.onGun||!caught(p)||p.sup>0.65||p.supT||(breach&&breach.team.includes(p))||simT-(p.nadeT??-99)<6){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
+  if(!alive(p)||p.path.length||p.inVeh||p.onTower||p.climb||p.onGun||!caught(p)||p.supT||(breach&&breach.team.includes(p))||simT-(p.nadeT??-99)<6||onJob(p)){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
+  const sh=simT-p.lastOrder>=DASH.order?shootersOf(p):[];   // shot at, with nothing between him and the man shooting: he runs for it
+  if(sh.length&&sh.some(e=>{const L=fireLine(e,p);return!!L&&coverAt(p.x,p.y,L.fx,L.fy)===0;})&&dashToCover(p,sh))return;
+  if(p.sup>0.65){p.exposeT=0;return;}   // (pinned, and not shot at in the open: he keeps his head down where he is)
   if(simT-p.lastOrder<4)return;
   const vis=enemies.filter(e=>!e.dead&&!e.dormant&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
   const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);
@@ -1046,7 +1093,7 @@ function update(dt){
     if(!p.downed||p.dead||p.offMap)continue;   // (one left downed outside the office building waits, frozen)
     if(!p.carriedBy){const z=zoneAt(p.x,p.y);if(z&&z.k==='med'){p.boxRev+=dt;if(p.boxRev>=BOXREV_T){reviveUp(p,35,null);continue;}}else p.boxRev=0;}   // lying in a medical box: back up
     if(!p.critical){
-      const hs=players.filter(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-p.x,o.y-p.y)<24&&o.sup<=PINNED),helper=hs.find(o=>isCls(o,'medic'))||hs[0];   // Bryan: no reviving while pinned (a Medic beside him does it if there is one)
+      const helper=helperOf(p);   // Bryan: no reviving while pinned (a Medic beside him does it if there is one)
       if(helper){const md=isCls(helper,'medic');p.revive+=dt;p.reviveNeed=md?CLS.reviveT:3;if(p.revive>=p.reviveNeed)reviveUp(p,md?CLS.reviveHp:35,helper);}   // (a Medic: quicker, and he comes up better: classes.js)
       else{p.revive=Math.max(0,p.revive-dt);if(!(typeof hqCalm==='function'&&hqCalm()))p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
     }else{
