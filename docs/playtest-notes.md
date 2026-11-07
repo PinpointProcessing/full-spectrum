@@ -781,3 +781,19 @@ has all seven of the front's men in sight.
    takedown from 14 m; Breach within 15 m. The 10 m circle stays for the actions where the soldier picks the spot himself:
    smoke, the RPG, getting a line on a man you tap, suppressing, a silent shot, the class skills and building. Pinned, he
    still won't leave his spot for any of them.
+
+# Bryan, after v106 (the changes are in v107)
+
+1. "When I press an action, can all available teammates go to the action to provide cover? Do you think that will be a good
+   idea? Maybe if you hold an action down the whole team goes? Let's discuss before committing". My proposal: let the
+   selection decide, no hold (a hold on the ground is already the lasso and on a hostile it's suppress). Bryan: "I like how
+   it depends on who is selected. If you have a team, they all go. If you have just one unit, he goes." Built: with a team
+   selected, one man does the job as before (the nearest who isn't pinned or busy) and the others go with him and take cover
+   round where he'll be, the way a group move places them. That's for a revive, a medic kit or carrying a critical man, a zip
+   tie, anything to use, the pillbox's gun, the watchtower, the bio scanner and a door. With one soldier selected he goes
+   alone and comes back to the group afterwards, as before. A man picked from his card (a throw, his kit, a skill) is always
+   alone. Who stays put: anyone pinned, anyone busy with a job of his own, and anyone already standing within 4 m of the
+   spot with a line to it. Defaults I took: they go even when there's nothing to hide behind there, they sneak if the team
+   is hidden, and the lift's doors and the card door at the top of the office's stairs stay one-man jobs so the men put
+   beside those doors don't move. Found on the way: the spot-finder ignores doors, so it could put a man in a shut door's
+   doorway; it can't now.

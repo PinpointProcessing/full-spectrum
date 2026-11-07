@@ -84,7 +84,7 @@ function doorTap(wx,wy){
   const dx=o.x+o.w/2,dy=o.y+o.h/2;team.sort((a,b)=>hyp(a.x-dx,a.y-dy)-hyp(b.x-dx,b.y-dy));
   const r=reachFor(team,u=>findPath(u.x,u.y,dx+(Math.sign(u.x-dx)||1)*12,dy),'No way to that door from here.',false,true);if(!r)return true;   // (the doors are in north-south walls: his side is east or west of it; however far, not pinned)
   const u=r.u,p=r.p;
-  Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:{o,t:simT}});callout(u,'Opening the door',C.good);
+  Object.assign(u,{path:p,lastOrder:simT,supT:null,focus:null,tk:null,doorGo:{o,t:simT}});callout(u,'Opening the door',C.good);escort(u,sel);   // (the others selected come up and cover him: combat.js)
   return true;
 }
 // a shut door in his way (updateUnit, combat.js): he stops at it and opens it

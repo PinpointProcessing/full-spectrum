@@ -88,10 +88,10 @@ function officeActs(){
   }
   // the stair door up top (Bryan: go up the stairs and find a card door at the top): a reader on the stairwell side
   const sd=IN.objs.find(q=>q.kind==='carddoor');
-  if(sd)ACTS.push({id:'stairdoor',map:'in',floor:'1F',x:sd.x+sd.w+14,y:sd.y+sd.h/2,r:14,standX:6,standY:0,secs:.8,get label(){return office.card?'OPEN':'LOCKED';},
+  if(sd)ACTS.push({id:'stairdoor',map:'in',floor:'1F',x:sd.x+sd.w+14,y:sd.y+sd.h/2,r:14,standX:6,standY:0,secs:.8,solo:true,get label(){return office.card?'OPEN':'LOCKED';},
     avail:()=>!office.stairDoor,need:()=>office.card?null:CARD_NEED,act:u=>openStairDoor(u)});
   const door=it(f1,'lift-call');   // up top: the car doors stay shut after the ride until someone inside taps OPEN
-  if(door)ACTS.push({id:'liftdoor',map:'in',floor:'1F',x:86,y:-220,r:14,standX:-14,standY:0,secs:.6,label:'OPEN',avail:()=>office.liftUp&&!office.liftDoor&&!office.ride,act:()=>openLiftDoor()});
+  if(door)ACTS.push({id:'liftdoor',map:'in',floor:'1F',x:86,y:-220,r:14,standX:-14,standY:0,secs:.6,solo:true,label:'OPEN',avail:()=>office.liftUp&&!office.liftDoor&&!office.ride,act:()=>openLiftDoor()});
   for(const q of b1.interact||[]){
     if(q.kind==='cells'){const c=q.cell;ACTS.push({id:'cell-'+c,map:'in',floor:'B1',x:q.x,y:q.y,r:14,standY:0,secs:2,label:'OPEN CELL',avail:()=>civs.some(v=>v.cell===c&&!v.freed),
       need:()=>office.card?null:CARD_NEED,act:u=>openCell(u,c)});}

@@ -172,9 +172,9 @@ function makeAssign(list,tx,ty){
   const box=zoneAt(tx,ty);if(box){const r=boxAssign(list,box,tx,ty);if(r)return r;}   // a medical or supply box: everyone inside it
   const th=threats(),n=list.length,R=n>4?62:ASSIGN_R[n];   // (five or more: the freed prisoners joined, office.js)
   const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf);
-  const cands=[];
+  const cands=[],shut=objs.filter(o=>o.door&&!o.open);   // (the nav grid ignores doors: never a spot in a shut one's doorway, orders.js)
   const add=(x,y,cp,pen=0)=>{
-    if(cands.some(c=>hyp(c.x-x,c.y-y)<6)||!los(tx,ty,x,y))return;
+    if(cands.some(c=>hyp(c.x-x,c.y-y)<6)||!los(tx,ty,x,y)||shut.some(o=>rectDist(x,y,o)<9))return;
     if(others.some(o=>hyp(o.x-x,o.y-y)<(cp?SPACE_COVER:SPACE_OPEN)))return;
     const st=protStats({x,y},th);
     cands.push({x,y,cp,cov:st.prot===th.length,expo:(st.see?1:0)+(st.prot<th.length?1:0),v:st.prot/th.length*2+st.see*0.3-hyp(x-tx,y-ty)/12-pen});
@@ -357,6 +357,32 @@ function circleSpot(u,ok,safe,extra=[],o){
     .map(c=>({...c,d:hyp(c.x-u.x,c.y-u.y),safe:safe?!!safe(c):true})).sort((a,b)=>(b.safe-a.safe)||(a.d-b.d)).slice(0,10);
   for(const c of fit){const p=findPath(u.x,u.y,c.x,c.y);if(p&&inCircle(p,o))return{x:c.x,y:c.y,path:p,open:!c.safe};}
   return null;
+}
+/* the team goes with him (Bryan, after v106: "When I press an action, can all available teammates go to the action to provide
+   cover?", then: "I like how it depends on who is selected. If you have a team, they all go. If you have just one unit, he
+   goes"): one man does the job, as before (the nearest who isn't pinned or busy); the others selected go along and take cover
+   round where he'll be, the way a group move places them (makeAssign: in sight of his spot, cover first, not on top of him).
+   For a revive, a medic kit, carrying a man, a zip tie, a thing to use (a hack too), the pillbox's gun, the watchtower, the bio
+   scanner and a door. Not the one selected from his card (a throw, a kit, a skill: just him), and not things marked solo: the
+   lift's doors and the card door at the top of the office's stairs (the men put by them stay put), BRING THE SCIENTISTS. Who
+   stays: anyone pinned (he won't leave his spot), on a job of his own (a zip tie, a thing, a kit, a carry, a throw, a
+   takedown, a silent shot or a volley, a breach, a skill, the bio scanner), on the gun or the tower, carrying a man, on
+   another floor, and anyone standing within ESCORT_NEAR of his spot with a line to it (covering him already). With them
+   there, he stays where he finishes (no way back to the group: retTick). */
+const ESCORT_NEAR=40;
+function escort(actor,list,at){
+  if(!actor||!list)return[];
+  const d=at||destOf(actor);
+  const busy=u=>onTask(u)||u.tk||u.silent||u.skillGo||u.climbGo||u.climb||u.onTower||u.manGo||u.onGun||u.doorGo||u.rpgAim||u.carry||u.inVeh||u.offMap||u.away||u.inBoat||u.inHeli
+    ||(volleyPending()&&(volley.by.includes(u)||volley.movers.includes(u)))||(typeof breach!=='undefined'&&breach&&breach.team.includes(u))
+    ||(typeof panelGo!=='undefined'&&panelGo===u)||(typeof scanGo!=='undefined'&&scanGo&&scanGo.u===u);
+  const go=list.filter(u=>u!==actor&&alive(u)&&!busy(u)&&!pinnedNow(u)&&sameFloor(u.x,u.y,d.x,d.y)
+    &&!(!u.path.length&&hyp(u.x-d.x,u.y-d.y)<=ESCORT_NEAR&&los(u.x,u.y,d.x,d.y)));
+  if(!go.length)return[];
+  const as=makeAssign(go,d.x,d.y);if(!as.length)return[];
+  for(const a of as)Object.assign(a.u,{path:a.path,lastOrder:simT,supT:null,exposeT:0,watch:null,ret:null,fireGo:null});
+  actor.ret=null;
+  return as.map(a=>a.u);
 }
 // Contact. If the squad struck first (ambush) the enemy is caught flat-footed: slow to fire back for a moment,
 // and the squad's opening shots get AMBUSH_BONUS for AMBUSH_T.

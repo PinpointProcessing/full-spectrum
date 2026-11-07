@@ -287,11 +287,11 @@ function tap(sx,sy){
       // whoever goes: the nearest who isn't pinned (combat.js's reachFor; however far, Bryan after v105)
       if(pu.critical){   // past the 60 s (Bryan): a medic kit if one of them has it and can get to him, else carry him out
         const kits=helpers.filter(hasKit),rk=kits.length?reachFor(kits,h=>goBeside(h,pu),null,true,true):null;
-        if(rk){orderMedkit(rk.u,pu);return;}
-        const r=reachFor(helpers,h=>goBeside(h,pu),'No way to reach him from here.',false,true);if(r)orderCarry(r.u,pu);return;
+        if(rk){if(orderMedkit(rk.u,pu))escort(rk.u,sel);return;}
+        const r=reachFor(helpers,h=>goBeside(h,pu),'No way to reach him from here.',false,true);if(r&&orderCarry(r.u,pu))escort(r.u,sel);return;
       }
       const r=reachFor(helpers,h=>{const spot=openSpot(pu.x,pu.y,players.filter(o=>o!==h&&o!==pu&&!o.dead).map(destOf));return spot&&findPath(h.x,h.y,spot.x,spot.y);},'No way to reach him from here.',false,true);
-      if(r){const h=r.u;h.path=r.p;h.lastOrder=simT;h.supT=null;markRet(h);callout(h,'On my way',C.good);}
+      if(r){const h=r.u;h.path=r.p;h.lastOrder=simT;h.supT=null;markRet(h);callout(h,'On my way',C.good);escort(h,sel);}   // (the others selected go with him and cover him: combat.js's escort)
       return;
     }
     // Bryan: with several selected, tapping one of them picks just him, like tapping his card (the cards on show stay);

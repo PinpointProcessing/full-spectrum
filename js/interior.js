@@ -368,6 +368,7 @@ function orderUse(a){
   const cand=foot.filter(u=>!u.carry).sort((p,q)=>(onTask(p)-onTask(q))||(hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y)));if(!cand.length)return;
   const r=reachFor(cand,pathOf,'No way there from here.',false,true);if(!r)return;const u=r.u,p=r.p;
   u.path=p;u.lastOrder=simT;useGos=useGos.filter(g=>g.u!==u);zipGos=zipGos.filter(z=>z.u!==u);useGos.push({u,a,prog:0});markRet(u);callout(u,'Moving',C.good);
+  if(!a.solo)escort(u,sel);   // the others selected go with him and cover him (combat.js; solo: the lift's doors, the card door, the fetch)
 }
 function useTick(dt){
   for(const a of actsHere())if(a.pickup){const u=players.find(p=>alive(p)&&!p.offMap&&hyp(p.x-a.x,p.y-a.y)<a.r);if(u)a.act(u);}
