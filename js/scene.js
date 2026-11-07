@@ -723,7 +723,7 @@ function syncUnits(t){
     const lying=u.downed||u.dead||simT<(u.stunT||0),cr=!lying&&u.crawl;
     if(m.fig){if(u.carriedBy)figCarried(u,m);figRefresh(u);figAnimate(u,m);}
     m.ring.visible=!u.dead&&!u.carriedBy;m.ring.material.opacity=u.downed?.35:m.person&&u.side!=='P'?.45:.85;
-    if(m.spot)m.spot.intensity=lying||cr?0:2.6;   // no torch while lying or crawling
+    if(m.spot)m.spot.intensity=lying||cr?0:MAPID==='tun'?4.4:2.6;   // no torch while lying or crawling (brighter in the pitch-black tunnel: tunnel.js)
     if(m.beam)m.beam.visible=!(lying||cr);
   }
   for(const s of extraFigs)if(s.m&&s.m.g.parent){s.m.g.position.set(s.x,0,s.y);s.m.g.rotation.y=-s.ang;figAnimate(s,s.m);}   // (Level 1's wounded scout)
@@ -744,7 +744,7 @@ function render(rdt,now){
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water
   if(moon){moon.position.set(camT.x-300,620,camT.z-400);moon.target.position.set(camT.x,0,camT.z);}   // the shadow box follows the view: the map is bigger than one shadow map (no moon indoors)
   lampLights(now);
-  hemi.intensity=(hemi.userData.base??.24)+storm*1.6+(MAPID==='in'||MAPID==='tun'?Math.max(0,2.2-zoom)*.16:0);   // inside: more ambient light zoomed out, where the pooled lamps can't reach every room
+  hemi.intensity=(hemi.userData.base??.24)+storm*1.6+(MAPID==='in'?Math.max(0,2.2-zoom)*.16:MAPID==='tun'?Math.max(0,2.2-zoom)*.05:0);   // inside: more ambient light zoomed out, where the pooled lamps can't reach every room (the tunnel only a little: pitch black, road.js)
   const fl=flashes.slice(-2);
   for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=(MAPID==='in'||MAPID==='tun'?6:4.5)*(1-f.t/.07);}else m.intensity=0;}   // muzzle flashes light the scene up (most of all indoors)
   const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18,b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;

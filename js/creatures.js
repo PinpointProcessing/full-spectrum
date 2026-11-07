@@ -206,7 +206,7 @@ function crPoseCentiCore(S,n,pts,t,o,put){
   const fr=CR_FR[n]||(CR_FR[n]={F:Array.from({length:n+1},()=>new T.Vector3()),X:Array.from({length:n+1},()=>new T.Vector3()),Y:Array.from({length:n+1},()=>new T.Vector3())});
   const F=fr.F,X=fr.X,Y=fr.Y,walk=o.walk??0,v=CR_V,flip=o.flip?-1:1,dead=!!o.dead;
   for(let i=0;i<=n;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(n,i+1)],f=F[i].subVectors(a,b);if(f.lengthSq()<1e-8)f.set(0,0,1);f.normalize();
-    const x=X[i].crossVectors(_cUp,f);if(x.lengthSq()<1e-6)x.set(1,0,0);x.normalize().multiplyScalar(flip);Y[i].crossVectors(f,x).normalize();}
+    const x=X[i].crossVectors(o.ups?o.ups[i]:_cUp,f);if(x.lengthSq()<1e-6)x.set(1,0,0);x.normalize().multiplyScalar(flip);Y[i].crossVectors(f,x).normalize();}   // (o.ups: each segment's own up, the surface it's on: down a wall, along a ceiling, road.js)
   for(let i=1;i<=n;i++){const k=i-1,u=k/(n-1),w=S.w(u),p=pts[i],lt=X[i],up=Y[i],fw=F[i];
     crBasis(_cm,lt,up,fw,w*.52,S.h*.46,S.seg*.82,v[0].copy(p).addScaledVector(up,S.h*.14));put('terg',k,_cm);
     crBasis(_cm,lt,up,fw,w*.45,S.h*.5,S.seg*.74,p);put('core',k,_cm);

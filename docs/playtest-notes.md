@@ -601,3 +601,37 @@ dark tunnel): v98.
   The road talk's three lines in order. Regressions: the road east and the tunnel, Continue from every Level 3 checkpoint,
   the HQ's end and its montage, the office building's stairs, lift, doors, breach and carrying (its floors share the chip),
   back to the group after a job, Level 1's tutorial lock (0 fails), Level 2's quiet run (won, never seen); no page errors.
+
+# v98: the road to the radio tower
+Bryan, after v96: "So to start the next mission, the soldiers exit the level. And move east on the road that now appears,
+the screen slides over with the troops when they move. It's over a bridge, a larger river/lake is north of the soldiers and
+a lighthouse circling is seen in the distance. The soldiers continue to the right/east where they see the tunnel entrance.
+A centipede monster can be seen crawling into the tunnel from above it and crawls on the ceiling. The tunnel is pitch
+black. A broken down bus is scene on the left lane. Inside the tunnel will have other broken down cars and dead bodies
+hanging outside the car and on the road. Blood is pools around the bodies and trails can be seen."
+- The road east is laid out again, further: out through the gap in the east fence, east over a bridge across a river
+  that runs out of a lake to the north (the canal runs into it), on to the foot of a hill at the far east of the map, round
+  a bend into the tunnel. The lake runs on north past the map's edge, round the fortress's moat; out on it a lighthouse in
+  red and white bands, its lantern lit and its beam going round.
+- The first time out: the talk by the drawbridge (the leader, the scientist, the leader's new last line), then the
+  scientist goes back in and the squad sets off east by itself, two by two, the camera sliding along with them, tilted a
+  little so the lake shows; over the bridge, to where the tunnel's mouth is in sight. There the camera goes to the tunnel: a
+  centipede (one of her young, bigger) comes over the hill, down the headwall's face, under the arch and in along the
+  tunnel's roof upside down; a growl, and "Movement! Over the tunnel." Then back to the squad, the objective (the old radio
+  tower, through the tunnel) and the save. About 35 s in all if you let the talk play.
+- A coach broken down in the left lane at the mouth, its nose in the tunnel, one tyre flat, panes gone, its door open. The
+  gather area at the mouth is the east lane and the verge beside it.
+- Inside, pitch black: every wall light dead but one sputtering tube, the red emergency lights by the cross-passage doors,
+  three road flares burning red by the wrecks, and the squad's torches (brighter in here). The coach across the left lane at
+  the way in, three more cars left with their doors open, the slewed car and the lorry as before, the fallen fan and the
+  collapse; eight dead, three half out of a car's door, the rest in the road, blood pooled round each and four trails where
+  someone was dragged, one of them off north into the dark. Still nothing alive in there: yours to say.
+- Continue from the road's save puts the squad back where it stopped, in sight of the tunnel.
+- Found on the way: with the coach in the left lane the mouth's gather area was one man too narrow for eight (the last
+  always stood outside it, so the tunnel never came in); it takes in the verge now.
+- Tested headless: from the HQ's save, GO OUT the first time: the three lines, the walk east (about 13 s, the camera
+  following them over the bridge), the stop in sight of the tunnel, the centipede (about 7 s from the hill to gone inside),
+  the save; all eight into the mouth and the tunnel by itself (about 6 s); inside, real paths round every wreck and the
+  dead to the far end (about 20 s); back out by itself; Continue from the road's save. Regressions: Continue from every
+  Level 3 checkpoint, the HQ's end, its upstairs, the office building's stairs and doors, back to the group after a job,
+  Level 1's tutorial lock (0 fails), Level 2's quiet run (won, never seen), the HQ fight (won); no page errors.

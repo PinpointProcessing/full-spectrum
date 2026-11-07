@@ -9,8 +9,8 @@ that goes to the roof where a helipad and the radio tower could go. I am open to
 decided if PvP can be applied to these HQs yet."
 
 This started as a proposal (v95). Bryan answered its six questions after v95; his answers are below and the plan follows
-them. Built so far: the finished HQ (v95), the way out of it onto the road east (v96), and its upstairs: the stairs and the
-lift, the second floor and the roof (v97).
+them. Built so far: the finished HQ (v95), the way out of it onto the road east (v96), its upstairs: the stairs and the
+lift, the second floor and the roof (v97), and the road to the radio tower the way Bryan described it (v98).
 
 ## Bryan's answers (after v95)
 1. **Resources:** supplies and intel to start.
@@ -26,19 +26,25 @@ leader says, alright, we need to get our radio communication up. Then a scientis
 tower accessible from the tunnel down the road. You'll probably find the supplies you need from there. And that opens up to
 the next mission."
 
-## What's there now (v97)
+## What's there now (v98)
 - The hall, cleaned: a **command center** in the middle (a map table and screens), a **medic table** (heals, like a medic
   station) and a **supply table** (refills grenades and special items, like an ammo drop).
 - The **six side rooms** are empty and labelled EMPTY ROOM. They're the build slots.
 - The squad and the scientists are there.
 - **Going out:** everyone gathers at the entry hall's south door (GO OUT) and goes out over the drawbridge. The first time,
-  one of the scientists comes out with them. The big map now goes on past its old east edge: the runway road runs through
-  a gap in the east fence and on as a narrower road, round a bend, into a tunnel in a hillside. The camera follows the road
-  to the tunnel while the leader and the scientist say Bryan's two lines, then the scientist goes back in.
+  one of the scientists comes out with them and they talk by the drawbridge: the leader, the scientist, and the leader
+  again ("Once we get that radio tower running, we can request more advanced equipment."). The scientist goes back in and
+  the squad sets off east by itself, the camera sliding along with it (v98, Bryan's description after v96): the road
+  runs through a gap in the east fence and over a bridge across a river, a lake to the north with a lighthouse out on it,
+  its beam turning; on east to the foot of a hill, where the road bends into a tunnel with a broken-down coach in the left
+  lane, its nose in the mouth. There they stop: a centipede comes over the hill, down the tunnel's headwall and in under
+  the arch along its roof. Then the save.
 - **The tunnel** is its own map (Bryan: "When approaching it it changes to it"): walk everyone into its mouth and it
-  comes in by itself; walk back to its south end and you're back on the road. A dark two-lane road tunnel about 125 m
-  long with wrecks, a fallen fan and a collapse to get round; at its far end the old radio tower's mission, which isn't
-  built yet, so for now it says so.
+  comes in by itself; walk back to its south end and you're back on the road. A two-lane road tunnel about 125 m long,
+  pitch black but for the squad's torches, a sputtering tube, red emergency lights and road flares by the wrecks: the
+  coach across the left lane at the way in, cars left with their doors open, a lorry, a fallen fan and a collapse to get
+  round, and the dead, some half out of their cars, some in the road, blood pooled round them and dragged off in trails.
+  At its far end the old radio tower's mission, which isn't built yet, so for now it says so.
 - **Back in:** the drawbridge's green area takes the squad back into the HQ.
 - A save on the road ("The road east"); Continue comes back to it.
 - **Upstairs (v97)**, Bryan after v96: "I think we should build the HQ, and then the story". Where her lair was, at the north

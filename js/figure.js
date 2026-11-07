@@ -61,7 +61,7 @@ function seedOf(u){let s=7;for(const ch of u.id+u.name)s=(s*31+ch.charCodeAt(0))
 function figLook(u){
   const r=rng(seedOf(u)),skin=SKINS[(r()*5)|0];r();   // (the portrait draws the helmet colour next)
   const k=u.kind==='sci'?'sci':u.kind==='prisoner'?'pri':u.side==='E'?'en':'sq';
-  const L={k,skin,hair:HAIRS[(r()*4)|0],cloth:k==='sq'?'#5d6b58':k==='pri'?'#7d8184':k==='sci'?'#d8dcd6':ECLOTH[(r()*4)|0],hat:(r()*3)|0,team:teamCol(u)};
+  const L={k,skin,hair:HAIRS[(r()*4)|0],cloth:u.cloth||(k==='sq'?'#5d6b58':k==='pri'?'#7d8184':k==='sci'?'#d8dcd6':ECLOTH[(r()*4)|0]),hat:(r()*3)|0,team:teamCol(u)};   // (u.cloth: the dead in the tunnel, their own clothes: tunnel.js)
   return L;
 }
 // the weapon and gear he has right now (the key changes when he picks up the sniper rifle, a freed man finds a rifle, the
