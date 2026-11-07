@@ -61,8 +61,8 @@ tunnel, up to its caved-in north end, and into the service door under the red li
 itself.
 
 - **The plant**: dark until the generator's started (red emergency lights, the squad's torches). The control room's
-  cameras mark every man on the summit for two and a half minutes. A crate of supplies in the staff room and one in the
-  store. The fan hall: the brood asleep among her eggs (two young, three for a squad of more than five); walk in, or
+  cameras mark every man on the summit for two and a half minutes. The bonus finds (v100): an M203 grenade launcher in
+  the staff room and a heavy machine gun (an M240) in the store. The fan hall: the brood asleep among her eggs (two young, three for a squad of more than five); walk in, or
   shoot or throw near it, and they wake, a newborn or two hatching. The lower station: the lift and the foot of the
   stairs. The service door is the way back out (a tap; the hill starts fresh next time).
 - **The stairs**: a long climb through the rock, red lamps, the Crawler in its chamber halfway (it wakes when you're
@@ -76,14 +76,31 @@ itself.
   a machine gun over the track, the radio man and another in the radio building (two rooms: a Breach), two by the
   containers, a patrol round the mast, one at the bunker's door, one out by the zip line. All of them down: a checkpoint
   (a medic station and an ammo drop by the mast, saved).
-- **The parts**: the transmitter (radio building), the amplifier (by their containers), the cable drum (the mast's
-  foot). A man carrying one moves at sneaking speed and can't shoot; Put down is on the run/sneak button; it drops
+- **The parts** (v100): the transmitter (radio building), the receiver (packed by their containers), the antenna
+  (taken down at the mast's foot). A man carrying one moves at sneaking speed and can't shoot; Put down is on the run/sneak button; it drops
   where he falls and anyone can take it up. The radio log on the office desk is intel (walk over it).
 - **Home**: the zip line's gather area on the south edge, ready once everyone who's up is in it with the three parts
   (anyone down carried). Tap it: they go one after another out over the edge, then down the last of the cable onto the
   bridge on the road east. Mission complete and the report. The cable can be seen from the bridge from the start.
-- Saves: inside the hill, the summit taken, back at the bridge with the parts. The supplies and the radio log are kept
-  for what's next at the HQ (radio control). The HQ roof's radio tower base says the parts are back.
+- Saves: inside the hill, the summit taken, back at the bridge with the parts. What came back (the parts, the radio log,
+  the finds) is kept for what's next at the HQ (radio control). The HQ roof's radio tower base says the parts are back.
 
 Not done yet: voiced lines for this level (callouts are text), the Crawler doesn't crawl on the ceiling in the fight (it
 does in the road's cutscene), and the plant's lift is always at both ends (no calling it down).
+
+## Bryan, after v99
+
+- "The bonus finds can be a heavy machine gun and an M203 grenade launcher attachment (goes in the place of the grenade -
+  goes farther and is stronger)". Built (v100): the M203 in the staff room, the M240 in the store. Whoever takes the M203
+  has it in his grenade's place for good: 3 rounds (refilled at ammo drops), 36 m against a frag's 17, a bigger blast
+  (113 damage at the middle against 89, and a little further out), a quicker, flatter shot; the card's grenade button
+  becomes an M203 and the launcher shows under his rifle. Whoever takes the M240 has it as his main weapon with his own gun
+  on his back (tap the gun on his card to swap). Both are saved with him.
+- "The parts for the radio is a transmitter, a receiver, and an Antenna. Right?" Yes: those are the three things a radio
+  station needs to talk and listen (in real kit the transmitter and receiver are often one box, a transceiver, plus a cable
+  up to the antenna and power, but the three read clearly). The antenna goes up on the stub of the mast on the HQ's roof.
+  Built (v100): the transmitter in the radio building, the receiver already packed by their containers, the antenna (a
+  yagi) taken down at the mast's foot.
+- "Now should only 1 squad go? Or should both go? Would it be too easy for both? Should we split them up at the tunnel?
+  Maybe a collapse splits them?" Open: my recommendation is in the reply (both squads, split by a collapse in the road
+  tunnel, one way in each, meeting on the summit). Waiting for Bryan's call before building it.

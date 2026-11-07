@@ -107,7 +107,7 @@ function drawOverlay(rdt,now){
       label(`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',10,700);
     }
   }
-  if((mode==='grenade'||mode==='smoke'||mode==='rpg')&&sel[0]){gPath(sel[0].x,sel[0].y,mode==='smoke'?SMOKE.range:mode==='rpg'?PRPG.range:170);ox.setLineDash([6,5]);ox.strokeStyle=mode==='smoke'?'#cfd6dc':mode==='rpg'?'#ffb36b':C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
+  if((mode==='grenade'||mode==='smoke'||mode==='rpg')&&sel[0]){gPath(sel[0].x,sel[0].y,mode==='smoke'?SMOKE.range:mode==='rpg'?PRPG.range:nadeRange(sel[0]));ox.setLineDash([6,5]);ox.strokeStyle=mode==='smoke'?'#cfd6dc':mode==='rpg'?'#ffb36b':C.warn;ox.globalAlpha=.75;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;}
 
   // tracers, flashes, sparks, blasts
   ox.globalCompositeOperation='lighter';

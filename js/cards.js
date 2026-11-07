@@ -18,6 +18,7 @@ const specFull=u=>u.spec==='medkit'&&isCls(u,'medic')?CLS.kits:u.spec==='rpg'&&i
 const fmtT=s=>{const t=Math.max(0,Math.ceil(s));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;};
 const inSupply=u=>{const z=alive(u)&&zoneAt(u.x,u.y);return !!(z&&z.k==='sup');};
 const NADE_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="7.5" cy="10" rx="4.6" ry="5"/><rect x="5.8" y="2.6" width="3.4" height="2.6" rx=".6"/><path d="M9.2 3.6h2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
+const M203_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x=".8" y="5.2" width="10.6" height="5.6" rx="1.4"/><rect x="11" y="6.4" width="4.2" height="3.2" rx=".6"/><rect x="3.4" y="10.4" width="2.2" height="3.6" rx=".5"/><rect x="6.6" y="3" width="1.6" height="2.4" rx=".3"/></svg>';   // (the M203: a launcher under the rifle, Level 4's find)
 // weapon silhouettes for the cards (our own drawings): an assault rifle with a curved magazine, a pump shotgun
 const GUN_SVG={
   rifle:'<svg viewBox="0 0 48 16" aria-hidden="true"><path d="M0 6.2 8.5 5H11v5H8.5L1 12.2z"/><path d="M11 4h19v5.2H11z"/><path d="M13 2.4h7.5v1.6H13z"/><path d="M15.5 9.2h3.4l-1 4.8h-3.3z"/><path d="M21 9.2h4.2l1.4 4.6-3.2 1.2z"/><path d="M30 4.6h8.5v3.6H30z"/><path d="M38.5 5.6H47v1.3h-8.5z"/><path d="M34.6 2.8h1.2v1.8h-1.2z"/></svg>',
@@ -78,7 +79,7 @@ function buildCards(){
         else if(u.spec==='build')mode=mode==='build'?(u.specN>=BUILD.wall.cost?'buildwall':null):mode==='buildwall'?null:'build';   // the build kit: a barricade; tap again for a wall, again to cancel (build.js)
         else{const m={medkit:'medkit',silencer:'silent',rpg:'rpg'}[u.spec]||'smoke';mode=mode===m?null:m;}   // (the silencer: tap a hostile who hasn't seen him; the RPG: tap where: combat.js)
       }
-      else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(`${u.name} has no grenades left.`,1600);}}
+      else if(ev&&ev.target.closest('.uc-nade')){select([u]);if(u.grenade)mode=mode==='grenade'?null:'grenade';else{mode=null;banner(u.gl?`${u.name} has no M203 rounds left. Refill at an ammo drop.`:`${u.name} has no grenades left.`,1600);}}
       else mode=null;   // tap him again: back to the whole group on show (picked above)
       hud();
     };
@@ -141,6 +142,7 @@ function updateCards(){
     c.hp.textContent=u.dead?'KIA':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);
     c.hpb.style.setProperty('--hp',(u.dead?0:clamp(u.hp,0,100))+'%');c.hpb.style.setProperty('--hc',hpCol(u));
     const gk=(u.weapon||'-')+'|'+(u.weapon2||'');if(c.gun.dataset.k!==gk){c.gun.dataset.k=gk;c.gun.innerHTML=gunHTML(u);c.gun.classList.toggle('swap',!!u.weapon2);c.gun.title=u.weapon2?`Swap to the ${WEAPON[u.weapon2].label}`:u.weapon?WEAPON[u.weapon].label:'Unarmed';}
+    if(c.nade.dataset.gl!==String(!!u.gl)){c.nade.dataset.gl=String(!!u.gl);c.nade.innerHTML=(u.gl?M203_SVG:NADE_SVG)+'<i></i>';c.nade.setAttribute('aria-label',u.gl?'M203 grenade launcher':'Grenade');c.nade.classList.toggle('gl',!!u.gl);}   // (the M203 in the grenade's place)
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);
     c.spec.hidden=!u.spec;c.nade.hidden=!!u.joined&&!u.grenade;   // a freed prisoner has no gear

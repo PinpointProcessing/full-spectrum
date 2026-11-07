@@ -60,6 +60,7 @@ function hud(){
   let h;
   if(ptr&&ptr.kind==='lasso')h='Draw a loop round the soldiers you want.';
   else if(mode==='charge')h='Tap a fuel tank. He plants the charge, then runs clear. Tap C4 on his card again to cancel.';
+  else if(mode==='grenade'&&sel[0]&&sel[0].gl)h=`Tap where to fire the M203, inside the dashed circle (${M203.range/10} m): a bigger blast than a frag. ${sel[0].grenade} round${sel[0].grenade===1?'':'s'} left; ammo drops refill them. Tap the M203 on his card again to cancel.`;   // (Level 4's find: combat.js)
   else if(mode==='grenade')h='Tap where to throw. Inside the dashed circle he throws from where he is; further off he moves to a safe spot first. Tap the grenade on his card again to cancel.';
   else if(mode==='rpg')h=`Tap where to fire the rocket, inside the circle (big blast; not closer than 6 m). He fires from where he stands, or takes a step or two first if something's in the way. ${sel[0]?sel[0].specN:0} left. Tap the RPG on his card again to cancel.`;
   else if(mode==='binos')h=`Tap a spot he can see, inside the circle: every hostile within ${SKILL.binos.r/10} m of it that he has a line to is marked for the whole squad for ${SKILL.binos.mark} s. Tap the binoculars again to cancel.`;

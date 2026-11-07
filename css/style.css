@@ -105,6 +105,7 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #cards.narrow .uc-bot{gap:4px}#cards.narrow .uc-hp{font-size:13px}#cards.narrow .uc-nade,#cards.narrow .uc-spec,#cards.narrow .uc-rpg{padding:0 2px;gap:3px;font-size:12px;letter-spacing:0;min-height:30px}#cards.narrow .uc-nade svg,#cards.narrow .uc-spec svg{width:15px;height:15px}#cards.narrow .uc-rpg i{margin-left:2px}
 .uc-nade{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:13px}
 .uc-nade svg{width:17px;height:17px;fill:currentColor}
+.uc-nade.gl{color:#ffcf6b}   /* the M203 in the grenade's place (Level 4's find) */
 .uc-nade.on{border-color:var(--warn);color:var(--warn)}
 .uc-skill{flex:1;min-height:32px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:12px;color:#9fd8ff}
 .uc-skill svg{width:16px;height:16px;fill:currentColor}.uc-skill i{font-style:normal;color:var(--text)}.uc-skill.on{border-color:#9fd8ff;background:rgba(159,216,255,.14)}

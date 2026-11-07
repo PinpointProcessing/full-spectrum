@@ -410,12 +410,20 @@ function throwFrom(u,tx,ty,kind){   // where he throws or fires from (his spot, 
   if(lobOK(u.x,u.y,tx,ty))return{x:u.x,y:u.y};
   return u.path.length||shy(u)?(los(u.x,u.y,tx,ty,true)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty,true);
 }
+/* the M203 (Bryan: a bonus find in Level 4, "an M203 grenade launcher attachment (goes in the place of the grenade - goes farther
+   and is stronger)"): a soldier who has one (u.gl) fires 40 mm grenades from under his rifle where his frag would be thrown:
+   M203.rounds of them, refilled at ammo drops, out to M203.range, a bigger blast (explode's R and D), a flatter, quicker arc */
+const M203={range:360,rounds:3,R:68,D:120,dur:.55};
+const nadeRange=u=>u&&u.gl?M203.range:170;
+const nadeFull=u=>u.gl?M203.rounds:isCls(u,'assault')?CLS.frags:1;   // (stations refill to this: hq.js)
 function throwNade(u,tx,ty){
-  if(hyp(tx-u.x,ty-u.y)>170){banner('Too far. Throw inside the circle.');return false;}
+  const gl=!!u.gl;
+  if(hyp(tx-u.x,ty-u.y)>nadeRange(u)){banner(gl?'Out of range for the M203. Fire inside the circle.':'Too far. Throw inside the circle.');return false;}
   const f=throwFrom(u,tx,ty,'nade');
   if(!f){banner('No clear throw from here.');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
   u.grenade=Math.max(0,(u.grenade||0)-1);u.lastOrder=simT;u.nadeT=simT;u.throwT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT;leanOut(u,L);   // (one frag of his: an Assault carries two, classes.js)
+  if(gl){nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:M203.dur*(.6+.4*hyp(tx-f.x,ty-f.y)/M203.range),by:u,R:M203.R,D:M203.D,gl:true});u.stats.items++;flashes.push({x:f.x,y:f.y,t:0,u});if(typeof playSample==='function')playSample('launch',u.x,u.y,.32,1.7);callout(u,'Grenade out!',C.warn);return true;}   // (a thump, a little flash at the muzzle)
   nades.push({x0:f.x,y0:f.y,x1:tx,y1:ty,t:0,dur:.9,by:u});u.stats.items++;if(typeof sfxPin==='function')sfxPin(u.x,u.y);
   callout(u,'Frag out!',C.warn);
   return true;
@@ -467,7 +475,7 @@ function fireSpot(u,tx,ty,range,minD=0,kind='nade',maxWalk=360){
 // kind: 'nade', 'smoke' or 'rpg'
 function orderThrow(u,tx,ty,kind){
   u.ret=null;   // (marked again below if he has to walk for it: retTick)
-  const R=kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:170,minD=kind==='rpg'?PRPG.min:0;
+  const R=kind==='rpg'?PRPG.range:kind==='smoke'?SMOKE.range:nadeRange(u),minD=kind==='rpg'?PRPG.min:0;   // (an M203 reaches further than a frag)
   const d=hyp(tx-u.x,ty-u.y);
   if(kind!=='nade'){   // smoke and the rocket go from where he stands, never walking him off towards it (Bryan, after v70); a miss keeps the aim
     if(d>R){banner(kind==='rpg'?'Out of range for the RPG. Fire inside the circle.':'Too far for smoke. Throw inside the circle.',1800);return false;}
@@ -499,15 +507,15 @@ function throwTick(){
   }
 }
 // quiet: no alarm (an explosion with nobody left to hear it)
-function explode(x,y,by,quiet){
-  booms.push({x,y,t:0});shake(clamp(1.1-hyp(x-camT.x,y-camT.z)/450,0,1));paintDecal({k:'scorch',x,y,r:Math.random()});
+function explode(x,y,by,quiet,R=58,D=95){   // (R, D: the blast's reach and its damage at the middle; an M203's is bigger)
+  booms.push({x,y,t:0,size:R>58?1.25:1});shake(clamp(1.1-hyp(x-camT.x,y-camT.z)/450,0,1));paintDecal({k:'scorch',x,y,r:Math.random()});
   tankBlast(x,y,by);
   const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}
   for(const v of units){
-    if(v.dead||v.seat==='driver'||v.side==='C')continue;const d=hyp(v.x-x,v.y-y);if(d>58)continue;   // (nobody harms the scientists or the men still locked up: office.js)   // the driver is shielded; riders and the gunner sit in the open
+    if(v.dead||v.seat==='driver'||v.side==='C')continue;const d=hyp(v.x-x,v.y-y);if(d>R)continue;   // (nobody harms the scientists or the men still locked up: office.js)   // the driver is shielded; riders and the gunner sit in the open
     if(!los(x,y,v.x,v.y)||hideAt(v.x,v.y)!==hideAt(x,y))continue;   // the tunnel shelters whoever's inside
     v.sup=Math.min(1.2,v.sup+0.8);
-    if(!v.downed)damage(v,95*(1-d/62),by);
+    if(!v.downed)damage(v,D*(1-d/(R+4)),by);
     if(v.side==='E'&&!v.surr)v.alerted=true;
   }
   const theirs=!!by&&by.side==='E';   // an enemy grenade (layers.js): no ambush for the squad, and the base doesn't count its own
@@ -894,7 +902,7 @@ function update(dt){
       if(p.crit<=0){if(p.carriedBy)putDown(p.carriedBy);p.dead=true;p.downed=false;p.critical=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}
     }
   }
-  for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);if(n.smoke)popSmoke(n.x1,n.y1);else explode(n.x1,n.y1,n.by);}}
+  for(let i=nades.length-1;i>=0;i--){const n=nades[i];n.t+=dt;if(n.t>=n.dur){nades.splice(i,1);if(n.smoke)popSmoke(n.x1,n.y1);else explode(n.x1,n.y1,n.by,false,n.R,n.D);}}
   if(smokes.length)smokes=smokes.filter(c=>simT-c.t0<SMOKE.life);
   for(const arr of [tracers,flashes,sparks,booms,callouts])for(const f of arr)f.t+=dt;
   if(flashes.some(f=>f.t<=dt+1e-6)||booms.some(b=>b.t<=dt+1e-6))lastNoiseT=simT;   // a shot or a blast this tick: a location's quiet spell starts over (mission.js)

@@ -73,12 +73,12 @@ function figKitKey(u,L){
   else if(L.k==='pri')w=u.weapon?(u.weapon==='sniper'?'sniper':'ak'):'none';
   const helm=L.k==='en'&&(u.gunner||u.helm||(typeof alertStage==='function'&&alertStage()>=2));
   const role=L.k==='sq'?(u.id==='A1'?'lead':u.id==='B2'||u.spec==='med'?'med':u.id==='B1'?'mg':''):'';
-  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;
+  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}${u.gl&&(w==='m4'||w==='m4s')?'g':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;   // (g: an M203 under the rifle, Level 4's find)
 }
 
 /* ---------- the parts ---------- */
 function figParts(key){
-  const [k,w,flags,hatS,role]=key.split('|'),hat=+hatS,helm=flags.includes('h'),radio=flags.includes('r');
+  const [k,w,flags,hatS,role]=key.split('|'),hat=+hatS,helm=flags.includes('h'),radio=flags.includes('r'),gl=flags.includes('g');
   const out=[],E=new T.Euler(),Q=new T.Quaternion(),V=new T.Vector3(),S=new T.Vector3(1,1,1);
   // add(bone, geometry, colour, kind, x,y,z, [rx,ry,rz], [sx,sy,sz]); kind: 0 colour as given, 1 skin, 2 team colour (glows),
   // 3 hair, 4 gun metal, 5 gun furniture, 7 lamp lens, 8 uniform (the colour multiplies the person's cloth colour)
@@ -167,6 +167,7 @@ function figParts(key){
     G(rbox(2.2,.78,.72,.2),COL.fde,5,3.0,-.02,0);G(cyl(.13,.13,1.4,6),COL.metal,4,4.75,.05,0,ALONG_X);
     G(rbox(.9,.5,.42,.12),COL.metal,4,.75,.75,0);G(cyl(.2,.2,.8),COL.metal,4,3.35,-.15,.45,ALONG_X);G(cyl(.16,.16,.06),W,7,3.77,-.15,.45,ALONG_X);
     if(w==='m4s')G(cyl(.28,.28,2.1),COL.metal,4,5.9,.05,0,ALONG_X);           // the silencer
+    if(gl){G(cyl(.34,.34,2.0,10),COL.metal,4,3.05,-.72,0,ALONG_X);G(rbox(.36,.62,.3,.08),COL.metal,4,1.75,-1.1,0,[0,0,-.2]);}   // an M203 under the handguard, its trigger
   }else if(w==='hmg'){
     G(rbox(3.6,1.25,.85,.2),COL.metal,4,.6,0,0);G(rbox(2.3,1.05,.6,.25),COL.black,5,-2.3,-.15,0);G(rbox(.45,1.05,.5,.12),COL.black,5,-.3,-.95,0,[0,0,-.35]);
     G(cyl(.21,.21,4.4),COL.metal,4,4.8,.1,0,ALONG_X);G(rbox(1.3,.28,.28,.08),COL.metal,4,3.1,.85,0);G(rbox(2.0,.2,.22,.06),COL.metal,4,4.4,-.35,0);

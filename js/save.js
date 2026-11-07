@@ -21,7 +21,7 @@ let savedTimer=0;
 function saveGame(stage,quiet){   // (quiet: no Saved chip, the drawbridge coming down: mission.js)
   const data={v:3,stage,when:Date.now(),sci:sciOut,cleared:[0,1,2,3].filter(n=>finished[n]),   // (sci: scientists brought out of the data center: office.js; cleared: the areas that are checkpoints)
     alert:{t:alertT,max:alertMax},l4:typeof l4Save==='function'&&MAPID==='l4'?l4Save():null,   // (Level 4: the parts taken, the crates, the radio log, the generator, the Crawler: level4.js)   // the base's alert level only goes up within the mission (layers.js)
-    squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges,weapon:p.weapon,weapon2:p.weapon2||null,
+    squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges,weapon:p.weapon,weapon2:p.weapon2||null,gl:!!p.gl,   // (gl: an M203 in his grenade's place, Level 4's find)
       ...(p.joined?{joined:true,name:p.name,weapon:p.weapon}:{})}]))};   // (joined: a freed prisoner, office.js)
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
   if(quiet)return;const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
@@ -49,8 +49,8 @@ function continueGame(){
     const d=s.squad[p.id];
     if(!d||d.dead){Object.assign(p,{dead:true,hp:0,gone:true});continue;}
     const spot=openSpot(at.x,at.y,taken)||at;taken.push(spot);
-    if(d.joined){Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,weapon:d.weapon||null,path:[]});continue;}   // a freed prisoner: no gear
-    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade,spec:d.spec||DEFAULT_SPEC[p.id]||'smoke',specN:d.specN??specFull({spec:d.spec||DEFAULT_SPEC[p.id]||'smoke'}),charges:d.charges??1,weapon:d.weapon||p.weapon,weapon2:d.weapon2||null,path:[]});
+    if(d.joined){Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,weapon:d.weapon||null,weapon2:d.weapon2||null,gl:!!d.gl,path:[]});if(d.gl)p.grenade=d.grenade;continue;}   // a freed prisoner: no gear (but what he found in Level 4)
+    Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade,spec:d.spec||DEFAULT_SPEC[p.id]||'smoke',specN:d.specN??specFull({spec:d.spec||DEFAULT_SPEC[p.id]||'smoke'}),charges:d.charges??1,weapon:d.weapon||p.weapon,weapon2:d.weapon2||null,gl:!!d.gl,path:[]});
   }
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
