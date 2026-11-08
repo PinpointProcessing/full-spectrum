@@ -1035,3 +1035,24 @@ and "Also, can we make the soldier automatically go to the front gate to get the
      with him. He comes back with them and the talk and the clean-up go on as before.
    - If anyone's down, the banner says to get the wounded up first, and he goes 2 s after the last one is up.
    - BRING THE SCIENTISTS, the thing to tap at the south door, is gone.
+
+## Bryan, after v117 (the changes are in v118)
+
+"The next mission screen on the top left should only appear full for the first 10 seconds and then collapse, it can be opened by
+selecting it. The units run on the bridge pretty awkwardly. There legs move but the upper part of their body is stiff. The
+monsters walk on top of each other when going into the bridge. It doesn't need to be so many, maybe one giant Queen and some
+babies. Also, make sure the legs aren't seen when it goes into the bridge. Wana show me some drafts?"
+
+1. The next mission box, top left: it shows in full for 10 s whenever its words change (out on the road east, back with the
+   parts) and after a Continue, then just its heading, "Next mission ▸". A tap opens it again (▾) for another 10 s; a tap on it
+   while it's open closes it. The objective box everywhere else is as before (a tap shows the list).
+2. Drafts, nothing changed in the game for these yet: `docs/run-queen-drafts.md`, pictures and videos in `docs/drafts`.
+   - The run: A, a combat run (both hands on the rifle, the body bobbing and twisting with the stride; my pick), or B, a sprint
+     (the rifle in one hand, the other arm pumping).
+   - The things going into the tunnel ("going into the bridge" taken as the tunnel at the end of it): one Queen, the Brood
+     Mother's kind at 85 % of her size, and five babies, each in a lane and at a time of its own so none walks over another, the
+     legs on whatever they're on so none goes through the hill, the headwall or the roof. A: the Queen first, the babies after.
+     B: the babies first, then she rears up over the headwall and comes in. The view of the mouth raised a little so her arrival
+     is in the picture.
+   - Questions: which of each, who she is (my suggestion: for now she only goes in, deep into the hill, and is met later), and
+     whether five babies is right.

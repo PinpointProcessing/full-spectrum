@@ -14,7 +14,7 @@ let rockets=[],tankFires=[],tankQueue=[],charges=[],obj=0,groups={},finished={},
 let mission={name:'yard',t0:0};
 function resetMission(){
   rockets=[];tankFires=[];tankQueue=[];charges=[];obj=0;objDone=0;groups={};finished={};panelGo=null;mission={name:'yard',t0:0};pendingSpawns=[];
-  lastNoiseT=-99;spotBannerT=-99;
+  lastNoiseT=-99;spotBannerT=-99;objNM.txt=null;   // (the next mission shows in full again)
   for(const z of HQ_ZONES)if(z.mesh&&z.mesh.parent)z.mesh.parent.remove(z.mesh);HQ_ZONES.length=0;   // (their models too)
   for(const o of objs)if(o.kind==='tank'){o.hp=100;o.burst=false;if(o.meshes)for(const m of o.meshes)if(m.userData.c0!=null)m.material.color.setHex(m.userData.c0);}
   sciOut=0;scanGo=null;for(const q of pickups)if(q.mesh&&q.mesh.parent)q.mesh.parent.remove(q.mesh);pickups=[];   // (the sniper's floating rifle too)
@@ -464,17 +464,27 @@ function shootTank(u){
 const OBJ_LIST=['Get into the data center','Detain the scientists and bring them out','Lower the drawbridge with a scientist','Take the Headquarters'];
 const OBJ_LIST_T=3400;   // how long the list stays open with the newly crossed-off objective (ms); the next messages wait for it
 let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
+// the next mission (Bryan, after v117: "The next mission screen on the top left should only appear full for the first 10 seconds and
+// then collapse, it can be opened by selecting it"): in full when it first shows or its words change, then just its name; a tap
+// opens it again for as long (or closes it: hud.js), and a Continue or a new game shows it in full again (resetMission)
+const OBJ_NM_T=10000,objNM={txt:null,t:0};
+function objNMShow(){const el=$('#obj');if(!el)return;el.classList.remove('min');el.setAttribute('aria-expanded','true');clearTimeout(objNM.t);
+  objNM.t=setTimeout(()=>{if(el.classList.contains('nm')){el.classList.add('min');el.setAttribute('aria-expanded','false');}},OBJ_NM_T);}
+function objNMHide(){const el=$('#obj');if(!el)return;clearTimeout(objNM.t);el.classList.add('min');el.setAttribute('aria-expanded','false');}
 function objCompleted(n){
   if(n<=objDone)return;objDone=n;updateObjUI(true);
   const el=$('#obj');if(!el)return;el.classList.add('open');clearTimeout(objFlashT);objFlashT=setTimeout(()=>{el.classList.remove('open');el.setAttribute('aria-expanded','false');},OBJ_LIST_T);
 }
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
+  const nmMin=el.classList.contains('min');el.classList.remove('nm','min');   // (only the next mission collapses: anything else shows in full, Level 4's and Levels 1 and 2's too)
   if(MAPID==='l4'&&typeof l4ObjUI==='function'&&L4){l4ObjUI(el);return;}   // (level4.js)
   if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
   if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
-  if(typeof road!=='undefined'&&road&&road.talked){el.querySelector('b').textContent=obj>=9?'Next':'Next mission';el.querySelector('span').textContent=obj>=9?'Radio control at the HQ (coming next)':'Level 4 · The old radio tower: through the tunnel down the road (east)';   // (road.js)
-    el.querySelector('ol').innerHTML=OBJ_LIST.map(t=>`<li class="done">${t}</li>`).join('');el.hidden=state!=='play';return;}
+  if(typeof road!=='undefined'&&road&&road.talked){const txt=obj>=9?'Radio control at the HQ (coming next)':'Level 4 · The old radio tower: through the tunnel down the road (east)';   // (road.js)
+    el.querySelector('b').textContent=obj>=9?'Next':'Next mission';el.querySelector('span').textContent=txt;el.querySelector('ol').innerHTML='';el.classList.add('nm');if(nmMin)el.classList.add('min');el.classList.remove('open');
+    if(objNM.txt!==txt){objNM.txt=txt;objNMShow();}   // (new: in full for 10 s, then just its name: below)
+    el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
   const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':typeof hqs!=='undefined'&&hqs.won?'Headquarters taken':MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
   el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;
