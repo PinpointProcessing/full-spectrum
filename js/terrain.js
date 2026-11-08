@@ -97,8 +97,8 @@ function hillMesh(grp){
   // stones half sunk in it along the shore and here and there up the slope
   const S=[],sd=()=>(r()*1e5)|0;
   for(let y=-1760;y<1150;y+=40+r()*50){if(Math.abs(y-HILL_MID())<160)continue;const x=HILL_X-2+r()*14,s=3+r()*6;S.push([x,y,s*1.4,s*.7,s,r()*6,sd(),hillH(x,y)]);}
-  for(let k=0;k<70;k++){const x=HILL_X+40+r()*400,y=-1700+r()*2800;if(Math.abs(y-HILL_MID())<100&&x-HILL_X<220)continue;const s=4+r()*10;S.push([x,y,s*1.2,s*.7,s,r()*6,sd(),hillH(x,y)]);}
-  for(let k=0,n=0;k<600&&n<30;k++){const x=HILL_X+24+r()*360,y=-1700+r()*2800;if(Math.abs(y-HILL_MID())<110&&x-HILL_X<230)continue;const h=hillH(x,y),e=10,sl=Math.hypot(hillH(x+e,y)-h,hillH(x,y+e)-h)/e;if(sl<.55)continue;const s=12+r()*16;S.push([x,y,s*1.4,s*.8,s,r()*6,sd(),h-s*.15]);n++;}   // (bigger outcrops where it's steep)
+  for(let k=0;k<70;k++){const x=HILL_X+40+r()*400,y=-1700+r()*2800;if(Math.abs(y-HILL_MID())<100&&x-HILL_X<220)continue;const s=4+r()*10;S.push([x,y,s*1.2,s*.7,s,r()*6,sd(),hillH(x,y)-s*.2]);}
+  for(let k=0,n=0;k<600&&n<18;k++){const x=HILL_X+24+r()*360,y=-1700+r()*2800;if(Math.abs(y-HILL_MID())<110&&x-HILL_X<230)continue;const h=hillH(x,y),e=10,sl=Math.hypot(hillH(x+e,y)-h,hillH(x,y+e)-h)/e;if(sl<.55)continue;const s=10+r()*12;S.push([x,y,s*1.3,s*.7,s,r()*6,sd(),h-s*.38]);n++;}   // (bigger outcrops where it's steep, sunk well in: since v114, from the low camera on the walk across, standing proud they looked like grey saucers stuck on the slope)
   for(const[x,y,s]of[[HILL_X+20,PORTAL.wall.y0-14,9],[HILL_X+14,PORTAL.wall.y1+14,8],[HILL_X+40,PORTAL.wall.y0-30,7],[HILL_X+36,PORTAL.wall.y1+28,7]])S.push([x,y,s*1.3,s*.8,s,r()*6,sd(),hillH(x,y)+2]);   // (where the embankments meet the headwall)
   grp.add(stoneMesh(S,1));
 }

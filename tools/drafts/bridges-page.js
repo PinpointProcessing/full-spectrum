@@ -3,7 +3,8 @@
    different bridge types? I'm thinking the south side of the bridge can be more of the warehouse level."). Loaded into the game page by
    bridges.js once the road east is built, the water let down (road.js's WATER_Y) so what holds each bridge up shows:
    bridgeDraft(kind) puts one of four on the crossing in place of the plain deck's beam and piers, dockDraft() turns the bay south of it
-   into a dockyard like the warehouse level's. Drawn only: nothing here is walkable, and the game's own bridge is untouched. */
+   into a dockyard like the warehouse level's. Drawn only: nothing here is walkable, and the game's own bridge is untouched. Since v114
+   the game has A and the dockyard built in (road.js's bridgeMesh and dockMesh): bdHide takes the game's piers away for the others. */
 const BD={grp:null,hidden:[],dock:null};
 const bdM=(c,r=.8,m=.1,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:r,metalness:m},o));
 function bdBox(g,w,h,d,mat,x,y,z,ry=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);o.rotation.y=ry;o.castShadow=o.receiveShadow=true;g.add(o);return o;}
@@ -17,7 +18,8 @@ function bdTex(w,h,draw,rx,ry){const t=canvasTex(w,h,draw);t.repeat.set(rx,ry);r
 // take the game's beam and piers away (its deck stays: the road's surface), and its railings for a bridge with walls of its own
 function bdReset(){if(BD.grp&&BD.grp.parent)BD.grp.parent.remove(BD.grp);BD.grp=null;for(const m of BD.hidden)m.visible=true;BD.hidden=[];}
 function bdHide(rails){
-  const{L,cz}=BDK();EAST.grp.children.forEach(m=>{if(!m.isMesh||!m.geometry||m.geometry.type!=='BoxGeometry')return;const p=m.geometry.parameters,q=m.position;
+  const{L,cz}=BDK();EAST.grp.children.forEach(m=>{if(m.name==='bridge-under'){m.visible=false;BD.hidden.push(m);return;}   // (the game's own since v114: draft A, built in)
+    if(!m.isMesh||!m.geometry||m.geometry.type!=='BoxGeometry')return;const p=m.geometry.parameters,q=m.position;
     if(q.x<RBR.x0-20||q.x>RBR.x1+20||Math.abs(q.z-cz)>80||q.y>=-1)return;
     if((Math.abs(p.width-L)<1&&p.height===5)||(p.width===12&&p.height===2)||(p.width===8&&p.height===8&&p.depth===8)){m.visible=false;BD.hidden.push(m);}});
   if(rails)for(const o of EAST.objs)if(o.kind==='rail')for(const m of o.meshes||[]){m.visible=false;BD.hidden.push(m);}
@@ -83,7 +85,8 @@ function bridgeDraft(kind){
 /* ---------- the south side: a dockyard like the warehouse level's (quays round the basin under the bridge, warehouses, stacked
    containers, a gantry crane on a pier, a tug at the quay, lamps) ---------- */
 function dockDraft(){
-  if(BD.dock)return;const g=new THREE.Group();EAST.grp.add(g);BD.dock=g;const W=WATER_Y;
+  if(BD.dock||EAST.grp.getObjectByName('dock'))return;   // (in the game itself since v114: road.js's dockMesh)
+  const g=new THREE.Group();EAST.grp.add(g);BD.dock=g;const W=WATER_Y;
   const top=bdTex(256,256,(x,w,h)=>{const r=rng(5);x.fillStyle='#5d5e5b';x.fillRect(0,0,w,h);x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=2;for(let i=0;i<=4;i++){x.beginPath();x.moveTo(i*w/4,0);x.lineTo(i*w/4,h);x.stroke();x.beginPath();x.moveTo(0,i*h/4);x.lineTo(w,i*h/4);x.stroke();}
     for(let i=0;i<2400;i++){x.fillStyle=r()<.5?'rgba(0,0,0,.15)':'rgba(255,255,255,.04)';x.fillRect(r()*w,r()*h,1.6,1.6);}for(let i=0;i<9;i++){const px=r()*w,py=r()*h,gr=x.createRadialGradient(px,py,0,px,py,20);gr.addColorStop(0,'rgba(20,24,28,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=gr;x.fillRect(px-20,py-20,40,40);}},1/80,1/80);
   const quay=new THREE.MeshStandardMaterial({map:top,roughness:.7,metalness:.15}),wall=bdM(0x4d4e4b,.95,.02),fend=bdM(0x141414,.8,.1),bol=bdM(0x2c2f33,.5,.6);

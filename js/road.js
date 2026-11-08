@@ -34,7 +34,7 @@ const RBR={x0:1040,x1:1652,y0:-328,y1:-222};   // the bridge (its deck between t
 const HILL_X=1652;   // the hill's west face, the tunnel's mouth in it
 const PORTAL={x:HILL_X,y0:-320,y1:-230,top:24,arch:16,depth:78,wall:{y0:-372,y1:-178,h:50}};   // the tunnel's mouth (facing west; its sides stand top high and the arch rises arch more; dark inside for depth), the concrete headwall round it (x HILL_X to HILL_X+10)
 const TUN_ZONE={x0:1600,y0:-276,x1:1672,y1:-224};   // the gather area at the mouth: the right-hand lane and its footway (the bus is in the left-hand one)
-let WATER_Y=-10;   // the lake and the bay lie a metre below the deck and the shore (a let: tools/drafts/bridges.js lowers it before the road is built, so the drafts show what holds a bridge up)
+let WATER_Y=-34;   // the lake and the bay lie 3.4 m below the deck and the shore (a metre until v114: let down with the concrete bridge so its piers show; a let: the drafts in tools/drafts set it before the road is built)
 const LAKE_W=[[1060,-470],[1100,-520],[1152,-560],[1242,-650],[1312,-780],[1352,-1000],[1345,-1450],[1300,-1720]];   // the lake's west shore, round the fortress's moat, south to north
 const BUS={x:1592,y:-318,w:108,h:28,east:true};   // a coach broken down in the left-hand lane, its nose in the tunnel's mouth
 const LIGHTHOUSE={x:1532,y:-1156};   // on its island out in the lake (terrain.js's ISLE; since v113, Bryan: "The lighthouse should on a landmass, not a rocky land. (It will be a level later on)"; it stood on rocks at the north end of the hill's shore); its beam turning (rendered only: beyond the map's edge)
@@ -46,7 +46,7 @@ const ROAD_TALK=["Alright, we need to get our radio communication up.",
   "There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need from there.",
   "Once we get that radio tower running, we can request more advanced equipment."];   // (Bryan's words; clips road_1, road_2; the last, the leader again, after v96: road_3)
 let road=null;   // {open, talked, intro:{t0, ph}, guide}
-const EAST={grp:null,objs:null,lamps:null,gate:null,tex:null,rc:null,dirty:false,beam:null,centis:null};   // built once, into the big map's scene (tex: its ground, where scorch marks and blood go: scene.js's paintDecal)
+const EAST={grp:null,objs:null,lamps:null,gate:null,tex:null,rc:null,dirty:false,beam:null,centis:null,fall:null,foam:null};   // built once, into the big map's scene (tex: its ground, where scorch marks and blood go: scene.js's paintDecal)
 const roadBusy=()=>!!(road&&road.intro);   // (the talk, the walk east and the centipedes: no orders, fortress.js's endingBusy)
 const camLock=()=>!!(road&&road.intro&&(road.intro.ph==='east'||road.intro.ph==='see'));   // the camera's the game's while they cross and the things go in (input.js, main.js)
 
@@ -152,9 +152,15 @@ function waterMesh(grp){
   B(1000,(ABUT.y1+CANAL.y0)/2,4,CANAL.y0-ABUT.y1);B(1000,(CANAL.y1+900)/2,4,900-CANAL.y1);   // the quay wall along the old map's edge (the canal's mouth between)
   B(ABUT.x1,(ABUT.y0+RBR.y0)/2,4,RBR.y0-ABUT.y0);B(ABUT.x1,(RBR.y1+ABUT.y1)/2,4,ABUT.y1-RBR.y1);B((ABUT.x0+ABUT.x1)/2,ABUT.y1,ABUT.x1-ABUT.x0,4);B((ABUT.x0+ABUT.x1)/2,ABUT.y0,ABUT.x1-ABUT.x0,4);   // the near shore's banks
   B(HILL_X-15,(PORTAL.wall.y0+RBR.y0)/2,30,RBR.y0-PORTAL.wall.y0);B(HILL_X-15,(RBR.y1+PORTAL.wall.y1)/2,30,PORTAL.wall.y1-RBR.y1);   // the abutment either side of the bridge's far end, at the headwall's foot
-  const fall=new T.Mesh(new T.PlaneGeometry(CANAL.y1-CANAL.y0,-WATER_Y),new T.MeshBasicMaterial({color:0x9aa8b0,transparent:true,opacity:.32,depthWrite:false,side:T.DoubleSide}));
-  fall.rotation.y=Math.PI/2;fall.position.set(1001,WATER_Y/2,(CANAL.y0+CANAL.y1)/2);grp.add(fall);   // the canal spilling over the edge into the bay
-  const foam=new T.Mesh(new T.PlaneGeometry(14,CANAL.y1-CANAL.y0+6),new T.MeshBasicMaterial({color:0x8a98a0,transparent:true,opacity:.3,depthWrite:false}));foam.rotation.x=-Math.PI/2;foam.position.set(1008,WATER_Y+.3,(CANAL.y0+CANAL.y1)/2);grp.add(foam);
+  // the canal spilling over the old map's edge into the dock basin, 3.4 m down since v114: a wet dark face behind, a sheet of water
+  // falling in streaks (EAST.fall: roadTick runs it down), white water where it lands
+  const cw=CANAL.y1-CANAL.y0,cz=(CANAL.y0+CANAL.y1)/2,wf=new T.Mesh(new T.BoxGeometry(2,-WATER_Y+3,cw+.2),new T.MeshStandardMaterial({color:0x1d2226,roughness:.3,metalness:.2}));wf.position.set(1000,(WATER_Y-3)/2,cz);grp.add(wf);
+  const streak=canvasTex(64,128,(x,w,h)=>{const r=rng(41);x.clearRect(0,0,w,h);for(let i=0;i<140;i++){const sx=r()*w,sw=.6+r()*2.2,a=.08+r()*.3,y0=r()*h,l=h*(.3+r()*.7);x.fillStyle=`rgba(225,232,236,${a})`;x.fillRect(sx,y0,sw,l);if(y0+l>h)x.fillRect(sx,y0-h,sw,l);}});
+  streak.wrapS=streak.wrapT=T.RepeatWrapping;streak.repeat.set(cw/22,1);
+  const fall=new T.Mesh(new T.PlaneGeometry(cw,-WATER_Y+.4),new T.MeshBasicMaterial({map:streak,color:0x8d9aa2,transparent:true,opacity:.9,depthWrite:false,side:T.DoubleSide}));
+  fall.rotation.y=Math.PI/2;fall.position.set(1002.4,WATER_Y/2+.2,cz);grp.add(fall);EAST.fall=streak;
+  const fz=canvasTex(128,128,(x,w,h)=>{const r=rng(43);x.clearRect(0,0,w,h);for(let i=0;i<700;i++){const px=r()*w,py=r()*h,d=Math.hypot((px-w*.15)/w,(py-h/2)/h*1.4),a=Math.max(0,.55-d*.9)*r();if(a<.02)continue;x.fillStyle=`rgba(220,228,232,${a})`;x.beginPath();x.arc(px,py,1+r()*3.5,0,7);x.fill();}});
+  const foam=new T.Mesh(new T.PlaneGeometry(46,cw+18),new T.MeshBasicMaterial({map:fz,color:0x9aa6ae,transparent:true,opacity:.85,depthWrite:false}));foam.rotation.x=-Math.PI/2;foam.position.set(1024,WATER_Y+.3,cz);grp.add(foam);EAST.foam=fz;
 }
 // a ripple for the water: a tileable normal map from a few crossing waves (built once)
 let RIPPLE=null;
@@ -165,8 +171,32 @@ function rippleTex(){
     im.data[k]=(-dx/l*.5+.5)*255;im.data[k+1]=(-dy/l*.5+.5)*255;im.data[k+2]=(1/l*.5+.5)*255;im.data[k+3]=255;}
   x.putImageData(im,0,0);RIPPLE=new T.CanvasTexture(c);RIPPLE.wrapS=RIPPLE.wrapT=T.RepeatWrapping;return RIPPLE;
 }
-// the bridge: a concrete deck the length of the crossing (its top painted like the road, footways either side, an expansion
-// joint every so often), a beam under it, piers down into the water, railings either side (scene.js's 'rail')
+// boxes, cylinders and other shapes gathered into one mesh per material: a draw call a material, not one a piece (the bridge's
+// beams and piers, the dockyard's fenders, bollards and crane)
+function meshBatch(){
+  const L=new Map(),m4=new T.Matrix4(),q=new T.Quaternion(),e=new T.Euler(),one=new T.Vector3(1,1,1),p=new T.Vector3();
+  const add=(mat,g,x,y,z,ry=0,rx=0,rz=0)=>{e.set(rx,ry,rz);q.setFromEuler(e);p.set(x,y,z);m4.compose(p,q,one);g.applyMatrix4(m4);
+    const ng=g.index?g.toNonIndexed():g;if(ng!==g)g.dispose();if(!L.has(mat))L.set(mat,[]);L.get(mat).push(ng);};
+  return{
+    box:(mat,w,h,d,x,y,z,ry)=>add(mat,new T.BoxGeometry(w,h,d),x,y,z,ry),
+    cyl:(mat,r0,r1,h,x,y,z,seg=12)=>add(mat,new T.CylinderGeometry(r0,r1,h,seg),x,y,z),
+    geo:add,
+    bar(mat,a,b,t){const A=new T.Vector3(...a),B=new T.Vector3(...b),g=new T.BoxGeometry(t,A.distanceTo(B),t);   // a square bar from a to b ([x, y, z])
+      const m=new T.Matrix4().compose(A.clone().add(B).multiplyScalar(.5),new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),B.clone().sub(A).normalize()),one);g.applyMatrix4(m);
+      const ng=g.toNonIndexed();g.dispose();if(!L.has(mat))L.set(mat,[]);L.get(mat).push(ng);},
+    flush(grp,cast=true){const out=[];
+      for(const[mat,gs]of L){let n=0;for(const g of gs)n+=g.attributes.position.count;const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let o=0;
+        for(const g of gs){const c=g.attributes.position.count;P.set(g.attributes.position.array,o*3);N.set(g.attributes.normal.array,o*3);if(g.attributes.uv)U.set(g.attributes.uv.array,o*2);o+=c;g.dispose();}
+        const bg=new T.BufferGeometry();bg.setAttribute('position',new T.BufferAttribute(P,3));bg.setAttribute('normal',new T.BufferAttribute(N,3));bg.setAttribute('uv',new T.BufferAttribute(U,2));bg.computeBoundingSphere();
+        const m=new T.Mesh(bg,mat);m.castShadow=cast;m.receiveShadow=true;grp.add(m);out.push(m);}
+      L.clear();return out;}
+  };
+}
+// the bridge (Bryan picked draft A after v113, "concrete beam and tiers": concrete beams on piers, tools/drafts/bridges-page.js's
+// bdConcrete): a concrete deck the length of the crossing (its top painted like the road, footways either side, an expansion joint
+// every so often), deep edge beams with a drip line under each, three girders under the deck, five piers (a cap across, two round
+// columns down into the water, a footing at the water's edge), an abutment at each end; railings either side (scene.js's 'rail').
+// The water lies 3.4 m below the deck since v114 (WATER_Y) so what holds it up shows; all but the deck in one mesh a material
 function bridgeMesh(grp){
   const b=RBR,cx=(b.x0+b.x1)/2,cz=(b.y0+b.y1)/2,w=b.x1-b.x0,d=b.y1-b.y0,TL=64;
   const top=canvasTex(256,212,(x,W,Hh)=>{x.fillStyle='#2a2c2f';x.fillRect(0,0,W,Hh);const r=rng(5);for(let i=0;i<2600;i++){x.fillStyle=r()<.5?'rgba(255,255,255,.04)':'rgba(0,0,0,.18)';x.fillRect(r()*W,r()*Hh,1.2,1.2);}
@@ -178,10 +208,61 @@ function bridgeMesh(grp){
   top.wrapS=T.RepeatWrapping;top.wrapT=T.ClampToEdgeWrapping;top.repeat.set(w/TL,1);
   const conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.9}),deck=new T.Mesh(new T.BoxGeometry(w,2.4,d),[conc,conc,new T.MeshStandardMaterial({map:top,roughness:.75,metalness:.1}),conc,conc,conc]);
   deck.position.set(cx,-.9,cz);deck.castShadow=deck.receiveShadow=true;grp.add(deck);
-  const beam=new T.Mesh(new T.BoxGeometry(w,5,d-18),conc);beam.position.set(cx,-4.6,cz);beam.receiveShadow=true;grp.add(beam);
-  const dk=new T.MeshStandardMaterial({color:0x4d4f4b,roughness:.95});
-  for(let x=b.x0+70;x<b.x1-30;x+=96){const cap=new T.Mesh(new T.BoxGeometry(12,2,d-8),conc);cap.position.set(x,-8,cz);grp.add(cap);
-    for(const s of[-1,1]){const p=new T.Mesh(new T.BoxGeometry(8,8,8),dk);p.position.set(x,-12,cz+s*30);p.castShadow=true;grp.add(p);}}   // the piers, down into the water
+  const Wy=WATER_Y,MB=meshBatch(),c=new T.MeshStandardMaterial({color:0x8d8f8a,roughness:.9,metalness:.02}),cd=new T.MeshStandardMaterial({color:0x6c6e69,roughness:.94,metalness:.02}),dark=new T.MeshStandardMaterial({color:0x3a3c3b,roughness:.95,metalness:.02});
+  for(const s of[-1,1]){MB.box(c,w,7,5,cx,-3.2,cz+s*(d/2+1.5));MB.box(dark,w,.8,5.6,cx,-6.9,cz+s*(d/2+1.6));}   // the deck's edge beams, a drip line under each
+  for(const dz of[-34,0,34])MB.box(cd,w-10,8,7,cx,-6.6,cz+dz);   // the girders
+  const n=6;for(let k=1;k<n;k++){const x=b.x0+w*k/n;MB.box(c,12,6,d+6,x,-13.5,cz);   // the pier caps
+    for(const dz of[-30,30])MB.cyl(cd,5,5.8,-16-(Wy-6),x,(-16+Wy-6)/2,cz+dz,18);   // two columns each, down into the water
+    MB.box(cd,20,5,d-22,x,Wy+.8,cz);for(const dz of[-30,30])MB.cyl(cd,9,10,5,x,Wy+.8,cz+dz,18);}   // a footing at the water
+  for(const x of[b.x0+5,b.x1-5])MB.box(cd,12,-Wy+6,d+18,x,(Wy-6)/2,cz);   // the abutments at each end
+  for(const m of MB.flush(grp))m.name='bridge-under';   // (tools/drafts/bridges-page.js hides these to draw the other types)
+}
+// the dockyard south of the bridge (Bryan, after v112: "the south side of the bridge can be more of the warehouse level"; after v113,
+// on the draft: "right now, it's just scenery"; tools/drafts/bridges-page.js's dockDraft): the bay a dock basin with quays round it
+// (the quays' tops at the road's height, their walls down into the water), two warehouses with roll doors onto the quay, stacked
+// containers, a gantry crane at the root of the pier, a tug tied up at the west quay, lamps (DOCK_LAMPS, in EAST.lamps). Drawn only:
+// the nav grid still has the bay's 'water' and the 'void' south of the canal there (eastObjects), so nobody goes onto it. Kept low
+// enough near the bridge that nothing stands between the locked camera and the squad on the first walk across (ROAD_LOOK)
+const DOCK_E={quays:[[1000,150,1200,920],[1200,60,1700,920],[1380,-110,1446,60]],   // west of the canal's mouth, east of it (on under the hill's foot), the pier out into the basin
+  sheds:[[1222,112,150,100],[1474,104,160,110]],crane:{x:1413,lx:[1387,1439],ly:[66,96],h:58}};
+const DOCK_LAMPS=[[1060,160,35,1],[1300,70,35,1],[1560,70,35,1],[1440,-96,35,1],[1259,110,40,0],[1335,110,40,0],[1514,102,40,0],[1594,102,40,0]].map(([x,y,h,pole])=>({x,y,h,c:0xffd9a0,i:pole?1.45:1.25,d:pole?200:150,pole,east:1,dock:1}));   // on poles along the quays and at the pier's end; over the warehouses' doors
+function dockMesh(grp){
+  const g=new T.Group();g.name='dock';grp.add(g);const Wy=WATER_Y,MB=meshBatch(),M=(c,r=.8,m=.1)=>new T.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+  const top=canvasTex(256,256,(x,w,h)=>{const r=rng(5);x.fillStyle='#5d5e5b';x.fillRect(0,0,w,h);x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=2;for(let i=0;i<=4;i++){x.beginPath();x.moveTo(i*w/4,0);x.lineTo(i*w/4,h);x.stroke();x.beginPath();x.moveTo(0,i*h/4);x.lineTo(w,i*h/4);x.stroke();}
+    for(let i=0;i<2400;i++){x.fillStyle=r()<.5?'rgba(0,0,0,.15)':'rgba(255,255,255,.04)';x.fillRect(r()*w,r()*h,1.6,1.6);}
+    for(let i=0;i<9;i++){const px=r()*w,py=r()*h,gr=x.createRadialGradient(px,py,0,px,py,20);gr.addColorStop(0,'rgba(20,24,28,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=gr;x.fillRect(px-20,py-20,40,40);}});   // (concrete slabs, joints, oil stains)
+  const wall=M(0x4d4e4b,.95,.02),edge=M(0xb9a24a,.7,.1),fend=M(0x141414,.8,.1),bol=M(0x2c2f33,.5,.6);
+  for(const[x0,y0,x1,y1]of DOCK_E.quays){const t=top.clone();t.needsUpdate=true;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set((x1-x0)/80,(y1-y0)/80);   // the quays: a slab each, its top at the road's height
+    const o=new T.Mesh(new T.BoxGeometry(x1-x0,-Wy+4,y1-y0),[wall,wall,new T.MeshStandardMaterial({map:t,roughness:.7,metalness:.15}),wall,wall,wall]);o.position.set((x0+x1)/2,(Wy-4)/2,(y0+y1)/2);o.receiveShadow=true;g.add(o);}
+  for(const[x0,x1,y]of[[1000,1200,150],[1200,1380,60],[1446,1636,60]]){MB.box(edge,x1-x0,.3,2,(x0+x1)/2,.16,y+1.4);   // a painted line along the quays' edges, fenders down the face, bollards
+    for(let x=x0+12;x<x1-6;x+=30){MB.box(fend,6,5,2,x,-4,y-1);MB.cyl(bol,1.6,2,3,x+12,1.5,y+4,10);MB.cyl(bol,2.3,2.3,.8,x+12,3.2,y+4,10);}}
+  for(const y of[-100,-60,-20,20])for(const x of[1380,1446]){MB.box(fend,2,5,6,x+(x<1400?-1:1),-4,y);MB.cyl(bol,1.6,2,3,x+(x<1400?4:-4),1.5,y+10,10);}
+  for(const x of[1380,1446])MB.box(edge,2,.3,170,x+(x<1400?1.4:-1.4),.16,-25);
+  // two warehouses: corrugated walls, a pitched roof, two roll doors each onto the quay, a lamp over each door (DOCK_LAMPS)
+  const corr=canvasTex(64,64,(x,w,h)=>{x.fillStyle='#646b70';x.fillRect(0,0,w,h);for(let i=0;i<w;i+=8){x.fillStyle='rgba(0,0,0,.28)';x.fillRect(i,0,3,h);x.fillStyle='rgba(255,255,255,.07)';x.fillRect(i+4,0,2,h);}
+    const r=rng(12);for(let i=0;i<40;i++){x.fillStyle='rgba(40,30,20,.12)';x.fillRect(r()*w,h*.5+r()*h*.5,2+r()*4,6+r()*20);}});   // (rust streaks low down)
+  corr.wrapS=corr.wrapT=T.RepeatWrapping;
+  const roof=M(0x3b4146,.6,.45),door=M(0x2a2f33,.55,.5),H=56;
+  for(const[x0,y0,w,d]of DOCK_E.sheds){const cx=x0+w/2,cy=y0+d/2,mt=L=>{const t=corr.clone();t.needsUpdate=true;t.repeat.set(L/24,1);return new T.MeshStandardMaterial({map:t,roughness:.62,metalness:.4});},ml=mt(w),ms=mt(d);
+    const b=new T.Mesh(new T.BoxGeometry(w,H,d),[ms,ms,roof,roof,ml,ml]);b.position.set(cx,H/2,cy);b.castShadow=b.receiveShadow=true;g.add(b);
+    const rs=new T.Shape();rs.moveTo(-d/2-3,0);rs.lineTo(0,12);rs.lineTo(d/2+3,0);rs.lineTo(-d/2-3,0);const rg=new T.ExtrudeGeometry(rs,{depth:w+4,bevelEnabled:false});rg.translate(0,0,-(w+4)/2);MB.geo(roof,rg,cx,H,cy,Math.PI/2);
+    for(const dx of[-w/4,w/4]){MB.box(door,36,34,1,cx+dx,17,y0-.6);MB.box(wall,40,2.4,2.4,cx+dx,35,y0-1);}}   // (the doors' frames)
+  // stacked containers on the quays, two on the pier
+  const list=[],C=(x,y,w,h,col,stack=1)=>list.push({kind:'container',x,y,w,h,col,stack,east:1});
+  C(1030,200,104,34,'#2e5759',2);C(1030,240,104,34,'#6a3324');C(1030,300,104,34,'#5b5f2c',2);C(1140,190,34,104,'#3c4a6b',2);
+  C(1220,250,104,34,'#7a5a24',2);C(1330,250,104,34,'#2e5759');C(1460,240,104,34,'#6a3324',2);C(1570,240,34,104,'#3f4f3a',2);C(1396,-90,34,60,'#7a2e2a');C(1396,-20,34,60,'#3c4a6b');
+  const keep=scene;scene=g;try{meshObjs(list);}finally{scene=keep;}
+  // a gantry crane at the pier's root: portal legs on the quay, girders across, its boom out over the pier and back over the quay
+  const K=DOCK_E.crane,yel=M(0xc89a28,.55,.5),cab=M(0x3a3f44,.6,.4),cbl=M(0x1c1c1c,.6,.5),Ky=(K.ly[0]+K.ly[1])/2;
+  for(const y of K.ly){for(const x of K.lx)MB.box(yel,4,K.h,4,x,K.h/2,y);MB.box(yel,K.lx[1]-K.lx[0]+4,5,5,K.x,K.h,y);MB.bar(yel,[K.lx[0],K.h*.55,y],[K.lx[1],K.h-2,y],1.6);}
+  for(const x of K.lx){MB.box(yel,3,3,K.ly[1]-K.ly[0],x,6,Ky);MB.box(cab,6,3,10,x,1.5,K.ly[0]-2);MB.box(cab,6,3,10,x,1.5,K.ly[1]+2);}   // sill beams, the bogies on their rails
+  MB.box(yel,6,6,150,K.x,K.h+5.5,Ky-38);MB.box(cab,16,10,16,K.x,K.h+13,K.ly[1]+12);   // the boom, out to y -37; the machinery house on its back end
+  MB.box(cab,10,8,10,K.x,K.h-2,-6);for(const dx of[-2.5,2.5])MB.bar(cbl,[K.x+dx,K.h-6,-6],[K.x+dx,32,-6],.5);MB.box(cab,12,1.6,4,K.x,31,-6);   // the trolley, its cables, a spreader hanging over the containers on the pier
+  // a tug tied up at the west quay
+  const hull=new T.SphereGeometry(1,16,8,0,Math.PI*2,Math.PI/2,Math.PI/2);hull.scale(26,10,9);MB.geo(M(0x7a2620,.6,.2),hull,1100,Wy+2,130);
+  MB.box(M(0x2a2c2e,.7,.2),40,2,16,1100,Wy+2.5,130);MB.box(M(0xd8d4c8,.7,.05),14,9,10,1092,Wy+8,130);MB.cyl(M(0x1a1a1a,.6,.3),2,2.4,8,1102,Wy+14,130,10);MB.box(M(0x0c0f12,.3,.5),14.4,2.2,10.4,1092,Wy+10,130);
+  MB.flush(g);
+  // lamp posts and the doors' lamps: buildEast builds their heads and poles (DOCK_LAMPS in EAST.lamps)
 }
 // a coach broken down, its nose in the tunnel's mouth: dirty cream, a dark window band with panes gone, the door open, a flat
 // tyre. (b.east: lying east-west, its nose east, in the left-hand lane going in; tunnel.js puts the same coach at its south end,
@@ -255,14 +336,15 @@ function buildEast(sc){
   EAST.lamps=[{x:1024,y:-352,h:34,c:0xffa860,i:1.8,d:210,pole:1,flick:1,east:1},   // a sodium lamp by the gate, failing
     {x:1190,y:-332,h:30,c:0xffd9a0,i:1.5,d:200,pole:1,east:1},   // along the bridge's north railing, still working
     {x:1468,y:-218,h:30,c:0xffd9a0,i:1.35,d:190,pole:1,flick:1,east:1},   // and one on its south railing, flickering
-    {x:HILL_X-12,y:-275,h:44,c:0xffb060,i:1.5,d:170,flick:1,east:1}];   // a work light over the tunnel's mouth
+    {x:HILL_X-12,y:-275,h:44,c:0xffb060,i:1.5,d:170,flick:1,east:1},   // a work light over the tunnel's mouth
+    ...DOCK_LAMPS];   // and the dockyard's, south of the bridge
   const grp=new T.Group();grp.visible=false;sc.add(grp);EAST.grp=grp;
   const S=1.5,gw=EXT.x1-EXT.x0,gh=EXT.y1-EXT.y0,gc=document.createElement('canvas'),rc=document.createElement('canvas'),ac=document.createElement('canvas');
   gc.width=Math.round(gw*S);gc.height=Math.round(gh*S);rc.width=ac.width=gw;rc.height=ac.height=gh;paintEast(gc.getContext('2d'),rc.getContext('2d'),S);paintEastAlpha(ac.getContext('2d'));
   const tex=new T.CanvasTexture(gc);tex.encoding=T.sRGBEncoding;tex.anisotropy=4;EAST.tex=tex;EAST.rc=rc;
   const ground=new T.Mesh(new T.PlaneGeometry(gw,gh),wetGround(new T.MeshStandardMaterial({map:tex,roughnessMap:new T.CanvasTexture(rc),alphaMap:new T.CanvasTexture(ac),alphaTest:.5,roughness:1,metalness:.16}),gw,gh));   // (cut away over the water)
   ground.rotation.x=-Math.PI/2;ground.position.set((EXT.x0+EXT.x1)/2,0,(EXT.y0+EXT.y1)/2);ground.receiveShadow=true;grp.add(ground);
-  waterMesh(grp);bridgeMesh(grp);busMesh(grp);lighthouseMesh(grp);
+  waterMesh(grp);bridgeMesh(grp);dockMesh(grp);busMesh(grp);lighthouseMesh(grp);
   const keep=scene;scene=grp;   // (scene.js's meshes for the hut, the car and the bridge's railings, and the gate's two leaves standing open)
   try{meshObjs(EAST.objs.filter(o=>['booth','car','rail'].includes(o.kind)));
     const leaves=[{kind:'gate',x:1000,y:-354,w:66,h:4},{kind:'gate',x:1000,y:-200,w:66,h:4}];meshObjs(leaves);
@@ -292,7 +374,9 @@ function openEast(st){
 function beyondCut(on){
   for(const m of BEYOND_E){const M=m.material;
     if(on&&!m.userData.cut){const[x0,z0,x1,z1]=m.userData.box,S=.25,c=document.createElement('canvas');c.width=Math.ceil((x1-x0)*S);c.height=Math.ceil((z1-z0)*S);
-      const a=c.getContext('2d');a.fillStyle='#fff';a.fillRect(0,0,c.width,c.height);a.setTransform(S,0,0,S,-x0*S,-z0*S);shorePath(a);a.fillStyle='#000';a.fill();m.userData.cut=new T.CanvasTexture(c);}
+      const a=c.getContext('2d');a.fillStyle='#fff';a.fillRect(0,0,c.width,c.height);a.setTransform(S,0,0,S,-x0*S,-z0*S);shorePath(a);a.fillStyle='#000';a.fill();
+      a.fillRect(HILL_X-8,-1900,2208-HILL_X,3150);a.fillStyle='#fff';a.fillRect(HILL_X-8,HILL_MID()-99,18,198);   // (and under the hill, terrain.js's ground: its foot below the strip's height showed as a flat ledge along the water; not in front of the headwall)
+      m.userData.cut=new T.CanvasTexture(c);}
     M.alphaMap=on?m.userData.cut:null;M.alphaTest=on?.5:0;M.needsUpdate=true;}
 }
 function canalEnd(open){const c=typeof CANAL_PLANE!=='undefined'?CANAL_PLANE:null;if(!c)return;const w=W+400;c.scale.x=open?(W+200)/w:1;c.position.x=open?(W-200)/2:W/2;}   // (scene.js's canal water: past the old edge, out over the bay, until the road east opens)
@@ -356,7 +440,7 @@ function roadSetOff(){
   up.forEach((p,i)=>{const t=openSpot(ROAD_STOP.x-Math.floor(i/2)*24,ROAD_STOP.y+(i%2?16:-16),taken)||ROAD_STOP;taken.push(t);p.path=findPath(p.x,p.y,t.x,t.y)||[];p.lastOrder=simT;p.ret=null;});
 }
 function roadTick(dt){   // (every tick: combat.js's update)
-  if(EAST.beam&&EAST.grp&&EAST.grp.visible){EAST.beam.rotation.y=simT*.7;if(EAST.water){const o=EAST.water.normalMap.offset;o.x=simT*.004;o.y=simT*.0025;}}   // the lighthouse's beam going round, the water's ripple drifting
+  if(EAST.beam&&EAST.grp&&EAST.grp.visible){EAST.beam.rotation.y=simT*.7;if(EAST.water){const o=EAST.water.normalMap.offset;o.x=simT*.004;o.y=simT*.0025;}if(EAST.fall)EAST.fall.offset.y=simT*1.6;if(EAST.foam){EAST.foam.offset.x=Math.sin(simT*1.3)*.012;EAST.foam.offset.y=Math.sin(simT*.9)*.01;}}   // the lighthouse's beam going round, the water's ripple drifting
   centiTick();
   if(MAPID==='tun'&&typeof tunTick==='function')tunTick(dt);   // (her young in the tunnel: tunnel.js)
   if(!road)return;const I=road.intro,g=road.guide;

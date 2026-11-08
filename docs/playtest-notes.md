@@ -940,3 +940,25 @@ sequence makes the characters look really tiny and far away. It's not visually p
 6. Four bridge drafts, the south side as a dockyard like the warehouse level, in docs/bridge-drafts.md
    (docs/drafts/bridges-overview.jpg): A concrete beams on piers, B a steel truss on concrete piers, C stone arches, D a steel
    lift bridge with towers. Not in the game yet: Bryan picks.
+
+## Bryan, after v113 (the changes are in v114)
+
+On the bridge drafts: "1) concrete beam and tiers 2) right now, it's just scenery." And: "3) the lighthouse should be fairly off in
+the distance, and on a large island. The water is mean to go on and on? Like an ocean's horizon. Does that makes sense? Do you
+want to draft that first?"
+
+1. The bridge is draft A, concrete beams on piers (read "tiers" as piers): deep edge beams with a drip line, three girders under
+   the deck, five piers of two round columns on a cap with a footing at the water, an abutment at each end. The water lies 3.4 m
+   below the deck now (it was 1 m), so all of that shows.
+2. The dockyard south of the bridge, scenery only: quays round a dock basin, two warehouses with roll doors and lamps over them,
+   stacked containers, a gantry crane at the root of a pier, a tug at the west quay, lamps on poles. Nobody can walk there. Kept
+   low near the bridge so nothing comes between the camera and the squad on the walk across.
+3. With the water lower, the canal now pours 3.4 m down over the quay wall into the dock basin, a sheet of falling water with
+   foam where it lands.
+4. Fixed on the way: the dark ground standing in for the world beyond the old map also lay over the foot of the hill, a flat ledge
+   along the water with a pale line where it met the slope; it's cut away under the hill now. The big stones on the hill's steep
+   slopes sat proud and looked like grey saucers from the low camera; there are fewer, sunk well in.
+5. The sea: yes, drafted first (docs/ocean-drafts.md, docs/drafts/ocean-overview.jpg). The lake opens out to the sea, the far
+   water fades into a pale haze at the horizon under a sky with a little light low down, and the lighthouse stands on a large island
+   far out, its end in the gap between the Headquarters and the hill with open sea to the right of it: A about 330 m off, B about
+   480 m off and low on the horizon. Not in the game yet: Bryan picks.
