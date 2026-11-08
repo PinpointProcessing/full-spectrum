@@ -36,11 +36,13 @@ let CANAL_PLANE=null;   // the canal's water (road.js clips it at the shore)
 const MAXZ=6,ZP=4,CAM_OVER=220;let zoom=1,camT={x:FIT.w/2,z:FIT.h/2},dist0=1200,yaw=0,tilt=0;   // (MAXZ was 4 until v111: Bryan, "can we have the ability to zoom into the troops a little closer?")
 const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH2=41*Math.PI/180,PITCH_MIN=14*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
 function basePitch(){const z=Math.min(zoom,ZP);return PITCH0+(PITCH1-PITCH0)*(z-1)/(ZP-1)+(zoom>ZP?(PITCH2-PITCH1)*(zoom-ZP)/(MAXZ-ZP):0);}   // (60° zoomed out to 46° at 4x as before, then on down to 41° at the closest)
+let camShift=0,camShiftOn=false;   // the picture moved down by this much of the screen's height (road.js: the first walk across, since v115, so the horizon and some sky are in at the game's lowest angle)
 function updateCamera(){
   const dist=dist0/zoom,p=Math.max(PITCH_MIN,basePitch()-tilt);
   const hd=dist*Math.cos(p);
   camera.position.set(camT.x+Math.sin(yaw)*hd,dist*Math.sin(p),camT.z+Math.cos(yaw)*hd);
   camera.lookAt(camT.x,0,camT.z);camera.updateMatrixWorld();
+  if(camShift>.001){camera.setViewOffset(cw,ch,0,-ch*camShift,cw,ch);camShiftOn=true;}else if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}
 }
 // the zoom that frames a w by h piece of ground round the view's centre, for this screen's shape (the sequences' close shots:
 // zoom is against the whole map fitted, so a phone's narrow view needs about twice the zoom a wide screen does for the same shot;
@@ -96,14 +98,14 @@ function tapTarget(sx,sy){
   return{x,y,obj:o};
 }
 function fitDist(){
-  const sz=zoom,sy=yaw,stl=tilt,st={x:camT.x,z:camT.z};zoom=1;yaw=0;tilt=0;camT={x:FIT.w/2,z:FIT.h/2};
+  const sz=zoom,sy=yaw,stl=tilt,st={x:camT.x,z:camT.z},sh=camShift;zoom=1;yaw=0;tilt=0;camT={x:FIT.w/2,z:FIT.h/2};camShift=0;   // (no shifted picture while the map is fitted: it fitted wrong)
   let lo=200,hi=9000;
   for(let i=0;i<30;i++){
     const mid=(lo+hi)/2;dist0=mid;updateCamera();let ok=true;
     for(const[x,z]of[[0,0],[FIT.w,0],[0,FIT.h],[FIT.w,FIT.h]]){_v.set(x,0,z).project(camera);if(Math.abs(_v.x)>.99||Math.abs(_v.y)>.99){ok=false;break;}}
     if(ok)hi=mid;else lo=mid;
   }
-  dist0=hi;zoom=sz;yaw=sy;tilt=stl;camT=st;clampCam();updateCamera();
+  dist0=hi;zoom=sz;yaw=sy;tilt=stl;camT=st;camShift=sh;clampCam();updateCamera();
 }
 // a ground point under the screen point that's near enough to the view to anchor a zoom on (null for sky / far horizon,
 // where a tiny finger movement means a huge distance: that's what sent the camera flying off)
@@ -319,7 +321,7 @@ const lamps=[   // (front: the data center's front, dark once Level 2's power is
   {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260,front:1},          // the data center's doors
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
-let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null,meshObjs=null;const BEYOND_E=[];const FLOOD_HEADS=[];   // (the floodlights' lamp material: darkFront)   // (meshObjs: set by buildWorld)
+let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null,meshObjs=null,SKY=null;const BEYOND_E=[];const FLOOD_HEADS=[];   // (the floodlights' lamp material: darkFront)   // (meshObjs: set by buildWorld)
 // Every light costs every pixel on screen (a phone feels it), so the street lamps share LAMP_POOL lights: each frame the lamps
 // nearest the middle of the view get them, the one at the edge of the set fading so nothing pops (lampLights in render)
 const LAMP_POOL=6;let lampPool=[];   // (the interior has its own pool and lights: interior.js swaps these)
@@ -347,8 +349,13 @@ function buildWorld(){
    mk(0xcfe2ff,pts.filter(p=>!p[2]));mk(0xffb347,pts.filter(p=>p[2]));}
   // the ground beyond the map: four strips round it (not one big plane under it, so the moat stays bottomless)
   {const om=new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}),E=2500;BEYOND_E.length=0;
-   for(const[x0,z0,x1,z1]of[[-E,TOP-E,W,TOP],[W,TOP-E,W+E,TOP],[-E,H,W+E,H+E],[-E,TOP,0,H],[W,TOP,W+E,H]]){const east=x0>=W,m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),east?om.clone():om);m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,-.3,(z0+z1)/2);scene.add(m);
-     if(east){m.userData.box=[x0,z0,x1,z1];BEYOND_E.push(m);}}}   // (the two east of the map: road.js cuts the lake out of them once the road east is open, beyondCut; they covered its water till v113)
+   for(const[x0,z0,x1,z1]of[[-E,TOP-E,W,TOP],[W,TOP-E,W+E,TOP],[-E,H,W+E,H+E],[-E,TOP,0,H],[W,TOP,W+E,H]]){const cut=x0>=W||z1<=TOP,m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),cut?om.clone():om);m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,-.3,(z0+z1)/2);scene.add(m);
+     if(cut){m.userData.box=[x0,z0,x1,z1];BEYOND_E.push(m);}}}   // (the two east of the map and the one north of it: road.js cuts the lake and the sea out of them once the road east is open, beyondCut; they covered its water till v113, the north one since v115)
+  // the sky (since v115): a dome round the camera, dark overhead with a little light low down, so the horizon shows at night where
+  // the far water (road.js's, fading into that light) meets it; render keeps it on the camera and lights it with the lightning
+  {const tex=canvasTex(8,1024,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);
+     for(const[t,c]of[[0,'#04070b'],[.3,'#060a0f'],[.4,'#0a1017'],[.45,'#121a22'],[.48,'#1a232d'],[.497,'#222c37'],[.5,'#26303b'],[.52,'#1c242e'],[.56,'#0c1116'],[1,'#06090d']])g.addColorStop(t,c);x.fillStyle=g;x.fillRect(0,0,w,h);});
+   tex.wrapS=tex.wrapT=T.ClampToEdgeWrapping;SKY=new T.Mesh(new T.SphereGeometry(5000,24,32),new T.MeshBasicMaterial({map:tex,side:T.BackSide,fog:false,depthWrite:false}));SKY.renderOrder=-10;SKY.frustumCulled=false;scene.add(SKY);}
   // the dock: glossy black water running off the map's south-west corner, a wooden pier with bollards, and the dinghy the squad lands in (landing in state.js)
   const water=new T.Mesh(new T.PlaneGeometry(420,330),new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7}));
   water.rotation.x=-Math.PI/2;water.position.set(175-210,.15,DOCK.quay+165);water.receiveShadow=true;scene.add(water);
@@ -750,6 +757,7 @@ function shake(k){if(!reduced)shakeK=Math.min(1.2,Math.max(shakeK,k*(timeScale()
 function render(rdt,now){
   updateCamera();syncUnits(now);if(typeof crPoolsFrame==='function')crPoolsFrame();seeThrough(rdt);   // (monsters out of sight: their slots hidden, creatures.js)
   if(shakeK>.002){const a=shakeK*4;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a*.6;camera.position.z+=(Math.random()-.5)*a;camera.updateMatrixWorld();shakeK=Math.max(0,shakeK-rdt*3);}
+  if(SKY&&SKY.parent===scene){SKY.position.copy(camera.position);SKY.material.color.setScalar(1+storm*2.2);}   // (the sky round the camera, the horizon at eye level; brighter in a flash)
   if(tunnelRoof){const m=tunnelRoof.material,inside=players.some(p=>alive(p)&&hideAt(p.x,p.y));m.opacity+=((inside?.22:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in the sewer pipe
   for(const{roof,b}of ourRoofs){const m=roof.material,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1);m.opacity+=((inside?.15:1)-m.opacity)*Math.min(1,rdt*8);m.depthWrite=m.opacity>.95;}   // see your men in our pillboxes
   if(dinghy){dinghy.rotation.z=reduced?0:Math.sin(now*1.7)*.035;dinghy.rotation.x=reduced?0:Math.sin(now*1.1)*.02;}   // bobbing on the water

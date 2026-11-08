@@ -9,8 +9,13 @@
      paintEastAlpha), all but the road into the mouth.
    - The rocks along the shores are natural stones now (stoneMesh: rounded, smooth, darker where they're wet, a little moss on
      top). road.js's rockMesh, faceted, is still the tunnel's broken concrete and Level 4's summit.
-   - The lighthouse stands on an island in the lake (ISLE, isleMesh): grass over low earth cliffs, the lighthouse inside a low
-     stone wall, the keeper's cottage, a boat shed and a jetty with a rowing boat, a few pines. A level later on. */
+   - The lake opens out to the sea since v115 (Bryan, after v113: "the lighthouse should be fairly off in the distance, and on a
+     large island. The water is mean to go on and on? Like an ocean's horizon"; on the drafts, docs/ocean-drafts.md: "Your sample
+     in the notes is perfect", option A): north of the Headquarters the land ends in a coast that runs away west (SEA_W, a bank
+     down to the water: shoreBanks), the hill's north end comes down into the water (SEA_E, seaFall in hillH), and the lighthouse
+     stands on a large island far out (ISLE, isleMesh: a height field of low cliffs and hills with pines on it, the keeper's
+     cottage with a window lit), its east end in the gap between the Headquarters and the hill with open sea to the right of it.
+     The water itself, the haze it fades into and the sky are road.js's and scene.js's. A level later on (Bryan, after v112). */
 
 // noise: a hash, value noise in 2D and 3D, a few octaves of it (0..1)
 const thash=(i,j,k,s)=>{const h=Math.sin(i*127.1+j*311.7+k*74.7+s*19.19)*43758.5453;return h-Math.floor(h);};
@@ -61,6 +66,13 @@ function pineMesh(list){
   return[F,Tr];
 }
 
+/* ---------- the coasts (since v115) ---------- */
+const SEA_W=[[1300,-1720],[1250,-1660],[1180,-1590],[1060,-1545],[900,-1520],[720,-1530],[540,-1565],[340,-1600],[60,-1640],[-300,-1700],[-800,-1760],[-1500,-1800],[-2600,-1830]];   // north of the Headquarters' fortress, from the lake's head (road.js's LAKE_W ends there) away west: the land south of it
+const SEA_E=[[1640,-1700],[1662,-1790],[1700,-1880],[1780,-1950],[1900,-2000],[2080,-2030],[2330,-2000],[2600,-2060],[2950,-2130],[3300,-2090],[3700,-2150]];   // where the hill comes down to the sea, west to east (the summit, Level 4's, is well south of it)
+function seaCoastY(x){const P=SEA_E;if(x<=P[0][0])return P[0][1];for(let i=1;i<P.length;i++)if(x<=P[i][0]){const a=P[i-1],b=P[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0]);}return P[P.length-1][1];}
+function seaFall(x,y,h){const yc=seaCoastY(x);if(y>yc+230)return h;const f=WATER_Y-26;return f+(h-f)*sstep(yc-30,yc+230,y);}   // (the ground falling away under the water past the coast)
+const HILL_GROUND={x1:2700,y0:-2428};   // the hill's ground out to the coast and on east (since v115; it stopped at x 2200 and y -1900)
+
 /* ---------- the hill ---------- */
 const HILL_SADDLE=[[10,49],[30,50],[50,53],[88,62],[140,74],[200,86]];   // the ground over the tunnel's mouth: (depth into the hill from its face, height); under CENTI_PATH, over the tunnel's roof (40)
 function saddleH(d){const S=HILL_SADDLE;if(d<=S[0][0])return S[0][1];for(let i=1;i<S.length;i++)if(d<=S[i][0]){const a=S[i-1],b=S[i];return a[1]+(b[1]-a[1])*(d-a[0])/(b[0]-a[0]);}return S[S.length-1][1];}
@@ -69,14 +81,14 @@ function hillH(x,y){
   const dy=Math.abs(y-HILL_MID()),d=x-HILL_X+(vn2(y/38,3.1,5)-.5)*12;   // (d: how far into the hill; a ragged shore)
   const foot=WATER_Y-8,bank=foot+(16-foot)*sstep(-14,24,d),rise=d<24?bank:16+200*(1-Math.exp(-(d-24)/260));
   const n=(fbm2(x/110,y/110,1)-.5)*2,amp=3+20*sstep(20,220,d),swell=30*Math.sin(y/240+1.3)*sstep(90,320,d),top=330*Math.exp(-((x-2060)**2+(y+1460)**2)/135200),h0=rise+n*amp+swell+top;   // (top: the summit, Level 4's, where the zip line comes from: level4.js's l4Cable)
-  const w=sstep(152,98,dy)*(d<10?1:sstep(250,180,d));if(w<=0)return h0;   // the saddle over the mouth and the embankments beside the headwall
+  const w=sstep(152,98,dy)*(d<10?1:sstep(250,180,d));if(w<=0)return seaFall(x,y,h0);   // the saddle over the mouth and the embankments beside the headwall
   const hp=d>=10?saddleH(d):foot+(saddleH(10)-foot)*sstep(-42,10,d);
-  return h0+(hp-h0)*w;
+  return seaFall(x,y,h0+(hp-h0)*w);
 }
 const HILL_HOLE=(x,y)=>x-HILL_X<10&&Math.abs(y-HILL_MID())<99;   // (in front of the headwall: the road, the bridge's end, the water beside it)
 function hillMesh(grp){
-  const xs=[],ys=[],X0=HILL_X-60,X1=2200,Y0=-1900,Y1=1250;
-  for(let x=X0;x<=X1;x+=12)xs.push(x);for(let y=Y0;y<=Y1;y+=12)ys.push(y);   // (one spacing all over: a finer patch by the mouth showed a seam)
+  const xs=[],ys=[],X0=HILL_X-60,X1=HILL_GROUND.x1,Y0=HILL_GROUND.y0,Y1=1250;
+  for(let x=X0;x<=X1;x+=x<2190?12:24)xs.push(x);for(let y=Y0;y<=Y1;y+=y<-1910?24:12)ys.push(y);   // (12 apart where it's seen close, as before, 24 out east and north to the coast: one grid, so no seam; a finer separate patch by the mouth once showed one)
   const nx=xs.length,ny=ys.length,P=new Float32Array(nx*ny*3),UV=new Float32Array(nx*ny*2),I=[];
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const k=j*nx+i,x=xs[i],y=ys[j];P[k*3]=x;P[k*3+1]=hillH(x,y);P[k*3+2]=y;UV[k*2]=(x-X0)/(X1-X0);UV[k*2+1]=(y-Y0)/(Y1-Y0);}
   for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){if(HILL_HOLE((xs[i]+xs[i+1])/2,(ys[j]+ys[j+1])/2))continue;const a=j*nx+i,b=a+1,c=a+nx,d=c+1;I.push(a,c,b,b,c,d);}
@@ -93,6 +105,8 @@ function hillMesh(grp){
   const r=rng(2468),T2=[];
   for(let k=0;k<900&&T2.length<190;k++){const x=HILL_X+50+r()*520,y=-1800+r()*2950,d=x-HILL_X;if(Math.abs(y-HILL_MID())<92&&d<230)continue;if(vn2(x/140,y/140,8)<.42)continue;   // (in clumps)
     const h=hillH(x,y),e=8;if(Math.abs(hillH(x+e,y)-h)>e*.9||Math.abs(hillH(x,y+e)-h)>e*.9)continue;T2.push([x,y,20+r()*18,h,(r()*1e5)|0]);}
+  {const r2=rng(8642);for(let k=0;k<2400&&T2.length<340;k++){const x=HILL_X+50+r2()*960,y=-2300+r2()*3450;if(x<HILL_X+570&&y>-1800)continue;if(vn2(x/140,y/140,8)<.42)continue;   // (and out east and north to the coast since v115)
+    const h=hillH(x,y),e=8;if(h<WATER_Y+14)continue;if(Math.abs(hillH(x+e,y)-h)>e*.9||Math.abs(hillH(x,y+e)-h)>e*.9)continue;T2.push([x,y,20+r2()*18,h,(r2()*1e5)|0]);}}
   for(const m of pineMesh(T2))grp.add(m);
   // stones half sunk in it along the shore and here and there up the slope
   const S=[],sd=()=>(r()*1e5)|0;
@@ -124,65 +138,41 @@ function bankMesh(grp,line,prof,seed,step=10){
 function shoreBanks(grp){
   const r=rng(1357),S=[],sd=()=>(r()*1e5)|0;
   // the lake's west shore, from the gate's corner round the moat to the far north: low, grass on top, rock at the water
-  const west=bankMesh(grp,[[ABUT.x1,ABUT.y0],...LAKE_W],[[-18,WATER_Y-8],[-5,WATER_Y+.5],[3,6],[12,11],[30,9],[52,4],[70,0]],21);
+  const west=bankMesh(grp,[[ABUT.x1,ABUT.y0],...LAKE_W,...SEA_W.slice(1)],[[-18,WATER_Y-8],[-5,WATER_Y+.5],[3,6],[12,11],[30,9],[52,4],[70,0]],21);   // (on round the coast north of the fortress since v115)
   west.forEach((p,k)=>{if(k%2||r()<.3)return;const s=4+r()*7;S.push([p[0]-4-r()*6,p[1]+(r()-.5)*6,s*1.3,s*.7,s,r()*6,sd(),WATER_Y+s*.3]);});   // stones at its water's edge
-  // the far shores: north across the lake's head, south across the bay's foot; higher, further off
-  bankMesh(grp,[[1290,-1724],[1664,-1724]],[[-20,WATER_Y-8],[-6,WATER_Y+1],[8,14],[40,38],[90,52],[150,40]],23,20);
+  // the far shore south across the bay's foot, behind the dockyard (the one north across the lake's head went with v115: the sea)
   bankMesh(grp,[[1664,900],[1000,900]],[[-20,WATER_Y-8],[-6,WATER_Y+1],[8,10],[40,26],[100,36]],25,20);
   grp.add(stoneMesh(S,1));
 }
 
-/* ---------- the lighthouse's island ---------- */
-const ISLE={x:1494,y:-1214,rx:100,ry:124,get h(){return WATER_Y+22;},n:56,seed:3307};   // out in the lake's north, a channel either side; its top 2.2 m above the water
-const ISLE_COT={x:1478,y:-1170,w:36,d:22};   // the keeper's cottage (its door to the south)
-const ISLE_JETTY={x:1456,y0:-1108,y1:-1056};   // from the south shore out into the water
-function islePts(){
-  const P=[],I=ISLE;for(let k=0;k<I.n;k++){const a=k/I.n*Math.PI*2,R=1+.2*(vn2(Math.cos(a)*1.6+5,Math.sin(a)*1.6+5,I.seed)-.5)+.05*Math.sin(3*a+1);P.push([I.x+Math.cos(a)*I.rx*R,I.y+Math.sin(a)*I.ry*R]);}
-  return P;
-}
-function isleTop(P){   // its top: grass, a gravel path from the jetty up to the cottage and on to the lighthouse, the yard round the tower paved
-  const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]),x0=Math.min(...xs)-4,x1=Math.max(...xs)+4,y0=Math.min(...ys)-4,y1=Math.max(...ys)+4,bw=x1-x0,bh=y1-y0,S=2;
-  const tex=canvasTex(Math.round(bw*S),Math.round(bh*S),(g,w,h)=>{g.setTransform(S,0,0,S,-x0*S,-y0*S);const r=rng(9311);
-    g.fillStyle='#3f4a2b';g.fillRect(x0,y0,bw,bh);
-    for(let i=0;i<5200;i++){const x=x0+r()*bw,y=y0+r()*bh,s=.5+r()*1.8;g.fillStyle=r()<.5?'rgba(10,14,8,.45)':'rgba(92,104,64,.16)';g.fillRect(x,y,s,s*.7);}
-    g.strokeStyle='rgba(18,20,14,.55)';g.lineWidth=7;g.beginPath();g.moveTo(...P[0]);for(const p of P)g.lineTo(...p);g.closePath();g.stroke();   // (rough at the edge)
-    const path=[[ISLE_JETTY.x,ISLE_JETTY.y0+4],[ISLE_JETTY.x+8,ISLE_JETTY.y0-14],[ISLE_COT.x-6,ISLE_COT.y+ISLE_COT.d/2+8],[ISLE_COT.x+ISLE_COT.w/2+10,ISLE_COT.y+8],[LIGHTHOUSE.x-14,LIGHTHOUSE.y+6]];
-    g.lineCap=g.lineJoin='round';g.strokeStyle='#6b6553';g.lineWidth=5;g.beginPath();g.moveTo(...path[0]);for(const p of path)g.lineTo(...p);g.stroke();
-    for(let i=0;i<500;i++){const t=r()*(path.length-1),k=Math.floor(t),f=t-k,a=path[k],b=path[k+1];g.fillStyle=r()<.5?'rgba(0,0,0,.25)':'rgba(140,130,110,.18)';g.fillRect(a[0]+(b[0]-a[0])*f+(r()-.5)*5,a[1]+(b[1]-a[1])*f+(r()-.5)*5,1,1);}
-    g.fillStyle='#6b6a65';g.beginPath();g.arc(LIGHTHOUSE.x,LIGHTHOUSE.y,15,0,7);g.fill();g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=.6;for(let a=0;a<6.28;a+=.5){g.beginPath();g.moveTo(LIGHTHOUSE.x,LIGHTHOUSE.y);g.lineTo(LIGHTHOUSE.x+Math.cos(a)*15,LIGHTHOUSE.y+Math.sin(a)*15);g.stroke();}
-    g.fillStyle='rgba(8,9,7,.5)';g.fillRect(ISLE_COT.x-ISLE_COT.w/2-3,ISLE_COT.y-ISLE_COT.d/2-3,ISLE_COT.w+6,ISLE_COT.d+6);});   // (the cottage's shadow on the grass)
-  tex.wrapS=tex.wrapT=T.ClampToEdgeWrapping;tex.repeat.set(1/bw,1/bh);tex.offset.set(-x0/bw,y1/bh);   // (ShapeGeometry's uvs are map units: x, and -y)
-  return tex;
-}
+/* ---------- the lighthouse's island, far out in the sea ---------- */
+// its east end, the lighthouse on it (road.js's LIGHTHOUSE, 55 in from the shore), about 330 m north of the bridge in the gap
+// between the Headquarters and the hill; the rest of it runs away west behind the Headquarters (the drafts' option A: about 200 m
+// of it shows). h: the ground at the lighthouse
+const ISLE={x:405,y:-3740,rx:1000,ry:250,hills:230,seed:71,get h(){return isleH(LIGHTHOUSE.x,LIGHTHOUSE.y);}};
+function isleShore(a){const c=ISLE;return 1+.2*(vn2(Math.cos(a)*1.8+11,Math.sin(a)*1.8+11,c.seed)-.5)*2+.07*Math.sin(3*a+.7)+.04*Math.sin(7*a+2);}   // (how far out the shore is that way, against the ellipse)
+function isleH(x,y){const c=ISLE,dx=(x-c.x)/c.rx,dy=(y-c.y)/c.ry,e=Math.hypot(dx,dy)/isleShore(Math.atan2(dy,dx)),d=e<1e-3?2000:Math.min(2000,Math.hypot(x-c.x,y-c.y)*(1/e-1));   // (d: how far in from the shore along the line to its middle)
+  return WATER_Y-24+54*sstep(-8,14,d)+c.hills*sstep(16,c.ry*1.1,d)*(.35+.8*fbm2(x/340+c.seed,y/340,c.seed))+(fbm2(x/50,y/50,c.seed+5)-.5)*8*sstep(0,60,d);}   // (a low cliff at the water, 3 m, the bottom shelving away under it; hills over it)
 function isleMesh(grp){
-  const I=ISLE,P=islePts(),g=new T.Group();grp.add(g);
-  const sh=new T.Shape();sh.moveTo(P[0][0],-P[0][1]);for(const p of P)sh.lineTo(p[0],-p[1]);
-  const top=new T.Mesh(new T.ShapeGeometry(sh),new T.MeshStandardMaterial({map:isleTop(P),roughness:.95,metalness:0}));top.rotation.x=-Math.PI/2;top.position.y=I.h;top.receiveShadow=true;g.add(top);
-  // its edge: a low earth cliff, then a stony apron at the water and the slope on down under it
-  const rows=[[0,0],[2.5,-3],[7,WATER_Y+1.5-I.h],[18,WATER_Y-16-I.h]],pos=[],col=[],idx=[],n=P.length,c=new T.Color(),earth=new T.Color(.11,.088,.064),stone=new T.Color(.12,.115,.108),wet=new T.Color(.045,.045,.042);
-  P.forEach((p,k)=>{const a=Math.atan2((p[1]-I.y)/I.ry,(p[0]-I.x)/I.rx),ox=Math.cos(a),oy=Math.sin(a),j=.8+.5*vn2(k*.7,1.3,I.seed+3);
-    rows.forEach(([o,dh],ri)=>{pos.push(p[0]+ox*o*j,I.h+dh,p[1]+oy*o*j);c.copy(ri<2?earth:ri<3?stone:wet).multiplyScalar(.85+.3*vn2(k*.9,ri,11));col.push(c.r,c.g,c.b);});});
-  for(let k=0;k<n;k++){const a=k*rows.length,b=((k+1)%n)*rows.length;for(let ri=0;ri<rows.length-1;ri++)idx.push(a+ri,b+ri,a+ri+1,a+ri+1,b+ri,b+ri+1);}
-  const eg=new T.BufferGeometry();eg.setAttribute('position',new T.Float32BufferAttribute(pos,3));eg.setAttribute('color',new T.Float32BufferAttribute(col,3));eg.setIndex(idx);eg.computeVertexNormals();
-  const edge=new T.Mesh(eg,new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide}));edge.castShadow=edge.receiveShadow=true;g.add(edge);
-  const r=rng(5501),S=[];P.forEach((p,k)=>{if(r()<.55){const a=Math.atan2(p[1]-I.y,p[0]-I.x),o=5+r()*5,s=2.5+r()*5;S.push([p[0]+Math.cos(a)*o,p[1]+Math.sin(a)*o,s*1.3,s*.8,s,r()*6,(r()*1e5)|0,WATER_Y+s*.25]);}});g.add(stoneMesh(S,1));   // stones at the water's edge
-  // the keeper's cottage: white walls, a slate roof, a chimney, the windows dark
-  const wall=new T.MeshStandardMaterial({color:0xaaa497,roughness:.86}),roof=new T.MeshStandardMaterial({color:0x2c3135,roughness:.68,metalness:.1}),dark=new T.MeshStandardMaterial({color:0x0c0f12,roughness:.35,metalness:.4}),wood=new T.MeshStandardMaterial({color:0x3a2c20,roughness:.9});
-  const B=(w,h,d,m,x,y,z,ry)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);if(ry)o.rotation.y=ry;o.castShadow=o.receiveShadow=true;g.add(o);return o;};
-  const K=ISLE_COT;B(K.w,13,K.d,wall,K.x,I.h+6.5,K.y);
-  const rs=new T.Shape();rs.moveTo(-K.d/2-2,0);rs.lineTo(0,9);rs.lineTo(K.d/2+2,0);rs.lineTo(-K.d/2-2,0);
-  const rg=new T.ExtrudeGeometry(rs,{depth:K.w+3,bevelEnabled:false});rg.translate(0,0,-(K.w+3)/2);const rm=new T.Mesh(rg,roof);rm.rotation.y=Math.PI/2;rm.position.set(K.x,I.h+13,K.y);rm.castShadow=true;g.add(rm);
-  B(4,10,4,wall,K.x+K.w/2-6,I.h+18,K.y-3);B(5,2.5,9,dark,K.x-K.w/2+9,I.h+5,K.y+K.d/2+.2);
-  for(const x of[-10,6,13])B(5,4.5,.6,dark,K.x+x,I.h+8,K.y+K.d/2+.1);for(const x of[-10,6])B(5,4.5,.6,dark,K.x+x,I.h+8,K.y-K.d/2-.1);
-  // the boat shed and the jetty, a rowing boat tied up at it
-  B(16,9,13,new T.MeshStandardMaterial({color:0x4a3b2c,roughness:.9}),ISLE_JETTY.x+20,I.h+4.5,ISLE_JETTY.y0-16);B(18,1.4,15,roof,ISLE_JETTY.x+20,I.h+9.6,ISLE_JETTY.y0-16,.04);
-  const J=ISLE_JETTY,jl=J.y1-J.y0;B(8,1.2,jl,wood,J.x,WATER_Y+3.4,(J.y0+J.y1)/2);
-  for(let y=J.y0+4;y<=J.y1;y+=10)for(const s of[-1,1]){const pst=new T.Mesh(new T.CylinderGeometry(.7,.7,12,6),wood);pst.position.set(J.x+s*3.6,WATER_Y-1.5,y);g.add(pst);}
-  B(3,2.6,4,wood,J.x,WATER_Y+3+(I.h-WATER_Y-3)/2-1.6,J.y0-1);   // (steps up onto the grass)
-  const hull=new T.Mesh(new T.SphereGeometry(1,12,6,0,Math.PI*2,Math.PI/2,Math.PI/2),new T.MeshStandardMaterial({color:0x5a2820,roughness:.7,side:T.DoubleSide}));hull.scale.set(3.4,2.4,9);hull.position.set(J.x+9,WATER_Y+1.6,J.y1-14);hull.rotation.y=.06;hull.castShadow=true;g.add(hull);
-  // a low stone wall round the lighthouse's yard (open toward the cottage)
-  const sw=new T.MeshStandardMaterial({color:0x55534e,roughness:.92});for(let a=0;a<Math.PI*2;a+=.36){const da=Math.atan2(K.y-LIGHTHOUSE.y,K.x-LIGHTHOUSE.x),off=Math.atan2(Math.sin(a-da),Math.cos(a-da));if(Math.abs(off)<.4)continue;B(5.8,3.4,2.2,sw,LIGHTHOUSE.x+Math.cos(a)*16,I.h+1.7,LIGHTHOUSE.y+Math.sin(a)*16,-a+Math.PI/2);}
-  // a few pines on its north side
-  const T2=[];for(let k=0;k<40&&T2.length<9;k++){const a=-Math.PI*(.12+r()*.76),R=.25+r()*.55,x=I.x+Math.cos(a)*I.rx*R,y=I.y+Math.sin(a)*I.ry*R;if(hyp(x-K.x,y-K.y)<34||hyp(x-LIGHTHOUSE.x,y-LIGHTHOUSE.y)<30)continue;T2.push([x,y,18+r()*14,I.h,(r()*1e5)|0]);}
-  for(const m of pineMesh(T2))g.add(m);
+  const c=ISLE,X0=c.x-c.rx*1.32,X1=c.x+c.rx*1.32,Y0=c.y-c.ry*1.32,Y1=c.y+c.ry*1.32,st=20,xs=[],ys=[];
+  for(let x=X0;x<=X1;x+=st)xs.push(x);for(let y=Y0;y<=Y1;y+=st)ys.push(y);
+  const nx=xs.length,ny=ys.length,P=new Float32Array(nx*ny*3),I=[];
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const k=j*nx+i;P[k*3]=xs[i];P[k*3+1]=isleH(xs[i],ys[j]);P[k*3+2]=ys[j];}
+  for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){const a=j*nx+i,b=a+1,q=a+nx,d=q+1;if(Math.max(P[a*3+1],P[b*3+1],P[q*3+1],P[d*3+1])<WATER_Y-10)continue;I.push(a,q,b,b,q,d);}   // (nothing far under the water)
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();
+  const N=g.attributes.normal,C=new Float32Array(nx*ny*3),col=new T.Color(),grass=new T.Color(.064,.084,.042),earth=new T.Color(.105,.084,.06),rock=new T.Color(.16,.153,.142),wet=new T.Color(.05,.05,.047),Lx=-.39,Ly=.8,Lz=-.52;   // (hillMesh's colours, the moon's light baked in a little)
+  for(let k=0;k<nx*ny;k++){const x=P[k*3],h=P[k*3+1],y=P[k*3+2],slope=1-N.getY(k),q=vn2(x/9,y/9,4)*.6+vn2(x/31,y/31,6)*.4;
+    col.copy(earth).lerp(grass,sstep(.24,.1,slope)*sstep(WATER_Y+6,WATER_Y+20,h)*(.6+.5*q)).lerp(rock,sstep(.2,.46,slope)*(.7+.4*q));
+    if(h<WATER_Y+5)col.lerp(wet,sstep(WATER_Y+5,WATER_Y-2,h));col.multiplyScalar((.8+.4*q)*(.42+.8*Math.max(0,N.getX(k)*Lx+N.getY(k)*Ly+N.getZ(k)*Lz)));C[k*3]=col.r;C[k*3+1]=col.g;C[k*3+2]=col.b;}
+  g.setAttribute('color',new T.BufferAttribute(C,3));
+  const mesh=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:.02}));mesh.receiveShadow=true;grp.add(mesh);
+  // pines in clumps over it: a ragged treeline against the sky
+  const r=rng(c.seed*7),T2=[];
+  for(let k=0;k<5000&&T2.length<320;k++){const x=X0+r()*(X1-X0),y=Y0+r()*(Y1-Y0),h=isleH(x,y);if(h<WATER_Y+40)continue;if(vn2(x/180,y/180,c.seed+9)<.38)continue;if(Math.hypot(x-LIGHTHOUSE.x,y-LIGHTHOUSE.y)<90)continue;T2.push([x,y,34+r()*30,h,(r()*1e5)|0]);}
+  for(const m of pineMesh(T2)){m.castShadow=false;grp.add(m);}   // (too far out for the moon's shadows)
+  // the keeper's cottage by the lighthouse, a window lit (seen from the bridge as a speck of warm light)
+  const L=LIGHTHOUSE,cx=L.x-70,cz=L.y-20,ch=isleH(cx,cz),wall=new T.MeshStandardMaterial({color:0xaaa497,roughness:.86}),roof=new T.MeshStandardMaterial({color:0x2c3135,roughness:.68,metalness:.1});
+  const hs=new T.Mesh(new T.BoxGeometry(52,22,32),wall);hs.position.set(cx,ch+11,cz);grp.add(hs);
+  const rf=new T.Mesh(new T.ConeGeometry(34,16,4),roof);rf.rotation.y=Math.PI/4;rf.scale.set(1,1,.66);rf.position.set(cx,ch+30,cz);grp.add(rf);
+  for(const dx of[-12,10]){const w=new T.Mesh(new T.PlaneGeometry(7,6),new T.MeshBasicMaterial({color:dx<0?0xffc878:0x4a3a22,toneMapped:false,fog:false}));w.position.set(cx+dx,ch+12,cz+16.2);grp.add(w);}
 }

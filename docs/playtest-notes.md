@@ -962,3 +962,23 @@ want to draft that first?"
    water fades into a pale haze at the horizon under a sky with a little light low down, and the lighthouse stands on a large island
    far out, its end in the gap between the Headquarters and the hill with open sea to the right of it: A about 330 m off, B about
    480 m off and low on the horizon. Not in the game yet: Bryan picks.
+
+## Bryan, after v114 (the changes are in v115)
+
+"Your sample in the notes is perfect" (the sea drafts, docs/ocean-drafts.md). Taken as: build it as drafted. He didn't pick between
+A and B, so it's A, the nearer island whose shape you can make out; B is only the island's position and size.
+
+1. The lake opens out to the sea. Its far shore across the head is gone. North of the Headquarters the land ends in a coast that
+   runs away west, and the hill's north end comes down into the water. The summit, the saddle over the tunnel and the zip line are
+   as they were.
+2. The lighthouse stands on the east end of a large island about 330 m north of the bridge, in the gap between the Headquarters
+   and the hill. The rest of the island runs away west behind the Headquarters, so from the bridge there's open sea to the right of
+   it.
+   - The lighthouse is twice the size it was (about 23 m), and its light isn't dimmed by the night air.
+   - Its beam is longer.
+   - The keeper's cottage has a window lit.
+   - The little island in the lake is gone.
+3. The far water fades into a pale haze at the horizon, and there's a sky with a little light low down, so the horizon shows at
+   night and land far off stands out dark against it. A lightning flash lights the sky too.
+4. The first walk across: the camera at the game's lowest angle, with the picture moved down a little so the horizon and some sky
+   are in and the squad sits in the lower part. The squad is the same size on screen. It eases back for the turn to the tunnel.

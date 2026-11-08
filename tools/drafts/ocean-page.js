@@ -10,7 +10,8 @@
      its lantern unfogged and its beam longer, a keeper's cottage with a lit window; the old island in the lake gone;
    oceanAfter() then puts up a sky with a little light low down (a dome round the camera: the horizon shows where the dark sea
    meets it) and lets the camera go a little lower than the game does (10 degrees over the water, the game stops at 14) so the
-   horizon and some sky are in the walk's picture. Drawn only; nothing here changes the game until Bryan picks. */
+   horizon and some sky are in the walk's picture. Drawn only; nothing here changes the game until Bryan picks. Bryan, after v114: "Your
+   sample in the notes is perfect": option A is in the game since v115 (road.js, terrain.js, scene.js), so this runs on v114 only. */
 const OD={opt:null,o:null,sky:null,pmin:10*Math.PI/180,lh:null,strips:[],haze:new THREE.Color(0x1d2630)};
 const OD_OPT={   // (from the bridge the sea shows between the fortress on the left and the mountain on the right: the island lies off to the
                 // left, its east end with the lighthouse in that gap and open sea to the right of it, the rest of it running away west)
@@ -23,6 +24,7 @@ function odCoastY(x){const P=OD_EAST;if(x<=P[0][0])return P[0][1];for(let i=1;i<
 
 /* ---------- the swaps, before the road east is built ---------- */
 function oceanSetup(opt){
+  if(typeof SEA_W!=='undefined')throw new Error('The sea is in the game itself since v115 (option A): this draft tool ran on v114.');
   const o=OD_OPT[opt];OD.opt=opt;OD.o=o;
   const lakePts0=lakePts,hillH0=hillH,lighthouse0=lighthouseMesh;
   window.lakePts=function(){   // the lake and the bay as before, the lake's head opened out to the sea

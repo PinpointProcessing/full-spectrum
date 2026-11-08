@@ -4,8 +4,11 @@ Bryan: "the lighthouse should be fairly off in the distance, and on a large isla
 ocean's horizon. Does that makes sense? Do you want to draft that first?"
 
 It makes sense, and yes: drafted first. Rendered in the game's own scene at night (`tools/drafts/ocean.js` with `ocean-page.js`;
-pictures in `docs/drafts/ocean-*.jpg`, all of them on one sheet in `docs/drafts/ocean-overview.jpg`). Nothing here is in the game
-yet. v114 has the concrete bridge on piers and the dockyard; the lake and its little island are as they were.
+pictures in `docs/drafts/ocean-*.jpg`, all of them on one sheet in `docs/drafts/ocean-overview.jpg`).
+
+**Built in v115.** Bryan, after v114: "Your sample in the notes is perfect". He didn't pick between A and B, so it's A, the nearer
+one. B is only the island's position and size (terrain.js's `ISLE`, road.js's `LIGHTHOUSE`), if he'd rather have it. The draft tool
+runs on v114 only.
 
 ## What changes, in both options
 

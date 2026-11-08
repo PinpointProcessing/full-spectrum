@@ -37,9 +37,9 @@ const TUN_ZONE={x0:1600,y0:-276,x1:1672,y1:-224};   // the gather area at the mo
 let WATER_Y=-34;   // the lake and the bay lie 3.4 m below the deck and the shore (a metre until v114: let down with the concrete bridge so its piers show; a let: the drafts in tools/drafts set it before the road is built)
 const LAKE_W=[[1060,-470],[1100,-520],[1152,-560],[1242,-650],[1312,-780],[1352,-1000],[1345,-1450],[1300,-1720]];   // the lake's west shore, round the fortress's moat, south to north
 const BUS={x:1592,y:-318,w:108,h:28,east:true};   // a coach broken down in the left-hand lane, its nose in the tunnel's mouth
-const LIGHTHOUSE={x:1532,y:-1156};   // on its island out in the lake (terrain.js's ISLE; since v113, Bryan: "The lighthouse should on a landmass, not a rocky land. (It will be a level later on)"; it stood on rocks at the north end of the hill's shore); its beam turning (rendered only: beyond the map's edge)
+const LIGHTHOUSE={x:1500,y:-3707};   // on the east end of a large island far out in the sea since v115 (terrain.js's ISLE; Bryan, after v113: "the lighthouse should be fairly off in the distance, and on a large island. The water is mean to go on and on? Like an ocean's horizon"; on the drafts: "Your sample in the notes is perfect", option A, about 330 m north of the bridge; in v113 and v114 it stood on a little island in the lake, before that on rocks at the north end of the hill's shore); its beam turning (rendered only: beyond the map's edge)
 const ROAD_STOP={x:1470,y:-275};   // where the squad stops the first time out: on the bridge, the tunnel's mouth in sight
-const ROAD_LOOK={z:-390,zoom:3.6,tilt:.565};   // the camera while they cross the first time: locked, looking north up the lake (Bryan: "perpendicular to the bridge looking north, so the lighthouse is seen in the horizon")
+const ROAD_LOOK={z:-390,zoom:3.6,tilt:.6,shift:.13};   // the camera while they cross the first time: locked, looking north up the lake (Bryan: "perpendicular to the bridge looking north, so the lighthouse is seen in the horizon")
 const HQ_EXIT={x0:410,y0:858,x1:590,y1:922};   // the gather area in the Headquarters' entry hall, at its south door
 const ROAD_OUT={x:850,y:-392};   // where the squad comes to off the drawbridge, just south of its gather area
 const ROAD_TALK=["Alright, we need to get our radio communication up.",
@@ -68,11 +68,13 @@ function eastObjects(){
 }
 // the road's outline (canvas): from the runway's width at the gate in to the bridge's, and on into the tunnel's mouth
 function roadPath(c){c.beginPath();c.moveTo(1000,-340);c.lineTo(RBR.x0,RBR.y0);c.lineTo(HILL_X+PORTAL.depth,RBR.y0);c.lineTo(HILL_X+PORTAL.depth,RBR.y1);c.lineTo(RBR.x0,RBR.y1);c.lineTo(1000,-210);c.closePath();}
-// the water's outline (map coordinates), the lake and the bay in one: down the old map's edge from the south, round the near
-// shore at the gate, up the lake's west shore round the moat, across the far north, down the hill's shore and back
+// the water's outline (map coordinates), the lake, the bay and the sea in one: down the old map's edge from the south, round the
+// near shore at the gate, up the lake's west shore round the moat, and since v115 on round the coast north of the fortress
+// (terrain.js's SEA_W) and out past where anything is drawn, back along under the hill's north end (its ground falls away into the
+// water there: terrain.js's seaFall) and down the hill's shore
 function lakePts(){
-  const r=rng(6161),P=[[1000,900],[ABUT.x0,ABUT.y1],[ABUT.x1,ABUT.y1],[ABUT.x1,ABUT.y0],...LAKE_W,[1660,-1720]];
-  for(let y=-1700;y<900;y+=26)P.push([HILL_X+(r()-.5)*12,y]);   // (ragged along the hill's foot: rocks cover it)
+  const r=rng(6161),P=[[1000,900],[ABUT.x0,ABUT.y1],[ABUT.x1,ABUT.y1],[ABUT.x1,ABUT.y0],...LAKE_W,...SEA_W.slice(1),[-6000,-1850],[-6000,-9500],[9000,-9500],[9000,-1600],[1700,-1600]];
+  for(let y=-1700;y<900;y+=26){const p=[HILL_X+(r()-.5)*12,y];if(y>-1600)P.push(p);}   // (ragged along the hill's foot: rocks cover it)
   P.push([HILL_X,900]);return P;
 }
 function shorePath(c){const P=lakePts();c.beginPath();c.moveTo(...P[0]);for(const p of P)c.lineTo(...p);c.closePath();}
@@ -146,6 +148,8 @@ function portalMesh(grp){
 function waterMesh(grp){
   const wm=new T.MeshStandardMaterial({color:0x0a171e,roughness:.3,metalness:.35,normalMap:rippleTex(),normalScale:new T.Vector2(.3,.3)}),sh=new T.Shape(),P=lakePts(),env=nightEnv();if(env){wm.envMap=env;wm.envMapIntensity=.55;}   // (darker since v113: seen at last, the beyond-the-map floor no longer over it, beyondCut)
   wm.normalMap.repeat.set(1/70,1/70);EAST.water=wm;   // (the ShapeGeometry's uvs are map units: one ripple tile every 7 m; roadTick drifts it)
+  wm.onBeforeCompile=sh=>{sh.uniforms.uHaze={value:new T.Color(0x1d2630)};sh.fragmentShader='uniform vec3 uHaze;\n'+sh.fragmentShader.replace('#include <fog_fragment>',   // (since v115 the far water fades into a haze the colour of the sky low down, scene.js's SKY, not into the night like everything else: the sea pale at the horizon, land far off dark against it)
+    '#ifdef USE_FOG\n#ifdef FOG_EXP2\nfloat hz=1.0-exp(-fogDensity*fogDensity*fogDepth*fogDepth);\n#else\nfloat hz=smoothstep(fogNear,fogFar,fogDepth);\n#endif\ngl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze,hz);\n#endif');};
   sh.moveTo(P[0][0],-P[0][1]);for(const p of P)sh.lineTo(p[0],-p[1]);   // (the shape's y is the map's -y: laid flat below)
   const lake=new T.Mesh(new T.ShapeGeometry(sh),wm);lake.rotation.x=-Math.PI/2;lake.position.y=WATER_Y;lake.receiveShadow=true;grp.add(lake);
   const st=new T.MeshStandardMaterial({color:0x5f605b,roughness:.92}),B=(x,z,w,d)=>{const b=new T.Mesh(new T.BoxGeometry(w,-WATER_Y+3,d),st);b.position.set(x,(WATER_Y-3)/2,z);b.receiveShadow=true;grp.add(b);};
@@ -281,16 +285,18 @@ function busMesh(grp,b=BUS){
   for(const z of[-Ln/2+18,Ln/2-30,Ln/2-18])for(const s of[-1,1]){const t=new T.Mesh(new T.CylinderGeometry(4.4,4.4,3,14),tyre);t.rotation.z=Math.PI/2;t.position.set(s*(Wd/2-1),4.4-(s<0&&z<0?1.4:0),z);t.castShadow=true;tilt.add(t);}   // (the front left one flat)
   for(const s of[-1,1]){const l=new T.Mesh(new T.BoxGeometry(3,1.6,.4),new T.MeshBasicMaterial({color:0x3a0d08}));l.position.set(s*(Wd/2-4),8,Ln/2+.2);tilt.add(l);}   // dead tail lights
 }
-// the lighthouse on its island (terrain.js's isleMesh): a tower in white and red bands, the lantern lit, its beam turning (EAST.beam: roadTick)
+// the lighthouse on its island (terrain.js's isleMesh): a tower in white and red bands, the lantern lit, its beam turning (EAST.beam:
+// roadTick). Since v115 far out in the sea, so twice the size it was (about 23 m), its lantern not dimmed by the night air, its beam longer
+const LH_S=2;
 function lighthouseMesh(grp){
-  const L=LIGHTHOUSE,g=new T.Group();g.position.set(L.x,ISLE.h-18,L.y);grp.add(g);   // (built standing on 18 as it was on its rocks: raised or lowered onto the island's top)
+  const L=LIGHTHOUSE,g=new T.Group();g.scale.setScalar(LH_S);g.position.set(L.x,ISLE.h-18*LH_S,L.y);grp.add(g);   // (built standing on 18 as it was on its rocks: set on the island's ground)
   const bands=canvasTex(64,256,(x,w,h)=>{x.fillStyle='#d9d6cc';x.fillRect(0,0,w,h);x.fillStyle='#a8302a';for(const y of[24,104,184])x.fillRect(0,y,w,36);});bands.wrapS=bands.wrapT=T.ClampToEdgeWrapping;
   const tw=new T.Mesh(new T.CylinderGeometry(6.5,10,96,20),new T.MeshStandardMaterial({map:bands,roughness:.7}));tw.position.y=18+48;tw.castShadow=true;g.add(tw);
   const dark=new T.MeshStandardMaterial({color:0x22262a,roughness:.5,metalness:.6});
   const gal=new T.Mesh(new T.CylinderGeometry(9.5,9.5,1.6,20),dark);gal.position.y=18+96.8;g.add(gal);
-  const lan=new T.Mesh(new T.CylinderGeometry(5,5,8,14),new T.MeshBasicMaterial({color:0xfff0c4,toneMapped:false}));lan.position.y=18+102;g.add(lan);
+  const lan=new T.Mesh(new T.CylinderGeometry(5,5,8,14),new T.MeshBasicMaterial({color:0xfff0c4,toneMapped:false,fog:false}));lan.position.y=18+102;g.add(lan);
   const cap=new T.Mesh(new T.ConeGeometry(6.6,7,14),new T.MeshStandardMaterial({color:0x6a2420,roughness:.6}));cap.position.y=18+109.5;g.add(cap);
-  const beam=new T.Group();beam.position.y=18+102;g.add(beam);EAST.beam=beam;
+  const beam=new T.Group();beam.position.y=18+102;beam.scale.set(1.5,1,1.5);g.add(beam);EAST.beam=beam;
   const fade=canvasTex(4,128,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.45,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,w,h);});
   fade.wrapS=fade.wrapT=T.ClampToEdgeWrapping;
   const bm=new T.MeshBasicMaterial({color:0xfff2c8,map:fade,transparent:true,opacity:.22,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide,toneMapped:false,fog:false});
@@ -375,7 +381,7 @@ function beyondCut(on){
   for(const m of BEYOND_E){const M=m.material;
     if(on&&!m.userData.cut){const[x0,z0,x1,z1]=m.userData.box,S=.25,c=document.createElement('canvas');c.width=Math.ceil((x1-x0)*S);c.height=Math.ceil((z1-z0)*S);
       const a=c.getContext('2d');a.fillStyle='#fff';a.fillRect(0,0,c.width,c.height);a.setTransform(S,0,0,S,-x0*S,-z0*S);shorePath(a);a.fillStyle='#000';a.fill();
-      a.fillRect(HILL_X-8,-1900,2208-HILL_X,3150);a.fillStyle='#fff';a.fillRect(HILL_X-8,HILL_MID()-99,18,198);   // (and under the hill, terrain.js's ground: its foot below the strip's height showed as a flat ledge along the water; not in front of the headwall)
+      a.fillRect(HILL_X-8,HILL_GROUND.y0,HILL_GROUND.x1-HILL_X+8,1250-HILL_GROUND.y0);a.fillStyle='#fff';a.fillRect(HILL_X-8,HILL_MID()-99,18,198);   // (and under the hill, terrain.js's ground: its foot below the strip's height showed as a flat ledge along the water; not in front of the headwall)
       m.userData.cut=new T.CanvasTexture(c);}
     M.alphaMap=on?m.userData.cut:null;M.alphaTest=on?.5:0;M.needsUpdate=true;}
 }
@@ -385,7 +391,7 @@ function closeEast(){   // (a new game, a Retry, another level: reset, once the 
   for(const o of EAST.objs){const i=objs.indexOf(o);if(i>=0)objs.splice(i,1);}
   for(const l of EAST.lamps){const i=lamps.indexOf(l);if(i>=0)lamps.splice(i,1);}
   if(EAST.gate){if(!objs.includes(EAST.gate))objs.push(EAST.gate);eastShow(EAST.gate,true);}
-  centiHide();canalEnd(false);beyondCut(false);
+  centiHide();canalEnd(false);beyondCut(false);camShift=0;
   EAST_X=W;if(was)rebuildNav();
   if(EAST.dirty){paintEast(EAST.tex.image.getContext('2d'),EAST.rc.getContext('2d'),1.5);EAST.tex.needsUpdate=true;EAST.dirty=false;}   // (clean ground for the next game)
 }
@@ -440,6 +446,7 @@ function roadSetOff(){
   up.forEach((p,i)=>{const t=openSpot(ROAD_STOP.x-Math.floor(i/2)*24,ROAD_STOP.y+(i%2?16:-16),taken)||ROAD_STOP;taken.push(t);p.path=findPath(p.x,p.y,t.x,t.y)||[];p.lastOrder=simT;p.ret=null;});
 }
 function roadTick(dt){   // (every tick: combat.js's update)
+  {const want=road&&road.intro&&road.intro.ph==='east'&&MAPID==='out'?ROAD_LOOK.shift:0;if(camShift!==want){camShift+=(want-camShift)*Math.min(1,dt*1.6);if(Math.abs(camShift-want)<.002)camShift=want;}}   // (the first walk across: the picture moved down so the horizon and some sky are in, since v115; back as it was for the turn to the mouth)
   if(EAST.beam&&EAST.grp&&EAST.grp.visible){EAST.beam.rotation.y=simT*.7;if(EAST.water){const o=EAST.water.normalMap.offset;o.x=simT*.004;o.y=simT*.0025;}if(EAST.fall)EAST.fall.offset.y=simT*1.6;if(EAST.foam){EAST.foam.offset.x=Math.sin(simT*1.3)*.012;EAST.foam.offset.y=Math.sin(simT*.9)*.01;}}   // the lighthouse's beam going round, the water's ripple drifting
   centiTick();
   if(MAPID==='tun'&&typeof tunTick==='function')tunTick(dt);   // (her young in the tunnel: tunnel.js)
