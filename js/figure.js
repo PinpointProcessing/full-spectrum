@@ -329,7 +329,7 @@ function figAnimate(u,m){
   const P=_P,gait=figGait(u,F,st);
   if(gait.S>0&&d<30)F.phase=(F.phase+d/gait.S)%1;
   if(!m.g.visible&&!F.fresh)return;   // (out of sight: the stride is kept up, nothing else)
-  poseTorso(u,F,st,gait,P);
+  runRestore(F,B);poseTorso(u,F,st,gait,P);
   // damp the torso toward the pose (slower just after a change of what he's doing: falls, getting up)
   const k=F.fresh?1:1-Math.exp(-dt*(t-F.blendT<.45?(st==='dead'||st==='downed'?5:8):P.rate));
   B[0].position.lerp(P.rootP,k);B[0].quaternion.slerp(qE(_fq[0],...P.rootE),k);
@@ -337,7 +337,7 @@ function figAnimate(u,m){
   B[2].quaternion.slerp(qE(_fq[0],...P.spineE),k);B[3].quaternion.slerp(qE(_fq[0],...P.chestE),k);
   B[4].quaternion.slerp(qE(_fq[0],...P.neckE),k);B[5].quaternion.slerp(qE(_fq[0],...P.headE),k);
   B[6].quaternion.slerp(qE(_fq[0],...P.clavLE),k);B[10].quaternion.slerp(qE(_fq[0],...P.clavRE),k);
-  BW_P[0].set(0,0,0);BW_Q[0].identity();for(const i of[1,2,3,4,5,6,7,10,11,14,17])fkBone(B,i);
+  runLayer(u,F,st,gait,B);BW_P[0].set(0,0,0);BW_Q[0].identity();for(const i of[1,2,3,4,5,6,7,10,11,14,17])fkBone(B,i);
   // the gun: in the chest's frame, or placed in the body's frame (aiming: the stock in his shoulder, the barrel on the target)
   const G=P.gun;
   if(G.mode==='aim'){   // the back of the stock in the pocket of his right shoulder
@@ -350,7 +350,7 @@ function figAnimate(u,m){
     const pl=_fv[1].copy(G.P).sub(BW_P[3]).applyQuaternion(_fq[2]);
     B[20].position.lerp(pl,F.fresh?1:1-Math.exp(-dt*30));B[20].quaternion.slerp(ql,F.fresh?1:1-Math.exp(-dt*30));
   }else{B[20].position.lerp(G.P,F.fresh?1:1-Math.exp(-dt*22));B[20].quaternion.slerp(qE(_fq[0],...G.E),F.fresh?1:1-Math.exp(-dt*22));}
-  fkBone(B,20);
+  runGun(u,F,st,gait,B);fkBone(B,20);
   if(F.launcher)F.launcher.visible=P.launcher;
   poseLimbs(u,F,st,gait,P);
   // legs: feet where the pose wants them (smoothed between poses; nearly exact while walking)
@@ -384,6 +384,38 @@ function figAnimate(u,m){
   // a hit: a white flash on him for a moment
   F.mat.userData.U.uHit.value=Math.max(0,(u.hitFlash||0))*.9;
   F.fresh=false;
+}
+
+/* ---------- the run (Bryan, after v117: "There legs move but the upper part of their body is stiff"; his pick of the drafts, A,
+   the combat run, docs/run-queen-drafts.md) ---------- */
+// The stride's bob and twist were part of the pose the torso eases toward, and at four steps a second the easing took half of it
+// away; the chest turned back almost all of the hips' twist. Now they go on top of the eased pose each frame and come off again
+// before the next: the hips drop at each footfall and twist with the legs, the shoulders twist back the other way (so the rifle
+// swings a little), the weight shifts over the foot that's down, the chest dips, the rifle bounces, the head stays level.
+const RUN_K={bob:1.15,twist:.24,counter:1.0,sway:.3,dip:.1,bounce:.45,lean:.3,roll:.07};
+const runOn=(u,st,gait,F)=>gait&&gait.run&&st==='base'&&!(simT-(u.aimT||-9)<1.4||u.watch||u.supT||u.silent||u.breach);
+function runRestore(F,B){const R=F.rn;if(!R||!R.on)return;
+  B[1].position.copy(R.hp);B[1].quaternion.copy(R.hq);B[2].quaternion.copy(R.sq);B[3].quaternion.copy(R.cq);B[4].quaternion.copy(R.nq);B[5].quaternion.copy(R.headq);
+  if(R.gon){B[20].position.copy(R.gp);B[20].quaternion.copy(R.gq);}R.on=R.gon=false;}
+const _rnq=new T.Quaternion(),_rne=new T.Euler();
+const runTurn=(q,x,y,z)=>q.multiply(_rnq.setFromEuler(_rne.set(x,y,z,'YZX')));
+function runLayer(u,F,st,gait,B){
+  const R=F.rn||(F.rn={hp:new T.Vector3(),hq:new T.Quaternion(),sq:new T.Quaternion(),cq:new T.Quaternion(),nq:new T.Quaternion(),headq:new T.Quaternion(),gp:new T.Vector3(),gq:new T.Quaternion(),w:0,on:false,gon:false});
+  const dt=Math.max(0,Math.min(.1,simT-(R.t??simT)));R.t=simT;R.w+=((runOn(u,st,gait,F)?1:0)-R.w)*(F.fresh?1:Math.min(1,dt*8));if(R.w<.01)return;
+  R.hp.copy(B[1].position);R.hq.copy(B[1].quaternion);R.sq.copy(B[2].quaternion);R.cq.copy(B[3].quaternion);R.nq.copy(B[4].quaternion);R.headq.copy(B[5].quaternion);R.on=true;
+  const K=RUN_K,w=R.w,ph=F.phase;
+  const down=Math.cos((ph-.16)*TAU2*2);   // 1 with a foot under him (mid-stance), -1 in the air between
+  const twist=Math.cos(ph*TAU2)*K.twist*w;   // + with his right leg out in front
+  B[1].position.y-=K.bob*(down+1)*.5*w;B[1].position.z+=Math.cos((ph-.16)*TAU2)*K.sway*w;
+  runTurn(B[1].quaternion,Math.cos((ph-.16)*TAU2)*K.roll*w,twist,0);
+  runTurn(B[2].quaternion,0,-twist*.35,-K.dip*(down+1)*.5*w);
+  runTurn(B[3].quaternion,-Math.cos((ph-.16)*TAU2)*K.roll*.6*w,-twist*(.65+K.counter),0);
+  runTurn(B[4].quaternion,0,twist*K.counter*.5,K.dip*.4*(down+1)*.5*w);runTurn(B[5].quaternion,0,twist*K.counter*.5,K.dip*.4*(down+1)*.5*w);
+}
+function runGun(u,F,st,gait,B){
+  const R=F.rn;if(!R||!R.on||R.w<.01)return;const w=R.w,lag=Math.cos((F.phase-.21)*TAU2*2);   // (a moment after the footfall: it's carried, so it catches up)
+  R.gp.copy(B[20].position);R.gq.copy(B[20].quaternion);R.gon=true;
+  B[20].position.y-=RUN_K.bounce*(lag+1)*.5*w;runTurn(B[20].quaternion,0,0,-.06*(lag+1)*.5*w);
 }
 
 /* ---------- gaits ---------- */
@@ -458,9 +490,10 @@ function poseTorso(u,F,st,gait,P){
   const crouch=!gait.mv&&(u.side==='P'?(u.covered&&caught(u)):!!u.coverNow);
   const vk=u.vaultK||0,unarmed=!armed;
   if(gait.mv){
-    const bob=Math.cos(F.phase*TAU2*2);P.hipsP.set(0,gait.hip-(gait.run?.45:.22)*(1+bob)*.5,0);
-    P.hipsE[1]=Math.sin(F.phase*TAU2)*(gait.run?.16:.1);P.hipsE[0]=Math.sin(F.phase*TAU2)*.04;
-    P.spineE[2]=-gait.lean;P.chestE[1]=-P.hipsE[1]*.8;P.headE[2]=gait.lean*.6;P.rate=16;
+    if(gait.run){P.hipsP.set(0,gait.hip-RUN_K.bob*.35,0);P.spineE[2]=-RUN_K.lean;P.chestE[2]=-.04;P.headE[2]=RUN_K.lean*.75;P.neckE[2]=.05;P.rate=16;}   // running: the bob and twist come on top, unsmoothed (runLayer)
+    else{const bob=Math.cos(F.phase*TAU2*2);P.hipsP.set(0,gait.hip-.22*(1+bob)*.5,0);
+    P.hipsE[1]=Math.sin(F.phase*TAU2)*.1;P.hipsE[0]=Math.sin(F.phase*TAU2)*.04;
+    P.spineE[2]=-gait.lean;P.chestE[1]=-P.hipsE[1]*.8;P.headE[2]=gait.lean*.6;P.rate=16;}
   }else if(crouch){P.hipsP.set(-.55,5.5,.1);P.spineE[2]=-.12;P.chestE[2]=-.05+breathe;}
   else{P.hipsP.set(0,8.85+Math.sin(t*1.7+sd*9)*.05,0);P.hipsE[0]=Math.sin(t*.4+sd*6)*.03;P.chestE[2]=breathe;}
   if(u.detained&&!gait.run){P.spineE[2]-=.18;P.headE[2]-=.25;}
@@ -482,7 +515,7 @@ function poseTorso(u,F,st,gait,P){
     G.mode='aim';G.X.set(Math.cos(pitch),Math.sin(pitch)+kick*.05,0).normalize();G.Y.set(-Math.sin(pitch),Math.cos(pitch),0);
     G.aimed=true;return;
   }
-  if(gait.run&&!aim){G.P.set(2.1,.65,.25);G.E[0]=-.35;G.E[1]=.85;G.E[2]=.35;}   // running: across the chest
+  if(gait.run&&!aim){G.P.set(2.45,.05,.62);G.E[0]=-.18;G.E[1]=.3;G.E[2]=-.5;}   // running: across his front, the muzzle down and out to the left (since v119; it was across the chest, the muzzle up)
   else if(gait.sneak||crouch||(u.side==='E'&&u.alerted)){G.P.set(2.55,1.05,.8);G.E[0]=-.08;G.E[1]=.1;G.E[2]=-.2;}   // ready, muzzle low
   else lowReady();
 }

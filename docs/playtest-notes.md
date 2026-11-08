@@ -1073,3 +1073,13 @@ after we finalize the sequences"
    Descent, but deaths the player can do nothing about feel unfair when the soldiers carry XP and ranks; so telegraph each grab
    (the grate rattles, a growl) and let it be fought (shoot the thing, or a teammate pulls him back within a couple of seconds),
    so careless play loses three or four and careful play fewer, with his cap of four deaths as a backstop.
+
+## Bryan, after the drafts page (the changes are in v119)
+
+"Okay combat run and queen first. Can we make it so the new units are killed, since they done have any tools or xp really?"
+
+1. The run: the combat run (A) for everyone who runs (figure.js).
+2. The tunnel: the Queen first (A), in the game (js/queen.js); the view of the mouth a little higher so she's seen coming over.
+3. The grates: yes, the victims would be the freed men (no class, no tools, little XP), not the original four. Not built yet; it
+   needs his call on the crew: since v110 the freed men stay at the HQ as its crew, so for the tunnel they'd come out with the four
+   (eight go in), and the ones who die are gone from the crew too.

@@ -1,5 +1,7 @@
 # Drafts after v117: the run, and the Queen going into the tunnel
 
+Bryan's picks: "combat run and queen first": A and A, in the game since v119 (figure.js's `runLayer`, js/queen.js).
+
 Bryan, after v117: "The units run on the bridge pretty awkwardly. There legs move but the upper part of their body is stiff. The
 monsters walk on top of each other when going into the bridge. It doesn't need to be so many, maybe one giant Queen and some
 babies. Also, make sure the legs aren't seen when it goes into the bridge. Wana show me some drafts?"

@@ -303,39 +303,12 @@ function lighthouseMesh(grp){
   for(const s of[1,-1]){const geo=new T.ConeGeometry(26,460,20,1,true);geo.translate(0,-230,0);const c=new T.Mesh(geo,bm);c.rotation.z=s*Math.PI/2;
     const tip=new T.Group();tip.rotation.z=s*-.06;tip.add(c);beam.add(tip);}   // (both ends, bright at the lantern and fading out, tipped down a little onto the water)
 }
-// the centipedes that go into the tunnel the first time the squad sees it (Bryan: "crawling into the tunnel from above it and
-// crawls on the ceiling"; after v110, "The tunnel will have a lot of monsters leading to the entrance"): several of her young,
-// bigger, one after another over the hill, down the headwall's face, under the arch and in along the roof upside down
-// (creatures.js's makeCentipede and pose, each segment's up from the surface it's on). A path is in the portal's own terms:
-// across (+ south of the opening's middle), height, depth (from the headwall's face, + into the hill), and the up there.
-const CENTI_V=24;   // their speed
-const CENTI_PATH=[[38,72,88,0,1,0],[24,62,50,0,1,0],[13,56,17,0,1,0],[7,51,-1,-.8,.6,0],[4,46,-5.5,-1,0,0],[2,42,-5.5,-1,0,0],[0,38.5,2,-.7,-.7,0],[0,38.5,24,0,-1,0],[0,38.5,148,0,-1,0]];
-const CENTI_SET=[[2.2,0,38,4,0],[1.9,.8,-36,-12,-20],[2.4,1.7,8,14,18],[2.0,2.5,-18,-4,8],[1.8,3.3,44,10,-12]];   // each one: its size against her young's, when it comes, where it is across the opening over the hill, down the face and inside
-function centiPath(top,face,inside){   // (the template's across values swapped for these: over the hill, down the face, along the roof)
-  const cy=(PORTAL.y0+PORTAL.y1)/2,A=[top,(top+face)/2,face,face,face,face,face,(face+inside)/2,inside];
-  return CENTI_PATH.map((p,i)=>[HILL_X+p[2],p[1],cy+A[i],p[3],p[4],p[5]]);   // [x, height, y, up]
-}
-function centiStart(){
-  if(!EAST.grp)return;
-  if(!EAST.centis){EAST.centis=CENTI_SET.map(([S,delay,top,face,inside])=>{const keep=scene;scene=EAST.grp;let C;try{C=makeCentipede(BROOD);}finally{scene=keep;}C.g.scale.setScalar(S);EAST.grp.add(C.g);
-    const pts=centiPath(top,face,inside),curve=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(p[0]/S,p[1]/S,p[2]/S)),false,'centripetal'),N=1600;
-    Object.assign(C,{sc:S,delay,pathUp:pts,path:{curve,pts:curve.getSpacedPoints(N),N,L:curve.getLength()},len:BROOD.head.l*.55+BROOD.seg*.5+(BROOD.n-1)*BROOD.seg});return C;});}
-  for(const C of EAST.centis){C.t0=simT+C.delay;C.on=true;C.g.visible=false;}
-}
-const centiOn=()=>!!EAST.centis&&EAST.centis.some(C=>C.on);
-function centiPose(C,d){   // the head d along the path past where the whole body first lies on it
-  const P=C.path,S=BROOD,n=S.n,U=C.pathUp,at=k=>{const f=clamp(k/P.L,0,1)*P.N,i=Math.min(P.N-1,Math.floor(f));return P.pts[i].clone().lerp(P.pts[i+1],f-i);};
-  const upAt=k=>{const u=clamp(k/P.L,0,1)*(U.length-1),i=Math.min(U.length-2,Math.floor(u)),f=u-i,a=U[i],b=U[i+1];return new T.Vector3(a[3]+(b[3]-a[3])*f,a[4]+(b[4]-a[4])*f,a[5]+(b[5]-a[5])*f).normalize();};
-  const head=C.len+d,gap=S.head.l*.55+S.seg*.5,pts=[at(head)],ups=[upAt(head)];
-  for(let i=1;i<=n;i++){const k=head-gap-(i-1)*S.seg;pts.push(at(k));ups.push(upAt(k));}
-  poseCentipede(C,pts,simT,{walk:1,flail:.7,ups,jaw:.25+Math.sin(simT*6+C.delay*3)*.1});
-  return head-C.len>P.L-C.len*.15;   // (all of it in, past the arch)
-}
-function centiTick(){
-  if(!EAST.centis)return;
-  for(const C of EAST.centis){if(!C.on||simT<C.t0)continue;C.g.visible=true;if(centiPose(C,(simT-C.t0)*CENTI_V/C.sc)){C.on=false;C.g.visible=false;}}
-}
-function centiHide(){if(EAST.centis)for(const C of EAST.centis){C.on=false;C.g.visible=false;}}
+// what goes into the tunnel the first time the squad sees it: one Queen and her babies (queen.js; until v118 five of her young made
+// bigger, on paths that met at the arch, CENTI_SET)
+function centiStart(){if(EAST.grp)qnStart();}
+const centiOn=()=>QN.on;
+function centiTick(dt){qnTick(dt||0);}
+function centiHide(){qnClear();}
 function buildEast(sc){
   if(EAST.grp){if(EAST.grp.parent!==sc){if(EAST.grp.parent)EAST.grp.parent.remove(EAST.grp);sc.add(EAST.grp);}return;}
   EAST.objs=eastObjects();
@@ -446,9 +419,9 @@ function roadSetOff(){
   up.forEach((p,i)=>{const t=openSpot(ROAD_STOP.x-Math.floor(i/2)*24,ROAD_STOP.y+(i%2?16:-16),taken)||ROAD_STOP;taken.push(t);p.path=findPath(p.x,p.y,t.x,t.y)||[];p.lastOrder=simT;p.ret=null;});
 }
 function roadTick(dt){   // (every tick: combat.js's update)
-  {const want=road&&road.intro&&road.intro.ph==='east'&&MAPID==='out'?ROAD_LOOK.shift:0;if(camShift!==want){camShift+=(want-camShift)*Math.min(1,dt*1.6);if(Math.abs(camShift-want)<.002)camShift=want;}}   // (the first walk across: the picture moved down so the horizon and some sky are in, since v115; back as it was for the turn to the mouth)
+  {const want=road&&road.intro&&MAPID==='out'?(road.intro.ph==='east'?ROAD_LOOK.shift:road.intro.ph==='see'?.12:0):0;if(camShift!==want){camShift+=(want-camShift)*Math.min(1,dt*1.6);if(Math.abs(camShift-want)<.002)camShift=want;}}   // (the first walk across: the picture moved down so the horizon and some sky are in, since v115; back as it was for the turn to the mouth)
   if(EAST.beam&&EAST.grp&&EAST.grp.visible){EAST.beam.rotation.y=simT*.7;if(EAST.water){const o=EAST.water.normalMap.offset;o.x=simT*.004;o.y=simT*.0025;}if(EAST.fall)EAST.fall.offset.y=simT*1.6;if(EAST.foam){EAST.foam.offset.x=Math.sin(simT*1.3)*.012;EAST.foam.offset.y=Math.sin(simT*.9)*.01;}}   // the lighthouse's beam going round, the water's ripple drifting
-  centiTick();
+  centiTick(dt);
   if(MAPID==='tun'&&typeof tunTick==='function')tunTick(dt);   // (her young in the tunnel: tunnel.js)
   if(!road)return;const I=road.intro,g=road.guide;
   if(state==='play'&&!fading&&!I&&(MAPID==='out'||MAPID==='tun')){const A=road.auto||(road.auto={});   // the gather areas that go by themselves: half a second after everyone's in
@@ -462,7 +435,7 @@ function roadTick(dt){   // (every tick: combat.js's update)
       const up=upNow();if(up.length){const m=midOf(up),k=Math.min(1,dt*2.2),e=Math.min(1,dt*1.1);camT.x+=(m.x+30-camT.x)*k;camT.z+=(ROAD_LOOK.z-camT.z)*e;zoom+=(ROAD_LOOK.zoom-zoom)*e;tilt+=(ROAD_LOOK.tilt-tilt)*e;
         const hd=dist0/zoom*Math.cos(Math.max(PITCH_MIN,basePitch()-tilt)),th=Math.atan2(LIGHTHOUSE.x-camT.x,camT.z+hd-LIGHTHOUSE.y),hf=Math.atan(Math.tan(camera.fov*Math.PI/360)*camera.aspect);
         yaw+=wrapA(-Math.max(0,th-.7*hf)-yaw)*e;camPan=null;clampCam();updateCamera();}   // (square to the bridge; on a narrow screen, a phone's, turned just enough to keep the lighthouse in at the right)
-      if(!up.some(p=>p.path.length)||simT-I.t2>40){I.ph='see';I.t3=simT;camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:HILL_X-14,z:-280,zoom:frameZoom(220,170,.42),yaw:-Math.PI/2,tilt:.42},t:0,dur:2.2};}}   // (then round to look at the mouth from the bridge)
+      if(!up.some(p=>p.path.length)||simT-I.t2>40){I.ph='see';I.t3=simT;camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:HILL_X+8,z:-280,zoom:frameZoom(220,170,.42),yaw:-Math.PI/2,tilt:.42},t:0,dur:2.2};}}   // (since v119 a little higher, the picture moved down too: her arrival over the headwall is in it)   // (then round to look at the mouth from the bridge)
     else if(I.ph==='see'&&!camPan){if(!I.c){I.c=1;centiStart();sfxMon('mon_growl',{x:HILL_X+20,y:-275},.8,.8);}
       if(I.c===1&&simT-I.t3>3.2){I.c=2;const p=roadLead();if(p)callout(p,'Movement! Over the tunnel.',C.warn);}
       if(I.c===2&&simT-I.t3>6.5&&!I.c3){I.c3=1;sfxMon('mon_horde',{x:HILL_X+40,y:-275},.7,.9);}   // (and more of them, somewhere in there)
