@@ -37,6 +37,7 @@ function frame(nowMs){
     if(endAt&&nowMs>=endAt)finish();
   });
   guard('frame',()=>{
+    if(camHeld()){inertia.vx=inertia.vy=0;}   // (the camera locked on the walk east: road.js)
     if(!ptr&&!pinch&&(Math.abs(inertia.vx)+Math.abs(inertia.vy))>3){camT.x+=inertia.vx*rdt;camT.z+=inertia.vy*rdt;clampCam();const k=Math.exp(-rdt*5);inertia.vx*=k;inertia.vy*=k;}
     storm=Math.max(0,storm-rdt*6);
     edgePan(rdt);alertMeter();waveHud();threatHud();alertHud();aimTurret();panTick(rdt);audioFrame();markAlive(rdt);   // (edgePan: a route being drawn near the view's edge, input.js)

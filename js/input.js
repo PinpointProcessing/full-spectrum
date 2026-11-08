@@ -18,8 +18,9 @@ function pinchInfo(){const p=[...touches.values()];return{d:Math.max(1,hyp(p[0].
 const ORBIT_SPIN=0.008;   // radians of spin per pixel of sideways two-finger drag
 const TWIST_START=0.2;   // radians of twist before rotation kicks in, so a plain pinch doesn't turn the map
 function wrapA(a){return Math.atan2(Math.sin(a),Math.cos(a));}
-function turnCam(d){yaw=wrapA(yaw+d);clampCam();updateCamera();}
-function tiltCam(t){tilt=clamp(t,0,basePitch()-PITCH_MIN);clampCam();updateCamera();}
+const camHeld=()=>typeof camLock==='function'&&camLock();   // (the camera's the game's for now: road.js's walk east)
+function turnCam(d){if(camHeld())return;yaw=wrapA(yaw+d);clampCam();updateCamera();}
+function tiltCam(t){if(camHeld())return;tilt=clamp(t,0,basePitch()-PITCH_MIN);clampCam();updateCamera();}
 let inertia={vx:0,vy:0};
 // is screen point (x,y) inside the polygon pts (the lasso loop, closed automatically)?
 function inLoop(x,y,pts){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[a,b]=pts[i],[p,q]=pts[j];if((b>y)!==(q>y)&&x<(p-a)*(y-b)/(q-b)+a)c=!c;}return c;}
@@ -73,6 +74,7 @@ function endPtr(ev,cancel){
 }
 function bindInput(){
   ov.addEventListener('pointerdown',ev=>{
+    if(camHeld())return;   // (no panning, turning or zooming while the camera's locked on the walk east: road.js)
     camPan=null;   // touching the map stops any camera move in progress
     // a new touch with no other finger down (the browser's own count: isPrimary) starts clean. If a lift was ever lost (a
     // gesture taken over by the page around the game, a system swipe), a phantom finger stayed in the list and every one-
@@ -105,6 +107,7 @@ function bindInput(){
     },380);
   });
   ov.addEventListener('pointermove',ev=>{
+    if(camHeld())return;   // (a finger that was already down when the camera locked: road.js)
     const[x,y]=localXY(ev);
     if(touches.has(ev.pointerId))touches.set(ev.pointerId,{x,y});
     if(pinch&&touches.size===2){
@@ -157,8 +160,8 @@ function bindInput(){
   const dropAll=()=>{touches.clear();pinch=null;if(ptr){clearTimeout(ptr.timer);ptr=null;}};   // leaving the page or app: nobody's touching it any more
   addEventListener('blur',dropAll);document.addEventListener('visibilitychange',()=>{if(document.hidden)dropAll();});
   ov.addEventListener('contextmenu',ev=>ev.preventDefault());
-  ov.addEventListener('wheel',ev=>{ev.preventDefault();if(ev.shiftKey){tiltCam(tilt+(ev.deltaY||ev.deltaX)*0.0015);return;}const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
-  $('#fitBtn').addEventListener('click',()=>{zoom=1;yaw=0;tilt=0;camT={x:(VB.x0+VB.x1)/2,z:(VB.z0+VB.z1)/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
+  ov.addEventListener('wheel',ev=>{ev.preventDefault();if(camHeld())return;if(ev.shiftKey){tiltCam(tilt+(ev.deltaY||ev.deltaX)*0.0015);return;}const[sx,sy]=localXY(ev);zoomAround(sx,sy,zoom*Math.exp(-ev.deltaY*0.0015));},{passive:false});
+  $('#fitBtn').addEventListener('click',()=>{if(camHeld())return;zoom=1;yaw=0;tilt=0;camT={x:(VB.x0+VB.x1)/2,z:(VB.z0+VB.z1)/2};inertia.vx=inertia.vy=0;clampCam();updateCamera();});
 }
 
 // changing the selection: soldiers who weren't already selected go back to the automatic sneak/run choice.

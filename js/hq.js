@@ -59,7 +59,9 @@ function hqGotIt(){   // the tour of the boxes (straight after the warehouse; th
 function panTick(rdt){
   if(!camPan)return;
   camPan.t=Math.min(1,camPan.t+rdt/camPan.dur);const k=camPan.t<.5?2*camPan.t*camPan.t:1-Math.pow(-2*camPan.t+2,2)/2;   // ease in-out
-  const a=camPan.from,b=camPan.to;camT={x:a.x+(b.x-a.x)*k,z:a.z+(b.z-a.z)*k};zoom=a.zoom+(b.zoom-a.zoom)*k;clampCam();updateCamera();
+  const a=camPan.from,b=camPan.to;camT={x:a.x+(b.x-a.x)*k,z:a.z+(b.z-a.z)*k};zoom=a.zoom+(b.zoom-a.zoom)*k;
+  if(a.yaw!=null&&b.yaw!=null)yaw=a.yaw+wrapA(b.yaw-a.yaw)*k;if(a.tilt!=null&&b.tilt!=null)tilt=a.tilt+(b.tilt-a.tilt)*k;   // (turning and tilting too, when it says: road.js's walk east)
+  clampCam();updateCamera();
   if(camPan.t>=1)camPan=null;
 }
 

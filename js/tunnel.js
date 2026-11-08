@@ -14,7 +14,9 @@
    floor, paintTunnel). Its north end has caved in (Bryan, on draft I: "yes caved in (for now)"): a heap of the roof from wall
    to wall just short of the north portal. The way on is the service door in the east wall just south of it, under a red
    light, a blood trail dragged to it: walk everyone in and it fades into the hill by itself (TUN_SVC, level4.js's enterHill,
-   Level 4: The Old Radio Tower). */
+   Level 4: The Old Radio Tower). Since v111 (Bryan, after v110: "The tunnel will have a lot of monsters leading to the
+   entrance. The tunnel needs more dead bodies and more broken and abandoned vehicles"): her young asleep among the wrecks in
+   three lots, woken as the squad comes near (TUN_BROOD, tunBrood, tunTick), more wrecks and more dead. */
 const TUNB={x0:560,x1:880,y0:-440,y1:900};   // the map's frame (its ground canvas)
 const TW={x0:655,x1:785,walk:12,len:{n:-380,s:880},h:18};   // the inside: wall faces at x0 and x1, walkways walk wide along both, from the north portal (n) to the south one (s); the walls cut away at h
 const TUN_IN={x0:702,y0:800,x1:778,y1:878};   // the south end: walk into it to go back out (beside the coach)
@@ -29,8 +31,14 @@ const TUN_LAMPS=[   // all that's left of the light (dead fixtures line the wall
   {x:700,y:486,h:3,c:0xff3414,i:1.5,d:120,flick:1,flare:1},{x:752,y:572,h:3,c:0xff3414,i:1.3,d:110,flick:1,flare:1},{x:708,y:-80,h:3,c:0xff3414,i:1.4,d:120,flick:1,flare:1}];   // road flares someone lit by the wrecks, still burning
 // the dead: [x, y, facing, clothes, how: 'out' half out of a car's door (legs still in), 'road' in the road]; and where blood was dragged
 const TUN_DEAD=[[704,428,-1.9,'#3c4a5a','out'],[722,598,2.8,'#6a4a3a','road'],[667,586,3.14,'#4a5a3a','road'],[712,318,1.4,'#5a3a4a','road'],[738,150,-.6,'#2e3a44','road'],
-  [732,-150,-2.6,'#7a6a52','out'],[714,-30,-1.57,'#4b4b4b','road'],[706,834,-.4,'#5a5040','out']];
-const TUN_TRAILS=[[[712,452],[690,500],[668,560],[663,578]],[[725,610],[748,650],[770,668]],[[714,-20],[716,-120],[738,-190],[764,-224],[784,-236]],[[712,846],[722,790],[730,700],[724,640]]];
+  [732,-150,-2.6,'#7a6a52','out'],[714,-30,-1.57,'#4b4b4b','road'],[706,834,-.4,'#5a5040','out'],
+  [739,684,3.14,'#3a4450','out'],[704,548,2.4,'#6b5d4a','road'],[661,496,1.57,'#4a3a3a','road'],[734,420,-.8,'#384048','road'],[712,348,.3,'#5a4a3a','road'],
+  [684,286,1.9,'#d8d8d0','road'],[758,238,-2.2,'#4b4b44','road'],[779,40,1.57,'#3d4a3f','road'],[738,-66,2.9,'#5c4d42','road'],[760,-206,-1.2,'#2f353b','road']];   // (the second lot: Bryan, after v110, "more dead bodies"; one in white by the ambulance)
+const TUN_TRAILS=[[[712,452],[690,500],[668,560],[663,578]],[[725,610],[748,650],[770,668]],[[714,-20],[716,-120],[738,-190],[764,-224],[784,-236]],[[712,846],[722,790],[730,700],[724,640]],
+  [[704,548],[694,604],[672,650],[662,704]],[[738,-66],[752,-120],[772,-176]],[[734,420],[724,470],[716,520]]];
+// her young, asleep among the wrecks on the way to the service door (Bryan, after v110: "The tunnel will have a lot of monsters leading to the entrance"; his answer: they crawl in, then the squad fights through them inside). Three lots, each woken as the squad gets near: [where they lie]; one more each for a big squad
+const TUN_BROOD=[{at:[[706,480],[750,452],[728,512]],more:[690,470]},{at:[[700,306],[754,252],[676,168],[712,232]],more:[700,372]},{at:[[700,-18],[750,-108],[688,-160],[744,-40]],more:[720,-130]}];
+const TUN_WAKE={see:230,near:120,noise:190,uncurl:.6};   // woken by one of ours in sight within see (or near, wrecks or not), gunfire or a blast within noise, or one of them hurt; a moment to uncurl
 let TUN=null;   // the map while it's built: {objs, lamps, scene, lights, tex, rtex}
 
 function tunObjects(){
@@ -46,6 +54,11 @@ function tunObjects(){
   O('car',732,604,22,44,{col:0x4f5d6a,door:-1});O('car',744,-176,22,42,{col:0x6e2a24,door:-1});O('car',668,-230,24,44,{col:0x8a8a84,door:1});   // more left where they stopped, doors open
   O('truck',724,288,46,90,{col:'#4a4237'});   // a lorry left in the east lane, its cab north
   O('fan',690,190,54,18);   // a jet fan down from the roof
+  O('car',742,668,24,44,{col:0x2b3a55,door:-1});   // a car run into the east wall near the way in, its door open (the second lot: Bryan, after v110, "more broken and abandoned vehicles")
+  O('truck',670,520,28,52,{van:1,col:'#bdbbb2'});   // a van in the west lane, its back doors open
+  O('car',744,386,26,44,{col:0x5f6a4a,flip:1});   // a pickup on its roof in the east lane
+  O('truck',668,222,28,50,{van:2,col:'#d6d4ca'});   // an ambulance in the west lane, its back doors open, its lights dead
+  O('car',704,-84,24,44,{col:0x1c1a18,burnt:1});   // a car burnt out in the middle of the road
   O('rubble',655,58,62,54,{full:true});   // the collapse: a heap of the roof against the west wall,
   for(const[x,y,w,h]of[[704,40,16,14],[716,96,18,16],[722,128,14,12],[666,122,20,16],[690,30,12,10],[730,64,12,12]])O('rock',x,y,w,h);   // and its broken slabs out across the road (the way through is on the east side)
   O('rubble',TUN_CAVE.x0,TUN_CAVE.y0,TUN_CAVE.x1-TUN_CAVE.x0,TUN_CAVE.y1-TUN_CAVE.y0,{full:true,cave:1});   // the north end caved in, wall to wall
@@ -90,14 +103,28 @@ function bloodTrail(g,q,pts,seed){
   for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],n=Math.round(Math.hypot(b[0]-a[0],b[1]-a[1])/7);for(let k=0;k<n;k++){const t=k/n,x=a[0]+(b[0]-a[0])*t+(r()-.5)*7,y=a[1]+(b[1]-a[1])*t+(r()-.5)*7;g.fillStyle='rgba(112,8,6,.55)';g.fillRect(x-1.5,y-1,3+r()*2.5,2);}}   // the smears
   g.restore();q.save();q.strokeStyle='rgb(50,50,50)';q.lineWidth=6;q.lineCap='round';q.beginPath();q.moveTo(...pts[0]);for(const p of pts.slice(1))q.lineTo(...p);q.stroke();q.restore();
 }
-// a car left where it stopped: faded paint, dark glass, the driver's door hanging open (o.door: -1 its west side, 1 its east)
+// a car left where it stopped: faded paint, dark glass, the driver's door hanging open (o.door: -1 its west side, 1 its east);
+// o.burnt: burnt out, black and sagging, no glass; o.flip: on its roof
 function carMesh(sc,o){
-  const g=new T.Group();g.position.set(o.x+o.w/2,0,o.y+o.h/2);sc.add(g);const L=o.h,Wd=o.w;
-  const paint=new T.MeshStandardMaterial({color:o.col,roughness:.55,metalness:.45}),glass=new T.MeshStandardMaterial({color:0x0e1418,roughness:.1,metalness:.8}),tyre=new T.MeshStandardMaterial({color:0x111214,roughness:.9});
+  const top=new T.Group();top.position.set(o.x+o.w/2,0,o.y+o.h/2);sc.add(top);const L=o.h,Wd=o.w,g=new T.Group();top.add(g);
+  if(o.flip){g.rotation.z=Math.PI;g.position.y=14;top.rotation.y=.12;}else if(o.burnt){g.rotation.x=.03;top.rotation.y=-.18;}
+  const paint=new T.MeshStandardMaterial({color:o.col,roughness:o.burnt?.95:.55,metalness:o.burnt?.15:.45}),glass=o.burnt?new T.MeshStandardMaterial({color:0x050505,roughness:1}):new T.MeshStandardMaterial({color:0x0e1418,roughness:.1,metalness:.8}),tyre=new T.MeshStandardMaterial({color:0x111214,roughness:.9});
   const B=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=b.receiveShadow=true;g.add(b);return b;};
   B(Wd,6,L,paint,0,5,0);B(Wd-2,5,L*.5,glass,0,10.5,-L*.04);B(Wd-2.6,.8,L*.48,paint,0,13.2,-L*.04);
   for(const sx of[-1,1])for(const sz of[-1,1]){const t=new T.Mesh(new T.CylinderGeometry(3,3,2.2,10),tyre);t.rotation.z=Math.PI/2;t.position.set(sx*(Wd/2-1),3,sz*(L/2-7));g.add(t);}
   if(o.door){const d=new T.Group();d.position.set(o.door*Wd/2,0,-L*.14);d.rotation.y=o.door*.95;g.add(d);const p=new T.Mesh(new T.BoxGeometry(.7,8,11),paint);p.position.set(0,7.5,5.5);p.castShadow=true;d.add(p);}
+  if(o.burnt){const ash=new T.Mesh(new T.CircleGeometry(Wd*.9,16),new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.55,depthWrite:false}));ash.rotation.x=-Math.PI/2;ash.position.y=.3;ash.scale.set(1,L/Wd*.8,1);top.add(ash);}   // (scorched round it)
+}
+// a van left where it stopped, its back doors open (o.van 2: an ambulance, a red stripe and a dead light bar)
+function vanMesh(sc,o){
+  const g=new T.Group();g.position.set(o.x+o.w/2,0,o.y+o.h/2);g.rotation.y=o.van===2?.06:-.05;sc.add(g);const L=o.h,Wd=o.w;
+  const paint=new T.MeshStandardMaterial({color:o.col,roughness:.6,metalness:.3}),glass=new T.MeshStandardMaterial({color:0x0e1418,roughness:.1,metalness:.8}),tyre=new T.MeshStandardMaterial({color:0x111214,roughness:.9}),inside=new T.MeshStandardMaterial({color:0x101112,roughness:.9});
+  const B=(w,h,d,m,x,y,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=b.receiveShadow=true;g.add(b);return b;};
+  B(Wd,16,L*.72,paint,0,11,L*.14);B(Wd,10,L*.28,paint,0,8,-L*.36);B(Wd-2,5,.6,glass,0,14,-L*.5-.2);B(Wd-1.6,6,L*.2,glass,0,13.4,-L*.36);   // the box, the cab, the windscreen, the side windows
+  B(Wd-2,13,.4,inside,0,10.5,L/2+.1);   // dark inside, the back open
+  for(const s of[-1,1]){const d=new T.Group();d.position.set(s*(Wd/2-.4),0,L/2);d.rotation.y=s*1.9;g.add(d);const p=new T.Mesh(new T.BoxGeometry(Wd/2-1,13,.6),paint);p.position.set(-s*(Wd/4-.5),10.5,0);p.castShadow=true;d.add(p);}   // its back doors swung open
+  for(const sx of[-1,1])for(const sz of[-1,1]){const t=new T.Mesh(new T.CylinderGeometry(3.4,3.4,2.4,10),tyre);t.rotation.z=Math.PI/2;t.position.set(sx*(Wd/2-1),3.4,sz*(L/2-8));g.add(t);}
+  if(o.van===2){B(Wd+.2,2.4,L*.72,new T.MeshStandardMaterial({color:0xa82a22,roughness:.6}),0,9,L*.14);B(Wd-6,1.6,4,new T.MeshStandardMaterial({color:0x2a1414,roughness:.5}),0,19.8,-L*.24);}   // the stripe, the light bar
 }
 // the dead (TUN_DEAD): people posed once where they fell and left (no units: nobody moves them); one half out of a car has his legs inside it
 function tunDead(sc){
@@ -123,8 +150,9 @@ function buildTunnel(){
   try{
     const ground=new T.Mesh(new T.PlaneGeometry(gw,gh),wetGround(new T.MeshStandardMaterial({map:TUN.tex,roughnessMap:TUN.rtex,roughness:1,metalness:.16}),gw,gh));
     ground.rotation.x=-Math.PI/2;ground.position.set((TUNB.x0+TUNB.x1)/2,0,(TUNB.y0+TUNB.y1)/2);ground.receiveShadow=true;sc.add(ground);
-    meshObjs(TUN.objs.filter(o=>['barrier','barrel','crate','car','truck'].includes(o.kind)&&!o.col));
+    meshObjs(TUN.objs.filter(o=>['barrier','barrel','crate','car','truck'].includes(o.kind)&&(!o.col||o.kind==='truck')&&!o.van));   // (the lorry has a colour of its own: scene.js uses it)
     for(const o of TUN.objs)if(o.kind==='car'&&o.col)carMesh(sc,o);
+    for(const o of TUN.objs)if(o.van)vanMesh(sc,o);
     {const o=TUN.objs.find(q=>q.kind==='bus');if(o)busMesh(sc,o);}   // (road.js: the same coach as outside)
     tunDead(sc);
     // the flares: a red stick on the road, its tip burning (bloom), a wisp of smoke
@@ -191,7 +219,7 @@ function enterTunnel(){
     tankFires=[];rockets=[];charges=[];
     for(const p of players){moveMesh(p,TUN.scene);tunReset(p);}
     players.filter(p=>!p.dead&&!p.gone&&!p.carriedBy).forEach((p,i)=>{const s=TUN_START[i]||TUN_START[0];p.x=s[0];p.y=s[1];p.ang=-Math.PI/2;});
-    units=[...players];MAPID='tun';enemies=[];civs=[];
+    units=[...players];MAPID='tun';enemies=[];civs=[];tunBrood();   // (her young among the wrecks, asleep: below)
     contact=false;clearTeams();sel=[];cardGroup=[];preview=null;mode=null;
     tunCam();zoom=2.3;yaw=0;tilt=0;camT={x:(TW.x0+TW.x1)/2,z:680};camPan=null;clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
@@ -203,14 +231,41 @@ function tunnelOut(){
   for(const u of units)if(u.side!=='P'&&u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';
   for(const p of players){moveMesh(p,out.scene);tunReset(p);}
-  const taken=[];players.filter(p=>!p.dead&&!p.gone&&!p.carriedBy).forEach((p,i)=>{const k=i?(i%2?1:-1)*Math.ceil(i/2):0,t=openSpot((TUN_ZONE.x0+TUN_ZONE.x1)/2+k*20,TUN_ZONE.y1+18+(i>4?20:0),taken)||{x:1723,y:-350};taken.push(t);p.x=t.x;p.y=t.y;p.ang=Math.PI/2;});
+  const taken=[];players.filter(p=>!p.dead&&!p.gone&&!p.carriedBy).forEach((p,i)=>{const t=openSpot(TUN_ZONE.x0-24-Math.floor(i/2)*24,-275+(i%2?18:-18),taken)||{x:1560,y:-275};taken.push(t);p.x=t.x;p.y=t.y;p.ang=Math.PI;});   // (on the bridge, just short of the mouth's gather area, facing back along it)
   units=[...out.units,...players.filter(p=>!out.units.includes(p))];enemies=units.filter(u=>u.side==='E');civs=units.filter(u=>u.side==='C');
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();disposeTunnel();
 }
 function leaveTunnel(){
   if(MAPID!=='tun'||fading)return;
   fadeThen(()=>{tunnelOut();contact=false;clearTeams();sel=[];cardGroup=[];preview=null;mode=null;
-    zoom=2.2;yaw=0;tilt=0;camT={x:1700,z:-380};camPan=null;clampCam();updateCamera();updateObjUI();setStatus();buildCards();hud();});
+    zoom=2.2;yaw=0;tilt=0;camT={x:1560,z:-260};camPan=null;clampCam();updateCamera();updateObjUI();setStatus();buildCards();hud();});
 }
 function leaveTunnelNow(){if(MAPID==='tun')tunnelOut();}   // (a Retry, a New game: state.js's reset)
-function tunHint(){return obj>=9?'The tunnel runs north under the hill, pitch black: only your torches. Its north end has caved in. Walk back to the south end to go out.':'The tunnel runs north under the hill, pitch black: only your torches. Its north end has caved in: the way on is the service door in the east wall just short of it, under the red light. Walk everyone to it to go into the hill. Walk back to the south end to go out.';}
+function tunHint(){
+  const left=TUN&&TUN.brood?TUN.brood.reduce((n,B)=>n+B.list.filter(h=>!h.dead).length,0):0,things=left?` Her young are in here among the wrecks (${left} left): they wake as you come near.`:'';
+  return obj>=9?'The tunnel runs north under the hill, pitch black: only your torches. Its north end has caved in. Walk back to the south end to go out.':`The tunnel runs north under the hill, pitch black: only your torches.${things} Its north end has caved in: the way on is the service door in the east wall just short of it, under the red light. Walk everyone to it to go into the hill. Walk back to the south end to go out.`;
+}
+/* ---------- her young among the wrecks (TUN_BROOD): asleep until the squad comes near, a lot at a time; before Level 4 only
+   (once the squad has been into the hill, the tunnel's quiet) ---------- */
+function tunBrood(){
+  TUN.brood=[];if(obj>=8)return;const big=players.filter(p=>!p.dead).length>5;
+  TUN_BROOD.forEach(G=>{const at=big?[...G.at,G.more]:G.at;TUN.brood.push({list:at.map(([x,y])=>hound(x,y,{kind:'young',dormant:true,ang:Math.random()*6.28})),woke:false,warned:false});});
+}
+function tunWake(B,why){
+  if(B.woke)return;B.woke=why;
+  for(const h of B.list){if(h.dead)continue;h.dormant=false;h.slowT=simT+TUN_WAKE.uncurl+Math.random()*.3;h.againT=simT+1.4+Math.random();h.growlT=simT+Math.random()*1.5;h.alerted=true;}   // (a moment to uncurl: the squad gets the first shots)
+  const c=B.list.find(h=>!h.dead)||B.list[0];sfxMon('mon_scream',c,.9,.95);shake(.15);
+  const p=players.filter(alive).sort((a,b)=>hyp(a.x-c.x,a.y-c.y)-hyp(b.x-c.x,b.y-c.y))[0];if(p)callout(p,['Contact! In the wrecks!','They\'re in the cars!','Movement! Up ahead!'][TUN.brood.indexOf(B)%3],C.bad);
+}
+function tunTick(dt){   // (every tick in the tunnel: road.js's roadTick)
+  if(!TUN||!TUN.brood)return;
+  for(const B of TUN.brood){if(B.woke)continue;const live=B.list.filter(h=>!h.dead);if(!live.length){B.woke='dead';continue;}
+    if(live.some(h=>h.hp<h.maxHp)){tunWake(B,'hurt');continue;}
+    const cx=live.reduce((s,h)=>s+h.x,0)/live.length,cy=live.reduce((s,h)=>s+h.y,0)/live.length,R=TUN_WAKE.noise;
+    if(flashes.some(f=>f.t<=dt+1e-6&&hyp(f.x-cx,f.y-cy)<R)||booms.some(b=>b.t<=dt+1e-6&&hyp(b.x-cx,b.y-cy)<R)){tunWake(B,'noise');continue;}   // (a silenced shot makes no flash: it doesn't carry)
+    const up=players.filter(p=>alive(p)&&!p.away);
+    if(live.some(h=>up.some(p=>{const d=hyp(p.x-h.x,p.y-h.y);return d<TUN_WAKE.near||(d<TUN_WAKE.see&&los(p.x,p.y,h.x,h.y));}))){tunWake(B,'seen');continue;}
+    if(!B.warned&&up.some(p=>hyp(p.x-cx,p.y-cy)<380)){B.warned=true;sfxMon('mon_growl',{x:cx,y:cy},.5,.85);   // (a sound in the dark ahead first)
+      if(TUN.brood.indexOf(B)===0){const p=up.slice().sort((a,b)=>hyp(a.x-cx,a.y-cy)-hyp(b.x-cx,b.y-cy))[0];if(p)callout(p,'Something\'s moving in there.',C.warn);}}
+  }
+}

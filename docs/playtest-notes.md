@@ -863,3 +863,37 @@ has all seven of the front's men in sight.
    40 a man) when the hill was built; it's now sized for the men on the stairs when it wakes, never bigger than before. Two
    sent up the stairs alone: before, both went down to it and it lived in one of three games; after, they killed it in all
    three.
+
+# Bryan, after v110 (the changes are in v111)
+
+Bryan: "I also don't like how it looks, the bridge to the tunnel. Maybe I can make a rough drawing for you?", then his
+drawing (the HQ on the left, a long bridge from beside it straight east to the tunnel, water north and south of it, the
+hill's shore running north from the tunnel to the lighthouse) and: "The bus can stay. See the little line near the word
+tunnel? That is one of the monsters crawling from above the tunnel to inside the tunnel, crawling on the ceiling. Also, can
+we have the ability to zoom into the troops a little closer? And also, I would like to lock the camera while the troops
+cross the bridge. Like make it perpendicular to the bridge looking north, so the lighthouse is seen in the horizon. The
+tunnel will have a lot of monsters leading to the entrance. The tunnel needs more dead bodies and more broken and abandoned
+vehicles." I asked two things; his answers: the monsters crawl in, then the squad fights through them inside; the camera
+locks for the first walk across.
+
+1. The bridge, as drawn: from the gate by the Headquarters a long straight road bridge east over the water to the hill (61 m),
+   the lake north of it and a bay south of it, the tunnel's mouth at its far end in the hill's face, facing back along it,
+   and the hill's shore running north to the lighthouse on its rocks. A concrete deck with footways, railings, lamps (two
+   dead), piers down into the water a metre below, a burnt-out car on it. The bus stays, in the left-hand lane with its
+   nose in the mouth. The old river, the ground south of the road and the bend up to the tunnel are gone; the canal spills
+   over the old map's edge into the bay. Level 4's zip line still comes down onto the bridge's north railing.
+2. The camera the first time across: locked, looking north low over the lake with the lighthouse on the horizon, sliding
+   along with the squad (no panning, turning or zooming meanwhile). At the far end it turns to look at the mouth while the
+   things go in, then it's the player's again. (Default I took: the lock covers that moment at the mouth too.)
+3. Over the mouth: five centipedes now, one after another, over the hill, down the headwall's face and in along the roof.
+4. In the tunnel: her young asleep among the wrecks on the way to the service door, in three lots (3, 4 and 4 for four
+   men); a lot wakes when one of ours comes within about 23 m in sight (12 m whatever's between), at gunfire or a blast
+   close to them (a silenced shot doesn't carry) or when one of them is hurt. A growl in the dark first; "Something's
+   moving in there." Measured with the bot (it only moves the squad, the shooting is automatic, it keeps the downed
+   alive), four seeds: all eleven killed each time, nobody lost, one man downed in one run of four, the others ending on
+   14 to 100 HP. (With the first lot a little closer to the way in it was 1, 1, 2 and 0 downed: easy to turn up.) Once
+   the squad has been into the hill the tunnel's quiet.
+5. More dead and wrecks: 18 dead (8 before) and 11 wrecks (6 before): a car run into the wall by the way in, a van and an
+   ambulance with their back doors open, a pickup on its roof, a car burnt out in the middle of the road, more blood
+   dragged about. The lorry that was there already now shows: its own colour had kept it from being drawn.
+6. The zoom: up to 6x (4x before); the camera tips a little lower at the closest.

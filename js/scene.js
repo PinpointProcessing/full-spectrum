@@ -32,9 +32,10 @@ function initGL(){
 /* camera: angled, like a tactics game; from the south when yaw is 0 (a two-finger twist turns it). zoom tilts it lower. */
 // The camera distance is fitted to the yard's size (FIT); VB is where it may roam: the yard, then the whole map once the depot opens.
 const FIT={w:YARD_W,h:H};let VB={x0:0,z0:0,x1:YARD_W,z1:H};   // VB z runs TOP..H once the whole map is open
-const MAXZ=4,CAM_OVER=220;let zoom=1,camT={x:FIT.w/2,z:FIT.h/2},dist0=1200,yaw=0,tilt=0;
-const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH_MIN=14*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
-function basePitch(){return PITCH0+(PITCH1-PITCH0)*(zoom-1)/(MAXZ-1);}
+let CANAL_PLANE=null;   // the canal's water (road.js clips it at the shore)
+const MAXZ=6,ZP=4,CAM_OVER=220;let zoom=1,camT={x:FIT.w/2,z:FIT.h/2},dist0=1200,yaw=0,tilt=0;   // (MAXZ was 4 until v111: Bryan, "can we have the ability to zoom into the troops a little closer?")
+const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH2=41*Math.PI/180,PITCH_MIN=14*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
+function basePitch(){const z=Math.min(zoom,ZP);return PITCH0+(PITCH1-PITCH0)*(z-1)/(ZP-1)+(zoom>ZP?(PITCH2-PITCH1)*(zoom-ZP)/(MAXZ-ZP):0);}   // (60° zoomed out to 46° at 4x as before, then on down to 41° at the closest)
 function updateCamera(){
   const dist=dist0/zoom,p=Math.max(PITCH_MIN,basePitch()-tilt);
   const hd=dist*Math.cos(p);
@@ -352,7 +353,7 @@ function buildWorld(){
   // concrete pipe with low headwalls; it fades while a soldier is inside, see render) and the broken rail bridge (two rails
   // on a twisted girder with gaps)
   {const cw2=CANAL.y1-CANAL.y0,wm=new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7});
-   const cv=new T.Mesh(new T.PlaneGeometry(W+400,cw2),wm);cv.rotation.x=-Math.PI/2;cv.position.set(W/2,.15,(CANAL.y0+CANAL.y1)/2);cv.receiveShadow=true;scene.add(cv);
+   const cv=new T.Mesh(new T.PlaneGeometry(W+400,cw2),wm);cv.rotation.x=-Math.PI/2;cv.position.set(W/2,.15,(CANAL.y0+CANAL.y1)/2);cv.receiveShadow=true;scene.add(cv);CANAL_PLANE=cv;   // (it stops at the shore once the road east is open: road.js's canalEnd)
    const bw=MAINBR.x1-MAINBR.x0,conc=new T.MeshStandardMaterial({color:0x7d7f7a,roughness:.9}),rail=new T.MeshStandardMaterial({color:0x2a2e33,roughness:.6,metalness:.5});
    addMesh(new T.BoxGeometry(bw,2,cw2+14),conc,(MAINBR.x0+MAINBR.x1)/2,1,(CANAL.y0+CANAL.y1)/2);
    addMesh(new T.BoxGeometry(bw+8,8,6),conc,(MAINBR.x0+MAINBR.x1)/2,-3,(CANAL.y0+CANAL.y1)/2);
