@@ -56,8 +56,9 @@ would have them: it stands on top of the hill the road tunnel runs under, and th
 ## Built (v99)
 
 Level 4 is in the game (`js/level4.js`). How to get there: the intro card's **Level 4 · The Old Radio Tower** button starts
-at the road east in sight of the tunnel (the 'road' checkpoint), or play on from Level 3's end. Walk everyone into the
-tunnel, up to its caved-in north end, and into the service door under the red light in the east wall: the hill fades in by
+inside the Headquarters just after the Brood Mother's death (the 'won' checkpoint, since v112: the aftermath, then GO OUT
+and the first walk over the bridge; until then it started on the road east in sight of the tunnel, the 'road' checkpoint,
+still in the checkpoint list), or play on from Level 3's end. Walk everyone into the tunnel, up to its caved-in north end, and into the service door under the red light in the east wall: the hill fades in by
 itself.
 
 - **The plant**: dark until the generator's started (red emergency lights, the squad's torches). The control room's

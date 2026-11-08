@@ -897,3 +897,21 @@ locks for the first walk across.
    ambulance with their back doors open, a pickup on its roof, a car burnt out in the middle of the road, more blood
    dragged about. The lorry that was there already now shows: its own colour had kept it from being drawn.
 6. The zoom: up to 6x (4x before); the camera tips a little lower at the closest.
+
+## Bryan, after v111 (the changes are in v112)
+
+"Can we make the level 4 start from inside the HQ, so crossing the bridge will be the first time and I can see the sequence
+after killing the monster?"
+
+1. The Level 4 button now starts inside the Headquarters just after the Brood Mother dies: her body lies back up the hall
+   from just short of the squad, 15 of her young dead where they fell, the side rooms open, the eggs that hatched burst,
+   all eight standing at the hall's south end. "Headquarters taken" and the objective crossed off come at once, then the
+   sequence as after a real fight: send someone for the scientists (BRING THE SCIENTISTS at the south door), the talk
+   (ending with the freed men told to stay), the clean-up, the finished HQ with the crew at work.
+2. Then GO OUT gives the first crossing: the talk by the drawbridge, the walk east with the camera locked looking north,
+   the centipedes at the mouth, the save 'road'.
+3. It's a checkpoint of its own too, "The Brood Mother dead", between "The gate cleared" and "The Headquarters" in the list,
+   and its Continue goes back to the start of the aftermath.
+4. Default I took: no Level 3 report at the end of the clean-up from this start (no fight was played, so it would show
+   nothing killed and hand out XP for it); a banner says to gather at the south door instead. After a real fight the
+   report still comes.

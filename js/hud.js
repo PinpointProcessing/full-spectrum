@@ -130,7 +130,7 @@ function bindHud(){
   $('#startBtn').addEventListener('click',()=>showEquip(startLevel3,'Next: Level 3 · The Data Center'));   // the loadout first (equip.js)
   $('#l2Btn').addEventListener('click',()=>showEquip(startLevel2,'Next: Level 2 · Lights Out'));   // (level2.js)
   $('#l1Btn').addEventListener('click',()=>startLevel1());
-  {const b=$('#l4Btn');if(b)b.addEventListener('click',()=>startCheckpoint('road'));}   // Level 4: from the road east, in sight of the tunnel (level4.js)   // (level1.js)
+  {const b=$('#l4Btn');if(b)b.addEventListener('click',()=>startCheckpoint('won'));}   // Level 4: from inside the Headquarters just after the Brood Mother's death, so the road east and its bridge come first (Bryan, after v111; save.js's 'won', fortress.js's hqAftermath, level4.js)   // (level1.js)
   // the tutorial's bubble: a tap carries on from a notice or hides it (and stops there, so it never moves anyone); its button
   // turns the tutorial or the tips off; the "?" brings it back
   $('#tut').addEventListener('click',e=>{

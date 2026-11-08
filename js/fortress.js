@@ -99,7 +99,7 @@ function buildHQ(){
   }finally{scene=keep;}
 }
 // in through the gate (from the gather area at the drawbridge: monsters.js); the scientists and the rest wait outside
-function enterHQ(){
+function enterHQ(after){   // (after: the fight already over, her and her young dead where they fell: hqAftermath, below)
   const f=$('#fade');if(f){f.hidden=false;void f.offsetWidth;f.classList.add('on');}
   setTimeout(()=>{
     buildHQ();stashOut(players);baseActs();   // (BRING THE SCIENTISTS once the fight's over: base.js)
@@ -110,17 +110,40 @@ function enterHQ(){
     live.forEach((p,i)=>{const s=HQ_START[i]||HQ_START[0];p.x=s[0];p.y=s[1];p.ang=-Math.PI/2;});
     units=[...players];MAPID='hq';enemies=[];civs=[];resetHQ();addZones(HQ_REST);
     const keep=scene;scene=HQ.scene;
-    try{const b=broodMother(500,300);b.ang=Math.PI/2;b.hp=b.maxHp=BOSS.hp+BOSS.perMan*live.filter(p=>!p.downed).length;b.dmgIn=BOSS.dmgIn;
+    try{if(after)hqAftermath(live);
+      else{const b=broodMother(500,300);b.ang=Math.PI/2;b.hp=b.maxHp=BOSS.hp+BOSS.perMan*live.filter(p=>!p.downed).length;b.dmgIn=BOSS.dmgIn;
       const per=live.filter(p=>!p.downed).length>5?HQ_BROOD.roomBig:HQ_BROOD.room;   // (a small squad meets one to a room, a big one more; one more hatches from each room's clutch, hatch)
-      for(const r of HQ_ROOMS)for(let k=0;k<per;k++){const h=hound((r.x0+r.x1)/2+(k-1)*26,(r.y0+r.y1)/2+(k%2?20:-14),{dormant:true,room:r.id,kind:'young',ang:r.side<0?0:Math.PI});}
+      for(const r of HQ_ROOMS)for(let k=0;k<per;k++){const h=hound((r.x0+r.x1)/2+(k-1)*26,(r.y0+r.y1)/2+(k%2?20:-14),{dormant:true,room:r.id,kind:'young',ang:r.side<0?0:Math.PI});}}
     }finally{scene=keep;}
-    contact=false;clearTeams();sel=[];cardGroup=[];hqs.wakeAt=simT+.6;hqs.lairN=live.filter(p=>!p.downed).length>5?2:1;   // (she's awake: she roars as they come in, bossThink)
+    contact=false;clearTeams();sel=[];cardGroup=[];if(!after)hqs.wakeAt=simT+.6;hqs.lairN=live.filter(p=>!p.downed).length>5?2:1;   // (she's awake: she roars as they come in, bossThink)
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
-    zoom=2.0;yaw=0;tilt=0;camT={x:500,z:800};clampCam();updateCamera();
+    zoom=after?3:2.0;yaw=0;tilt=0;camT=after?{x:500,z:640}:{x:500,z:800};clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
-    bigText('The Headquarters','inbound');
+    if(!after)bigText('The Headquarters','inbound');   // (after: "Headquarters taken" comes on the next tick, hqTickWin)
     if(f)setTimeout(()=>{f.classList.remove('on');setTimeout(()=>{if(!f.classList.contains('on'))f.hidden=true;},400);},60);
   },380);
+}
+/* ---------- starting just after her death (save.js's 'won', the Level 4 button; Bryan, after v111: "Can we make the level 4
+   start from inside the HQ, so crossing the bridge will be the first time and I can see the sequence after killing the
+   monster?"): the hall the way a fight leaves it, her and her young dead where they fell, the side rooms open, the eggs that
+   hatched burst open, the squad standing at the hall's south end looking up it; on the next tick hqTickWin finds nothing
+   alive and it goes on from "Headquarters taken" as it does after a real fight (the wounded, BRING THE SCIENTISTS, the talk,
+   the clean-up: base.js) ---------- */
+const HQ_DEAD={mother:[480,596,22,55],young:[[372,668,.3],[420,716,.7],[628,672,2.8],[586,726,2.5],[402,488,.9],[606,502,2.2],[452,560,1.3],[548,612,1.9],[230,700,-.4],[780,452,3],[470,420,1.6],[560,378,1.2],[520,226,1.5],[650,330,2.4],[352,262,.8]],
+  squad:[[430,684],[472,678],[516,676],[558,682],[598,690],[450,734],[500,740],[556,744]],slams:[[502,652],[446,628]]};
+function hqAftermath(live){   // (from enterHQ, with its scene in place)
+  hqs.after=true;hqs.awake=true;hqs.awakeT=simT;hqs.phase=2;for(const r of HQ_ROOMS)r.open=true;
+  const r=rng(4112),body=(x,y,ang,L,amp,lam)=>{const c=Math.cos(ang),s=Math.sin(ang),pts=[];for(let d=0;d<=L;d+=2){const w=amp*Math.sin(d/lam);pts.push({x:x-c*d-s*w,y:y-s*d+c*w});}return pts;};   // (a body lying from its head back, bending as it goes)
+  const lay=(u,S,pts)=>{u.x=pts[0].x;u.y=pts[0].y;u.ang=Math.atan2(pts[0].y-pts[1].y,pts[0].x-pts[1].x);crTrailInit(u,S,pts);
+    Object.assign(u,{dead:true,hp:0,seen:true,alerted:true,dormant:false,diedT:simT-4,path:[]});paintDecal({k:'scorch',x:u.x,y:u.y,r:r()});};
+  const[mx,my,ma,ml]=HQ_DEAD.mother,b=broodMother(mx,my);b.maxHp=BOSS.hp+BOSS.perMan*live.length;b.ms='walk';   // her: almost on them, her length back up the hall
+  lay(b,MOTHER,body(mx,my,Math.PI/2,MOTHER.head.l+MOTHER.n*MOTHER.seg+40,ma,ml));
+  for(const[x,y,a]of HQ_DEAD.young){const h=hound(x,y,{kind:'young',ang:a});lay(h,BROOD,body(x,y,a,BROOD.head.l+BROOD.n*BROOD.seg+32,(r()<.5?-1:1)*(3+r()*5),12+r()*8));}
+  for(const[x,y]of HQ_DEAD.slams)paintDecal({k:'scorch',x,y,r:r()});   // (where she slammed)
+  const D=HQ.nest&&HQ.nest.userData.eggs,gone=(k,n)=>{const c=D&&D.clutches[k];if(!c)return;const left=[];for(let i=c.a;i<c.b;i++)if(!D.list[i].burst)left.push(i);
+    left.sort((i,j)=>D.list[j].y-D.list[i].y);for(let q=0;q<Math.min(left.length,n*5);q++)crEggBurst(HQ.nest,left[q]);};   // (what hatched: five eggs split for each, as in hatch)
+  gone(0,3*(live.length>5?2:1));for(let k=3;k<3+HQ_ROOMS.length;k++)gone(k,HATCH.room);
+  const taken=[];live.forEach((p,i)=>{const q=HQ_DEAD.squad[i%HQ_DEAD.squad.length],t=openSpot(q[0],q[1],taken)||{x:q[0],y:q[1]};taken.push(t);p.x=t.x;p.y=t.y;p.ang=-Math.PI/2;});
 }
 function leaveHQNow(){   // back to the big map at once (a Retry, a New game)
   if(MAPID!=='hq')return;const out=STASH.out;hqEnd=null;base=null;$('#app').classList.remove('cine');if(typeof talkStop==='function')talkStop();
@@ -178,7 +201,7 @@ function hqTickWin(){
   for(const p of hqs.pending.slice())if(simT>=p.at){hqs.pending.splice(hqs.pending.indexOf(p),1);openRoom(p.r);}
   for(const h of hqs.hatch.slice())if(simT>=h.at){hqs.hatch.splice(hqs.hatch.indexOf(h),1);hatch(h.k,h.n);}
   if(enemies.some(e=>e.mon&&!e.dead))return;if(!enemies.some(e=>e.mon==='boss'))return;
-  hqs.won=true;hqs.wonT=simT;obj=6;objCompleted(4);updateObjUI();hud();bigText('Headquarters taken','complete');
+  hqs.won=true;hqs.wonT=simT;obj=6;objCompleted(4);updateObjUI();setStatus();hud();bigText('Headquarters taken','complete');   // (setStatus: the chip off "Bridge down" when no fight set it, the start at her death)
   setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!hqEnd)banner(anyDown()?'It’s over. Get the wounded up, then send someone for the scientists.':'It’s over. Send someone out for the scientists.',4200);},OBJ_LIST_T+300);   // (the player's turn now: base.js)
 }
 /* ---------- the end (Bryan, after v85: "one of the surviving soldiers exits the HQ off screen and returns with the
