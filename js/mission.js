@@ -486,7 +486,7 @@ function updateObjUI(flash){
     if(objNM.txt!==txt){objNM.txt=txt;objNMShow();}   // (new: in full for 10 s, then just its name: below)
     el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
-  const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':typeof hqs!=='undefined'&&hqs.won?'Headquarters taken':MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
+  const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':typeof hqs!=='undefined'&&hqs.won?(MAPID==='hq'&&HQ&&HQ.base&&base&&base.done?'Your Headquarters: the command center for missions':'Headquarters taken'):MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
   el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
