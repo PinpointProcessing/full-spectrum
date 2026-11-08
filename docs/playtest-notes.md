@@ -1169,3 +1169,8 @@ Spec Ops; a bar beside the gun on his card, green, yellow, red, then BROKEN (a p
 the muzzle); a new one at a mission's start, at an ammo drop and back at the HQ; once a class is picked only a Spec Ops can take
 the M4 SD (the others get the plain M4); special items stay smoke, medic kit and RPG (class items after the HQ, to discuss).
 Alpha's special item in Level 1 is smoke now (their silencers are on their rifles).
+
+Bryan, after v122: "When silent shooting a unit for an auto kill should be worth 5 or 10 bursts with the silencer, what do you
+think? I'm not sure if it should be refreshed at every ammo drop - maybe keep it like that for now. SD's might only be equipped
+with spec ops, snipers, unclassed units and maybe a couple more. We'll discuss later". My answer: 5 (see the reply); ammo drops
+keep refitting it for now; which classes get the M4 SD is to be discussed (now: Spec Ops and anyone without a class).
