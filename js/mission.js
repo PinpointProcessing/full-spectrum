@@ -521,7 +521,7 @@ function drawLastFoes(now){
 }
 function drawMission(rdt,now){
   drawGunMark(now);
-  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);if(typeof drawL4==='function')drawL4(now);drawMonsters(now);drawHQ(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
+  if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);if(typeof drawL4==='function')drawL4(now);if(typeof drawGrates==='function')drawGrates(now);drawMonsters(now);drawHQ(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the panel once it works
   const mark=(x,y,r,text,col)=>{gPath(x,y,r+slow*4);ox.strokeStyle=col;ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(x,y+r,6);label(text,lx,ly,col,9,700);};

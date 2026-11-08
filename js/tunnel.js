@@ -240,7 +240,7 @@ function leaveTunnel(){
   fadeThen(()=>{tunnelOut();contact=false;clearTeams();sel=[];cardGroup=[];preview=null;mode=null;
     zoom=2.2;yaw=0;tilt=0;camT={x:1560,z:-260};camPan=null;clampCam();updateCamera();updateObjUI();setStatus();buildCards();hud();});
 }
-function leaveTunnelNow(){if(MAPID==='tun')tunnelOut();}   // (a Retry, a New game: state.js's reset)
+function leaveTunnelNow(){if(MAPID==='tun')tunnelOut();tunLost=0;}   // (a Retry, a New game: state.js's reset)
 function tunHint(){
   const left=TUN&&TUN.brood?TUN.brood.reduce((n,B)=>n+B.list.filter(h=>!h.dead).length,0):0,things=left?` Her young are in here among the wrecks (${left} left): they wake as you come near.`:'';
   return obj>=9?'The tunnel runs north under the hill, pitch black: only your torches. Its north end has caved in. Walk back to the south end to go out.':`The tunnel runs north under the hill, pitch black: only your torches.${things} Its north end has caved in: the way on is the service door in the east wall just short of it, under the red light. Walk everyone to it to go into the hill. Walk back to the south end to go out.`;
@@ -248,7 +248,7 @@ function tunHint(){
 /* ---------- her young among the wrecks (TUN_BROOD): asleep until the squad comes near, a lot at a time; before Level 4 only
    (once the squad has been into the hill, the tunnel's quiet) ---------- */
 function tunBrood(){
-  TUN.brood=[];if(obj>=8)return;const big=players.filter(p=>!p.dead).length>5;
+  TUN.brood=[];TUN.grates=[];if(obj>=8)return;tunGrates();const big=players.filter(p=>!p.dead).length>5;
   TUN_BROOD.forEach(G=>{const at=big?[...G.at,G.more]:G.at;TUN.brood.push({list:at.map(([x,y])=>hound(x,y,{kind:'young',dormant:true,ang:Math.random()*6.28})),woke:false,warned:false});});
 }
 function tunWake(B,why){
@@ -259,6 +259,7 @@ function tunWake(B,why){
 }
 function tunTick(dt){   // (every tick in the tunnel: road.js's roadTick)
   if(!TUN||!TUN.brood)return;
+  grateTick(dt);
   for(const B of TUN.brood){if(B.woke)continue;const live=B.list.filter(h=>!h.dead);if(!live.length){B.woke='dead';continue;}
     if(live.some(h=>h.hp<h.maxHp)){tunWake(B,'hurt');continue;}
     const cx=live.reduce((s,h)=>s+h.x,0)/live.length,cy=live.reduce((s,h)=>s+h.y,0)/live.length,R=TUN_WAKE.noise;
@@ -268,4 +269,82 @@ function tunTick(dt){   // (every tick in the tunnel: road.js's roadTick)
     if(!B.warned&&up.some(p=>hyp(p.x-cx,p.y-cy)<380)){B.warned=true;sfxMon('mon_growl',{x:cx,y:cy},.5,.85);   // (a sound in the dark ahead first)
       if(TUN.brood.indexOf(B)===0){const p=up.slice().sort((a,b)=>hyp(a.x-cx,a.y-cy)-hyp(b.x-cx,b.y-cy))[0];if(p)callout(p,'Something\'s moving in there.',C.warn);}}
   }
+}
+
+/* ---------- the grates (Bryan, after v119: "in the tunnel, monsters break out of grates in the walls and drags units in with a
+   splash of blood and screaming following"; then "the player doesn't need to lose the troops automatically in the tunnel and can
+   save them. If the player loses two units, it stops"; "it can be anyone"). Vent grates low in both walls (TUN_GRATES). One of
+   ours coming within GRATE.near of one wakes it: it rattles and a red ring pulses on it for GRATE.warn s (the warning: get clear),
+   then it bursts open and one of her young comes out at the nearest man within GRATE.reach, grabs him (knocked down, can't act)
+   and drags him back to the vent, slowly (GRATE.drag). Kill it before it gets there and he's free; let it reach the vent and he's
+   pulled in, screaming, a smear of blood where he went: gone, KIA. Each grate goes once; once two men are lost (tunLost, kept
+   until a reset) the rest stay quiet. Before Level 4 only, like the brood. ---------- */
+const TUN_GRATES=[[655,640],[785,560],[655,410],[785,330],[655,120],[785,30]];
+const GRATE={near:70,warn:1.5,reach:95,leap:420,drag:26,dragT:3.5,hp:60,hpMan:30,maxLost:2};   // (hp + hpMan a man up: a squad needs its few seconds of fire to save him; at 55 eight men killed it before it reached him)
+let tunLost=0;
+function tunGrates(){
+  const sc=TUN.scene,dark=new T.MeshStandardMaterial({color:0x050505,roughness:1}),steel=new T.MeshStandardMaterial({color:0x3a3d40,roughness:.6,metalness:.6});
+  TUN.grates=TUN_GRATES.map(([x,y])=>{const w=x<(TW.x0+TW.x1)/2?1:-1,g=new T.Group();
+    const hole=new T.Mesh(new T.BoxGeometry(2,9,16),dark);hole.position.set(0,5,0);g.add(hole);
+    const lid=new T.Group();for(let k=-3;k<=3;k++){const b=new T.Mesh(new T.BoxGeometry(.6,8.6,.7),steel);b.position.set(0,0,k*2.2);lid.add(b);}
+    for(const yy of[-4.2,4.2]){const r=new T.Mesh(new T.BoxGeometry(.7,.7,16),steel);r.position.set(0,yy,0);lid.add(r);}
+    lid.position.set(w*1.3,5,0);g.add(lid);g.position.set(x,0,y);sc.add(g);
+    return{x,y,w,mx:x+w*13,my:y,g,lid,ph:tunLost>=GRATE.maxLost?'quiet':'idle',t0:0,mon:null};});
+}
+function grateTick(dt){
+  if(!TUN.grates)return;const up=players.filter(p=>alive(p)&&!p.away&&!p.dragged);
+  for(const G of TUN.grates){
+    if(G.ph==='idle'){if(tunLost>=GRATE.maxLost){G.ph='quiet';continue;}
+      if(up.some(p=>hyp(p.x-G.mx,p.y-G.my)<GRATE.near)){G.ph='rattle';G.t0=simT;sfxMon('mon_snarl',{x:G.mx,y:G.my},.8,.8);if(typeof sfxClang==='function')sfxClang(G.mx,G.my);
+        const p=up.slice().sort((a,b)=>hyp(a.x-G.mx,a.y-G.my)-hyp(b.x-G.mx,b.y-G.my))[0];if(p)callout(p,['The vent! Get back!','Something\u2019s in the wall!','Grate! Move!'][TUN.grates.indexOf(G)%3],C.bad);}
+      continue;}
+    if(G.ph==='rattle'){G.lid.position.x=G.w*1.3+Math.sin(simT*55)*.5;G.lid.rotation.x=Math.sin(simT*41)*.05;
+      if(simT-G.t0>=GRATE.warn)grateBurst(G,up);continue;}
+    if(G.ph==='open'){const u=G.mon;if(u&&u.dead&&u.grab&&u.grab.v&&u.grab.v.dragged===u)grateFree(u.grab.v);}
+  }
+}
+function grateBurst(G,up){
+  G.ph='open';G.lid.rotation.z=G.w*1.2;G.lid.position.set(G.w*6,1.2,0);shake(.18);if(typeof sfxClang==='function')sfxClang(G.mx,G.my);
+  const v=up.filter(p=>hyp(p.x-G.mx,p.y-G.my)<GRATE.reach).sort((a,b)=>hyp(a.x-G.mx,a.y-G.my)-hyp(b.x-G.mx,b.y-G.my))[0];
+  const hp=GRATE.hp+GRATE.hpMan*players.filter(alive).length,u=hound(G.mx,G.my,{kind:'young',ang:Math.atan2((v||G).y-G.my,(v||G).x-G.mx),hp,maxHp:hp,growlT:simT+3});G.mon=u;sfxMon('mon_scream',u,1,.95);   // (tougher the more there are to shoot it: a few seconds' fire to save him either way)
+  if(v){u.grab={v,G,ph:'leap'};monSaw(v);}
+}
+// (from houndThink: one of the grates' young, after the man it came out for)
+function grabThink(u,dt){
+  const g=u.grab,v=g.v;
+  if(!v||v.dead||v.gone||(g.ph==='leap'&&!alive(v))){u.grab=null;return false;}
+  if(g.ph==='leap'){const dx=v.x-u.x,dy=v.y-u.y,d=hyp(dx,dy)||1;u.ang=Math.atan2(dy,dx);u.path=[];
+    if(d<15){g.ph='drag';g.spd=clamp(hyp(g.G.mx-u.x,g.G.my-u.y)/GRATE.dragT,8,GRATE.drag);   // (however close to the vent he was grabbed, about GRATE.dragT s to save him)
+      v.dragged=u;v.path=[];v.hp=Math.max(5,v.hp-10);v.hitFlash=.25;
+      callout(v,'It\u2019s got me! Get it off!',C.bad);if(typeof sfxScream==='function')sfxScream(v,.95);chatDragged(v);return true;}
+    if(!monMove(u,dx/d,dy/d,Math.min(d-10,GRATE.leap*dt))){g.ph='drag';}return true;}
+  // the drag: back to the vent, pulling him along
+  const G=g.G,dx=G.mx-u.x,dy=G.my-u.y,d=hyp(dx,dy)||1;u.ang=Math.atan2(-dy,-dx);u.path=[];
+  v.stunT=simT+.35;v.path=[];v.downed=false;
+  if(d<6){grateTake(u,v);return true;}
+  const st=Math.min(d,(g.spd||GRATE.drag)*dt);u.x+=dx/d*st;u.y+=dy/d*st;v.x=u.x-dx/d*12;v.y=u.y-dy/d*12;v.ang=Math.atan2(dy,dx)+Math.PI;
+  if(Math.random()<dt*1.4)paintDecal({k:'blood',x:v.x,y:v.y,r:Math.random()});
+  return true;
+}
+function grateFree(v){
+  v.dragged=null;v.stunT=simT+.8;callout(v,'I\u2019m clear!',C.good);for(const u of enemies)if(u.grab&&u.grab.v===v)u.grab=null;
+}
+function grateTake(u,v){   // into the vent: he's gone
+  for(let k=0;k<4;k++)paintDecal({k:'blood',x:v.x+(Math.random()-.5)*20,y:v.y+(Math.random()-.5)*20,r:Math.random()});
+  if(typeof sfxScream==='function')sfxScream(v,1);shake(.25);
+  if(v.carry){v.carry.carriedBy=null;v.carry=null;}if(v.cargo&&typeof dropCargo==='function')dropCargo(v);
+  Object.assign(v,{hp:0,dead:true,downed:false,critical:false,gone:true,dragged:null,path:[],stunT:0});tunLost++;
+  Object.assign(u,{dead:true,gone:true,hp:0,grab:null,path:[]});
+  sel=sel.filter(p=>p!==v);cardGroup=cardGroup.filter(p=>p!==v);
+  banner(`${v.name} was dragged into the vent.${tunLost>=GRATE.maxLost?' The vents go quiet.':''}`,3600);
+  for(const G of TUN.grates)if(tunLost>=GRATE.maxLost&&G.ph==='idle')G.ph='quiet';
+  setStatus();hud();
+}
+function chatDragged(v){const w=players.filter(p=>alive(p)&&p!==v).sort((a,b)=>hyp(a.x-v.x,a.y-v.y)-hyp(b.x-v.x,b.y-v.y))[0];if(w)setTimeout(()=>{if(state==='play'&&!w.dead)callout(w,`It's got ${v.name}! Shoot it!`,C.bad);},500);}
+// on the overlay: a red ring pulsing on a grate about to go, and over a man being dragged
+function drawGrates(now){
+  if(MAPID!=='tun'||!TUN||!TUN.grates)return;const pulse=(Math.sin(now*12)+1)/2;
+  for(const G of TUN.grates){if(G.ph!=='rattle')continue;toSBack=false;gPath(G.mx,G.my,16+pulse*6);if(toSBack)continue;
+    ox.strokeStyle=`rgba(255,70,50,${.6+pulse*.4})`;ox.lineWidth=2.5;ox.stroke();const[lx,ly]=below(G.mx,G.my+20,6);label('VENT · GET CLEAR',lx,ly,'#ff6a52',9,700);}
+  for(const p of players){if(!p.dragged||p.dead)continue;toSBack=false;const[x,y]=toS(p.x,p.y,14);if(toSBack)continue;label('DRAGGED · SHOOT IT',x,y-14,'#ff6a52',9,700);}
 }

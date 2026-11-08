@@ -109,7 +109,8 @@ function monSaw(tg){if(MAPID==='l4')return;if(tg&&tg.side==='P'&&tg.team){   // 
   teamSawT[tg.team]=simT;if(!teamSeen[tg.team]){teamSeen[tg.team]=true;contact=true;setStatus();}}}
 function houndThink(u,dt){
   if(simT<(u.slowT||0)){u.path=[];return;}   // (just woken: uncurling, Level 4's nest)
-  if(u.shaft&&typeof l4Shaft==='function'&&l4Shaft(u))return;   // (Level 4: woken by the lift, up the shaft after it)
+  if(u.shaft&&typeof l4Shaft==='function'&&l4Shaft(u))return;
+  if(u.grab&&typeof grabThink==='function'&&grabThink(u,dt))return;   // (out of a grate in the tunnel, after the man it came for: tunnel.js)   // (Level 4: woken by the lift, up the shaft after it)
   const tg=monPrey(u);if(!tg){u.path=[];return;}
   if(hyp(tg.x-u.x,tg.y-u.y)<420)monSaw(tg);
   if(tg.side==='E'&&!tg.alerted&&hyp(tg.x-u.x,tg.y-u.y)<300)alertOne(tg,{x:u.x,y:u.y},false);   // (one of their men it comes for: he's up and fighting it)
