@@ -101,7 +101,7 @@ function monTick(dt){
   gateTick(dt);sceneTick();hqfTick();
   for(const u of enemies){
     if(!u.mon||u.dead||u.dormant)continue;
-    if(u.mon==='boss'){if(typeof bossThink==='function')bossThink(u,dt);continue;}
+    if(u.mon==='boss'){if(u.queen){if(typeof queenThink==='function')queenThink(u,dt);}else if(typeof bossThink==='function')bossThink(u,dt);continue;}   // (the Queen on Level 4's summit: level4.js)
     houndThink(u,dt);
   }
 }
@@ -151,10 +151,10 @@ function houndThink(u,dt){
     else{const p=findPath(u.x,u.y,tg.x,tg.y,FOOT);if(p)u.path=p;}}
 }
 // hurt and killed (from damage in combat.js)
-function monHurt(u){if(simT-(u.hurtT||-9)<.35)return;u.hurtT=simT;sfxMon(u.mon==='boss'?'boss_hurt':'mon_hurt',u,u.mon==='boss'?1.1:.8);if(u.mon==='boss'&&typeof bossHurt==='function')bossHurt(u);}
+function monHurt(u){if(simT-(u.hurtT||-9)<.35)return;u.hurtT=simT;sfxMon(u.mon==='boss'?'boss_hurt':'mon_hurt',u,u.mon==='boss'?1.1:.8);if(u.mon==='boss'){if(u.queen){if(typeof queenHurt==='function')queenHurt(u);}else if(typeof bossHurt==='function')bossHurt(u);}}
 function monDied(u){
   u.diedT=simT;u.path=[];sfxMon(u.mon==='boss'?'boss_die':'mon_die',u,u.mon==='boss'?1.3:.9);
-  paintDecal({k:'scorch',x:u.x,y:u.y,r:Math.random()});if(u.mon==='boss'){shake(.9);if(typeof bossDied==='function')bossDied(u);}
+  paintDecal({k:'scorch',x:u.x,y:u.y,r:Math.random()});if(u.mon==='boss'){shake(.9);if(u.queen){if(typeof queenDied==='function')queenDied(u);}else if(typeof bossDied==='function')bossDied(u);}
 }
 
 /* ---------- outside: they pour out over the drawbridge (from lowerBridge in mission.js) ----------

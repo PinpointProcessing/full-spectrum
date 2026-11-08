@@ -440,7 +440,7 @@ function pickTarget(u){
   // undetected, the squad holds fire except at a hostile you've told them to shoot (or into a room they're breaching)
   if(u.side==='P'&&volleyHeld(u))return null;   // the silencers are about to take him: wait for it
   let foes=u.side==='P'?(caught(u)||simT<(u.breachT||0)?enemies.filter(e=>!beaten(e)):u.focus&&!beaten(u.focus)?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(p=>alive(p)&&(!contact||caught(p)));
-  if(u.side==='E'&&u.l4&&!u.mon)foes=foes.concat(enemies.filter(m=>m.mon&&!beaten(m)));
+  if(u.side==='E'&&u.l4&&!u.mon)foes=(u.doomed?[]:foes).concat(enemies.filter(m=>m.mon&&!beaten(m)));   // (doomed: Level 4's militia fight only the brood, level4.js)
   else if(u.side==='P'&&MAPID==='l4'&&!caught(u))foes=foes.concat(enemies.filter(m=>m.mon&&!beaten(m)&&!foes.includes(m)));   // (Level 4: a hidden team still fights off the brood; the monsters don't tell their men where it is)   // Level 4: the summit's men shoot the monsters too (level4.js)   // on Watch: whoever comes into his cone (orders.js)   // a jeep is shot at through its driver (hits go to the jeep)
   let best=null,bs=-1;const R=u.reach?Math.min(u.reach,wRange(u)):wRange(u);   // (a hostile with a reach of his own shoots no further than he sees: Level 2's guards, level2.js)
   for(const f of foes){
@@ -689,6 +689,7 @@ function autoGait(p){
 const SEE_RATE=1.6,NOISE_R=110,AWARE_FADE=0.15,AWARE_LOOK=0.35;
 function sense(e,dt){
   if(e.dog){dogSense(e,dt);return;}
+  if(e.doomed)return;   // (Level 4's militia since v124: up there to be wiped out by the brood, they never notice the squad: level4.js)
   let gain=0,best=0,src=null;const{r:R,cone:CONE}=eyeOf(e);   // on alert their eyes reach further (layers.js); the sniper's and the truck's are their own
   const fwd=e.veh&&e.drive&&e.drive.parked?e.aimA:e.ang;
   for(const p of players){

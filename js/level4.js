@@ -69,7 +69,11 @@ const L4E={dmgIn:.8};   // their men: helmets and vests (20 % less damage, Alert
 const L4_BROOD={young:2,youngBig:3,hatch:1,hatchBig:2,wave:3,waveBig:5,waveHatch:2,waveHatchBig:3,delay:5,gap:.45};   // the fan hall's brood (asleep), what the lift wakes below it, the wave out of the hatch
 const L4_CRAWLER={hp:360,perMan:40,reach:26,lunge:120,hit:1.5,spd:84,wake:230};
 const L4_KEY='warehouseYard.l4';   // what came back (the parts, the radio log, the finds): for the HQ's radio control, next
-const L4_PARTS=[{id:'tx',name:'the transmitter',label:'TRANSMITTER',x:204,y:-528,standY:20,secs:4},{id:'rx',name:'the receiver',label:'RECEIVER',x:651,y:-461,standY:20,secs:3},{id:'ant',name:'the antenna',label:'ANTENNA',x:511,y:-291,standY:22,secs:3}];
+const L4_PARTS=[{id:'tx',name:'the first power pack',label:'POWER PACK',x:204,y:-528,standY:20,secs:4},{id:'rx',name:'the second power pack',label:'POWER PACK',x:651,y:-461,standY:20,secs:3},{id:'ant',name:'the third power pack',label:'POWER PACK',x:600,y:-104,standY:18,secs:3}];   // (since v124 the three power packs the tower needs, Bryan's plan: "carry's three large items to their correct positions to power the radio tower"; until v123 the transmitter, the receiver and the antenna, carried home)
+const L4_SOCKETS=[{x:426,y:-330},{x:514,y:-348},{x:470,y:-376}];   // where they go: round the mast's foot
+const L4_QUEEN={x:470,y:-666,hpK:.85,babies:3,babiesBig:6,roarBabies:2,roarBabiesBig:3};   // she comes up over the north edge; her young with her, more at each roar
+const L4_SLAUGHTER={hunters:6,perMan:1,killT:14,milDmg:3};   // the militia torn apart as the squad comes up: hunters out of the vent and up their track; any man still up after killT s goes down anyway
+const L4_PACKWAVE={every:28,n:2,nBig:3,max:4};   // while the packs are carried: her young out of the vent, every so often
 let L4=null,l4Run=null;   // the hill while it's built; the mission's run (from the first step inside to the report)
 const l4Done=()=>{try{const v=JSON.parse(localStorage.getItem(L4_KEY));return!!(v&&v.done);}catch(e){return false;}};   // (the HQ's roof: hqfloors.js)
 const l4Busy=()=>MAPID==='l4'&&!!L4&&!!L4.zip;   // going down the zip line: no orders (input.js)
@@ -348,8 +352,12 @@ function l4SummitLook(g,m){
   {const p=L4.parts.find(q=>q.id==='rx'),a=new T.Group();g.add(a);hBox(a,18,9,12,M2(0x5a5f62,{metalness:.5,roughness:.45}),p.x,7.5,p.y-3);hBox(a,16,6,.6,m.dark,p.x,8,p.y+3.2);
     for(let k=0;k<3;k++){const d=new T.Mesh(new T.CircleGeometry(1.2,10),k===1?m.amber:m.green);d.position.set(p.x-5+k*5,8.5,p.y+3.6);a.add(d);}hBox(a,1.2,6,1.2,m.steel,p.x+7,14,p.y-6);   // (its own whip on top)
     for(const s2 of[-1,1])hBox(a,.6,9.4,12.4,m.olive,p.x+s2*6,7.6,p.y-3);L4.partMesh.rx=a;}
-  {const p=L4.parts.find(q=>q.id==='ant'),a=new T.Group();g.add(a);const L=[[p.x-16,5,p.y,p.x+16,5,p.y,1.1]];for(let k=0;k<7;k++){const x=p.x-14+k*4.6,hw=6.5-k*.55;L.push([x,5,p.y-hw,x,5,p.y+hw,.5]);}
-    a.add(l4Beams(L,m.steel));hBox(a,4,3,4,m.dark,p.x-17,4,p.y);L4.partMesh.ant=a;}
+  {const p=L4.parts.find(q=>q.id==='ant'),a=new T.Group();g.add(a);hBox(a,16,9,12,M2(0x3c4248,{metalness:.5,roughness:.45}),p.x,4.5,p.y);hBox(a,16.4,1.6,12.4,M2(0xd8b030),p.x,6,p.y);   // (a power pack by the bunker's sandbags)
+    for(const s2 of[-1,1])hBox(a,1,2,6,m.dark,p.x+s2*8.4,9,p.y);L4.partMesh.ant=a;}
+  // the sockets round the mast's foot: dark housings with a yellow ring, a pack's lights when one's in
+  L4.sockets=L4_SOCKETS.map(S=>{const a=new T.Group();g.add(a);hBox(a,18,2,14,m.dark,S.x,1,S.y);const r=new T.Mesh(new T.RingGeometry(9,10.4,24),new T.MeshBasicMaterial({color:0xd8b030,toneMapped:false,side:T.DoubleSide}));r.rotation.x=-Math.PI/2;r.position.set(S.x,2.2,S.y);a.add(r);
+    const pk=new T.Group();a.add(pk);hBox(pk,16,9,12,M2(0x3c4248,{metalness:.5,roughness:.45}),S.x,6.5,S.y);hBox(pk,16.4,1.6,12.4,M2(0xd8b030),S.x,8,S.y);const lt=new T.Mesh(new T.BoxGeometry(2,1,1),new T.MeshBasicMaterial({color:0x37e08a,toneMapped:false}));lt.position.set(S.x,11.6,S.y+6.4);pk.add(lt);pk.visible=false;
+    return Object.assign({},S,{pack:null,mesh:pk,ring:r});});
   // the bunker: the lift's call panel, the car's floor
   hBox(g,4,4,1.2,m.dark,486,9,-139);L4.liftLight2=new T.Mesh(new T.BoxGeometry(1,1,.8),m.red.clone());L4.liftLight2.position.set(486,10,-138.2);g.add(L4.liftLight2);
   {const c=L4_CAR.SU;hBox(g,c.x1-c.x0,.4,c.y1-c.y0,m.dark,(c.x0+c.x1)/2,.2,(c.y0+c.y1)/2);}
@@ -397,9 +405,9 @@ function spawnHill(summitClear){
   L4.mil=[];L4.brood=[];
   const big=players.filter(p=>alive(p)&&!p.offMap).length>5;
   if(!summitClear){
-    const G=(id,x,y,ang,zone,o={})=>{const u=hostile(id,x,y,Object.assign({ang,zone,jumpy:false,dmgIn:L4E.dmgIn,helm:true,l4:true},o));L4.mil.push(u);return u;};
+    const G=(id,x,y,ang,zone,o={})=>{const u=hostile(id,x,y,Object.assign({ang,zone,jumpy:false,dmgIn:L4_SLAUGHTER.milDmg,helm:true,l4:true,doomed:true},o));L4.mil.push(u);return u;};   // (doomed since v124: they never notice the squad, and the brood tears through them: below)
     G('S1',L4_MAST.x,L4_MAST.y,-Math.PI/2,null,{name:'Sniper',post:true,elev:L4_MAST.elev,weapon:'sniper',eye:{r:620,cone:.75}});   // up the mast, watching their track
-    {const u=mgGunner('M1',630,-650);Object.assign(u,{ang:-Math.PI/2,dmgIn:L4E.dmgIn,helm:true,l4:true,jumpy:false});L4.mil.push(u);}   // over their track up the north side
+    {const u=mgGunner('M1',630,-650);Object.assign(u,{ang:-Math.PI/2,dmgIn:L4_SLAUGHTER.milDmg,helm:true,l4:true,jumpy:false,doomed:true});L4.mil.push(u);}   // over their track up the north side
     G('R1',318,-526,-Math.PI/2,{x0:278,y0:-528,x1:346,y1:-466},{radio:true});   // the radio man at his desk (his back to the doorways)
     G('R2',222,-496,Math.PI/2,{x0:186,y0:-528,x1:262,y1:-466});                 // the equipment room, watching the front door
     G('C1',602,-468,0,{x0:560,y0:-500,x1:800,y1:-420});G('C2',690,-468,Math.PI,{x0:560,y0:-500,x1:800,y1:-420});   // by their containers, talking over the receiver they packed
@@ -427,6 +435,7 @@ function l4Acts(){
   ACTS.push({id:'l4-cams',map:'l4',floor:'PL',x:400,y:446,r:14,standY:10,secs:3,label:'WATCH THE CAMERAS',avail:()=>on()&&!L4.cams,act:u=>l4Cams(u)});
   for(const k of[0,1]){const o=L4.objs.find(q=>q.bonus===k);ACTS.push({id:'l4-bonus'+k,map:'l4',floor:'PL',x:o.x+o.w/2,y:o.y+o.h/2,r:14,standY:20,secs:2,label:k?'TAKE HEAVY MG':'TAKE M203',avail:()=>on()&&!L4.bonus[k],act:u=>l4Bonus(u,k)});}
   for(const p of L4.parts){const a={id:'l4-'+p.id,map:'l4',floor:'SU',part:p,x:p.x,y:p.y,r:14,standY:p.standY,secs:p.secs,label:'TAKE '+p.label,avail:()=>on()&&!p.holder&&!p.gone,act:u=>takePart(u,p)};p.act=a;ACTS.push(a);}
+  ACTS.push({id:'l4-power',map:'l4',floor:'SU',x:470,y:-298,r:14,standY:14,secs:3,label:'POWER THE TOWER ON',avail:()=>on()&&!!L4.packed&&!L4.towerOn,act:u=>l4TowerOn(u)});   // (once the three packs are in: below)
   ACTS.push({id:'l4-log',map:'l4',floor:'SU',x:L4_INTEL.x,y:L4_INTEL.y,r:12,label:'RADIO LOG',pickup:true,avail:()=>on()&&!L4.intel,act:u=>{L4.intel=true;if(L4.logMesh)L4.logMesh.visible=false;callout(u,'Got the radio log',C.good);
     banner('The radio log: their schedule, and where their next shipments come from. Intel: where the next mission is.',3400);updateObjUI();}});
 }
@@ -467,15 +476,14 @@ function takePart(u,p){
   if(u.cargo){banner(`${u.name} is already carrying ${u.cargo.name}.`,2000);return;}
   p.holder=u;u.cargo=p;const g=L4.partMesh&&L4.partMesh[p.id];if(g)g.visible=false;
   cargoMesh(u,p);if(typeof playSample==='function')playSample('gear',u.x,u.y,.7);
-  callout(u,'Got '+p.name.replace('the ','the '),C.good);
-  const k=L4.parts.filter(q=>q.holder).length;banner(k>=3?'All three parts. Everyone to the zip line on the south edge.':`${u.name} has ${p.name} (${k} of 3). He moves slowly and can't shoot while he carries it.`,3000);
+  callout(u,'Got a power pack',C.good);
+  banner(`${u.name} has a power pack. Carry it to a socket at the mast's foot: he's slow and can't shoot while he carries it.`,3000);
   updateObjUI();hud();
 }
 function cargoMesh(u,p){
   if(!u.m||!u.m.g)return;if(u.cargoM){u.cargoM.parent&&u.cargoM.parent.remove(u.cargoM);u.cargoM=null;}
-  const g=new T.Group(),mt=M2(p.id==='rx'?0x5a5f62:0x6c7074,{metalness:.5});
-  if(p.id==='ant'){const L=[[0,-7,0,0,7,0,.6]];for(let k=0;k<5;k++){const y=-5.5+k*2.75,hw=3.2-k*.3;L.push([0,y,-hw,0,y,hw,.3]);}const b=l4Beams(L,L4.mat.steel);b.rotation.x=.5;g.add(b);}   // (the yagi strapped across his back)
-  else{const b=new T.Mesh(new T.BoxGeometry(5,7,p.id==='rx'?6:8),mt);g.add(b);}
+  const g=new T.Group(),mt=M2(0x3c4248,{metalness:.5});
+  {const b=new T.Mesh(new T.BoxGeometry(5.5,8,8),mt);g.add(b);const y=new T.Mesh(new T.BoxGeometry(5.7,1.2,8.2),M2(0xd8b030));y.position.y=1.5;g.add(y);}   // (a power pack strapped on his back)
   g.position.set(-3.6,10.5,0);u.m.g.add(g);u.cargoM=g;
 }
 function dropCargo(u){   // (damage() when he goes down; Put down)
@@ -611,13 +619,117 @@ function l4CrawlerTick(dt){
     const p=players.filter(p=>alive(p)&&l4FloorOf(p.x,p.y)==='ST').sort((a,b)=>hyp(a.x-c.x,a.y-c.y)-hyp(b.x-c.x,b.y-c.y))[0];if(p)callout(p,'Big one! Up ahead!',C.bad);}
 }
 
-/* ---------- the summit taken: a checkpoint ---------- */
-function l4SummitTick(){
-  if(L4.clear||!L4.mil.length&&!L4.clearSaved)return;
-  const live=enemies.some(e=>e.mon&&!e.dead&&!e.dormant&&l4FloorOf(e.x,e.y)==='SU');
-  if(L4.mil.every(beaten)&&!live&&simT-lastNoiseT>3){
-    L4.clear=true;addZones(L4_REST,L4.groups.SU);bigText('Checkpoint','clear');banner('The summit is clear. A medic station and an ammo drop are by the mast.',3200);
-    if(typeof chatSecured==='function')chatSecured();saveGame('summit');updateObjUI();}
+/* ---------- the summit (since v124, Bryan's plan: "the top floor initial shows other troops being wiped out by the monsters. The
+   team fights the monsters and carry's three large items to their correct positions to power the radio tower, all while under
+   attack... once they place the packs in the right spot they get a checkpoint resupply and medic station. They then power the
+   tower and the queen appears with its babies"; she dies here: "I'm leaning to her dying here so we can introduce more
+   enemies"). The first time one of ours is on the summit, the brood comes out of the vent and up their track and tears into
+   their men (doomed: they never notice the squad; L4_SLAUGHTER), the camera turned to it a moment; then it's the squad's fight.
+   Three power packs (L4.parts: the radio building, by their containers, by the bunker's sandbags) carried to the sockets round
+   the mast's foot (L4.sockets: a carrier who stands in one 1.2 s sets his pack in), her young out of the vent now and then while
+   they're at it (L4_PACKWAVE). All three in: a checkpoint (a medic station, an ammo drop, the save 'summit') and POWER THE
+   TOWER ON at the mast's foot; the tower lights up and the Queen comes up over the north edge with her young (L4_QUEEN, her
+   fight queenThink, more young at two roars); dead, the zip line home. ---------- */
+const l4OnSU=p=>alive(p)&&!p.away&&l4FloorOf(p.x,p.y)==='SU';
+function l4SummitTick(dt){
+  if(!L4)return;
+  if(!L4.slaughter&&!L4.packed&&players.some(l4OnSU))l4Slaughter();
+  const S=L4.slaughter;
+  if(S&&!S.done){
+    if(simT-S.t0>L4_SLAUGHTER.killT)for(const e of L4.mil)if(!e.dead){e.hp=0;e.dead=true;e.path=[];if(typeof sfxScream==='function')sfxScream(e,.8);paintDecal({k:'blood',x:e.x,y:e.y,r:Math.random()});}
+    if(L4.mil.every(e=>e.dead)){S.done=true;const p=players.filter(l4OnSU)[0];if(p)callout(p,'They\u2019re all dead. It\u2019s us now.',C.warn);
+      banner('Their men are dead. The packs: one in the radio building, one by their containers, one by the bunker. Get them to the sockets round the mast.',4200);updateObjUI();}
+  }
+  // the carriers at the sockets
+  for(const u of players){if(!u.cargo||!alive(u)||l4FloorOf(u.x,u.y)!=='SU'){if(u)u.placeT=0;continue;}
+    const s=L4.sockets.filter(q=>!q.pack).sort((a,b)=>hyp(a.x-u.x,a.y-u.y)-hyp(b.x-u.x,b.y-u.y))[0];
+    if(s&&hyp(s.x-u.x,s.y-u.y)<24&&!u.path.length){u.placeT=(u.placeT||0)+dt;if(u.placeT>=1.2){u.placeT=0;l4PlacePack(u,s);}}else u.placeT=0;}
+  // her young out of the vent while the packs are carried
+  if(S&&S.done&&!L4.packed){const W=L4.packWave||(L4.packWave={t:simT+L4_PACKWAVE.every*.6,n:0});
+    if(simT>W.t&&W.n<L4_PACKWAVE.max){W.t=simT+L4_PACKWAVE.every;W.n++;const big=players.filter(p=>!p.dead).length>5;
+      for(let k=0;k<(big?L4_PACKWAVE.nBig:L4_PACKWAVE.n);k++){const a=Math.random()*6.28,q=openSpot(L4_HATCH.x+Math.cos(a)*18,L4_HATCH.y+Math.sin(a)*18,[])||{x:L4_HATCH.x+20,y:L4_HATCH.y};hound(q.x,q.y,{kind:'young',ang:a,againT:simT+.8+Math.random()*.6});}
+      sfxMon('mon_horde',L4_HATCH,.9,1);if(L4.hatch){L4.hatch.rotation.z=1.1;L4.hatch.position.y=9;}const p=players.filter(l4OnSU).sort((a,b)=>hyp(a.x-L4_HATCH.x,a.y-L4_HATCH.y)-hyp(b.x-L4_HATCH.x,b.y-L4_HATCH.y))[0];if(p)callout(p,'More out of the vent!',C.bad);}}
+  if(L4.queen&&!L4.queenDead&&L4.queen.dead)queenDied(L4.queen);
+}
+function l4Slaughter(){
+  const men=players.filter(p=>!p.dead).length,n=L4_SLAUGHTER.hunters+L4_SLAUGHTER.perMan*Math.max(0,men-4);
+  L4.slaughter={t0:simT,done:!L4.mil.some(e=>!e.dead)};
+  for(const e of L4.mil){if(e.dead)continue;e.alerted=true;e.aware=1;e.post=e.post&&!e.elev?false:e.post;}
+  const at=[L4_HATCH,{x:640,y:-640},{x:430,y:-600}];
+  for(let k=0;k<n;k++){const A=at[k%at.length],a=Math.random()*6.28,q=openSpot(A.x+Math.cos(a)*20,A.y+Math.sin(a)*20,[])||{x:A.x,y:A.y+20};hound(q.x,q.y,{brawl:true,ang:a,againT:simT+.3+Math.random()*.8});}
+  sfxMon('mon_horde',L4_HATCH,1.1,.95);if(L4.hatch){L4.hatch.rotation.z=1.1;L4.hatch.position.y=9;}shake(.3);
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:520,z:-360,zoom:1.7},t:0,dur:1.4};
+  const p=players.filter(l4OnSU)[0];if(p)setTimeout(()=>{if(state==='play'&&MAPID==='l4')callout(p,'Something\u2019s tearing into them!',C.bad);},600);
+  banner('Up top their men are being torn apart: the brood\u2019s out of the vent and coming up their track.',4200);
+}
+function l4PlacePack(u,s){
+  const p=u.cargo;if(!p)return;u.cargo=null;if(u.cargoM){if(u.cargoM.parent)u.cargoM.parent.remove(u.cargoM);u.cargoM=null;}
+  p.holder=null;p.placed=true;p.gone=true;s.pack=p.id;s.mesh.visible=true;s.ring.material.color.setHex(0x37e08a);
+  if(typeof playSample==='function'){playSample('steel',s.x,s.y,.6,1.1);setTimeout(()=>{if(MAPID==='l4')playSample('scan',s.x,s.y,.45,1.2);},300);}
+  const k=L4.sockets.filter(q=>q.pack).length;callout(u,'Pack in',C.good);
+  if(k>=3)l4Packed();else banner(`A power pack in (${k} of 3).`,2200);
+  updateObjUI();hud();
+}
+function l4Packed(quiet){
+  L4.packed=true;addZones(L4_REST,L4.groups.SU);
+  if(quiet)return;bigText('Checkpoint','clear');banner('All three packs in. A medic station and an ammo drop by the mast. POWER THE TOWER ON at its foot when you\u2019re ready.',4200);
+  if(typeof chatSecured==='function')chatSecured();saveGame('summit');
+}
+function l4TowerOn(u){
+  if(L4.towerOn)return;L4.towerOn=true;l4TowerLights();
+  if(typeof playSample==='function'){playSample('steel',L4_MAST.x,L4_MAST.y,.8,.7);setTimeout(()=>{if(MAPID==='l4')playSample('scan',L4_MAST.x,L4_MAST.y,.7,.6);},600);}
+  shake(.25);callout(u,'It\u2019s live!',C.good);banner('The old radio tower is live. The Headquarters can talk to the outside again...',3200);updateObjUI();
+  setTimeout(()=>{if(state==='play'&&MAPID==='l4'&&L4&&!L4.queen)queenArrive();},3200);
+}
+function l4TowerLights(){   // the beacon steady and bright, the dishes lit, a glow up the mast
+  if(L4.beacon){L4.beacon.material.color.setHex(0xff5a3a);L4.beacon.scale.setScalar(1.6);}
+  if(!L4.towerGlow){const g=new T.Group(),mt=new T.MeshBasicMaterial({color:0x8fe6f2,toneMapped:false});
+    for(const y of[28,56,84]){const b=new T.Mesh(new T.SphereGeometry(1.1,8,6),mt);b.position.set(L4_MAST.x+6,y,L4_MAST.y+6);g.add(b);}L4.groups.SU.add(g);L4.towerGlow=g;}
+}
+function queenArrive(){
+  const men=players.filter(p=>!p.dead).length,big=men>5,hp=Math.round((BOSS.hp+BOSS.perMan*men)*L4_QUEEN.hpK);
+  const u=mk('E','E','QN','The Queen',L4_QUEEN.x,L4_QUEEN.y,Math.PI/2);
+  Object.assign(u,{mon:'boss',queen:true,dog:true,hp,maxHp:hp,alerted:true,aware:1,seen:true,grp:null,ms:'roar',mt0:simT,slamCdT:simT+4,swipeCdT:0,stepT:0,big:true,qPhase:0});
+  makeQueen(u);enemies.push(u);L4.queen=u;sfxMon('boss_roar',u,1.6,.9);shake(.9);
+  for(let k=0;k<(big?L4_QUEEN.babiesBig:L4_QUEEN.babies);k++){const a=Math.PI/2+(k-2)*.5,q=openSpot(u.x+Math.cos(a)*40,u.y+Math.sin(a)*40+20,[])||{x:u.x,y:u.y+40};hound(q.x,q.y,{kind:'young',ang:Math.PI/2,againT:simT+1.6+Math.random()});}
+  if(typeof startContact==='function')startContact('',false,null,true);
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:L4_QUEEN.x,z:L4_QUEEN.y+120,zoom:1.9},t:0,dur:1.3};
+  bigText('The Queen','inbound');const p=players.filter(l4OnSU).sort((a,b)=>hyp(a.x-u.x,a.y-u.y)-hyp(b.x-u.x,b.y-u.y))[0];if(p)callout(p,'Over the edge! It\u2019s her! The big one from the tunnel!',C.bad);
+  updateObjUI();
+}
+function makeQueen(u){   // her body: the Brood Mother's, coming up over the north edge (the trail behind her down the drop)
+  const g=new T.Group(),ring=monRing(u,g,2.4);scene.add(g);const pool=crPool(scene,'mother');u.m={g,ring,spot:null,pool,slot:crSlotFor(pool,u)};
+  const pts=[{x:u.x,y:u.y}];for(let k=1;k<160;k++)pts.push({x:u.x+Math.sin(k*.05)*6,y:u.y-k*2});crTrailInit(u,MOTHER,pts);
+}
+function queenThink(u,dt){   // the Brood Mother's way of fighting (fortress.js's bossThink) without her hall
+  if(u.ms==='roar'){u.path=[];if(simT-u.mt0>2.4)u.ms='walk';return;}
+  const tg=monPrey(u,2000);if(!tg){u.path=[];return;}monSaw(tg);
+  const dx=tg.x-u.x,dy=tg.y-u.y,d=hyp(dx,dy)||1;
+  if(u.ms==='slam'){u.path=[];
+    if(simT-u.mt0>=BOSS.slamT){const s=u.slamAt;sfxMon('boss_slam',s,1.3,1);shake(1);booms.push({x:s.x,y:s.y,t:0});paintDecal({k:'scorch',x:s.x,y:s.y,r:Math.random()});
+      for(const p of players){if(!alive(p))continue;const dd=hyp(p.x-s.x,p.y-s.y);if(dd<BOSS.slamR)monHit(u,p,BOSS.slamDmg*(1-dd/(BOSS.slamR*1.2)),.9);}
+      u.ms='walk';u.slamCdT=simT+BOSS.slamCd;u.slamDownT=simT;}
+    return;}
+  if(u.ms==='swipe'){u.path=[];if(simT-u.mt0>=.5){for(const p of players){if(!alive(p))continue;const dd=hyp(p.x-u.x,p.y-u.y);let da=Math.atan2(p.y-u.y,p.x-u.x)-u.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(dd<BOSS.swipeR+10&&Math.abs(da)<1.3)monHit(u,p,BOSS.swipeDmg,.6);}
+    u.ms='walk';u.swipeCdT=simT+BOSS.swipeCd;}return;}
+  u.ang=turn(u.ang,Math.atan2(dy,dx),dt*1.6);
+  if(d<BOSS.swipeR&&simT>u.swipeCdT){u.ms='swipe';u.mt0=simT;sfxMon('boss_hurt',u,.9,1.15);return;}
+  if(d<230&&simT>u.slamCdT&&los(u.x,u.y,tg.x,tg.y)){u.ms='slam';u.mt0=simT;u.slamAt={x:tg.x,y:tg.y};sfxMon('boss_roar',u,.8,1.25);return;}
+  if(u.path.length&&simT>u.stepT){u.stepT=simT+.75;sfxMon('boss_step',u,.9);shake(.15);}
+  if(simT>(u.repath||0)){u.repath=simT+.6;const p=findPath(u.x,u.y,tg.x,tg.y,FOOT);if(p)u.path=p;}
+}
+function queenHurt(u){   // two roars, at two thirds and a third: more of her young out of the vent
+  const k=u.hp/u.maxHp,ph=k<.33?2:k<.66?1:0;if(ph<=u.qPhase)return;u.qPhase=ph;
+  u.ms='roar';u.mt0=simT;u.path=[];sfxMon('boss_roar',u,1.5,.95);shake(.7);
+  const big=players.filter(p=>!p.dead).length>5;
+  for(let k2=0;k2<(big?L4_QUEEN.roarBabiesBig:L4_QUEEN.roarBabies);k2++){const a=Math.random()*6.28,q=openSpot(L4_HATCH.x+Math.cos(a)*18,L4_HATCH.y+Math.sin(a)*18,[])||{x:L4_HATCH.x+20,y:L4_HATCH.y};hound(q.x,q.y,{kind:'young',ang:a,againT:simT+1+Math.random()*.6});}
+  if(L4.hatch){L4.hatch.rotation.z=1.1;L4.hatch.position.y=9;}sfxMon('mon_horde',L4_HATCH,.9,1);
+}
+function queenDied(u){
+  if(L4.queenDead)return;L4.queenDead=true;if(l4Run)l4Run.queen=true;
+  bigText('The Queen is dead','clear');shake(.9);
+  setTimeout(()=>{if(state==='play'&&MAPID==='l4')banner('The tower\u2019s live and the Queen is dead. Everyone to the zip line on the south edge.',4200);},1800);
+  saveGame('summit',true);updateObjUI();
 }
 
 /* ---------- the gather areas (road.js's roadGather): out by the service door; down the zip line ---------- */
@@ -626,8 +738,8 @@ function l4Gather(){
   if(!L4||state!=='play')return null;
   const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&!L4.ride&&need.every(p=>inZone(p,z)),why=down?'CARRY THE WOUNDED':null;
   const out=[{key:'hillout',z:PL_OUT,ready:all(PL_OUT),go:'LEAVE THE HILL',title:'ROAD TUNNEL',at:{x:64,y:810},dir:Math.PI,need,why,fn:leaveHill,floor:'PL'}];   // (since v116 ways through with a marker: interior.js's exitGo)
-  if(!L4.zip){const k=l4PartsHeld(),inz=L4.parts.every(p=>p.holder&&inZone(p.holder,L4_ZIP));
-    out.push({key:'zip',z:L4_ZIP,ready:all(L4_ZIP)&&k===3&&inz,go:'GO DOWN THE ZIP LINE',title:'ZIP LINE',at:{x:500,y:58},dir:Math.PI/2,need,why:k<3?`PARTS ${k}/3`:why,fn:zipGo,floor:'SU'});}
+  if(!L4.zip){const k=L4.sockets?L4.sockets.filter(q=>q.pack).length:0,block=k<3?`POWER PACKS ${k}/3`:!L4.towerOn?'POWER THE TOWER ON':!L4.queenDead?'THE QUEEN':null;
+    out.push({key:'zip',z:L4_ZIP,ready:all(L4_ZIP)&&!block,go:'GO DOWN THE ZIP LINE',title:'ZIP LINE',at:{x:500,y:58},dir:Math.PI/2,need,why:block||why,fn:zipGo,floor:'SU'});}
   return out;
 }
 // back out into the road tunnel (the hill starts fresh next time)
@@ -668,14 +780,14 @@ function l4ZipTick(dt){
 function zipArrive(){
   fadeThen(()=>{
     const order=L4.zip?L4.zip.order:players.filter(alive);
-    const took=L4.parts.filter(p=>p.holder).length,bonus=L4.bonus.filter(Boolean).length,intel=L4.intel,finds=[L4.bonus[0]?'an M203':null,L4.bonus[1]?'a heavy machine gun':null].filter(Boolean);
-    l4Run=Object.assign(l4Run||{},{took,bonus,intel,finds,home:true});
+    const took=L4.sockets.filter(q=>q.pack).length,bonus=L4.bonus.filter(Boolean).length,intel=L4.intel,finds=[L4.bonus[0]?'an M203':null,L4.bonus[1]?'a heavy machine gun':null].filter(Boolean);
+    l4Run=Object.assign(l4Run||{},{took,bonus,intel,finds,home:true,tower:!!L4.towerOn,queen:!!L4.queenDead});
     hillOut();
     for(const p of players){p.elev=0;p.away=false;p.zipT=0;if(p.cargo){p.cargo=null;if(p.cargoM&&p.cargoM.parent)p.cargoM.parent.remove(p.cargoM);p.cargoM=null;}}
     const taken=[];order.forEach((u,i)=>{const t=openSpot(1300-(i%4)*24,-300+Math.floor(i/4)*24,taken)||{x:1290,y:-280};taken.push(t);u.zipIn={t0:simT+.2+i*.4,to:t};u.x=L4_ANCHOR.x+60;u.y=L4_ANCHOR.y-70;u.elev=60;u.away=true;u.path=[];});
     for(const p of players)if(p.carriedBy&&order.includes(p.carriedBy)){p.x=p.carriedBy.x;p.y=p.carriedBy.y;}
     obj=Math.max(obj,9);
-    try{localStorage.setItem(L4_KEY,JSON.stringify({done:1,parts:['transmitter','receiver','antenna'],intel:intel?1:0,finds:[L4.bonus[0]?'m203':null,L4.bonus[1]?'hmg':null].filter(Boolean),when:Date.now()}));}catch(e){}
+    try{localStorage.setItem(L4_KEY,JSON.stringify({done:1,tower:1,queen:1,intel:intel?1:0,finds:[L4.bonus[0]?'m203':null,L4.bonus[1]?'hmg':null].filter(Boolean),when:Date.now()}));}catch(e){}
     zoom=2.4;yaw=0;tilt=.25;camT={x:1300,z:-300};camPan=null;clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
   });
@@ -727,10 +839,11 @@ function enterHill(opt){
     l4Acts();
     const live=players.filter(p=>!p.dead&&!p.gone&&!p.carriedBy);
     if(summit){
-      L4.clear=true;L4.clearSaved=true;addZones(L4_REST,L4.groups.SU);
-      const d=opt.l4||{};if(d.power)l4PowerOn();L4.intel=!!d.intel;if(L4.intel&&L4.logMesh)L4.logMesh.visible=false;(d.bonus||[]).forEach((b,k)=>{L4.bonus[k]=!!b;});l4Run.found=L4.bonus.slice();
+      L4.clear=true;L4.clearSaved=true;
+      const d=opt.l4||{};L4.slaughter={t0:simT,done:true};
+      for(const s of L4.sockets){s.pack='old';s.mesh.visible=true;s.ring.material.color.setHex(0x37e08a);}for(const p of L4.parts){p.placed=true;p.gone=true;const g=L4.partMesh&&L4.partMesh[p.id];if(g)g.visible=false;}
+      l4Packed(true);if(d.towerOn||d.queenDead){L4.towerOn=true;l4TowerLights();}if(d.queenDead){L4.queenDead=true;l4Run.queen=true;}if(d.power)l4PowerOn();L4.intel=!!d.intel;if(L4.intel&&L4.logMesh)L4.logMesh.visible=false;(d.bonus||[]).forEach((b,k)=>{L4.bonus[k]=!!b;});l4Run.found=L4.bonus.slice();
       const taken=[];live.forEach((p,i)=>{const t=openSpot(470+(i%4-1.5)*24,-400+Math.floor(i/4)*24,taken)||{x:470,y:-400};taken.push(t);p.x=t.x;p.y=t.y;p.ang=Math.PI/2;});
-      const carriers=live.filter(p=>!p.downed);(d.parts||[]).forEach((id,i)=>{id={amp:'rx',drum:'ant'}[id]||id;const p=L4.parts.find(q=>q.id===id),u=carriers[i];if(p&&u)takePartQuiet(u,p);});   // (a v99 save: the amplifier and the cable drum)
       setL4Floor('SU',{x:470,y:-380});
     }else{
       const sp=slotsIn(PL_IN,live.length);live.forEach((p,i)=>{const s=sp[i]||{x:85,y:700};p.x=s.x;p.y=s.y;p.ang=0;});
@@ -747,7 +860,7 @@ function enterHill(opt){
 function takePartQuiet(u,p){p.holder=u;u.cargo=p;const g=L4.partMesh&&L4.partMesh[p.id];if(g)g.visible=false;cargoMesh(u,p);}
 
 /* ---------- saving (save.js) ---------- */
-function l4Save(){if(!L4)return null;return{parts:L4.parts.filter(p=>p.holder).map(p=>p.id),bonus:L4.bonus.slice(),intel:L4.intel,power:L4.power,crawler:!!(l4Run&&l4Run.crawlerDead)};}
+function l4Save(){if(!L4)return null;return{parts:L4.parts.filter(p=>p.holder).map(p=>p.id),placed:L4.sockets?L4.sockets.filter(q=>q.pack).length:0,towerOn:!!L4.towerOn,queenDead:!!L4.queenDead,bonus:L4.bonus.slice(),intel:L4.intel,power:L4.power,crawler:!!(l4Run&&l4Run.crawlerDead)};}
 // a Continue from 'home': the big map with the road open, the squad on the bridge where the zip line comes down
 function homeContinue(){
   const taken=[];players.filter(p=>!p.dead&&!p.gone).forEach((p,i)=>{const t=openSpot(1300-(i%4)*24,-300+Math.floor(i/4)*24,taken)||{x:1290,y:-280};taken.push(t);p.x=t.x;p.y=t.y;p.path=[];p.ang=-Math.PI/2;});
@@ -758,7 +871,7 @@ function homeContinue(){
 function l4Tick(dt){
   if(MAPID!=='l4'||!L4){if(MAPID==='out'&&players.some(p=>p.zipIn))l4ZipInTick();return;}
   const hqRun=wave.phase==='hq'&&!!hq;if(!hqRun){stationTick(dt);patrolTick();}
-  useTick(dt);l4FloorTick();l4WaveTick();l4NestTick(dt);l4CrawlerTick(dt);l4SummitTick();l4ZipTick(dt);
+  useTick(dt);l4FloorTick();l4WaveTick();l4NestTick(dt);l4CrawlerTick(dt);l4SummitTick(dt);l4ZipTick(dt);
   if(simT<L4.heardT)for(const t of L4.heard)teamSawT[t]=simT;   // (the lift: they're heard until it's up and they're out)
   for(const u of players)if(u.cargo&&(u.dead||u.downed))dropCargo(u);
   if(L4.beacon)L4.beacon.visible=(simT%1.6)<.8;
@@ -777,20 +890,22 @@ function l4Hint(){
   if(curFloor==='PL'){
     if(!L4.been.SU)return`The plant: the tunnel's old control rooms. Up to the summit from the lower station (east): the STAIRS are quiet (something lives in them); the LIFT ${L4.power?'has power. It\'s loud: the guards up top will hear it coming and wait at the bunker, and it wakes the brood in the fan hall.':'needs the generator (north-east). It\'s loud: the guards up top will hear it coming, and it wakes the brood nesting in the fan hall.'}${L4.cams?'':' The control room\'s cameras show the summit.'}${L4.bonus.every(Boolean)?'':' Bonus finds: an M203 in the staff room, a heavy machine gun in the store.'}`;
     return'The plant. The stairs and the lift in the lower station go back up to the summit. The service door (west) takes you back out to the road tunnel.';}
-  const k=l4PartsHeld();
-  if(k>=3)return'All three parts: tap the zip line\'s arrows on the south edge and everyone goes, the carriers with them. Anyone down has to be carried.';
-  const left=L4.parts.filter(p=>!p.holder).map(p=>p.name);
-  return`The summit, the old radio tower. Take ${left.join(', ').replace(/, ([^,]*)$/,' and $1')}: the transmitter is in the radio building (north-west), the receiver packed by their containers (east), the antenna taken down at the mast's foot. A carrier is slow and can't shoot.${L4.clear?'':' A sniper up the mast, a machine gun over their track (north).'} The zip line on the south edge is the way home.`;
+  if(L4.queenDead)return'The tower\u2019s live and the Queen is dead. Tap the zip line\u2019s arrows on the south edge and everyone goes. Anyone down has to be carried.';
+  if(L4.queen)return'The Queen: stay out of the scorch where she rears to slam, keep moving, and keep her young off the men shooting her.';
+  if(L4.towerOn)return'The tower\u2019s live. Something\u2019s coming up over the north edge.';
+  if(L4.packed)return'All three packs in. The medic station and the ammo drop are by the mast. POWER THE TOWER ON at its foot when you\u2019re ready: it will bring something.';
+  const k=L4.sockets?L4.sockets.filter(q=>q.pack).length:0,left=L4.parts.filter(p=>!p.holder&&!p.placed).length;
+  return`The summit, the old radio tower. Three power packs (${k} in): ${left?'one in the radio building (north-west), one by their containers (east), one by the bunker\u2019s sandbags (south): ':''}carry them to the sockets round the mast\u2019s foot. A carrier is slow and can\u2019t shoot: keep the others round him. Her young keep coming out of the vent by the bunker.`;
 }
 function l4ObjUI(el){
-  const k=l4PartsHeld(),up=!!(L4&&L4.been.SU);
+  const up=!!(L4&&L4.been.SU),k=L4&&L4.sockets?L4.sockets.filter(q=>q.pack).length:0;
   el.querySelector('b').textContent='Level 4 · The Old Radio Tower';
-  el.querySelector('span').textContent=!L4?'':L4.zip?'Down the zip line':k>=3?'To the zip line (the south edge)':up?`Take the parts (${k}/3)`:'Up to the summit: the stairs or the lift';
-  const items=[['Up to the summit (the stairs or the lift)',up],...L4.parts.map(p=>['Take '+p.name,!!p.holder]),['Down the zip line to the bridge',!!L4.zip]];
+  el.querySelector('span').textContent=!L4?'':L4.zip?'Down the zip line':L4.queenDead?'To the zip line (the south edge)':L4.queen?'Kill the Queen':L4.towerOn?'Something\u2019s coming':L4.packed?'Power the tower on':up?`Power packs to the mast (${k}/3)`:'Up to the summit: the stairs or the lift';
+  const items=[['Up to the summit (the stairs or the lift)',up],[`Three power packs to the mast (${k}/3)`,k>=3],['Power the tower on',!!L4.towerOn],['Kill the Queen',!!L4.queenDead],['Down the zip line, back to the Headquarters',!!L4.zip]];
   el.querySelector('ol').innerHTML=items.map(([t,d])=>`<li class="${d?'done':''}">${t}</li>`).join('')+`<li class="${L4.intel?'done':''}">Bonus: the radio log (intel)</li><li class="${L4.bonus[0]?'done':''}">Bonus: the M203 (the staff room)</li><li class="${L4.bonus[1]?'done':''}">Bonus: the heavy machine gun (the store)</li>`;
   el.hidden=state!=='play';
 }
-function l4AfterHint(){return'The parts are back from the old radio tower. Back to the Headquarters: over the bridge, and the arrows at the drawbridge take you in.';}
+function l4AfterHint(){return'The old radio tower is live. Back to the Headquarters: over the bridge, and the arrows at the drawbridge take you in.';}
 
 /* ---------- drawn on the overlay ---------- */
 function drawL4(now){
@@ -799,7 +914,10 @@ function drawL4(now){
   if(curFloor==='PL'){for(const k of['staff','ctrl','gen','store','fan','stn']){const q=PL_ROOMS[k];lb(q.name,(q.x0+q.x1)/2,q.y0+16,'rgba(200,210,220,.55)',9);}
     lb('SERVICE DOOR',85,846,'rgba(200,210,220,.55)',9);
     if(!L4.woke){const pulse=(Math.sin(now*2)+1)/2;lb('THE NEST',410,760,`rgba(214,160,255,${(.35+pulse*.3).toFixed(2)})`,9);}}
-  else if(curFloor==='SU'){lb('THE OLD RADIO TOWER',L4_MAST.x-60,L4_MAST.y+8,'#8fe6f2',10);lb('RADIO BUILDING',265,-446,'rgba(200,210,220,.6)',9);lb('BUNKER · LIFT',460,-118,'rgba(200,210,220,.6)',9);lb('HUT · STAIRS',165,-136,'rgba(200,210,220,.6)',9);}
+  else if(curFloor==='SU'){lb('THE OLD RADIO TOWER',L4_MAST.x-60,L4_MAST.y+8,'#8fe6f2',10);lb('RADIO BUILDING',265,-446,'rgba(200,210,220,.6)',9);lb('BUNKER · LIFT',460,-118,'rgba(200,210,220,.6)',9);lb('HUT · STAIRS',165,-136,'rgba(200,210,220,.6)',9);
+    if(L4.sockets&&!L4.packed){const pulse=(Math.sin(now*3)+1)/2,carrying=players.some(p=>p.cargo&&alive(p));
+      for(const s of L4.sockets){if(s.pack)continue;toSBack=false;gPath(s.x,s.y,14+(carrying?pulse*4:0));if(toSBack)continue;ox.strokeStyle=`rgba(216,176,48,${carrying?.6+pulse*.4:.45})`;ox.lineWidth=2;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);lb('SOCKET',s.x,s.y+14,'#ffcf4a',8);}}
+    for(const u of players)if(u.placeT>0&&alive(u)){gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+u.placeT/1.2*TAU);ox.strokeStyle='#37e08a';ox.lineWidth=2.4;ox.stroke();}}
   for(const u of players){if(!u.cargo||offFloor(u)||!alive(u))continue;toSBack=false;const[x,y]=toS(u.x,u.y,26);if(!toSBack)label(u.cargo.label,x,y,'#ffcf4a',8,700);}
   if(L4.ride){const R=L4.ride,z=L4_CAR[R.from];if(R.from===curFloor){const k=(simT-R.t)/L4_RIDE;toSBack=false;const[lx,ly]=toS((z.x0+z.x1)/2,(z.y0+z.y1)/2,30);if(!toSBack){label(R.to==='SU'?'GOING UP':'GOING DOWN',lx,ly,'#ffcf4a',10,700);bar(lx-20,ly+8,40,k,'#ffcf4a');}}}
   const W=L4.wave;if(W&&W.at&&curFloor==='SU'&&(L4.waveQ.length||simT<W.at)){const pulse=(Math.sin(now*8)+1)/2;toSBack=false;const[x,y]=toS(L4_HATCH.x,L4_HATCH.y,10);if(!toSBack){gPath(L4_HATCH.x,L4_HATCH.y,20+pulse*6);ox.strokeStyle=`rgba(214,160,255,${(.5+pulse*.4).toFixed(2)})`;ox.lineWidth=2.5;ox.stroke();label(simT<W.at?'SOMETHING\'S COMING UP':'THE SHAFT',x,y-16,'#e2b8ff',9,700);}}
