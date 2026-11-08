@@ -1083,3 +1083,24 @@ after we finalize the sequences"
 3. The grates: yes, the victims would be the freed men (no class, no tools, little XP), not the original four. Not built yet; it
    needs his call on the crew: since v110 the freed men stay at the HQ as its crew, so for the tunnel they'd come out with the four
    (eight go in), and the ones who die are gone from the crew too.
+
+## Bryan, after v119: the new plan for Level 4 (not built yet)
+
+"The mission isn't to get radio equipment it's to power on the radio tower. The conversation needs to follow that idea before
+hand. The two teams will have a challenge through the tunnels and sub basement, when they reach the top they will have the upgraded
+weapons that they could attach (if they picked them up) and the top floor initial shows other troops being wiped out by the
+monsters. The team fights the monsters and carry's three large items to their correct positions to power the radio tower, all
+while under attack and attacking the enemy monsters (the troops are dead) once they place the packs in the right spot they get a
+checkpoint resupply and medic station. They then power the tower and the queen appears with its babies. Since this will be
+challenging, the player doesn't need to lose the troops automatically in the tunnel and can save them. If the player loses two
+units, it stops. The queen will be hard so I don't want to underpower the player too much right at the start."
+
+The plan as I read it (my reply asks him to confirm the open points):
+1. The road talk: the goal is to power the old radio tower on (not to bring its parts back). Lines rewritten, then re-voiced.
+2. Eight go in, both teams (the freed men come out of the HQ for this).
+3. The tunnel and the plant below the hill: the grates (monsters break out and drag a man in, telegraphed and fightable, so he
+   can be saved); once two men are lost the grabs stop. The finds (M203, the heavy MG) as now.
+4. The summit: on arrival a short scene of the militia being torn apart by monsters; then no militia, only monsters.
+5. Three packs carried to their places (sockets by the mast) under attack; all three placed: a checkpoint (medic station, ammo
+   drop, save).
+6. Power the tower on: the Queen and her babies come; the fight.
