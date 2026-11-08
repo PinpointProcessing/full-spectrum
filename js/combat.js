@@ -789,18 +789,19 @@ const SIL={range:200,aim:.45,bonus:.2,open:90,wall:40,missOpen:70,missWall:30};
 const silenced=u=>!!u&&u.side==='P'&&u.weapon==='m4s'&&(u.sil??1)>0;   // the M4 SD while its silencer lasts (since v122; it was a special item too)
 /* The silencer is part of the M4 SD (Bryan, after v121: "Make sure the silencer is just part of the M4 weapon. The silencer wears
    down and shows a color, green then yellow then red then breaks. It can be shown in the gun menu. Spec ops have a longer
-   silencer life span... or maybe spec ops can only equip them (after they reach the HQ)"). Every burst and every silent shot
-   wears it by one: SIL_LIFE.base for anyone without a class, SIL_LIFE.specops for a Spec Ops; once a class is picked only a
+   silencer life span... or maybe spec ops can only equip them (after they reach the HQ)"). Every burst wears it by one and
+   every silent shot by SIL_SHOT (10, a Spec Ops' 5); its life: SIL_LIFE.base for anyone without a class, SIL_LIFE.specops for a Spec Ops; once a class is picked only a
    Spec Ops can take the M4 SD (equip.js's eqWeapons). Its colour on his card (cards.js's gunHTML): green, yellow, red, then
    BROKEN, and from then on his rifle's a plain loud M4 with the silencer gone from its muzzle (figure.js). A new one's fitted at
    a mission's start, at an ammo drop (hq.js) and back at the Headquarters (base.js). */
-const SIL_LIFE={base:40,specops:90};
+const SIL_LIFE={base:40,specops:90},SIL_SHOT={base:10,specops:5};   // (a silent shot, an aimed kill, wears it SIL_SHOT, a burst 1: Bryan, after v122, "10 for unclassed and non spec ops. 5 for spec ops")
+const silShot=u=>isCls(u,'specops')?SIL_SHOT.specops:SIL_SHOT.base;
 const silMax=u=>isCls(u,'specops')?SIL_LIFE.specops:SIL_LIFE.base;
 function silFit(u){if(u&&u.weapon==='m4s')u.sil=silMax(u);}
 const silFrac=u=>u&&u.weapon==='m4s'?clamp((u.sil??silMax(u))/silMax(u),0,1):0;
 const silCol=u=>{const f=silFrac(u);return f<=0?'x':f>.6?'g':f>.3?'y':'r';};
-function silWear(u){
-  if(!u||u.weapon!=='m4s')return;const before=silCol(u);u.sil=Math.max(0,(u.sil??silMax(u))-1);const now=silCol(u);
+function silWear(u,n=1){
+  if(!u||u.weapon!=='m4s')return;const before=silCol(u);u.sil=Math.max(0,(u.sil??silMax(u))-n);const now=silCol(u);
   if(now==='x'){callout(u,'Silencer’s gone',C.warn);if(u.m)figRefresh(u);}else if(now==='r'&&before!=='r')callout(u,'Silencer’s nearly done',C.warn);
   if(u.card)hud();
 }
@@ -828,7 +829,7 @@ function silentTick(){
   for(const[e,shots]of due){
     let killer=null,miss=null;
     for(const{u,L}of shots){
-      silWear(u);leanOut(u,L);   // (the silencer wears: above)
+      silWear(u,silShot(u));leanOut(u,L);   // (the silencer wears: a silent shot 10, a Spec Ops' 5, above)
       const hit=Math.random()<clamp(hitChance(u,e,L)+SIL.bonus,.05,.95),mx=hit?0:(Math.random()-.5)*18,my=hit?0:(Math.random()-.5)*18;
       tracers.push({x1:L.fx,y1:L.fy,x2:L.tx+mx,y2:L.ty+my,t:0,col:'214,228,238',q:true});lastNoiseT=simT;
       if(typeof sfxShot==='function')sfxShot(u,true);
