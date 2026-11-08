@@ -73,6 +73,7 @@ function endPtr(ev,cancel){
   ptr=null;hud();
 }
 function bindInput(){
+  for(const t of['gesturestart','gesturechange','gestureend','dblclick'])document.addEventListener(t,e=>e.preventDefault(),{passive:false});   // (Safari's own pinch and double-tap zoom: never the page's, CSS's touch-action too; the map's pinch is the game's, below)
   ov.addEventListener('pointerdown',ev=>{
     if(camHeld())return;   // (no panning, turning or zooming while the camera's locked on the walk east: road.js)
     camPan=null;   // touching the map stops any camera move in progress

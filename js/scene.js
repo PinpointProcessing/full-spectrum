@@ -42,6 +42,13 @@ function updateCamera(){
   camera.position.set(camT.x+Math.sin(yaw)*hd,dist*Math.sin(p),camT.z+Math.cos(yaw)*hd);
   camera.lookAt(camT.x,0,camT.z);camera.updateMatrixWorld();
 }
+// the zoom that frames a w by h piece of ground round the view's centre, for this screen's shape (the sequences' close shots:
+// zoom is against the whole map fitted, so a phone's narrow view needs about twice the zoom a wide screen does for the same shot;
+// Bryan, after v112: "The sequence makes the characters look really tiny and far away")
+function frameZoom(w,h,tl=0){
+  const vf=camera.fov*Math.PI/360,hf=Math.atan(Math.tan(vf)*camera.aspect),p=Math.max(PITCH_MIN,PITCH1-tl);
+  return clamp(dist0/Math.max(w/2/Math.tan(hf),h/2*Math.sin(p)/Math.tan(vf)),1,MAXZ);
+}
 function clampCam(){
   // Bryan: the view may go past the map's edge; the centre stays within CAM_OVER of the area that's open
   const over=MAPID==='in'?40:MAPID==='tun'?70:MAPID==='l4'?60:MAPID==='hq'&&HQ&&HQ.floors?80:CAM_OVER;   // inside, the view stays on the floor you're looking at
@@ -312,7 +319,7 @@ const lamps=[   // (front: the data center's front, dark once Level 2's power is
   {x:245,y:-424,h:24,c:0xffd9a8,i:2.6,d:260,front:1},          // the data center's doors
   {x:916,y:-560,h:44,c:0xc4d6ff,i:2.2,d:280,pole:1},   // the drawbridge
 ];
-let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null,meshObjs=null;const FLOOD_HEADS=[];   // (the floodlights' lamp material: darkFront)   // (meshObjs: set by buildWorld)
+let hemi,muzzle=[],boomL,jeepLight=null,moon,dinghy,tunnelRoof=null,meshObjs=null;const BEYOND_E=[];const FLOOD_HEADS=[];   // (the floodlights' lamp material: darkFront)   // (meshObjs: set by buildWorld)
 // Every light costs every pixel on screen (a phone feels it), so the street lamps share LAMP_POOL lights: each frame the lamps
 // nearest the middle of the view get them, the one at the edge of the set fading so nothing pops (lampLights in render)
 const LAMP_POOL=6;let lampPool=[];   // (the interior has its own pool and lights: interior.js swaps these)
@@ -339,8 +346,9 @@ function buildWorld(){
      list.forEach(([x,y],i)=>{o.position.set(x,.8,y);o.updateMatrix();m.setMatrixAt(i,o.matrix);});scene.add(m);};
    mk(0xcfe2ff,pts.filter(p=>!p[2]));mk(0xffb347,pts.filter(p=>p[2]));}
   // the ground beyond the map: four strips round it (not one big plane under it, so the moat stays bottomless)
-  {const om=new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}),E=2500;
-   for(const[x0,z0,x1,z1]of[[-E,TOP-E,W+E,TOP],[-E,H,W+E,H+E],[-E,TOP,0,H],[W,TOP,W+E,H]]){const m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),om);m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,-.3,(z0+z1)/2);scene.add(m);}}
+  {const om=new T.MeshStandardMaterial({color:0x1c1f22,roughness:1}),E=2500;BEYOND_E.length=0;
+   for(const[x0,z0,x1,z1]of[[-E,TOP-E,W,TOP],[W,TOP-E,W+E,TOP],[-E,H,W+E,H+E],[-E,TOP,0,H],[W,TOP,W+E,H]]){const east=x0>=W,m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),east?om.clone():om);m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,-.3,(z0+z1)/2);scene.add(m);
+     if(east){m.userData.box=[x0,z0,x1,z1];BEYOND_E.push(m);}}}   // (the two east of the map: road.js cuts the lake out of them once the road east is open, beyondCut; they covered its water till v113)
   // the dock: glossy black water running off the map's south-west corner, a wooden pier with bollards, and the dinghy the squad lands in (landing in state.js)
   const water=new T.Mesh(new T.PlaneGeometry(420,330),new T.MeshStandardMaterial({color:0x0a141b,roughness:.12,metalness:.7}));
   water.rotation.x=-Math.PI/2;water.position.set(175-210,.15,DOCK.quay+165);water.receiveShadow=true;scene.add(water);

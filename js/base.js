@@ -49,7 +49,7 @@ function startFetch(f){   // he goes out of the south door into the dark (fortre
   hqEnd={ph:'out',t:simT,done:montageStart,tied,lead,fetch:f,other,sci:[]};
   f.path=[...(findPath(f.x,f.y,HQ_DOOR.x,HQ_DOOR.y)||[]),{x:HQ_OUT.x,y:HQ_OUT.y}];f.lastOrder=simT;
   callout(f,'Bringing them in.',C.good);
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:500,z:880,zoom:2.6},t:0,dur:1.4};
+  camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:500,z:872,zoom:frameZoom(130,100,.12),yaw:0,tilt:.12},t:0,dur:1.4};   // (close on him: Bryan, after v112, "The sequence makes the characters look really tiny and far away")
 }
 // as they come in: the scientists to the middle of the hall, facing the squad, and the squad in an arc in front of them
 function walkToMid(E){
@@ -58,7 +58,7 @@ function walkToMid(E){
     s.path=[...s.path,...(findPath(HQ_DOOR.x,HQ_DOOR.y-10,t.x,t.y,FOOT)||[{x:t.x,y:t.y}])];s.hold={ang:Math.PI/2};});
   up.forEach((p,i)=>{const k=i?(i%2?1:-1)*Math.ceil(i/2):0,a=Math.PI/2+k*.4,t=openSpot(HQ_MID.x+Math.cos(a)*64,HQ_MID.y+10+Math.sin(a)*50,taken)||{x:p.x,y:p.y};taken.push(t);
     p.path=findPath(p.x,p.y,t.x,t.y)||[];p.lastOrder=simT;p.ret=null;});
-  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:HQ_MID.x,z:HQ_MID.y+90,zoom:2.1},t:0,dur:6};
+  camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:HQ_MID.x,z:HQ_MID.y+30,zoom:frameZoom(180,140,.16),yaw:0,tilt:.16},t:0,dur:6};   // (close on the group as they talk)
 }
 
 /* ---------- the montage ---------- */
@@ -80,7 +80,7 @@ function shotLair(){
   const W=workers(),L={x:500,y:212};setWork(ringAround(L.x,L.y,66,.12*Math.PI,.88*Math.PI,W,'kneel',58));
   const D=HQ.nest&&HQ.nest.userData.eggs;base.eggs=D?D.list.map((e,i)=>i).sort(()=>Math.random()-.5):[];base.eggN=base.eggs.length;
   base.work=[addLamp(500,250,2.4,300,0xe8eeff,false,46)];if(HQ.lights&&HQ.lights.hemi)HQ.lights.hemi.intensity=HQ.lights.hemi.userData.base=.45;   // (work lights brought in)
-  camShot(500,262,3.6,.18,.3);
+  camShot(500,262,frameZoom(150,130,.3),.18,.3);
 }
 // 2. a side room and the hall's wall: the resin scraped off, the slime rocks broken up and carried away
 function shotRooms(){
@@ -93,7 +93,7 @@ function shotRooms(){
     list.push(s);});
   setWork(list);base.fadeObjs=[HQ.nest&&HQ.nest.children.filter(c=>c!==(HQ.nest.userData.eggs&&HQ.nest.userData.eggs.mesh)),HQ.nest&&HQ.nest.userData.rocks].flat().filter(Boolean);
   base.work.push(addLamp(q.x0+110,q.y0+100,2.2,260,0xe8eeff,false,44));
-  camShot(240,520,2.8,-.32,.22);
+  camShot(236,500,frameZoom(200,170,.24),-.32,.24);
 }
 // 3. the hall: the lights coming back on one by one, the scientists at the old consoles, the squad hauling the debris out
 function shotHall(){
@@ -101,7 +101,7 @@ function shotHall(){
   sci.forEach((u,i)=>list.push([u,[452,532,410,592][i%4],[348,348,360,360][i%4],-Math.PI/2,'stand']));
   setWork(list);
   men.forEach((u,i)=>{const x=410+(i%4)*60,y=360+Math.floor(i/4)*120;u.x=x;u.y=y;u.work=null;u.path=findPath(x,y,470+(i%3)*30,840)||[];u.lastOrder=simT;});
-  for(const L of base.work||[])L.off=true;base.lit=0;base.litT=simT;camShot(500,640,1.9,0,.15);
+  for(const L of base.work||[])L.off=true;base.lit=0;base.litT=simT;camShot(500,520,frameZoom(270,250,.18),0,.18);base.zMin=frameZoom(360,320,.2);
 }
 // 4. done: the finished HQ, everyone about it
 function shotReveal(){
@@ -112,7 +112,7 @@ function shotReveal(){
   men.forEach((u,i)=>{if(i<spots.length&&men.length>4){const s=spots[i];list.push([u,s[0],s[1],s[2],s[3]]);return;}
     const k=men.length>4?i-spots.length:i,n=men.length>4?men.length-spots.length:men.length,a=-.12*Math.PI+1.24*Math.PI*(n>1?k/(n-1):.5),x=c.x+Math.cos(a)*62,y=c.y+Math.sin(a)*40;
     list.push([u,x,y,Math.atan2(c.y-y,c.x-x),null]);});
-  setWork(list);camShot(500,560,2.3,0,.2);
+  setWork(list);camShot(500,540,frameZoom(240,210,.2),0,.2);
 }
 const MONTAGE=[
   [0,()=>fadeTo(true)],
@@ -147,7 +147,7 @@ function baseTick(dt){   // (every tick: combat.js's update)
     while(b.eggN-b.eggs.length<want){D.mesh.setMatrixAt(b.eggs.pop(),m4);}D.mesh.instanceMatrix.needsUpdate=true;}}
   if(b.fadeObjs&&t>=5.2&&t<9.8)fadeOut(b.fadeObjs,1-Math.min(1,(t-5.6)/3));
   if(b.lit!=null&&t>=9.8&&t<14.2){const n=Math.min(HQ.lamps.length,Math.floor((simT-b.litT)/.35));while(b.lit<n)lampOn(HQ.lamps[b.lit++]);}
-  if(t>=14.8){zoom=Math.max(1.55,zoom-dt*.14);camT.z+=dt*5;}else camT.z+=dt*2.2;clampCam();updateCamera();   // (a slow drift through each shot; the last pulls back over the finished hall)
+  if(t>=14.8){zoom=Math.max(b.zMin||2.2,zoom-dt*.14);camT.z+=dt*5;}else camT.z+=dt*2.2;clampCam();updateCamera();   // (a slow drift through each shot; the last pulls back over the finished hall)
 }
 // pieces of the nest fading out (their own copies of the materials, so nothing else that shares one fades with them)
 function fadeOut(list,k){

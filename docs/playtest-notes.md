@@ -915,3 +915,28 @@ after killing the monster?"
 4. Default I took: no Level 3 report at the end of the clean-up from this start (no fight was played, so it would show
    nothing killed and hand out XP for it); a banner says to gather at the south door instead. After a real fight the
    report still comes.
+
+## Bryan, after v112 (the changes are in v113)
+
+"So the cards and hud look very zoomed in after the sequence." / "The lighthouse should on a landmass, not a rocky land. (It will
+be a level later on)" / "The rocks look weird around the tunnel." / "The bridge is just a flat road, it looks like it's floating.
+Can we draft some different bridge types? I'm thinking the south side of the bridge can be more of the warehouse level." / "The
+sequence makes the characters look really tiny and far away. It's not visually pleasing."
+
+1. The zoomed-in HUD: a phone zooms the whole page on a double tap, and tapping quickly through a conversation is one. The page
+   no longer zooms (pinch or double tap) anywhere but the map, which zooms the game's camera as before.
+2. The lighthouse stands on an island out in the lake now: grass over low earth cliffs, the tower inside a low stone wall, the
+   keeper's cottage, a boat shed and a jetty with a rowing boat, a few pines.
+3. The tunnel's hill is ground now instead of a pile of faceted rocks: a rocky bank at the water, grass and earth over it, pines,
+   a few stones, rising to a summit far off; over the tunnel's mouth it dips to a saddle where the centipedes come over, and either
+   side of the headwall it comes down into the water. The lake's west shore and the far shores are grassy banks.
+4. The sequences are framed close: sending a man for the scientists, the talk, each shot of the clean-up, the talk by the
+   drawbridge, the walk across (about 15° above the water, the squad big in the lower half, the lighthouse on the horizon; on a
+   phone the camera turns a little toward it so it stays in) and the centipedes going into the tunnel. The zoom is worked out for
+   the screen's shape, so a phone gets the same close shot as a wide screen.
+5. The bridge: found while drafting that there was no water near it at all. The dark ground that stands in for the world beyond
+   the old map lay over the lake and the bay at road height, so the deck sat on a flat floor; that's cut away now and the water
+   shows, darkened for night, with the lamps in it.
+6. Four bridge drafts, the south side as a dockyard like the warehouse level, in docs/bridge-drafts.md
+   (docs/drafts/bridges-overview.jpg): A concrete beams on piers, B a steel truss on concrete piers, C stone arches, D a steel
+   lift bridge with towers. Not in the game yet: Bryan picks.

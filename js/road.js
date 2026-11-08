@@ -34,12 +34,12 @@ const RBR={x0:1040,x1:1652,y0:-328,y1:-222};   // the bridge (its deck between t
 const HILL_X=1652;   // the hill's west face, the tunnel's mouth in it
 const PORTAL={x:HILL_X,y0:-320,y1:-230,top:24,arch:16,depth:78,wall:{y0:-372,y1:-178,h:50}};   // the tunnel's mouth (facing west; its sides stand top high and the arch rises arch more; dark inside for depth), the concrete headwall round it (x HILL_X to HILL_X+10)
 const TUN_ZONE={x0:1600,y0:-276,x1:1672,y1:-224};   // the gather area at the mouth: the right-hand lane and its footway (the bus is in the left-hand one)
-const WATER_Y=-10;   // the lake and the bay lie a metre below the deck and the shore
+let WATER_Y=-10;   // the lake and the bay lie a metre below the deck and the shore (a let: tools/drafts/bridges.js lowers it before the road is built, so the drafts show what holds a bridge up)
 const LAKE_W=[[1060,-470],[1100,-520],[1152,-560],[1242,-650],[1312,-780],[1352,-1000],[1345,-1450],[1300,-1720]];   // the lake's west shore, round the fortress's moat, south to north
 const BUS={x:1592,y:-318,w:108,h:28,east:true};   // a coach broken down in the left-hand lane, its nose in the tunnel's mouth
-const LIGHTHOUSE={x:1580,y:-1170};   // at the north end of the hill's shore, out on its rocks; its beam turning (rendered only: beyond the map's edge)
+const LIGHTHOUSE={x:1532,y:-1156};   // on its island out in the lake (terrain.js's ISLE; since v113, Bryan: "The lighthouse should on a landmass, not a rocky land. (It will be a level later on)"; it stood on rocks at the north end of the hill's shore); its beam turning (rendered only: beyond the map's edge)
 const ROAD_STOP={x:1470,y:-275};   // where the squad stops the first time out: on the bridge, the tunnel's mouth in sight
-const ROAD_LOOK={z:-445,zoom:1.45,tilt:.66};   // the camera while they cross the first time: locked, looking north up the lake (Bryan: "perpendicular to the bridge looking north, so the lighthouse is seen in the horizon")
+const ROAD_LOOK={z:-390,zoom:3.6,tilt:.565};   // the camera while they cross the first time: locked, looking north up the lake (Bryan: "perpendicular to the bridge looking north, so the lighthouse is seen in the horizon")
 const HQ_EXIT={x0:410,y0:858,x1:590,y1:922};   // the gather area in the Headquarters' entry hall, at its south door
 const ROAD_OUT={x:850,y:-392};   // where the squad comes to off the drawbridge, just south of its gather area
 const ROAD_TALK=["Alright, we need to get our radio communication up.",
@@ -98,6 +98,7 @@ function paintEast(g,q,S){
 function paintEastAlpha(a){   // (white: ground; black: water, where the ground is cut away)
   a.setTransform(1,0,0,1,-EXT.x0,-EXT.y0);a.fillStyle='#fff';a.fillRect(EXT.x0,EXT.y0,EXT.x1-EXT.x0,EXT.y1-EXT.y0);
   shorePath(a);a.fillStyle='#000';a.fill();
+  a.fillRect(HILL_X-8,EXT.y0,EXT.x1-HILL_X+8,EXT.y1-EXT.y0);a.fillStyle='#fff';a.fillRect(HILL_X-8,RD.y0-2,PORTAL.depth+12,RD.y1-RD.y0+4);   // (and under the hill, terrain.js's ground: all but the road into the tunnel's mouth)
 }
 // faceted rock, all in one mesh: [x, z, sx, sy, sz, turn, seed, height of its middle]; tint [hue, saturation, lightness] for another stone (tunnel.js's broken concrete)
 function rockMesh(list,tint){
@@ -113,32 +114,12 @@ function rockMesh(list,tint){
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.computeVertexNormals();
   const mesh=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:.04,flatShading:true}));mesh.castShadow=mesh.receiveShadow=true;return mesh;
 }
-function eastRocks(){
-  const r=rng(4711),L=[],J=a=>(r()-.5)*a,sd=()=>(r()*1e4)|0,P=PORTAL;
-  for(let z=-596;z<-404;z+=22){const sy=16+r()*14;L.push([1020+J(10),z+J(8),26+r()*10,sy,22+r()*8,r()*6,sd(),sy*.3]);}   // the rocks between the moat and the lake, north of the gate
-  for(let k=0;k<LAKE_W.length-3;k++){const a=LAKE_W[k],b=LAKE_W[k+1];for(let t=0;t<1;t+=.3){const sy=10+r()*12;L.push([a[0]+(b[0]-a[0])*t-10+J(8),a[1]+(b[1]-a[1])*t+J(8),22+r()*10,sy,18+r()*8,r()*6,sd(),WATER_Y+sy*.4]);}}   // and down to the lake's edge
+function eastRocks(){   // (drawn as natural stones since v113: terrain.js's stoneMesh)
+  const r=rng(4711),L=[],J=a=>(r()-.5)*a,sd=()=>(r()*1e4)|0;
+  // (the shore between the moat and the lake, north of the gate and on round: terrain.js's shoreBanks since v113)
   for(const[x,y]of[[1046,-404],[1046,-382],[1046,-210],[1030,-196],[1010,-196]]){const sy=5+r()*4;L.push([x+J(4),y+J(4),9+r()*6,sy,7+r()*5,r()*6,sd(),WATER_Y+sy*.6]);}   // stones at the near shore's water line
-  // the hill's face, either side of the headwall and over it, its foot in the water
-  const mid=(P.y0+P.y1)/2;
-  for(let y=-596;y<CANAL.y1+30;y+=26){if(y>P.wall.y0-8&&y<P.wall.y1+8)continue;const dy=Math.abs(y-mid),sy=(dy<200?16+dy*.12:32)+r()*(dy<200?10:24);L.push([HILL_X+14+J(10),y+J(8),26+r()*12,sy,26+r()*10,r()*6,sd(),WATER_Y+sy*.32]);}   // (low by the mouth, so the headwall shows from the bridge)
-  for(let y=-596;y<CANAL.y1+30;y+=34){if(y>P.wall.y0-40&&y<P.wall.y1+40)continue;const dy=Math.abs(y-mid),sy=(dy<260?34:50)+r()*30;L.push([HILL_X+52+(dy<260?24:0)+J(14),y+J(10),34+r()*12,sy,32+r()*12,r()*6,sd(),sy*.3]);}   // and behind, rising away from it
-  for(const[x,z,sx,sy,sz,y0]of[[HILL_X+26,P.wall.y0-8,22,30,24,8],[HILL_X+26,P.wall.y1+8,22,30,24,8],[HILL_X+34,-275,24,16,84,38],[HILL_X+72,-275,40,22,96,44],[HILL_X+118,-275,52,30,110,46],[HILL_X+96,-196,58,56,50,14],[HILL_X+96,-354,58,58,50,14],[HILL_X+170,-275,90,70,140,30]])
-    L.push([x,z,sx,sy,sz,r()*6,sd(),y0]);   // (round the headwall and on top of it, the hill the tunnel goes into: low over the mouth, where the things come over)
+  // (the hill itself, the tunnel's mouth in it, is ground since v113: terrain.js's hillMesh)
   for(const o of EAST.objs)if(o.kind==='rock'){const sy=6+r()*3;L.push([o.x+o.w/2,o.y+o.h/2,o.w*.62,sy,o.h*.62,r()*6,sd(),sy*.42]);}
-  return L;
-}
-// further off (rendered only): the lake's far shore, the hill on north to the lighthouse's rocks and south past the bay, the ridge
-// along the lake's west shore
-function farRocks(){
-  const r=rng(8181),L=[],sd=()=>(r()*1e4)|0;
-  for(let x=1240;x<1700;x+=90){const sy=60+r()*80;L.push([x+(r()-.5)*40,-1790-r()*80,110+r()*60,sy,80+r()*40,r()*6,sd(),sy*.2]);}   // the far shore
-  for(let y=-620;y>-1800;y-=60)for(let x=1680;x<2000;x+=80){const sy=60+r()*70+(x-1680)*.25;L.push([x+(r()-.5)*36,y+(r()-.5)*36,70+r()*40,sy,64+r()*36,r()*6,sd(),sy*.25]);}   // the hill, on north along the lake's east shore
-  for(let y=170;y<1100;y+=70)for(let x=1680;x<2000;x+=90){const sy=50+r()*60+(x-1680)*.2;L.push([x+(r()-.5)*36,y+(r()-.5)*36,70+r()*40,sy,60+r()*36,r()*6,sd(),sy*.25]);}   // and south past the bay
-  for(let x=1060;x<1660;x+=100){const sy=40+r()*50;L.push([x+(r()-.5)*40,960+r()*80,100+r()*50,sy,70+r()*40,r()*6,sd(),sy*.2]);}   // the bay's far shore
-  for(let k=3;k<LAKE_W.length-1;k++){const a=LAKE_W[k],b=LAKE_W[k+1];for(let t=0;t<1;t+=.34){const x=a[0]+(b[0]-a[0])*t-26,y=a[1]+(b[1]-a[1])*t,sy=24+r()*24;L.push([x,y,30+r()*14,sy,30+r()*14,r()*6,sd(),sy*.3]);}}   // the ridge along its west shore
-  for(let k=0;k<9;k++){const a=k/9*Math.PI*2,R=26+r()*14,sy=10+r()*12;L.push([LIGHTHOUSE.x+Math.cos(a)*R,LIGHTHOUSE.y+Math.sin(a)*R,18+r()*10,sy,16+r()*8,r()*6,sd(),sy*.3]);}
-  L.push([LIGHTHOUSE.x,LIGHTHOUSE.y,30,18,28,0,sd(),6]);
-  for(let t=.15;t<1;t+=.17){const x=LIGHTHOUSE.x+(HILL_X+30-LIGHTHOUSE.x)*t,y=LIGHTHOUSE.y+40*(1-t),sy=14+r()*14;L.push([x+(r()-.5)*20,y+(r()-.5)*20,26+r()*12,sy,24+r()*10,r()*6,sd(),sy*.3]);}   // (the spit of rock it stands on, out from the hill's shore)
   return L;
 }
 // the tunnel's portal: a concrete headwall round an arched mouth, hazard chevrons either side, dark inside with a red light far
@@ -163,13 +144,14 @@ function portalMesh(grp){
 // the water, the lake and the bay in one, a metre below the bridge's deck: glossy and dark like the canal, the night sky in it;
 // a quay wall along the old map's edge with the canal spilling over it, the near shore's banks
 function waterMesh(grp){
-  const wm=new T.MeshStandardMaterial({color:0x11252f,roughness:.22,metalness:.62,normalMap:rippleTex(),normalScale:new T.Vector2(.55,.55)}),sh=new T.Shape(),P=lakePts(),env=nightEnv();if(env){wm.envMap=env;wm.envMapIntensity=1.6;}
+  const wm=new T.MeshStandardMaterial({color:0x0a171e,roughness:.3,metalness:.35,normalMap:rippleTex(),normalScale:new T.Vector2(.3,.3)}),sh=new T.Shape(),P=lakePts(),env=nightEnv();if(env){wm.envMap=env;wm.envMapIntensity=.55;}   // (darker since v113: seen at last, the beyond-the-map floor no longer over it, beyondCut)
   wm.normalMap.repeat.set(1/70,1/70);EAST.water=wm;   // (the ShapeGeometry's uvs are map units: one ripple tile every 7 m; roadTick drifts it)
   sh.moveTo(P[0][0],-P[0][1]);for(const p of P)sh.lineTo(p[0],-p[1]);   // (the shape's y is the map's -y: laid flat below)
   const lake=new T.Mesh(new T.ShapeGeometry(sh),wm);lake.rotation.x=-Math.PI/2;lake.position.y=WATER_Y;lake.receiveShadow=true;grp.add(lake);
   const st=new T.MeshStandardMaterial({color:0x5f605b,roughness:.92}),B=(x,z,w,d)=>{const b=new T.Mesh(new T.BoxGeometry(w,-WATER_Y+3,d),st);b.position.set(x,(WATER_Y-3)/2,z);b.receiveShadow=true;grp.add(b);};
   B(1000,(ABUT.y1+CANAL.y0)/2,4,CANAL.y0-ABUT.y1);B(1000,(CANAL.y1+900)/2,4,900-CANAL.y1);   // the quay wall along the old map's edge (the canal's mouth between)
   B(ABUT.x1,(ABUT.y0+RBR.y0)/2,4,RBR.y0-ABUT.y0);B(ABUT.x1,(RBR.y1+ABUT.y1)/2,4,ABUT.y1-RBR.y1);B((ABUT.x0+ABUT.x1)/2,ABUT.y1,ABUT.x1-ABUT.x0,4);B((ABUT.x0+ABUT.x1)/2,ABUT.y0,ABUT.x1-ABUT.x0,4);   // the near shore's banks
+  B(HILL_X-15,(PORTAL.wall.y0+RBR.y0)/2,30,RBR.y0-PORTAL.wall.y0);B(HILL_X-15,(RBR.y1+PORTAL.wall.y1)/2,30,PORTAL.wall.y1-RBR.y1);   // the abutment either side of the bridge's far end, at the headwall's foot
   const fall=new T.Mesh(new T.PlaneGeometry(CANAL.y1-CANAL.y0,-WATER_Y),new T.MeshBasicMaterial({color:0x9aa8b0,transparent:true,opacity:.32,depthWrite:false,side:T.DoubleSide}));
   fall.rotation.y=Math.PI/2;fall.position.set(1001,WATER_Y/2,(CANAL.y0+CANAL.y1)/2);grp.add(fall);   // the canal spilling over the edge into the bay
   const foam=new T.Mesh(new T.PlaneGeometry(14,CANAL.y1-CANAL.y0+6),new T.MeshBasicMaterial({color:0x8a98a0,transparent:true,opacity:.3,depthWrite:false}));foam.rotation.x=-Math.PI/2;foam.position.set(1008,WATER_Y+.3,(CANAL.y0+CANAL.y1)/2);grp.add(foam);
@@ -218,9 +200,9 @@ function busMesh(grp,b=BUS){
   for(const z of[-Ln/2+18,Ln/2-30,Ln/2-18])for(const s of[-1,1]){const t=new T.Mesh(new T.CylinderGeometry(4.4,4.4,3,14),tyre);t.rotation.z=Math.PI/2;t.position.set(s*(Wd/2-1),4.4-(s<0&&z<0?1.4:0),z);t.castShadow=true;tilt.add(t);}   // (the front left one flat)
   for(const s of[-1,1]){const l=new T.Mesh(new T.BoxGeometry(3,1.6,.4),new T.MeshBasicMaterial({color:0x3a0d08}));l.position.set(s*(Wd/2-4),8,Ln/2+.2);tilt.add(l);}   // dead tail lights
 }
-// the lighthouse at the north end of the hill's shore: a tower in white and red bands on its rocks, the lantern lit, its beam turning (EAST.beam: roadTick)
+// the lighthouse on its island (terrain.js's isleMesh): a tower in white and red bands, the lantern lit, its beam turning (EAST.beam: roadTick)
 function lighthouseMesh(grp){
-  const L=LIGHTHOUSE,g=new T.Group();g.position.set(L.x,0,L.y);grp.add(g);
+  const L=LIGHTHOUSE,g=new T.Group();g.position.set(L.x,ISLE.h-18,L.y);grp.add(g);   // (built standing on 18 as it was on its rocks: raised or lowered onto the island's top)
   const bands=canvasTex(64,256,(x,w,h)=>{x.fillStyle='#d9d6cc';x.fillRect(0,0,w,h);x.fillStyle='#a8302a';for(const y of[24,104,184])x.fillRect(0,y,w,36);});bands.wrapS=bands.wrapT=T.ClampToEdgeWrapping;
   const tw=new T.Mesh(new T.CylinderGeometry(6.5,10,96,20),new T.MeshStandardMaterial({map:bands,roughness:.7}));tw.position.y=18+48;tw.castShadow=true;g.add(tw);
   const dark=new T.MeshStandardMaterial({color:0x22262a,roughness:.5,metalness:.6});
@@ -286,7 +268,7 @@ function buildEast(sc){
     const leaves=[{kind:'gate',x:1000,y:-354,w:66,h:4},{kind:'gate',x:1000,y:-200,w:66,h:4}];meshObjs(leaves);
     leaves.forEach((o,i)=>{const a=i?.55:-.55,hz=i?-198:-352;if(o.mesh){o.mesh.position.set(1000+Math.cos(a)*33,0,hz+Math.sin(a)*33);o.mesh.rotation.y=-a;}});
   }finally{scene=keep;}
-  grp.add(rockMesh(eastRocks()));grp.add(rockMesh(farRocks()));portalMesh(grp);if(typeof l4Cable==='function')l4Cable(grp);   // (the zip line down from the summit to the bridge: level4.js)
+  grp.add(stoneMesh(eastRocks()));hillMesh(grp);shoreBanks(grp);isleMesh(grp);portalMesh(grp);if(typeof l4Cable==='function')l4Cable(grp);   // (the zip line down from the summit to the bridge: level4.js)
   const poleM=new T.MeshStandardMaterial({color:0x1d2124,roughness:.6,metalness:.6}),deadM=new T.MeshStandardMaterial({color:0x2a2c2e,roughness:.5,metalness:.4});
   for(const L of EAST.lamps){const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);grp.add(hd);L.head=hd;
     if(L.pole){const pm=new T.Mesh(new T.CylinderGeometry(1.2,1.6,L.h+2,8),poleM);pm.position.set(L.x,(L.h+2)/2,L.y);pm.castShadow=true;grp.add(pm);}}
@@ -301,8 +283,17 @@ function openEast(st){
   for(const o of EAST.objs)if(!O.includes(o))O.push(o);
   for(const l of EAST.lamps)if(!L.includes(l))L.push(l);
   if(live){EAST_X=EXT.x1;rebuildNav();VB.x1=EXT.x1;}else{st.x1=EXT.x1;st.vb.x1=EXT.x1;}
-  canalEnd(true);   // (the old map's canal stops at the shore now: it spills into the bay)
+  canalEnd(true);beyondCut(true);   // (the old map's canal stops at the shore now: it spills into the bay; the ground beyond the old map cut away over the water)
   if(!road)road={open:true,talked:false,intro:null,guide:null};road.open=true;
+}
+// the ground beyond the old map (scene.js's strips round it, BEYOND_E the two east of it) lay over the lake and the bay, a flat dark
+// floor at the road's height where the water should be (from v98 to v113: what looked like water near the bridge was that floor,
+// and the deck sat on it, Bryan's "looks like it's floating"); once the road east is open the lake's shape is cut out of them
+function beyondCut(on){
+  for(const m of BEYOND_E){const M=m.material;
+    if(on&&!m.userData.cut){const[x0,z0,x1,z1]=m.userData.box,S=.25,c=document.createElement('canvas');c.width=Math.ceil((x1-x0)*S);c.height=Math.ceil((z1-z0)*S);
+      const a=c.getContext('2d');a.fillStyle='#fff';a.fillRect(0,0,c.width,c.height);a.setTransform(S,0,0,S,-x0*S,-z0*S);shorePath(a);a.fillStyle='#000';a.fill();m.userData.cut=new T.CanvasTexture(c);}
+    M.alphaMap=on?m.userData.cut:null;M.alphaTest=on?.5:0;M.needsUpdate=true;}
 }
 function canalEnd(open){const c=typeof CANAL_PLANE!=='undefined'?CANAL_PLANE:null;if(!c)return;const w=W+400;c.scale.x=open?(W+200)/w:1;c.position.x=open?(W-200)/2:W/2;}   // (scene.js's canal water: past the old edge, out over the bay, until the road east opens)
 function closeEast(){   // (a new game, a Retry, another level: reset, once the big map is back in play)
@@ -310,7 +301,7 @@ function closeEast(){   // (a new game, a Retry, another level: reset, once the 
   for(const o of EAST.objs){const i=objs.indexOf(o);if(i>=0)objs.splice(i,1);}
   for(const l of EAST.lamps){const i=lamps.indexOf(l);if(i>=0)lamps.splice(i,1);}
   if(EAST.gate){if(!objs.includes(EAST.gate))objs.push(EAST.gate);eastShow(EAST.gate,true);}
-  centiHide();canalEnd(false);
+  centiHide();canalEnd(false);beyondCut(false);
   EAST_X=W;if(was)rebuildNav();
   if(EAST.dirty){paintEast(EAST.tex.image.getContext('2d'),EAST.rc.getContext('2d'),1.5);EAST.tex.needsUpdate=true;EAST.dirty=false;}   // (clean ground for the next game)
 }
@@ -373,12 +364,14 @@ function roadTick(dt){   // (every tick: combat.js's update)
     for(const G of gatherZones()){if(!G.auto)continue;const a=A[G.auto]||(A[G.auto]={t:0,done:false});if(!G.ready){a.t=0;a.done=false;continue;}a.t+=dt;if(a.t>.5&&!a.done){a.done=true;G.fn();}}}
   if(I&&MAPID==='out'){
     if(contact||state!=='play'){roadIntroEnd(true);return;}   // (trouble on the way: the rest can wait)
-    if(I.ph==='walk'&&simT-I.t0>1.3){I.ph='pan';camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:ROAD_OUT.x+40,z:ROAD_OUT.y+30,zoom:2.3},t:0,dur:1.6};}
+    if(I.ph==='walk'&&simT-I.t0>1.3){I.ph='pan';camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:ROAD_OUT.x+24,z:ROAD_OUT.y+4,zoom:frameZoom(150,110,.18),yaw:0,tilt:.18},t:0,dur:1.6};}
     else if(I.ph==='pan'&&!camPan){I.t1=I.t1||simT;if(simT-I.t1>.4){I.ph='talk';const lead=roadLead();
       talkStart([{who:lead,to:g,text:ROAD_TALK[0],clip:'road_1'},g&&{who:g,to:lead,text:ROAD_TALK[1],clip:'road_2'},{who:lead,to:g,text:ROAD_TALK[2],clip:'road_3'}],roadTalkDone);}}
     else if(I.ph==='east'){   // the camera slides along with them (Bryan: "the screen slides over with the troops when they move"), locked looking north across the bridge, the lake and the lighthouse beyond (after v110: "lock the camera while the troops cross the bridge... perpendicular to the bridge looking north, so the lighthouse is seen in the horizon"; camLock)
-      const up=upNow();if(up.length){const m=midOf(up),k=Math.min(1,dt*2.2),e=Math.min(1,dt*1.1);camT.x+=(m.x+30-camT.x)*k;camT.z+=(ROAD_LOOK.z-camT.z)*e;zoom+=(ROAD_LOOK.zoom-zoom)*e;tilt+=(ROAD_LOOK.tilt-tilt)*e;yaw+=wrapA(-yaw)*e;camPan=null;clampCam();updateCamera();}
-      if(!up.some(p=>p.path.length)||simT-I.t2>40){I.ph='see';I.t3=simT;camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:HILL_X-30,z:-282,zoom:2.2,yaw:-Math.PI/2,tilt:.34},t:0,dur:2.2};}}   // (then round to look at the mouth from the bridge)
+      const up=upNow();if(up.length){const m=midOf(up),k=Math.min(1,dt*2.2),e=Math.min(1,dt*1.1);camT.x+=(m.x+30-camT.x)*k;camT.z+=(ROAD_LOOK.z-camT.z)*e;zoom+=(ROAD_LOOK.zoom-zoom)*e;tilt+=(ROAD_LOOK.tilt-tilt)*e;
+        const hd=dist0/zoom*Math.cos(Math.max(PITCH_MIN,basePitch()-tilt)),th=Math.atan2(LIGHTHOUSE.x-camT.x,camT.z+hd-LIGHTHOUSE.y),hf=Math.atan(Math.tan(camera.fov*Math.PI/360)*camera.aspect);
+        yaw+=wrapA(-Math.max(0,th-.7*hf)-yaw)*e;camPan=null;clampCam();updateCamera();}   // (square to the bridge; on a narrow screen, a phone's, turned just enough to keep the lighthouse in at the right)
+      if(!up.some(p=>p.path.length)||simT-I.t2>40){I.ph='see';I.t3=simT;camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:HILL_X-14,z:-280,zoom:frameZoom(220,170,.42),yaw:-Math.PI/2,tilt:.42},t:0,dur:2.2};}}   // (then round to look at the mouth from the bridge)
     else if(I.ph==='see'&&!camPan){if(!I.c){I.c=1;centiStart();sfxMon('mon_growl',{x:HILL_X+20,y:-275},.8,.8);}
       if(I.c===1&&simT-I.t3>3.2){I.c=2;const p=roadLead();if(p)callout(p,'Movement! Over the tunnel.',C.warn);}
       if(I.c===2&&simT-I.t3>6.5&&!I.c3){I.c3=1;sfxMon('mon_horde',{x:HILL_X+40,y:-275},.7,.9);}   // (and more of them, somewhere in there)
@@ -397,7 +390,7 @@ function roadIntroEnd(cut){
   const g=road.guide;if(g&&!g.dead&&!road.back){g.path=[...(findPath(g.x,g.y,DECK.x,DECK.y,FOOT)||[]),{x:DECK.x,y:DECK.y},{x:850,y:-560},{x:850,y:-634}];g.hold={ang:-Math.PI/2};road.back=true;}
   if(cut){centiHide();yaw=0;tilt=0;camPan=null;clampCam();updateCamera();}
   const up=upNow();
-  if(!cut&&up.length){const m=midOf(up);camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:m.x+40,z:m.y+40,zoom:2.0,yaw:0,tilt:0},t:0,dur:2.0};}
+  if(!cut&&up.length){const m=midOf(up);camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:m.x+30,z:m.y+30,zoom:2.4,yaw:0,tilt:0},t:0,dur:2.0};}
   obj=Math.max(obj,7);updateObjUI();setStatus();hud();saveGame('road');
 }
 function roadHint(){

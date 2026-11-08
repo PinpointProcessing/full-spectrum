@@ -117,7 +117,7 @@ function enterHQ(after){   // (after: the fight already over, her and her young 
     }finally{scene=keep;}
     contact=false;clearTeams();sel=[];cardGroup=[];if(!after)hqs.wakeAt=simT+.6;hqs.lairN=live.filter(p=>!p.downed).length>5?2:1;   // (she's awake: she roars as they come in, bossThink)
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
-    zoom=after?3:2.0;yaw=0;tilt=0;camT=after?{x:500,z:640}:{x:500,z:800};clampCam();updateCamera();
+    zoom=after?frameZoom(300,260):2.0;yaw=0;tilt=0;camT=after?{x:500,z:640}:{x:500,z:800};clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
     if(!after)bigText('The Headquarters','inbound');   // (after: "Headquarters taken" comes on the next tick, hqTickWin)
     if(f)setTimeout(()=>{f.classList.remove('on');setTimeout(()=>{if(!f.classList.contains('on'))f.hidden=true;},400);},60);
