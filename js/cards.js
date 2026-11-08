@@ -29,7 +29,8 @@ const GUN_SVG={
 // the gun row: his weapon, and with a second gun (the sniper rifle off the tower) a SWAP tag naming the other one: tap to swap
 function gunHTML(u){
   if(!u.weapon)return'<b class="unarmed">Unarmed</b>';   // (a freed prisoner until he picks one up: office.js)
-  return `${GUN_SVG[u.weapon]}<b>${WEAPON[u.weapon].label}</b>`+(u.weapon2?`<i class="uc-swap">&#8644; ${WEAPON[u.weapon2].label}</i>`:'');
+  const sd=u.weapon==='m4s'?silCol(u):null,sdTxt={g:'Silencer good',y:'Silencer worn',r:'Silencer nearly gone',x:'Silencer broken'}[sd];
+  return `${GUN_SVG[sd==='x'?'rifle':u.weapon]}<b>${sd==='x'?'M4':WEAPON[u.weapon].label}</b>`+(sd?`<i class="uc-sd" data-s="${sd}" title="${sdTxt}" aria-label="${sdTxt}"><s style="width:${Math.round(silFrac(u)*100)}%"></s>${sd==='x'?'BROKEN':''}</i>`:'')+(u.weapon2?`<i class="uc-swap">&#8644; ${WEAPON[u.weapon2].label}</i>`:'');   // (the silencer: green, yellow, red, broken: combat.js's silCol)
 }
 function hpCol(u){return u.dead?'#5b636a':u.downed?'#ff3b2a':u.hp>=70?C.good:u.hp>=35?C.warn:'#ff8a3d';}
 function shade(hex,k){const n=parseInt(hex.slice(1),16),f=v=>clamp(Math.round(v*(1+k)),0,255);return`rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`;}
@@ -141,7 +142,7 @@ function updateCards(){
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
     c.hp.textContent=u.dead?'KIA':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);
     c.hpb.style.setProperty('--hp',(u.dead?0:clamp(u.hp,0,100))+'%');c.hpb.style.setProperty('--hc',hpCol(u));
-    const gk=(u.weapon||'-')+'|'+(u.weapon2||'');if(c.gun.dataset.k!==gk){c.gun.dataset.k=gk;c.gun.innerHTML=gunHTML(u);c.gun.classList.toggle('swap',!!u.weapon2);c.gun.title=u.weapon2?`Swap to the ${WEAPON[u.weapon2].label}`:u.weapon?WEAPON[u.weapon].label:'Unarmed';}
+    const gk=(u.weapon||'-')+'|'+(u.weapon2||'')+'|'+(u.weapon==='m4s'?Math.round(silFrac(u)*20):'');if(c.gun.dataset.k!==gk){c.gun.dataset.k=gk;c.gun.innerHTML=gunHTML(u);c.gun.classList.toggle('sd',u.weapon==='m4s');c.gun.classList.toggle('swap',!!u.weapon2);c.gun.title=u.weapon2?`Swap to the ${WEAPON[u.weapon2].label}`:u.weapon?WEAPON[u.weapon].label:'Unarmed';}
     if(c.nade.dataset.gl!==String(!!u.gl)){c.nade.dataset.gl=String(!!u.gl);c.nade.innerHTML=(u.gl?M203_SVG:NADE_SVG)+'<i></i>';c.nade.setAttribute('aria-label',u.gl?'M203 grenade launcher':'Grenade');c.nade.classList.toggle('gl',!!u.gl);}   // (the M203 in the grenade's place)
     c.nade.querySelector('i').textContent=u.grenade;c.nade.disabled=!alive(u)||!u.grenade||!!u.inVeh;
     c.nade.classList.toggle('on',mode==='grenade'&&sel[0]===u);

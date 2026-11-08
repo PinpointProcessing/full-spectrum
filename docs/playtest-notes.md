@@ -1155,3 +1155,17 @@ Built in v121: the HQ managed from the command center (missions, the squad of ei
 "Class · at the HQ" after), and Level 4's way home: down the zip line, then back over the bridge on foot, the report once they're
 in the HQ. Later: extraction by vehicle under smoke; new items unlocked by level (to discuss once the HQ is built); the north
 road's mission (another lab or a military installation) hidden until designed; some missions may take fewer than eight.
+
+## Bryan, after v121: the silencer on the M4
+
+"Make sure the silencer is just part of the M4 weapon. The silencer wears down and shows a color, green then yellow then red then
+breaks. It can be shown in the gun menu. Spec ops have a longer silencer life span and anyone that's not has a very limited time -
+should not even be worth it as other weapons for their class will be available - or maybe spec ops can only equip them (after
+they reach the HQ). The smoke grenade, medic pack, or RPG are only available as the special item until reaching the HQ. Basically
+everyone is classless until the HQ so everything is available to them until the class selection."
+
+Built in v122: no silencer item; the M4 SD's silencer wears one per burst or silent shot, 40 for anyone without a class, 90 for a
+Spec Ops; a bar beside the gun on his card, green, yellow, red, then BROKEN (a plain loud M4 from then, the silencer gone from
+the muzzle); a new one at a mission's start, at an ammo drop and back at the HQ; once a class is picked only a Spec Ops can take
+the M4 SD (the others get the plain M4); special items stay smoke, medic kit and RPG (class items after the HQ, to discuss).
+Alpha's special item in Level 1 is smoke now (their silencers are on their rifles).

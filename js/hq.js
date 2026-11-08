@@ -33,8 +33,8 @@ function stationTick(dt){   // (Level 1 calls it too: level1.js)
     if(!alive(p))continue;
     const z=zoneAt(p.x,p.y);
     if(z&&z.k==='med'&&p.hp<100){if(!p.healing)callout(p,'Healing',C.good);p.healing=true;p.hp=Math.min(100,p.hp+HEAL_RATE*dt);}else p.healing=false;   // (the medic station)
-    const short=p.grenade<nadeFull(p)||(p.spec&&p.specN<specFull(p))||(C4_ON&&p.charges<1);   // (an M203's three rounds, an Assault's two frags: combat.js)   // (a freed prisoner has no special item, but takes a grenade)
-    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=nadeFull(p);if(p.spec)p.specN=specFull(p);p.charges=1;p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
+    const short=p.grenade<nadeFull(p)||(p.spec&&p.specN<specFull(p))||(C4_ON&&p.charges<1)||(p.weapon==='m4s'&&silFrac(p)<1);   // (and a worn silencer: combat.js)   // (an M203's three rounds, an Assault's two frags: combat.js)   // (a freed prisoner has no special item, but takes a grenade)
+    if(z&&z.k==='sup'&&short){p.restock=(p.restock||0)+dt;if(p.restock>=SUPPLY_T){p.grenade=nadeFull(p);if(p.spec)p.specN=specFull(p);p.charges=1;silFit(p);if(p.m)figRefresh(p);p.restock=0;callout(p,'Restocked',C.good);hud();}}else p.restock=0;
   }
 }
 /* ---------- the tour after the HQ popup (Bryan): show the medical and supply boxes, say what they're for ---------- */

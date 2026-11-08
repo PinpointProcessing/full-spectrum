@@ -93,10 +93,10 @@ function medTick(dt){   // medic kits being used, men being picked up, and carri
 // SHOTGUNNERS (e.g. ['A2','B2']) to hand them out again. n: rounds a burst, cool: s between bursts, sup: suppression per round
 const WEAPON={
   rifle:  {label:'M4',range:380,n:3,cool:[1.6,2.2],dmg:[11,16],sup:.06},
-  m4s:    {label:'M4 SD',range:380,n:3,cool:[1.6,2.2],dmg:[11,16],sup:.06,quiet:true},   // (Bryan: silenced assault rifles for the data center mission: quiet like a silencer, and it never wears out; the equip screen hands them out, equip.js)
+  m4s:    {label:'M4 SD',sd:true,range:380,n:3,cool:[1.6,2.2],dmg:[11,16],sup:.06,quiet:true},   // (Bryan: silenced assault rifles for the data center mission: quiet like a silencer, and it never wears out; the equip screen hands them out, equip.js)
   hmg:    {label:'M240',range:420,n:6,cool:[1.5,2.1],dmg:[10,14],sup:.11,acc:-.06,move:-.12},
   sniper: {label:'Sniper',range:700,n:1,cool:[2.4,3.1],dmg:[85,110],sup:.3,far:true},
-  shotgun:{label:'Shotgun',range:200,n:1,cool:[1.1,1.5],sup:.14}},SHOTGUNNERS=[],DEFAULT_WEAPON={B1:'hmg'};
+  shotgun:{label:'Shotgun',range:200,n:1,cool:[1.1,1.5],sup:.14}},SHOTGUNNERS=[],DEFAULT_WEAPON={A1:'m4s',A2:'m4s',B1:'hmg'};   // (Level 1: Alpha's M4s silenced, since v122 the silencer on the rifle)
 const wOf=u=>WEAPON[u.weapon||'rifle']||WEAPON.rifle;
 // a second gun (the sniper rifle off the tower: his own goes on his back, mission.js): tap the gun on his card to swap (cards.js)
 function swapWeapon(u){
@@ -467,7 +467,7 @@ function burst(u,t,L){
   u.target=t;u.aimT=simT;u.shotAtT=simT;if(u.veh)u.aimA=Math.atan2(L.ty-L.fy,L.tx-L.fx);else{u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);}
   const c=hitChance(u,t,L);
   const n=u.gunner?5:wOf(u).n;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun or a sniper rifle one round
-  const q=silenced(u);if(q&&u.weapon!=='m4s'){u.specN--;if(!u.specN)callout(u,'Silencer worn out',C.warn);}   // a silencer: a quiet burst, and it wears a little (a silenced rifle doesn't)
+  const q=silenced(u);if(q)silWear(u);   // a silenced M4: a quiet burst, and the silencer wears (below)
   for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner||n>3?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
   if(u.side==='P'&&t.alerted&&!t.mon&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}   // (not a monster: they don't take cover)
 }
@@ -786,7 +786,24 @@ function endTakedown(u,done){const e=u.tk&&u.tk.e;if(e&&!done)e.grabbed=false;u.
 // and fires once. A hit drops him without a sound (a body others may find: layers.js); a miss alerts him and anyone right by
 // him. If the man notices the squad first, the shot's off.
 const SIL={range:200,aim:.45,bonus:.2,open:90,wall:40,missOpen:70,missWall:30};
-const silenced=u=>!!u&&u.side==='P'&&(u.weapon==='m4s'||u.spec==='silencer'&&u.specN>0);   // a silenced rifle, or the silencer item while it lasts
+const silenced=u=>!!u&&u.side==='P'&&u.weapon==='m4s'&&(u.sil??1)>0;   // the M4 SD while its silencer lasts (since v122; it was a special item too)
+/* The silencer is part of the M4 SD (Bryan, after v121: "Make sure the silencer is just part of the M4 weapon. The silencer wears
+   down and shows a color, green then yellow then red then breaks. It can be shown in the gun menu. Spec ops have a longer
+   silencer life span... or maybe spec ops can only equip them (after they reach the HQ)"). Every burst and every silent shot
+   wears it by one: SIL_LIFE.base for anyone without a class, SIL_LIFE.specops for a Spec Ops; once a class is picked only a
+   Spec Ops can take the M4 SD (equip.js's eqWeapons). Its colour on his card (cards.js's gunHTML): green, yellow, red, then
+   BROKEN, and from then on his rifle's a plain loud M4 with the silencer gone from its muzzle (figure.js). A new one's fitted at
+   a mission's start, at an ammo drop (hq.js) and back at the Headquarters (base.js). */
+const SIL_LIFE={base:40,specops:90};
+const silMax=u=>isCls(u,'specops')?SIL_LIFE.specops:SIL_LIFE.base;
+function silFit(u){if(u&&u.weapon==='m4s')u.sil=silMax(u);}
+const silFrac=u=>u&&u.weapon==='m4s'?clamp((u.sil??silMax(u))/silMax(u),0,1):0;
+const silCol=u=>{const f=silFrac(u);return f<=0?'x':f>.6?'g':f>.3?'y':'r';};
+function silWear(u){
+  if(!u||u.weapon!=='m4s')return;const before=silCol(u);u.sil=Math.max(0,(u.sil??silMax(u))-1);const now=silCol(u);
+  if(now==='x'){callout(u,'Silencer’s gone',C.warn);if(u.m)figRefresh(u);}else if(now==='r'&&before!=='r')callout(u,'Silencer’s nearly done',C.warn);
+  if(u.card)hud();
+}
 function canSilent(u,e){
   if(!u||!e||!alive(u)||!silenced(u)||u.inVeh||u.carry||u.crawl||u.tk||u.climb||e.dead||e.veh||e.surr||e.alerted||!e.vis||e.grabbed)return false;
   return hyp(u.x-e.x,u.y-e.y)<=SIL.range&&!!fireLine(u,e);
@@ -811,12 +828,11 @@ function silentTick(){
   for(const[e,shots]of due){
     let killer=null,miss=null;
     for(const{u,L}of shots){
-      if(u.weapon!=='m4s')u.specN--;leanOut(u,L);   // (a silenced rifle doesn't wear; the silencer as an item does)
+      silWear(u);leanOut(u,L);   // (the silencer wears: above)
       const hit=Math.random()<clamp(hitChance(u,e,L)+SIL.bonus,.05,.95),mx=hit?0:(Math.random()-.5)*18,my=hit?0:(Math.random()-.5)*18;
       tracers.push({x1:L.fx,y1:L.fy,x2:L.tx+mx,y2:L.ty+my,t:0,col:'214,228,238',q:true});lastNoiseT=simT;
       if(typeof sfxShot==='function')sfxShot(u,true);
       if(hit){if(!killer)killer=u;}else miss={u,L,mx,my};
-      if(u.weapon!=='m4s'&&!u.specN)callout(u,'Silencer worn out',C.warn);
     }
     if(killer)silentKill(e,killer);
     else{const{u,L,mx,my}=miss;alertOne(e,{x:u.x,y:u.y},false);alertAll(null,false,L.fx,L.fy,L.tx+mx,L.ty+my,{x:u.x,y:u.y},SIL.missOpen,SIL.missWall,false);callout(u,'Missed',C.warn);setStatus();}

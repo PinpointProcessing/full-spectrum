@@ -227,7 +227,7 @@ function crewUp(){   // (the clean-up's over: montageEnd) the freed men stay
 function kitFreed(u){
   Object.assign(u,{kind:'soldier',kitted:true,unarmored:false,weapon:u.weapon==='hmg'||u.weapon==='sniper'?u.weapon:'m4s',
     grenade:u.gl?Math.max(u.grenade||0,M203.rounds):Math.max(u.grenade||0,1),spec:u.spec||'smoke'});
-  u.specN=Math.max(u.specN||0,specFull(u));if(typeof classGear==='function')classGear(u);
+  u.specN=Math.max(u.specN||0,specFull(u));if(typeof classGear==='function')classGear(u);silFit(u);
   if(u.m&&u.m.g){const par=u.m.g.parent;if(par)par.remove(u.m.g);const keep=scene;if(par)scene=par;try{makeSoldier(u);}finally{scene=keep;}}   // (the squad's look: a new figure in the same scene)
 }
 function crewCopy(o){   // one of the crew at work in his room (a Continue, or the squad back in from outside: enterBase)
@@ -344,7 +344,7 @@ let hqc=null;   // the command center's panel while it's open: {step:'missions'|
 function hqSettle(){   // back in the Headquarters: the medic and supply tables see to everyone
   try{localStorage.setItem(HQ_OPEN_KEY,'1');}catch(e){}
   for(const p of players){if(p.dead)continue;Object.assign(p,{hp:100,downed:false,critical:false,crit:0,bleed:0,revive:0,boxRev:0,path:[],work:null,carry:null,carriedBy:null,supT:null,focus:null,ret:null});
-    if(!p.joined||p.kitted){p.grenade=Math.max(p.grenade||0,p.gl?M203.rounds:1);if(p.spec)p.specN=Math.max(p.specN||0,specFull(p));}}
+    if(!p.joined||p.kitted){p.grenade=Math.max(p.grenade||0,p.gl?M203.rounds:1);if(p.spec)p.specN=Math.max(p.specN||0,specFull(p));silFit(p);if(p.m)figRefresh(p);}}
   sel=[];cardGroup=[];preview=null;mode=null;
 }
 function hqTap(sx,sy){   // (input.js's tap while hqManage)

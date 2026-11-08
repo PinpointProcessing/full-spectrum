@@ -5,7 +5,7 @@ let simT=0,shots=[],tracers=[],flashes=[],sparks=[],nades=[],booms=[],callouts=[
 const alive=u=>!u.dead&&!u.downed;
 // every soldier carries a grenade and one special item (Bryan): a silencer, an RPG, a medic kit or smoke; ammo drops refill them
 // (no swapping)
-const DEFAULT_SPEC={A1:'silencer',A2:'silencer',B1:'rpg',B2:'medkit'};   // (Bryan: Alpha both silenced, Bravo an RPG and the medic kit)
+const DEFAULT_SPEC={A1:'smoke',A2:'smoke',B1:'rpg',B2:'medkit'};   // (Bryan: Alpha both silenced, Bravo an RPG and the medic kit; since v122 Alpha's silencers are on their M4s, combat.js's SIL_LIFE, and their special item smoke)
 
 function mk(side,team,id,name,x,y,ang){
   const u={side,team,id,name,x,y,ang,hp:100,sup:0,cool:.4+Math.random()*1.2,path:[],downed:false,dead:false,bleed:BLEED_T,revive:0,
@@ -25,7 +25,7 @@ function reset(){
   mk('E','E','E1','Hostile',273,459,Math.PI/2);mk('E','E','E2','Hostile',347,459,Math.PI/2);
   mk('E','E','E3','Hostile',222,494,Math.PI/2);mk('E','E','E4','Hostile',398,494,Math.PI/2);
   players=units.filter(u=>u.side==='P');enemies=units.filter(u=>u.side==='E');for(const e of enemies)e.grp=0;   // (the warehouse's four: area 0)
-  for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':DEFAULT_WEAPON[p.id]||'rifle';p.weapon2=null;p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=specFull(p);}
+  for(const p of players){p.weapon=SHOTGUNNERS.includes(p.id)?'shotgun':DEFAULT_WEAPON[p.id]||'rifle';p.weapon2=null;p.spec=DEFAULT_SPEC[p.id]||'smoke';p.specN=specFull(p);silFit(p);}
   for(const p of players){p.level=levelOf(xpOf(p.id));classGear(p);p.skillN=skillFull(p);p.skillT=0;}   // (a Medic's kits, a Support's rockets, an Assault's frags: classes.js)
   for(const u of units)makeSoldier(u);
   addRadioKit(enemies[1]);   // E2 carries the warehouse's radio (hunt.js)

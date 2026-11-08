@@ -8,10 +8,10 @@
    startLevel2). Everyone carries a frag grenade as before. The frame loop draws this instead of the map while state is
    'equip' (equipFrame, from main.js). */
 const LOADOUT_KEY='warehouseYard.loadout.v1';
-const ARMORY={weapon:{m4s:9,hmg:1,shotgun:4,sniper:4},spec:{smoke:8,medkit:2,rpg:1,build:4}};   // (smoke for all eight since v121: the freed men are soldiers, base.js)
-const EQ_OPTS={weapon:['m4s','hmg','shotgun','sniper'],spec:['smoke','medkit','rpg','build']};
+const ARMORY={weapon:{m4s:9,rifle:9,hmg:1,shotgun:4,sniper:4},spec:{smoke:8,medkit:2,rpg:1,build:4}};   // (smoke for all eight since v121: the freed men are soldiers, base.js)
+const EQ_OPTS={weapon:['m4s','rifle','hmg','shotgun','sniper'],spec:['smoke','medkit','rpg','build']};
 const eqSpecs=id=>['smoke','medkit','rpg',...(classes[id]==='defender'?['build']:[])];   // (the build kit for a Defender: build.js)
-const eqWeapons=id=>['m4s','hmg',...(classes[id]==='assault'?['shotgun']:[]),...(classes[id]==='recon'?['sniper']:[])];   // (the shotgun for Assault, the sniper rifle for Recon: classes.js)
+const eqWeapons=id=>[...(!classes[id]||classes[id]==='specops'?['m4s']:['rifle']),'hmg',...(classes[id]==='assault'?['shotgun']:[]),...(classes[id]==='recon'?['sniper']:[])];   // (the shotgun for Assault, the sniper rifle for Recon: classes.js)
 const DEFAULT_LOADOUT={A1:{weapon:'m4s',spec:'smoke'},A2:{weapon:'m4s',spec:'medkit'},B1:{weapon:'m4s',spec:'rpg'},B2:{weapon:'m4s',spec:'medkit'},A3:{weapon:'m4s',spec:'smoke'},A4:{weapon:'m4s',spec:'smoke'},B3:{weapon:'m4s',spec:'smoke'},B4:{weapon:'m4s',spec:'smoke'}};   // (the freed men's since v121: picked at the HQ's command center, base.js)
 let loadout=readLoadout(),EQ=null,eqNext=null;
 function readLoadout(){
@@ -24,7 +24,7 @@ function saveLoadout(){try{localStorage.setItem(LOADOUT_KEY,JSON.stringify(loado
 const takenBy=(k,v,but)=>Object.keys(loadout).filter(id=>id!==but&&loadout[id][k]===v);
 const eqFree=(k,v,id)=>loadout[id][k]===v||takenBy(k,v,id).length<ARMORY[k][v];
 function applyLoadout(){   // the next mission's squad gets what was picked (startLevel2)
-  for(const p of players){const l=loadout[p.id];if(!l||(p.joined&&!p.kitted)||p.dead)continue;if(!eqWeapons(p.id).includes(l.weapon))l.weapon='m4s';if(!eqSpecs(p.id).includes(l.spec))l.spec=DEFAULT_LOADOUT[p.id].spec;Object.assign(p,{weapon:l.weapon,weapon2:null,spec:l.spec,grenade:p.gl?M203.rounds:1});p.specN=specFull(p);classGear(p);if(p.m)figRefresh(p);}   // (an M203 found in Level 4 stays under his rifle, full)
+  for(const p of players){const l=loadout[p.id];if(!l||(p.joined&&!p.kitted)||p.dead)continue;if(!eqWeapons(p.id).includes(l.weapon))l.weapon=eqWeapons(p.id)[0];if(!eqSpecs(p.id).includes(l.spec))l.spec=DEFAULT_LOADOUT[p.id].spec;Object.assign(p,{weapon:l.weapon,weapon2:null,spec:l.spec,grenade:p.gl?M203.rounds:1});p.specN=specFull(p);classGear(p);silFit(p);if(p.m)figRefresh(p);}   // (an M203 found in Level 4 stays under his rifle, full)
   buildCards();
 }
 
@@ -80,13 +80,14 @@ function equipFrame(rdt,now){
 }
 
 /* ---------- the loadout ---------- */
-const EQ_LABEL={m4s:'M4 SD',hmg:'M240',shotgun:'Shotgun',sniper:'Sniper',smoke:'Smoke',medkit:'Medkit',rpg:'RPG',build:'Build'};
+const EQ_LABEL={m4s:'M4 SD',rifle:'M4',hmg:'M240',shotgun:'Shotgun',sniper:'Sniper',smoke:'Smoke',medkit:'Medkit',rpg:'RPG',build:'Build'};
 function eqIcon(k,v){return k==='weapon'?GUN_SVG[v]:SPECIALS[v].svg;}
 let eqBuild=null;   // (what the rows were last built for: rebuilt after a class is picked)
 function buildEquipUI(box=$('#eqRows'),ids=['A1','A2','B1','B2'],o={boat:true}){   // (the boat's four; since v121 the HQ's command center too, all eight: base.js)
   eqBuild=[box,ids,o];for(const r of document.querySelectorAll('.eq-row[data-id]'))if(!box.contains(r))r.remove();box.innerHTML='';
   for(const id of ids){
     const p=players.find(q=>q.id===id);if(!p||p.dead)continue;if(!loadout[id])loadout[id]={...(DEFAULT_LOADOUT[id]||{weapon:'m4s',spec:'smoke'})};
+    if(!eqWeapons(id).includes(loadout[id].weapon))loadout[id].weapon=eqWeapons(id)[0];if(!eqSpecs(id).includes(loadout[id].spec))loadout[id].spec='smoke';   // (a class picked: the M4 SD only for a Spec Ops)
     const row=document.createElement('div');row.className='eq-row';row.style.setProperty('--tc',teamCol(p));row.dataset.id=id;
     const ck=classes[id];
     row.innerHTML=`<canvas class="eq-face" width="64" height="64"></canvas><div class="eq-who"><b>${id} · ${ck?CLASSES[ck].ab:rankOf(p.level||1).ab}</b><span>${p.name}</span>${o.boat?(ck?'':`<small class="eq-lock">${classesOpen()?'Class · at the HQ':'Class · Unlock HQ first'}</small>`):canPromote(p)?`<button type="button" class="eq-promote" aria-label="Promotion: choose a class for ${p.name}">Promote</button>`:ck?'':`<small class="eq-lock">Lv ${p.level||1} · class at Lv ${CLASS_LEVEL}</small>`}</div>`+
