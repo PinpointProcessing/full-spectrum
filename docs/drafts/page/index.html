@@ -1,0 +1,144 @@
+<title>Bridge Crossing Drafts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one screening column, a section per scene, each with its option switch above the footage and the note for the option under it.
+   One dark look on purpose: the footage is night footage and reads best on a dark ground. */
+:root{
+  --bg:#0c0f12; --panel:#141a1f; --line:#25303a; --fg:#e4e9ed; --dim:#95a3ae; --accent:#e5ad45; --accent-ink:#1a1306; --frame:#06080a;
+  --display:"Saira Condensed","Arial Narrow",Arial,sans-serif; --body:"Source Sans 3","Segoe UI",Roboto,Helvetica,Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:880px;margin:0 auto;display:grid;gap:40px}
+header{display:grid;gap:10px}
+.eyebrow{font:600 13px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 clamp(30px,6vw,44px)/1.02 var(--display);letter-spacing:.01em;margin:0;text-wrap:balance}
+h2{font:700 28px/1.05 var(--display);margin:0;letter-spacing:.01em;text-wrap:balance}
+p{margin:0;max-width:65ch}
+.lead{color:var(--dim)}
+section{display:grid;gap:16px}
+.switch{display:flex;flex-wrap:wrap;gap:6px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;width:fit-content;max-width:100%}
+.switch button{font:600 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--dim);background:transparent;border:0;border-radius:7px;padding:10px 14px;cursor:pointer}
+.switch button:hover{color:var(--fg)}
+.switch button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.switch button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.views{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.views.two{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+@media (max-width:640px){.views.two{grid-template-columns:minmax(0,1fr)}}
+figure{margin:0;display:grid;gap:6px;min-width:0}
+video{display:block;width:100%;height:auto;max-width:100%;background:var(--frame);border-radius:8px;border:1px solid var(--line)}
+figcaption{display:flex;flex-wrap:wrap;gap:4px 12px;font:500 12px/1.3 var(--mono);color:var(--dim);letter-spacing:.02em}
+figcaption b{font-weight:500;color:var(--fg)}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px}
+.note h3{margin:0;font:600 15px/1.1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.note p{color:var(--fg)}
+.pick{font:500 12px/1 var(--mono);color:var(--accent);letter-spacing:.04em}
+ol.ask{margin:0;padding-left:20px;display:grid;gap:8px;max-width:65ch}
+ol.ask li::marker{color:var(--accent);font-family:var(--mono)}
+.noted{color:var(--dim);max-width:65ch}
+footer{font:400 12px/1.5 var(--mono);color:var(--dim);border-top:1px solid var(--line);padding-top:14px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.switch button{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Warehouse Yard · after v118</div>
+    <h1>Bridge Crossing Drafts</h1>
+    <p class="lead">The squad's run across the bridge, and what crawls into the tunnel at its end. Filmed in the game itself with its own lights and night. Pick an option to switch the footage. Clips loop, and you can pause or scrub them.</p>
+  </header>
+
+  <section id="run" aria-labelledby="run-h">
+    <h2 id="run-h">The run</h2>
+    <p class="lead">On the bridge their legs ran but their upper bodies stayed rigid. Both drafts move the body with each stride.</p>
+    <div class="switch" role="group" aria-label="Run option" data-group="run">
+      <button type="button" id="run-now" data-opt="now" aria-pressed="false">Now</button>
+      <button type="button" id="run-A" data-opt="A" aria-pressed="true">A · Combat run</button>
+      <button type="button" id="run-B" data-opt="B" aria-pressed="false">B · Sprint</button>
+    </div>
+    <div class="views two">
+      <figure>
+        <video data-base="run-game" muted loop playsinline autoplay controls preload="auto" src="v/run-game-A.mp4"></video>
+        <figcaption><b>In the game</b><span>the camera on the walk across</span><span>real speed</span></figcaption>
+      </figure>
+      <figure>
+        <video data-base="run-close" muted loop playsinline autoplay controls preload="auto" src="v/run-close-A.mp4"></video>
+        <figcaption><b>Close up</b><span>one stride, looped</span><span>half speed</span></figcaption>
+      </figure>
+    </div>
+    <div class="note" data-notes="run">
+      <div data-opt="now" hidden><h3>Now</h3><p>As it is in v118. The bounce is mostly smoothed away, the shoulders barely turn, and the rifle is locked to the chest, so only the legs move.</p></div>
+      <div data-opt="A"><h3>A · Combat run</h3><p>Both hands stay on the rifle, carried lower. The hips drop about 11 cm at each footfall and twist with the legs, the shoulders twist back the other way so the rifle swings a little, and the head stays level.</p><span class="pick">My pick</span></div>
+      <div data-opt="B" hidden><h3>B · Sprint</h3><p>The rifle in his right hand at his side, the left arm pumping, a deeper lean. It reads more athletic, but from the bridge camera the pumping arm is mostly hidden behind his body.</p></div>
+    </div>
+  </section>
+
+  <section id="tunnel" aria-labelledby="tunnel-h">
+    <h2 id="tunnel-h">Into the tunnel</h2>
+    <p class="lead">One Queen and five babies, each with its own lane and timing, so nothing climbs over anything. Every leg grips whatever surface that part of the body is on, so none pokes through the hill, the wall above the tunnel or its roof. The view is raised a little so her arrival over the wall is in the picture.</p>
+    <div class="switch" role="group" aria-label="Tunnel scene option" data-group="tunnel">
+      <button type="button" id="tun-now" data-opt="now" aria-pressed="false">Now</button>
+      <button type="button" id="tun-A" data-opt="A" aria-pressed="true">A · Queen first</button>
+      <button type="button" id="tun-B" data-opt="B" aria-pressed="false">B · Babies first</button>
+    </div>
+    <div class="views">
+      <figure>
+        <video data-base="tunnel" muted loop playsinline autoplay controls preload="auto" src="v/tunnel-A.mp4"></video>
+        <figcaption><b>From the bridge</b><span>the game's view of the tunnel mouth</span><span>real speed</span></figcaption>
+      </figure>
+      <figure data-only="A B">
+        <video data-base="tunnel-close" muted loop playsinline autoplay controls preload="auto" src="v/tunnel-close-A.mp4"></video>
+        <figcaption><b>Closer, from above</b><span>where the legs used to come through</span><span>real speed, fewer frames</span></figcaption>
+      </figure>
+    </div>
+    <div class="note" data-notes="tunnel">
+      <div data-opt="now" hidden><h3>Now</h3><p>As it is in v118. Five big young on paths that meet at the arch, so they pile up there, and their legs swing out through the roof and the hill. The camera holds on the mouth for over 14 s.</p></div>
+      <div data-opt="A"><h3>A · Queen first</h3><p>She comes over the hill and in. As her back half goes in, three babies come down beside the opening and go in along the side walls, then two more come over the top behind her. About 11 s.</p></div>
+      <div data-opt="B" hidden><h3>B · Babies first</h3><p>The five pour in first. Then she rears up over the wall with her jaws open for about 2 s, and comes down and in. About 12 s.</p></div>
+    </div>
+  </section>
+
+  <section id="decide" aria-labelledby="decide-h">
+    <h2 id="decide-h">To decide</h2>
+    <ol class="ask">
+      <li>The run: A or B?</li>
+      <li>The tunnel scene: A or B?</li>
+      <li>Is five babies the right number?</li>
+    </ol>
+    <p class="noted">Noted from your last message: the Queen shows up later in the story, and inside the tunnel the squad meets normal monsters and babies. We'll talk through the grates idea once these two are settled.</p>
+  </section>
+
+  <footer>Rendered headlessly from the game's own code at v118. None of these options are in the game yet.</footer>
+</div>
+
+<script>
+(function(){
+  // one switch per scene: swap every clip in that section to the chosen option, keeping its place in the loop
+  function choose(group,opt){
+    var sec=document.getElementById(group);
+    sec.querySelectorAll('.switch button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.opt===opt));});
+    sec.querySelectorAll('.note [data-opt]').forEach(function(d){d.hidden=d.dataset.opt!==opt;});
+    sec.querySelectorAll('figure').forEach(function(f){
+      var only=f.dataset.only;var show=!only||only.split(' ').indexOf(opt)>=0;f.hidden=!show;
+      var v=f.querySelector('video');if(!v)return;
+      if(!show){if(!v.dataset.was)v.dataset.was=v.paused?'0':'1';v.pause();return;}   // (a hidden clip stops, and starts again when shown if it was playing)
+      if(v.dataset.was==='1'&&v.paused){var q=v.play();if(q&&q.catch)q.catch(function(){});}delete v.dataset.was;
+      var src='v/'+v.dataset.base+'-'+opt+'.mp4';if(v.getAttribute('src')===src)return;
+      var t=v.currentTime||0,dur=v.duration||0,frac=dur?t/dur:0,paused=v.paused;
+      v.setAttribute('src',src);v.load();
+      v.addEventListener('loadedmetadata',function once(){v.removeEventListener('loadedmetadata',once);if(v.duration)v.currentTime=frac*v.duration;if(!paused){var p=v.play();if(p&&p.catch)p.catch(function(){});}});
+    });
+    try{localStorage.setItem('bcd.'+group,opt);}catch(e){}
+  }
+  document.querySelectorAll('.switch').forEach(function(sw){
+    sw.addEventListener('click',function(e){var b=e.target.closest('button');if(b)choose(sw.dataset.group,b.dataset.opt);});
+  });
+  ['run','tunnel'].forEach(function(g){var o=null;try{o=localStorage.getItem('bcd.'+g);}catch(e){}if(o==='now'||o==='A'||o==='B')choose(g,o);});
+  // a phone in low-power mode may hold muted clips back until the first touch: start them then
+  function kick(){document.querySelectorAll('video').forEach(function(v){if(v.paused){var p=v.play();if(p&&p.catch)p.catch(function(){});}});}
+  document.addEventListener('touchstart',kick,{once:true,passive:true});
+})();
+</script>

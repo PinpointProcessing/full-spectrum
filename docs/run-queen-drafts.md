@@ -85,4 +85,4 @@ Bryan saw the animations as stills ("Can I see the options in action? I just see
 on a page as looping videos with a Now / A / B switch for each scene (published as an Artifact): the run in the game at real speed
 and close up at half speed, the tunnel from the bridge and closer. Rendered again for it with the grain off: the run's walk at
 30 frames a second for 4 s (`run.js` with `VIEWS= GAMEN=120 GAMESTEP=2`), the tunnel at 15 a second (`queen.js` with `FPS=15`);
-`compose.py page` makes one video per option and view. The videos are in `drafts/page/`.
+`compose.py page` makes one video per option and view. The page and its videos are in `drafts/page/` (published as the Artifact "Bridge Crossing Drafts").
