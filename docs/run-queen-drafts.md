@@ -53,18 +53,20 @@ In both drafts:
   down the face beside the opening and go round its edge into the tunnel along its side walls, sideways, or come over the top
   behind her and go in along the roof.
 
-- **A · the Queen first**: she comes over the hill and in (about 6 s for all of her); as her back half goes in, three babies come
-  down the face beside the opening, two on the right and one on the left over the bus, and go in along the side walls; then two
-  more over the top behind her. About 10 s, as long as now.
+- **A · the Queen first**: she comes over the hill and in; as her back half goes in, three babies come down the face beside the
+  opening, two on the right and one on the left over the bus, and go in along the side walls; then two more over the top behind
+  her. About 11 s.
 - **B · the babies first**: the five pour over the headwall in under 2 s, in their lanes; then she comes up to the edge, rears up
-  over it with her jaws open (about 2 s), and comes down and in, faster. About 11 s.
+  over it with her jaws open (about 2 s), and comes down and in, faster. About 12 s.
+
+The game's scene now holds the camera on the mouth for over 14 s (until the last of the five is far inside), so both are shorter.
 
 The camera: the game's view of the mouth from the bridge cuts off just above the headwall, so B's rearing would be out of the
 picture. In the drafts it's raised a little (the picture moved down, as on the walk across). That's part of the proposal.
 
 Pictures (the game's view, raised; and a closer one from higher up and to the side, where the legs used to come through):
-- `drafts/queen-game-sheet.jpg`: a frame a second, Now / A / B.
-- `drafts/queen-close-sheet.jpg`: the same for A and B from closer.
+- `drafts/queen-game-sheet.jpg`: Now / A / B every 1.5 s.
+- `drafts/queen-close-sheet.jpg`: A and B from closer, every 1.5 s.
 - `drafts/queen-now-game.mp4`, `queen-A-game.mp4`, `queen-B-game.mp4`, `queen-A-close.mp4`, `queen-B-close.mp4`.
 
 ### Questions

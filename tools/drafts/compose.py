@@ -57,6 +57,19 @@ def sheet(fdir, opts, shot, crop, size, names, every, path, cols=None):
     for k, r in enumerate(rows): s.paste(r, (0, size[1] * k))
     s.save(path, quality=86); print(path, s.size)
 
+def grid(fdir, opts, shot, crop, names, times, fps, path, cols=3, tile=(400, 187)):
+    """a still per moment (seconds), cols across and as many rows as it takes, each option a block with its name, one above the other"""
+    rows = (len(times) + cols - 1) // cols; bh = rows * tile[1]; out = Image.new('RGB', (cols * tile[0], bh * len(opts) + 6 * (len(opts) - 1)), (8, 9, 10))
+    for k, o in enumerate(opts):
+        fs = frames(fdir, o, shot)
+        for i, t in enumerate(times):
+            f = fs[min(len(fs) - 1, round(t * fps))]; im = Image.open(f).convert('RGB').crop(crop).resize(tile, Image.LANCZOS)
+            d = ImageDraw.Draw(im); fnt = font(14); txt = f'{t:g} s'; x0, y0, x1, y1 = d.textbbox((0, 0), txt, font=fnt)
+            d.rectangle((tile[0] - (x1 - x0) - 18, tile[1] - (y1 - y0) - 16, tile[0] - 6, tile[1] - 6), fill=(10, 12, 14)); d.text((tile[0] - (x1 - x0) - 12 - x0, tile[1] - (y1 - y0) - 11 - y0), txt, font=fnt, fill=(200, 205, 210))
+            if i == 0: label(im, names[k], 17)
+            out.paste(im, ((i % cols) * tile[0], k * (bh + 6) + (i // cols) * tile[1]))
+    out.save(path, quality=86); print(path, out.size)
+
 def run(fdir, odir):
     opts = ['now', 'A', 'B']; names = ['Now', 'A · combat run', 'B · sprint']
     # one stride, 16 frames: at half speed (a stride is about half a second)
@@ -75,7 +88,7 @@ def queen(fdir, odir):
         for o in have:
             imgs = [label(Image.open(f).convert('RGB').crop(crop).resize(size, Image.LANCZOS), names[o]) for f in frames(fdir, o, shot)]
             gif(imgs, os.path.join(odir, f'queen-{o}-{shot}.gif'), 125)
-        sheet(fdir, have, shot, crop, (320, 150), [names[o] for o in have], 8, os.path.join(odir, f'queen-{shot}-sheet.jpg'), cols=12)
+        grid(fdir, have, shot, crop, [names[o] for o in have], [1.5, 3, 4.5, 6, 7.5, 9], 8, os.path.join(odir, f'queen-{shot}-sheet.jpg'))
 
 if __name__ == '__main__':
     what, fdir, odir = sys.argv[1], sys.argv[2], sys.argv[3]; os.makedirs(odir, exist_ok=True)
