@@ -13,12 +13,15 @@
    - then the montage: four shots with a fade between them while the nest comes away (the eggs, the resin, the slime rocks;
      the floor clean, the fittings clean, the lights on), the squad and the scientists at work in each;
    - then the finished HQ (makeBase): the hall clean and lit, the debris gone, a command center in the middle, a medic table
-     and a supply table (they heal and restock like the stations), the six side rooms empty for what comes next; "Mission
-     complete!" and the report; and a save ('base') so Continue comes back to it (enterBase). */
+     and a supply table (they heal and restock like the stations), the side rooms empty for what comes next but the ones the
+     freed men are fixing up (the crew, below); "Mission complete!" and the report; and a save ('base') so Continue comes back
+     to it (enterBase). */
 const HQ_MID={x:500,y:600};   // the middle of the hall, where everyone gathers while they talk
 const BASE_ST={cmd:{x:500,y:468,w:64,h:34},med:{x:400,y:744},sup:{x:600,y:744}};   // the command center, the medic table, the supply table
 let base=null;   // the montage while it plays ({t0, i}), then {done:true} once the HQ is finished
 let hqStaff=[];   // the scientists who work there now ({id, name, sciN}): the ones brought in, or as many as came out of the data center
+let hqCrew=[];   // the freed men who stay on as its crew ({id, name}), from the clean-up's end on (below)
+let aarCrew=[];   // this mission's freed men once they're crew (or lost): still on its report (progress.js)
 
 const hqCalm=()=>MAPID==='hq'&&hqs.won;   // (the fight's over: nobody bleeds out, combat.js)
 const cineOn=()=>!!(base&&base.cine);   // (the montage: no HUD, nothing drawn over the picture, nobody talking: overlay.js, monsters.js)
@@ -102,7 +105,8 @@ function shotHall(){
 }
 // 4. done: the finished HQ, everyone about it
 function shotReveal(){
-  const W=workers(),sci=W.filter(u=>u.sci),men=W.filter(u=>!u.sci),c=BASE_ST.cmd,list=[];
+  const W=workers(),sci=W.filter(u=>u.sci),men=W.filter(u=>!u.sci&&!(u.joined&&crewStays())),c=BASE_ST.cmd,list=[];
+  for(const u of W)if(u.joined&&crewStays()){const s=crewSpot(u.id);list.push([u,s.x,s.y,s.ang,s.work]);}   // the freed men each at work in a side room of his own (the crew, below)
   sci.forEach((u,i)=>list.push([u,[476,524,452,548][i%4],[c.y-c.h/2-18,c.y-c.h/2-18,c.y-c.h/2-6,c.y-c.h/2-6][i%4],Math.PI/2,i<2?'stand':null]));   // at the screens
   const spots=[[BASE_ST.sup.x-12,BASE_ST.sup.y-20,Math.PI/2,'stand'],[BASE_ST.med.x+4,BASE_ST.med.y-20,Math.PI/2,'stand'],[BASE_ST.sup.x+18,BASE_ST.sup.y-22,Math.PI/2,null]];
   men.forEach((u,i)=>{if(i<spots.length&&men.length>4){const s=spots[i];list.push([u,s[0],s[1],s[2],s[3]]);return;}
@@ -127,6 +131,7 @@ function montageStart(){   // (the conversation's over: fortress.js's hqEndTick)
 function montageEnd(){
   base={done:true};$('#app').classList.remove('cine');for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;   // (HQ staff now: office.js draws no DETAINED over them)
   hqStaff=civs.filter(c=>c.sci&&!c.dead).map(c=>({id:c.id,name:c.name,sciN:c.sciN}));
+  crewUp();   // the freed men stay on: its crew from now (below)
   if(hqEnd)hqEnd.ph='done';saveGame('base');updateObjUI();hud();
   if(state==='play')endAt=performance.now()+1200;   // "Mission complete!" and the report (hud.js's finish)
 }
@@ -175,6 +180,36 @@ function paintBaseGround(g){
   const c=BASE_ST.cmd;g.strokeStyle='rgba(120,200,220,.35)';g.lineWidth=2;g.beginPath();g.arc(c.x,c.y,64,0,7);g.stroke();g.setLineDash([6,6]);g.beginPath();g.arc(c.x,c.y,74,0,7);g.stroke();g.setLineDash([]);
 }
 function cleanFloor(){if(!HQ||!HQ.tex)return;paintBaseGround(HQ.tex.image.getContext('2d'));HQ.tex.needsUpdate=true;}
+
+/* ---------- the crew (Bryan, after v109: "I think we should have the new soldiers stay back and 'repair' and establish the
+   base. I think the 2 4-unit squads are overkill and can be used for large battles/missions"; his answers: they stay once the
+   HQ is taken, and work in the empty rooms). The freed men fight to the end of Level 3; in the clean-up's last shot each is at
+   work in a side room of his own, and from its end they're the Headquarters' crew: people, not soldiers (no card, not
+   selectable, nobody's target), at work there whenever the squad comes in. From the road east on it's the original four.
+   If none of the four is left alive, the freed men go on as the squad instead. ---------- */
+const CREW_ROOM={A3:'W2',A4:'W3',B3:'E2',B4:'E3'};   // Alpha's two on the west side, Bravo's two on the east; the north pair stay empty
+const crewStays=()=>players.some(p=>!p.joined&&!p.dead);
+function crewSpot(id){   // at his room's outer wall, kneeling or standing at it
+  const q=HQ_ROOMS.find(r=>r.id===CREW_ROOM[id])||HQ_ROOMS[0],w=q.side<0,k=['A3','A4','B3','B4'].indexOf(id);
+  return{q,x:w?q.x0+30:q.x1-30,y:(q.y0+q.y1)/2+(k%2?-24:24),ang:w?Math.PI:0,work:k===0||k===3?'kneel':'stand'};
+}
+function crewPost(u){const s=crewSpot(u.id);return Object.assign(u,{x:s.x,y:s.y,ang:s.ang,path:[],work:s.work,room:s.q.id,crew:true,staff:true});}
+function crewUp(){   // (the clean-up's over: montageEnd) the freed men stay
+  const men=players.filter(p=>p.joined);if(!men.length||!crewStays())return;
+  aarCrew=men.slice();players=players.filter(p=>!p.joined);sel=sel.filter(p=>!p.joined);cardGroup=cardGroup.filter(p=>!p.joined);
+  for(const u of men){
+    if(u.dead){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);units=units.filter(q=>q!==u);continue;}   // (the lost: carried out with the rest)
+    Object.assign(u,{side:'C',cell:null,strapped:false,weapon:null,weapon2:null,gl:false,grenade:0,carry:null,carriedBy:null,ret:null,focus:null,supT:null,throwGo:null,medGo:null,carryGo:null,loot:null,lift:null,away:false,peek:null});
+    crewPost(u);if(!civs.includes(u))civs.push(u);
+    if(u.m){u.m.ring.material.color.set('#9aa3a8');figRefresh(u);}   // (a person's grey ring; his rifle put away)
+  }
+  hqCrew=men.filter(u=>!u.dead).map(u=>({id:u.id,name:u.name}));buildCards();floorChip();   // (four cards, four dots on the floor chip)
+}
+function crewCopy(o){   // one of the crew at work in his room (a Continue, or the squad back in from outside: enterBase)
+  const u=mk('C',/^A/.test(o.id)?'A':'B',o.id,o.name,0,0,0);
+  Object.assign(u,{kind:'prisoner',freed:true,weapon:null,grenade:0,spec:null,specN:0,charges:0});
+  crewPost(u);makePerson(u);civs.push(u);return u;
+}
 
 /* ---------- the finished HQ ---------- */
 function makeBase(){
@@ -238,7 +273,10 @@ function drawBase(now){
   if(HQ.floors&&curFloor!=='GF'){drawHQFloors(now);return;}   // (the second floor, the roof: hqfloors.js)
   if(HQ.ride)drawHQFloors(now);
   const c=BASE_ST.cmd,[lx,ly]=below(c.x,c.y+c.h/2+16,6);label('COMMAND CENTER',lx,ly,'#8fe6f2',10,700);
-  for(const q of HQ_ROOMS){const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;label('EMPTY ROOM',x,y,'rgba(200,210,220,.55)',9,700);}
+  for(const q of HQ_ROOMS){const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;
+    const m=civs.find(c=>c.crew&&!c.dead&&c.room===q.id);   // one of the crew at work in it (above)
+    if(m){label('REPAIRING',x,y,'rgba(255,207,74,.8)',9,700);label(m.name.toUpperCase(),x,y+11,'rgba(200,210,220,.55)',8,700);}
+    else label('EMPTY ROOM',x,y,'rgba(200,210,220,.55)',9,700);}
 }
 
 /* ---------- Continue from the save in the finished HQ, or back in from outside (the drawbridge's gather area: monsters.js) ---------- */
@@ -253,6 +291,7 @@ function enterBase(fromOut){
     if(!hqStaff.length)hqStaff=Array.from({length:Math.max(1,sciOut||0)},(_,i)=>({id:'S'+(i+1),name:'Scientist',sciN:i}));   // (a Continue: as many as came out of the data center)
     hqStaff.forEach((o,i)=>sciCopy(o,470+i*20,430,Math.PI/2));
     makeBase();base={done:true};shotReveal();for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;
+    hqCrew.forEach(crewCopy);   // the crew at work in their rooms (above)
     if(fromOut){players.filter(p=>!p.dead&&!p.gone&&!p.carriedBy).forEach((p,i)=>{p.x=440+(i%4)*40;p.y=806+Math.floor(i/4)*24;p.ang=-Math.PI/2;});camShot(500,760,2.0,0,.1);}   // (in at the south door, short of its gather area)
     else camShot(500,600,1.6,0,.1);
     contact=false;clearTeams();sel=[];cardGroup=[];obj=Math.max(obj,6);objDone=4;

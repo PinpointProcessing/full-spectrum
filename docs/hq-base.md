@@ -91,7 +91,8 @@ outside, so all six rooms stay for the others.
 Bryan, after v96: classes should be assigned once the team has finished the HQ, but better to wait for radio control,
 "because then it would make sense how the troops can get weapons." Then: classes **first unlock at the HQ**, class upgrades
 happen **when the team returns to the HQ**, and **the freed men turn into normal soldiers** with classes like everyone
-else. Each class unlocks tools to equip at big milestones (Support a mobile turret, Medic a heal dart, Assault C4, and more
+else (since v110 they're the HQ's crew once it's taken, at work in four of the side rooms; Bryan keeps the eight together
+for large battles and missions). Each class unlocks tools to equip at big milestones (Support a mobile turret, Medic a heal dart, Assault C4, and more
 as the game goes on): a draft for the rest is in docs/classes.md. Today the choice is only on the boat screen before
 Levels 2 and 3, and the freed men can't take one. With radio control: promote at the HQ, and the class's weapons, gear and
 tools arrive on a supply drop called on the radio.

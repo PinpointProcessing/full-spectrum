@@ -281,7 +281,7 @@ function closeEast(){   // (a new game, a Retry, another level: reset, once the 
   EAST_X=W;if(was)rebuildNav();
   if(EAST.dirty){paintEast(EAST.tex.image.getContext('2d'),EAST.rc.getContext('2d'),1.5);EAST.tex.needsUpdate=true;EAST.dirty=false;}   // (clean ground for the next game)
 }
-function resetRoad(){closeEast();road=null;hqStaff=[];}   // (state.js's reset)
+function resetRoad(){closeEast();road=null;hqStaff=[];hqCrew=[];aarCrew=[];}   // (state.js's reset; the HQ's people: base.js)
 
 /* ---------- out of the Headquarters, and back in ---------- */
 function roadGather(){   // (interior.js's gatherZone: GO OUT in the Headquarters' entry hall, TUNNEL at the tunnel's mouth)

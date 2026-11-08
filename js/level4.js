@@ -606,6 +606,8 @@ function l4CrawlerTick(dt){
   const near=players.some(p=>alive(p)&&!p.away&&l4FloorOf(p.x,p.y)==='ST'&&hyp(p.x-c.x,p.y-c.y)<L4_CRAWLER.wake);
   const loud=flashes.some(f=>f.t<=dt+1e-6&&l4FloorOf(f.x,f.y)==='ST'&&hyp(f.x-c.x,f.y-c.y)<520);
   if(near||loud||c.hp<c.maxHp){c.dormant=false;c.againT=simT+.5;c.growlT=simT+.4;c.alerted=true;sfxMon('mon_scream',c,1,.62);shake(.2);
+    const n=Math.max(1,players.filter(p=>alive(p)&&!p.away&&l4FloorOf(p.x,p.y)==='ST').length),hp=L4_CRAWLER.hp+L4_CRAWLER.perMan*n;
+    if(hp<c.maxHp){c.hp*=hp/c.maxHp;c.maxHp=hp;}   // sized for the men on the stairs, not the whole squad: two split off up them face one for two (v110: the squad is four from here)
     const p=players.filter(p=>alive(p)&&l4FloorOf(p.x,p.y)==='ST').sort((a,b)=>hyp(a.x-c.x,a.y-c.y)-hyp(b.x-c.x,b.y-c.y))[0];if(p)callout(p,'Big one! Up ahead!',C.bad);}
 }
 

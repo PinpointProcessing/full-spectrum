@@ -38,7 +38,7 @@ function statLine(u){
   if(s.items)bits.push(pl(s.items,'grenade'));
   if(s.ties)bits.push(pl(s.ties,'capture'));
   if(s.labs)bits.push(pl(s.labs,'lab bench')+' wrecked');
-  if(u.joined)bits.unshift('freed prisoner');
+  if(u.joined)bits.unshift(u.crew?'freed prisoner · stays at the HQ':'freed prisoner');   // (the HQ's crew from its taking on: base.js)
   bits.push(u.dead?'KIA':s.downs?`survived · downed ${s.downs}×`:'survived');
   return bits.join(' · ');
 }
@@ -46,14 +46,15 @@ function statLine(u){
 /* ---------- after-action report ---------- */
 function showAAR(){
   const t=Math.floor(simT-mission.t0),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0');
-  const kills=players.reduce((n,p)=>n+p.stats.kills,0),kia=players.filter(p=>p.dead).length;
+  const roster=[...players,...(LEVEL===3?aarCrew:[])];aarCrew=[];   // (the freed men who stayed on at the HQ as its crew are still on its report: base.js)
+  const kills=roster.reduce((n,p)=>n+p.stats.kills,0),kia=roster.filter(p=>p.dead).length;
   if(LEVEL===1){$('#aarSum').textContent=`Level 1: the radio tower is down, in ${mm}:${ss}. ${kills} hostile${kills===1?'':'s'} down, ${kia?`${kia} of ours killed in action`:'no one lost'}.`;$('#aarBtn').textContent='On to Level 2';}
   else if(LEVEL===2){$('#aarSum').textContent=`Level 2: the power station is dark, in ${mm}:${ss}. ${kills} hostile${kills===1?'':'s'} down, ${kia?`${kia} of ours killed in action`:'no one lost'}. The data center's floodlights are out.`;$('#aarBtn').textContent='On to Level 3';}
   else $('#aarBtn').textContent='Continue';
   if(LEVEL===4){const R=l4Run||{},b=R.bonus||0;$('#aarSum').textContent=`Level 4: the old radio tower's parts are back, in ${mm}:${ss}: the transmitter, the receiver and the antenna${R.finds&&R.finds.length?`; found ${R.finds.join(' and ')}`:''}${R.intel?'; the radio log says where the next mission is':''}. ${kills} kill${kills===1?'':'s'}, ${kia?`${kia} of ours killed in action`:'no one lost'}.${R.crawlerDead?' The Crawler is dead.':''} Next at the HQ: radio control.`;}   // (level4.js)
-  if(LEVEL===3)$('#aarSum').textContent=`${obj>=6?'The Headquarters taken: the Brood Mother and her brood are dead. All':obj>=5?'Warehouse, bridge, container yard and data center taken, drawbridge down,':'Warehouse and yard cleared'} in ${mm}:${ss}. ${kills} hostiles down, ${kia?`${kia} of ours killed in action`:'no one lost'}. ${alertMax?`The base reached ${ALERT_NAMES[alertMax]}.`:'The base never went on alert.'}${sciOut?` ${sciOut} of 4 scientists brought out, ${players.filter(p=>p.joined).length} of 4 prisoners freed, ${office.labN} of 4 lab benches wrecked.`:''}`;
+  if(LEVEL===3)$('#aarSum').textContent=`${obj>=6?'The Headquarters taken: the Brood Mother and her brood are dead. All':obj>=5?'Warehouse, bridge, container yard and data center taken, drawbridge down,':'Warehouse and yard cleared'} in ${mm}:${ss}. ${kills} hostiles down, ${kia?`${kia} of ours killed in action`:'no one lost'}. ${alertMax?`The base reached ${ALERT_NAMES[alertMax]}.`:'The base never went on alert.'}${sciOut?` ${sciOut} of 4 scientists brought out, ${roster.filter(p=>p.joined).length} of 4 prisoners freed, ${office.labN} of 4 lab benches wrecked.`:''}${roster.some(p=>p.crew&&!p.dead)?' The freed men stay at the Headquarters as its crew.':''}`;
   const rows=$('#aarRows');rows.innerHTML='';
-  players.forEach((u,i)=>{
+  roster.forEach((u,i)=>{
     const before=xpOf(u.id),gain=missionXP(u).reduce((n,p)=>n+p[0],0),after=before+gain;
     progress[u.id]=after;
     const l0=levelOf(before),l1=levelOf(after),r0=rankOf(l0),r1=rankOf(l1);
@@ -81,6 +82,6 @@ function showAAR(){
     },500+i*700);
   });
   saveProgress();
-  for(const p of players)p.level=levelOf(xpOf(p.id));
+  for(const p of roster)p.level=levelOf(xpOf(p.id));
   $('#aar').hidden=false;
 }

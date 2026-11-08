@@ -208,11 +208,18 @@ function hqEndTick(){   // (every tick once she's dead: hqTickWin)
     u.path=[{x:HQ_DOOR.x+d[0]*.4,y:HQ_DOOR.y+6},{x:HQ_DOOR.x+d[0]*.4,y:HQ_DOOR.y-10}];return u;});
   walkToMid(E);   // in through the door and on to the middle of the hall, everyone, while they talk (base.js)
   const s0=E.sci[0],who={sci:s0,lead:E.lead,other:E.other},to={sci:E.lead,lead:s0,other:s0};
-  talkStart(HQ_TALK.map(([k,t],i)=>({who:who[k],to:to[k],text:t,clip:`hqend_${i+1}`})),()=>{E.ph='montage';E.done();});
+  const lines=HQ_TALK.map(([k,t],i)=>({who:who[k],to:to[k],text:t,clip:`hqend_${i+1}`}));
+  const crew=players.filter(p=>p.joined&&!p.dead),boss=!E.lead.joined?E.lead:players.find(p=>!p.joined&&!p.dead&&!p.offMap);
+  if(crew.length&&boss&&crewStays()){const n=crew.map(p=>p.name),c0=crew.find(p=>p.id==='B4')||crew[0];   // the freed men stay on as its crew (base.js; Bryan, after v109)
+    lines.push({who:boss,to:c0,text:`${n.length>1?n.slice(0,-1).join(', ')+' and '+n[n.length-1]:n[0]}: you stay here. Fix this place up and get it running.`},
+      {who:c0,to:boss,text:"We'll have it running by the time you're back."});}
+  talkStart(lines,()=>{E.ph='montage';E.done();});
 }
 function hqHint(){
   if(MAPID!=='hq')return'';
-  if(hqs.won){if(HQ&&HQ.base){if(HQ.floors&&curFloor!=='GF')return hqFloorHint();return HQ.floors?'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now. The stairs and the lift at the north end go up to the second floor and the roof. Gather everyone at the south door to go out.':'Your Headquarters: the command center, the medic table and the supply table. The six side rooms are empty for now. Gather everyone at the south door to go out.';}
+  if(hqs.won){if(HQ&&HQ.base){if(HQ.floors&&curFloor!=='GF')return hqFloorHint();
+    const n=civs.filter(c=>c.crew&&!c.dead).length,rooms=n?`The freed men are fixing up ${n===1?'one of the side rooms':n+' of the side rooms'}; the other ${6-n} ${6-n===1?'is':'are'} empty for now.`:'The six side rooms are empty for now.';   // (the crew: base.js)
+    return`Your Headquarters: the command center, the medic table and the supply table. ${rooms} ${HQ.floors?'The stairs and the lift at the north end go up to the second floor and the roof. ':''}Gather everyone at the south door to go out.`;}
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now.':'Send someone for the scientists: select a soldier, then tap BRING THE SCIENTISTS at the south door.';}
   if(!hqs.awake)return'Here she comes.';

@@ -20,7 +20,7 @@ function clearSave(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeIt
 let savedTimer=0;
 function saveGame(stage,quiet){   // (quiet: no Saved chip, the drawbridge coming down: mission.js)
   const data={v:3,stage,when:Date.now(),sci:sciOut,cleared:[0,1,2,3].filter(n=>finished[n]),   // (sci: scientists brought out of the data center: office.js; cleared: the areas that are checkpoints)
-    alert:{t:alertT,max:alertMax},l4:typeof l4Save==='function'&&MAPID==='l4'?l4Save():null,   // (Level 4: the parts taken, the crates, the radio log, the generator, the Crawler: level4.js)   // the base's alert level only goes up within the mission (layers.js)
+    alert:{t:alertT,max:alertMax},crew:hqCrew,l4:typeof l4Save==='function'&&MAPID==='l4'?l4Save():null,   // (Level 4: the parts taken, the crates, the radio log, the generator, the Crawler: level4.js)   // the base's alert level only goes up within the mission (layers.js)
     squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges,weapon:p.weapon,weapon2:p.weapon2||null,gl:!!p.gl,   // (gl: an M203 in his grenade's place, Level 4's find)
       ...(p.joined?{joined:true,name:p.name,weapon:p.weapon}:{})}]))};   // (joined: a freed prisoner, office.js)
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
@@ -37,7 +37,10 @@ function continueGame(){
   for(const n of cleared){finished[n]=true;addZones(REST_ZONES[AREA_STAGE[n]]);}
   if(cleared.has(0))for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;e.gone=true;}   // the warehouse's four
   const n=STAGE_OBJ[s.stage],at0=STAGE_AT[s.stage];
-  for(const[id,d]of Object.entries(s.squad))if(d.joined&&!players.some(p=>p.id===id))rejoin(id,d,at0);   // the freed prisoners who joined (office.js)
+  if(n>=6&&!s.crew&&['A1','A2','B1','B2'].some(id=>s.squad[id]&&!s.squad[id].dead)){   // a save from before v110, the freed men still in the squad: from the HQ's taking on they're its crew (base.js)
+    s.crew=Object.entries(s.squad).filter(([,d])=>d.joined&&!d.dead).map(([id,d])=>({id,name:d.name||id}));s.squad=Object.fromEntries(Object.entries(s.squad).filter(([,d])=>!d.joined));}
+  hqCrew=n>=6&&s.crew?s.crew.slice():[];
+  for(const[id,d]of Object.entries(s.squad))if(d.joined&&!players.some(p=>p.id===id))rejoin(id,d,at0);   // the freed prisoners who joined (office.js; from the HQ on, only if none of the four is left: base.js)
   if(n>=6){sciOut=s.sci||1;if(typeof preloadVoices==='function')preloadVoices(['S1','S2','S3','S4']);}   // (the Headquarters' staff now: they're inside it, base.js)
   else if(n>=4)sciBack(s.sci||1,at0);if(['hqf','dc','gate','base','road','hill','summit','home'].includes(s.stage))mon.hqf=true;   // the scientists brought out follow the squad again (to the bio scanner, then onto the drawbridge: monsters.js)
   if(n>=5){setBridge(1);if(s.stage!=='dc')addZones(REST_ZONES.dc);}   // (from 'dc' they pour out again first: the stations once the gate's clear, monsters.js)
@@ -77,14 +80,16 @@ function refreshSaveButtons(){
    come back to the game they can start off at checkpoints or have a decision to start the level over"). On the intro card
    under Level 3: Continue (the last save) and New game as before, and the list of checkpoints, every one open for now, like
    the levels. A checkpoint starts with everyone at full health and the loadout from the between-missions screen; from the
-   scientists on, with the four freed men armed and all four scientists. It becomes the save. ---------- */
+   scientists to the gate, with the four freed men armed and all four scientists; from the Headquarters on the freed men are
+   its crew and the squad is the original four (base.js). It becomes the save. ---------- */
 const CP_ORDER=['wh','br','maze','dco','dci','sci','hqf','dc','gate','base','road','hill','summit','home'];
 function startCheckpoint(st){
   const n=STAGE_OBJ[st],after=n>=4,lo=typeof loadout!=='undefined'?loadout:DEFAULT_LOADOUT,squad={};
   for(const id of['A1','A2','B1','B2']){const l=lo[id]||DEFAULT_LOADOUT[id];squad[id]={dead:false,hp:100,grenade:1,spec:l.spec,weapon:l.weapon};}
-  if(after)for(const[id,name]of[['A3','Abara'],['A4','Brennan'],['B3','Lindqvist'],['B4','Marsh']])squad[id]={dead:false,hp:100,grenade:0,joined:true,name,weapon:'rifle'};   // (the freed men, each with a rifle off a body)
+  const freed=[['A3','Abara'],['A4','Brennan'],['B3','Lindqvist'],['B4','Marsh']],crew=n>=6?freed.map(([id,name])=>({id,name})):[];   // (from the HQ on: its crew)
+  if(after&&n<6)for(const[id,name]of freed)squad[id]={dead:false,hp:100,grenade:0,joined:true,name,weapon:'rifle'};   // (the freed men, each with a rifle off a body)
   const cleared={wh:[0],br:[0,1],maze:[0,1,2]}[st]||[0,1,2,3];
-  try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:3,stage:st,when:Date.now(),cleared,alert:0,sci:after?4:0,squad}));}catch(e){return;}
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:3,stage:st,when:Date.now(),cleared,alert:0,sci:after?4:0,squad,crew}));}catch(e){return;}
   continueGame();refreshSaveButtons();
 }
 function buildCheckpoints(){

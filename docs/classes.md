@@ -115,7 +115,9 @@ the radio.
 
 Bryan's answers (after v96):
 1. **The freed men turn into normal soldiers**: they get classes like everyone else (today `canPromote`, `classOf` and the
-   report's "choose his class next" all leave them out).
+   report's "choose his class next" all leave them out). Since v110 (Bryan, after v109: "the 2 4-unit squads are overkill
+   and can be used for large battles/missions") they stay at the HQ as its crew once it's taken, so this waits on the large
+   battles that bring them out again.
 2. **Classes first unlock at the HQ**, not on the boat screen, and class upgrades happen when the team returns to the HQ.
 
 And the class tools: "each class will start to unlock special tools they can equip. Like support can get a mobile turret.

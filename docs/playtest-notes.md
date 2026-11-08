@@ -834,3 +834,32 @@ has all seven of the front's men in sight.
    where the jeep turns. The quiet way in to the ladder from the yard's west strip is as it was, the walk along the front to
    the doors goes through the gap by the building (or over the bags), sandbags don't block anyone's sight, and the jeep's
    route clears them.
+
+# Bryan, after v109 (the changes are in v110)
+
+1. "Okay, so I think we should have the new soldiers stay back and "repair" and establish the base. I think the 2 4-unit
+   squads are overkill and can be used for large battles/missions". I asked when they stay and what they do there; his
+   answers: once the HQ is taken, and at work in the empty rooms. Built: the four freed men fight with the squad to the end
+   of Level 3 (the gate and the Brood Mother). At the end of the talk in the hall the leader tells them: "Abara, Brennan,
+   Lindqvist and Marsh: you stay here. Fix this place up and get it running." Marsh: "We'll have it running by the time
+   you're back." (text only, like the rest of that talk). They help with the clean-up, and in its last shot each is at work
+   in a side room of his own, Abara and Brennan on the west side, Lindqvist and Marsh on the east; the two rooms at the north
+   end stay empty. From then on they're the Headquarters' crew: no cards, they can't be selected, their rooms read REPAIRING
+   with the man's name, and the hint line says so. The report still has all eight rows ("freed prisoner · stays at the HQ")
+   and its summary says they stay. The squad that goes out to the road east and into Level 4 is the original four; the crew
+   are at work whenever the squad comes back in. Defaults I took: a freed man who was killed stays lost; if none of the
+   original four is left alive, nobody stays behind and the freed men go on as the squad; the checkpoints from "The
+   Headquarters" on start with the four; a save from before v110 at the Headquarters or later is read the new way (the
+   freed men in it become the crew; a Level 4 find one of them carried goes with him). Not built: bringing the crew out
+   again for a large battle; that waits for a mission that needs it.
+2. Level 4 with four (it had only been tested with eight). The same bot as before (it only moves the squad, the shooting is
+   automatic, it keeps the downed alive), from the hill checkpoint. By the lift: cleared 2 of 2, nobody downed, some
+   finishing on 1 to 25 HP. Split (two up the stairs past the Crawler, two by the lift): cleared 3 of 3 with the change
+   below. All four up the stairs and then straight at the summit: cleared 2 of 6; in the other four all four went down with
+   3 to 5 of its nine men still up. With eight the same bot cleared every run. The stairs are the quiet way (their men don't
+   know you're coming) and the bot uses no silencers or takedowns, but a loud fight of four against the summit's nine, in
+   helmets and vests, is hard. Not changed; if it's too hard, the levers are their vests (20 % less damage) or one or two
+   fewer men on the summit for a squad of four. Changed: the Crawler on the stairs was sized for the whole squad (360 HP and
+   40 a man) when the hill was built; it's now sized for the men on the stairs when it wakes, never bigger than before. Two
+   sent up the stairs alone: before, both went down to it and it lived in one of three games; after, they killed it in all
+   three.
