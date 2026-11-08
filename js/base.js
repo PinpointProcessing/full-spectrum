@@ -250,6 +250,33 @@ function makeBase(){
   const keep=scene;scene=HQ.scene;try{cmdMesh();medMesh();supMesh();}finally{scene=keep;}
   addZones([{k:'med',x:BASE_ST.med.x,y:BASE_ST.med.y,label:'MEDIC TABLE',noMesh:true},{k:'sup',x:BASE_ST.sup.x,y:BASE_ST.sup.y,label:'SUPPLY TABLE',noMesh:true}]);
   hqFloorsBuild();   // the stairs and the lift where her lair was, the second floor and the roof (hqfloors.js)
+  if(typeof l4Done==='function'&&l4Done())radioRoomMesh();   // (the old radio tower powered on: the radio room's on the air, below)
+}
+/* ---------- the radio room on the air (Bryan, after v119: "Once the tower is up the HQ can finally communicate. Make one of the
+   four rooms a radio communication room"; since v124): once Level 4 has the old tower powered on (level4.js's l4Done), E2 has a
+   radio desk along its outer wall (sets with their lights, a screen with the signal on it, a lamp), one of the scientists on
+   it (radioOperator), the label ON THE AIR, and the first time back a short talk (radioTalk, text only). ---------- */
+function radioRoomMesh(){
+  if(HQ.radio)return;const q=HQ_ROOMS.find(r=>r.id===RADIO_ROOM),g=new T.Group();HQ.radio=g;HQ.scene.add(g);
+  const dark=new T.MeshStandardMaterial({color:0x1d2227,roughness:.6,metalness:.4}),set=new T.MeshStandardMaterial({color:0x4a5048,roughness:.5,metalness:.5});
+  const x=q.x1-22,y=(q.y0+q.y1)/2;bBox(g,18,1.4,90,dark,x,8,y);bBox(g,14,7,84,dark,x,4,y);
+  for(let k=-1;k<=1;k++){bBox(g,10,8,22,set,x+2,13,y+k*28);for(let j=0;j<3;j++){const l=new T.Mesh(new T.BoxGeometry(.6,1,1.4),new T.MeshBasicMaterial({color:j===1?0xffb347:0x37e08a,toneMapped:false}));l.position.set(x-3.2,14+j*1.6,y+k*28-6+j*5);g.add(l);}}
+  const scr=bLit(canvasTex(160,90,(c,w,h)=>{c.fillStyle='#04140f';c.fillRect(0,0,w,h);c.strokeStyle='#37e08a';c.lineWidth=2;c.beginPath();for(let i=0;i<w;i++){const v=h/2+Math.sin(i*.21)*16*Math.sin(i*.037)+Math.sin(i*1.3)*3;i?c.lineTo(i,v):c.moveTo(i,v);}c.stroke();
+    c.fillStyle='rgba(143,230,242,.85)';c.font='bold 12px sans-serif';c.fillText('ON THE AIR',8,16);}),22,12);scr.rotation.y=-Math.PI/2;scr.position.set(x+8.6,22,y);g.add(scr);bBox(g,1,14,24,dark,x+9.4,22,y);
+  addLamp(x-30,y,1.3,170,0xbfffe0,false,28);
+}
+function radioOperator(){
+  if(!(typeof l4Done==='function'&&l4Done()))return;const q=HQ_ROOMS.find(r=>r.id===RADIO_ROOM),s=civs.filter(c=>c.sci&&!c.dead)[1]||civs.find(c=>c.sci&&!c.dead);if(!s)return;
+  Object.assign(s,{x:q.x1-46,y:(q.y0+q.y1)/2+8,ang:0,path:[],work:'stand',radioOp:true});
+}
+function radioTalk(){
+  if(!(typeof l4Done==='function'&&l4Done())||MAPID!=='hq'||typeof talkStart!=='function')return;
+  try{if(localStorage.getItem('warehouseYard.radioTalk'))return;localStorage.setItem('warehouseYard.radioTalk','1');}catch(e){}
+  const sci=civs.find(c=>c.radioOp)||civs.find(c=>c.sci&&!c.dead),lead=players.find(p=>p.id==='A1'&&!p.dead)||players.find(p=>!p.dead);if(!sci||!lead)return;
+  talkStart([{who:sci,to:lead,text:'It\u2019s working. The old tower\u2019s carrying our signal.'},
+    {who:lead,to:sci,text:'Then we\u2019re not alone out here anymore. Who\u2019s listening?'},
+    {who:sci,to:lead,text:'Everyone, now. Friends and otherwise. We\u2019ll hear what\u2019s moving out there before it reaches us.'},
+    {who:lead,to:sci,text:'Good. Keep that room manned. Whatever comes over it, I want to hear it first.'}],()=>{hud();});
 }
 const bBox=(g,w,h,d,m,x,y,z,ry)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);if(ry)o.rotation.y=ry;o.castShadow=o.receiveShadow=true;g.add(o);return o;};
 const bLit=(tex,w,h)=>new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tex,toneMapped:false}));
@@ -301,7 +328,7 @@ function drawBase(now){
   for(const q of HQ_ROOMS){const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;
     const m=civs.find(c=>c.crew&&!c.dead&&c.room===q.id);   // one of the crew at work in it (above; dormant)
     if(m){label('REPAIRING',x,y,'rgba(255,207,74,.8)',9,700);label(m.name.toUpperCase(),x,y+11,'rgba(200,210,220,.55)',8,700);}
-    else if(q.id===RADIO_ROOM){label('RADIO ROOM',x,y,'rgba(143,230,242,.8)',9,700);label('PENDING',x,y+11,'rgba(200,210,220,.55)',8,700);}
+    else if(q.id===RADIO_ROOM){const on=typeof l4Done==='function'&&l4Done();label('RADIO ROOM',x,y,'rgba(143,230,242,.8)',9,700);label(on?'ON THE AIR':'PENDING',x,y+11,on?'#37e08a':'rgba(200,210,220,.55)',8,700);}
     else label('EMPTY ROOM',x,y,'rgba(200,210,220,.55)',9,700);}
 }
 
@@ -316,7 +343,7 @@ function enterBase(fromOut){
     units=[...players];MAPID='hq';enemies=[];civs=[];resetHQ();hqs.won=true;hqs.awake=true;hqEnd={ph:'done'};baseActs();
     if(!hqStaff.length)hqStaff=Array.from({length:Math.max(1,sciOut||0)},(_,i)=>({id:'S'+(i+1),name:'Scientist',sciN:i}));   // (a Continue: as many as came out of the data center)
     hqStaff.forEach((o,i)=>sciCopy(o,470+i*20,430,Math.PI/2));
-    makeBase();base={done:true};shotReveal();for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;
+    makeBase();base={done:true};shotReveal();for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;radioOperator();
     hqCrew.forEach(crewCopy);   // the crew at work in their rooms (above)
     camShot(500,600,1.6,0,.1);   // (since v121 nobody walks in the Headquarters: everyone where the clean-up's last shot put them, below)
     for(const p of players)if(p.carriedBy||p.carry){p.carriedBy=null;p.carry=null;}
@@ -354,7 +381,7 @@ function hqTap(sx,sy){   // (input.js's tap while hqManage)
 }
 const HQ_MISSIONS=[   // (the north road's mission stays hidden until it's designed: Bryan)
   {id:'l4',lvl:'Level 4',title:'The Old Radio Tower',text:'Power the old radio tower on so the Headquarters can talk to the outside. Through the tunnel down the road east, up through the hill to its summit. Out by the zip line and back over the bridge on foot.',
-   done:()=>typeof l4Done==='function'&&l4Done(),go:()=>leaveBase()}];
+   done:()=>typeof l4Done==='function'&&l4Done(),go:()=>leaveBase()}];   // (done: the tower's powered on and the Queen's dead; its mission card then says so)
 function hqcOpen(){
   if(!hqManage())return;hqc={step:'missions',m:null};$('#hqc').hidden=false;document.body.classList.add('hqcOpen');hqcDraw();
 }
@@ -364,8 +391,8 @@ function hqcDraw(){
   if(hqc.step==='missions'){
     $('#hqcTitle').textContent='Missions';back.hidden=true;
     const open=HQ_MISSIONS.filter(m=>!m.done());
-    body.innerHTML=HQ_MISSIONS.map(m=>`<button type="button" class="hqc-m${m.done()?' done':''}" data-m="${m.id}" ${m.done()?'disabled':''} aria-pressed="${hqc.m===m.id}"><small>${m.lvl}${m.done()?' · done':''}</small><b>${m.title}</b><span>${m.done()?'The parts are back. Next: radio control in the radio room (coming next).':m.text}</span></button>`).join('')+
-      (open.length?'':'<p class="eq-note">No other missions yet. More open up as the Headquarters gets its radio.</p>');
+    body.innerHTML=HQ_MISSIONS.map(m=>`<button type="button" class="hqc-m${m.done()?' done':''}" data-m="${m.id}" ${m.done()?'disabled':''} aria-pressed="${hqc.m===m.id}"><small>${m.lvl}${m.done()?' · done':''}</small><b>${m.title}</b><span>${m.done()?'The old radio tower is powered on and the Queen is dead. The radio room is on the air.':m.text}</span></button>`).join('')+
+      (open.length?'':`<p class="eq-note">${typeof l4Done==='function'&&l4Done()?'The radio room is on the air: new missions will come in over it.':'No other missions yet. More open up as the Headquarters gets its radio.'}</p>`);
     if(!hqc.m&&open.length)hqc.m=open[0].id;
     for(const b of body.querySelectorAll('.hqc-m'))b.setAttribute('aria-pressed',String(b.dataset.m===hqc.m));
     go.textContent='Squad';go.disabled=!hqc.m;

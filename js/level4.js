@@ -455,7 +455,7 @@ function l4Cams(u){
   for(const e of L4.mil){if(beaten(e))continue;e.seen=true;e.last={x:e.x,y:e.y};e.markT=simT+150;e.revealT=Math.max(e.revealT||0,simT+150);n++;}
   if(typeof playSample==='function')playSample('computer',u.x,u.y,.6);
   callout(u,'Eyes on the summit',C.good);
-  banner(`The cameras: ${n} men on the summit in helmets and vests, a sniper up the mast, a machine gun over their track. Marked for the next few minutes.`,4200);
+  banner(`The cameras: ${n} of their men on the summit, and something moving in the vents round them. Marked for the next few minutes.`,4200);
 }
 // the finds (Bryan, after v99): k 0 the M203 (the staff room), k 1 an M240 (the store). Whoever takes one keeps it: the M203 in his
 // grenade's place (combat.js's M203: three rounds, further, a bigger blast; ammo drops refill it), the M240 his main weapon
@@ -888,7 +888,7 @@ function l4Hint(){
   if(L4.zip)return'';
   if(curFloor==='ST')return L4.crawler&&!L4.crawler.dead?'The stairs: a long climb through the rock to a hut on the summit. Quiet: the guards up top won\'t hear you. Something big lives up here: the Crawler. Shoot it when it rears, step out of the violet line.':'The stairs up to the hut on the summit. The UP TO THE HUT ring at the top takes everyone selected up.';
   if(curFloor==='PL'){
-    if(!L4.been.SU)return`The plant: the tunnel's old control rooms. Up to the summit from the lower station (east): the STAIRS are quiet (something lives in them); the LIFT ${L4.power?'has power. It\'s loud: the guards up top will hear it coming and wait at the bunker, and it wakes the brood in the fan hall.':'needs the generator (north-east). It\'s loud: the guards up top will hear it coming, and it wakes the brood nesting in the fan hall.'}${L4.cams?'':' The control room\'s cameras show the summit.'}${L4.bonus.every(Boolean)?'':' Bonus finds: an M203 in the staff room, a heavy machine gun in the store.'}`;
+    if(!L4.been.SU)return`The plant: the tunnel's old control rooms. Up to the summit from the lower station (east): the STAIRS are quiet (something lives in them); the LIFT ${L4.power?'has power. It\u2019s loud, and it wakes the brood nesting in the fan hall.':'needs the generator (north-east). It\u2019s loud, and it wakes the brood nesting in the fan hall.'} Bonus finds in the staff room and the store.`;
     return'The plant. The stairs and the lift in the lower station go back up to the summit. The service door (west) takes you back out to the road tunnel.';}
   if(L4.queenDead)return'The tower\u2019s live and the Queen is dead. Tap the zip line\u2019s arrows on the south edge and everyone goes. Anyone down has to be carried.';
   if(L4.queen)return'The Queen: stay out of the scorch where she rears to slam, keep moving, and keep her young off the men shooting her.';

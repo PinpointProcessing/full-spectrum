@@ -247,7 +247,7 @@ function hqEndTick(){   // (every tick once she's dead: hqTickWin)
 function hqHint(){
   if(MAPID!=='hq')return'';
   if(hqs.won){if(HQ&&HQ.base){if(HQ.floors&&curFloor!=='GF')return hqFloorHint();
-    const rooms='One side room is the radio room, waiting on the old radio tower; the other five are empty for now.';   // (base.js's RADIO_ROOM)
+    const rooms=typeof l4Done==='function'&&l4Done()?'The radio room is on the air (the east side, middle); the other five side rooms are empty for now.':'One side room is the radio room, waiting on the old radio tower; the other five are empty for now.';   // (base.js's RADIO_ROOM)
     return`Your Headquarters. Tap the command center for the next mission and the squad. ${rooms} Everyone back here is healed and restocked.${HQ.floors?' The floor buttons show the second floor and the roof.':''}`;}
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now. Once everyone’s up, one of them goes out for the scientists.':'One of them is going out for the scientists, through the south door.';}

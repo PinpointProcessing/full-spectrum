@@ -242,7 +242,7 @@ function leaveTunnel(){
 }
 function leaveTunnelNow(){if(MAPID==='tun')tunnelOut();tunLost=0;}   // (a Retry, a New game: state.js's reset)
 function tunHint(){
-  const left=TUN&&TUN.brood?TUN.brood.reduce((n,B)=>n+B.list.filter(h=>!h.dead).length,0):0,things=left?` Her young are in here among the wrecks (${left} left): they wake as you come near.`:'';
+  const left=TUN&&TUN.brood?TUN.brood.reduce((n,B)=>n+B.list.filter(h=>!h.dead).length,0):0,things=(left?` Her young are in here among the wrecks (${left} left): they wake as you come near.`:'')+(TUN&&TUN.grates&&TUN.grates.some(g=>g.ph==='idle')?' Vents low in the walls: if one rattles, get clear, and if something drags a man, shoot it.':'');
   return obj>=9?'The tunnel runs north under the hill, pitch black: only your torches. Its north end has caved in. Walk back to the south end to go out.':`The tunnel runs north under the hill, pitch black: only your torches.${things} Its north end has caved in: the way on is the service door in the east wall just short of it, under the red light. Walk everyone to it to go into the hill. Walk back to the south end to go out.`;
 }
 /* ---------- her young among the wrecks (TUN_BROOD): asleep until the squad comes near, a lot at a time; before Level 4 only

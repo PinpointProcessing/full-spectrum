@@ -1174,3 +1174,17 @@ Bryan, after v122: "When silent shooting a unit for an auto kill should be worth
 think? I'm not sure if it should be refreshed at every ammo drop - maybe keep it like that for now. SD's might only be equipped
 with spec ops, snipers, unclassed units and maybe a couple more. We'll discuss later". My answer: 5 (see the reply); ammo drops
 keep refitting it for now; which classes get the M4 SD is to be discussed (now: Spec Ops and anyone without a class).
+
+## v124: Level 4 finished to Bryan's plan (for his test)
+
+Bryan, after v123: "keep building everything and I will test when completed. Finish the game as much as you can before adding the
+north road mission... Feel free to add new or edit features if you'd like". Built:
+- The tunnel's grates (six, low in the walls): one rattles with a red VENT · GET CLEAR ring as a man comes near, then bursts;
+  one of her young grabs the nearest man and drags him back over about 3.5 s (DRAGGED · SHOOT IT). Kill it and he's free; let it
+  reach the vent and he's gone. After two lost, the vents go quiet.
+- The summit: their men are torn apart by the brood as the squad comes up (they never shoot at the squad); three power packs
+  carried to the sockets round the mast while her young keep coming out of the vent; all three in is a checkpoint; POWER THE
+  TOWER ON brings the Queen up over the north edge with her young; she roars twice for more and dies there; then the zip line,
+  the walk back over the bridge and the report in the HQ.
+- The HQ's radio room on the air afterwards: a radio desk with a scientist on it, ON THE AIR, a short talk the first time back.
+Open for later: voices for the new lines (text only), the north road's mission, class gear unlocked by level.
