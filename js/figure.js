@@ -247,7 +247,7 @@ function makeFigure(u){
   const ring=new T.Mesh(SG.ring,new T.MeshBasicMaterial({color:u.side==='P'||!civ?col:new T.Color(L.k==='pri'?'#9aa3a8':'#e8ecef'),transparent:true,opacity:u.side==='P'||!civ?.85:.45,depthWrite:false,toneMapped:false}));
   ring.rotation.x=-Math.PI/2;ring.position.y=.5;g.add(ring);
   let spot=null,beam=null,launcher=null;
-  if(P){   // a light on his chest rig: the beam goes where he faces
+  if(P&&!u.freed){   // a light on his chest rig (not the freed men's, kitted out at the HQ: eight spot lights cost every material; base.js): the beam goes where he faces
     const ch=bones[BI.chest];spot=new T.SpotLight(0xd8e8ff,2.6,210,.42,.5,1.2);spot.position.set(1.9,1.3,1.0);const tg=new T.Object3D();tg.position.set(60,-14,0);ch.add(spot,tg);spot.target=tg;
     beam=new T.Mesh(SG.beam,SG.beamMat);beam.position.set(2.0,1.2,1.0);beam.rotation.z=-.24;beam.renderOrder=2;ch.add(beam);
   }

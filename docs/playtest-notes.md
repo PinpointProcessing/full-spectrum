@@ -1104,3 +1104,20 @@ The plan as I read it (my reply asks him to confirm the open points):
 5. Three packs carried to their places (sockets by the mast) under attack; all three placed: a checkpoint (medic station, ammo
    drop, save).
 6. Power the tower on: the Queen and her babies come; the fight.
+
+His answers to the open points: "1) yes, but they are not repairing anymore, they are soldiers. 2) i think it can be anyone 3) hmm
+good question - I'm leaning to her dying here so we can introduce more enemies. 4) Once the tower is up the HQ can finally
+communicate. Make one of the four rooms a radio communication room. 5) zip line still works. I think after getting the HQ the
+freed soldiers can get equipped and classes get chosen so they are equivalent to the rest of the squad units (except the level the
+originally squad members reached.) The rooms can be reworked, just make a pending radio room and we can discuss the others when the
+time comes. I'm also thinking we should just add the special items but let's do the above first and work out way to the other
+stuff"
+
+So: the freed men are soldiers, not the HQ's crew; anyone can be grabbed at a grate; the Queen dies on the summit; one side room
+is the radio room, live once the tower is powered on; the zip line home stays. Built in three stages:
+- A (v120): the freed men kitted out at the clean-up's end and in the squad from then on (base.js's `kitFreed`; the crew is
+  dormant, `CREW_ON`); the radio room, pending (`RADIO_ROOM`, E2); the road talk about powering the tower on (text only but its
+  first line until re-voiced). Eight go out on the road.
+- B: the grates in the tunnel.
+- C: the summit: the militia wiped out, the three packs, the checkpoint, power on, the Queen and her babies, the radio room live.
+Later: the special items, the other rooms.

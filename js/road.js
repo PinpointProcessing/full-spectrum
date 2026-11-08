@@ -42,9 +42,11 @@ const ROAD_STOP={x:1470,y:-275};   // where the squad stops the first time out: 
 const ROAD_LOOK={z:-390,zoom:3.6,tilt:.6,shift:.13};   // the camera while they cross the first time: locked, looking north up the lake (Bryan: "perpendicular to the bridge looking north, so the lighthouse is seen in the horizon")
 const HQ_EXIT={x0:410,y0:858,x1:590,y1:922};   // the gather area in the Headquarters' entry hall, at its south door
 const ROAD_OUT={x:850,y:-392};   // where the squad comes to off the drawbridge, just south of its gather area
-const ROAD_TALK=["Alright, we need to get our radio communication up.",
-  "There's a decommissioned radio tower accessible from the tunnel down the road. You'll probably find the supplies you need from there.",
-  "Once we get that radio tower running, we can request more advanced equipment."];   // (Bryan's words; clips road_1, road_2; the last, the leader again, after v96: road_3)
+const ROAD_TALK=[["lead","Alright, we need to get our radio communication up.",'road_1'],
+  ["sci","There's an old radio tower on the hill, through the tunnel down the road. It was shut down, not torn down."],
+  ["lead","Then we power it on."],
+  ["sci","Whatever they pulled off it should still be up there. Put it back and switch it on, and it'll carry a signal again."],
+  ["lead","Once that tower's live, this place can finally talk to the outside. Then we can request more advanced equipment."]];   // (Bryan, after v119: "The mission isn't to get radio equipment it's to power on the radio tower"; the first line keeps its clip, road_1; the rest text only until they're voiced. Until v119 the scientist's line was about finding supplies there, road_2, road_3)
 let road=null;   // {open, talked, intro:{t0, ph}, guide}
 const EAST={grp:null,objs:null,lamps:null,gate:null,tex:null,rc:null,dirty:false,beam:null,centis:null,fall:null,foam:null};   // built once, into the big map's scene (tex: its ground, where scorch marks and blood go: scene.js's paintDecal)
 const roadBusy=()=>!!(road&&road.intro);   // (the talk, the walk east and the centipedes: no orders, fortress.js's endingBusy)
@@ -430,7 +432,7 @@ function roadTick(dt){   // (every tick: combat.js's update)
     if(contact||state!=='play'){roadIntroEnd(true);return;}   // (trouble on the way: the rest can wait)
     if(I.ph==='walk'&&simT-I.t0>1.3){I.ph='pan';camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:ROAD_OUT.x+24,z:ROAD_OUT.y+4,zoom:frameZoom(150,110,.18),yaw:0,tilt:.18},t:0,dur:1.6};}
     else if(I.ph==='pan'&&!camPan){I.t1=I.t1||simT;if(simT-I.t1>.4){I.ph='talk';const lead=roadLead();
-      talkStart([{who:lead,to:g,text:ROAD_TALK[0],clip:'road_1'},g&&{who:g,to:lead,text:ROAD_TALK[1],clip:'road_2'},{who:lead,to:g,text:ROAD_TALK[2],clip:'road_3'}],roadTalkDone);}}
+      talkStart(ROAD_TALK.map(([k,text,clip])=>k==='sci'?g&&{who:g,to:lead,text,clip}:{who:lead,to:g,text,clip}),roadTalkDone);}}
     else if(I.ph==='east'){   // the camera slides along with them (Bryan: "the screen slides over with the troops when they move"), locked looking north across the bridge, the lake and the lighthouse beyond (after v110: "lock the camera while the troops cross the bridge... perpendicular to the bridge looking north, so the lighthouse is seen in the horizon"; camLock)
       const up=upNow();if(up.length){const m=midOf(up),k=Math.min(1,dt*2.2),e=Math.min(1,dt*1.1);camT.x+=(m.x+30-camT.x)*k;camT.z+=(ROAD_LOOK.z-camT.z)*e;zoom+=(ROAD_LOOK.zoom-zoom)*e;tilt+=(ROAD_LOOK.tilt-tilt)*e;
         const hd=dist0/zoom*Math.cos(Math.max(PITCH_MIN,basePitch()-tilt)),th=Math.atan2(LIGHTHOUSE.x-camT.x,camT.z+hd-LIGHTHOUSE.y),hf=Math.atan(Math.tan(camera.fov*Math.PI/360)*camera.aspect);

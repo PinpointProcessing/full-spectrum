@@ -169,7 +169,7 @@ function say(u,key){
   if(key==='far'&&VSPR&&!(VSPR.speakers[u.id]&&VSPR.speakers[u.id].clips.far_1))return;   // (not in his file: the bubble says it)
   if(!URGENT.has(key)&&now<voiceBusyTill+TALK_GAP)return;
   voiceLast[k]=now;
-  const n=nextVariant(u.id,key,VOICE_LINES[key].length),text=VOICE_LINES[key][n-1],radio=!u.joined;   // the freed prisoners have no radios: they say it out loud
+  const n=nextVariant(u.id,key,VOICE_LINES[key].length),text=VOICE_LINES[key][n-1],radio=!u.joined||!!u.kitted;   // the freed prisoners have no radios (until they're kitted out at the HQ: base.js): they say it out loud
   const old=key==='cant'&&VSPR&&!(VSPR.speakers[u.id]&&VSPR.speakers[u.id].clips.cant_1);   // (a voice file without the line yet: his "Can't move, I'm pinned!")
   const d=voiceClip(u.id,old?'pinned_2':`${key}_${n}`,{radio,x:u.x,y:u.y});
   if(d){voiceBusyTill=now+d+.3;if(radio){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}return;}

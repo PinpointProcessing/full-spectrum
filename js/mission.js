@@ -481,7 +481,7 @@ function updateObjUI(flash){
   if(MAPID==='l4'&&typeof l4ObjUI==='function'&&L4){l4ObjUI(el);return;}   // (level4.js)
   if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
   if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
-  if(typeof road!=='undefined'&&road&&road.talked){const txt=obj>=9?'Radio control at the HQ (coming next)':'Level 4 · The old radio tower: through the tunnel down the road (east)';   // (road.js)
+  if(typeof road!=='undefined'&&road&&road.talked){const txt=obj>=9?'Radio control at the HQ (coming next)':'Level 4 · The old radio tower: power it on. Through the tunnel down the road (east)';   // (road.js)
     el.querySelector('b').textContent=obj>=9?'Next':'Next mission';el.querySelector('span').textContent=txt;el.querySelector('ol').innerHTML='';el.classList.add('nm');if(nmMin)el.classList.add('min');el.classList.remove('open');
     if(objNM.txt!==txt){objNM.txt=txt;objNMShow();}   // (new: in full for 10 s, then just its name: below)
     el.hidden=state!=='play';return;}

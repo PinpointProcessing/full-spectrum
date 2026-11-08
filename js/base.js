@@ -138,7 +138,8 @@ function montageStart(){   // (the conversation's over: fortress.js's hqEndTick)
 function montageEnd(){
   base={done:true};$('#app').classList.remove('cine');for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;   // (HQ staff now: office.js draws no DETAINED over them)
   hqStaff=civs.filter(c=>c.sci&&!c.dead).map(c=>({id:c.id,name:c.name,sciN:c.sciN}));
-  crewUp();   // the freed men stay on: its crew from now (below)
+  crewUp();   // (dormant: CREW_ON)
+  for(const u of players)if(u.joined&&!u.dead)kitFreed(u);   // the freed men kitted out like the four: soldiers of the squad from now (below)
   if(hqEnd)hqEnd.ph='done';saveGame('base');updateObjUI();hud();
   if(state==='play'&&!hqs.after)endAt=performance.now()+1200;   // "Mission complete!" and the report (hud.js's finish)
   else if(state==='play'){aarCrew=[];setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!cineOn())banner('The Headquarters is yours. Tap the arrows at the south door to go out.',4200);},700);}   // (begun at her death, the Level 4 button: no fight played, so no report; on to the road east: road.js)
@@ -197,8 +198,10 @@ function cleanFloor(){if(!HQ||!HQ.tex)return;paintBaseGround(HQ.tex.image.getCon
    work in a side room of his own, and from its end they're the Headquarters' crew: people, not soldiers (no card, not
    selectable, nobody's target), at work there whenever the squad comes in. From the road east on it's the original four.
    If none of the four is left alive, the freed men go on as the squad instead. ---------- */
+const RADIO_ROOM='E2';   // (Bryan, after v119: "Once the tower is up the HQ can finally communicate. Make one of the four rooms a radio communication room": pending until the tower's powered on; the rest to be talked over)
 const CREW_ROOM={A3:'W2',A4:'W3',B3:'E2',B4:'E3'};   // Alpha's two on the west side, Bravo's two on the east; the north pair stay empty
-const crewStays=()=>players.some(p=>!p.joined&&!p.dead);
+const CREW_ON=false;   // (Bryan, after v119: "they are not repairing anymore, they are soldiers": the crew is dormant; kitFreed below)
+const crewStays=()=>CREW_ON&&players.some(p=>!p.joined&&!p.dead);
 function crewSpot(id){   // at his room's outer wall, kneeling or standing at it
   const q=HQ_ROOMS.find(r=>r.id===CREW_ROOM[id])||HQ_ROOMS[0],w=q.side<0,k=['A3','A4','B3','B4'].indexOf(id);
   return{q,x:w?q.x0+30:q.x1-30,y:(q.y0+q.y1)/2+(k%2?-24:24),ang:w?Math.PI:0,work:k===0||k===3?'kneel':'stand'};
@@ -214,6 +217,17 @@ function crewUp(){   // (the clean-up's over: montageEnd) the freed men stay
     if(u.m){u.m.ring.material.color.set('#9aa3a8');figRefresh(u);}   // (a person's grey ring; his rifle put away)
   }
   hqCrew=men.filter(u=>!u.dead).map(u=>({id:u.id,name:u.name}));buildCards();floorChip();   // (four cards, four dots on the floor chip)
+}
+/* ---------- the freed men kitted out (Bryan, after v119: "they are not repairing anymore, they are soldiers... after getting
+   the HQ the freed soldiers can get equipped and classes get chosen so they are equivalent to the rest of the squad units
+   (except the level the original squad members reached)"): at the clean-up's end each gets the squad's uniform, vest and
+   helmet, a silenced M4 (or keeps the M240 or the sniper rifle he found), a frag and smoke; a class like the others once
+   classes open (classes.js). From then on he's one of the squad (u.kitted), saved and continued that way (save.js). ---------- */
+function kitFreed(u){
+  Object.assign(u,{kind:'soldier',kitted:true,unarmored:false,weapon:u.weapon==='hmg'||u.weapon==='sniper'?u.weapon:'m4s',
+    grenade:u.gl?Math.max(u.grenade||0,M203.rounds):Math.max(u.grenade||0,1),spec:u.spec||'smoke'});
+  u.specN=Math.max(u.specN||0,specFull(u));if(typeof classGear==='function')classGear(u);
+  if(u.m&&u.m.g){const par=u.m.g.parent;if(par)par.remove(u.m.g);const keep=scene;if(par)scene=par;try{makeSoldier(u);}finally{scene=keep;}}   // (the squad's look: a new figure in the same scene)
 }
 function crewCopy(o){   // one of the crew at work in his room (a Continue, or the squad back in from outside: enterBase)
   const u=mk('C',/^A/.test(o.id)?'A':'B',o.id,o.name,0,0,0);
@@ -284,8 +298,9 @@ function drawBase(now){
   if(HQ.ride)drawHQFloors(now);
   const c=BASE_ST.cmd,[lx,ly]=below(c.x,c.y+c.h/2+16,6);label('COMMAND CENTER',lx,ly,'#8fe6f2',10,700);
   for(const q of HQ_ROOMS){const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;
-    const m=civs.find(c=>c.crew&&!c.dead&&c.room===q.id);   // one of the crew at work in it (above)
+    const m=civs.find(c=>c.crew&&!c.dead&&c.room===q.id);   // one of the crew at work in it (above; dormant)
     if(m){label('REPAIRING',x,y,'rgba(255,207,74,.8)',9,700);label(m.name.toUpperCase(),x,y+11,'rgba(200,210,220,.55)',8,700);}
+    else if(q.id===RADIO_ROOM){label('RADIO ROOM',x,y,'rgba(143,230,242,.8)',9,700);label('PENDING',x,y+11,'rgba(200,210,220,.55)',8,700);}
     else label('EMPTY ROOM',x,y,'rgba(200,210,220,.55)',9,700);}
 }
 

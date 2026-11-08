@@ -236,7 +236,10 @@ function hqEndTick(){   // (every tick once she's dead: hqTickWin)
   const s0=E.sci[0],who={sci:s0,lead:E.lead,other:E.other},to={sci:E.lead,lead:s0,other:s0};
   const lines=HQ_TALK.map(([k,t],i)=>({who:who[k],to:to[k],text:t,clip:`hqend_${i+1}`}));
   const crew=players.filter(p=>p.joined&&!p.dead),boss=!E.lead.joined?E.lead:players.find(p=>!p.joined&&!p.dead&&!p.offMap);
-  if(crew.length&&boss&&crewStays()){const n=crew.map(p=>p.name),c0=crew.find(p=>p.id==='B4')||crew[0];   // the freed men stay on as its crew (base.js; Bryan, after v109)
+  if(crew.length&&boss&&!crewStays()){const n=crew.map(p=>p.name),c0=crew.find(p=>p.id==='B4')||crew[0];   // (Bryan, after v119: they're soldiers: kitted out at the clean-up's end, base.js's kitFreed; text only until voiced)
+    lines.push({who:boss,to:c0,text:`${n.length>1?n.slice(0,-1).join(', ')+' and '+n[n.length-1]:n[0]}: you're with us now. Get kitted up off the supply table, same as the rest of us.`},
+      {who:c0,to:boss,text:"About time we had our own rifles."});}
+  else if(crew.length&&boss&&crewStays()){const n=crew.map(p=>p.name),c0=crew.find(p=>p.id==='B4')||crew[0];   // the freed men stay on as its crew (base.js; Bryan, after v109)
     lines.push({who:boss,to:c0,text:`${n.length>1?n.slice(0,-1).join(', ')+' and '+n[n.length-1]:n[0]}: you stay here. Fix this place up and get it running.`},
       {who:c0,to:boss,text:"We'll have it running by the time you're back."});}
   talkStart(lines,()=>{E.ph='montage';E.done();});
@@ -244,7 +247,7 @@ function hqEndTick(){   // (every tick once she's dead: hqTickWin)
 function hqHint(){
   if(MAPID!=='hq')return'';
   if(hqs.won){if(HQ&&HQ.base){if(HQ.floors&&curFloor!=='GF')return hqFloorHint();
-    const n=civs.filter(c=>c.crew&&!c.dead).length,rooms=n?`The freed men are fixing up ${n===1?'one of the side rooms':n+' of the side rooms'}; the other ${6-n} ${6-n===1?'is':'are'} empty for now.`:'The six side rooms are empty for now.';   // (the crew: base.js)
+    const rooms='One side room is the radio room, waiting on the old radio tower; the other five are empty for now.';   // (base.js's RADIO_ROOM)
     return`Your Headquarters: the command center, the medic table and the supply table. ${rooms} ${HQ.floors?'The stairs and the lift at the north end go up to the second floor and the roof. ':''}Tap the arrows at the south door to go out.`;}
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now. Once everyone’s up, one of them goes out for the scientists.':'One of them is going out for the scientists, through the south door.';}

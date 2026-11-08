@@ -130,7 +130,7 @@ function chatTick(){
   if(typeof sceneOn==='function'&&sceneOn())return;   // (a scene is playing: monsters.js)
   const s=talkQ[0];if(up(s.u)&&callouts.some(c=>!c.small&&c.t<1&&hyp(c.x-s.u.x,c.y-s.u.y)<24))return;   // his own callout first, so the words don't pile up
   talkQ.shift();if(!up(s.u)||simT-(s.at??simT)>8)return;   // (a line that waited too long is out of date)
-  const radio=!s.u.joined,d=voiceClip(s.u.id,s.clip,{radio,x:s.u.x,y:s.u.y,vol:s.quiet?.55:.95,gain:s.quiet?.55:1});
+  const radio=!s.u.joined||!!s.u.kitted,d=voiceClip(s.u.id,s.clip,{radio,x:s.u.x,y:s.u.y,vol:s.quiet?.55:.95,gain:s.quiet?.55:1});
   callouts.push({x:s.u.x,y:s.u.y,t:0,dur:Math.max(2.2,d+.8),text:s.text,col:s.quiet?'#b8c4cc':'#dfe6ea',small:true});   // (smaller than the action callouts: talk, not orders)
   voiceBusyTill=now+(d||1.4)+.25;if(radio&&d){squelch(0);setTimeout(()=>squelch(0),(d+.1)*1000);}
 }

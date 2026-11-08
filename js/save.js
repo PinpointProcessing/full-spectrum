@@ -22,7 +22,7 @@ function saveGame(stage,quiet){   // (quiet: no Saved chip, the drawbridge comin
   const data={v:3,stage,when:Date.now(),sci:sciOut,cleared:[0,1,2,3].filter(n=>finished[n]),   // (sci: scientists brought out of the data center: office.js; cleared: the areas that are checkpoints)
     alert:{t:alertT,max:alertMax},crew:hqCrew,l4:typeof l4Save==='function'&&MAPID==='l4'?l4Save():null,   // (Level 4: the parts taken, the crates, the radio log, the generator, the Crawler: level4.js)   // the base's alert level only goes up within the mission (layers.js)
     squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges,weapon:p.weapon,weapon2:p.weapon2||null,gl:!!p.gl,   // (gl: an M203 in his grenade's place, Level 4's find)
-      ...(p.joined?{joined:true,name:p.name,weapon:p.weapon}:{})}]))};   // (joined: a freed prisoner, office.js)
+      ...(p.joined?{joined:true,name:p.name,weapon:p.weapon,kitted:!!p.kitted}:{})}]))};   // (joined: a freed prisoner, office.js; kitted: kitted out at the Headquarters, a soldier like the four, base.js)
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
   if(quiet)return;const c=$('#savedChip');c.textContent=`Saved · ${STAGES[stage]}`;c.hidden=false;clearTimeout(savedTimer);savedTimer=setTimeout(()=>{c.hidden=true;},2600);
 }
@@ -37,9 +37,10 @@ function continueGame(){
   for(const n of cleared){finished[n]=true;addZones(REST_ZONES[AREA_STAGE[n]]);}
   if(cleared.has(0))for(const e of enemies){e.dead=true;e.hp=0;e.seen=false;e.gone=true;}   // the warehouse's four
   const n=STAGE_OBJ[s.stage],at0=STAGE_AT[s.stage];
-  if(n>=6&&!s.crew&&['A1','A2','B1','B2'].some(id=>s.squad[id]&&!s.squad[id].dead)){   // a save from before v110, the freed men still in the squad: from the HQ's taking on they're its crew (base.js)
-    s.crew=Object.entries(s.squad).filter(([,d])=>d.joined&&!d.dead).map(([id,d])=>({id,name:d.name||id}));s.squad=Object.fromEntries(Object.entries(s.squad).filter(([,d])=>!d.joined));}
-  hqCrew=n>=6&&s.crew?s.crew.slice():[];
+  if(n>=6){   // from the Headquarters on the freed men are soldiers of the squad, kitted out (since v120, base.js's kitFreed): a save from v110 to v119 had them as its crew, one from before v110 in the squad unkitted
+    for(const c of s.crew||[])if(!s.squad[c.id])s.squad[c.id]={dead:false,hp:100,grenade:1,joined:true,name:c.name||c.id,weapon:'m4s'};
+    for(const d of Object.values(s.squad))if(d.joined)d.kitted=true;s.crew=[];}
+  hqCrew=CREW_ON&&n>=6&&s.crew?s.crew.slice():[];   // (the crew's dormant: base.js)
   for(const[id,d]of Object.entries(s.squad))if(d.joined&&!players.some(p=>p.id===id))rejoin(id,d,at0);   // the freed prisoners who joined (office.js; from the HQ on, only if none of the four is left: base.js)
   if(n>=6){sciOut=s.sci||1;if(typeof preloadVoices==='function')preloadVoices(['S1','S2','S3','S4']);}   // (the Headquarters' staff now: they're inside it, base.js)
   else if(n>=4)sciBack(s.sci||1,at0);if(['hqf','dc','gate','won','base','road','hill','summit','home'].includes(s.stage))mon.hqf=true;   // the scientists brought out follow the squad again (to the bio scanner, then onto the drawbridge: monsters.js)
@@ -52,8 +53,9 @@ function continueGame(){
     const d=s.squad[p.id];
     if(!d||d.dead){Object.assign(p,{dead:true,hp:0,gone:true});continue;}
     const spot=openSpot(at.x,at.y,taken)||at;taken.push(spot);
-    if(d.joined){Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,weapon:d.weapon||null,weapon2:d.weapon2||null,gl:!!d.gl,path:[]});if(d.gl)p.grenade=d.grenade;continue;}   // a freed prisoner: no gear (but what he found in Level 4)
+    if(d.joined&&!d.kitted){Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,weapon:d.weapon||null,weapon2:d.weapon2||null,gl:!!d.gl,path:[]});if(d.gl)p.grenade=d.grenade;continue;}   // a freed prisoner: no gear (but what he found in Level 4)
     Object.assign(p,{x:spot.x,y:spot.y,hp:d.hp,grenade:d.grenade,spec:d.spec||DEFAULT_SPEC[p.id]||'smoke',specN:d.specN??specFull({spec:d.spec||DEFAULT_SPEC[p.id]||'smoke'}),charges:d.charges??1,weapon:d.weapon||p.weapon,weapon2:d.weapon2||null,gl:!!d.gl,path:[]});
+    if(d.joined)kitFreed(p);   // (kitted out at the Headquarters: the squad's look and gear, base.js)
   }
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
@@ -82,14 +84,15 @@ function refreshSaveButtons(){
    under Level 3: Continue (the last save) and New game as before, and the list of checkpoints, every one open for now, like
    the levels. A checkpoint starts with everyone at full health and the loadout from the between-missions screen; from the
    scientists to the gate, with the four freed men armed and all four scientists; from the Headquarters on the freed men are
-   its crew and the squad is the original four (base.js). It becomes the save. ---------- */
+   soldiers of the squad, kitted out like the four (base.js, since v120). It becomes the save. ---------- */
 const CP_ORDER=['wh','br','maze','dco','dci','sci','hqf','dc','gate','won','base','road','hill','summit','home'];
 let cpNote=null;   // (a start's own first line in place of "Continuing: ...": the Level 4 button, hud.js)
 function startCheckpoint(st,note){
   const n=STAGE_OBJ[st],after=n>=4,lo=typeof loadout!=='undefined'?loadout:DEFAULT_LOADOUT,squad={};
   for(const id of['A1','A2','B1','B2']){const l=lo[id]||DEFAULT_LOADOUT[id];squad[id]={dead:false,hp:100,grenade:1,spec:l.spec,weapon:l.weapon};}
-  const freed=[['A3','Abara'],['A4','Brennan'],['B3','Lindqvist'],['B4','Marsh']],crew=n>=6?freed.map(([id,name])=>({id,name})):[];   // (from the HQ on: its crew)
+  const freed=[['A3','Abara'],['A4','Brennan'],['B3','Lindqvist'],['B4','Marsh']],crew=[];
   if(after&&n<6)for(const[id,name]of freed)squad[id]={dead:false,hp:100,grenade:0,joined:true,name,weapon:'rifle'};   // (the freed men, each with a rifle off a body)
+  if(n>=6)for(const[id,name]of freed)squad[id]={dead:false,hp:100,grenade:1,spec:'smoke',joined:true,kitted:true,name,weapon:'m4s'};   // (from the Headquarters on: soldiers, kitted out like the four, base.js)
   const cleared={wh:[0],br:[0,1],maze:[0,1,2]}[st]||[0,1,2,3];
   try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:3,stage:st,when:Date.now(),cleared,alert:0,sci:after?4:0,squad,crew}));}catch(e){return;}
   cpNote=note||null;continueGame();refreshSaveButtons();
