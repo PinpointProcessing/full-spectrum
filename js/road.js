@@ -375,7 +375,7 @@ function resetRoad(){closeEast();road=null;hqStaff=[];hqCrew=[];aarCrew=[];}   /
 /* ---------- out of the Headquarters, and back in ---------- */
 function roadGather(){   // (interior.js's gatherZone, its ways through: GO OUT in the Headquarters' entry hall, the tunnel's mouth, its far end, the service door)
   const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&need.every(p=>inZone(p,z)),why=down?'CARRY THE WOUNDED':null;
-  if(MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive()&&(!HQ.floors||curFloor==='GF'))return{key:'goout',z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',title:'OUTSIDE',at:{x:500,y:906},dir:Math.PI/2,need,why,fn:leaveBase};
+  if(false&&MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive()&&(!HQ.floors||curFloor==='GF'))return{key:'goout',z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',title:'OUTSIDE',at:{x:500,y:906},dir:Math.PI/2,need,why,fn:leaveBase};
   if(MAPID==='out'&&road&&road.talked&&state==='play')return{key:'tunnel',z:TUN_ZONE,ready:all(TUN_ZONE),go:'GOING IN',title:'TUNNEL',at:{x:1648,y:-250},dir:0,auto:'in',need,why,fn:enterTunnel};   // (auto: it goes by itself, Bryan: "When approaching it it changes to it": tunnel.js)
   if(MAPID==='tun'&&state==='play')return[{key:'tunout',z:TUN_IN,ready:all(TUN_IN),go:'GOING OUT',title:'THE BRIDGE',at:{x:740,y:862},dir:Math.PI/2,auto:'out',need,why,fn:leaveTunnel},...(obj<9?[{key:'svc',z:TUN_SVC,ready:all(TUN_SVC),go:'GOING IN',title:'SERVICE DOOR',at:{x:768,y:-238},dir:0,auto:'svc',need,why,fn:()=>enterHill()}]:[])];   // (the service door: into the hill, Level 4: level4.js)
   if(MAPID==='l4')return l4Gather();   // (out by the service door, down the zip line: level4.js)

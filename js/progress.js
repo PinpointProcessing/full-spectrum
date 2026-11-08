@@ -77,7 +77,7 @@ function showAAR(){
         bar.style.transition='none';bar.style.width='0%';void bar.offsetWidth;bar.style.transition='';bar.style.width=pct(after,l1)+'%';
         snd(window.sfxLevelUp,r1.ab!==r0.ab);   // (the chime covers the bar's refill: no ticks under it)
         rank.textContent=`${r1.ab} · Lv ${l1}`;
-        badge.textContent=r1.ab!==r0.ab?`Promoted: ${r1.name}`:l0<CLASS_LEVEL&&l1>=CLASS_LEVEL&&!classes[u.id]?(!classesOpen()?'Level up · Unlock Radio Tower for upgrades':u.joined&&!u.kitted?'Level up':'Level up · choose his class next'):`Level up`;badge.hidden=false;   // (classes wait on the radio tower: classes.js)
+        badge.textContent=r1.ab!==r0.ab?`Promoted: ${r1.name}`:l0<CLASS_LEVEL&&l1>=CLASS_LEVEL&&!classes[u.id]?(!classesOpen()?'Level up · Unlock HQ first':u.joined&&!u.kitted?'Level up':'Level up · choose his class at the HQ'):`Level up`;badge.hidden=false;   // (classes wait on the radio tower: classes.js)
       },850);
     },500+i*700);
   });

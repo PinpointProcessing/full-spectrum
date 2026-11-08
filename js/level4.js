@@ -687,11 +687,14 @@ function l4ZipInTick(){   // (on the big map, after the zip line)
     if(simT<Z.t0){done=false;continue;}const k=Math.min(1,(simT-Z.t0)/1.1),e=1-(1-k)*(1-k);
     u.x=L4_ANCHOR.x+60+(Z.to.x-L4_ANCHOR.x-60)*e;u.y=L4_ANCHOR.y-70+(Z.to.y-L4_ANCHOR.y+70)*e;u.elev=60*(1-e);u.away=false;
     if(k>=1){u.zipIn=null;u.elev=0;u.x=Z.to.x;u.y=Z.to.y;u.ang=-Math.PI/2;}else done=false;}
-  if(any&&done&&l4Run&&l4Run.home&&!l4Run.won)l4Win();
+  if(any&&done&&l4Run&&l4Run.home&&!l4Run.won&&!l4Run.back)l4Back();
+}
+function l4Back(){   // (since v121, Bryan, after v120: "Let's keep the zip line and running back for the radio tower": down the line, then back to the Headquarters on foot; the report once they're in, base.js's enterBase)
+  l4Run.back=true;saveGame('home');banner('Down. Now back to the Headquarters: over the bridge to the drawbridge.',4200);updateObjUI();
 }
 function l4Win(){
   if(!l4Run||l4Run.won||state!=='play')return;l4Run.won=true;
-  saveGame('home',true);state='end';setStatus();bigText('Mission complete!','complete');setTimeout(showAAR,2600);
+  saveGame(MAPID==='hq'?'base':'home',true);state='end';setStatus();bigText('Mission complete!','complete');setTimeout(showAAR,2600);
 }
 // the big map back (the zip line, a Retry): the hill gone
 function hillOut(){
@@ -787,7 +790,7 @@ function l4ObjUI(el){
   el.querySelector('ol').innerHTML=items.map(([t,d])=>`<li class="${d?'done':''}">${t}</li>`).join('')+`<li class="${L4.intel?'done':''}">Bonus: the radio log (intel)</li><li class="${L4.bonus[0]?'done':''}">Bonus: the M203 (the staff room)</li><li class="${L4.bonus[1]?'done':''}">Bonus: the heavy machine gun (the store)</li>`;
   el.hidden=state!=='play';
 }
-function l4AfterHint(){return'The parts are back from the old radio tower. Next: radio control at the Headquarters (coming next). The arrows at the drawbridge take you back in.';}
+function l4AfterHint(){return'The parts are back from the old radio tower. Back to the Headquarters: over the bridge, and the arrows at the drawbridge take you in.';}
 
 /* ---------- drawn on the overlay ---------- */
 function drawL4(now){

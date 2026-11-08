@@ -224,7 +224,7 @@ const HQ_TALK=[['sci',"She's dead. You actually killed her."],['lead',"No thanks
   ['sci',"Why would I help you?"],['lead',"Because the next thing that hatches won't care whose side you're on."],
   ['sci',"Fine. What do you need?"],['lead',"Power. A working lab. And everything you know about those things."]];
 let hqEnd=null;
-const endingBusy=()=>!!hqEnd&&hqEnd.ph!=='done'||roadBusy();   // (and the road east's first look and talk: road.js)
+const endingBusy=()=>!!hqEnd&&hqEnd.ph!=='done'||roadBusy()||(typeof hqManage==='function'&&hqManage());   // (and the Headquarters once it's finished: managed, nobody ordered, base.js)   // (and the road east's first look and talk: road.js)
 function hqEndTick(){   // (every tick once she's dead: hqTickWin)
   const E=hqEnd;if(!E||E.ph!=='out')return;const f=E.fetch;
   if(!f.away&&(f.y>946||simT-E.t>14)){f.away=true;f.path=[];E.t=simT;}   // out of the door, into the dark
@@ -248,7 +248,7 @@ function hqHint(){
   if(MAPID!=='hq')return'';
   if(hqs.won){if(HQ&&HQ.base){if(HQ.floors&&curFloor!=='GF')return hqFloorHint();
     const rooms='One side room is the radio room, waiting on the old radio tower; the other five are empty for now.';   // (base.js's RADIO_ROOM)
-    return`Your Headquarters: the command center, the medic table and the supply table. ${rooms} ${HQ.floors?'The stairs and the lift at the north end go up to the second floor and the roof. ':''}Tap the arrows at the south door to go out.`;}
+    return`Your Headquarters. Tap the command center for the next mission and the squad. ${rooms} Everyone back here is healed and restocked.${HQ.floors?' The floor buttons show the second floor and the roof.':''}`;}
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now. Once everyone’s up, one of them goes out for the scientists.':'One of them is going out for the scientists, through the south door.';}
   if(!hqs.awake)return'Here she comes.';

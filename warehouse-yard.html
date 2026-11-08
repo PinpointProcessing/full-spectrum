@@ -58,6 +58,13 @@
         <button class="go" id="eqGo" type="button">Deploy</button>
       </div>
     </div>
+    <div id="hqc" hidden role="dialog" aria-modal="true" aria-labelledby="hqcTitle"><!-- the Headquarters' command center: missions, the squad, deploy (base.js) -->
+      <div class="eq-panel hqc-panel">
+        <div class="hqc-top"><div><small>Command center</small><b id="hqcTitle">Missions</b></div><button type="button" id="hqcX" class="hqc-x">Close</button></div>
+        <div id="hqcBody"></div>
+        <div class="hqc-act"><button type="button" id="hqcBack" class="hqc-x" hidden>Back</button><button class="go" id="hqcGo" type="button">Squad</button></div>
+      </div>
+    </div>
     <button id="fitBtn" hidden>Fit map</button>
     <button id="gaitBtn" aria-pressed="false" disabled><small>Auto</small><span>Sneak</span></button>
   </div>

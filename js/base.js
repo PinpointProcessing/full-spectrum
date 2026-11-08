@@ -142,7 +142,8 @@ function montageEnd(){
   for(const u of players)if(u.joined&&!u.dead)kitFreed(u);   // the freed men kitted out like the four: soldiers of the squad from now (below)
   if(hqEnd)hqEnd.ph='done';saveGame('base');updateObjUI();hud();
   if(state==='play'&&!hqs.after)endAt=performance.now()+1200;   // "Mission complete!" and the report (hud.js's finish)
-  else if(state==='play'){aarCrew=[];setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!cineOn())banner('The Headquarters is yours. Tap the arrows at the south door to go out.',4200);},700);}   // (begun at her death, the Level 4 button: no fight played, so no report; on to the road east: road.js)
+  else if(state==='play'){aarCrew=[];setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!cineOn())banner('The Headquarters is yours. Tap the command center to plan the next mission.',4200);},700);}
+  hqSettle();   // (healed, restocked, classes open: below)   // (begun at her death, the Level 4 button: no fight played, so no report; on to the road east: road.js)
 }
 function baseTick(dt){   // (every tick: combat.js's update)
   if(MAPID!=='hq')return;
@@ -296,7 +297,7 @@ function drawBase(now){
   if(MAPID!=='hq'||!HQ||!HQ.base||cineOn())return;
   if(HQ.floors&&curFloor!=='GF'){drawHQFloors(now);return;}   // (the second floor, the roof: hqfloors.js)
   if(HQ.ride)drawHQFloors(now);
-  const c=BASE_ST.cmd,[lx,ly]=below(c.x,c.y+c.h/2+16,6);label('COMMAND CENTER',lx,ly,'#8fe6f2',10,700);
+  const c=BASE_ST.cmd,[lx,ly]=below(c.x,c.y+c.h/2+16,6);if(hqManage()&&!hqc){pill('COMMAND CENTER',lx,ly,'#8fe6f2');label('TAP FOR MISSIONS AND SQUAD',lx,ly+15,'rgba(200,210,220,.7)',8,700);}else label('COMMAND CENTER',lx,ly,'#8fe6f2',10,700);
   for(const q of HQ_ROOMS){const[x,y]=toS((q.x0+q.x1)/2,(q.y0+q.y1)/2,1);if(toSBack)continue;
     const m=civs.find(c=>c.crew&&!c.dead&&c.room===q.id);   // one of the crew at work in it (above; dormant)
     if(m){label('REPAIRING',x,y,'rgba(255,207,74,.8)',9,700);label(m.name.toUpperCase(),x,y+11,'rgba(200,210,220,.55)',8,700);}
@@ -317,11 +318,69 @@ function enterBase(fromOut){
     hqStaff.forEach((o,i)=>sciCopy(o,470+i*20,430,Math.PI/2));
     makeBase();base={done:true};shotReveal();for(const u of units)u.work=null;for(const c of civs)if(c.sci)c.staff=true;
     hqCrew.forEach(crewCopy);   // the crew at work in their rooms (above)
-    if(fromOut){players.filter(p=>!p.dead&&!p.gone&&!p.carriedBy).forEach((p,i)=>{p.x=440+(i%4)*40;p.y=806+Math.floor(i/4)*24;p.ang=-Math.PI/2;});camShot(500,760,2.0,0,.1);}   // (in at the south door, short of its gather area)
-    else camShot(500,600,1.6,0,.1);
+    camShot(500,600,1.6,0,.1);   // (since v121 nobody walks in the Headquarters: everyone where the clean-up's last shot put them, below)
+    for(const p of players)if(p.carriedBy||p.carry){p.carriedBy=null;p.carry=null;}
     contact=false;clearTeams();sel=[];cardGroup=[];obj=Math.max(obj,6);objDone=4;
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
     if(HQ.floors)setHQFloor('GF',{x:camT.x,y:camT.z});   // (the ground floor on screen: hqfloors.js)
-    updateObjUI();setStatus();buildCards();hud();fadeTo(false);
+    hqSettle();updateObjUI();setStatus();buildCards();hud();fadeTo(false);
+    if(typeof l4Run!=='undefined'&&l4Run&&l4Run.home&&!l4Run.won)setTimeout(()=>{if(MAPID==='hq'&&state==='play')l4Win();},700);   // (back from the old radio tower: the report in the Headquarters, level4.js)
   },380);
+}
+
+/* ---------- the Headquarters managed, not walked (Bryan, after v120: "when the player is in the HQ, no units are moved or
+   selected. The player manages the base on their own. The command center opens up the next available missions and squad
+   selection"; his answers: all eight go for now, the loadout picked there too, the north road's mission hidden until it's
+   designed; "class upgrades when the HQ is open"; and "I don't think class selection should happen until the HQ").
+   Once the clean-up's over (and every time they're back in), nobody's picked or ordered (hqManage: fortress.js's endingBusy,
+   input.js's tap): everyone's healed and restocked (hqSettle), the camera's free, and a tap on the command center opens its
+   panel (#hqc): MISSIONS, then the SQUAD (each man's loadout, as on the boat, and a class at level 3: classes.js), then DEPLOY
+   (road.js's leaveBase: out over the drawbridge; the first time, the talk by it and the walk across). After a mission they're
+   back in here (Level 4: down the zip line and back over the bridge on foot, level4.js). ---------- */
+const HQ_OPEN_KEY='warehouseYard.hqOpen';
+const hqOpen=()=>{try{return localStorage.getItem(HQ_OPEN_KEY)==='1';}catch(e){return false;}};
+const hqManage=()=>MAPID==='hq'&&!!HQ&&!!HQ.base&&!!base&&!!base.done&&state==='play'&&!cineOn()&&!(typeof talkActive==='function'&&talkActive());
+let hqc=null;   // the command center's panel while it's open: {step:'missions'|'squad', m: the mission picked}
+function hqSettle(){   // back in the Headquarters: the medic and supply tables see to everyone
+  try{localStorage.setItem(HQ_OPEN_KEY,'1');}catch(e){}
+  for(const p of players){if(p.dead)continue;Object.assign(p,{hp:100,downed:false,critical:false,crit:0,bleed:0,revive:0,boxRev:0,path:[],work:null,carry:null,carriedBy:null,supT:null,focus:null,ret:null});
+    if(!p.joined||p.kitted){p.grenade=Math.max(p.grenade||0,p.gl?M203.rounds:1);if(p.spec)p.specN=Math.max(p.specN||0,specFull(p));}}
+  sel=[];cardGroup=[];preview=null;mode=null;
+}
+function hqTap(sx,sy){   // (input.js's tap while hqManage)
+  if(hqc)return;const[wx,wy]=toW(sx,sy),c=BASE_ST.cmd;
+  if(curFloor==='GF'&&Math.abs(wx-c.x)<c.w/2+34&&Math.abs(wy-c.y)<c.h/2+40){hqcOpen();return;}
+  banner('Tap the command center for missions and the squad.',1800);
+}
+const HQ_MISSIONS=[   // (the north road's mission stays hidden until it's designed: Bryan)
+  {id:'l4',lvl:'Level 4',title:'The Old Radio Tower',text:'Power the old radio tower on so the Headquarters can talk to the outside. Through the tunnel down the road east, up through the hill to its summit. Out by the zip line and back over the bridge on foot.',
+   done:()=>typeof l4Done==='function'&&l4Done(),go:()=>leaveBase()}];
+function hqcOpen(){
+  if(!hqManage())return;hqc={step:'missions',m:null};$('#hqc').hidden=false;document.body.classList.add('hqcOpen');hqcDraw();
+}
+function hqcClose(){hqc=null;$('#hqc').hidden=true;document.body.classList.remove('hqcOpen');const k=$('#clsPick');if(k)k.hidden=true;saveLoadout();}
+function hqcDraw(){
+  const body=$('#hqcBody'),go=$('#hqcGo'),back=$('#hqcBack');
+  if(hqc.step==='missions'){
+    $('#hqcTitle').textContent='Missions';back.hidden=true;
+    const open=HQ_MISSIONS.filter(m=>!m.done());
+    body.innerHTML=HQ_MISSIONS.map(m=>`<button type="button" class="hqc-m${m.done()?' done':''}" data-m="${m.id}" ${m.done()?'disabled':''} aria-pressed="${hqc.m===m.id}"><small>${m.lvl}${m.done()?' · done':''}</small><b>${m.title}</b><span>${m.done()?'The parts are back. Next: radio control in the radio room (coming next).':m.text}</span></button>`).join('')+
+      (open.length?'':'<p class="eq-note">No other missions yet. More open up as the Headquarters gets its radio.</p>');
+    if(!hqc.m&&open.length)hqc.m=open[0].id;
+    for(const b of body.querySelectorAll('.hqc-m'))b.setAttribute('aria-pressed',String(b.dataset.m===hqc.m));
+    go.textContent='Squad';go.disabled=!hqc.m;
+  }else{
+    const m=HQ_MISSIONS.find(q=>q.id===hqc.m),up=players.filter(p=>!p.dead);
+    $('#hqcTitle').textContent=`Squad · ${up.length} go`;back.hidden=false;
+    body.innerHTML='<div class="hqc-rows"></div><p class="eq-note">Everyone goes on this one. The armory has one M240, one RPG and two medic kits. A frag each.</p>';
+    buildEquipUI(body.querySelector('.hqc-rows'),up.map(p=>p.id),{boat:false,host:$('#hqc')});
+    go.textContent=`Deploy · ${m?m.title:''}`;go.disabled=!m;
+  }
+}
+function hqcBind(){
+  $('#hqcBody').addEventListener('click',ev=>{const b=ev.target.closest('.hqc-m');if(!b||b.disabled||!hqc)return;hqc.m=b.dataset.m;hqcDraw();});
+  $('#hqcGo').addEventListener('click',()=>{if(!hqc)return;if(hqc.step==='missions'){if(hqc.m){hqc.step='squad';hqcDraw();}return;}
+    const m=HQ_MISSIONS.find(q=>q.id===hqc.m);if(!m)return;applyLoadout();hqcClose();m.go();});
+  $('#hqcBack').addEventListener('click',()=>{if(hqc){hqc.step='missions';hqcDraw();}});
+  $('#hqcX').addEventListener('click',hqcClose);
 }

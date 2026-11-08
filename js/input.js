@@ -245,6 +245,7 @@ function drawHold(now){
   label('SUPPRESS',x,y-30,C.warn,10,700);
 }
 function tap(sx,sy){
+  if(typeof hqManage==='function'&&hqManage()){hqTap(sx,sy);return;}   // (the Headquarters is managed, not walked: base.js)
   if(noOrders())return;   // the squad is still in the dinghy (Level 2) or the helicopter (Level 1)
   if(!tutAllows('tap',sx,sy))return;   // Level 1's tutorial: only what the step or tip asks for (level1.js)
   const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)

@@ -1140,3 +1140,18 @@ My proposal back (defaults, waiting on his answers):
 - After a mission's report, back in the HQ.
 Questions: how many go (any number up to eight, or set per mission); the loadout picked there too; the north road mission shown
 now as "coming later" or left out; this before the tunnel's grates and the summit, or after.
+
+His answers: "After a mission: I say we can have the units extract from a mission. At first it's running back to the base then as
+the game progresses its vehicles picking them up with smoke extraction. Let's keep the zip line and running back for the radio
+tower. 1) for now it's 8, but we may limit some missions 2) yes 3) stay hidden till we design it. I think it will be another lab
+or some military installment. Let's do mission start. Also, let's go with class upgrades when the HQ is open. New items can start
+to be unlocked, if they are a high enough level. (Maybe one or two troops have reached that level… I don't want to make it easy)
+we can discuss the equipment once the HQ is built. Also, I don't think class selection should happen until the HQ. I saw I was
+able to change it on the boat, let's just keep leveling them up as is and maybe grey out the class selection and say 'Unlock HQ
+first'"
+
+Built in v121: the HQ managed from the command center (missions, the squad of eight with each man's loadout and a class at level
+3, deploy), stairs only, classes open once the HQ is taken and picked only there (the boat says "Class · Unlock HQ first", or
+"Class · at the HQ" after), and Level 4's way home: down the zip line, then back over the bridge on foot, the report once they're
+in the HQ. Later: extraction by vehicle under smoke; new items unlocked by level (to discuss once the HQ is built); the north
+road's mission (another lab or a military installation) hidden until designed; some missions may take fewer than eight.

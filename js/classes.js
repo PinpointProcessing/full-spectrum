@@ -26,8 +26,8 @@ const isCls=(u,k)=>classOf(u)===k;
 // Bryan, after v100: "allow level ups but no new equipment until the Radio Tower is built": soldiers keep levelling up, but
 // nobody picks a class until radio control is up at the HQ (after Level 4: coming next); the report and the boat screen say
 // so (classLocked). A class picked before stays. classesOpen() is the one switch for when it's built.
-const classesOpen=()=>false;
-const canPromote=p=>classesOpen()&&!!p&&(!p.joined||p.kitted)&&!classes[p.id]&&(p.level||1)>=CLASS_LEVEL;
+const classesOpen=()=>typeof hqOpen==='function'&&hqOpen();   // (since v121, Bryan, after v120: "I don't think class selection should happen until the HQ": classes open once the Headquarters is the squad's, and are picked only there, at the command center, base.js)
+const canPromote=p=>classesOpen()&&MAPID==='hq'&&!!p&&(!p.joined||p.kitted)&&!classes[p.id]&&(p.level||1)>=CLASS_LEVEL;
 const classLocked=p=>!classesOpen()&&!!p&&!classes[p.id]&&(p.level||1)>=CLASS_LEVEL;   // at the level for one, waiting on the radio tower
 const classTaken=(k,but)=>k==='captain'&&Object.entries(classes).some(([id,c])=>c==='captain'&&id!==but);
 function setClass(id,k){if(!CLASSES[k]||classTaken(k,id))return false;classes[id]=k;saveClasses();
@@ -46,9 +46,10 @@ function classGear(p){
 }
 
 /* ---------- the choice, on the between-missions screen (equip.js) ---------- */
-function classPicker(id,done){
+function classPicker(id,done,host){
   const p=players.find(q=>q.id===id);if(!p)return;
-  let box=$('#clsPick');if(!box){box=document.createElement('div');box.id='clsPick';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');$('#equip').appendChild(box);}
+  let box=$('#clsPick');if(!box){box=document.createElement('div');box.id='clsPick';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');}
+  (host||$('#equip')).appendChild(box);   // (the command center's panel since v121, base.js)
   box.innerHTML=`<div class="cls-head"><b>Promotion: ${p.name}</b><span>Level ${p.level} · choose a class. It stays with him.</span><button type="button" class="cls-x" aria-label="Not now">Not now</button></div>`+
     `<div class="cls-list">${Object.entries(CLASSES).map(([k,c])=>{const off=classTaken(k,id);return`<button type="button" class="cls-card" data-k="${k}" ${off?'disabled':''}><b>${c.name}</b><span>${c.line}</span><em>${c.passive}</em>${c.skill?`<span class="cls-skill">${c.skill}</span>`:''}${(()=>{const add=[...c.weapons.filter(w=>w!=='m4s'&&w!=='hmg').map(w=>w==='sniper'?'sniper rifle':WEAPON[w]?WEAPON[w].label.toLowerCase():w),...(c.gear||[]).map(g=>SPECIALS[g]?SPECIALS[g].label.toLowerCase():g)];const t=[add.length?`Adds the ${add.join(' and ')} to his loadout.`:'',off?'The squad already has a Captain.':''].filter(Boolean).join(' ');return t?`<small>${t}</small>`:'';})()}</button>`;}).join('')}</div>`;
   box.hidden=false;

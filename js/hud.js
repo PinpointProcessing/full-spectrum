@@ -42,6 +42,7 @@ function finish(){
 // our soldier hit: the screen's edge flashes red and fades (k 0..1)
 function hitCue(k){const el=$('#hitFlash');if(!el)return;el.style.transition='none';el.style.opacity=Math.max(+el.style.opacity||0,k).toFixed(2);void el.offsetWidth;el.style.transition='opacity .7s ease-out';el.style.opacity='0';}
 function hud(){
+  document.body.classList.toggle('hqm',typeof hqManage==='function'&&hqManage());   // (the Headquarters managed: no team tabs or gait button, base.js)
   updateCards();
   const act=sel.filter(alive);
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
@@ -136,7 +137,7 @@ function bindHud(){
   // squad's first trip out, so the talk by the drawbridge and the first crossing of the bridge come first (save.js's 'base',
   // road.js's roadIntro); in v112 to v116 the Level 4 button did the first
   {const b=$('#afterBtn');if(b)b.addEventListener('click',()=>startCheckpoint('won'));}
-  {const b=$('#l4Btn');if(b)b.addEventListener('click',()=>startCheckpoint('base','Level 4 · The Old Radio Tower. Tap the arrows at the south door to head out.'));}
+  {const b=$('#l4Btn');if(b)b.addEventListener('click',()=>startCheckpoint('base','Level 4 · The Old Radio Tower. Tap the command center to plan it and pick the squad.'));}
   // the tutorial's bubble: a tap carries on from a notice or hides it (and stops there, so it never moves anyone); its button
   // turns the tutorial or the tips off; the "?" brings it back
   $('#tut').addEventListener('click',e=>{

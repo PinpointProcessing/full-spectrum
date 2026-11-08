@@ -310,3 +310,24 @@ body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipp
 #cpBtns .cp{min-height:36px;font-size:12px;background:#151c22;border-color:var(--line);color:#c9d3da;text-align:left;padding:4px 10px}
 /* the montage after the Headquarters (base.js): just the picture */
 #app.cine .panel,#app.cine #cards,#app.cine #gaitBtn,#app.cine #fitBtn,#app.cine #floors,#app.cine #tl,#app.cine #speed,#app.cine #talk,#app.cine #banner{visibility:hidden}
+
+/* the Headquarters' command center (base.js): missions, the squad and its loadout (the boat's rows), deploy */
+#hqc{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(4,6,8,.35)}
+.hqc-panel{max-height:calc(100% - 20px);overflow:hidden;margin:0 0 10px}
+#hqcBody{overflow:auto;display:flex;flex-direction:column;gap:6px;min-height:0;flex:1 1 auto}
+.hqc-rows{display:flex;flex-direction:column;gap:6px}
+.hqc-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--font-hud);text-transform:uppercase;letter-spacing:.12em}
+.hqc-top small{display:block;font-size:10px;color:var(--dim);font-weight:600}
+.hqc-top b{font-size:15px;color:var(--text)}
+.hqc-x{min-height:34px;padding:0 12px;font:600 11px var(--font-hud);letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:4px;cursor:pointer}
+.hqc-act{display:flex;gap:8px}.hqc-act .go{flex:1}
+.hqc-m{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-left:3px solid #8fe6f2;border-radius:6px;background:#121a20;color:var(--text);cursor:pointer;font:inherit}
+.hqc-m small{font:700 10px var(--font-hud);letter-spacing:.12em;text-transform:uppercase;color:#8fe6f2}
+.hqc-m b{font:700 15px/1.2 var(--font-hud);letter-spacing:.06em;text-transform:uppercase}
+.hqc-m span{font:400 13px/1.35 var(--font-body);text-transform:none;letter-spacing:normal;color:var(--dim)}
+.hqc-m[aria-pressed="true"]{border-color:#8fe6f2;background:color-mix(in srgb,#8fe6f2 12%,#121a20)}
+.hqc-m.done{opacity:.55;cursor:default;border-left-color:var(--line)}
+.hqc-m:focus-visible,.hqc-x:focus-visible{outline:2px solid #8fe6f2;outline-offset:2px}
+body.hqcOpen .panel,body.hqcOpen #gaitBtn,body.hqcOpen #floors,body.hqcOpen #banner{visibility:hidden}
+@media (min-aspect-ratio:21/20){#hqc{justify-content:center;align-items:flex-end}.hqc-panel{width:min(460px,54%);margin:0 10px 0 0;max-height:calc(100% - 20px)}}
+body.hqm .dock,body.hqm #gaitBtn{visibility:hidden}   /* the Headquarters is managed, not walked (base.js) */

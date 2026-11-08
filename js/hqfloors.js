@@ -33,7 +33,7 @@ const HQ_TR=[
   {from:'2F',to:'RF',z:HQ_FL.f2Up,arrive:{x:500,y:-44},label:'UP TO THE ROOF'},
   {from:'RF',to:'2F',z:HQ_FL.rfDown,arrive:{x:1370,y:366},label:'DOWN'}];
 const HQ_CAR={GF:{x0:516,y0:146,x1:586,y1:226},'2F':{x0:1598,y0:780,x1:1674,y1:854}};   // the lift's car on each floor
-const HQ_LIFT=[{from:'GF',to:'2F'},{from:'2F',to:'GF'}];
+const HQ_LIFT=[];   // (no lift since v121, Bryan, after v120: "I think we just needs stairs to go up. No lift. We might add a basement later"; its car's spots kept for old code)
 const HQ_2F_ROOMS=[{x0:1060,y0:260,x1:1330,y1:500,name:'BRIEFING ROOM'},{x0:1060,y0:510,x1:1330,y1:760,name:'BARRACKS'},
   {x0:1410,y0:260,x1:1680,y1:500,name:'EMPTY ROOM'},{x0:1410,y0:510,x1:1680,y1:760,name:'EMPTY ROOM'}];
 const ROOF={x0:150,y0:-700,x1:850,y1:-10},PAD={x:330,y:-470,r:110},MAST={x0:620,y0:-560,x1:760,y1:-440,x:690,y:-500};   // the roof inside the parapet, the helipad, the radio tower's base
@@ -89,18 +89,13 @@ function hShade(g,list){g.save();g.fillStyle='rgba(0,0,0,.55)';for(const o of li
 
 /* --- the ground floor: the stairs up and the lift where her lair was --- */
 function hqGFObjs(O){
-  O('GF','wall',506,140,10,86,{lift:1});O('GF','wall',586,140,10,86,{lift:1});   // the lift's shaft, open to the south
   O('GF','void',110,80,780,50);O('GF','void',110,790,280,150);O('GF','void',610,790,280,150);   // outside the walls (nobody lands there off the lift)
 }
 function hqGFLook(g,mat){
   const c=HQ_CAR.GF;
   for(const o of objs.filter(q=>q.lift&&q.floor==='GF')){const cx=o.x+o.w/2,cz=o.y+o.h/2;o.meshes=[hBox(g,o.w,24,o.h,mat.steel,cx,12,cz),hBox(g,o.w+.4,1,o.h+.4,mat.dark,cx,24.5,cz)];}
-  hBox(g,c.x1-c.x0,.4,c.y1-c.y0,mat.dark,(c.x0+c.x1)/2,.2,(c.y0+c.y1)/2);   // the car's floor
-  hBox(g,c.x1-c.x0+20,3,10,mat.steel,(c.x0+c.x1)/2,22.5,c.y1-4);   // the lintel over the opening
-  for(const s of[-1,1])hBox(g,8,21,2,mat.steel,(c.x0+c.x1)/2+s*((c.x1-c.x0)/2-4),10.5,c.y1-1);   // the doors, slid open
-  hBox(g,4,4,1.2,mat.dark,c.x0-5,9,c.y1+.8);hBox(g,.9,.9,.6,mat.green,c.x0-5,10,c.y1+1.6).castShadow=false;   // the call panel, on the end of the shaft's wall
   // the floor: hazard stripes at the lift's threshold and the foot of the stairs
-  if(HQ.tex){const x=HQ.tex.image.getContext('2d');x.setTransform(1.2,0,0,1.2,-HQB.x0*1.2,-HQB.y0*1.2);hStripes(x,c.x0,c.y1,c.x1-c.x0,7);const f=HQ_FL.gfUp;hStripes(x,f.x0,f.y1,f.x1-f.x0,6);HQ.tex.needsUpdate=true;}
+  if(HQ.tex){const x=HQ.tex.image.getContext('2d');x.setTransform(1.2,0,0,1.2,-HQB.x0*1.2,-HQB.y0*1.2);const f=HQ_FL.gfUp;hStripes(x,f.x0,f.y1,f.x1-f.x0,6);HQ.tex.needsUpdate=true;}
 }
 
 /* --- the second floor --- */
@@ -109,7 +104,7 @@ function hq2FObjs(O){
   O(F,'owall',1050,250,640,10);O(F,'owall',1050,860,640,10);O(F,'owall',1050,260,10,600);O(F,'owall',1680,260,10,600);
   for(const x of[1330,1400]){O(F,'iwall',x,260,10,100);O(F,'iwall',x,410,10,200);O(F,'iwall',x,660,10,100);}   // the corridor, a doorway into each room
   O(F,'iwall',1060,500,270,10);O(F,'iwall',1410,500,270,10);O(F,'iwall',1060,760,270,10);O(F,'iwall',1410,760,270,10);
-  O(F,'liftwall',1590,770,8,20);O(F,'liftwall',1590,844,8,16);   // the lift's door jambs
+  O(F,'iwall',1590,770,8,90);   // (the landing's east wall: no lift since v121)
   // the briefing room: a long table
   O(F,'table',1140,365,120,30,{look:(g,m,o)=>{const cx=o.x+o.w/2,cz=o.y+o.h/2;hBox(g,o.w,1.4,o.h,m.wood,cx,7.6,cz);hBox(g,o.w-8,6.6,o.h-10,m.dark,cx,3.3,cz);
     for(let k=0;k<5;k++)for(const s of[-1,1]){const ch=hBox(g,6,1.2,6,m.seat,o.x+14+k*23,5,cz+s*(o.h/2+6));hBox(g,6,6,1,m.seat,o.x+14+k*23,8,cz+s*(o.h/2+9.2));}}});
@@ -141,15 +136,14 @@ function hq2FLook(g,mat){
     for(const q of HQ_2F_ROOMS.slice(2))room(q,'#37393b',40,.25);
     for(let i=0;i<260;i++){const px=1062+r()*616,py=262+r()*596,rr=3+r()*16,gr=x.createRadialGradient(px,py,0,px,py,rr);gr.addColorStop(0,'rgba(10,10,12,.14)');gr.addColorStop(1,'rgba(10,10,12,0)');x.fillStyle=gr;x.fillRect(px-rr,py-rr,rr*2,rr*2);}
     for(const y of[360,610])for(const xx of[1330,1400])hStripes(x,xx,y,10,50);   // the doorways
-    {const c=HQ_CAR['2F'];x.fillStyle='#2a2d30';x.fillRect(c.x0,c.y0,c.x1-c.x0,c.y1-c.y0);hStripes(x,c.x0-7,790,7,54);}
+    
     {const f=HQ_FL.f2Up;hStripes(x,f.x0,f.y1,f.x1-f.x0,6);}
     hShade(x,fl);
     {const f=HQ_FL.f2Down;hStripes(x,f.x1,f.y0,6,f.y1-f.y0);x.clearRect(f.x0,f.y0,f.x1-f.x0,f.y1-f.y0);}   // the hole the stairs go down
   });
   for(const o of fl){if(o.kind==='owall')hWall(g,o,mat.owall,mat.cap,14);else if(o.kind==='iwall')hWall(g,o,mat.wall,mat.cap,12);else if(o.kind==='liftwall')hWall(g,o,mat.steel,mat.dark,14);}
   // the lift's car: a steel floor, the doors slid open, a call panel
-  {const c=HQ_CAR['2F'];hBox(g,c.x1-c.x0,.4,c.y1-c.y0,mat.dark,(c.x0+c.x1)/2,.2,(c.y0+c.y1)/2);for(const s of[-1,1])hBox(g,2,13,8,mat.steel,c.x0+1,6.5,817+s*23);
-    hBox(g,1.4,4,2.4,mat.dark,1589.3,9,781);hBox(g,.6,.9,.9,mat.green,1588.5,10,781).castShadow=false;}
+
   // the briefing room's wall screen (the area's map, a red mark on the old radio tower) and a whiteboard
   {const s=new T.Mesh(new T.PlaneGeometry(64,30),new T.MeshBasicMaterial({map:canvasTex(256,120,(x,w,h)=>{x.fillStyle='#071a1e';x.fillRect(0,0,w,h);x.strokeStyle='rgba(80,200,210,.2)';
       for(let i=0;i<w;i+=16){x.beginPath();x.moveTo(i,0);x.lineTo(i,h);x.stroke();}for(let j=0;j<h;j+=16){x.beginPath();x.moveTo(0,j);x.lineTo(w,j);x.stroke();}
@@ -240,7 +234,7 @@ function setHQFloor(id,at){
 /* ---------- the stairs and the lift (the things to use: interior.js's ACTS) ---------- */
 function hqFloorActs(){
   for(let i=ACTS.length-1;i>=0;i--)if(ACTS[i].hqf)ACTS.splice(i,1);
-  const on=()=>hqFloors()&&!!base&&!!base.done;
+  const on=()=>hqFloors()&&!!base&&!!base.done&&!(typeof hqManage==='function'&&hqManage());   // (nobody walks the Headquarters since v121: base.js)
   for(const tr of HQ_TR){const z=tr.z;ACTS.push({id:'hqst-'+tr.from+tr.to,hqf:1,map:'hq',floor:tr.from,x:(z.x0+z.x1)/2,y:(z.y0+z.y1)/2,r:16,label:tr.label,multi:true,avail:on,go:list=>hqGo(list,tr)});}
   for(const tr of HQ_LIFT){const c=HQ_CAR[tr.from];ACTS.push({id:'hqlift-'+tr.from,hqf:1,map:'hq',floor:tr.from,x:(c.x0+c.x1)/2,y:(c.y0+c.y1)/2,r:16,label:tr.to==='2F'?'LIFT UP':'LIFT DOWN',multi:true,
     avail:()=>on()&&!HQ.ride,go:list=>hqGoLift(list,tr)});}
@@ -303,7 +297,7 @@ function drawHQFloors(now){
   if(HQ.ride){const R=HQ.ride,z=HQ_CAR[R.from];if(R.from===curFloor){const k=(simT-R.t)/LIFT_RIDE,[lx,ly]=toS((z.x0+z.x1)/2,(z.y0+z.y1)/2,30);label(R.to==='2F'?'GOING UP':'GOING DOWN',lx,ly,'#ffcf4a',10,700);bar(lx-20,ly+8,40,k,'#ffcf4a');}}
 }
 function hqFloorHint(){
-  if(curFloor==='2F')return'The second floor: the briefing room and the barracks, and two rooms empty for now. The stairs at the end of the corridor go up to the roof; the stairs and the lift on the landing go back down.';
+  if(curFloor==='2F')return'The second floor: the briefing room and the barracks, and two rooms empty for now. The stairs at the end of the corridor go up to the roof; the stairs on the landing go back down.';
   if(curFloor==='RF')return'The roof: the helipad, and the base of the radio tower. It needs parts: the old radio tower through the tunnel down the road has them.';
   return'';
 }
