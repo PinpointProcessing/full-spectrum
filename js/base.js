@@ -7,9 +7,10 @@
    table. Then we can talk about adding some new stations and rooms."):
    - after the fight nobody bleeds out (hqCalm, read by combat.js), so whoever's down can be got up the usual way: a teammate
      beside him while his bar lasts, a medic kit once he's critical, or carry him to the medic station;
-   - then BRING THE SCIENTISTS at the entry hall's south door (a thing to use, interior.js's ACTS; not while anyone's still
-     down): the soldier sent goes out into the dark and comes back with the scientists left tied on the drawbridge
-     (fortress.js's hqEndTick), and as they come in everyone walks to the middle of the hall while they talk (story.js);
+   - then, once nobody's down, one of them goes out of the entry hall's south door by himself (Bryan, after v116: "can we make
+     the soldier automatically go to the front gate to get the scientists?"; until v117 the player sent him, BRING THE
+     SCIENTISTS): he goes out into the dark and comes back with the scientists left tied on the drawbridge (fortress.js's
+     hqEndTick), and as they come in everyone walks to the middle of the hall while they talk (story.js);
    - then the montage: four shots with a fade between them while the nest comes away (the eggs, the resin, the slime rocks;
      the floor clean, the fittings clean, the lights on), the squad and the scientists at work in each;
    - then the finished HQ (makeBase): the hall clean and lit, the debris gone, a command center in the middle, a medic table
@@ -35,20 +36,26 @@ function sciCopy(o,x,y,ang){
   makePerson(u);civs.push(u);return u;   // (mk has put him in units already)
 }
 
-/* ---------- after the fight: the wounded, then someone out for the scientists ---------- */
-function baseActs(){   // (from enterHQ: fortress.js)
+/* ---------- after the fight: the wounded, then one of them out for the scientists, by himself ---------- */
+function baseActs(){   // (from enterHQ: fortress.js; no things of the Headquarters' own until it's finished: the stairs and the lift, hqfloors.js)
   for(let i=ACTS.length-1;i>=0;i--)if(ACTS[i].map==='hq')ACTS.splice(i,1);
-  ACTS.push({id:'fetchsci',map:'hq',x:HQ_DOOR.x,y:HQ_DOOR.y-12,r:20,standY:2,secs:.3,solo:true,label:'BRING THE SCIENTISTS',
-    avail:()=>hqs.won&&!hqEnd&&tiedSci().length>0,need:()=>anyDown()?'Get the wounded up first.':null,act:u=>startFetch(u)});
 }
-function startFetch(f){   // he goes out of the south door into the dark (fortress.js's hqEndTick brings him back with them)
+// who goes for them (since v117 nobody's sent: baseTick starts it): the nearest to the south door of the squad's riflemen who's up
+// and free (the leaders talk to the scientists when they come in); a leader or a freed man only if none of them is
+const FETCH_WAIT={won:5,up:2};   // (s after "Headquarters taken", and after the last of the wounded is up)
+function fetcher(){
+  const up=players.filter(p=>alive(p)&&!p.offMap&&!p.away&&!p.carry&&!p.cargo),d=p=>hyp(p.x-HQ_DOOR.x,p.y-HQ_DOOR.y);
+  const pool=up.filter(p=>!p.joined&&p.id!=='A1'&&p.id!=='B1');
+  return(pool.length?pool:up).sort((a,b)=>d(a)-d(b))[0]||null;
+}
+function startFetch(f,auto){   // he goes out of the south door into the dark (fortress.js's hqEndTick brings him back with them)
   if(hqEnd||!hqs.won||!alive(f))return;const tied=tiedSci(),up=players.filter(p=>alive(p)&&!p.offMap&&!p.away);if(!tied.length)return;
   const lead=['A1','B1'].map(id=>up.find(p=>p.id===id&&p!==f)).find(Boolean)||up.find(p=>p!==f)||f;
   const other=['A2','B2','B1','A3','A4','B3','B4'].map(id=>up.find(p=>p.id===id&&p!==lead&&p!==f)).find(Boolean)||up.find(p=>p!==lead&&p!==f)||f;
   select([]);preview=null;mode=null;f.ret=null;
   hqEnd={ph:'out',t:simT,done:montageStart,tied,lead,fetch:f,other,sci:[]};
   f.path=[...(findPath(f.x,f.y,HQ_DOOR.x,HQ_DOOR.y)||[]),{x:HQ_OUT.x,y:HQ_OUT.y}];f.lastOrder=simT;
-  callout(f,'Bringing them in.',C.good);
+  callout(f,'Bringing them in.',C.good);if(auto)banner(`${f.name} goes out for the scientists.`,2600);
   camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:500,z:872,zoom:frameZoom(130,100,.12),yaw:0,tilt:.12},t:0,dur:1.4};   // (close on him: Bryan, after v112, "The sequence makes the characters look really tiny and far away")
 }
 // as they come in: the scientists to the middle of the hall, facing the squad, and the squad in an arc in front of them
@@ -138,9 +145,11 @@ function montageEnd(){
 }
 function baseTick(dt){   // (every tick: combat.js's update)
   if(MAPID!=='hq')return;
-  if(hqs.won)useTick(dt);   // (BRING THE SCIENTISTS: interior.js)
+  if(hqs.won)useTick(dt);   // (the stairs and the lift once it's finished: interior.js, hqfloors.js)
   hqFloorTick();   // (the stairs and the lift: hqfloors.js)
   if(hqs.won&&!hqEnd&&!base&&!tiedSci().length&&!anyDown()&&simT-(hqs.wonT||0)>5){hqEnd={ph:'montage',t:simT,sci:[]};montageStart();return;}   // (nobody left on the drawbridge to fetch: straight on to the clean-up)
+  if(hqs.won&&!hqEnd&&!base){if(anyDown())hqs.upT=simT;   // the wounded first; then one of them goes for the scientists by himself (above)
+    else if(simT-(hqs.wonT||0)>FETCH_WAIT.won&&simT-(hqs.upT??-1e9)>FETCH_WAIT.up){const f=fetcher();if(f)startFetch(f,true);}}
   const b=base;if(!b||!b.cine)return;const t=simT-b.t0;
   while(b.i<MONTAGE.length&&t>=MONTAGE[b.i][0]){MONTAGE[b.i][1]();b.i++;if(base!==b)return;}
   if(b.eggs&&b.eggs.length&&t<4.6){const D=HQ.nest&&HQ.nest.userData.eggs;if(D){const want=Math.ceil(b.eggN*Math.min(1,(t-.6)/3.4)),m4=new T.Matrix4().makeScale(0,0,0);

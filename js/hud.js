@@ -130,7 +130,13 @@ function bindHud(){
   $('#startBtn').addEventListener('click',()=>showEquip(startLevel3,'Next: Level 3 · The Data Center'));   // the loadout first (equip.js)
   $('#l2Btn').addEventListener('click',()=>showEquip(startLevel2,'Next: Level 2 · Lights Out'));   // (level2.js)
   $('#l1Btn').addEventListener('click',()=>startLevel1());
-  {const b=$('#l4Btn');if(b)b.addEventListener('click',()=>startCheckpoint('won'));}   // Level 4: from inside the Headquarters just after the Brood Mother's death, so the road east and its bridge come first (Bryan, after v111; save.js's 'won', fortress.js's hqAftermath, level4.js)   // (level1.js)
+  // two starts (Bryan, after v116: "can we make a start in HQ after the battle, and starting the old radio tower mission as two
+  // separate start points?"): Level 3's end, inside the Headquarters just after the Brood Mother's death (save.js's 'won',
+  // fortress.js's hqAftermath: the fetch, the talk, the clean-up), and Level 4 from the finished Headquarters before the
+  // squad's first trip out, so the talk by the drawbridge and the first crossing of the bridge come first (save.js's 'base',
+  // road.js's roadIntro); in v112 to v116 the Level 4 button did the first
+  {const b=$('#afterBtn');if(b)b.addEventListener('click',()=>startCheckpoint('won'));}
+  {const b=$('#l4Btn');if(b)b.addEventListener('click',()=>startCheckpoint('base','Level 4 · The Old Radio Tower. Tap the arrows at the south door to head out.'));}
   // the tutorial's bubble: a tap carries on from a notice or hides it (and stops there, so it never moves anyone); its button
   // turns the tutorial or the tips off; the "?" brings it back
   $('#tut').addEventListener('click',e=>{

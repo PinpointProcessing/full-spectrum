@@ -1013,3 +1013,25 @@ different parts of a map?"
      Levels 1 and 2.
    - A soldier standing on the arrows can still be picked out with a tap on him; the name always sends everyone.
    - Where the green areas were is plain ground now: a tap there is an ordinary move.
+
+## Bryan, after v116 (the changes are in v117)
+
+"Two things, can we make a start in HQ after the battle, and starting the old radio tower mission as two separate start points?"
+and "Also, can we make the soldier automatically go to the front gate to get the scientists?"
+
+1. Two start points on the intro card, one after the other under Level 3's button:
+   - "Level 3 · The HQ, After the Battle": inside the Headquarters just after the Brood Mother's death (what the Level 4 button did
+     from v112 to v116). The aftermath, then the fetch, the talk, the clean-up and the finished HQ.
+   - "Level 4 · The Old Radio Tower": the finished Headquarters before the squad's first trip out, the four in the hall and the
+     crew at work in the side rooms. A line says "Level 4 · The Old Radio Tower. Tap the arrows at the south door to head out."
+     Out of the door: the talk by the drawbridge about the radio tower, the first walk across the bridge with the camera locked,
+     the centipedes, then on to the tunnel. So crossing the bridge is still the first time.
+   - The Continue button reads "Level 4" from the finished Headquarters on.
+   - Taken as: the mission starts where its story starts, at home before going out. If he'd rather it start straight out at the
+     drawbridge with the talk (one tap shorter), or in sight of the tunnel as before v112, that's a one-line change.
+2. The soldier goes for the scientists by himself:
+   - Once the fight's over and nobody's down, one of the squad's riflemen (the nearer of Kowalski and Okafor to the south door) goes
+     out for them 5 s after "Headquarters taken". The banner says who ("Kowalski goes out for the scientists.") and the camera goes
+     with him. He comes back with them and the talk and the clean-up go on as before.
+   - If anyone's down, the banner says to get the wounded up first, and he goes 2 s after the last one is up.
+   - BRING THE SCIENTISTS, the thing to tap at the south door, is gone.

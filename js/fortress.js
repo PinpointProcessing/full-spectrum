@@ -102,7 +102,7 @@ function buildHQ(){
 function enterHQ(after){   // (after: the fight already over, her and her young dead where they fell: hqAftermath, below)
   const f=$('#fade');if(f){f.hidden=false;void f.offsetWidth;f.classList.add('on');}
   setTimeout(()=>{
-    buildHQ();stashOut(players);baseActs();   // (BRING THE SCIENTISTS once the fight's over: base.js)
+    buildHQ();stashOut(players);baseActs();   // (base.js: once the fight's over one of them goes for the scientists by himself, baseTick)
     useMap({objs:HQ.objs,hq:HQ.hq,slow:[],lamps:HQ.lamps,scene:HQ.scene,lights:HQ.lights});
     tankFires=[];rockets=[];charges=[];
     const live=players.filter(p=>!p.dead&&!p.gone);
@@ -123,12 +123,14 @@ function enterHQ(after){   // (after: the fight already over, her and her young 
     if(f)setTimeout(()=>{f.classList.remove('on');setTimeout(()=>{if(!f.classList.contains('on'))f.hidden=true;},400);},60);
   },380);
 }
-/* ---------- starting just after her death (save.js's 'won', the Level 4 button; Bryan, after v111: "Can we make the level 4
-   start from inside the HQ, so crossing the bridge will be the first time and I can see the sequence after killing the
-   monster?"): the hall the way a fight leaves it, her and her young dead where they fell, the side rooms open, the eggs that
-   hatched burst open, the squad standing at the hall's south end looking up it; on the next tick hqTickWin finds nothing
-   alive and it goes on from "Headquarters taken" as it does after a real fight (the wounded, BRING THE SCIENTISTS, the talk,
-   the clean-up: base.js) ---------- */
+/* ---------- starting just after her death (save.js's 'won': the intro card's Level 3 · After the Battle since v117, the
+   Level 4 button in v112 to v116; Bryan, after v111: "Can we make the level 4 start from inside the HQ, so crossing the bridge
+   will be the first time and I can see the sequence after killing the monster?", and after v116: "can we make a start in HQ
+   after the battle, and starting the old radio tower mission as two separate start points?"): the hall the way a fight
+   leaves it, her and her young dead where they fell, the side rooms open, the eggs that hatched burst open, the squad
+   standing at the hall's south end looking up it; on the next tick hqTickWin finds nothing alive and it goes on from
+   "Headquarters taken" as it does after a real fight (the wounded, one of them out for the scientists, the talk, the
+   clean-up: base.js) ---------- */
 const HQ_DEAD={mother:[480,596,22,55],young:[[372,668,.3],[420,716,.7],[628,672,2.8],[586,726,2.5],[402,488,.9],[606,502,2.2],[452,560,1.3],[548,612,1.9],[230,700,-.4],[780,452,3],[470,420,1.6],[560,378,1.2],[520,226,1.5],[650,330,2.4],[352,262,.8]],
   squad:[[430,684],[472,678],[516,676],[558,682],[598,690],[450,734],[500,740],[556,744]],slams:[[502,652],[446,628]]};
 function hqAftermath(live){   // (from enterHQ, with its scene in place)
@@ -202,12 +204,13 @@ function hqTickWin(){
   for(const h of hqs.hatch.slice())if(simT>=h.at){hqs.hatch.splice(hqs.hatch.indexOf(h),1);hatch(h.k,h.n);}
   if(enemies.some(e=>e.mon&&!e.dead))return;if(!enemies.some(e=>e.mon==='boss'))return;
   hqs.won=true;hqs.wonT=simT;obj=6;objCompleted(4);updateObjUI();setStatus();hud();bigText('Headquarters taken','complete');   // (setStatus: the chip off "Bridge down" when no fight set it, the start at her death)
-  setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!hqEnd)banner(anyDown()?'It’s over. Get the wounded up, then send someone for the scientists.':'It’s over. Send someone out for the scientists.',4200);},OBJ_LIST_T+300);   // (the player's turn now: base.js)
+  setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!hqEnd&&anyDown())banner('It’s over. Get the wounded up: once everyone’s up, one of them goes out for the scientists.',4200);},OBJ_LIST_T+300);   // (the player's turn while anyone's down; then base.js's baseTick sends one of them by himself)
 }
 /* ---------- the end (Bryan, after v85: "one of the surviving soldiers exits the HQ off screen and returns with the
    scientist. Then a sequence happens."; after v94: the player gets the wounded up and sends someone for the scientists, and
-   "When the scientists come in, they all walk to the center while the conversation is happening"): the soldier the player
-   sends (BRING THE SCIENTISTS: base.js's startFetch) goes out of the entry hall's south door for the scientists left tied
+   "When the scientists come in, they all walk to the center while the conversation is happening"; after v116, "can we make
+   the soldier automatically go to the front gate to get the scientists?"): once nobody's down, one of them (base.js's
+   fetcher and startFetch, from baseTick) goes out of the entry hall's south door for the scientists left tied
    on the drawbridge and brings them in; as they come in everyone walks to the middle of the hall and they talk (story.js's
    panel); then base.js's montage and the finished HQ. No orders from the moment he's sent (endingBusy: input.js, hud.js);
    nobody bleeds out once the fight's over (hqCalm: combat.js). ---------- */
@@ -244,7 +247,7 @@ function hqHint(){
     const n=civs.filter(c=>c.crew&&!c.dead).length,rooms=n?`The freed men are fixing up ${n===1?'one of the side rooms':n+' of the side rooms'}; the other ${6-n} ${6-n===1?'is':'are'} empty for now.`:'The six side rooms are empty for now.';   // (the crew: base.js)
     return`Your Headquarters: the command center, the medic table and the supply table. ${rooms} ${HQ.floors?'The stairs and the lift at the north end go up to the second floor and the roof. ':''}Tap the arrows at the south door to go out.`;}
     if(hqEnd)return'';
-    return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now.':'Send someone for the scientists: select a soldier, then tap BRING THE SCIENTISTS at the south door.';}
+    return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now. Once everyone’s up, one of them goes out for the scientists.':'One of them is going out for the scientists, through the south door.';}
   if(!hqs.awake)return'Here she comes.';
   const b=enemies.find(e=>e.mon==='boss');
   if(b&&!b.dead)return'Keep moving: get out of the violet ring before she slams, shoot her young when they rear up. Her roars open the side rooms and hatch her eggs.';

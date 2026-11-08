@@ -364,7 +364,7 @@ function circleSpot(u,ok,safe,extra=[],o){
    round where he'll be, the way a group move places them (makeAssign: in sight of his spot, cover first, not on top of him).
    For a revive, a medic kit, carrying a man, a zip tie, a thing to use (a hack too), the pillbox's gun, the watchtower, the bio
    scanner and a door. Not the one selected from his card (a throw, a kit, a skill: just him), and not things marked solo: the
-   lift's doors and the card door at the top of the office's stairs (the men put by them stay put), BRING THE SCIENTISTS. Who
+   lift's doors and the card door at the top of the office's stairs (the men put by them stay put), Level 1's scout. Who
    stays: anyone pinned (he won't leave his spot), on a job of his own (a zip tie, a thing, a kit, a carry, a throw, a
    takedown, a silent shot or a volley, a breach, a skill, the bio scanner), on the gun or the tower, carrying a man, on
    another floor, and anyone standing within ESCORT_NEAR of his spot with a line to it (covering him already). With them

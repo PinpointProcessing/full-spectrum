@@ -57,7 +57,7 @@ function continueGame(){
   }
   zoom=2.2;yaw=0;tilt=0;camT={x:at.x,z:at.y};clampCam();updateCamera();
   $('#intro').hidden=true;$('#end').hidden=true;
-  setStatus();buildCards();hud();if(s.stage!=='dc'&&s.stage!=='won')banner(`Continuing: ${STAGES[s.stage]}.`,2400);   // (from 'dc' they pour out again at once: nothing on screen, Bryan; from 'won', "Headquarters taken" says it)
+  setStatus();buildCards();hud();if(s.stage!=='dc'&&s.stage!=='won')banner(cpNote||`Continuing: ${STAGES[s.stage]}.`,cpNote?4200:2400);cpNote=null;   // (from 'dc' they pour out again at once: nothing on screen, Bryan; from 'won', "Headquarters taken" says it; a start's own line: startCheckpoint)
   if(s.stage==='dci')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBuilding(true);},60);
   if(s.stage==='base')setTimeout(()=>{if(state==='play'&&MAPID==='out')enterBase();},60);   // the finished Headquarters: straight back in (base.js)
   if(s.stage==='road')roadContinue();   // outside it, the road east open (road.js)
@@ -71,7 +71,7 @@ function continueGame(){
 // intro and end screens: offer Continue / Retry when there's a save
 function refreshSaveButtons(){
   const s=readSave();buildCheckpoints();
-  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level ${['hill','summit','home'].includes(s.stage)?4:3} · Continue · ${STAGES[s.stage]}`;
+  $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level ${['base','road','hill','summit','home'].includes(s.stage)?4:3} · Continue · ${STAGES[s.stage]}`;   // (Level 4 starts in the finished Headquarters since v117)
   $('#startBtn').textContent=s?'Level 3 · New game':'Level 3 · The Data Center';
   $('#retryBtn').hidden=!s;$('#againBtn').textContent=s?'New game':'Run it again';
 }
@@ -84,14 +84,15 @@ function refreshSaveButtons(){
    scientists to the gate, with the four freed men armed and all four scientists; from the Headquarters on the freed men are
    its crew and the squad is the original four (base.js). It becomes the save. ---------- */
 const CP_ORDER=['wh','br','maze','dco','dci','sci','hqf','dc','gate','won','base','road','hill','summit','home'];
-function startCheckpoint(st){
+let cpNote=null;   // (a start's own first line in place of "Continuing: ...": the Level 4 button, hud.js)
+function startCheckpoint(st,note){
   const n=STAGE_OBJ[st],after=n>=4,lo=typeof loadout!=='undefined'?loadout:DEFAULT_LOADOUT,squad={};
   for(const id of['A1','A2','B1','B2']){const l=lo[id]||DEFAULT_LOADOUT[id];squad[id]={dead:false,hp:100,grenade:1,spec:l.spec,weapon:l.weapon};}
   const freed=[['A3','Abara'],['A4','Brennan'],['B3','Lindqvist'],['B4','Marsh']],crew=n>=6?freed.map(([id,name])=>({id,name})):[];   // (from the HQ on: its crew)
   if(after&&n<6)for(const[id,name]of freed)squad[id]={dead:false,hp:100,grenade:0,joined:true,name,weapon:'rifle'};   // (the freed men, each with a rifle off a body)
   const cleared={wh:[0],br:[0,1],maze:[0,1,2]}[st]||[0,1,2,3];
   try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:3,stage:st,when:Date.now(),cleared,alert:0,sci:after?4:0,squad,crew}));}catch(e){return;}
-  continueGame();refreshSaveButtons();
+  cpNote=note||null;continueGame();refreshSaveButtons();
 }
 function buildCheckpoints(){
   const box=$('#cpBtns');if(!box||box.childElementCount)return;
