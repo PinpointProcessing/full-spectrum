@@ -305,7 +305,7 @@ function l1Tick(dt){
 }
 function l1Hint(){
   if(tutStep())return '';   // (the boot camp's box says it)
-  if(l1.relayDown)return l1.exfil?'Get everyone back to the boat on the beach (the green ring). Carry anyone who\'s down.':'Radio tower down.';
+  if(l1.relayDown)return l1.exfil?'Back to the boat on the beach: tap its arrows and everyone goes. Carry anyone who\'s down.':'Radio tower down.';
   if(!L1.yard.every(beaten))return L1.fence.every(beaten)?(L1.gate.every(beaten)?'Clear the yard: get into cover first, then fire. The ambush gives you an edge.':'Two guards at the gate: Alpha\'s silencers can drop them together. Select Alpha and tap each one.'):'One guard by the shed has his back to you: select one soldier and tap him to take him down.';
   if(!l1.scoutUp)return 'A wounded scout lies by the hut: select a soldier and tap him to bring him round.';
   return 'Bring down the radio tower east of the hut: Hayes\'s RPG (on his card) at the ring under it, or a grenade close to it.';
@@ -321,13 +321,7 @@ function drawL1(now){
     if(u&&alive(u)){toSBack=false;const a=toS(u.x,u.y,1),b=toS(g.x,g.y,1);if(!toSBack){ox.setLineDash([3,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(77,243,255,.85)';ox.lineWidth=2.6;ox.lineCap='round';ox.beginPath();ox.moveTo(...a);ox.lineTo(...b);ox.stroke();ox.setLineDash([]);ox.lineCap='butt';}}
   }
   if(m0){const p=(Math.sin(now*4)+1)/2,col=m0.col||'#4df3ff';toSBack=false;gPath(m0.x,m0.y,m0.r+p*4);if(!toSBack){ox.strokeStyle=col;ox.lineWidth=2.6;ox.setLineDash([6,5]);ox.lineDashOffset=-now*12;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(m0.x,m0.y+m0.r,6);label(m0.label||'HERE',lx,ly,col,10,700);}}   // the spot to tap
-  if(l1.exfil&&l1.away==null){   // the way out: the boat's ring on the beach, and how many are in it
-    const z=L1_BOAT,need=boatNeed(),n=need.filter(boatIn).length,pulse=(Math.sin(now*4)+1)/2;toSBack=false;
-    const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));
-    if(!toSBack){ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();ox.fillStyle=`rgba(95,224,142,${(.06+pulse*.07).toFixed(3)})`;ox.fill();
-      ox.setLineDash([10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
-      const[lx,ly]=below((z.x0+z.x1)/2,z.y0,10);label(`BOAT ${n}/${need.length}`,lx,ly-26,C.good,10,700);}
-  }
+  // (the way out, the boat on the beach, is a marker with the other ways through since v116: interior.js's boatExit and drawGather)
   const R=L1.relay,cx=R.x+R.w/2,cy=R.y+R.h/2;
   if(l1.scoutUp&&!l1.relayDown&&!(tip&&tip.k==='rpg')){const p=(Math.sin(now*3)+1)/2;toSBack=false;gPath(cx,cy,30+p*3);if(!toSBack){ox.strokeStyle='rgba(255,138,106,.85)';ox.lineWidth=2.4;ox.setLineDash([7,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);}}   // the ring under the tower: what to aim at (Bryan)
   if(!l1.relayDown){const[lx,ly]=below(cx,cy+R.h/2,10);label(l1.relayHP<100?`RADIO TOWER · RPG · ${Math.max(0,Math.round(l1.relayHP))}%`:'RADIO TOWER · RPG',lx,ly,'#ff8a6a',10,700);}   // (Bryan: "it should say Radio Tower - RPG")

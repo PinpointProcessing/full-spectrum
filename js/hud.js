@@ -9,8 +9,8 @@ function objHint(){
   if(obj>=5)return mon.out&&!mon.out.done?'Hold them off at the drawbridge: shoot the hunters when they crouch, step out of the violet line. Keep the scientists close.':'The gate is clear. Heal and restock at the medic station and ammo drop west of the drawbridge, then gather everyone in the green area at the drawbridge to go in.';   // (monsters.js)
   const ups=players.filter(p=>alive(p)&&!p.offMap),north=ups.some(p=>p.y<CANAL.y0);
   if(!north)return'Get into the data center, across the canal to the north-west. Ways over: the bridge (guarded), the sewer pipe to the west, or the broken rail bridge to the east. A sniper tower on the sidewalk at the road\'s west end, by the data center, watches its doors and up the road.';
-  if(dcLocked())return'The data center\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then gather at the doors.';
-  return'The containers along the canal are the quiet way: weave north through the gaps, wait for the jeep on the road to pass, cross behind it, and keep to the strip west of the doors. The data center\'s front is heavily guarded. Gather everyone at the front doors to go in.';
+  if(dcLocked())return'The data center\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then tap the arrows at the doors.';
+  return'The containers along the canal are the quiet way: weave north through the gaps, wait for the jeep on the road to pass, cross behind it, and keep to the strip west of the doors. The data center\'s front is heavily guarded. Tap the arrows at the front doors and everyone goes in.';
 }
 function setStatus(){
   const s=$('#status');

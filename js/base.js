@@ -134,7 +134,7 @@ function montageEnd(){
   crewUp();   // the freed men stay on: its crew from now (below)
   if(hqEnd)hqEnd.ph='done';saveGame('base');updateObjUI();hud();
   if(state==='play'&&!hqs.after)endAt=performance.now()+1200;   // "Mission complete!" and the report (hud.js's finish)
-  else if(state==='play'){aarCrew=[];setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!cineOn())banner('The Headquarters is yours. Gather everyone at the south door to go out.',4200);},700);}   // (begun at her death, the Level 4 button: no fight played, so no report; on to the road east: road.js)
+  else if(state==='play'){aarCrew=[];setTimeout(()=>{if(state==='play'&&MAPID==='hq'&&!cineOn())banner('The Headquarters is yours. Tap the arrows at the south door to go out.',4200);},700);}   // (begun at her death, the Level 4 button: no fight played, so no report; on to the road east: road.js)
 }
 function baseTick(dt){   // (every tick: combat.js's update)
   if(MAPID!=='hq')return;

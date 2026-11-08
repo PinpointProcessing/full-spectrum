@@ -356,7 +356,7 @@ function onRevive(t){if(t.joined&&t.name==='Marsh'&&!t.saidUp){t.saidUp=true;lin
 function officeHint(){
   const n=detained().length,left=office.heard&&office.freed<4?' The prisoners in the basement can still be freed.':'';
   const lab=players.some(p=>alive(p)&&floorOf(p.x,p.y)==='1F')&&office.labN<4?` Bonus: wreck the lab equipment (${office.labN}/4).`:'';
-  if(n)return `Bring the scientists out: everyone who's up to the front doors. Detained scientists follow the soldier who tied them.${left}${lab}`;
+  if(n)return `Bring the scientists out: tap the arrows at the front doors and everyone goes. Detained scientists follow the soldier who tied them.${left}${lab}`;
   if(!office.card)return 'The scientists are on the top floor. Find an access card: the lift and the door at the top of the stairs need one.';
   return `Up to the top floor by the stairs (east side) or the lift (west side). The stairs come out behind the gun that watches the lift.${office.door===2?left:' The computer in the shared room opens the steel door.'}${lab}`;
 }

@@ -982,3 +982,34 @@ A and B, so it's A, the nearer island whose shape you can make out; B is only th
    night and land far off stands out dark against it. A lightning flash lights the sky too.
 4. The first walk across: the camera at the game's lowest angle, with the picture moved down a little so the horizon and some sky
    are in and the squad sits in the lower part. The squad is the same size on screen. It eases back for the turn to the tunnel.
+
+## Bryan, after v115 (the changes are in v116)
+
+"So when I select a squad, and say if they are up against a bus. But I want to place them to a slightly different position against
+that bus, I cannot select the location near them, nothing happens. Can we make it so I can move squads precisely near their
+current location?" and "the entry green boxes to new areas doesn't look well to me. Can we redesign the way troops move to
+different parts of a map?"
+
+1. Moving the squad a step or two. Three things were in the way:
+   - A tap within about 26 px of any soldier counted as a tap on him, so every spot right next to the squad picked a soldier out
+     instead of moving them. Now, with soldiers selected, only a tap on a man's body (feet to head, about his width either side)
+     picks him out; anywhere else is a move. With nobody selected, a tap near a man still picks his team.
+   - The second tap, on the ghosts' marker, was checked after the soldiers, so on a short move, with the marker on top of one of
+     them, it picked him out instead of going. The marker comes first now.
+   - By the bus at the tunnel's mouth, the road east's old invisible 6 m rock boxes still caught taps and sent the squad to their far
+     side (the hill has been drawn as ground since v113). Now a tap there lands where you tapped, and a tap on the hill itself (either
+     slope beside the mouth, or the ground over the tunnel) moves them to the walkable spot nearest where you tapped. On v115 about half
+     of those taps said "Can't get there".
+2. The ways through. Every way to another map or out of a level is a marker in its doorway now, not a green box: three arrows on
+   the ground pointing through, a light running along them, and its name over it.
+   - One tap on its name or its arrows sends everyone who's up. They walk in and go through as soon as they're all there: no
+     gathering by hand, no second tap.
+   - Walking in still works where it did: the tunnel's two ends, the service door, the boats.
+   - Another order to any of them on the way calls it off.
+   - When it can't go yet, its name says why and a tap only explains: someone down (CARRY THE WOUNDED), no scientist down in the
+     lobby (BRING A SCIENTIST DOWN), the zip line's parts (PARTS n/3), the data center's doors locked while they're searching.
+   - All of them: the data center's doors and the lobby's way out, the drawbridge into the Headquarters, its south door out, the
+     tunnel's mouth and its far end, the service door, the hill's way back to the road tunnel, the zip line, and the boats out of
+     Levels 1 and 2.
+   - A soldier standing on the arrows can still be picked out with a tap on him; the name always sends everyone.
+   - Where the green areas were is plain ground now: a tap there is an ordinary move.

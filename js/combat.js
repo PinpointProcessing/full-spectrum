@@ -1111,7 +1111,7 @@ function update(dt){
   takedownTick(dt);silentTick();throwTick();fireGoTick();manTick();
   missionFx(dt);
   if(state==='play'&&!endAt){
-    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();baseTick(dt);roadTick(dt);l4Tick(dt);   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
+    vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();baseTick(dt);roadTick(dt);l4Tick(dt);exitTick(dt);   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
     if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

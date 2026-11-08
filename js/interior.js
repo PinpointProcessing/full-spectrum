@@ -387,33 +387,97 @@ function drawActs(now){
   }
   for(const g of useGos)if(!g.u.path.length&&(g.secs||g.a.secs)){const u=g.u,T2=g.secs||g.a.secs;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+g.prog/T2*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
 }
-// the gather areas: ENTER at the data center's front doors outside, EXIT at the lobby's front doors inside
+/* ---------- the ways through to another part of the map (since v116; Bryan, after v115: "the entry green boxes to new areas
+   doesn't look well to me. Can we redesign the way troops move to different parts of a map?") ----------
+   Every way through is a doorway marker now, not a green box: three arrows on the ground pointing through it, a soft light, and its
+   name over it. A tap on the marker or its name sends everyone who's up there (exitGo: spots inside its area, a man carrying a
+   wounded one brings him), and once they're all in it goes through by itself (exitTick). The ones that always went by themselves
+   (the tunnel's ends, the service door, the boats out) still do, so walking everyone in works as it did; the others wait in a
+   tap's sense only: tapping the marker is the tap. Another order to one of them calls it off. When it can't go yet it says why
+   instead: locked while they're searching, the wounded to carry, a scientist to bring down, the zip line's parts.
+   Each one: z its area, at the marker's point, dir the way through (map frame), title its name, go the word once it's ready, need
+   who has to be there, fn what going through does, auto (goes by itself), floor (only on that floor), locked, why. */
 function gatherZone(){
-  if(MAPID==='out'&&obj===3&&!sciOut)return{z:DC_ENTER,ready:enterReady(),go:'ENTER',need:players.filter(alive),locked:dcLocked()};
-  if(MAPID==='in'&&detained().length){const z=zoneOf(IN.floors.GF,'exit');if(z)return{z,ready:exitReady(),go:'LEAVE',need:players.filter(p=>alive(p)&&!p.offMap)};}
-  return roadGather();   // (GO OUT of the finished Headquarters, the tunnel at the end of the road east: road.js)
+  const L=[];
+  if(MAPID==='out'&&obj===3&&!sciOut)L.push({key:'dc',z:DC_ENTER,ready:enterReady(),go:'GO IN',title:'DATA CENTER',at:{x:DC_DOOR.x+DC_DOOR.w/2,y:DC_ENTER.y0+12},dir:-Math.PI/2,need:players.filter(alive),locked:dcLocked(),fn:()=>enterBuilding()});
+  if(MAPID==='in'&&detained().length){const z=zoneOf(IN.floors.GF,'exit');if(z){const sci=detained().some(c=>floorOf(c.x,c.y)==='GF'),down=players.some(p=>p.downed&&!p.offMap&&!p.carriedBy);
+    L.push({key:'leave',z,ready:exitReady(),go:'GO OUT',title:'OUTSIDE',at:{x:(z.x0+z.x1)/2,y:z.y1-14},dir:Math.PI/2,need:players.filter(p=>alive(p)&&!p.offMap),why:!sci?'BRING A SCIENTIST DOWN':down?'CARRY THE WOUNDED':null,fn:()=>exitBuilding()});}}
+  for(const f of[roadGather,gateExit,boatExit]){const r=typeof f==='function'?f():null;if(r)L.push(...(Array.isArray(r)?r:[r]));}   // (out of the finished Headquarters, the tunnel's ends, the hill's: road.js, level4.js; the drawbridge: monsters.js; the boats out: below)
+  return L;
 }
-const gatherZones=()=>{const G=gatherZone();return !G?[]:Array.isArray(G)?G:[G];};   // (the tunnel has one at each end: road.js)
-function drawGather(now){for(const G of gatherZones())drawGatherOne(G,now);}
-function drawGatherOne(G,now){
+const gatherZones=()=>gatherZone();
+// the boats out of Levels 1 and 2 (level1.js's and level2.js's exfilTick push off once everyone's aboard)
+function boatExit(){
+  const mk=(z,need,isIn,at,dir)=>({key:'boat',z,ready:need.length>0&&need.every(isIn),auto:'boat',title:'BOAT',at,dir,need:need.filter(alive),why:need.some(p=>p.downed&&!p.carriedBy&&!isIn(p))?'CARRY THE WOUNDED':null,fn:null});
+  if(MAPID==='l1'&&typeof l1!=='undefined'&&l1&&l1.exfil&&l1.away==null&&!l1.won)return mk(L1_BOAT,boatNeed(),boatIn,{x:150,y:842},Math.PI/2);
+  if(MAPID==='l2'&&typeof l2!=='undefined'&&l2&&l2.exfil&&l2.away==null&&!l2.won)return mk(L2_BOAT,l2BoatNeed(),l2BoatIn,{x:878,y:730},0);
+  return null;
+}
+const exitKey=G=>G.key||`${G.title}@${G.z.x0},${G.z.y0}`;
+const exitPt=G=>G.at||{x:(G.z.x0+G.z.x1)/2,y:(G.z.y0+G.z.y1)/2};
+const EXIT_COL={go:'#a9e4ff',ready:'#7dffb0',locked:'#ff9a6a',block:'#ffcf4a'};
+const EXIT_WHY={'CARRY THE WOUNDED':'Nobody goes through while someone\'s down: revive him or carry him.','BRING A SCIENTIST DOWN':'Bring a detained scientist down to the lobby first.'};
+let EXIT_GO=null;const EXIT_HIT=new Map();   // (the exit everyone's on the way to: {key, t0, who}; where each marker's name was drawn, for taps)
+function drawGather(now){EXIT_HIT.clear();for(const G of gatherZones())drawExitOne(G,now);}
+function drawExitOne(G,now){
   if(G.floor&&G.floor!==curFloor)return;   // (Level 4's: on its own floor, level4.js)
-  const z=G.z,pulse=(Math.sin(now*4)+1)/2;
-  toSBack=false;const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));if(toSBack)return;
-  ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();
-  ox.fillStyle=`rgba(95,224,142,${(G.ready?.18:.06+pulse*.07).toFixed(3)})`;ox.fill();
-  ox.setLineDash(G.ready?[]:[10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
-  const n=G.need.filter(p=>inZone(p,z)).length,[lx,ly]=below((z.x0+z.x1)/2,z.y1,8);
-  if(G.locked){label('LOCKED · THEY\'RE SEARCHING',lx,ly,'#ffb35a',10,700);return;}   // (the dashes still say where)
-  if(G.ready)pill(G.auto?G.go:`TAP TO ${G.go}`,lx,ly,C.good);else label(`${G.name||G.go} ${n}/${G.need.length}`,lx,ly,'#5fe08e',11,700);   // (auto: it goes by itself once everyone's in it)
+  const P=exitPt(G),d=G.dir??-Math.PI/2,ux=Math.cos(d),uy=Math.sin(d),vx=-uy,vy=ux,key=exitKey(G),going=!!EXIT_GO&&EXIT_GO.key===key;
+  const st=G.locked?'locked':G.why?'block':G.ready&&!G.auto?'ready':'go',col=EXIT_COL[st],rgb=col.match(/\w\w/g).map(h=>parseInt(h,16)).join(',');
+  toSBack=false;gPath(P.x,P.y,15);if(toSBack)return;
+  ox.fillStyle=`rgba(${rgb},${(.07+.05*Math.sin(now*3)).toFixed(3)})`;ox.fill();   // a soft light on the ground where it is
+  ox.lineCap=ox.lineJoin='round';
+  for(let i=0;i<3;i++){const o=(i-1)*9,cx=P.x+ux*o,cy=P.y+uy*o,a=st==='locked'?.55:.28+.72*Math.max(0,Math.sin(now*5-i*1.25));   // three arrows pointing through it, a light running along them that way
+    const t=toS(cx+ux*4,cy+uy*4,.5),l=toS(cx-ux*3+vx*6.5,cy-uy*3+vy*6.5,.5),r=toS(cx-ux*3-vx*6.5,cy-uy*3-vy*6.5,.5);
+    ox.strokeStyle=`rgba(${rgb},${a.toFixed(3)})`;ox.lineWidth=3.2;ox.beginPath();ox.moveTo(...l);ox.lineTo(...t);ox.lineTo(...r);ox.stroke();}
+  ox.lineCap='butt';ox.lineJoin='miter';
+  // its name over it: what a tap there does, how many are in while they're on their way, or why it can't go yet
+  const n=G.need.filter(p=>inZone(p,G.z)).length;
+  const text=G.locked?`${G.title} · LOCKED · THEY'RE SEARCHING`:G.why?`${G.title} · ${G.why}`:going||(G.auto&&n>0)?`${G.title} · ${n}/${G.need.length}`:G.ready&&!G.auto?G.go:G.title;
+  const[sx,sy]=toS(P.x,P.y,20);ox.font=`700 11px ${HUDFONT}`;const tw=ox.measureText(text).width,w=tw+(st==='go'||st==='ready'?26:14),x0=sx-w/2,y0=sy-20;
+  ox.fillStyle='rgba(6,9,12,.86)';ox.strokeStyle=col;ox.lineWidth=1.2;ox.beginPath();ox.roundRect?ox.roundRect(x0,y0,w,18,9):ox.rect(x0,y0,w,18);ox.fill();ox.stroke();
+  if(st==='go'||st==='ready'){ox.fillStyle=col;ox.beginPath();ox.moveTo(x0+9,y0+5);ox.lineTo(x0+15,y0+9);ox.lineTo(x0+9,y0+13);ox.closePath();ox.fill();}   // (a play mark: a tap goes)
+  ox.fillStyle=col;ox.textAlign='center';ox.textBaseline='middle';ox.fillText(text,x0+w/2+(st==='go'||st==='ready'?6:0),y0+9.5);
+  ox.strokeStyle=`rgba(${rgb},.5)`;ox.lineWidth=1;ox.beginPath();ox.moveTo(sx,y0+18);ox.lineTo(...toS(P.x,P.y,4));ox.stroke();   // (a thread down to the marker)
+  EXIT_HIT.set(key,{x0:x0-4,y0:y0-4,x1:x0+w+4,y1:y0+22});
 }
-// a tap: on a ready gather area it goes; on something to use it's used; returns true if the tap was taken
+// the way through under a finger: its name over it ('label': input.js asks first, before anything else on the map) or its arrows
+// on the ground ('mark': asked after ours and theirs, so a man standing on them is still picked out); neither: both
+function exitAt(sx,sy,part){
+  if(fading)return null;
+  for(const G of gatherZones()){if(G.floor&&G.floor!==curFloor)continue;
+    const h=EXIT_HIT.get(exitKey(G));if(part!=='mark'&&h&&sx>=h.x0&&sx<=h.x1&&sy>=h.y0&&sy<=h.y1)return G;
+    if(part!=='label'){const P=exitPt(G);toSBack=false;const[mx,my]=toS(P.x,P.y,.5);if(!toSBack&&hyp(sx-mx,sy-my)<18)return G;}}   // (the arrows themselves, tight, so a move right beside them is still a move; its name is the button)
+  return null;
+}
+// a tap on one: if it can go it goes, or everyone who's up walks there and it goes once they're in (exitTick)
+function exitGo(G){
+  if(G.locked){banner('Not while the alarm is going or they\'re searching for you. Lose them first.',2600);if(typeof gen==='function'){const w=tutBy(G.z.x0,G.z.y0);if(w)chat('dclock',12,gen(w,'dclock'));}return true;}
+  if(G.why){banner(EXIT_WHY[G.why]||(G.title+': '+G.why.toLowerCase()+'.'),2600);return true;}
+  if(G.ready&&!G.auto){EXIT_GO=null;G.fn();return true;}
+  const P=exitPt(G),here=u=>!mapFloors()||sameFloor(u.x,u.y,P.x,P.y),who=G.need.filter(u=>alive(u)&&!u.carriedBy&&here(u)),away=G.need.filter(u=>alive(u)&&!u.carriedBy&&!here(u));
+  if(!who.length){banner('Bring everyone to this floor first.',2000);return true;}
+  const inside=who.filter(u=>inZone(u,G.z)),out=who.filter(u=>!inZone(u,G.z)).sort((a,b)=>hyp(a.x-P.x,a.y-P.y)-hyp(b.x-P.x,b.y-P.y));
+  const spots=slotsIn(G.z,out.length,inside.map(u=>({x:u.x,y:u.y}))).sort((a,b)=>hyp(a.x-P.x,a.y-P.y)-hyp(b.x-P.x,b.y-P.y));
+  const as=out.map((u,i)=>{const s=spots[i]||P;return{u,x:s.x,y:s.y,path:findPath(u.x,u.y,s.x,s.y)||[]};});
+  commit(as);for(const u of inside){u.lastOrder=simT;u.path=[];}
+  EXIT_GO={key:exitKey(G),t0:simT,who};preview=null;
+  if(away.length)banner(`${away.length===1?'One man is':away.length+' men are'} on another floor: bring ${away.length===1?'him':'them'} down too.`,2600);
+  return true;
+}
+// everyone on the way to a way through: once they're all in it goes (the ones that go by themselves do it on their own); another
+// order for one of them, or it locking or going, calls it off; a man who stopped short is sent again
+function exitTick(dt){
+  const X=EXIT_GO;if(!X)return;if(state!=='play'||fading){if(state!=='play')EXIT_GO=null;return;}
+  const G=gatherZones().find(g=>exitKey(g)===X.key);
+  if(!G||G.locked||G.why||X.who.some(u=>u.lastOrder>X.t0+1e-6)){EXIT_GO=null;return;}
+  if(G.ready){if(G.auto){if((X.done=(X.done||0)+dt)>4)EXIT_GO=null;}else if((X.rt=(X.rt||0)+dt)>.4){EXIT_GO=null;G.fn();}return;}
+  if((X.chk=(X.chk||0)+dt)<1)return;X.chk=0;
+  for(const u of X.who)if(alive(u)&&!u.path.length&&!inZone(u,G.z)){const s=slotsIn(G.z,1,players.filter(p=>p!==u&&alive(p)).map(p=>({x:p.x,y:p.y})))[0]||exitPt(G);u.path=findPath(u.x,u.y,s.x,s.y)||[];}
+}
+// a tap on the map: a way through's marker (a test, or an old tap right on it) goes; something to use is used; returns true if taken
 function interiorTap(wx,wy){
   if(fading)return true;
-  for(const G of gatherZones()){
-    const onG=wx>=G.z.x0-20&&wx<=G.z.x1+20&&wy>=G.z.y0-20&&wy<=G.z.y1+20;
-    if(onG&&G.locked&&!sel.length){banner('Not while the alarm is going or they\'re searching for you. Lose them first.',2600);if(typeof gen==='function'){const w=tutBy(G.z.x0,G.z.y0);if(w)chat('dclock',12,gen(w,'dclock'));}return true;}
-    if(onG&&G.ready){if(G.fn)G.fn();else if(MAPID==='out')enterBuilding();else exitBuilding();return true;}
-  }
+  for(const G of gatherZones()){if(G.floor&&G.floor!==curFloor)continue;const P=exitPt(G);if(hyp(wx-P.x,wy-P.y)<14)return exitGo(G);}
   const a=actAt(wx,wy);if(a&&!a.pickup){orderUse(a);return true;}
   return false;
 }

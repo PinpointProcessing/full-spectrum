@@ -242,7 +242,7 @@ function hqHint(){
   if(MAPID!=='hq')return'';
   if(hqs.won){if(HQ&&HQ.base){if(HQ.floors&&curFloor!=='GF')return hqFloorHint();
     const n=civs.filter(c=>c.crew&&!c.dead).length,rooms=n?`The freed men are fixing up ${n===1?'one of the side rooms':n+' of the side rooms'}; the other ${6-n} ${6-n===1?'is':'are'} empty for now.`:'The six side rooms are empty for now.';   // (the crew: base.js)
-    return`Your Headquarters: the command center, the medic table and the supply table. ${rooms} ${HQ.floors?'The stairs and the lift at the north end go up to the second floor and the roof. ':''}Gather everyone at the south door to go out.`;}
+    return`Your Headquarters: the command center, the medic table and the supply table. ${rooms} ${HQ.floors?'The stairs and the lift at the north end go up to the second floor and the roof. ':''}Tap the arrows at the south door to go out.`;}
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now.':'Send someone for the scientists: select a soldier, then tap BRING THE SCIENTISTS at the south door.';}
   if(!hqs.awake)return'Here she comes.';

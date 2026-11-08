@@ -398,11 +398,11 @@ function closeEast(){   // (a new game, a Retry, another level: reset, once the 
 function resetRoad(){closeEast();road=null;hqStaff=[];hqCrew=[];aarCrew=[];}   // (state.js's reset; the HQ's people: base.js)
 
 /* ---------- out of the Headquarters, and back in ---------- */
-function roadGather(){   // (interior.js's gatherZone: GO OUT in the Headquarters' entry hall, TUNNEL at the tunnel's mouth)
-  const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&need.every(p=>inZone(p,z));
-  if(MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive()&&(!HQ.floors||curFloor==='GF'))return{z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',need,fn:leaveBase};
-  if(MAPID==='out'&&road&&road.talked&&state==='play')return{z:TUN_ZONE,ready:all(TUN_ZONE),go:'GOING IN',name:'TUNNEL',auto:'in',need,fn:enterTunnel};   // (auto: it goes by itself, Bryan: "When approaching it it changes to it": tunnel.js)
-  if(MAPID==='tun'&&state==='play')return[{z:TUN_IN,ready:all(TUN_IN),go:'GOING OUT',name:'OUT',auto:'out',need,fn:leaveTunnel},...(obj<9?[{z:TUN_SVC,ready:all(TUN_SVC),go:'GOING IN',name:'SERVICE DOOR',auto:'svc',need,fn:()=>enterHill()}]:[])];   // (the service door: into the hill, Level 4: level4.js)
+function roadGather(){   // (interior.js's gatherZone, its ways through: GO OUT in the Headquarters' entry hall, the tunnel's mouth, its far end, the service door)
+  const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&need.every(p=>inZone(p,z)),why=down?'CARRY THE WOUNDED':null;
+  if(MAPID==='hq'&&HQ&&HQ.base&&state==='play'&&!cineOn()&&!talkActive()&&(!HQ.floors||curFloor==='GF'))return{key:'goout',z:HQ_EXIT,ready:all(HQ_EXIT),go:'GO OUT',title:'OUTSIDE',at:{x:500,y:906},dir:Math.PI/2,need,why,fn:leaveBase};
+  if(MAPID==='out'&&road&&road.talked&&state==='play')return{key:'tunnel',z:TUN_ZONE,ready:all(TUN_ZONE),go:'GOING IN',title:'TUNNEL',at:{x:1648,y:-250},dir:0,auto:'in',need,why,fn:enterTunnel};   // (auto: it goes by itself, Bryan: "When approaching it it changes to it": tunnel.js)
+  if(MAPID==='tun'&&state==='play')return[{key:'tunout',z:TUN_IN,ready:all(TUN_IN),go:'GOING OUT',title:'THE BRIDGE',at:{x:740,y:862},dir:Math.PI/2,auto:'out',need,why,fn:leaveTunnel},...(obj<9?[{key:'svc',z:TUN_SVC,ready:all(TUN_SVC),go:'GOING IN',title:'SERVICE DOOR',at:{x:768,y:-238},dir:0,auto:'svc',need,why,fn:()=>enterHill()}]:[])];   // (the service door: into the hill, Level 4: level4.js)
   if(MAPID==='l4')return l4Gather();   // (out by the service door, down the zip line: level4.js)
   return null;
 }
@@ -452,7 +452,7 @@ function roadTick(dt){   // (every tick: combat.js's update)
   if(MAPID==='tun'&&typeof tunTick==='function')tunTick(dt);   // (her young in the tunnel: tunnel.js)
   if(!road)return;const I=road.intro,g=road.guide;
   if(state==='play'&&!fading&&!I&&(MAPID==='out'||MAPID==='tun')){const A=road.auto||(road.auto={});   // the gather areas that go by themselves: half a second after everyone's in
-    for(const G of gatherZones()){if(!G.auto)continue;const a=A[G.auto]||(A[G.auto]={t:0,done:false});if(!G.ready){a.t=0;a.done=false;continue;}a.t+=dt;if(a.t>.5&&!a.done){a.done=true;G.fn();}}}
+    for(const G of gatherZones()){if(!G.auto)continue;const a=A[G.auto]||(A[G.auto]={t:0,done:false});if(!G.ready){a.t=0;a.done=false;continue;}a.t+=dt;if(a.t>.5&&!a.done){a.done=true;if(G.fn)G.fn();}}}
   if(I&&MAPID==='out'){
     if(contact||state!=='play'){roadIntroEnd(true);return;}   // (trouble on the way: the rest can wait)
     if(I.ph==='walk'&&simT-I.t0>1.3){I.ph='pan';camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:ROAD_OUT.x+24,z:ROAD_OUT.y+4,zoom:frameZoom(150,110,.18),yaw:0,tilt:.18},t:0,dur:1.6};}
@@ -489,7 +489,7 @@ function roadHint(){
   if(MAPID==='tun')return tunHint();
   if(obj>=9&&MAPID==='out'&&road&&!road.intro)return l4AfterHint();
   if(MAPID!=='out'||!road||road.intro)return'';
-  return'The road east runs on past the gate over the long bridge to the tunnel in the hill: the way to the old radio tower. Something went in there. Walk everyone into its mouth to go in. The green area at the drawbridge takes you back into the Headquarters.';
+  return'The road east runs on past the gate over the long bridge to the tunnel in the hill: the way to the old radio tower. Something went in there. Tap the arrows at its mouth, or walk everyone in, to go in. The arrows at the drawbridge take you back into the Headquarters.';
 }
 // a Continue from the save on the road: the big map with the road open, the talk done, the squad where it stopped in sight of the tunnel
 function roadContinue(){

@@ -624,10 +624,10 @@ function l4SummitTick(){
 function l4PartsHeld(){return L4.parts.filter(p=>p.holder&&alive(p.holder)).length;}
 function l4Gather(){
   if(!L4||state!=='play')return null;
-  const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&!L4.ride&&need.every(p=>inZone(p,z));
-  const out=[{z:PL_OUT,ready:all(PL_OUT),go:'LEAVE THE HILL',name:'SERVICE DOOR',need,fn:leaveHill,floor:'PL'}];
+  const need=players.filter(p=>alive(p)&&!p.offMap),down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy),all=z=>need.length>0&&!down&&!L4.ride&&need.every(p=>inZone(p,z)),why=down?'CARRY THE WOUNDED':null;
+  const out=[{key:'hillout',z:PL_OUT,ready:all(PL_OUT),go:'LEAVE THE HILL',title:'ROAD TUNNEL',at:{x:64,y:810},dir:Math.PI,need,why,fn:leaveHill,floor:'PL'}];   // (since v116 ways through with a marker: interior.js's exitGo)
   if(!L4.zip){const k=l4PartsHeld(),inz=L4.parts.every(p=>p.holder&&inZone(p.holder,L4_ZIP));
-    out.push({z:L4_ZIP,ready:all(L4_ZIP)&&k===3&&inz,go:'GO DOWN THE ZIP LINE',name:k<3?`ZIP LINE · PARTS ${k}/3 · MEN`:'ZIP LINE',need,fn:zipGo,floor:'SU'});}
+    out.push({key:'zip',z:L4_ZIP,ready:all(L4_ZIP)&&k===3&&inz,go:'GO DOWN THE ZIP LINE',title:'ZIP LINE',at:{x:500,y:58},dir:Math.PI/2,need,why:k<3?`PARTS ${k}/3`:why,fn:zipGo,floor:'SU'});}
   return out;
 }
 // back out into the road tunnel (the hill starts fresh next time)
@@ -775,7 +775,7 @@ function l4Hint(){
     if(!L4.been.SU)return`The plant: the tunnel's old control rooms. Up to the summit from the lower station (east): the STAIRS are quiet (something lives in them); the LIFT ${L4.power?'has power. It\'s loud: the guards up top will hear it coming and wait at the bunker, and it wakes the brood in the fan hall.':'needs the generator (north-east). It\'s loud: the guards up top will hear it coming, and it wakes the brood nesting in the fan hall.'}${L4.cams?'':' The control room\'s cameras show the summit.'}${L4.bonus.every(Boolean)?'':' Bonus finds: an M203 in the staff room, a heavy machine gun in the store.'}`;
     return'The plant. The stairs and the lift in the lower station go back up to the summit. The service door (west) takes you back out to the road tunnel.';}
   const k=l4PartsHeld();
-  if(k>=3)return'All three parts: everyone to the zip line on the south edge (the green area), the carriers with them, anyone down carried. Tap it to go down.';
+  if(k>=3)return'All three parts: tap the zip line\'s arrows on the south edge and everyone goes, the carriers with them. Anyone down has to be carried.';
   const left=L4.parts.filter(p=>!p.holder).map(p=>p.name);
   return`The summit, the old radio tower. Take ${left.join(', ').replace(/, ([^,]*)$/,' and $1')}: the transmitter is in the radio building (north-west), the receiver packed by their containers (east), the antenna taken down at the mast's foot. A carrier is slow and can't shoot.${L4.clear?'':' A sniper up the mast, a machine gun over their track (north).'} The zip line on the south edge is the way home.`;
 }
@@ -787,7 +787,7 @@ function l4ObjUI(el){
   el.querySelector('ol').innerHTML=items.map(([t,d])=>`<li class="${d?'done':''}">${t}</li>`).join('')+`<li class="${L4.intel?'done':''}">Bonus: the radio log (intel)</li><li class="${L4.bonus[0]?'done':''}">Bonus: the M203 (the staff room)</li><li class="${L4.bonus[1]?'done':''}">Bonus: the heavy machine gun (the store)</li>`;
   el.hidden=state!=='play';
 }
-function l4AfterHint(){return'The parts are back from the old radio tower. Next: radio control at the Headquarters (coming next). The green area at the drawbridge takes you back in.';}
+function l4AfterHint(){return'The parts are back from the old radio tower. Next: radio control at the Headquarters (coming next). The arrows at the drawbridge take you back in.';}
 
 /* ---------- drawn on the overlay ---------- */
 function drawL4(now){

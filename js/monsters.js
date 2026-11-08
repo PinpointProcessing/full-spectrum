@@ -192,7 +192,14 @@ function gateReady(){
   if(!mon.out||!mon.out.done||MAPID!=='out')return null;const z=MON_OUT,up=players.filter(p=>alive(p)&&!p.offMap);
   const n=up.filter(p=>p.x>=z.x0&&p.x<=z.x1&&p.y>=z.y0&&p.y<=z.y1).length;return{n,of:up.length,ok:n>0&&n===up.length&&!players.some(p=>p.downed&&!p.dead&&!p.carriedBy)};
 }
-function monGateTap(wx,wy){
+// its way through (interior.js's gatherZone since v116: a marker at the drawbridge's foot; a tap on it sends everyone up there)
+function gateExit(){
+  const g=gateReady();if(!g||(mon.scene&&mon.scene.kind==='tie'&&mon.scene.q.length))return null;   // (not while the scientists are being tied up: they're going in)
+  const down=players.some(p=>p.downed&&!p.dead&&!p.carriedBy);
+  return{key:'gate',z:MON_OUT,ready:g.ok,go:mon.goIn?'GOING IN':'GO IN',title:'HEADQUARTERS',at:{x:850,y:-478},dir:-Math.PI/2,need:players.filter(p=>alive(p)&&!p.offMap),why:down?'CARRY THE WOUNDED':null,
+    fn:()=>{if(mon.scene&&mon.scene.q.length){if(mon.scene.kind==='after')mon.goIn=true;return;}goIn();}};   // (the scene after the swarm still going: in once it's over)
+}
+function monGateTap(wx,wy){   // (a tap in the old gather area: tests; the game's taps go to gateExit's marker)
   const g=gateReady();if(!g)return false;const z=MON_OUT;if(wx<z.x0-20||wx>z.x1+20||wy<z.y0-20||wy>z.y1+20)return false;
   if(!g.ok){if(sel.some(alive))return false;banner(players.some(p=>p.downed&&!p.dead&&!p.carriedBy)?'Nobody goes in while someone’s down: revive him or carry him.':'Everyone who’s up has to be in the green area first.',2400);return true;}
   if(mon.scene&&mon.scene.q.length){if(mon.scene.kind==='after')mon.goIn=true;return true;}   // (the scene after the swarm is still going: in once it's over)
@@ -277,10 +284,5 @@ function drawMonsters(now){
       gPath(u.slamAt.x,u.slamAt.y,BOSS.slamR*k);ox.fillStyle=`rgba(194,123,255,${(.18+k*.25).toFixed(2)})`;ox.fill();
       const[lx,ly]=below(u.slamAt.x,u.slamAt.y+BOSS.slamR,6);label('SLAM · GET CLEAR',lx,ly,'#e2b8ff',10,700);}
   }
-  const g=gateReady();
-  if(g&&!(mon.scene&&mon.scene.kind==='tie'&&mon.scene.q.length)){   // (not while the scientists are being tied up: they're going in)
-    const z=MON_OUT;toSBack=false;const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));
-    if(!toSBack){ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();ox.fillStyle=`rgba(95,224,142,${(.06+pulse*.05).toFixed(3)})`;ox.fill();
-      ox.setLineDash([10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
-      const[lx,ly]=below((z.x0+z.x1)/2,z.y0,10);label(g.ok?(mon.goIn?'GOING IN':'TAP TO GO IN'):`HEADQUARTERS · ${g.n}/${g.of}`,lx,ly-26,C.good,10,700);}}
+  // (the way in at the drawbridge is a marker with the other ways through since v116: interior.js's drawGather)
 }

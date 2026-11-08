@@ -271,7 +271,7 @@ function l2Tick(dt){
 }
 function l2Hint(){
   if(l2.land)return '';
-  if(l2.exfil)return 'Lights out: get everyone to the boat on the bay’s shore, south-east (the green ring). Out by the main gate and across the open ground; the checkpoint holds the road by the east gate. Carry anyone who’s down.';
+  if(l2.exfil)return 'Lights out: get to the boat on the bay’s shore, south-east: tap its arrows and everyone goes. Out by the main gate and across the open ground; the checkpoint holds the road by the east gate. Carry anyone who’s down.';
   if(l2.powerDown)return 'The power’s out.';
   const inside=players.some(p=>alive(p)&&p.x>48&&p.x<600&&p.y>28&&p.y<490);
   if(!inside)return 'The power station is north. Two men at the fire by the shacks, two at the road checkpoint by its east gate. In by the main gate (a machine gun covers it) or the hole in the fence on the west side.';
@@ -282,13 +282,7 @@ function l2Hint(){
 /* ---------- drawn on the overlay ---------- */
 function drawL2(now){
   if(MAPID!=='l2'||!L2)return;
-  if(l2.exfil&&l2.away==null){   // the way out: the boat's ring and how many are in it
-    const z=L2_BOAT,need=l2BoatNeed(),n=need.filter(l2BoatIn).length,pulse=(Math.sin(now*4)+1)/2;toSBack=false;
-    const c=[[z.x0,z.y0],[z.x1,z.y0],[z.x1,z.y1],[z.x0,z.y1]].map(([x,y])=>toS(x,y,.4));
-    if(!toSBack){ox.beginPath();ox.moveTo(...c[0]);for(const p of c)ox.lineTo(...p);ox.closePath();ox.fillStyle=`rgba(95,224,142,${(.06+pulse*.07).toFixed(3)})`;ox.fill();
-      ox.setLineDash([10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(95,224,142,.95)';ox.lineWidth=2.4;ox.stroke();ox.setLineDash([]);
-      const[lx,ly]=below((z.x0+z.x1)/2,z.y0,10);label(`BOAT ${n}/${need.length}`,lx,ly-26,C.good,10,700);}
-  }
+  // (the way out, the boat on the bay's shore, is a marker with the other ways through since v116: interior.js's boatExit and drawGather)
   if(!l2.powerDown){toSBack=false;const[lx,ly]=below(512,76,8);if(!toSBack)label('PANEL',lx,ly-30,'#ffcf4a',9,700);}
 }
 // the data center (Level 3) once the power's been cut: its front's floodlights, lamps and the heavy gun's searchlight dark

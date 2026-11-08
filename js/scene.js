@@ -70,13 +70,34 @@ function toW(sx,sy){
 // Where a tap points. On open ground that's just the ground point. If the tap lands on the side or top of a wall,
 // container, crate or sandbag first, it's the spot just in front of that face (towards the camera), so tapping the
 // side of the warehouse means "stand against this side" rather than the ground hidden behind it.
+// the hill round the tunnel's mouth (road.js's two 'cliff' blocks either side of it) is drawn ground, terrain.js's hillH, not a 6 m
+// box (since v116: as a box it caught taps meant for the road beside it, one beside the bus at the mouth going to its far side).
+// A tap goes to the ground under the finger if a man can stand there, drawn over or not (the mouth, the road behind a slope: the
+// move's marker is drawn on top, right under the finger); if that's inside the hill, to where the ray meets the hill's ground, then
+// to the walkable spot nearest it
+const isHillBox=o=>o.east&&o.kind==='cliff'&&o.x>=HILL_X-1;
+const inHill=(x,y)=>objs.some(o=>isHillBox(o)&&x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h)||(x>=HILL_X&&x<=EXT.x1&&y>PORTAL.y0&&y<PORTAL.y1);   // (the blocks, and the tunnel past its mouth)
+function hillTap(T){   // the ray (_o,_d) on the hill's ground before t=T: {t,o}, or null
+  if(typeof hillH!=='function'||MAPID!=='out')return null;
+  const B=objs.filter(isHillBox);if(!B.length)return null;
+  const under=t=>{const x=_o.x+_d.x*t,z=_o.z+_d.z*t,y=_o.y+_d.y*t;let o=B.find(b=>x>=b.x&&x<=b.x+b.w&&z>=b.y&&z<=b.y+b.h);
+    if(!o&&x>=HILL_X+10&&x<=EXT.x1&&z>PORTAL.y0&&z<PORTAL.y1){if(y<40)return null;o=B[0];}   // (over the tunnel: ground down to its roof, 40; under that the tunnel itself, so a tap into its mouth lands there)
+    return o&&y<=hillH(x,z)?o:null;};
+  T=Math.min(T,30000);let p=0;
+  for(let t=6;p<T;t+=6){const tt=Math.min(t,T),o=under(tt);if(o){let a=p,b=tt;for(let i=0;i<12;i++){const m=(a+b)/2;if(under(m))b=m;else a=m;}return{t:b,o:under(b)||o};}p=tt;}
+  return null;
+}
+function nearWalk(x,y,R=120){   // the nearest spot a man can stand on within R, or the point itself
+  for(let r=0;r<=R;r+=8){const n=Math.max(1,Math.round(r*.8));for(let k=0;k<n;k++){const a=k/n*Math.PI*2,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;if(isFree(px,py,8))return{x:px,y:py};}}
+  return{x,y};
+}
 function tapTarget(sx,sy){
   _o.setFromMatrixPosition(camera.matrixWorld);
   _d.set(sx/cw*2-1,-(sy/ch)*2+1,0.5).unproject(camera).sub(_o).normalize();
   const org=[_o.x,_o.y,_o.z],dir=[_d.x,_d.y,_d.z];
   let bt=_d.y<-1e-4?-_o.y/_d.y:1e9,best=null;
   for(const o of objs){
-    const h=o.kind==='tower'?0:objHeight(o);if(!h)continue;   // the watchtower stands on open legs: taps go through to the road behind it
+    const h=o.kind==='tower'||isHillBox(o)?0:objHeight(o);if(!h)continue;   // the watchtower stands on open legs: taps go through to the road behind it; the hill: below
     const mn=[o.x,0,o.y],mx=[o.x+o.w,h,o.y+o.h];
     let t0=0,t1=bt,ax=-1,sg=0,miss=false;
     for(let k=0;k<3;k++){
@@ -89,7 +110,9 @@ function tapTarget(sx,sy){
     }
     if(!miss&&ax>=0&&t0<bt){bt=t0;best={o,ax,sg};}
   }
-  if(!best){const[x,y]=toW(sx,sy);return{x,y,obj:null};}
+  if(!best){const[x,y]=toW(sx,sy);
+    if(MAPID==='out'&&road&&road.open&&inHill(x,y)&&!isFree(x,y,8)){const G=hillTap(bt),s=G?nearWalk(_o.x+_d.x*G.t,_o.z+_d.z*G.t):nearWalk(x,y);return{x:s.x,y:s.y,obj:G?G.o:null};}   // (inside the hill: above)
+    return{x,y,obj:null};}
   const o=best.o,hx=_o.x+_d.x*bt,hz=_o.z+_d.z*bt;
   let nx=0,nz=0;
   if(best.ax===0)nx=best.sg;else if(best.ax===2)nz=best.sg;

@@ -1,9 +1,20 @@
 "use strict";
 /* Pointer, pinch and wheel input on the overlay canvas, and what a tap on the map does. */
 let ptr=null;
+// which of ours is under the finger. With nobody selected, anyone within 26 px of his chest (picking a team is all a tap can mean
+// then); with soldiers selected only a tap on a man's body counts, feet to head and a little either side, so a tap beside one, even
+// right up against the squad, is a move (since v116, Bryan: "I want to place them to a slightly different position against that
+// bus, I cannot select the location near them, nothing happens": 26 px round each man covered every spot next to them)
+const segD=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy,t=L?clamp(((px-ax)*dx+(py-ay)*dy)/L,0,1):0;return hyp(px-ax-dx*t,py-ay-dy*t);};
 function unitAtScreen(sx,sy,activeOnly){
-  let best=null,bd=26;
-  for(const u of players){if(u.dead||u.seat==='driver'||u.offMap||u.carriedBy)continue;if(activeOnly&&u.downed)continue;const[x,y]=toS(u.x+u.lx,u.y+u.ly,8+(u.onTower||u.climb?u.elev||0:0));const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=u;}}
+  const tight=sel.some(alive);let best=null,bd=1e9;
+  for(const u of players){if(u.dead||u.seat==='driver'||u.offMap||u.carriedBy)continue;if(activeOnly&&u.downed)continue;
+    const x=u.x+u.lx,y=u.y+u.ly,e=u.onTower||u.climb?u.elev||0:0;let d,lim;
+    if(!tight){const[a,b]=toS(x,y,8+e);d=hyp(a-sx,b-sy);lim=26;}
+    else{const c=toS(x,y,e+8),k=hyp(toS(x+6,y,e+8)[0]-c[0],toS(x+6,y,e+8)[1]-c[1]);   // (6 units on screen here: about his width)
+      if(u.downed){const g=toS(x,y,e+2);d=hyp(g[0]-sx,g[1]-sy);lim=clamp(k*1.6,12,24);}   // (lying down: round where he lies)
+      else{const f=toS(x,y,e+1),h=toS(x,y,e+17);d=segD(sx,sy,f[0],f[1],h[0],h[1]);lim=clamp(k,9,16);}}
+    if(d<lim&&d<bd){bd=d;best=u;}}
   return best;
 }
 const noOrders=()=>!!landing||(typeof l4Busy==='function'&&l4Busy())||(typeof heliBusy==='function'&&heliBusy())||(typeof endingBusy==='function'&&endingBusy())||(MAPID==='l1'&&l1&&l1.away!=null)||(MAPID==='l2'&&(!!l2.land||l2.away!=null));   // in the dinghy coming in, the helicopter, or the boat going out
@@ -282,6 +293,8 @@ function tap(sx,sy){
     banner(jv.state==='ok'?'Select soldiers, then tap the jeep to board it.':'The jeep is wrecked.',1800);return;
   }
   if(breachTap(sx,sy)){preview=null;return;}   // the BREACH marker at a room's doorway near the selected soldiers (orders.js)
+  {const ex=exitAt(sx,sy,'label');if(ex){exitGo(ex);preview=null;return;}}   // a way through's name: everyone who's up goes there and through it (interior.js, since v116)
+  if(preview&&!preview.veh&&performance.now()-fireOrderAt>=1200){const[px,py]=toS(preview.x,preview.y);if(hyp(sx-px,sy-py)<40){commit(preview.as);preview=null;return;}}   // the marker of the move you're about to make: a tap on it goes, even with one of ours under it (a move of a step or two: since v116)
   const pu=unitAtScreen(sx,sy,false);
   if(pu){
     if(pu.downed){
@@ -325,8 +338,8 @@ function tap(sx,sy){
     else if(r.fire.length||r.move.length){callout(en,sel.some(caught)?'Focus fire':'Open fire!',C.warn);say(sel[0],'ack_attack');}
     return;
   }
-  if(MAPID==='out'&&monGateTap(wx,wy)){preview=null;return;}   // into the Headquarters (monsters.js)
-  if(interiorTap(wx,wy)){preview=null;return;}   // going in or out of the office building, or something to use (interior.js)
+  {const ex=exitAt(sx,sy,'mark');if(ex){exitGo(ex);preview=null;return;}}   // a way through's arrows on the ground (after ours and theirs: a man standing on them is still picked out)
+  if(interiorTap(wx,wy)){preview=null;return;}   // a way through's marker, or something to use (interior.js)
   if(doorTap(wx,wy)){preview=null;return;}   // a shut door: the nearest selected soldier opens it (orders.js)
   if(fortTap(sx,sy)){preview=null;return;}   // a barricade, with a Defender selected: he packs it up (build.js)
   if(MAPID==='out'&&hyp(wx-PANEL.x,wy-PANEL.y)<16){tapPanel();preview=null;return;}   // the drawbridge's control panel
@@ -358,7 +371,6 @@ function tap(sx,sy){
     if(!as.length){banner('Can’t get there.');return;}
     commit(as);return;
   }
-  if(preview){const[px,py]=toS(preview.x,preview.y);if(hyp(sx-px,sy-py)<40){commit(preview.as);preview=null;return;}}
   const as=makeAssign(movers,tg.x,tg.y);
   if(!as.length){banner('Can’t get there.');preview=null;return;}
   preview={x:tg.x,y:tg.y,as};
