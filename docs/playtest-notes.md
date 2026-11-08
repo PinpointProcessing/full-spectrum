@@ -1121,3 +1121,22 @@ is the radio room, live once the tower is powered on; the zip line home stays. B
 - B: the grates in the tunnel.
 - C: the summit: the militia wiped out, the three packs, the checkpoint, power on, the Queen and her babies, the radio room live.
 Later: the special items, the other rooms.
+
+## Bryan, after v120: the HQ is managed, not walked (not built yet)
+
+"And I think we just needs stairs to go up. No lift. We might add a basement later. Also, when the player is in the HQ, no units
+are moved or selected. The player manages the base on their own. The command center opens up the next available missions and
+squad selection. I may even have it so the player chooses the old radio tower for radio communications or something up the north
+road to the left of the HQ."
+
+My proposal back (defaults, waiting on his answers):
+- The HQ's floors: stairs only, the lift taken out (its shaft walled over); a basement later. With nobody walking in the HQ the
+  floors are looked at with the floor chip (GF, 2F, roof), the stairs drawn as they are.
+- In the HQ: no cards, team tabs, selecting or orders; the squad and the scientists stand about or work; the camera free.
+  Everyone back in the HQ is healed and restocked (the medic and supply tables do it by themselves).
+- The command center (tap it): MISSIONS (the old radio tower now; others as they're designed), then SQUAD (who goes, with each
+  man's level, class and loadout), then DEPLOY: out to the road (the first time the talk by the drawbridge and the walk across,
+  after that straight to the bridge). The OUTSIDE marker at the south door goes.
+- After a mission's report, back in the HQ.
+Questions: how many go (any number up to eight, or set per mission); the loadout picked there too; the north road mission shown
+now as "coming later" or left out; this before the tunnel's grates and the summit, or after.
