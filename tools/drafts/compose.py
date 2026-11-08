@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Puts the draft frames together: labelled panels one above the other, as looping GIFs (ffmpeg's palette) and a still sheet.
    python3 compose.py run   <frames dir> <out dir>   (run.js's frames: <opt>-close|front|game-NN.jpg)
-   python3 compose.py queen <frames dir> <out dir>   (queen.js's frames: <opt>-<shot>-NNN.jpg)"""
+   python3 compose.py queen <frames dir> <out dir>   (queen.js's frames: <opt>-<shot>-NNN.jpg)
+   python3 compose.py page <run close frames> <run game frames> <tunnel game frames> <tunnel close frames> <out dir>   (one video per option)"""
 import sys, os, glob, subprocess, tempfile, shutil
 from PIL import Image, ImageDraw, ImageFont
 
@@ -90,6 +91,31 @@ def queen(fdir, odir):
             gif(imgs, os.path.join(odir, f'queen-{o}-{shot}.gif'), 125)
         grid(fdir, have, shot, crop, [names[o] for o in have], [1.5, 3, 4.5, 6, 7.5, 9], 8, os.path.join(odir, f'queen-{shot}-sheet.jpg'))
 
+def clip(fs, path, fps, crop, size=None, loops=1, crf=23):
+    """one option's frames as a small H.264 video (cropped, scaled, played over `loops` times)"""
+    tmp = tempfile.mkdtemp()
+    try:
+        n = 0
+        for _ in range(loops):
+            for f in fs:
+                im = Image.open(f).convert('RGB').crop(crop)
+                if size: im = im.resize(size, Image.LANCZOS)
+                im.save(os.path.join(tmp, f'{n:05d}.png')); n += 1
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-framerate', f'{fps:.3f}', '-i', os.path.join(tmp, '%05d.png'), '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-c:v', 'libx264',
+                        '-pix_fmt', 'yuv420p', '-crf', str(crf), '-movflags', '+faststart', path], check=True)
+    finally: shutil.rmtree(tmp)
+    print(path, os.path.getsize(path) // 1024, 'KB')
+
+def page(rclose, rgame, tgame, tclose, odir):
+    """the videos for the drafts page, one per option and view: the run close up (one stride, half speed, looped), the run at the
+       game's camera (real speed), the tunnel from the bridge and from closer"""
+    for o in ['now', 'A', 'B']:
+        clip(frames(rclose, o, 'front'), os.path.join(odir, f'run-close-{o}.mp4'), 1000 / 60, (440, 90, 840, 610), loops=8)
+        clip(frames(rgame, o, 'game'), os.path.join(odir, f'run-game-{o}.mp4'), 30, (300, 330, 860, 645))
+        clip(frames(tgame, o, 'game'), os.path.join(odir, f'tunnel-{o}.mp4'), 15, (24, 58, 1256, 633), (960, 448))
+        if o != 'now' and frames(tclose, o, 'close'): clip(frames(tclose, o, 'close'), os.path.join(odir, f'tunnel-close-{o}.mp4'), 8, (24, 58, 1256, 633), (960, 448))
+
 if __name__ == '__main__':
+    if sys.argv[1] == 'page': page(*sys.argv[2:7]); sys.exit()
     what, fdir, odir = sys.argv[1], sys.argv[2], sys.argv[3]; os.makedirs(odir, exist_ok=True)
     {'run': run, 'queen': queen}[what](fdir, odir)

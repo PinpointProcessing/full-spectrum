@@ -75,4 +75,14 @@ Pictures (the game's view, raised; and a closer one from higher up and to the si
 2. Who is she? She goes into the tunnel the squad then fights through (her young asleep among the wrecks). My suggestion: for now
    she only goes in and on, deep into the hill, and she's met later (her own level, or Level 4's Crawler becomes her). Or should
    the squad meet her soon, in the tunnel or in Level 4?
+   Bryan, after seeing the stills: "yes I agree with you. The queen shows up later. Normal monsters and babies appear in the
+   tunnel."
 3. Five babies the right number?
+
+## In motion
+
+Bryan saw the animations as stills ("Can I see the options in action? I just see photo stills and it's hard to judge"), so they're
+on a page as looping videos with a Now / A / B switch for each scene (published as an Artifact): the run in the game at real speed
+and close up at half speed, the tunnel from the bridge and closer. Rendered again for it with the grain off: the run's walk at
+30 frames a second for 4 s (`run.js` with `VIEWS= GAMEN=120 GAMESTEP=2`), the tunnel at 15 a second (`queen.js` with `FPS=15`);
+`compose.py page` makes one video per option and view. The videos are in `drafts/page/`.

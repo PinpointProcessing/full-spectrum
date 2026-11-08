@@ -1056,3 +1056,20 @@ babies. Also, make sure the legs aren't seen when it goes into the bridge. Wana 
      is in the picture.
    - Questions: which of each, who she is (my suggestion: for now she only goes in, deep into the hill, and is met later), and
      whether five babies is right.
+
+## Bryan, after v118 (the drafts)
+
+"Can I see the options in action? I just see photo stills and it's hard to judge. 2) yes I agree with you. The queen shows up
+later. Normal monsters and babies appear in the tunnel. I am considering allowing the player to use two squads and in the tunnel,
+monsters break out of grates in the walls and drags units in with a splash of blood and screaming following. So kill off troops
+essentially. What do you think about that? So 8 go in and like 4-5 survive. Maybe it stops after the fourth death? Let's discuss
+after we finalize the sequences"
+
+1. The drafts as videos he can play: a page with a Now / A / B switch for the run and for the tunnel scene (`docs/run-queen-drafts.md`,
+   "In motion"). Nothing in the game changed.
+2. The Queen: she only goes in for now and is met later. Inside the tunnel the squad meets normal monsters (the hunters) and babies
+   (her young).
+3. The grates (to discuss once the sequences are picked): my first take, given to him: a strong horror beat and very much Dark
+   Descent, but deaths the player can do nothing about feel unfair when the soldiers carry XP and ranks; so telegraph each grab
+   (the grate rattles, a growl) and let it be fought (shoot the thing, or a teammate pulls him back within a couple of seconds),
+   so careless play loses three or four and careful play fewer, with his cap of four deaths as a backstop.
