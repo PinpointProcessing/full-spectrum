@@ -1243,3 +1243,35 @@ levels." When he says the Tutorial, Level 2 and Level 3 up to the HQ are tested,
   that still say "data center" (now the Bio Lab), and the Tutorial's scout (now dead, so his old lines are unused).
 - A small Godot test scene: the warehouse yard at night with the squad moving, to compare the look against the Three.js build
   before deciding on a move to Godot (after the core mechanics, before the bigger content).
+
+## After v125: Bryan's next round (to build when the credits are back)
+
+Bryan, after v125 (his words condensed; "We're about to run out of credits, so we'll have to finish this when the credits come
+back"). To do:
+1. Tutorial: the scout is alive, dying: his last words are to take out the radio tower and to be careful, "there is a real
+   evil out there". His sniper rifle still to take.
+2. Weapons kept: a sniper rifle picked up is added to the between-mission armory. The armory's weapons and items scroll
+   sideways in a loop (past the last you see the M4 again), each with its count (M4 4, MG 1, sniper 1; items the same). A
+   weapon a freed prisoner picks up is added to the weapon slots too.
+3. Enemy weapons: AK-47s, M4s, MGs (my call on the AK's stats against the M4's).
+4. Level 3's outage: pitch black everywhere in the yard round the warehouse until the lights come back (lamps still on now).
+5. The gun jeep in Level 3 more aggressive, its gun a heavy gun with a heavy sound ("DOO… DOO… DOO… DOO").
+6. The objective box (top left): collapsed to "Objective 2/4", a tap opens the objective's description, another tap the whole
+   list, another closes it.
+7. Objective 2/4 reads: save the prisoners, destroy the lab, detain the scientists.
+8. The access card didn't seem to drop right away (check).
+9. "Fit Map" goes; the floor chip moves up into its place.
+10. Check: tapping an enemy makes everyone selected attack him more aggressively, all on him.
+11. The silencer: no BROKEN text; the silencer just stops showing on the gun (BROKEN reads as a broken gun or a broken man).
+12. The scientists are tied in the corner to the right of the bio scanner, not on the drawbridge.
+13. A freed prisoner's card shows whatever weapon he picked up (now it shows only a grenade, which he can also pick up if the
+    dead man had one).
+14. The gate: when it drops, a beat, then a loud gurgling monster scream, then a scientist: "Let's get the hell out of here
+    now!", then the monsters attack; scientists can be attacked too.
+15. No rain heard inside interiors, or only as rain outside.
+16. The HQ fight ends too abruptly: more of her young; once they're all dead: "Hold fire! I think that's it!", "Jesus Christ,
+    I thought we were all done for.", "Someone get the scientists in here, we need to clean this place up ASAP."
+17. Classes can be chosen once the HQ is taken (check it's so from the clean-up on).
+To discuss first (no change yet): Breach at every entryway (my view in the reply); special units holding two guns (the second
+gun as a special item, an extra gun slot; now one gun unless picked up in battle); fear for the soldiers (later).
+Then: a Godot test scene, and maybe the move to Godot if it's the right time; test again with Godot from there.
