@@ -1275,3 +1275,6 @@ back"). To do:
 To discuss first (no change yet): Breach at every entryway (my view in the reply); special units holding two guns (the second
 gun as a special item, an extra gun slot; now one gun unless picked up in battle); fear for the soldiers (later).
 Then: a Godot test scene, and maybe the move to Godot if it's the right time; test again with Godot from there.
+Bryan's answers to the three: Breach only at doors (as now: real doorways into rooms, not every gap). A second gun takes up the
+special-item slot (giving up smoke, a medkit or the RPG to carry it). The AK-47 as proposed: harder hits (about 13-18) but less
+accurate, worse at range, slightly slower bursts than the M4.
