@@ -1233,3 +1233,13 @@ moving to the Cleared HQ". What was done:
   (0.45) and bite ×0.75. Bot fights from the gate's save (the shooting automatic): eight men won with 3 knocked down and
   nobody lost; four men healed at the entry hall's medic station first and falling back when she wakes won with nobody down. A man knocked down by any of them gets up and carries on to where he was sent.
 - The zip-tie question: answered in the reply (a proposal, not built).
+
+## Reminders for Bryan, once the pre-HQ levels are tested
+
+Bryan, after v125: "remind me of the new recorded scripts and small Godot test scene when we complete testing the pre-hq
+levels." When he says the Tutorial, Level 2 and Level 3 up to the HQ are tested, bring up:
+- Re-recording the text-only and robotic lines: the scientists' lab warnings, the loudspeaker announcement, the leader's
+  "Stay quiet..." at the Brood Mother, the road talk's last four lines, the HQ end talk, the radio-room talk, the voiced lines
+  that still say "data center" (now the Bio Lab), and the Tutorial's scout (now dead, so his old lines are unused).
+- A small Godot test scene: the warehouse yard at night with the squad moving, to compare the look against the Three.js build
+  before deciding on a move to Godot (after the core mechanics, before the bigger content).
