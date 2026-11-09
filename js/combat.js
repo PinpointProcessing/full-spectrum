@@ -368,8 +368,11 @@ function circleSpot(u,ok,safe,extra=[],o){
    stays: anyone pinned (he won't leave his spot), on a job of his own (a zip tie, a thing, a kit, a carry, a throw, a
    takedown, a silent shot or a volley, a breach, a skill, the bio scanner), on the gun or the tower, carrying a man, on
    another floor, and anyone standing within ESCORT_NEAR of his spot with a line to it (covering him already). With them
-   there, he stays where he finishes (no way back to the group: retTick). */
-const ESCORT_NEAR=40;
+   there, he stays where he finishes (no way back to the group: retTick).
+   Since v125 (Bryan, after v124: "let's have the team stand a few meters away while one unit goes to it. It looks awkward
+   when the whole squad runs to it"): they don't crowd his spot: they take cover ESCORT_BACK short of it, on their side of
+   it, and anyone already within ESCORT_NEAR of it with a line to it stays where he is. */
+const ESCORT_NEAR=90,ESCORT_BACK=65;
 function escort(actor,list,at){
   if(!actor||!list)return[];
   const d=at||destOf(actor);
@@ -379,7 +382,11 @@ function escort(actor,list,at){
   const go=list.filter(u=>u!==actor&&alive(u)&&!busy(u)&&!pinnedNow(u)&&sameFloor(u.x,u.y,d.x,d.y)
     &&!(!u.path.length&&hyp(u.x-d.x,u.y-d.y)<=ESCORT_NEAR&&los(u.x,u.y,d.x,d.y)));
   if(!go.length)return[];
-  const as=makeAssign(go,d.x,d.y);if(!as.length)return[];
+  // a few metres back from his spot, towards where they are now
+  const cx=go.reduce((a,u)=>a+u.x,0)/go.length,cy=go.reduce((a,u)=>a+u.y,0)/go.length,dd=hyp(cx-d.x,cy-d.y);
+  let ax=d.x,ay=d.y;if(dd>1){const k=Math.min(ESCORT_BACK,dd)/dd;ax=d.x+(cx-d.x)*k;ay=d.y+(cy-d.y)*k;}
+  const anc=(isFree(ax,ay)&&sameFloor(ax,ay,d.x,d.y)?{x:ax,y:ay}:openSpot(ax,ay,[d]))||d;
+  const as=makeAssign(go,anc.x,anc.y).filter(a=>hyp(a.x-d.x,a.y-d.y)>22);if(!as.length)return[];   // (never on top of him)
   for(const a of as)Object.assign(a.u,{path:a.path,lastOrder:simT,supT:null,exposeT:0,watch:null,ret:null,fireGo:null});
   actor.ret=null;
   return as.map(a=>a.u);
@@ -660,6 +667,7 @@ function throwTick(){
 }
 // quiet: no alarm (an explosion with nobody left to hear it)
 function explode(x,y,by,quiet,R=58,D=95){   // (R, D: the blast's reach and its damage at the middle; an M203's is bigger)
+  if(MAPID==='hq'&&typeof hqs!=='undefined')hqs.loudT=simT;   // (a blast in the hall wakes her: fortress.js)
   booms.push({x,y,t:0,size:R>58?1.25:1});shake(clamp(1.1-hyp(x-camT.x,y-camT.z)/450,0,1));paintDecal({k:'scorch',x,y,r:Math.random()});
   tankBlast(x,y,by);
   const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}

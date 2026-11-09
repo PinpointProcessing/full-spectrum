@@ -318,6 +318,9 @@ function tap(sx,sy){
     if(sel.length===1&&sel[0]===pu&&cardGroup.filter(alive).length>1){select(cardGroup.filter(alive));preview=null;mode=null;return;}
     selectTeam(pu.team);return;
   }
+  // an explosive barrel right under the finger (Level 2's fire barrel, with its two men standing by it) comes first
+  if(sel.length&&!mode){const xb=objs.find(o=>o.explosive&&!o.burst&&(()=>{toSBack=false;const[px,py]=toS(o.x+o.w/2,o.y+o.h/2,7);return !toSBack&&hyp(px-sx,py-sy)<15;})());
+    if(xb){const sh=sel.filter(u=>u.seat!=='driver');for(const u of sh){u.focusTank=xb;u.focus=null;u.supT=null;u.path=[];u.lastOrder=simT;}if(sh[0])callout(sh[0],'Shoot the barrel!',C.warn);preview=null;return;}}
   // a hostile under the finger comes before anything on the ground (Bryan couldn't shoot the operator: he sits on the
   // computer's ring, and the tap went to the computer)
   const en=enemyAtScreen(sx,sy);
@@ -353,7 +356,8 @@ function tap(sx,sy){
   if(sinceFire<1200)return;   // a second tap right after a suppress/grenade/charge order (thinking it didn't take) is not a move
   const tg0=tapTarget(sx,sy),tg=zoneAt(wx,wy)&&!zoneAt(tg0.x,tg0.y)?{x:wx,y:wy}:tg0;   // tapping a wall or crate means: stand against the side you tapped; but a medic or ammo ring under your finger wins over a wall in front of it (Level 1's station sits just behind one)
   // tapping a fuel tank: everyone selected who can shoot opens up on it (mission.js)
-  if(tg.obj&&tg.obj.kind==='tank'&&!tg.obj.burst){const sh=sel.filter(u=>u.seat!=='driver');for(const u of sh){u.focusTank=tg.obj;u.focus=null;u.supT=null;}if(sh[0])callout(sh[0],'Hit the tank!',C.warn);preview=null;return;}
+  {const xb=tg.obj&&(tg.obj.kind==='tank'||tg.obj.explosive)&&!tg.obj.burst?tg.obj:objs.find(o=>o.explosive&&!o.burst&&rectDist(wx,wy,o)<10);   // (Level 2's fire barrel too, and a tap just beside it: it's small)
+  if(xb){const sh=sel.filter(u=>u.seat!=='driver');for(const u of sh){u.focusTank=xb;u.focus=null;u.supT=null;u.path=[];u.lastOrder=simT;}if(sh[0])callout(sh[0],xb.explosive?'Shoot the barrel!':'Hit the tank!',C.warn);preview=null;return;}}
   // crew selected: it's a drive order, two taps like a squad move (anyone on foot in the selection goes there too)
   if(selCrew().length&&seatOf(jeepOf(),'driver')){   // with nobody at the wheel, taps move whoever's on foot
     const jv=jeepOf();

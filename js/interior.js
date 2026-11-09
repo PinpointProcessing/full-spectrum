@@ -356,11 +356,18 @@ const ACTS=[];let useGos=[];   // (one soldier a job: layers.js pickFor)
 const useOf=u=>useGos.find(g=>g.u===u)||null,useFor=a=>useGos.find(g=>g.a===a)||null;
 function actsHere(){return ACTS.filter(a=>a.map===MAPID&&a.avail());}
 function actAt(wx,wy){let best=null,bd=1e9;for(const a of actsHere()){let d=hyp(a.x-wx,a.y-wy);if(a.near){const o=a.near();if(o)d=Math.min(d,rectDist(wx,wy,o)+4);}if(d<=a.r+10&&d<bd){bd=d;best=a;}}return best;}   // (near: something with a body, a lab bench: a tap anywhere on it)
+// a man sent up or down a flight is on it once he's inside its zone and his walk ends in it within a few steps: he goes then,
+// rather than everyone queueing for the spots at its far end (Bryan, after v124: "Going up and down the stairs with a full
+// squad is hard and awkward"; office.js's stairsTick, hqfloors.js's and level4.js's)
+function onFlight(u,z){
+  if(!inZone(u,z))return false;const e=u.path[u.path.length-1];if(!e||!inZone(e,{x0:z.x0-10,x1:z.x1+10,y0:z.y0-10,y1:z.y1+10}))return false;
+  let d=hyp(u.path[0].x-u.x,u.path[0].y-u.y);for(let i=1;i<u.path.length;i++)d+=hyp(u.path[i].x-u.path[i-1].x,u.path[i].y-u.path[i-1].y);return d<40;
+}
 function orderUse(a){
   const why=a.need&&a.need();if(why){if(why===CARD_NEED&&orderHack(a))return;banner(why,2600);return;}   // locked: say what it needs, don't walk there (a Cyber Ops selected gets in without the card: skills.js)
+  if(a.multi){const all=sel.filter(u=>alive(u)&&!u.inVeh);if(!all.length){banner('Select a soldier first.',1600);return;}a.go(all);return;}   // the stairs and the lift: everyone selected goes (office.js), a man carrying someone too: he takes him (Bryan, after v124: he couldn't leave the basement carrying Marsh)
   const foot=sel.filter(u=>alive(u)&&!u.inVeh&&!u.carry&&!(a.part&&u.cargo)).sort((p,q)=>hyp(p.x-a.x,p.y-a.y)-hyp(q.x-a.x,q.y-a.y));
   if(!foot.length){banner('Select a soldier first.',1600);return;}
-  if(a.multi){a.go(foot);return;}   // the stairs and the lift: everyone selected goes (office.js)
   if(useFor(a))return;   // (someone's already on it)
   // the nearest who isn't busy and isn't pinned, however far (combat.js's reachFor; Bryan, after v105: "using things had no
   // limit at all")
@@ -382,8 +389,8 @@ function drawActs(now){
   const pulse=(Math.sin(now*3)+1)/2,act=sel.some(alive);
   for(const a of actsHere()){
     if(a.floor&&a.floor!==curFloor)continue;
-    gPath(a.x,a.y,a.r+pulse*3);ox.strokeStyle=a.pickup?'#7ff0ff':'#ffcf4a';ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);
-    const[lx,ly]=below(a.x,a.y+a.r,6);if(act&&!a.pickup)pill(a.label,lx,ly,C.good);else label(a.label,lx,ly,a.pickup?'#7ff0ff':'#ffcf4a',9,700);
+    gPath(a.x,a.y,a.r+pulse*3);ox.strokeStyle=a.pickup?'#7ff0ff':a.col||'#ffcf4a';ox.lineWidth=2;ox.setLineDash([5,5]);ox.lineDashOffset=-now*10;ox.stroke();ox.setLineDash([]);
+    const[lx,ly]=below(a.x,a.y+a.r,6);if(act&&!a.pickup)pill(a.label,lx,ly,C.good);else label(a.label,lx,ly,a.pickup?'#7ff0ff':a.col||'#ffcf4a',9,700);
   }
   for(const g of useGos)if(!g.u.path.length&&(g.secs||g.a.secs)){const u=g.u,T2=g.secs||g.a.secs;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+g.prog/T2*TAU);ox.strokeStyle='#ffcf4a';ox.lineWidth=2.4;ox.stroke();}
 }
@@ -399,7 +406,7 @@ function drawActs(now){
    who has to be there, fn what going through does, auto (goes by itself), floor (only on that floor), locked, why. */
 function gatherZone(){
   const L=[];
-  if(MAPID==='out'&&obj===3&&!sciOut)L.push({key:'dc',z:DC_ENTER,ready:enterReady(),go:'GO IN',title:'DATA CENTER',at:{x:DC_DOOR.x+DC_DOOR.w/2,y:DC_ENTER.y0+12},dir:-Math.PI/2,need:players.filter(alive),locked:dcLocked(),fn:()=>enterBuilding()});
+  if(MAPID==='out'&&obj===3&&!sciOut)L.push({key:'dc',z:DC_ENTER,ready:enterReady(),go:'GO IN',title:'BIO LAB',at:{x:DC_DOOR.x+DC_DOOR.w/2,y:DC_ENTER.y0+12},dir:-Math.PI/2,need:players.filter(alive),locked:dcLocked(),fn:()=>enterBuilding()});
   if(MAPID==='in'&&detained().length){const z=zoneOf(IN.floors.GF,'exit');if(z){const sci=detained().some(c=>floorOf(c.x,c.y)==='GF'),down=players.some(p=>p.downed&&!p.offMap&&!p.carriedBy);
     L.push({key:'leave',z,ready:exitReady(),go:'GO OUT',title:'OUTSIDE',at:{x:(z.x0+z.x1)/2,y:z.y1-14},dir:Math.PI/2,need:players.filter(p=>alive(p)&&!p.offMap),why:!sci?'BRING A SCIENTIST DOWN':down?'CARRY THE WOUNDED':null,fn:()=>exitBuilding()});}}
   for(const f of[roadGather,gateExit,boatExit]){const r=typeof f==='function'?f():null;if(r)L.push(...(Array.isArray(r)?r:[r]));}   // (out of the finished Headquarters, the tunnel's ends, the hill's: road.js, level4.js; the drawbridge: monsters.js; the boats out: below)

@@ -92,7 +92,7 @@ function buildEquipUI(box=$('#eqRows'),ids=['A1','A2','B1','B2'],o={boat:true}){
     const ck=classes[id];
     row.innerHTML=`<canvas class="eq-face" width="64" height="64"></canvas><div class="eq-who"><b>${id} · ${ck?CLASSES[ck].ab:rankOf(p.level||1).ab}</b><span>${p.name}</span>${o.boat?(ck?'':`<small class="eq-lock">${classesOpen()?'Class · at the HQ':'Class · Unlock HQ first'}</small>`):canPromote(p)?`<button type="button" class="eq-promote" aria-label="Promotion: choose a class for ${p.name}">Promote</button>`:ck?'':`<small class="eq-lock">Lv ${p.level||1} · class at Lv ${CLASS_LEVEL}</small>`}</div>`+
       ['weapon','spec'].map(k=>`<div class="eq-grp" data-k="${k}" role="radiogroup" aria-label="${k==='weapon'?'Weapon':'Special item'}">`+
-        (k==='weapon'?eqWeapons(id):eqSpecs(id)).map(v=>`<button type="button" role="radio" data-v="${v}" style="--ic:${k==='spec'?SPECIALS[v].col:'#c9d2d8'}">${eqIcon(k,v)}<span>${EQ_LABEL[v]}</span><i></i></button>`).join('')+'</div>').join('');
+        (k==='weapon'?eqWeapons(id):eqSpecs(id)).map(v=>`<button type="button" role="radio" data-v="${v}" style="--ic:${k==='spec'?SPECIALS[v].col:'#c9d2d8'}">${eqIcon(k,v)}<span>${EQ_LABEL[v]}</span><i></i>${ARMORY[k][v]<8?'<em class="eq-n"></em>':''}</button>`).join('')+'</div>').join('');
     drawFace(row.querySelector('.eq-face'),p);
     row.addEventListener('click',ev=>{if(ev.target.closest('.eq-promote')){classPicker(id,()=>buildEquipUI(...eqBuild),o.host);return;}const bt=ev.target.closest('button[data-v]');if(!bt||bt.disabled)return;const k=bt.parentElement.dataset.k,v=bt.dataset.v;
       if(!eqFree(k,v,id))return;loadout[id][k]=v;const f=EQ&&EQ.figs.find(u=>u.id===id);if(f){f.weapon=loadout[id].weapon;f.spec=loadout[id].spec;}refreshEquipUI();});
@@ -106,6 +106,7 @@ function refreshEquipUI(){
     for(const g of row.querySelectorAll('.eq-grp')){const k=g.dataset.k;
       for(const bt of g.querySelectorAll('button')){const v=bt.dataset.v,on=loadout[id][k]===v,free=eqFree(k,v,id),who=takenBy(k,v,id);
         bt.classList.toggle('on',on);bt.setAttribute('aria-checked',on);bt.disabled=!free;
+        const nEl=bt.querySelector('.eq-n');if(nEl){const tot=ARMORY[k][v],left=Math.max(0,tot-Object.keys(loadout).filter(q=>loadout[q][k]===v&&players.some(p=>p.id===q&&!p.dead)).length);nEl.textContent=`${left}/${tot}`;nEl.classList.toggle('none',!left);}   // (Bryan, after v124: how many the armory has left, M240 1/1, 0/1 once someone takes it)
         bt.querySelector('i').textContent=!free&&who.length?(players.find(q=>q.id===who[0])||{}).name||who[0]:'';
         bt.title=!free?`${EQ_LABEL[v]}: the armory has ${ARMORY[k][v]}, taken by ${who.map(w=>(players.find(q=>q.id===w)||{}).name||w).join(', ')}`:EQ_LABEL[v];}}
   }
@@ -115,7 +116,7 @@ function showEquip(next,title){
   eqNext=next;state='equip';paused=false;sel=[];cardGroup=[];preview=null;mode=null;
   for(const u of EQ.figs){const l=loadout[u.id];u.weapon=l.weapon;u.spec=l.spec;}
   $('#intro').hidden=true;$('#aar').hidden=true;$('#end').hidden=true;
-  $('#eqNext').textContent=title||'Next: Level 3 · The Data Center';
+  $('#eqNext').textContent=title||'Next: Level 3 · The Bio Lab';
   buildEquipUI();$('#equip').hidden=false;document.body.classList.add('equipping');hud();
 }
 function deployFromEquip(){

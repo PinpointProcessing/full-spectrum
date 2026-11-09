@@ -54,11 +54,11 @@ let aliveT=0;
 function markAlive(rdt){
   if((aliveT-=rdt)>0)return;aliveT=3;
   try{if(state!=='play'){sessionStorage.removeItem('wy.alive');return;}
-    sessionStorage.setItem('wy.alive',MAPID==='l4'?`in Level 4, ${{SU:'the summit',ST:'the stairs',PL:'the plant'}[curFloor]||'the hill'}`:MAPID==='l1'?'in Level 1':MAPID==='l2'?'in Level 2':MAPID==='in'?`inside the data center, ${{GF:'ground floor',B1:'basement','1F':'top floor'}[curFloor]||curFloor}`:`outside, objective ${Math.min(5,obj+1)}`);}catch(e){}
+    sessionStorage.setItem('wy.alive',MAPID==='l4'?`in Level 4, ${{SU:'the summit',ST:'the stairs',PL:'the plant'}[curFloor]||'the hill'}`:MAPID==='l1'?'in the Tutorial':MAPID==='l2'?'in Level 2':MAPID==='in'?`inside the Bio Lab, ${{GF:'ground floor',B1:'basement','1F':'top floor'}[curFloor]||curFloor}`:`outside, objective ${Math.min(5,obj+1)}`);}catch(e){}
 }
 function crashNote(){
   try{const w=sessionStorage.getItem('wy.alive');if(!w)return;const n=$('#crashNote');
-    n.textContent=`The game restarted unexpectedly (you were ${w}). That usually means the phone ran low on memory. ${w==='in Level 1'?'Level 1 starts again from the beach.':w==='in Level 2'?'Level 2 starts again from the cove.':'Continue picks up at the last save.'}`;n.hidden=false;}catch(e){}
+    n.textContent=`The game restarted unexpectedly (you were ${w}). That usually means the phone ran low on memory. ${w==='in the Tutorial'?'The Tutorial starts again from the beach.':w==='in Level 2'?'Level 2 starts again from the cove.':'Continue picks up at the last save.'}`;n.hidden=false;}catch(e){}
 }
 addEventListener('pagehide',()=>{try{sessionStorage.removeItem('wy.alive');}catch(e){}});
 

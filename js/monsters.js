@@ -13,8 +13,9 @@
 // (Bryan, after v91: "the monsters are a bit too easy, make it a little challenging. I wouldn't mind if some units got knocked
 // down": 70 HP to 80, quicker on their feet (86 to 110), the lunge 18 to 22, a bite 10 to 12; out of the gate closer together and
 // more of them for a bigger squad, and most swing wide to come in from the sides: gateTick and houndThink)
+const YOUNG={run:76,crouchK:1.7,hitK:.75};   // her young: 76/s (a hunter's 110), crouched 0.77 s before they lunge (0.45), their blows ×0.75 (a newborn's own hitK still wins: fortress.js's HATCH)
 const HOUND={hp:80,run:110,lungeR:92,crouchT:.45,lungeSpd:270,hit:22,bite:12,biteT:1.0,stun:.65,fadeT:1.2,reach:17,again:1.4};
-const BOSS={hp:600,perMan:230,dmgIn:.7,walk:21,slamR:64,slamT:1.3,slamDmg:65,slamCd:3.6,swipeR:36,swipeDmg:34,swipeCd:1.9};   // (her health: hp plus perMan for each soldier who comes in; a tough hide, dmgIn. After v91, harder: perMan 180, slam 55, swipe 28 before)
+const BOSS={hp:480,perMan:170,dmgIn:.7,walk:21,slamR:58,slamT:1.8,slamDmg:44,slamCd:5,swipeR:36,swipeDmg:24,swipeCd:2.4,wakeR:190};   // (her health: hp plus perMan for each soldier who comes in; a tough hide, dmgIn. After v91, harder: perMan 180, slam 55, swipe 28 before; v92 to v124 600 + 230, slam 65 in a 64 ring after 1.3 s every 3.6 s, swipe 34; since v125 easier, Bryan: "way too hard and his move is way too overpowering": the slam 44 in 58 after 1.8 s, every 5 s, the swipe 24. wakeR: asleep until one of ours is this close, or she's hurt)
 const MON_GATE={x:850,y:-604},MON_OUT={x0:765,x1:918,y0:-548,y1:-418};   // where they come out (the gate's mouth), and where the squad gathers to go in (Bryan, after v93: larger; it was 790-910 by -548 to -488, tight for eight men; its east edge stops short of the scanner's panel)
 let mon={out:null,first:false};
 function resetMonsters(){mon={out:null,first:false};}
@@ -46,7 +47,7 @@ function monPose(u,t){
   const st=u.ms||'hunt',bite=simT-(u.biteAt||-9)<.25;
   if(young){let rear=.08,jaw=bite?1:.25,look=.1,o;
     if(u.dead)o={dead:1,flip:1,jaw:.6,walk:0};
-    else{if(st==='crouch'){rear=.9*Math.min(1,(simT-u.mt0)/HOUND.crouchT);jaw=.9;look=.35;}else if(st==='lunge'){rear=.15;jaw=1;look=.2;}
+    else{if(st==='crouch'){rear=.9*Math.min(1,(simT-u.mt0)/(HOUND.crouchT*(u.crouchK||1)));jaw=.9;look=.35;}else if(st==='lunge'){rear=.15;jaw=1;look=.2;}
       o={walk:st==='lunge'?1:walk,jaw,look,antUp:.3,flail:.6};}
     crCentiSlot(m.pool,m.slot,crTrailSpine(u,S,u.dead?0:rear,6,u.dead?S.ride*.7:S.ride),(u.wph||0)*.3/(S===BROOD?1:2.1),o);return;}
   const o={walk,jaw:bite?1:.25};
@@ -69,7 +70,8 @@ function motherPose(u,walk){
 let monN=0;
 function hound(x,y,o={}){
   const young=o.kind==='young',u=mk('E','E','H'+(++monN),o.kind==='crawler'?'The Crawler':young?'Brood':'Hunter',x,y,o.ang??Math.PI/2);
-  Object.assign(u,{mon:'hound',kind:young?'young':'hunter',dog:true,hp:HOUND.hp,maxHp:HOUND.hp,alerted:true,aware:1,jumpy:true,seen:false,grp:null,ms:'hunt',growlT:simT+1+Math.random()*3,againT:simT+1.2},o);
+  Object.assign(u,{mon:'hound',kind:young?'young':'hunter',dog:true,hp:HOUND.hp,maxHp:HOUND.hp,alerted:true,aware:1,jumpy:true,seen:false,grp:null,ms:'hunt',growlT:simT+1+Math.random()*3,againT:simT+1.2},
+    young?{monSpd:YOUNG.run,crouchK:YOUNG.crouchK,hitK:YOUNG.hitK}:{},o);   // (her young slower, and longer crouched before a lunge: Bryan, after v124, "The babies move so fast I can't even react")
   makeHound(u);enemies.push(u);return u;
 }
 function broodMother(x,y){
@@ -89,6 +91,7 @@ function monPrey(u,maxD=900){
 function monHit(u,tg,dmg,stun){
   if(tg.side==='C'){tg.hp=(tg.hp??100)-dmg*1.2;callout(tg,'Aaagh!','#ffd7cf');if(typeof sfxScream==='function')sfxScream(tg,.8);
     if(tg.hp<=0&&!tg.dead){tg.dead=true;tg.detained=false;tg.path=[];mon.sciLost=(mon.sciLost||0)+1;banner('A scientist is down.',2200);}return;}
+  if(tg.side==='P'&&tg.path.length&&!tg.resume){const e=tg.path[tg.path.length-1];tg.resume={x:e.x,y:e.y,lo:tg.lastOrder};}   // (Bryan, after v124: knocked down, he should still go where he was sent: monTick puts him back on his way)
   damage(tg,dmg*(u.hitK||1)*(.85+Math.random()*.3),u);if(alive(tg)){tg.stunT=simT+stun;tg.path=[];}   // (a hatchling bites weaker: fortress.js)
 }
 function monMove(u,dx,dy,dist){   // a lunge or a step back: straight, stopping at anything solid
@@ -98,6 +101,8 @@ function monMove(u,dx,dy,dist){   // a lunge or a step back: straight, stopping 
 /* ---------- what they do (every tick, from update) ---------- */
 function monTick(dt){
   if(state!=='play')return;
+  for(const p of players){const r=p.resume;if(!r)continue;if(!alive(p)||p.downed||p.lastOrder!==r.lo){p.resume=null;continue;}
+    if(simT<(p.stunT||0))continue;p.resume=null;if(p.path.length)continue;const path=findPath(p.x,p.y,r.x,r.y);if(path)p.path=path;}
   gateTick(dt);sceneTick();hqfTick();
   for(const u of enemies){
     if(!u.mon||u.dead||u.dormant)continue;
@@ -121,7 +126,7 @@ function houndThink(u,dt){
   switch(u.ms){
     case 'crouch':   // the warning: down on its haunches, snarling, a violet line where it'll go
       u.path=[];u.ang=Math.atan2(u.tele.y-u.y,u.tele.x-u.x);
-      if(simT-u.mt0>=HOUND.crouchT){u.ms='lunge';u.mt0=simT;u.lunged=0;sfxMon('mon_scream',u,.95);}
+      if(simT-u.mt0>=HOUND.crouchT*(u.crouchK||1)){u.ms='lunge';u.mt0=simT;u.lunged=0;sfxMon('mon_scream',u,.95);}
       return;
     case 'lunge':{
       const ux=Math.cos(u.ang),uy=Math.sin(u.ang),step=HOUND.lungeSpd*dt;

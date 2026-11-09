@@ -167,6 +167,7 @@ function callIn(e){
   const lk=e.lkp||{x:e.x,y:e.y};
   for(const o of enemies)if(!o.dead&&!o.alerted&&sameFloor(o.x,o.y,e.x,e.y))alertOne(o,lk,false);
   if(MAPID!=='l4'||players.some(p=>alive(p)&&hyp(p.x-lk.x,p.y-lk.y)<90))startContact(null,false,lk);   // (Level 4: only if he had one of ours in sight)   // (the team they had: whoever's near where he last saw the squad)
+  if(typeof commsDown==='function'&&commsDown()){banner('They radioed it in, but the base\'s comms are down: nobody else is coming.',3200);raiseAlert(2,'radio',false);return;}   // (Level 3's first 45 s: their walkie-talkies reach their own men, nothing more: waves.js)
   if(typeof sfxSiren==='function')sfxSiren(e.x,e.y);
   const g=e.grp??nearArea(),left=reinfLeft[g]??REINF_MAX;   // (per area: at most REINF_MAX waves each)
   if(MAPID==='out'&&left>0&&!reinf){reinfLeft[g]=left-1;reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:e.x,y:e.y},obj:g};banner('They called it in. Reinforcements are coming.',3000);}

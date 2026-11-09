@@ -35,7 +35,7 @@ function l2Objects(){
   O2('water',0,830,1000,70);O2('water',900,520,100,310);   // the sea along the south, the bay in the east
   // the fishermen's camp: two old containers for sheds, the fire barrel, crates; more cover on the way north
   O2('container',150,590,90,34,{col:'#6a3324',tag:'MSKU 1180'});O2('container',300,556,34,84,{col:'#4a5230',tag:'CMAU 0412'});
-  O2('barrel',229,633,14,14,{col:'#4a3a2a'});O2('crate',252,700,26,22);O2('crate',96,700,24,20);O2('pallet',56,742,30,20);
+  O2('barrel',229,633,14,14,{col:'#4a3a2a',explosive:true,hp:20});   // (Bryan, after v124: shoot it and it goes up, taking the men round it, and the blast brings others to look: mission.js's tankExplode)O2('crate',252,700,26,22);O2('crate',96,700,24,20);O2('pallet',56,742,30,20);
   O2('container',330,700,90,30,{col:'#2c4a63',tag:'OOLU 7713'});O2('sandbag',440,702,50,12);O2('crate',520,610,26,22);
   // the road checkpoint, up by the station's east gate
   O2('sandbag',660,402,12,32);O2('sandbag',672,402,40,12);O2('barrier',628,452,52,10);

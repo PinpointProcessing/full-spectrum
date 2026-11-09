@@ -6,9 +6,9 @@
    dead unless the game is restarted, and wounds are kept. A soldier who is down when it saves is stored badly wounded
    (5 HP) rather than bleeding out. XP and ranks are saved separately (progress.js) and survive a New game. */
 const SAVE_KEY='warehouseYard.save.v3';   // (v3: the checkpoints rework; older saves are ignored)
-const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Data center front cleared',dci:'Inside the data center',sci:'Scientists detained',hqf:'In front of the Headquarters',dc:'Drawbridge down',gate:'The gate cleared',won:'The Brood Mother dead',base:'The Headquarters',road:'The road east',hill:'Inside the hill',summit:'The summit',home:'Down from the tower'};   // (the last three: Level 4, level4.js)
+const STAGES={wh:'Warehouse cleared',br:'Bridge cleared',maze:'Container maze cleared',dco:'Bio Lab front cleared',dci:'Inside the Bio Lab',sci:'Scientists detained',hqf:'In front of the Headquarters',dc:'Drawbridge down',gate:'The gate cleared',won:'The Brood Mother dead',base:'The Headquarters',road:'The road east',hill:'Inside the hill',summit:'The summit',home:'Down from the tower'};   // (the last three: Level 4, level4.js)
 const STAGE_OBJ={wh:3,br:3,maze:3,dco:3,dci:3,sci:4,hqf:4,dc:5,gate:5,won:5,base:6,road:7,hill:8,summit:8,home:9};   // obj (mission.js) after each
-const STAGE_AT={wh:{x:300,y:430},br:{x:476,y:172},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},hqf:{x:860,y:-462},dc:{x:700,y:-470},gate:{x:850,y:-470},won:{x:850,y:-470},base:{x:500,y:600},road:{x:850,y:-392},hill:{x:1520,y:-275},summit:{x:1520,y:-275},home:{x:1290,y:-280}};   // (hqf: at the drawbridge with the scientists, before the bio scanner: monsters.js's hqfTick)
+const STAGE_AT={wh:{x:300,y:430},br:{x:350,y:30},maze:{x:140,y:-10},dco:{x:600,y:-330},dci:{x:245,y:-410},sci:{x:245,y:-410},hqf:{x:860,y:-462},dc:{x:700,y:-470},gate:{x:850,y:-470},won:{x:850,y:-470},base:{x:500,y:600},road:{x:850,y:-392},hill:{x:1520,y:-275},summit:{x:1520,y:-275},home:{x:1290,y:-280}};   // (hqf: at the drawbridge with the scientists, before the bio scanner: monsters.js's hqfTick)
 const AREA_STAGE=['wh','br','maze','dco'];   // the areas' checkpoints (AREAS in mission.js)
 function readSave(){
   try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&STAGES[s.stage])return s;}catch(e){}
@@ -20,7 +20,7 @@ function clearSave(){try{localStorage.removeItem(SAVE_KEY);localStorage.removeIt
 let savedTimer=0;
 function saveGame(stage,quiet){   // (quiet: no Saved chip, the drawbridge coming down: mission.js)
   const data={v:3,stage,when:Date.now(),sci:sciOut,cleared:[0,1,2,3].filter(n=>finished[n]),   // (sci: scientists brought out of the data center: office.js; cleared: the areas that are checkpoints)
-    alert:{t:alertT,max:alertMax},crew:hqCrew,l4:typeof l4Save==='function'&&MAPID==='l4'?l4Save():null,   // (Level 4: the parts taken, the crates, the radio log, the generator, the Crawler: level4.js)   // the base's alert level only goes up within the mission (layers.js)
+    alert:{t:alertT,max:alertMax},crew:hqCrew,outage:outage&&!outage.lights?simT-outage.t0:null,l4:typeof l4Save==='function'&&MAPID==='l4'?l4Save():null,   // (Level 4: the parts taken, the crates, the radio log, the generator, the Crawler: level4.js)   // the base's alert level only goes up within the mission (layers.js)
     squad:Object.fromEntries(players.map(p=>[p.id,{dead:p.dead,hp:p.dead?0:Math.max(5,Math.round(p.hp)),grenade:p.grenade,spec:p.spec,specN:p.specN,charges:p.charges,weapon:p.weapon,weapon2:p.weapon2||null,gl:!!p.gl,sil:p.weapon==='m4s'?Math.round(p.sil??silMax(p)):null,   // (gl: an M203 in his grenade's place, Level 4's find)
       ...(p.joined?{joined:true,name:p.name,weapon:p.weapon,kitted:!!p.kitted}:{})}]))};   // (joined: a freed prisoner, office.js; kitted: kitted out at the Headquarters, a soldier like the four, base.js)
   try{localStorage.setItem(SAVE_KEY,JSON.stringify(data));}catch(e){return;}
@@ -30,8 +30,9 @@ function saveGame(stage,quiet){   // (quiet: no Saved chip, the drawbridge comin
 // put the game back at the saved checkpoint: the areas cleared stay cleared (their stations back), the rest get fresh defenders
 function continueGame(){
   const s=readSave();if(!s)return false;
-  reset();LEVEL=3;state='play';contact=false;clearTeams();landing=null;darkFront(l2Done());   // (the data center: Level 3; its front dark once Level 2's power was cut, level2.js)
+  reset();LEVEL=3;state='play';contact=false;clearTeams();landing=null;darkFront(false);   // (the data center: Level 3; its front dark once Level 2's power was cut, level2.js)
   if(s.alert){alertT=s.alert.t||0;alertMax=s.alert.max||0;}
+  if(s.outage!=null)startOutage(s.outage);   // (Level 3's comms and lights still out: waves.js)
   const cleared=new Set(s.cleared||[]);
   hq={t0:simT,tour:null,toured:true};
   for(const n of cleared){finished[n]=true;addZones(REST_ZONES[AREA_STAGE[n]]);}
@@ -76,7 +77,7 @@ function continueGame(){
 function refreshSaveButtons(){
   const s=readSave();buildCheckpoints();
   $('#continueBtn').hidden=!s;if(s)$('#continueBtn').textContent=`Level ${['base','road','hill','summit','home'].includes(s.stage)?4:3} · Continue · ${STAGES[s.stage]}`;   // (Level 4 starts in the finished Headquarters since v117)
-  $('#startBtn').textContent=s?'Level 3 · New game':'Level 3 · The Data Center';
+  $('#startBtn').textContent=s?'Level 3 · New game':'Level 3 · The Bio Lab';
   $('#retryBtn').hidden=!s;$('#againBtn').textContent=s?'New game':'Run it again';
 }
 

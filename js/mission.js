@@ -6,7 +6,7 @@
    front doors open unless the alarm is going or they're out hunting the squad (interior.js). Also: the gun truck, the
    watchtower (climbing it, the sniper's rifle), the demolition charges and fuel tanks (dormant), the enemy RPG and rockets,
    the drawbridge and its panel, the objective tracker, and their overlay drawing. */
-const OBJECTIVES=['Get into the data center','Detain the scientists','Lower the drawbridge','Take the Headquarters'];
+const OBJECTIVES=['Get into the Bio Lab','Detain the scientists','Lower the drawbridge','Take the Headquarters'];
 // obj (internal): 3 outdoors and in the data center, 4 once the scientists are out (the drawbridge), 5 the Headquarters (0-2 were the old objectives)
 const RPG={aim:1.3,reload:8,speed:170,spread:[18,42],range:400,blast:40,dmg:85};
 const CHARGE={plant:3,fuse:8,away:130};
@@ -131,7 +131,7 @@ const AREAS={
   0:{k:'wh',name:'the warehouse',zone:{x0:150,x1:470,y0:240,y1:580}},
   1:{k:'br',name:'the bridge',zone:BR_ZONE},
   2:{k:'maze',name:'the container yard',zone:CONT_ZONE},
-  3:{k:'dco',name:'the data center\'s front',zone:DC_OUT},
+  3:{k:'dco',name:'the Bio Lab\'s front',zone:DC_OUT},
 };
 let lastNoiseT=-99;
 function inZone(p,z){return p.x>=z.x0&&p.x<=z.x1&&p.y>=z.y0&&p.y<=z.y1;}
@@ -157,7 +157,7 @@ function checkpointTick(){
 }
 function clearArea(n){
   const A=AREAS[n];finished[n]=true;contact=false;clearTeams();
-  bigText('Checkpoint','clear');banner(`${A.name[0].toUpperCase()+A.name.slice(1)} is clear. A medic station and an ammo drop are here.`,3200);chatSecured();
+  bigText('Checkpoint','clear');banner(`${A.name[0].toUpperCase()+A.name.slice(1)} is clear.${(REST_ZONES[A.k]||[]).length?' A medic station and an ammo drop are here.':''}`,3200);chatSecured();
   addZones(REST_ZONES[A.k]);saveGame(A.k);setStatus();updateObjUI();
   // (Bryan: no tips in Level 2: the first checkpoint's camera tour of the station and the drop is gone; their rings say what they are)
 }
@@ -182,7 +182,7 @@ function missionTick(dt){
     if(!alive(u)||(!u.path.length&&hyp(u.x-PANEL.x,u.y-PANEL.y)>26))panelGo=null;
     else if(hyp(u.x-PANEL.x,u.y-PANEL.y)<=22){
       panelGo=null;
-      if(obj<4){banner('The drawbridge has a bio scanner. It only opens for one of the scientists inside the data center.',4000);callout(u,'Locked',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);backSoon(u,1.2);}
+      if(obj<4){banner('The drawbridge has a bio scanner. It only opens for one of the scientists inside the Bio Lab.',4000);callout(u,'Locked',C.warn);if(PANEL.button)PANEL.button.material.emissive.setHex(0x991a10);backSoon(u,1.2);}
       else if(obj===4&&!scanGo)startScan(u);   // a detained scientist's hand on the scanner (office.js)
     }
   }
@@ -430,7 +430,7 @@ function rpgBlast(x,y,by,spec=RPG){
 /* ---------- fuel tanks ---------- */
 function tankHit(o,dmg,by){if(o.burst)return;o.hp=(o.hp??100)-dmg;if(o.hp<=0)tankExplode(o,by);}
 // a blast near the tanks (from explode): close enough and they go up
-function tankBlast(x,y,by){l1Blast(x,y,by);if(typeof labBlast==='function')labBlast(x,y,by);buildBlast(x,y);for(const o of objs)if(o.kind==='tank'&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
+function tankBlast(x,y,by){l1Blast(x,y,by);if(typeof labBlast==='function')labBlast(x,y,by);buildBlast(x,y);for(const o of objs)if((o.kind==='tank'||o.explosive)&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
 function tankExplode(o,by){
   if(o.burst)return;o.burst=true;o.hp=0;shake(clamp(1.4-hyp(o.x-camT.x,o.y-camT.z)/600,0,1.2));
   const cx=o.x+o.w/2,cy=o.y+o.h/2;
@@ -438,7 +438,14 @@ function tankExplode(o,by){
   paintDecal({k:'scorch',x:cx,y:cy,r:Math.random()});
   for(const v of units){
     if(v.dead||v.seat==='driver')continue;const d=hyp(v.x-cx,v.y-cy)-o.w/2;if(d>95||!los(cx,cy,v.x,v.y))continue;
-    v.sup=Math.min(1.2,v.sup+1);if(!v.downed)damage(v,140*(1-Math.max(0,d)/100),by);if(v.side==='E')v.alerted=true;
+    v.sup=Math.min(1.2,v.sup+1);if(!v.downed)damage(v,140*(1-Math.max(0,d)/100),by);if(v.side==='E'&&!o.explosive)v.alerted=true;
+  }
+  if(o.explosive){   // a barrel: no alarm, but everyone within earshot who's still standing goes to look (skills.js's look)
+    if(typeof sfxBoom==='function')sfxBoom(cx,cy,1.1);
+    for(const e of enemies){if(beaten(e)||e.alerted||e.dog||e.gunner||e.look)continue;const d=hyp(e.x-cx,e.y-cy);if(d>420)continue;
+      const p=findPath(e.x,e.y,cx,cy,FOOT);if(!p)continue;while(p.length&&hyp(p[p.length-1].x-cx,p[p.length-1].y-cy)<30)p.pop();p.push({x:cx+(e.x-cx)/Math.max(1,d)*30,y:cy+(e.y-cy)/Math.max(1,d)*30});
+      e.look={phase:'go',home:{x:e.x,y:e.y,ang:e.ang},x:cx,y:cy};e.path=p;e.aware=Math.max(e.aware||0,AWARE_LOOK);e.susp={x:cx,y:cy};e.wary=true;if(e.vis)callout(e,'?',C.warn);}
+    banner('The barrel went up. The others will come to look.',2600);tankFires.push({x:cx,y:cy,r:o.w/2,t0:simT,puffs:[],emit:0});return;
   }
   const jv=jeepOf();if(jv&&jv.state!=='wreck'&&hyp(jv.x-cx,jv.y-cy)<85)vehDestroy(jv,'blast');
   for(const t of objs)if(t.kind==='tank'&&!t.burst&&t!==o&&rectDist(cx,cy,t)<70&&!tankQueue.some(q=>q.o===t))tankQueue.push({o:t,at:simT+0.45+Math.random()*0.3});   // chain reaction
@@ -455,13 +462,13 @@ function shootTank(u){
   u.ang=Math.atan2(cy-f.y,cx-f.x);u.aimT=simT;leanOut(u,{lean:f.x!==u.x||f.y!==u.y,fx:f.x,fy:f.y});
   for(let k=0;k<3;k++)tracers.push({x1:f.x,y1:f.y,x2:cx+(Math.random()-.5)*o.w*.6,y2:cy+(Math.random()-.5)*o.h*.6,t:0,col:'255,231,163'});
   flashes.push({x:f.x,y:f.y,t:0});
-  if(!contact&&enemies.some(e=>!e.dead))alertAll('Contact. Weapons free.',true);
+  if(!contact&&enemies.some(e=>!e.dead)&&!(o.explosive&&silenced(u)))alertAll('Contact. Weapons free.',true);   // (a silenced shot at the barrel: the blast does the talking)
   tankHit(o,22+Math.random()*8,u);u.cool=1.6+Math.random()*.6;return true;
 }
 
 
 /* ---------- the objective tracker (top left; tap to see the whole list) ---------- */
-const OBJ_LIST=['Get into the data center','Detain the scientists and bring them out','Lower the drawbridge with a scientist','Take the Headquarters'];
+const OBJ_LIST=['Get into the Bio Lab','Detain the scientists and bring them out','Lower the drawbridge with a scientist','Take the Headquarters'];
 const OBJ_LIST_T=3400;   // how long the list stays open with the newly crossed-off objective (ms); the next messages wait for it
 let objDone=0,objFlashT=0;   // objectives finished (0..4); the list pops open for a few seconds to cross the new one off
 // the next mission (Bryan, after v117: "The next mission screen on the top left should only appear full for the first 10 seconds and
@@ -480,13 +487,13 @@ function updateObjUI(flash){
   const nmMin=el.classList.contains('min');el.classList.remove('nm','min');   // (only the next mission collapses: anything else shows in full, Level 4's and Levels 1 and 2's too)
   if(MAPID==='l4'&&typeof l4ObjUI==='function'&&L4){l4ObjUI(el);return;}   // (level4.js)
   if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
-  if(MAPID==='l1'){el.querySelector('b').textContent='Level 1';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
+  if(MAPID==='l1'){el.querySelector('b').textContent='Tutorial';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
   if(typeof road!=='undefined'&&road&&road.talked){const txt=obj>=9?'Radio control at the HQ (coming next)':'Level 4 · The old radio tower: power it on. Through the tunnel down the road (east)';   // (road.js)
     el.querySelector('b').textContent=obj>=9?'Next':'Next mission';el.querySelector('span').textContent=txt;el.querySelector('ol').innerHTML='';el.classList.add('nm');if(nmMin)el.classList.add('min');el.classList.remove('open');
     if(objNM.txt!==txt){objNM.txt=txt;objNMShow();}   // (new: in full for 10 s, then just its name: below)
     el.hidden=state!=='play';return;}
   const n=MAPID==='in'?detained().length:0,num=Math.min(objDone+1,4);
-  const label=objDone===0?'Get into the data center':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':typeof hqs!=='undefined'&&hqs.won?(MAPID==='hq'&&HQ&&HQ.base&&base&&base.done?'Your Headquarters: the command center for missions':'Headquarters taken'):MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
+  const label=objDone===0?'Get into the Bio Lab':objDone===1?(n?`Bring them out the front doors (${n} detained)`:'Detain the scientists (top floor)'):objDone===2?'Take a scientist to the bio scanner':typeof hqs!=='undefined'&&hqs.won?(MAPID==='hq'&&HQ&&HQ.base&&base&&base.done?'Your Headquarters: the command center for missions':'Headquarters taken'):MAPID==='hq'?'Kill everything in the Headquarters':mon.out&&!mon.out.done?'Hold them off at the drawbridge':'Take the Headquarters: gather at the drawbridge';
   el.querySelector('b').textContent=`Objective ${num}/4`;el.querySelector('span').textContent=label;
   el.querySelector('ol').innerHTML=OBJ_LIST.map((t,i)=>`<li class="${i<objDone?'done':''}${flash&&i===objDone-1?' justdone':''}${i===objDone?' now':''}">${t}</li>`).join('');
   el.hidden=state!=='play';
@@ -519,8 +526,35 @@ function drawLastFoes(now){
     label(`${Math.round(hyp(e.x-camT.x,e.y-camT.z)/10)} m`,px-vx*20,py-vy*20,'#ff8a70',9,700);
   }
 }
+/* the way to the objective (Bryan, after v124: "Can there be a green arrow on the side of the map, subtle, point to the
+   objective... Or maybe when they click the objective on top. The bio scanner would def be one"): where the current
+   objective is, when there's one place to go; an arrow at the screen's edge while it's off screen, faint, and bright with
+   its name and distance for a few seconds after the objective box is tapped (objPingT, hud.js) */
+let objPingT=-1e9;
+function objTarget(){
+  if(state!=='play')return null;
+  if(MAPID==='l1'&&typeof L1!=='undefined'&&L1&&L1.relay)return l1.relayDown?(l1.exfil?{x:(L1_BOAT.x0+L1_BOAT.x1)/2,y:(L1_BOAT.y0+L1_BOAT.y1)/2,n:'BOAT'}:null):{x:L1.relay.x+L1.relay.w/2,y:L1.relay.y+L1.relay.h/2,n:'RADIO TOWER'};
+  if(MAPID==='l2'&&typeof l2!=='undefined')return l2.powerDown?{x:(L2_BOAT.x0+L2_BOAT.x1)/2,y:(L2_BOAT.y0+L2_BOAT.y1)/2,n:'BOAT'}:{x:512,y:96,n:'POWER PANEL'};
+  if(MAPID!=='out'||LEVEL!==3)return null;
+  if(obj===3&&!sciOut)return{x:DC_DOOR.x+DC_DOOR.w/2,y:DC.y+DC.h+20,n:'BIO LAB'};
+  if(obj===4&&typeof PANEL!=='undefined')return{x:PANEL.x,y:PANEL.y,n:'BIO SCANNER'};
+  if(obj===7&&typeof TUN_ZONE!=='undefined'&&typeof roadBusy==='function'&&!roadBusy())return{x:(TUN_ZONE.x0+TUN_ZONE.x1)/2,y:(TUN_ZONE.y0+TUN_ZONE.y1)/2,n:'TUNNEL'};
+  return null;
+}
+function drawObjArrow(now){
+  const t=objTarget();if(!t||(typeof cineOn==='function'&&cineOn())||(typeof talkActive==='function'&&talkActive()))return;
+  toSBack=false;const[sx,sy]=toS(t.x,t.y,4);if(!toSBack&&sx>24&&sy>24&&sx<cw-24&&sy<ch-24)return;   // on screen: its own marker says it
+  const ping=Math.max(0,1-(performance.now()-objPingT)/5000),mx=cw/2,my=ch/2;
+  const d=hyp(t.x-camT.x,t.y-camT.z)||1,[ax,ay]=toS(camT.x,camT.z),[bx,by]=toS(camT.x+(t.x-camT.x)/d*40,camT.z+(t.y-camT.z)/d*40);
+  let vx=bx-ax,vy=by-ay;const vl=hyp(vx,vy)||1;vx/=vl;vy/=vl;
+  const m=26,k=Math.min((vx>0?cw-m-mx:mx-m)/Math.abs(vx||1e-6),(vy>0?ch-m-my:my-m)/Math.abs(vy||1e-6)),px=mx+vx*k,py=my+vy*k,a=Math.atan2(vy,vx);
+  const al=.42+ping*.5+(ping?Math.sin(now*6)*.08:0),s=1+ping*.35;
+  ox.save();ox.translate(px,py);ox.rotate(a);ox.scale(s,s);ox.beginPath();ox.moveTo(10,0);ox.lineTo(-6,-7);ox.lineTo(-2.5,0);ox.lineTo(-6,7);ox.closePath();
+  ox.fillStyle=`rgba(110,230,140,${al.toFixed(2)})`;ox.fill();ox.lineWidth=1.2;ox.strokeStyle=`rgba(0,0,0,${(al*.8).toFixed(2)})`;ox.stroke();ox.restore();
+  if(ping)label(`${t.n} · ${Math.round(d/10)} m`,px-vx*24,py-vy*24,`rgba(140,240,165,${Math.min(1,ping*1.5).toFixed(2)})`,9,700);
+}
 function drawMission(rdt,now){
-  drawGunMark(now);
+  drawGunMark(now);drawObjArrow(now);
   if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);if(typeof drawL4==='function')drawL4(now);if(typeof drawGrates==='function')drawGrates(now);drawMonsters(now);drawHQ(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
   // objective markers: the tanks while they're the target, the panel once it works

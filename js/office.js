@@ -25,7 +25,7 @@ const SCI_DEFY=['I’m not talking.','You people are terrorists.','I have nothin
 const SCI_TIED=['Terrorists. All of you.','Get your hands off me!'];
 const SCI_GRUMBLE=['Where are you taking me?','You have no right to do this.','I told you. I’m not talking.','Animals.','You won’t get away with this.','Keep your hands off me.'];
 const SCI_PANIC=['No. No! Not there!','Don’t open it! Please don’t open it!','You don’t know what’s down there!','Turn back! I’m begging you!','They sealed it for a reason!','Oh God. Oh God no...'];
-const SCI_HQ_NEAR=480;   // how close to the drawbridge's panel before they start to panic
+const SCI_HQ_NEAR=480,SCI_PANIC_MAX=3;   // how close to the drawbridge's panel before they start to panic
 const SCI_SCAN=['No. No, no, no. Please!','Don’t make me do this!','You’re killing all of us...','God forgive me.'];
 const PRISON_CRY=['Help! Down here!','Is someone there?','Please! We’re down here!','Get us out!'];
 const SCI_LAB=['No! Years of work!','You’ve no idea what you’ve done.','Good. Burn it. All of it.'],SCI_END=['...God help us.'];
@@ -46,7 +46,7 @@ const wallMan=()=>civs.find(c=>c.strapped);
 const speakerOf=c=>c.sci?'S'+(((c.sciN||0)%4)+1):c.joins||c.id;
 function line(c,group,list,i,dur=3,col='#e9eef2',opt={}){
   const k=i??((Math.random()*list.length)|0);callouts.push({x:c.x,y:c.y,t:0,dur,text:list[k],col});
-  if(typeof voiceClip==='function')voiceClip(speakerOf(c),`${group}_${k+1}`,Object.assign({x:c.x,y:c.y},opt));return k;
+  if(!opt.textOnly&&typeof voiceClip==='function')voiceClip(speakerOf(c),`${group}_${k+1}`,Object.assign({x:c.x,y:c.y},opt));return k;
 }
 
 /* ---------- people who aren't soldiers: their look ---------- */
@@ -98,14 +98,14 @@ function officeActs(){
     if(q.kind==='strapped')ACTS.push({id:'cutdown',map:'in',floor:'B1',x:q.x,y:q.y,r:14,standY:16,secs:3,label:'CUT DOWN',avail:()=>!!wallMan(),act:u=>cutDown(u)});
   }
   // the lab equipment upstairs (a bonus from Bryan's first design): DESTROY wrecks a bench
-  (f1.interact||[]).filter(q=>q.kind==='equipment').forEach((q,i)=>ACTS.push({id:'lab-'+i,map:'in',floor:'1F',x:q.x,y:q.y,r:14,standY:0,secs:3,label:'DESTROY',q,near:()=>labObj(q),avail:()=>!office.labs[i],act:u=>wreckLab(u,i,q)}));   // (near: a tap anywhere on the bench counts, Bryan)
+  (f1.interact||[]).filter(q=>q.kind==='equipment').forEach((q,i)=>ACTS.push({id:'lab-'+i,map:'in',floor:'1F',x:q.x,y:q.y,r:14,standY:0,secs:3,label:'DESTROY',col:'#ff4a3a',q,near:()=>labObj(q),avail:()=>!office.labs[i],act:u=>wreckLab(u,i,q)}));   // (near: a tap anywhere on the bench counts, Bryan)
   for(const a of ACTS)if(a.map==='in'&&a.need){const n0=a.need;a.need=()=>a.hacked?null:n0();}   // a Cyber Ops got into it without the card (skills.js)
 }
 // orderUse (interior.js) hands these over: send everyone selected on this floor into the stairs zone
 function goStairs(list,tr,z){
   const go=list.filter(u=>floorOf(u.x,u.y)===tr.from);if(!go.length){banner('Select soldiers on this floor first.',1600);return;}
-  const spots=slotsIn(farPart(z),go.length,players.filter(p=>!go.includes(p)&&!p.dead).map(destOf));   // (up or down the whole flight: interior.js)
-  go.forEach((u,i)=>{const s=spots[i]||{x:(z.x0+z.x1)/2,y:(z.y0+z.y1)/2},p=findPath(u.x,u.y,s.x,s.y);if(!p)return;
+  const fp=farPart(z),spots=slotsIn(fp,go.length,players.filter(p=>!go.includes(p)&&!p.dead).map(destOf)).filter(s=>inZone(s,fp));   // (up or down the whole flight: interior.js; a spot that spilled out of the flight left a man behind: Bryan, after v124)
+  go.forEach((u,i)=>{const s=spots[i]||{x:(fp.x0+fp.x1)/2,y:(fp.y0+fp.y1)/2},p=findPath(u.x,u.y,s.x,s.y);if(!p)return;
     Object.assign(u,{path:p,lastOrder:simT,stairs:{tr,z,t0:simT},lift:null,watch:null,supT:null,focus:null,silent:null});});
   callout(go[0],tr.to==='1F'?'Going up':'Going down',C.good);
 }
@@ -151,7 +151,7 @@ function stairsTick(){
   const moved=[];
   for(const u of players){
     if(!u.stairs)continue;if(!alive(u)||u.lastOrder>u.stairs.t0+.01){u.stairs=null;continue;}const{tr,z}=u.stairs;
-    if(u.path.length)continue;
+    if(u.path.length&&!onFlight(u,z))continue;   // (on the flight he goes, without queueing for a spot on it: interior.js)
     if(!inZone(u,{x0:z.x0-8,x1:z.x1+8,y0:z.y0-8,y1:z.y1+8})){u.stairs=null;continue;}   // stopped short (another order)
     transit(u,tr.to,tr.arrive);moved.push(u);
   }
@@ -212,6 +212,9 @@ function openCell(u,c){
   const p=civs.find(v=>v.cell===c&&!v.freed);if(!p)return;
   const g=IN.objs.find(o=>o.gate===c);if(g)removeObj(g);if(typeof sfxCell==='function')sfxCell(p.x,p.y);chatFree(u);
   joinPrisoner(p);if(FREED_LINES[p.name])line(p,'freed',[FREED_LINES[p.name]],0,3,C.good);
+  // (Bryan, after v124: once it's unlocked he comes out by himself) out of the cell to a free spot beside whoever opened it
+  const s=openSpot(u.x+(Math.random()-.5)*20,u.y+(Math.random()-.5)*20,players.filter(q=>q!==p&&!q.dead).map(destOf)),path=s&&findPath(p.x,p.y,s.x,s.y);
+  if(path){p.path=path;p.lastOrder=simT;}
 }
 function cutDown(u){
   const m=wallMan();if(!m)return;Object.assign(m,{strapped:false,x:m.x,y:m.y+10,ang:Math.PI/2});chatFree(u);
@@ -276,11 +279,12 @@ function civTick(u,dt){
   }
   // they talk, not much: defiant while they cower, grumbling on the way, and panicking near the fortress's gate (Bryan)
   if(near.some(p=>hyp(p.x-u.x,p.y-u.y)<260)&&simT>u.pleadT&&(u.cower||u.detained)&&!(typeof sceneOn==='function'&&sceneOn())){   // (not over the scene after the gate: monsters.js)
-    const panic=u.detained&&MAPID==='out'&&typeof PANEL!=='undefined'&&hyp(u.x-PANEL.x,u.y-PANEL.y)<SCI_HQ_NEAR;
+    let panic=u.detained&&MAPID==='out'&&typeof PANEL!=='undefined'&&hyp(u.x-PANEL.x,u.y-PANEL.y)<SCI_HQ_NEAR;
+    if(panic&&(office.panicN||0)>=SCI_PANIC_MAX){u.pleadT=simT+60;return;}   // (Bryan, after v124: they went on about turning back far too much: a few warnings in all, then quiet)
     const g=u.scanning?'scan':panic?'panic':u.detained?'grumble':'defy',L={scan:SCI_SCAN,panic:SCI_PANIC,grumble:SCI_GRUMBLE,defy:SCI_DEFY}[g];
-    u.pleadT=simT+(u.scanning?5:panic?7:u.detained?40:30)+Math.random()*(panic?5:15);
+    u.pleadT=simT+(u.scanning?5:panic?24:u.detained?40:30)+Math.random()*(panic?14:15);
     const k=panic&&BRIDGE.lower>=1?[0,2,3,4,5][(Math.random()*5)|0]:undefined;   // (once it's open, not "Don't open it")
-    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<(panic?3:6))){u.saidT=simT;line(u,g,L,k,panic||u.scanning?3.4:3,panic||u.scanning?'#ffd7cf':'#e9eef2');}
+    if(!civs.some(c=>c!==u&&simT-(c.saidT||-9)<(panic?12:6))){u.saidT=simT;if(panic)office.panicN=(office.panicN||0)+1;line(u,g,L,k,panic||u.scanning?3.4:3,panic||u.scanning?'#ffd7cf':'#e9eef2',{textOnly:panic});}   // (the warnings as words only: their recordings sounded robotic, Bryan; to be voiced again)
   }
 }
 function civAtScreen(sx,sy){
@@ -339,6 +343,7 @@ function wreckLab(u,i,q,blast){
   const cx=o?o.x+o.w/2:q.x,cy=o?o.y+o.h/2:q.y;
   if(o){o.wreck=true;const g=o.grp;if(g)g.traverse(m=>{if(!m.isMesh)return;if(m.geometry.type==='CylinderGeometry'){m.visible=false;return;}m.material=m.material.clone();m.material.color.setHex(0x37322e);m.rotation.z=.07;});}
   office.sparks.push({x:cx,y:cy,t0:simT});paintDecal({k:'scorch',x:cx,y:cy+10,r:Math.random()});
+  if(!blast){booms.push({x:cx,y:cy,t:0,size:.55});shake(.35);if(typeof sfxBoom==='function')sfxBoom(cx,cy,.75);}   // (Bryan, after v124: it goes up with a bang, not a clink; a small blast that hurts nobody)
   if(typeof sfxSparks==='function')sfxSparks(cx,cy);
   if(!blast){callout(u,'Smashed it',C.good);alertAll('Contact.',true,cx,cy,null,null,{x:u.x,y:u.y},180,80,true);}   // smashing it up is loud (a blast is louder, and already heard)
   const s=civs.filter(c=>c.sci&&floorOf(c.x,c.y)==='1F'&&hyp(c.x-cx,c.y-cy)<560).sort((a,b)=>hyp(a.x-cx,a.y-cy)-hyp(b.x-cx,b.y-cy))[0];

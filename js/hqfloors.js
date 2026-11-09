@@ -268,7 +268,7 @@ function hqFloorTick(){   // (every tick in the Headquarters: base.js's baseTick
   for(const u of players){
     const st=u.hqStairs;if(!st)continue;
     if(!alive(u)||u.lastOrder>st.t0+.01){u.hqStairs=null;continue;}
-    if(u.path.length)continue;const z=st.tr.z;u.hqStairs=null;
+    const z=st.tr.z;if(u.path.length&&!onFlight(u,z))continue;u.hqStairs=null;
     if(!inZone(u,{x0:z.x0-10,x1:z.x1+10,y0:z.y0-10,y1:z.y1+10}))continue;   // stopped short (another order)
     transit(u,st.tr.to,st.tr.arrive);(moved[st.tr.to]=moved[st.tr.to]||[]).push(u);
   }

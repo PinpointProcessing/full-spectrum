@@ -31,7 +31,7 @@ function resetHQ(){hqs={awake:false,phase:-1,won:false,t0:simT,killed:0,pending:
 const HATCH={hp:40,hit:.75,lair:1,room:1};   // (lair: how many her clutch hatches at each roar; enterHQ makes it two for a big squad)
 // her young waiting in each side room, for a squad of up to five and a bigger one, and how often another room opens while she
 // lives (Bryan, after v91: too easy; a big squad had her down in half a minute with nobody hurt)
-const HQ_BROOD={room:1,roomBig:3,every:30};   // (it was 1 and 2, every 40 s)
+const HQ_BROOD={room:1,roomBig:2,every:30};   // (it was 1 and 2, every 40 s; roomBig 3 from v92 to v124)
 function hatch(k,n){
   const D=HQ&&HQ.nest&&HQ.nest.userData.eggs;if(!D||MAPID!=='hq'||hqs.won)return;const c=D.clutches[k];if(!c)return;
   const left=[];for(let i=c.a;i<c.b;i++)if(!D.list[i].burst)left.push(i);if(!left.length)return;
@@ -115,13 +115,26 @@ function enterHQ(after){   // (after: the fight already over, her and her young 
       const per=live.filter(p=>!p.downed).length>5?HQ_BROOD.roomBig:HQ_BROOD.room;   // (a small squad meets one to a room, a big one more; one more hatches from each room's clutch, hatch)
       for(const r of HQ_ROOMS)for(let k=0;k<per;k++){const h=hound((r.x0+r.x1)/2+(k-1)*26,(r.y0+r.y1)/2+(k%2?20:-14),{dormant:true,room:r.id,kind:'young',ang:r.side<0?0:Math.PI});}}
     }finally{scene=keep;}
-    contact=false;clearTeams();sel=[];cardGroup=[];if(!after)hqs.wakeAt=simT+.6;hqs.lairN=live.filter(p=>!p.downed).length>5?2:1;   // (she's awake: she roars as they come in, bossThink)
+    contact=false;clearTeams();sel=[];cardGroup=[];hqs.lairN=live.filter(p=>!p.downed).length>5?2:1;   // (she's awake: she roars as they come in, bossThink)
     VB={x0:HQB.x0,z0:HQB.y0,x1:HQB.x1,z1:HQB.y1};FIT.w=HQB.x1-HQB.x0+40;FIT.h=HQB.y1-HQB.y0+40;fitDist();
     zoom=after?frameZoom(300,260):2.0;yaw=0;tilt=0;camT=after?{x:500,z:640}:{x:500,z:800};clampCam();updateCamera();
     updateObjUI();setStatus();buildCards();hud();
-    if(!after)bigText('The Headquarters','inbound');   // (after: "Headquarters taken" comes on the next tick, hqTickWin)
+    if(!after)hqIntro();   // (after: "Headquarters taken" comes on the next tick, hqTickWin)
     if(f)setTimeout(()=>{f.classList.remove('on');setTimeout(()=>{if(!f.classList.contains('on'))f.hidden=true;},400);},60);
   },380);
+}
+// in, with her asleep (Bryan, after v124: "The camera can pan to it and show the monster and her babies sleeping. The squad
+// leader says Stay Quiet. We need to kill that thing, let's do this right."): up the hall to her coiled round her clutch, a
+// look into a side room at her young, back to the squad, and the leader's word in the talk panel
+function hqIntro(){
+  const home={x:camT.x,z:camT.z,zoom},z2=Math.max(zoom,2.6),r=HQ_ROOMS[0];hqs.intro=true;
+  bigText('The Headquarters','clear');
+  setTimeout(()=>{if(MAPID!=='hq'||state!=='play')return;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:500,z:390,zoom:z2},t:0,dur:2};},900);
+  setTimeout(()=>{if(MAPID!=='hq'||state!=='play')return;if(typeof notice==='function')notice('She\'s asleep','Her young too, in the side rooms and the eggs round her.',4200);},2600);
+  setTimeout(()=>{if(MAPID!=='hq'||state!=='play')return;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:(r.x0+r.x1)/2,z:(r.y0+r.y1)/2+40,zoom:z2},t:0,dur:1.4};},4600);
+  setTimeout(()=>{if(MAPID!=='hq'||state!=='play')return;camPan={from:{x:camT.x,z:camT.z,zoom},to:home,t:0,dur:1.6};},7000);
+  setTimeout(()=>{hqs.intro=false;if(MAPID!=='hq'||state!=='play'||hqs.awake)return;const lead=players.find(p=>p.id==='A1'&&alive(p))||players.find(alive);
+    if(lead&&typeof talkStart==='function')talkStart([{who:lead,text:'Stay quiet. We need to kill that thing. Let\'s do this right.'}],()=>{banner('Get into position, then open fire together.',3000);hud();});},8800);
 }
 /* ---------- starting just after her death (save.js's 'won': the intro card's Level 3 · After the Battle since v117, the
    Level 4 button in v112 to v116; Bryan, after v111: "Can we make the level 4 start from inside the HQ, so crossing the bridge
@@ -165,7 +178,7 @@ function openRoom(r,quiet){
 function bossThink(u,dt){
   const inHall=p=>alive(p)&&p.x>HQ_HALL.x0&&p.x<HQ_HALL.x1&&p.y>HQ_HALL.y0&&p.y<HQ_HALL.y1;
   for(const r of HQ_ROOMS)if(!r.open&&players.some(p=>alive(p)&&p.x>r.x0&&p.x<r.x1&&p.y>r.y0&&p.y<r.y1))openRoom(r);   // walked in on them
-  if(u.ms==='sleep'){if(simT>=(hqs.wakeAt??1e9)||players.some(inHall)||u.hp<u.maxHp)bossRoar(u,0);return;}   // (Bryan: awake when they come in: she roared at the drawbridge, she knows they're coming)
+  if(u.ms==='sleep'){if(u.hp<u.maxHp||players.some(p=>alive(p)&&hyp(p.x-u.x,p.y-u.y)<BOSS.wakeR)||(hqs.loudT&&simT-hqs.loudT<.1))bossRoar(u,0);return;}   // (since v125 asleep until she's hurt, one of ours comes close or a blast goes off in the hall: Bryan, after v124, "Maybe we can have the monster sleeping after all... So the player can get into strategic positions"; v81 to v124 she woke as they came in)
   if(hqs.awakeT&&simT>(hqs.nextRoomT||0)){hqs.nextRoomT=simT+HQ_BROOD.every;const r=HQ_ROOMS.find(q=>!q.open);if(r)openRoom(r);}   // and every HQ_BROOD.every s another room, whatever her health
   if(u.ms==='roar'){u.path=[];if(simT-u.mt0>2.4){u.ms='walk';}return;}
   const tg=monPrey(u,2000);if(!tg){u.path=[];return;}monSaw(tg);
@@ -251,7 +264,7 @@ function hqHint(){
     return`Your Headquarters. Tap the command center for the next mission and the squad. ${rooms} Everyone back here is healed and restocked.${HQ.floors?' The floor buttons show the second floor and the roof.':''}`;}
     if(hqEnd)return'';
     return anyDown()?'Get the wounded up: a soldier beside a downed man brings him round while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carry him to the medic station. Nobody bleeds out now. Once everyone’s up, one of them goes out for the scientists.':'One of them is going out for the scientists, through the south door.';}
-  if(!hqs.awake)return'Here she comes.';
+  if(!hqs.awake)return'She\'s asleep at the far end of the hall. Spread the squad out in cover (the side rooms\' doorways, the pillars), then open fire together. Don\'t get within about 19 m of her before you\'re ready.';
   const b=enemies.find(e=>e.mon==='boss');
   if(b&&!b.dead)return'Keep moving: get out of the violet ring before she slams, shoot her young when they rear up. Her roars open the side rooms and hatch her eggs.';
   return'Finish her young: the side rooms are open.';

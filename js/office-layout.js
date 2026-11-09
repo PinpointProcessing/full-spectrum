@@ -203,6 +203,7 @@ const OFFICE_LAYOUT={floors:[
   ],
   zones:[
    {kind:'stairs-up',x0:790,y0:-440,x1:850,y1:-364,dir:'s',note:'the flight up to GF, climbing south'},
+   {kind:'rest-sup',x0:890,y0:-460,x1:950,y1:-400,note:'an ammo drop in the stair hall, east of the stairs (Bryan, after v124: a resupply in the basement, no medic)'},
    {kind:'cells',x0:660,y0:-740,x1:740,y1:-655,note:'C1 (empty)'},
    {kind:'cells',x0:660,y0:-645,x1:740,y1:-560,note:'C2 (prisoner)'},
    {kind:'cells',x0:900,y0:-740,x1:980,y1:-655,note:'C3 (prisoner)'},

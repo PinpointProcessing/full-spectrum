@@ -110,6 +110,11 @@ function toneHit(out,t0,dur,type,f0,f1,peak,attack=.004){
 }
 
 /* ---------- one-shots ---------- */
+function sfxPA(x,y){   // the base's loudspeakers coming back (waves.js's outage): three loud flat beeps, then the test tone
+  const out=voice(x,y,.9,3.6);if(!out)return;const t=AC.currentTime;
+  for(let k=0;k<3;k++)toneHit(out,t+k*.32,.22,'square',880,0,.35,.006);
+  toneHit(out,t+1.1,2.2,'sawtooth',620,0,.22,.05);toneHit(out,t+1.1,2.2,'square',930,0,.12,.05);
+}
 function sfxShot(u,quiet){
   if(quiet){const out=voice(u.x,u.y,.3,.3);if(!out)return;const t=AC.currentTime;   // silenced: a muffled cough and the action cycling
     noiseHit(out,t,.07,'bandpass',800,1.1,.8,.002);noiseHit(out,t,.14,'lowpass',520,0,.45,.003,140);noiseHit(out,t+.035,.03,'highpass',3500,0,.18,.001);return;}

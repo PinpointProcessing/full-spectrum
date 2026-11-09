@@ -47,6 +47,11 @@ button.on{border-color:var(--warn);color:var(--warn)}
 #tl{position:absolute;left:8px;top:8px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:min(calc(50% - 42px),240px);pointer-events:none}   /* clear of the ring at the top centre and its label */
 #tl.lvl{max-width:min(calc(50% - 68px),240px)}   /* and of the base's alert line under the ring, while it shows (layers.js's alertHud) */
 #tl>*{pointer-events:auto}
+#outChip{background:rgba(10,14,18,.88);color:#ffb36b;border-color:rgba(255,163,72,.45);font-variant-numeric:tabular-nums}   /* Level 3's comms and lights (waves.js) */
+#notice{position:absolute;left:50%;top:104px;transform:translateX(-50%);z-index:4;width:min(320px,calc(100% - 32px));display:grid;gap:3px;padding:9px 12px;border:1px solid rgba(255,163,72,.55);border-radius:6px;background:rgba(10,14,18,.92);box-shadow:0 4px 18px rgba(0,0,0,.55);text-align:center;cursor:pointer}
+#notice b{font-family:var(--font-hud);font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#ffcf8a}
+#notice span{font-size:12px;line-height:1.35;color:var(--text)}
+#notice.in{animation:noticeIn .35s ease-out}@keyframes noticeIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
 #savedChip{background:rgba(10,14,18,.88);color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent)}
 #sndBtn{min-width:40px;padding:0 9px;display:inline-grid;place-items:center}
 #sndBtn svg{width:18px;height:18px;fill:currentColor}
@@ -268,6 +273,7 @@ button.on{border-color:var(--warn);color:var(--warn)}
 .eq-grp button:disabled{opacity:.38;cursor:default}
 .eq-grp button i{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font-size:7.5px;line-height:1;letter-spacing:.04em;color:var(--dim)}   /* whose it is, under the label */
 .eq-grp button i:empty{display:none}
+.eq-n{position:absolute;right:3px;bottom:1px;font-style:normal;font-size:8px;line-height:1;letter-spacing:.02em;color:#9fb2bf;font-variant-numeric:tabular-nums}.eq-n.none{color:#ff8a7e}.eq-grp button.on .eq-n.none{color:#9fb2bf}   /* the armory's count: left / total */
 .eq-note{margin:0;font-size:12px;color:var(--dim);line-height:1.35}
 #eqGo{min-height:44px;font-size:14px;background:#1d2a33;border:1px solid var(--alpha);color:var(--alpha);border-radius:6px;font-family:var(--font-hud);font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
 body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipping #floors,body.equipping #obj,body.equipping #status,body.equipping #pauseBtn,body.equipping #alert,body.equipping #alertLvl,body.equipping #banner,body.equipping #tl{visibility:hidden}
@@ -331,10 +337,8 @@ body.equipping .panel,body.equipping #gaitBtn,body.equipping #fitBtn,body.equipp
 body.hqcOpen .panel,body.hqcOpen #gaitBtn,body.hqcOpen #floors,body.hqcOpen #banner{visibility:hidden}
 @media (min-aspect-ratio:21/20){#hqc{justify-content:center;align-items:flex-end}.hqc-panel{width:min(460px,54%);margin:0 10px 0 0;max-height:calc(100% - 20px)}}
 body.hqm .dock,body.hqm #gaitBtn{visibility:hidden}   /* the Headquarters is managed, not walked (base.js) */
-/* the silencer on the M4 SD (combat.js's silCol): a small bar, green, yellow, red, then BROKEN */
-.uc-sd{position:relative;display:inline-flex;align-items:center;gap:3px;flex:none;font-style:normal;font-size:8px;letter-spacing:.08em;color:#ff6b5a}
-.uc-sd::before{content:"";display:block;width:22px;height:5px;border-radius:2px;background:#2a3238;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-.uc-sd s{position:absolute;left:0;top:50%;height:5px;margin-top:-2.5px;max-width:22px;border-radius:2px;text-decoration:none}
-.uc-sd[data-s="g"] s{background:#52d273}.uc-sd[data-s="y"] s{background:#ffcf4a}.uc-sd[data-s="r"] s{background:#ff4a3a}
-.uc-sd[data-s="x"] s,.uc-sd[data-s="x"]::before{display:none}
-#cards.compact .uc-gun.sd{display:flex;height:9px}#cards.compact .uc-gun.sd svg,#cards.compact .uc-gun.sd b{display:none}
+/* the silencer on the M4 SD (combat.js's silCol): the suppressor drawn green, yellow, red, then BROKEN */
+.uc-sd{flex:none;font-style:normal;font-size:8px;letter-spacing:.08em;color:#ff6b5a}
+.uc-gsvg{display:contents}
+.sdtip[data-s="g"]{fill:#52d273}.sdtip[data-s="y"]{fill:#ffcf4a}.sdtip[data-s="r"]{fill:#ff4a3a}
+#cards.compact .uc-gun.sd{display:flex;height:10px}#cards.compact .uc-gun.sd svg{width:30px;height:10px}#cards.compact .uc-gun.sd b{display:none}

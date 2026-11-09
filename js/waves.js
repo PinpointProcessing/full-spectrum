@@ -8,11 +8,12 @@ const CLEAR_T=3.6,COUNT_T=5;   // CLEAR_T: after "Location secured", once the cr
 let wave={phase:'fight1',t:0};   // phases: fight1 (before the landing is over) → hq (the mission); count/fight2/done: the old counterattack, dormant
 function wavePhase(...ps){return ps.includes(wave.phase);}
 function resetWaves(){
+  outage=null;{const c=$('#outChip');if(c)c.hidden=true;const n=$('#notice');if(n)n.hidden=true;}
   wave={phase:'fight1',t:0};bigText(null);cdShown=-1;hq=null;camPan=null;VB={x0:0,z0:TOP,x1:W,z1:H};resetMission();
 }
 function goWave(ph){wave.phase=ph;wave.t=simT;setStatus();hud();}
 function waveTick(dt){
-  if(landing)landTick(dt);
+  if(landing)landTick(dt);outageTick();
   const el=simT-wave.t;
   if(wave.phase==='hq')hqTick(dt);   // the mission (from the end of the landing: hq.js, mission.js)
   else if(wave.phase==='count'&&el>=COUNT_T){bigText('Enemy inbound!','inbound');spawnCounter();goWave('fight2');}   // (the counterattack: dormant)
@@ -48,8 +49,47 @@ function landTick(dt){
     p.inBoat=false;p.elev=0;const q={x:p.x,y:DOCK.quay-10},path=findPath(q.x,q.y,p.start.x,p.start.y);
     p.path=[q,...(path||[p.start])];p.lastOrder=simT;
   });
-  banner('Ashore. Get into the data center, up north. The warehouse ahead is guarded.',3200);startMissionAreas();hud();
+  startMissionAreas();if(LEVEL===3){startOutage(0);outageIntro();}else banner('Ashore. Get into the Bio Lab, up north. The warehouse ahead is guarded.',3200);hud();
   setTimeout(()=>{if(state==='play'&&typeof gen==='function'){const a=players.find(p=>p.id==='A1'&&alive(p));if(a)chat('dark',60,gen(a,'dark'));}},2600);   // "Let's go dark" (chatter.js)
+}
+
+/* ---------- Level 3's start (Bryan, after v124: "after knocking out the lights and the alarms, can the next base be out of
+   communications. Walkie Talkie's work but reinforcements don't come"; "When the warehouse starts, a popup should appear,
+   light and communications are out but are being repaired - work quickly. After 45 seconds communications go back up and a
+   loud beep and test alarm with an announcement over the loudspeaker is heard. Another 60 seconds later, the lights turn on";
+   "at the beginning of the warehouse map the camera can pan to the data warehouse with a popup that says Breach the Bio Lab")
+   Ashore, the camera goes up to the Bio Lab's doors and back; then the clock: comms down OUT_T.comms s of game time (a radio
+   call alerts their own men but brings nobody and sounds no alarm: hunt.js's callIn), then the loudspeakers, then the front's
+   lights OUT_T.lights s later (level2.js's darkFront). A Continue carries the clock on (save.js's outage). */
+const OUT_T={comms:45,lights:105};
+let outage=null;   // {t0, comms: back on, lights: back on}
+const commsDown=()=>LEVEL===3&&!!outage&&!outage.comms;
+function notice(title,text,ms=5200){   // a small card under the ring at the top (a tap closes it); not a pause
+  const el=$('#notice');if(!el)return;el.innerHTML=`<b>${title}</b>${text?`<span>${text}</span>`:''}`;el.hidden=false;el.classList.remove('in');void el.offsetWidth;el.classList.add('in');
+  clearTimeout(notice.t);notice.t=setTimeout(()=>{el.hidden=true;},ms);
+}
+function startOutage(t=0){outage={t0:simT-t,comms:t>=OUT_T.comms,lights:t>=OUT_T.lights};darkFront(!outage.lights);}
+function outageIntro(){   // the pan up to the Bio Lab and back, then the outage notice
+  const back={x:camT.x,z:camT.z,zoom},to={x:DC_DOOR.x+DC_DOOR.w/2,z:DC.y+DC.h+60,zoom:Math.max(zoom,1.8)};
+  camPan={from:{...back},to,t:0,dur:1.6};
+  notice('Breach the Bio Lab','Get inside, find the scientists and bring them out.',4200);
+  setTimeout(()=>{if(state!=='play'||MAPID!=='out')return;camPan={from:{x:camT.x,z:camT.z,zoom},to:back,t:0,dur:1.2};
+    setTimeout(()=>{if(state==='play'&&commsDown())notice('Lights and comms are out','They\'re being repaired. Work quickly.',5600);},1300);},3400);
+}
+function outageTick(){
+  if(!outage||LEVEL!==3)return;const el=simT-outage.t0;
+  if(!outage.comms&&el>=OUT_T.comms){outage.comms=true;
+    const x=DC_DOOR.x+DC_DOOR.w/2,y=DC.y+DC.h+20;if(typeof sfxPA==='function')sfxPA(MAPID==='out'?x:null,MAPID==='out'?y:null);
+    setTimeout(()=>{if(state==='play'&&typeof sfxSiren==='function')sfxSiren(x,y);},1200);
+    notice('Loudspeaker','"Communications restored. This is a test of the alarm system. All posts, radio check."',6000);
+    setTimeout(()=>{if(state==='play')banner('Their radios are back: a call that goes out now brings reinforcements.',3400);},6200);}
+  if(outage.comms&&!outage.lights&&el>=OUT_T.lights&&MAPID==='out'){outage.lights=true;darkFront(false);if(typeof sfxClang==='function')sfxClang(DC_DOOR.x,DC.y+DC.h);banner('The Bio Lab\'s lights are back on.',3000);}
+  outageHud(el);
+}
+function outageHud(el){
+  const c=$('#outChip');if(!c)return;const on=state==='play'&&LEVEL===3&&outage&&!outage.lights;c.hidden=!on;if(!on)return;
+  const left=Math.max(0,Math.ceil((outage.comms?OUT_T.lights:OUT_T.comms)-el)),t=`${outage.comms?'Lights out':'Comms down'} · ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`;
+  if(c.textContent!==t)c.textContent=t;
 }
 
 function gunnerOf(){return enemies.find(e=>e.gunner&&!e.dead);}

@@ -8,9 +8,9 @@ function objHint(){
   if(obj===4)return'Take a scientist to the drawbridge\'s bio scanner (north-east): send a soldier to the panel by the moat.';
   if(obj>=5)return mon.out&&!mon.out.done?'Hold them off at the drawbridge: shoot the hunters when they crouch, step out of the violet line. Keep the scientists close.':'The gate is clear. Heal and restock at the medic station and ammo drop west of the drawbridge, then gather everyone in the green area at the drawbridge to go in.';   // (monsters.js)
   const ups=players.filter(p=>alive(p)&&!p.offMap),north=ups.some(p=>p.y<CANAL.y0);
-  if(!north)return'Get into the data center, across the canal to the north-west. Ways over: the bridge (guarded), the sewer pipe to the west, or the broken rail bridge to the east. A sniper tower on the sidewalk at the road\'s west end, by the data center, watches its doors and up the road.';
-  if(dcLocked())return'The data center\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then tap the arrows at the doors.';
-  return'The containers along the canal are the quiet way: weave north through the gaps, wait for the jeep on the road to pass, cross behind it, and keep to the strip west of the doors. The data center\'s front is heavily guarded. Tap the arrows at the front doors and everyone goes in.';
+  if(!north)return'Get into the Bio Lab, across the canal to the north-west. Ways over: the bridge (guarded), the sewer pipe to the west, or the broken rail bridge to the east. A sniper tower on the sidewalk at the road\'s west end, by the Bio Lab, watches its doors and up the road.';
+  if(dcLocked())return'The Bio Lab\'s doors stay shut while the alarm is going or they\'re searching for you. Lose them, then tap the arrows at the doors.';
+  return'The containers along the canal are the quiet way: weave north through the gaps, wait for the jeep on the road to pass, cross behind it, and keep to the strip west of the doors. The Bio Lab\'s front is heavily guarded. Tap the arrows at the front doors and everyone goes in.';
 }
 function setStatus(){
   const s=$('#status');
@@ -32,7 +32,7 @@ function finish(){
   $('#endEyebrow').textContent=win?'Mission complete':'Mission failed';
   $('#endTitle').textContent=win?'Warehouse secured':'Squad lost';
   if(LEVEL===4&&!win){$('#endTitle').textContent='Squad lost';$('#endText').textContent='The squad went down on the hill. Retry from the last save: the stairs are the quiet way up; the lift wakes the brood and brings their men to the bunker. Split the teams and one can stay hidden.';refreshSaveButtons();$('#end').hidden=false;return;}   // (level4.js)
-  if(LEVEL===1&&!win){$('#endText').textContent='The squad went down. Try again: keep to cover, and let the guards come to you.';$('#againBtn').textContent='Try Level 1 again';$('#retryBtn').hidden=true;$('#end').hidden=false;return;}
+  if(LEVEL===1&&!win){$('#endText').textContent='The squad went down. Try again: keep to cover, and let the guards come to you.';$('#againBtn').textContent='Try the Tutorial again';$('#retryBtn').hidden=true;$('#end').hidden=false;return;}
   $('#endText').textContent=win
     ?`Cleared in ${mm}:${ss}. ${downCount} time${downCount===1?'':'s'} a soldier went down, ${kia} killed in action.`
     :`The squad held out for ${mm}:${ss}. Try pinning one side of the room (hold your finger on an enemy to suppress him) while a fire team works around to the west window or the east door.`;
@@ -117,6 +117,7 @@ function alertMeter(){
 }
 function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:760};clampCam();updateCamera();}
 function bindHud(){
+  {const n=$('#notice');if(n)n.addEventListener('click',()=>{n.hidden=true;});}   // (waves.js's notices: a tap closes one)
   // team tabs toggle: pressing the tab of the group that's already selected deselects it
   const tabSelect=list=>{if(state!=='play'||(typeof endingBusy==='function'&&endingBusy()))return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));if(on)select([]);else if(!selectAway(list))return;preview=null;mode=null;hud();};   // (a team somewhere else: the camera goes to them, not while the men on screen are under fire: input.js)
   // (Level 1's tutorial lets through only what its step or tip asks for: tutAllows in level1.js; the camera, Pause and Fit map always work)
@@ -128,7 +129,7 @@ function bindHud(){
   $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;hud();});
   $('#continueBtn').addEventListener('click',()=>{continueGame();});
   $('#retryBtn').addEventListener('click',()=>{continueGame();});
-  $('#startBtn').addEventListener('click',()=>showEquip(startLevel3,'Next: Level 3 · The Data Center'));   // the loadout first (equip.js)
+  $('#startBtn').addEventListener('click',()=>showEquip(startLevel3,'Next: Level 3 · The Bio Lab'));   // the loadout first (equip.js)
   $('#l2Btn').addEventListener('click',()=>showEquip(startLevel2,'Next: Level 2 · Lights Out'));   // (level2.js)
   $('#l1Btn').addEventListener('click',()=>startLevel1());
   // two starts (Bryan, after v116: "can we make a start in HQ after the battle, and starting the old radio tower mission as two
@@ -145,9 +146,9 @@ function bindHud(){
     if(MAPID==='l1')tutTap();else $('#tut').hidden=true;   // (outside Level 1 it's the checkpoint's tour: hq.js)
   });
   $('#tutPin').addEventListener('click',()=>{tut.hid=false;tutShow();});
-  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){showEquip(startLevel2,'Next: Level 2 · Lights Out');return;}if(LEVEL===2){showEquip(startLevel3,'Next: Level 3 · The Data Center');return;}const wasL4=LEVEL===4;if(LEVEL===4)LEVEL=3;state='play';endAt=0;updateObjUI();hud();if(wasL4&&typeof radioTalk==='function')setTimeout(()=>{if(state==='play')radioTalk();},700);});   // (after Level 4's: back on the road east, at the bridge: level4.js)   // after Level 1's report: the squad at sea and the loadout (equip.js), then Level 2   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
+  $('#aarBtn').addEventListener('click',()=>{$('#aar').hidden=true;if(LEVEL===1){showEquip(startLevel2,'Next: Level 2 · Lights Out');return;}if(LEVEL===2){showEquip(startLevel3,'Next: Level 3 · The Bio Lab');return;}const wasL4=LEVEL===4;if(LEVEL===4)LEVEL=3;state='play';endAt=0;updateObjUI();hud();if(wasL4&&typeof radioTalk==='function')setTimeout(()=>{if(state==='play')radioTalk();},700);});   // (after Level 4's: back on the road east, at the bridge: level4.js)   // after Level 1's report: the squad at sea and the loadout (equip.js), then Level 2   // after Level 1's report: on to Level 2   // the one report comes at the end of the mission
   $('#hqBtn').addEventListener('click',hqGotIt);
-  {const ob=$('#obj'),tg=()=>{if(ob.classList.contains('nm')){if(ob.classList.contains('min'))objNMShow();else objNMHide();return;}   // (the next mission: open it, or close it: mission.js)
+  {const ob=$('#obj'),tg=()=>{objPingT=performance.now();if(ob.classList.contains('nm')){if(ob.classList.contains('min'))objNMShow();else objNMHide();return;}   // (the next mission: open it, or close it: mission.js)
     ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
   $('#againBtn').addEventListener('click',()=>{if(LEVEL===1){startLevel1(true);return;}if(LEVEL===2){startLevel2(true);return;}startLevel3();});

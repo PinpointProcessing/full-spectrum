@@ -7,9 +7,8 @@ const HQ_ZONES=[];   // {k:'med'|'sup',x,y (centre),r,col,label}
 // each area's pair: where the medic station and the ammo drop stand (centres); the ring is big enough for the whole squad
 const REST_ZONES={
   wh:[{k:'med',x:240,y:445},{k:'sup',x:375,y:445}],   // (Bryan: in the middle of the warehouse, past the front crates and short of the centre crate in the back, where nobody outside can see in; the old spots were in a line of sight through the back door)
-  br:[{k:'med',x:380,y:188},{k:'sup',x:572,y:188}],
-  maze:[{k:'med',x:485,y:-100},{k:'sup',x:485,y:-186}],   // (on the bridge's road, between the container rows)
-  dco:[{k:'med',x:300,y:-398},{k:'sup',x:170,y:-398}],   // (in front of the building, west of the doors)
+  br:[{k:'med',x:345,y:42},{k:'sup',x:432,y:-38}],   // (Bryan, after v124: just over the bridge on the left, the medic station on the west side between the container and the sandbags, the ammo drop by the road's left edge behind the barrier; they were south of the canal)
+  maze:[],dco:[],   // (Bryan, after v124: no stations in the container yard or in front of the Bio Lab, the lobby inside has a pair; still a checkpoint and a save)
   dc:[{k:'med',x:610,y:-490},{k:'sup',x:705,y:-490}],   // (west of the gather box at the drawbridge, MON_OUT in monsters.js)
 },WH_ZONES=REST_ZONES.wh,ZONE_R=46;
 const HEAL_RATE=8,SUPPLY_T=2;

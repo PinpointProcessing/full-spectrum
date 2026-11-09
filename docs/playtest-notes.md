@@ -1188,3 +1188,48 @@ north road mission... Feel free to add new or edit features if you'd like". Buil
   the walk back over the bridge and the report in the HQ.
 - The HQ's radio room on the air afterwards: a radio desk with a scientist on it, ON THE AIR, a short talk the first time back.
 Open for later: voices for the new lines (text only), the north road's mission, class gear unlocked by level.
+
+## v125: Bryan's Full Test, the fixes before the cleared HQ
+
+Bryan, after v124 ("Full Test"; a screenshot of Level 3 north of the bridge): the list below, "Lets correct these things before
+moving to the Cleared HQ". What was done:
+- Level 1 is called the Tutorial (intro button, objective box, report, retry). Its scout is dead by the hut: SCOUT · TAKE SNIPER
+  RIFLE gives the selected man his sniper rifle (his own gun on his back, the card's swap tag); the tip and hint say so.
+- Level 3 starts with the camera going up to the Bio Lab (the data center's new name everywhere on screen; spoken lines that say
+  "data center" stay until re-voiced) and a notice, BREACH THE BIO LAB; then "Lights and comms are out · They're being repaired.
+  Work quickly." and a chip counting down. 45 s with comms down: a radio call reaches their own men (the area is alerted) but no
+  siren and no reinforcements. Then three loud beeps, the alarm's test tone and the loudspeaker ("Communications restored. This
+  is a test of the alarm system. All posts, radio check."; text only), and calls bring reinforcements again. 60 s later the
+  front's lights come back on. A Continue carries the clock on; a save after it's all back is lit.
+- The armory (the boat, and the HQ's squad panel): a count at the bottom right of each limited item, left / total (M240 1/1,
+  0/1 once someone takes it; RPG 1/1; medic kits 2/2; sniper rifles, shotguns, build kits too).
+- Level 2's fire barrel: tap it with soldiers selected and they shoot it (a tap beside it counts); it goes up, killing the two
+  men at the fire, and everyone else within earshot walks over to look (no alarm). A silenced shot at it doesn't give the squad
+  away by itself.
+- The M4 SD's silencer: the suppressor on the gun's drawing is green, yellow or red; BROKEN as before.
+- Level 3's checkpoints: the bridge's medic station and ammo drop are just over the bridge on the left (the medic station between
+  the first container and the west sandbags, the ammo drop behind the barrier at the road's left edge); none south of the canal
+  any more, none in the container yard and none in front of the Bio Lab (the lobby inside has a pair). Those areas are still
+  checkpoints and saves.
+- The prison: an unlocked prisoner walks out of his cell by himself; an ammo drop in the basement's stair hall (no medic
+  station); a man carrying someone now goes up and down the stairs and through the lift with him (he was left out of the order:
+  that was why Marsh couldn't be carried out).
+- The stairs with a full squad: a man goes as soon as he's on the flight and a few steps from his spot, instead of everyone
+  queueing for the few spots at its far end; and a spot that spilled out of the flight no longer leaves the man behind (in the
+  basement two of seven were left behind every time). Same for the HQ's and the hill's stairs.
+- Lab benches: DESTROY is red, and a wreck goes up with a small blast (sound and flash, nobody hurt).
+- The objective arrow: a faint green arrow at the screen's edge pointing at the objective when it's off screen (the Bio Lab, the
+  bio scanner, the tunnel on the road east, the Tutorial's tower and boat, Level 2's panel and boat); a tap on the objective box
+  makes it bright for 5 s with the name and distance.
+- One man on a job: the others selected take cover about 6.5 m short of his spot, on their side of it, instead of crowding
+  round him; anyone already within 9 m of it with a line to it stays where he is.
+- The scientists: at most three warnings about the lab in all, at least 24 s apart, and shown as words only (their recordings
+  sounded robotic; to be voiced again).
+- The Brood Mother: asleep when they come in. The camera goes up the hall to her, then a side room's young, then back; "She's
+  asleep"; the leader in the talk panel: "Stay quiet. We need to kill that thing. Let's do this right." She wakes when she's hurt,
+  a blast goes off in the hall, or one of ours comes within 19 m. Easier: 480 + 170 a man (was 600 + 230); the slam 44 in a
+  5.8 m ring after 1.8 s of warning, every 5 s (65 in 6.4 m after 1.3 s, every 3.6 s); the swipe 24 (34); a big squad meets two
+  young a room (three). Her young (here, in the tunnel and on the summit) run at 76 (110), crouch 0.77 s before they lunge
+  (0.45) and bite ×0.75. Bot fights from the gate's save (the shooting automatic): eight men won with 3 knocked down and
+  nobody lost; four men healed at the entry hall's medic station first and falling back when she wakes won with nobody down. A man knocked down by any of them gets up and carries on to where he was sent.
+- The zip-tie question: answered in the reply (a proposal, not built).

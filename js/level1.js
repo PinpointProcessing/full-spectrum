@@ -121,8 +121,8 @@ function buildLevel1(){
     const d=makeDinghy();if(d.parent)d.parent.remove(d);sc.add(d);d.position.set(138,.1,858);d.rotation.y=.4;d.rotation.z=.05;L1.boat=d;   // pulled up on the beach: the way out (l1Exfil)
     const poleM=new T.MeshStandardMaterial({color:0x1d2124,roughness:.6,metalness:.6});
     for(const L of L1.lamps){const hd=new T.Mesh(new T.BoxGeometry(6,2,4),new T.MeshBasicMaterial({color:L.c,toneMapped:false}));hd.position.set(L.x,L.h+1.6,L.y);sc.add(hd);if(L.pole)addMesh(new T.CylinderGeometry(1.2,1.6,L.h+2,8),poleM,L.x,(L.h+2)/2,L.y);}
-    // the wounded scout, lying by the hut's door (a soldier's model, no torch)
-    const s={side:'P',team:'B',id:'SC',name:'Scout',x:L1_SCOUT.x,y:L1_SCOUT.y,ang:.4,path:[],downed:true,hp:20};makeSoldier(s);
+    // the scout, dead by the hut's door (a soldier's model, no torch; Bryan, after v124: not revived, his sniper rifle for the taking)
+    const s={side:'P',team:'B',id:'SC',name:'Scout',x:L1_SCOUT.x,y:L1_SCOUT.y,ang:.4,path:[],dead:true,hp:0,weapon:'sniper'};makeSoldier(s);
     for(const k of['spot','beam'])if(s.m[k]&&s.m[k].parent)s.m[k].parent.remove(s.m[k]);s.m.ring.material.color.set(0xe8e8e8);
     s.m.g.position.set(s.x,0,s.y);s.m.g.rotation.y=-s.ang;L1.scout=s;extraFigs.length=0;extraFigs.push(s);   // (figure.js animates him)
     // the lights: a dark night like Level 2's, the lamps sharing a pool of six, two for muzzle flashes, one for blasts
@@ -177,12 +177,12 @@ function startLevel1(again){   // again: "Try Level 1 again" (straight onto the 
   reset();   // (Level 2's squad, outdoors; back from Level 1 first if need be)
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   enterLevel1();state='play';
-  const go=()=>{tutStart(again);banner('Level 1: knock out the enemy radio tower up north.',3200);hud();};
+  const go=()=>{tutStart(again);banner('Tutorial: knock out the enemy radio tower up north.',3200);hud();};
   if(again)go();else startHeli(go);
   hud();
 }
 function startLevel3(){   // the data center (it was Level 2 until Bryan asked for an easier one before it: level2.js)
-  LEVEL=3;clearSave();refreshSaveButtons();reset();if(typeof applyLoadout==='function')applyLoadout();darkFront(l2Done());startView();   // (what was picked between missions: equip.js; its front dark once Level 2's power was cut)
+  LEVEL=3;clearSave();refreshSaveButtons();reset();if(typeof applyLoadout==='function')applyLoadout();darkFront(true);startView();   // (dark until the outage's clock runs out: waves.js)   // (what was picked between missions: equip.js; its front dark once Level 2's power was cut)
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   state='play';startLanding();banner('Coming in to the dock…',2400);hud();
 }
@@ -232,14 +232,13 @@ function l1Acts(){
   for(let i=ACTS.length-1;i>=0;i--)if(ACTS[i].map==='l1')ACTS.splice(i,1);
   // (solo: one man goes even with the team selected, combat.js's escort: the hut is inside the radio tower's blast, and the
   //  tip that comes next is the rocket at the tower, with nothing else allowed meanwhile; the yard's clear by then anyway)
-  ACTS.push({id:'scout',map:'l1',x:L1_SCOUT.x,y:L1_SCOUT.y,r:16,standY:16,secs:3,solo:true,label:'WOUNDED SCOUT',avail:()=>!l1.scoutUp,act:u=>scoutUp(u)});
+  ACTS.push({id:'scout',map:'l1',x:L1_SCOUT.x,y:L1_SCOUT.y,r:16,standY:16,secs:1.5,solo:true,label:'SCOUT · TAKE SNIPER RIFLE',avail:()=>!l1.scoutUp,act:u=>scoutUp(u)});
 }
-function scoutUp(u){
+function scoutUp(u){   // (the name kept: l1.scoutUp is "his rifle's been taken")
   l1.scoutUp=true;const s=L1.scout;
-  if(s&&s.m){s.downed=false;s.x=L1_SCOUT.x-10;s.y=L1_SCOUT.y-18;s.ang=-Math.PI/2;}   // up on his feet by the door
-  if(u)u.stats.revives++;
-  callouts.push({x:L1_SCOUT.x,y:L1_SCOUT.y,t:0,dur:4,text:'Thanks. The radio tower\'s east of the hut.',col:'#dfe6ea',small:true});
-  banner('Scout back on his feet. Now bring down the radio tower: Hayes\'s RPG.',3000);hud();
+  if(s&&s.m&&s.weapon){s.weapon=null;if(typeof figRefresh==='function')figRefresh(s);}
+  if(u){if(u.weapon!=='sniper'){u.weapon2=u.weapon||'rifle';u.weapon='sniper';if(u.m)figRefresh(u);}callout(u,'Sniper rifle',C.good);buildCards();}   // (his own gun on his back: the card's SWAP tag, as with the tower's)
+  banner(`${u?u.name+' has':'You have'} the scout's sniper rifle. Now bring down the radio tower: Hayes's RPG.`,3200);hud();
 }
 function l1Blast(x,y,by){   // (from tankBlast: every grenade and rocket)
   if(MAPID!=='l1'||!L1||!L1.relay||l1.relayDown)return;
@@ -307,7 +306,7 @@ function l1Hint(){
   if(tutStep())return '';   // (the boot camp's box says it)
   if(l1.relayDown)return l1.exfil?'Back to the boat on the beach: tap its arrows and everyone goes. Carry anyone who\'s down.':'Radio tower down.';
   if(!L1.yard.every(beaten))return L1.fence.every(beaten)?(L1.gate.every(beaten)?'Clear the yard: get into cover first, then fire. The ambush gives you an edge.':'Two guards at the gate: Alpha\'s silencers can drop them together. Select Alpha and tap each one.'):'One guard by the shed has his back to you: select one soldier and tap him to take him down.';
-  if(!l1.scoutUp)return 'A wounded scout lies by the hut: select a soldier and tap him to bring him round.';
+  if(!l1.scoutUp)return 'The scout didn\'t make it. His sniper rifle is by the hut: select a soldier and tap him to take it.';
   return 'Bring down the radio tower east of the hut: Hayes\'s RPG (on his card) at the ring under it, or a grenade close to it.';
 }
 
@@ -440,9 +439,9 @@ const TUT_TIPS=[
    done:()=>players.some(p=>alive(p)&&!p.downed&&(zoneAt(p.x,p.y)||(p.path.length&&zoneAt(p.path[p.path.length-1].x,p.path[p.path.length-1].y)))),
    text:'<b>Checkpoint.</b> Stand in the green ring to heal, the orange ring to refill grenades and gear. Select your men and tap inside one.'},
   {k:'scout',when:()=>l1.yardClear&&!l1.scoutUp&&tut.said.has('cp')&&simT-tut.tipAt>6,still:()=>!l1.scoutUp&&players.some(p=>alive(p)&&!p.downed),
-   mark:{x:L1_SCOUT.x,y:L1_SCOUT.y,r:18,label:'TAP HIM'},
+   mark:{x:L1_SCOUT.x,y:L1_SCOUT.y,r:18,label:'TAKE HIS RIFLE'},
    need:(k,x)=>tutPick(k,x)||(k==='tap'&&!x.u&&(a=>!!a&&a.id==='scout')(actAt(x.x,x.y))),act:(k,x)=>k==='tap'&&!x.u&&sel.some(alive),done:()=>l1.scoutUp||useGos.some(g=>g.a.id==='scout'),
-   text:'<b>The scout.</b> Select a soldier and tap the wounded scout by the hut to bring him round.'},
+   text:'<b>The scout.</b> He didn\'t make it. Select a soldier and tap him to take his sniper rifle (swap back on the soldier\'s card).'},
   // the radio tower (Bryan: say "Radio Tower - RPG", light the RPG up in the team's colour, a ring under the tower)
   {k:'rpg',when:()=>l1.scoutUp&&!l1.relayDown&&blastLeft(),still:()=>!l1.relayDown&&blastLeft(),modes:['rpg','grenade'],
    mark:()=>{const R=L1.relay;return{x:R.x+R.w/2,y:R.y+R.h/2,r:30,label:mode==='rpg'||mode==='grenade'?'TAP HERE':'TARGET',col:'#ff8a6a'};},

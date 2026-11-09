@@ -36,9 +36,11 @@
     <div id="countdown" role="timer" hidden><small>Incoming!</small><b>5.00</b></div>
     <div id="bigText" aria-live="assertive"></div>
     <div id="banner"></div>
+    <div id="notice" hidden role="status" aria-live="polite"></div>
     <div id="tl"><!-- top left: the objective box with the "Saved" chip stacked under it, so they never overlap -->
       <div id="obj" hidden role="button" tabindex="0" aria-expanded="false" aria-label="Objectives"><b>Objective 1/5</b><span>Take the warehouse</span><ol></ol></div>
       <span class="chip" id="savedChip" hidden>Saved</span>
+      <span class="chip" id="outChip" hidden>Comms down</span>
     </div>
     <div id="tut" hidden aria-live="polite"></div>
     <button id="tutPin" hidden aria-label="Show the tip again">?</button>
@@ -83,7 +85,7 @@
   <div class="card">
     <div class="eyebrow">Night op · four missions</div>
     <h1>Warehouse Yard</h1>
-    <p><b>Level 1</b> teaches you the squad on a small raid: knock out an enemy radio tower. <b>Level 2</b>: cut the power station that lights the data center. <b>Level 3</b> is the big one: get into the data center across the canal and bring out the scientists. <b>Level 4</b>: down the road east and up through the hill to the old radio tower, for the parts the HQ's radio needs.</p>
+    <p><b>The Tutorial</b> teaches you the squad on a small raid: knock out an enemy radio tower. <b>Level 2</b>: cut the power station that lights the Bio Lab. <b>Level 3</b> is the big one: get into the Bio Lab across the canal and bring out the scientists. <b>Level 4</b>: down the road east and up through the hill to the old radio tower, for the parts the HQ's radio needs.</p>
     <details class="controls"><summary>Controls</summary>
     <ul>
       <li><b>Look around:</b> drag empty ground with one finger to move the map. Pinch with two to zoom.</li>
@@ -101,7 +103,7 @@
       <li><b>Jobs:</b> tap a downed teammate, a hostile who gave up, a door, the gun, the tower or anything with a ring and a word on it. The nearest soldier selected does it. With a team selected the others go with him and take cover round him; with one soldier selected he goes alone.</li>
       <li><b>Special item:</b> each soldier also carries one (shown on his card): smoke (two), a medic kit, a silencer or an RPG. Smoke blocks sight both ways. A medic kit gets a downed man up, or heals a hurt one (or the man carrying it) to full: tap the kit, then him. A silencer keeps his shots quiet and wears out after six. In Level 2 every rifle is silenced, and you pick the items between missions. Ammo drops refill them.</li>
       <li><b>Corners:</b> a soldier at the edge of a wall or container leans out to shoot or throw round it. While he's leaned out, the enemy can hit him too.</li>
-      <li><b>Doors:</b> inside the data center the offices have doors. Walk through one and he opens it quietly; tap a door to open it and look in; BREACH at a shut door kicks it in.</li>
+      <li><b>Doors:</b> inside the Bio Lab the offices have doors. Walk through one and he opens it quietly; tap a door to open it and look in; BREACH at a shut door kicks it in.</li>
       <li><b>Classes:</b> soldiers keep levelling up; classes and new gear unlock once the radio tower is up at the HQ. Each class adds gear or a weapon, a bonus, and a skill (the third button on his card).</li>
       <li><b>Defender:</b> tap his build kit, then a spot: a barricade (heavy cover you shoot over; tap it with him selected to pack it up and move it). Tap the kit again for a wall that blocks sight and shots.</li>
       <li><b>Downed men:</b> park a teammate next to him within a minute to revive him. After that only a medic kit, or carrying him to a medical box, will save him.</li>
@@ -113,10 +115,10 @@
     </div>
     </details>
     <p class="crash" id="crashNote" hidden></p>
-    <button class="go" id="l1Btn">Level 1 · The Radio Tower</button>
+    <button class="go" id="l1Btn">Tutorial · The Radio Tower</button>
     <button class="go" id="l2Btn">Level 2 · Lights Out</button>
     <button class="go" id="continueBtn" hidden>Continue</button>
-    <button class="go alt" id="startBtn">Level 3 · The Data Center</button>
+    <button class="go alt" id="startBtn">Level 3 · The Bio Lab</button>
     <button class="go alt" id="afterBtn">Level 3 · The HQ, After the Battle</button>
     <button class="go alt" id="l4Btn">Level 4 · The Old Radio Tower</button>
     <details class="cps"><summary>Levels 3 and 4 · start at a checkpoint</summary><div id="cpBtns"></div></details><!-- (save.js: startCheckpoint) -->
