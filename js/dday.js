@@ -55,7 +55,7 @@ function ddH(x,y){
 /* ---------- the map's objects (play-area coordinates dx 0..1000, then moved over by DDX) ---------- */
 const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by these
   pill:{x:668,y:280,ang:Math.PI/2,arc:1.3},nests:[{x:868,y:280,ang:2.05,arc:1.25},{x:946,y:280,ang:Math.PI/2,arc:1.25}],
-  heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},sniper:{x:122,y:-590},
+  heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
   mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
 function ddObjects(){
@@ -210,6 +210,14 @@ function buildDDay(){
     ddGibPool(sc);
   }finally{scene=keep;}
 }
+// poured concrete: the marks of the boards it was cast against, rain streaks, stains and a few cracks
+function ddConcTex(){const t=canvasTex(256,256,(q,w,h)=>{const r=rng(31);q.fillStyle='#c9c5b8';q.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=16){q.fillStyle=`rgba(${r()<.5?'70,66,58':'235,232,222'},${.05+r()*.1})`;q.fillRect(0,y,w,16);q.fillStyle='rgba(60,56,50,.35)';q.fillRect(0,y,w,1);}
+    for(let i=0;i<70;i++){const x=r()*w,l=20+r()*90;const g=q.createLinearGradient(0,0,0,l);g.addColorStop(0,`rgba(50,48,42,${.1+r()*.22})`);g.addColorStop(1,'rgba(50,48,42,0)');q.fillStyle=g;q.fillRect(x,r()*h*.5,2+r()*7,l);}
+    for(let i=0;i<26;i++){q.fillStyle=`rgba(${r()<.5?'86,98,60':'92,84,70'},${.1+r()*.16})`;q.beginPath();q.ellipse(r()*w,r()*h,8+r()*26,5+r()*16,r()*3,0,7);q.fill();}
+    q.strokeStyle='rgba(40,38,34,.5)';q.lineWidth=1;for(let i=0;i<7;i++){let x=r()*w,y=r()*h;q.beginPath();q.moveTo(x,y);for(let k=0;k<6;k++){x+=(r()-.5)*26;y+=6+r()*14;q.lineTo(x,y);}q.stroke();}
+    for(let i=0;i<900;i++){q.fillStyle=`rgba(${r()<.5?'40,38,34':'250,248,240'},${.05+r()*.12})`;q.fillRect(r()*w,r()*h,1.4,1.4);}});
+  t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2,1);return t;}
 // everything standing on the land: built into one group, and copied (mirrored) either side for the battle next door
 function ddProps(sc,objsL){
   const G=new T.Group();DD.props=G;sc.add(G);
@@ -217,17 +225,29 @@ function ddProps(sc,objsL){
     conc=M(0xb4b0a4,.95),concD=M(0x8a877c,.95),bag=M(0xb8a372,1),steel=M(0x3a3632,.6,.7),rust=M(0x5a4030,.8,.4),wood=M(0x5d4a34,.95),rockM=new T.MeshStandardMaterial({color:0x857a68,roughness:1,flatShading:true}),olive=M(0x4d5540,.9),dark=M(0x26282a,.7,.5);
   const add=(geo,mat,x,y,z,ry,rx,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;if(rx)m.rotation.x=rx;if(rz)m.rotation.z=rz;m.castShadow=true;m.receiveShadow=true;G.add(m);return m;};
   const box=(o,h,mat,lift=0)=>{const g0=ddH(o.x+o.w/2,o.y+o.h/2);const m=add(new T.BoxGeometry(o.w,h,o.h),mat,o.x+o.w/2,g0+h/2+lift,o.y+o.h/2);(o.meshes=o.meshes||[]).push(m);return m;};
-  const bagG=new T.SphereGeometry(1,7,5),r=rng(66),BK={},bkM=k=>BK[k]||(BK[k]=new T.MeshStandardMaterial({color:0xb4b0a4,roughness:.95,transparent:true}));
+  const bagG=new T.SphereGeometry(1,7,5),r=rng(66),BK={},concT=ddConcTex(),bkM=(k,v=0)=>{const L=BK[k]||(BK[k]=[]);return L[v]||(L[v]=v===2?new T.MeshStandardMaterial({color:0x7a6a48,roughness:1,transparent:true}):v===3?new T.MeshStandardMaterial({color:0x5f8a3a,roughness:1,transparent:true}):new T.MeshStandardMaterial({color:v?0x8f8b80:0xd0ccc0,map:concT,roughness:.95,transparent:true}));};
   for(const o of objsL){
     const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=ddH(cx,cy);
     if(o.kind==='sandbag'){   // two courses of bags
       const horiz=o.w>=o.h,n=Math.round((horiz?o.w:o.h)/8);o.meshes=[];
       for(let c=0;c<2;c++)for(let k=0;k<n-c;k++){const t=(k+.5+c*.5)/n,x=horiz?o.x+t*o.w:cx,y=horiz?cy:o.y+t*o.h,m=add(bagG,bag,x,ddH(x,y)+2.4+c*3.6,y,horiz?0:Math.PI/2);m.scale.set(4.6,2.3,horiz?o.h*.5:o.w*.5);m.rotation.y+=(r()-.5)*.2;o.meshes.push(m);}
     }else if(o.kind==='ddconc'){box(o,24,conc);const cap=add(new T.BoxGeometry(o.w+2,2.4,o.h+3),concD,cx,g0+25,cy);o.meshes.push(cap);}
-    else if(o.kind==='ddpb'){   // a bunker's wall: closed to the roof, the front one with a firing slit; its own material, so the whole bunker can go clear (ddFrame)
+    else if(o.kind==='ddpb'){   // a bunker's wall (their look redone for Version 131, Bryan: "the pillboxes look bad"): board-marked, stained concrete
+      // thick at the foot, the front leaning back to a deep firing slit with a stepped throat, earth banked up the sides; each bunker's
+      // parts share materials of its own, so the whole of it can go clear with one of ours inside (ddFrame)
       if(!o.bk)box(o,15,conc);
-      else if(o.w>o.h){const m=bkM(o.bk);box(o,9,m);box(o,9,m,14);for(const fx of[0,.5,1]){const q=add(new T.BoxGeometry(5,5,o.h),m,o.x+2.5+fx*(o.w-5),g0+11.5,cy);o.meshes.push(q);}}
-      else box(o,23,bkM(o.bk));}
+      else{const m=bkM(o.bk),md=bkM(o.bk,1),me=bkM(o.bk,2);o.meshes=o.meshes||[];const P=(geo,mat,x,y,z,ry,rx,rz)=>{const q=add(geo,mat,x,y,z,ry,rx,rz);o.meshes.push(q);return q;};
+        if(o.w>o.h){   // the front: a battered lower wall, the slit, a heavy lintel, piers at the ends and the middle
+          const sh=new T.Shape();sh.moveTo(-o.h/2-4,0);sh.lineTo(o.h/2+1,0);sh.lineTo(o.h/2+1,10);sh.lineTo(-o.h/2,10);sh.closePath();
+          const low=P(new T.ExtrudeGeometry(sh,{depth:o.w+6,bevelEnabled:false}),m,o.x-3,g0,cy,Math.PI/2);
+          P(new T.BoxGeometry(o.w+6,10,o.h+2),m,cx,g0+19.5,cy);                         // the lintel
+          P(new T.BoxGeometry(o.w+10,1.6,o.h+7),md,cx,g0+14.2,cy+1);                      // its drip edge over the slit
+          P(new T.BoxGeometry(o.w-6,5,1.2),new T.MeshBasicMaterial({color:0x0b0c0c,transparent:true}),cx,g0+12,cy-o.h/2+.4).userData.dark=1;   // the dark of the throat
+          for(const fx of[0,.5,1])P(new T.BoxGeometry(7,5,o.h+2),m,o.x+3.5+fx*(o.w-7),g0+12,cy);
+        }else{P(new T.BoxGeometry(o.w+2,24.5,o.h+4),m,cx,g0+12.2,cy+1);
+          const east=cx>DDX+(o.bk==='p1'?668:o.bk==='p2'?906:90)?1:-1,be=P(new T.SphereGeometry(1,10,7),me,cx+east*9,g0+1,cy+4);be.scale.set(13,15,o.h*.62);   // earth banked against the side
+          const tf=P(new T.SphereGeometry(1,8,6),bkM(o.bk,3),cx+east*10,g0+13,cy+6);tf.scale.set(8,4.5,o.h*.4);}
+      }}
     else if(o.kind==='ddgate'){   // a steel frame gate with cross bars
       o.meshes=[];const n=Math.round(o.w/14);
       for(let k=0;k<=n;k++)o.meshes.push(add(new T.BoxGeometry(1.6,17,1.6),steel,o.x+k*o.w/n,g0+8.5,cy));
@@ -261,9 +281,21 @@ function ddProps(sc,objsL){
     }
   }
   // roofs over the pillbox and the nests (they fade when one of ours is inside: ddFrame), the heavy gun's and the cannon's shields
-  const slab=(dx0,y0,w,d,hh,bk)=>{const x=dx0+DDX+w/2,y=y0+d/2,m=add(new T.BoxGeometry(w+8,4,d+8),new T.MeshStandardMaterial({color:0x7d7c76,roughness:.95,transparent:true}),x,ddH(x,y)+hh,y);m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};m.userData.walls=BK[bk]||null;return m;};
+  // a bunker's roof: a thick slab with a chamfered edge, turf and a few sandbags on top, a vent pipe; all in the bunker's own materials
+  const slab=(dx0,y0,w,d,hh,bk)=>{const x=dx0+DDX+w/2,y=y0+d/2,g0=ddH(x,y),rm=bkM(bk,1),m=add(new T.BoxGeometry(w+12,5,d+12),rm,x,g0+hh,y);
+    add(new T.BoxGeometry(w+6,2.2,d+6),bkM(bk,0),x,g0+hh+3.4,y);
+    const tf=add(new T.SphereGeometry(1,10,6),bkM(bk,3),x-w*.12,g0+hh+4.2,y-d*.1);tf.scale.set(w*.34,2.6,d*.34);
+    for(let k=0;k<5;k++){const b=add(bagG,bkM(bk,2),x-w/2+6+k*8.5,g0+hh+6.4,y+d/2+1);b.scale.set(4.4,2.2,3);}
+    add(new T.CylinderGeometry(1.1,1.1,7,7),bkM(bk,1),x+w*.3,g0+hh+7,y-d*.25);
+    m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};m.userData.walls=BK[bk]||null;return m;};
   DD.roofs=[slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(30,-440,120,76,25,'hv')];
   for(const m of DD.roofs)m.castShadow=true;
+  // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
+  {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.pill,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y),g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;
+      const q=(geo,px,py,pz,rz,ry)=>{const b=new T.Mesh(geo,gm);b.position.set(px,py,pz);if(rz)b.rotation.z=rz;if(ry)b.rotation.y=ry;b.castShadow=true;g.add(b);};
+      q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);
+      for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
+      G.add(g);}}
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored
   for(const s of[-1,1]){const c=G.clone(true);c.scale.x=-1;c.position.x=s<0?0:2*(DDB.x1-DDB.x0);sc.add(c);}
@@ -295,7 +327,7 @@ function ddFrame(rdt,now){
   if(DD.foam){DD.foam.position.z=702+Math.sin(now*.7)*5;DD.foam.material.opacity=.55+.3*Math.sin(now*.7+1.2);DD.foam.material.map.offset.x=now*.004;}
   if(Math.abs(DD.day-DD.dayShown)>.004){DD.dayShown+=clamp(DD.day-DD.dayShown,-rdt*.05,rdt*.05);ddSky(DD.dayShown);}
   if(DD.dome)DD.dome.position.set(camera.position.x,0,camera.position.z);
-  for(const m of DD.roofs||[]){const b=m.userData.b,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1);m.material.opacity+=((inside?.18:1)-m.material.opacity)*Math.min(1,rdt*8);m.material.depthWrite=m.material.opacity>.95;const w=m.userData.walls;if(w){w.opacity=m.material.opacity;w.depthWrite=m.material.depthWrite;}}   // (a bunker with one of ours inside goes clear, walls and roof: Bryan, "the wall goes transparent when they get in there")
+  for(const m of DD.roofs||[]){const b=m.userData.b,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1);m.material.opacity+=((inside?.18:1)-m.material.opacity)*Math.min(1,rdt*8);m.material.depthWrite=m.material.opacity>.95;const w=m.userData.walls;if(w)for(const q of w)if(q&&q!==m.material){q.opacity=m.material.opacity;q.depthWrite=m.material.depthWrite;}}   // (a bunker with one of ours inside goes clear, walls and roof: Bryan, "the wall goes transparent when they get in there")
   const dt=Math.min(.05,rdt)*(typeof timeScale==='function'&&state==='play'?timeScale():1);
   for(const g of DD.gibs){if(!g.on)continue;g.t+=dt;const p=g.m.position;
     if(g.v){g.v[1]-=260*dt;p.x+=g.v[0]*dt;p.y+=g.v[1]*dt;p.z+=g.v[2]*dt;g.m.rotation.x+=g.w[0]*dt;g.m.rotation.y+=g.w[1]*dt;g.m.rotation.z+=g.w[2]*dt;

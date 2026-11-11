@@ -67,9 +67,15 @@ function toS(x,y,h=0){_v.set(x,groundH?h+groundH(x,y):h,y).project(camera);if(_v
 function toW(sx,sy){
   _o.setFromMatrixPosition(camera.matrixWorld);
   _d.set(sx/cw*2-1,-(sy/ch)*2+1,0.5).unproject(camera).sub(_o).normalize();
-  if(_d.y>-1e-4)return[camT.x,camT.z];
+  if(!groundH&&_d.y>-1e-4)return[camT.x,camT.z];
   let t=-_o.y/_d.y;
-  if(groundH)for(let k=0;k<7;k++){const h=groundH(_o.x+_d.x*t,_o.z+_d.z*t);t=(h-_o.y)/_d.y;}   // (a hilly map: where the ray meets the ground drawn there, dday.js)
+  if(groundH){   // (a hilly map: the first place the ray goes under the ground drawn there, dday.js. Walked along and then halved: a
+    // low camera's ray skims the beach and meets a cliff behind it, and the quick way, jumping to each height's plane, flew off)
+    const under=q=>_o.y+_d.y*q<=groundH(_o.x+_d.x*q,_o.z+_d.z*q);let a=0,b=-1;
+    for(let q=6;q<5200;q+=q<900?6:18){if(under(q)){b=q;break;}a=q;}
+    if(b<0)return[camT.x,camT.z];
+    for(let k=0;k<9;k++){const m=(a+b)/2;if(under(m))b=m;else a=m;}t=b;
+  }
   return[_o.x+_d.x*t,_o.z+_d.z*t];
 }
 // Where a tap points. On open ground that's just the ground point. If the tap lands on the side or top of a wall,

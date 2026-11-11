@@ -188,7 +188,7 @@ function drawLayers(now){
   const k=(simT-sweepT)/.9;if(k>=0&&k<1){gPath(sensorC.x,sensorC.y,SENSOR.range*k);ox.strokeStyle=`rgba(120,230,170,${(.35*(1-k)).toFixed(3)})`;ox.lineWidth=1.5;ox.stroke();}
   for(const b of blips){toSBack=false;const[sx,sy]=toS(b.x,b.y,4);if(toSBack)continue;const a=1-(simT-b.t)/SENSOR.blip;ox.fillStyle=`rgba(255,90,70,${(.8*a).toFixed(3)})`;ox.beginPath();ox.arc(sx,sy,3.5+zoom,0,TAU);ox.fill();}
   // an incoming enemy grenade: where it'll land
-  for(const n of nades){if(!n.enemy)continue;const p=(Math.sin(now*14)+1)/2;gPath(n.x1,n.y1,ENADE.r);ox.fillStyle=`rgba(255,40,30,${(.12+p*.12).toFixed(3)})`;ox.fill();ox.strokeStyle='rgba(255,70,50,.9)';ox.lineWidth=2;ox.setLineDash([6,4]);ox.stroke();ox.setLineDash([]);const[lx,ly]=toS(n.x1,n.y1);label(MAPID==='dd'?'INCOMING':'GRENADE',lx,ly,'#ff5040',11,700);}
+  for(const n of nades){if(!n.enemy)continue;const p=(Math.sin(now*14)+1)/2;gPath(n.x1,n.y1,ENADE.r);ox.fillStyle=`rgba(255,40,30,${((.12+p*.12)*(MAPID==='dd'?.3:1)).toFixed(3)})`;ox.fill();ox.strokeStyle='rgba(255,70,50,.9)';ox.lineWidth=2;ox.setLineDash([6,4]);ox.stroke();ox.setLineDash([]);const[lx,ly]=toS(n.x1,n.y1);label(MAPID==='dd'?'INCOMING':'GRENADE',lx,ly,'#ff5040',11,700);}
   // the ones who gave up
   for(const e of enemies){if(!e.surr||e.dead||offFloor(e)||!e.vis)continue;const[sx,sy]=toS(e.x,e.y,22);label(e.tied?'TIED':zipFor(e)?'ZIP-TYING':'SURRENDERED',sx,sy,'#ffcf4a',9,700);}
   for(const z of zipGos)if(!z.u.path.length){const u=z.u;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+z.prog/ZIP_T*TAU);ox.strokeStyle=C.good;ox.lineWidth=2.4;ox.stroke();}

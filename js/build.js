@@ -152,7 +152,7 @@ function fortMesh(o){
       for(const z of[-1,1])for(const yy of[H*.33,H*.66])box(cw-.4,.25,.2,mt.mesh,x,yy,z*(th/2+.05));   // the wire mesh round each one
       for(const z of[-1,1])box(.3,H,.2,mt.mesh,x-cw/2+.4,H/2,z*(th/2+.05));}
   }
-  g.position.set(o.x+o.w/2,0,o.y+o.h/2);if(v)g.rotation.y=Math.PI/2;
+  g.position.set(o.x+o.w/2,typeof gndH==='function'?gndH(o.x+o.w/2,o.y+o.h/2):0,o.y+o.h/2);if(v)g.rotation.y=Math.PI/2;   // (on the ground where it has height: the D-Day map)
   return g;
 }
 

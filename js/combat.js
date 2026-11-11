@@ -593,6 +593,7 @@ function fireRPG(u,tx,ty){
   if(u.spec!=='rpg'||!u.specN){banner(`${u.name} has no rockets left.`,1600);return false;}
   const d=hyp(tx-u.x,ty-u.y);if(d<PRPG.min){bubble(u,'Too close for a rocket');return false;}
   if(d>PRPG.range){bubble(u,'Out of range from here');return false;}
+  if(MAPID==='dd'&&d>240){const k=(d-240)*.17,a=Math.random()*TAU,r=Math.sqrt(Math.random())*k;tx+=Math.cos(a)*r;ty+=Math.sin(a)*r;}   // (D-Day: the Bazooka reaches a long way, but past 24 m it strays, more the further it goes: Bryan)
   const f=throwFrom(u,tx,ty,'rpg');if(!f){bubble(u,'Something’s in the way');return false;}
   u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT+PRPG.aim+.5;leanOut(u,{fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y});
   u.rpgAim={x:tx,y:ty,f,at:simT+PRPG.aim,th:rocketAim(tx,ty)};callout(u,'Rocket!',C.warn);return true;

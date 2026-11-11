@@ -200,3 +200,31 @@ walls to the roof, a firing slit along the front, open at the back. The side wal
 men inside are seen and hit only through the slit or the entry. With one of ours inside, the walls and roof of that bunker
 go clear together (`ddFrame`, the roof's `userData.walls`). The camera sits a little higher over the squad so the bar
 doesn't cover them (`DD_CAM` look 30, shift .09).
+
+## Bryan's fourth round (Version 131)
+
+"1) there needs to be a fixed gun up that first hill too. 2) unclear on how to cut fences. An RPG should have much longer
+range but less accuracy from far away. So shooting one from the water to the first gun nest will be inaccurate. 3) there
+should be a new unit that builds makeshift defenses under fire. Also, some ai units will build defenses when storming the
+beach. 4) the pillboxes look bad. They can be designed better."
+
+Built:
+- A machine gun nest part way up the draw (`DD_SPOT.drawMG`, behind the sandbags at its second bend, firing down it), and
+  a barrel on a tripod drawn at every gun's place.
+- The wire: tap it, or the Blow wire button that shows in the squad's bar while the squad is on the beach near it: the
+  nearest man with a grenade walks up and throws at that stretch (a rocket if nobody has a grenade); one blast opens about
+  15 m. The label on it says so. Climbing still works and still cuts.
+- The Bazooka reaches 90 m here (38 m elsewhere), and past 24 m its rocket strays, up to 17 cm for every metre beyond: from
+  the waterline to the first bunker it lands 1.5 to 3.5 m off; from 20 m, dead on.
+- The Engineer (`DD_ROLES.eng`: build.js's kit, three barricades; heavier armour): Barricade in the squad's bar, then tap
+  where: he walks there and puts up heavy cover in 2.5 s. For now Bravo starts with one in its sharpshooter's place
+  (`DD_CORE`), so he can be tried: Bryan to say whether he's a fifth man or takes someone's place.
+- About one in six of the other troops is an engineer too: pinned on the sand, he digs in (a barricade in front of him, at
+  most seven on the beach) and the others use it.
+- The bunkers redrawn: board-marked, stained concrete, a front wall that leans back to a deep firing slit under a heavy
+  lintel, piers, earth banked up the sides with turf, a thick roof with sandbags and a vent, the gun's barrel in the slit.
+  They still go clear, all of it, with one of ours inside.
+
+Found and fixed: with the low camera a tap near rising ground went to the wrong place (the wire tap landed 160 m away): the
+tap's ray is now walked along the ground and halved (`toW` in scene.js). Taps near the cliffs in Versions 128 to 130 will
+have been unreliable.
