@@ -200,6 +200,11 @@ function figInk(){   // an ink line round him: the same mesh drawn again, its ba
   if(FIG_INK)return FIG_INK;const m=new T.MeshBasicMaterial({color:0x17130f,side:T.BackSide,skinning:true});
   m.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  transformed+=normalize(normal)*.2;');};m.customProgramCacheKey=()=>'figink';return FIG_INK=m;
 }
+let FIG_INK_HOT=null;
+function figInkHot(){   // the same line in orange and thicker: the man who's doing the job just ordered (D-Day's squad bar)
+  if(FIG_INK_HOT)return FIG_INK_HOT;const m=new T.MeshBasicMaterial({color:0xff5a00,side:T.BackSide,skinning:true,fog:false});
+  m.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  transformed+=normalize(normal)*1.15;');};m.customProgramCacheKey=()=>'figinkhot';return FIG_INK_HOT=m;
+}
 function figGeometry(key){
   let G=FIG_GEO.get(key);if(G)return G;
   const parts=figParts(key),stocky=key.split('|')[2].includes('S');let nv=0,ni=0;
