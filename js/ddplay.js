@@ -113,7 +113,7 @@ function startDDay(){
   enterDDay();state='play';endAt=0;
   bigText('Chapter 1: D\u2011Day','chapter');setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},5000);hud();
 }
-function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();}
+function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();}
 const ddBusy=()=>!!dd&&!dd.land.done;
 /* ---------- the camera ----------
    Since Version 132 it stays where the player puts it (Bryan: "Maybe the camera shouldnt move unless dragged by the user. But
@@ -122,15 +122,25 @@ const ddBusy=()=>!!dd&&!dd.land.done;
    boat, just behind the last man's head, looking over the others at the beach (Bryan: "it should be behind the last units
    head inside"); as they land it swings up and out to the usual view. */
 function ddTilt(z){const z0=zoom;zoom=z;const t=Math.max(0,basePitch()-DD_CAM.pitch);zoom=z0;return t;}
+// the ride's look-around: a finger (or the mouse held) dragged sideways on the map turns the view, up to about 60 degrees either way
+function ddLookBind(){
+  if(ddLookBind.done)return;ddLookBind.done=1;const last={};
+  const on=()=>!!dd&&state==='play'&&!dd.land.done,inMap=ev=>ev.target&&ev.target.closest&&!!ev.target.closest('#map,#mapWrap,canvas');
+  addEventListener('pointerdown',ev=>{if(on()&&inMap(ev))last[ev.pointerId]=ev.clientX;},true);
+  addEventListener('pointermove',ev=>{if(!on()||last[ev.pointerId]==null)return;const dx=ev.clientX-last[ev.pointerId];last[ev.pointerId]=ev.clientX;
+    const K=dd.land.look||(dd.land.look={y:0,to:0});K.to=clamp(K.to-dx*2/Math.max(320,innerWidth),-1.05,1.05);},true);
+  for(const n of['pointerup','pointercancel'])addEventListener(n,ev=>{delete last[ev.pointerId];},true);
+}
 function ddCam(rdt){
   if(!dd||state!=='play')return;rdt=rdt>0?Math.min(rdt,.1):0;
   const C=dd.cam||(dd.cam={k:1,p:null,q:null});
   if(!dd.land.done){const b=dd.boats.find(q=>q.own);if(!b)return;
     // (a drag turns the view from this fixed spot: Bryan, "The camera can move around from this fixed spot so the player can look around")
-    const K=dd.land.look||(dd.land.look={y:0,p:0}),ax=b.x,az=b.y-40;
-    if(K.set){K.y=clamp(K.y+(camT.x-K.ax)*.007,-1.15,1.15);K.p=clamp(K.p-(camT.z-K.az)*.007,-.3,.4);}
-    camT.x=ax;camT.z=az;K.ax=ax;K.az=az;K.set=1;   // (also where the sound is heard from)
-    const nar=camera.aspect<1?1:0,by=b.m.position.y,t=simT,hit=dd.land.jolt||0,py=-.13+K.p+Math.sin(t*1.1)*.006,yw=K.y+Math.sin(t*.5)*.015;
+    // Since Version 136 it only turns left and right, read straight from the finger (ddLookBind) and eased: reading it from how far the
+    // map's own drag had moved the view stuck at that drag's limits and jerked (Bryan: "It gets stuck and moves very clunky, we can limit so the player can only see left to right")
+    const K=dd.land.look||(dd.land.look={y:0,to:0});K.y+=(K.to-K.y)*Math.min(1,rdt*10);
+    camT.x=b.x;camT.z=b.y-40;if(typeof glide!=='undefined'&&glide)glide.vx=glide.vz=0;   // (also where the sound is heard from)
+    const nar=camera.aspect<1?1:0,by=b.m.position.y,t=simT,hit=(dd.land.jolt||0)*.5,py=-.13+Math.sin(t*1.1)*.006,yw=K.y+Math.sin(t*.5)*.012;
     if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}
     camera.position.set(b.x+Math.sin(t*1.3)*.5+(Math.random()-.5)*hit,by+47+nar*4+Math.sin(t*1.7+1)*.7+(Math.random()-.5)*hit,b.y+68+nar*8);
     camera.lookAt(camera.position.x+Math.sin(yw)*Math.cos(py)*300,camera.position.y+Math.sin(py)*300,camera.position.z-Math.cos(yw)*Math.cos(py)*300);camera.rotateZ(Math.sin(t*1.3)*.02);camera.updateMatrixWorld();
@@ -201,7 +211,10 @@ function ddRideFx(dt){
     const src=[S.leftMG,S.pill,S.nests[0],S.hillMG][(Math.random()*4)|0],bs=dd.boats.filter(q=>q.st!=='sunk'),tb=Math.random()<.45?b:bs[(Math.random()*bs.length)|0];
     const hit=Math.random()<.22,tx=tb.x+(Math.random()-.5)*(hit?24:170),ty=hit?tb.y-52-Math.random()*8:tb.y-Math.random()*260+70;
     tracers.push({x1:src.x+DDX,y1:src.y,x2:tx,y2:ty,t:0,col:'255,231,163'});
-    if(hit){sparks.push({x:tx,y:ty,t:0});if(tb===b){L.jolt=Math.max(L.jolt||0,.25);if(typeof playSample==='function')playSample('hit_metal',tx,ty,.9,.8+Math.random()*.5);}}
+    if(hit){   // on steel: a spark where it strikes (the ramp, the sides, now and then a helmet) and the crack and whine of a ricochet
+      const men=tb.men.filter(u=>u.inBoat&&!u.dead),hm=men.length&&Math.random()<.3?men[(Math.random()*men.length)|0]:null,side=Math.random()<.5;
+      const sx=hm?hm.x:side?tb.x+(Math.random()<.5?-17:17):tb.x+(Math.random()-.5)*28,sz=hm?hm.y:side?tb.y-40+Math.random()*70:tb.y-53,sh=hm?(hm.elev||0)+27:tb.m.position.y+9+Math.random()*8;
+      ddSpark(sx,sh,sz,hm?.8:1);if(tb===b){L.jolt=Math.max(L.jolt||0,.25);if(typeof sfxRicochet==='function')sfxRicochet(sx,sz,!!hm);}}
     else if(ty>706)ddSplash(tx,ty,.35+Math.random()*.25);
     if(Math.random()<.5&&typeof sfxShot==='function')sfxShot({x:b.x+(src.x+DDX-b.x)*.3,y:b.y-170-far*120,side:'E',gunner:true,weapon:'rifle',thudT:0});
     if(Math.random()<.16&&typeof playSample==='function')playSample('hit_ground',b.x+(Math.random()-.5)*60,b.y-20,.7,.8+Math.random()*.5);

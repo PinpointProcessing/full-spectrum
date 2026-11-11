@@ -221,7 +221,15 @@ function sfxLevelUp(promoted){
 const MAT_METAL=/container|truck|tank|booth|armor|rack|liftwall|liftdoor|steeldoor|cabinet|bars|terminal|copier|pylon|gatehouse/,MAT_WOOD=/crate|pallet|desk|counter|sofa|plank|wood|lab/;
 function matAt(x,y){let o=null,bd=14;for(const q of objs){if(q.kind==='void')continue;const dx=Math.max(q.x-x,0,x-(q.x+q.w)),dy=Math.max(q.y-y,0,y-(q.y+q.h)),d=hyp(dx,dy);if(d<bd){bd=d;o=q;}}
   return !o?'ground':MAT_METAL.test(o.kind)?'metal':MAT_WOOD.test(o.kind)?'wood':'ground';}
-function sfxImpact(x,y,mat){playSample('hit_'+(mat||matAt(x,y)),x,y,.55,varied());}
+// a bullet off steel (D-Day: the landing craft's hull, a helmet, the beach obstacles): a hard crack, a dull knock, and often the falling whine
+// of it going off somewhere. Made here: the recorded metal hit, played fast and at a different pitch each time, rang like a xylophone (Bryan)
+function sfxRicochet(x,y,helmet){
+  const out=voice(x,y,helmet?.5:.62,.5);if(!out)return;const t=AC.currentTime;
+  noiseHit(out,t,.022,'highpass',3200+Math.random()*1500,0,.95,.0006);                      // the crack
+  noiseHit(out,t+.002,helmet?.05:.085,'bandpass',helmet?1500:620+Math.random()*260,helmet?2.2:1.3,.75,.001);   // the knock of the plate
+  if(Math.random()<(helmet?.85:.55)){const f=2300+Math.random()*1900;toneHit(out,t+.012,.2+Math.random()*.22,'sawtooth',f,f*(.28+Math.random()*.16),.045,.006);noiseHit(out,t+.012,.24,'bandpass',f*.8,7,.2,.006,f*.3);}   // the whine
+}
+function sfxImpact(x,y,mat){const m=mat||matAt(x,y);if(MAPID==='dd'&&m==='metal'){sfxRicochet(x,y);if(typeof ddSpark==='function')ddSpark(x,gndH(x,y)+7+Math.random()*6,y,.9);return;}playSample('hit_'+m,x,y,.55,varied());}
 function sfxFlesh(x,y){playSample('flesh',x,y,.45,varied(.85,1));}
 function sfxGrunt(u,big){if(u&&!u.dog)playSample(big?'grunt_down':'grunt',u.x,u.y,big?.8:.6,varied(u.side==='E'?.86:.96,u.side==='E'?.96:1.06));}
 // pain and fear (Bryan: they should be screaming, not a voice saying "ow, my leg"): recorded yells (HaelDB, CC0), never a voice line.

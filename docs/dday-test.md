@@ -260,3 +260,13 @@ Bryan: "Let's make a fifth slot for engineer". Each squad is five: medic, gunner
 ## Version 135
 
 Bryan: "Get rid of the level name on top, it's just in the way. Maybe show it for the first five seconds. Maybe flash it in front of the screen. Chapter 1: D-Day". No objective box on this map (`ddObjUI`, hud.js); "Chapter 1: D-Day" in the middle of the screen for 5 s at the start (`bigText` with the class `chapter`), then the "Thirty seconds" banner.
+
+## Version 136
+
+Bryan: "The camera is really bad in the beginning. It gets stuck and moves very clunky, we can limit so the player can only see left to right. Also, the sounds of bullets hitting metal and helmets sound like a xylophone not bullet ricochet. The bullets should make a spark when hitting metal or a helmet."
+
+- The ride's look-around turns left and right only, about 60 degrees each way, read straight from the finger (`ddLookBind`, `dd.land.look.to`) and eased. Version 134 read it from how far the map's own drag had moved the view, which stuck at that drag's limits.
+- `sfxRicochet` (audio.js): a crack, the plate's knock and often a falling whine, made in code. On this map `sfxImpact` on metal uses it too. The recorded metal hit at random pitches was the xylophone.
+- `ddSpark` (dday.js): a flash and five sparks in 3D where a round strikes steel: the boats' ramps and sides and now and then a helmet on the ride in, steel obstacles and wrecks in the fight. Helmet hits in the fight itself have no spark yet.
+
+To come, with Bryan's script (he'll write it; the ride may get longer for it): "seeing a player in front get hit by a sniper, he takes his helmet off and looks at it and then gets sniped in the head."

@@ -341,6 +341,15 @@ function ddSplash(x,y,s=1){
   if(!q){if(P.length>=22)return;const m=new T.Mesh(new T.ConeGeometry(1,1,7,1,true),new T.MeshBasicMaterial({color:0xeef3f2,transparent:true,opacity:.8,depthWrite:false,side:T.DoubleSide,fog:false}));m.geometry.translate(0,.5,0);DD.scene.add(m);q={m,on:false};P.push(q);}
   Object.assign(q,{on:true,t:0,s,x,y});q.m.visible=true;q.m.position.set(x,Math.max(.3,ddH(x,y)),y);
 }
+// a bullet on steel: a white-hot flash and a few sparks thrown off (the boats' hulls and helmets on the ride in; steel obstacles and wrecks in the fight)
+function ddSpark(x,h,y,k=1){
+  if(!DD)return;const P=DD.spk||(DD.spk=[]);let q=P.find(o=>!o.on);
+  if(!q){if(P.length>=16)return;const g=new T.Group(),fm=new T.MeshBasicMaterial({color:0xffeeb0,transparent:true,fog:false,depthWrite:false}),f=new T.Mesh(new T.OctahedronGeometry(1,0),fm);g.add(f);
+    const bits=[];for(let i=0;i<5;i++){const m=new T.Mesh(new T.BoxGeometry(.32,.32,2.6),new T.MeshBasicMaterial({color:0xffb040,transparent:true,fog:false,depthWrite:false}));g.add(m);bits.push({m,v:[0,0,0]});}
+    DD.scene.add(g);q={g,f,bits,on:false};P.push(q);}
+  q.on=true;q.t=0;q.k=k;q.g.visible=true;q.g.position.set(x,h,y);
+  for(const b of q.bits){const a=Math.random()*TAU,s=30+Math.random()*60;b.v=[Math.cos(a)*s,25+Math.random()*70,Math.sin(a)*s*.6+18];b.m.position.set(0,0,0);}
+}
 // every frame (from render): the sea, the boats, the bits, the day going by, the roofs over our men
 function ddFrame(rdt,now){
   if(!DD)return;
@@ -356,6 +365,9 @@ function ddFrame(rdt,now){
     if(g.t>26){g.on=false;g.m.visible=false;}}
   for(const q of DD.spl||[]){if(!q.on)continue;q.t+=dt;const D=.5+q.s*.45,k=q.t/D;if(k>=1){q.on=false;q.m.visible=false;continue;}
     const up=Math.sin(Math.min(1,k*1.5)*Math.PI/2)*(1-k*k*.6);q.m.scale.set(q.s*(3+k*7),Math.max(.01,q.s*26*up),q.s*(3+k*7));q.m.material.opacity=.85*(1-k);}
+  for(const q of DD.spk||[]){if(!q.on)continue;q.t+=dt;const k=q.t/.32;if(k>=1){q.on=false;q.g.visible=false;continue;}
+    const fl=Math.max(0,1-q.t/.07);q.f.scale.setScalar(.01+q.k*2.3*fl);q.f.rotation.z=q.t*40;
+    for(const b of q.bits){b.v[1]-=220*dt;b.m.position.x+=b.v[0]*dt;b.m.position.y+=b.v[1]*dt;b.m.position.z+=b.v[2]*dt;b.m.lookAt(q.g.position.x+b.m.position.x+b.v[0],q.g.position.y+b.m.position.y+b.v[1],q.g.position.z+b.m.position.z+b.v[2]);b.m.material.opacity=1-k;}}
   if(typeof ddLookFrame==='function')ddLookFrame(dt,now);
   if(typeof ddCam==='function')ddCam(rdt);   // (ddplay.js: the camera keeps with the squad)
 }
