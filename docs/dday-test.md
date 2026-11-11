@@ -283,3 +283,7 @@ Bryan: "The player doesn't need to destroy the barracks, just control it to win.
 - The nest up the draw has bags on three sides and its label from the start. (My reading of "the hill up": the way up. If he meant the right hill's top, that's the bunker there.)
 - The landing: "Move! Get off the beach!!" in a bubble over the first man onto the sand. A2 is killed in the boat at 12 s (a replacement comes for him). The ride is seen through the last man's eyes (`ddCam`), left and right to look; the view leaves him as he goes off the ramp.
 - The bot won in 215 s with 4 lost.
+
+## Version 138
+
+Bryan: "get rid of the engineer for this round. He unlocks in the next level. Only 4 per squad." Four a squad again (medic, gunner, sharpshooter, demolition); `DD_ENG` false keeps the Engineer, his barricades and the other troops' digging in out until the next level.

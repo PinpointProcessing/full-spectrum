@@ -22,7 +22,8 @@ const DD_ROLES={
   eng:{ab:'ENGINEER',n:'Engineer',cls:'defender',weapon:'rifle',spec:'build',specN:3}};   // (Version 131, Bryan: "a new unit that builds makeshift defenses under fire": build.js's kit, a barricade where you tap)
 // who's in each squad to start, and so which types a replacement fills first: Bravo has the engineer in its sharpshooter's place for
 // now, so he can be tried (a question for Bryan: a fifth man, or in someone's place)
-const DD_CORE={A:['medic','gunner','sharp','demo','eng'],B:['medic','gunner','sharp','demo','eng']};   // (five a squad since Version 133: Bryan, "Let's make a fifth slot for engineer")
+const DD_ENG=false;   // (the Engineer unlocks in the next level: Bryan, after Version 137, "get rid of the engineer for this round... Only 4 per squad"; his role, kit and the other troops' digging in stay in the code behind this)
+const DD_CORE={A:['medic','gunner','sharp','demo'],B:['medic','gunner','sharp','demo']};   // (five a squad since Version 133: Bryan, "Let's make a fifth slot for engineer")
 const DD_ORDER=['medic','gunner','sharp','demo'];
 const DD_TRAITS=[{n:'Steady',nerveK:.75},{n:'Sharp-eyed',aimK:.06},{n:'Quick',spdK:1.1},{n:'Tough',dmgIn:.88},{n:'Green',aimK:-.04,nerveK:1.2},{n:'Hothead',bold:1.6},{n:'Careful',bold:.6},{n:'Old hand',aimK:.03,nerveK:.85}];
 const DD_NAMES=['Kelly','Murphy','Novak','Rossi','Schmidt','Carter','Dalton','Greer','Hobbs','Jensen','Kowal','Larkin','Mercer','Nolan','Ortiz','Pruitt','Quinn','Riley','Sawyer','Tanner','Voss','Walsh','Yates','Zielinski','Baker','Cobb','Dunn','Ellis','Finch','Gallo','Hart','Irwin','Joyce','Keane','Lowe','Mack','Nash','Owens','Pike','Reed','Stone','Tully','Vance','Webb','Abbott','Boone','Cross','Drake'];
@@ -36,7 +37,7 @@ let dd=null;
 function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.set(DD_FIG*1.06,DD_FIG*.9,DD_FIG*1.06);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.14;U.uGlow.value=u.side==='P'?.5:0;}});}
 const ddAlly=u=>u.side==='P'&&!u.dead&&!u.downed&&!u.away;
 const ddSq=t=>players.filter(p=>p.team===t&&!p.dead);
-function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_CORE[team].filter(r=>!have.includes(r)),all=Object.keys(DD_ROLES);return miss.length?miss[0]:all[(Math.random()*all.length)|0];}
+function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_CORE[team].filter(r=>!have.includes(r)),all=Object.keys(DD_ROLES).filter(r=>DD_ENG||r!=='eng');return miss.length?miss[0]:all[(Math.random()*all.length)|0];}
 function ddName(){const used=new Set(units.map(u=>u.name));for(let k=0;k<40;k++){const n=DD_NAMES[(Math.random()*DD_NAMES.length)|0];if(!used.has(n))return n;}return DD_NAMES[(Math.random()*DD_NAMES.length)|0];}
 function ddNewMan(team,id,role,x,y){
   const R=DD_ROLES[role],tr=DD_TRAITS[(Math.random()*DD_TRAITS.length)|0],u=mk('P',team,id,ddName(),x,y,-Math.PI/2);
@@ -46,7 +47,7 @@ function ddNewMan(team,id,role,x,y){
 }
 function ddNpc(x,y){
   const u=mk('P','N','N'+(++dd.nid),'GI',x,y,-Math.PI/2);
-  Object.assign(u,{npc:true,freed:true,weapon:'rifle',grenade:0,spec:null,specN:0,aimK:-.1,lane:clamp(x+(Math.random()-.5)*120,DDX+40,DDX+DDW-40),hopT:simT+Math.random()*2,nerveK:1.15,eng:Math.random()<.17});
+  Object.assign(u,{npc:true,freed:true,weapon:'rifle',grenade:0,spec:null,specN:0,aimK:-.1,lane:clamp(x+(Math.random()-.5)*120,DDX+40,DDX+DDW-40),hopT:simT+Math.random()*2,nerveK:1.15,eng:DD_ENG&&Math.random()<.17});
   u.cloth=DD_US;makeSoldier(u);ddDayFig(u);u.m.ring.material.opacity=.35;dd.npcs.push(u);dd.npcN++;return u;
 }
 function ddFoe(tag,dx,y,ex){
