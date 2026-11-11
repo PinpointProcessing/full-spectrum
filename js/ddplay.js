@@ -56,7 +56,7 @@ function ddFoe(tag,dx,y,ex){
 function ddGunner(tag,s,name){const u=ddFoe(tag,s.x,s.y-6,{name:name||'Machine gunner',gunner:true,post:true,ang:s.ang});u.onGun={x:s.x+DDX,y:s.y,ang:s.ang,arc:s.arc};return u;}
 function spawnDDay(){
   const S=DD_SPOT,Z=(x0,y0,x1,y1)=>({x0:x0+DDX,x1:x1+DDX,y0,y1});
-  ddGunner('pill',S.pill);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddFoe('wall',60,282,{post:true});ddFoe('wall',130,214,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',215,290,{post:true});ddFoe('pill',250,286,{post:true,nade:1});
+  ddGunner('pill',S.pill);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddGunner('left',S.leftMG);ddFoe('left',316,262,{post:true});ddFoe('left',246,282,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',150,290,{post:true});ddFoe('left',400,268,{post:true,nade:1});
   for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',790,262,{post:true});ddFoe('draw',800,-52,{zone:Z(752,-95,1000,40)});
   ddFoe('draw',484,178,{post:true});ddFoe('draw',520,178,{post:true});ddFoe('draw',600,60,{zone:Z(480,0,660,130)});ddFoe('draw',470,-20,{zone:Z(400,-60,640,60),nade:1});ddFoe('draw',556,178,{post:true,nade:1});
   ddGunner('hill',S.hillMG);ddFoe('hill',856,136,{post:true});ddFoe('art',780,100,{post:true,name:'Gun crew'});ddFoe('art',832,100,{post:true,name:'Gun crew'});
@@ -87,7 +87,8 @@ function enterDDay(){
   spawnDDay();
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   mission.t0=simT;sel=[];cardGroup=[];
-  VB={x0:DDX,z0:-720,x1:DDX+DDW,z1:820};FIT.w=DDW+40;FIT.h=1560;fitDist();
+  VB={x0:DDX,z0:-720,x1:DDX+DDW,z1:1700};   // (z1 out at sea for the ride in; ddAshore brings it back)
+  FIT.w=DDW+40;FIT.h=1560;fitDist();
   MAXZ=11;camShift=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:B.x+DDX,z:640};clampCam();updateCamera();
   document.body.classList.add('dd');ddSky(0);DD.dayShown=0;
   // the boats: the squads' own, and the first wave of the others either side
@@ -125,10 +126,14 @@ function ddCam(rdt){
   if(!dd||state!=='play')return;rdt=rdt>0?Math.min(rdt,.1):0;
   const C=dd.cam||(dd.cam={k:1,p:null,q:null});
   if(!dd.land.done){const b=dd.boats.find(q=>q.own);if(!b)return;
-    camT.x=b.x;camT.z=b.y-40;   // (where the sound is heard from)
-    const nar=camera.aspect<1?1:0,by=b.m.position.y+nar*6,t=simT,hit=dd.land.jolt||0;   // (a narrow screen: a little higher and further back, so the beach shows over the helmets)
-    camera.position.set(b.x+2.5+Math.sin(t*1.3)*.5+(Math.random()-.5)*hit,by+33+Math.sin(t*1.7+1)*.7+(Math.random()-.5)*hit,b.y+37+nar*12);
-    camera.lookAt(b.x+Math.sin(t*.5)*6,by+18+Math.sin(t*1.1)*1.2,b.y-240);camera.rotateZ(Math.sin(t*1.3)*.025);camera.updateMatrixWorld();
+    // (a drag turns the view from this fixed spot: Bryan, "The camera can move around from this fixed spot so the player can look around")
+    const K=dd.land.look||(dd.land.look={y:0,p:0}),ax=b.x,az=b.y-40;
+    if(K.set){K.y=clamp(K.y+(camT.x-K.ax)*.007,-1.15,1.15);K.p=clamp(K.p-(camT.z-K.az)*.007,-.3,.4);}
+    camT.x=ax;camT.z=az;K.ax=ax;K.az=az;K.set=1;   // (also where the sound is heard from)
+    const nar=camera.aspect<1?1:0,by=b.m.position.y,t=simT,hit=dd.land.jolt||0,py=-.13+K.p+Math.sin(t*1.1)*.006,yw=K.y+Math.sin(t*.5)*.015;
+    if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}
+    camera.position.set(b.x+Math.sin(t*1.3)*.5+(Math.random()-.5)*hit,by+47+nar*4+Math.sin(t*1.7+1)*.7+(Math.random()-.5)*hit,b.y+68+nar*8);
+    camera.lookAt(camera.position.x+Math.sin(yw)*Math.cos(py)*300,camera.position.y+Math.sin(py)*300,camera.position.z-Math.cos(yw)*Math.cos(py)*300);camera.rotateZ(Math.sin(t*1.3)*.02);camera.updateMatrixWorld();
     dd.land.jolt=Math.max(0,hit-rdt*3);C.k=0;C.p=camera.position.clone();C.q=camera.quaternion.clone();return;}
   if(C.k<1&&C.p){C.k=Math.min(1,C.k+rdt/1.7);const e=C.k*C.k*(3-2*C.k),to=camera.quaternion.clone();   // off the boat: up and out to the usual view
     camera.position.lerpVectors(C.p,camera.position,e);camera.quaternion.copy(C.q).slerp(to,e);camera.updateMatrixWorld();camShift=DD_CAM.shift*e;}
@@ -193,7 +198,7 @@ function ddRideFx(dt){
   const L=dd.land,b=dd.boats.find(q=>q.own);if(!b)return;L.t+=dt;const S=DD_SPOT,far=b.st==='in'?1-Math.min(1,b.t/b.T):0;
   if(!L.said&&L.t>6.5){L.said=1;banner('Keep your heads down!',2200);}
   if((L.fxT=(L.fxT||0)-dt)<=0){L.fxT=.05+Math.random()*(.1+far*.22);
-    const src=[S.pill,S.nests[0],S.nests[1],S.hillMG][(Math.random()*4)|0],bs=dd.boats.filter(q=>q.st!=='sunk'),tb=Math.random()<.45?b:bs[(Math.random()*bs.length)|0];
+    const src=[S.leftMG,S.pill,S.nests[0],S.hillMG][(Math.random()*4)|0],bs=dd.boats.filter(q=>q.st!=='sunk'),tb=Math.random()<.45?b:bs[(Math.random()*bs.length)|0];
     const hit=Math.random()<.22,tx=tb.x+(Math.random()-.5)*(hit?24:170),ty=hit?tb.y-52-Math.random()*8:tb.y-Math.random()*260+70;
     tracers.push({x1:src.x+DDX,y1:src.y,x2:tx,y2:ty,t:0,col:'255,231,163'});
     if(hit){sparks.push({x:tx,y:ty,t:0});if(tb===b){L.jolt=Math.max(L.jolt||0,.25);if(typeof playSample==='function')playSample('hit_metal',tx,ty,.9,.8+Math.random()*.5);}}
@@ -210,7 +215,7 @@ function ddAshore(){
   select(players.filter(p=>p.team==='A'&&alive(p)));dd.active='A';
   dd.graceT=simT+8;for(const p of players){p.dmgIn0=p.dmgIn;p.dmgIn=(p.dmgIn||1)*.55;}   // (the run up the sand from the ramp: hurt, not wiped out, before the player has had a say)
   const m=players.filter(p=>p.team==='A'&&p.landDest),cx=m.length?m.reduce((a,u)=>a+u.landDest.x,0)/m.length:camT.x,cy=m.length?m.reduce((a,u)=>a+u.landDest.y,0)/m.length:640;
-  zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:cx,z:cy-DD_CAM.look+40};clampCam();updateCamera();hud();   // (ddCam swings the view out of the boat to here)
+  VB.z1=820;if(typeof glide!=='undefined'&&glide)glide.vx=glide.vz=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:cx,z:cy-DD_CAM.look+40};clampCam();updateCamera();hud();   // (ddCam swings the view out of the boat to here)
 }
 /* ---------- who shoots whom (combat.js's pickTarget) ---------- */
 function ddPick(u){
@@ -315,7 +320,7 @@ function ddSquadAI(t){
   const W=DD_ROUTE[i];if(!W||W[1]>cy-20)return;
   if(lead.length&&W[1]<leadY-170)return;
   const as=makeAssign(m,W[0]+DDX+(t==='B'?44:-10),W[1]);if(!as.length)return;
-  for(const a of as)Object.assign(a.u,{path:a.path,gaitForce:'sneak',exposeT:0});
+  for(const a of as)Object.assign(a.u,{path:a.path,gaitForce:null,exposeT:0});
   dd.wp[t]=i;dd.hop[t]=simT+16+Math.random()*8;
 }
 /* ---------- the other troops ---------- */
@@ -510,12 +515,12 @@ function ddBarBind(){
 function ddObjUI(el){
   if(!dd){el.hidden=true;return;}
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),b=objs.find(o=>o.tag==='barracks');
-  const L=[['The pillbox',dead('pill')],['The upper bunker',dead('nest')],['The hill: bunker and artillery',dead('hill')&&(!!dd.blown.art||dead('art'))],['The heavy gun',!!dd.blown.heavy||dead('heavy')],['The cannon and the back line',(!!dd.blown.cannon||dead('cannon'))&&dead('top')],['The mortars',dead('mortar')],['Destroy the barracks',!!dd.blown.barracks]];
+  const L=[['The left bunker',dead('left')],['The pillbox',dead('pill')],['The upper bunker',dead('nest')],['The hill: bunker and artillery',dead('hill')&&(!!dd.blown.art||dead('art'))],['The heavy gun',!!dd.blown.heavy||dead('heavy')],['The cannon and the back line',(!!dd.blown.cannon||dead('cannon'))&&dead('top')],['The mortars',dead('mortar')],['Destroy the barracks',!!dd.blown.barracks]];
   el.querySelector('b').textContent='D-Day · Baker Red';
   el.querySelector('span').textContent=!dd.land.done?'Thirty seconds to the beach':dd.blown.barracks?'The base is yours':dd.front>330?'Get off the beach: reach the wall':dd.front>-300?'Up the draw: the only way to the top':`Destroy the barracks${b&&b.hp<380?` (${Math.max(1,Math.round(b.hp/380*100))}%)`:''}`;
   const h=L.map(([t,d])=>`<li${d?' class="done"':''}>${t}</li>`).join('');const ol=el.querySelector('ol');if(ol.dataset.h!==h){ol.dataset.h=h;ol.innerHTML=h;}
   el.hidden=state!=='play';
-  const c=$('#ddChip');if(c){c.hidden=state!=='play';const t=`Replacements ${dd.pool} · Lost ${dd.lost}`;if(c.textContent!==t)c.textContent=t;}
+  const c=$('#ddChip');if(c){c.hidden=state!=='play';const t=`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
 }
 function ddHint(){
   if(!dd)return'';
@@ -529,6 +534,7 @@ function drawDDay(now){
   if(!dd||!DD)return;ddBar();if(!dd.land.done)return;   // (nothing written over the ride in)
   const lab=(dx,y,h,text,col)=>{toSBack=false;const[sx,sy]=toS(dx+DDX,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,9,700);};
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),S=DD_SPOT;
+  if(!dead('left'))lab(342,262,30,'LEFT BUNKER','#ff8a6a');
   if(!dead('pill'))lab(668,262,30,'PILLBOX','#ff8a6a');
   if(enemies.some(e=>e.tag==='draw'&&e.gunner&&!beaten(e))&&dd.front<330)lab(466,-150,26,'MG NEST','#ff8a6a');
   if(!dead('nest'))lab(906,262,30,'UPPER BUNKER','#ff8a6a');

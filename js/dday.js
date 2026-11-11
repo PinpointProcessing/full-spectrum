@@ -12,7 +12,7 @@
    looks down on the beach). */
 const DDB={x0:0,x1:1400,y0:-760,y1:900},DDX=200,DDW=1000,DDS=1.2;
 let DD=null;
-const DD_FACE=[[0,120],[330,120],[330,300],[470,300],[600,85],[120,-320],[0,-320]],
+const DD_FACE=[[0,120],[600,85],[120,-320],[0,-320]],   // (until Version 133 a block of it came down to the beach at dx 330-470; Bryan circled it: "Remove the circled part and make it a road")
   DD_RWALL=[[600,316],[600,280],[740,40],[1000,40],[1000,316]],
   DD_RRIGHT=[[316,-312],[440,-435],[1000,-435],[1000,-95],[752,-95]];
 function ddIn(poly,x,y){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[xi,yi]=poly[i],[xj,yj]=poly[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;}return c;}
@@ -33,7 +33,7 @@ function ddRawH(dx,y){
   if(r===1)return Math.min(ddRamp(y)+58,172)+n;
   if(r===2)return 104+n*.7;
   if(r===3)return Math.min(ddRamp(y)+52,182)+n;
-  if(dx<335&&y>=120)return 20+(316-y)*.03;          // the pocket behind the left gate (the pillbox)
+  if(dx<600&&y>=100){const road=20+(316-y)*.03,k=clamp((dx-440)/130,0,1);return road+(ddRamp(y)-road)*k*k*(3-2*k);}   // the road along the top of the beach, from the left edge to the draw's mouth, where it meets the path
   if(dx>=752&&y>=-95&&y<=40)return 92;              // the nests' shelf
   if(y<-320)return 152;                             // the base at the top
   return ddRamp(y);
@@ -58,7 +58,7 @@ function ddH(x,y){
 
 /* ---------- the map's objects (play-area coordinates dx 0..1000, then moved over by DDX) ---------- */
 const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by these
-  pill:{x:668,y:280,ang:Math.PI/2,arc:1.3},nests:[{x:868,y:280,ang:2.05,arc:1.25},{x:946,y:280,ang:Math.PI/2,arc:1.25}],
+  pill:{x:668,y:280,ang:Math.PI/2,arc:1.3},leftMG:{x:342,y:280,ang:Math.PI/2,arc:.9},nests:[{x:868,y:280,ang:2.05,arc:1.25},{x:946,y:280,ang:Math.PI/2,arc:1.25}],
   hillMG:{x:880,y:140,ang:Math.PI/2,arc:.95},art:{x:806,y:92},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
   mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
@@ -71,15 +71,17 @@ function ddObjects(){
       if(!inR&&run!=null){o('drop',run,y,dx-run,20,{rock:1});run=null;}}}
   o('drop',0,300,24,16,{rock:1});
   // the line at the top of the beach: gate, sandbags, concrete, gate, concrete (the rock wall carries on to the right)
-  for(const x of[120,190,260])o('sandbag',x,304,66,10);
-  for(const x of[336,404])o('sandbag',x,304,62,10);   // (concrete walls stood here until Version 131; Bryan: "No wall divides the bunker on the left with the bunker on the right")
+  for(const x of[120,190])o('sandbag',x,304,66,10);
+  // the left bunker, on the road at the map's centre left (Bryan: "move the bunker more the right so it's at the center left of the map")
+  o('ddpb',300,290,84,8,{cover:2,bk:'p0'});o('ddpb',300,250,8,40,{cover:2,full:true,bk:'p0'});o('ddpb',376,250,8,40,{cover:2,full:true,bk:'p0'});
+  for(const x of[404])o('sandbag',x,304,62,10);   // (concrete walls stood here until Version 131; Bryan: "No wall divides the bunker on the left with the bunker on the right")
   // the wire: a fence of barbed wire right across the beach, between the sand and everything else. It can be climbed, which cuts
   // (ddplay.js), or blown open a stretch at a time (Bryan: "A fence blocks all access and has to be climbed or blown up")
   for(let x=0;x<1000;x+=50)o('ddwire',x,340,50,8,{hp:40,tag:'wire'});
   o('sandbag',540,304,52,10);
   // the pillbox behind the left gate: concrete to the front and sides, open at the back
   o('ddpb',626,290,84,8,{cover:2,bk:'p1'});o('ddpb',626,250,8,40,{cover:2,full:true,bk:'p1'});o('ddpb',702,250,8,40,{cover:2,full:true,bk:'p1'});   // (bk: a closed bunker: a slit in its front wall, side walls that block sight, open at the back)
-  o('sandbag',716,286,22,10);o('sandbag',100,200,66,10);o('ddcrate',190,190,22,20,{cover:1});   // (the pocket behind the left gate, where the bunker was: a sandbag line)
+  o('sandbag',716,286,22,10);o('sandbag',236,262,10,40);o('ddcrate',190,190,22,20,{cover:1});   // (the pocket behind the left gate, where the bunker was: a sandbag line)
   // the two machine gun nests on the rock to the right: open on the draw's side
   o('ddpb',826,290,160,8,{cover:2,bk:'p2'});o('ddpb',826,250,8,40,{cover:2,full:true,bk:'p2'});o('ddpb',978,250,8,40,{cover:2,full:true,bk:'p2'});
   // the top of the hill on the right: a third bunker at its south rim, over the path and the beach, and an artillery piece behind sandbags
@@ -152,6 +154,8 @@ function paintDDGround(g){
   x.strokeStyle='rgba(176,146,98,.55)';x.lineWidth=46;x.lineCap='round';x.lineJoin='round';x.beginPath();x.moveTo(505,300);x.lineTo(560,150);x.lineTo(520,10);x.lineTo(380,-150);x.lineTo(230,-300);x.lineTo(240,-400);x.lineTo(520,-520);x.lineTo(800,-600);x.stroke();
   // the path along the cliff's foot: one worn track from the draw's mouth past both bunkers (Bryan: "The bunker on the left needs to be on the path")
   x.fillStyle='rgba(186,158,108,.5)';x.fillRect(598,214,402,84);
+  x.strokeStyle='rgba(190,160,108,.8)';x.lineWidth=34;x.beginPath();x.moveTo(-10,236);x.lineTo(300,232);x.lineTo(520,240);x.lineTo(600,236);x.stroke();   // the road: on left from the path, behind the left bunker, to the map's edge
+  x.strokeStyle='rgba(96,78,52,.45)';x.lineWidth=2.2;for(const oy of[-8,8]){x.beginPath();x.moveTo(-10,236+oy);x.lineTo(300,232+oy);x.lineTo(520,240+oy);x.lineTo(600,236+oy);x.stroke();}
   x.strokeStyle='rgba(190,160,108,.75)';x.lineWidth=30;x.beginPath();x.moveTo(520,286);x.lineTo(600,236);x.lineTo(1000,232);x.stroke();
   x.strokeStyle='rgba(96,78,52,.45)';x.lineWidth=2.2;for(const oy of[-7,7]){x.beginPath();x.moveTo(524,286+oy);x.lineTo(602,236+oy);x.lineTo(1000,232+oy);x.stroke();}
   let gr; // the shell holes: scorched, dark at the bottom
@@ -256,7 +260,7 @@ function ddProps(sc,objsL){
           P(new T.BoxGeometry(o.w-6,5,1.2),new T.MeshBasicMaterial({color:0x0b0c0c,transparent:true}),cx,g0+12,cy-o.h/2+.4).userData.dark=1;   // the dark of the throat
           for(const fx of[0,.5,1])P(new T.BoxGeometry(7,5,o.h+2),m,o.x+3.5+fx*(o.w-7),g0+12,cy);
         }else{P(new T.BoxGeometry(o.w+2,24.5,o.h+4),m,cx,g0+12.2,cy+1);
-          const east=cx>DDX+({p1:668,p2:906,p3:880}[o.bk]||90)?1:-1;if(!((o.bk==='p1'&&east>0)||(o.bk==='p2'&&east<0))){const be=P(new T.SphereGeometry(1,10,7),me,cx+east*9,g0+1,cy+4);be.scale.set(13,15,o.h*.62);   // earth banked against the side
+          const east=cx>DDX+({p0:342,p1:668,p2:906,p3:880}[o.bk]||90)?1:-1;if(!((o.bk==='p1'&&east>0)||(o.bk==='p2'&&east<0))){const be=P(new T.SphereGeometry(1,10,7),me,cx+east*9,g0+1,cy+4);be.scale.set(13,15,o.h*.62);   // earth banked against the side
           const tf=P(new T.SphereGeometry(1,8,6),bkM(o.bk,3),cx+east*10,g0+13,cy+6);tf.scale.set(8,4.5,o.h*.4);}}
       }}
     else if(o.kind==='ddgate'){   // a steel frame gate with cross bars
@@ -299,10 +303,10 @@ function ddProps(sc,objsL){
     for(let k=0;k<5;k++){const b=add(bagG,bkM(bk,2),x-w/2+6+k*8.5,g0+hh+6.4,y+d/2+1);b.scale.set(4.4,2.2,3);}
     add(new T.CylinderGeometry(1.1,1.1,7,7),bkM(bk,1),x+w*.3,g0+hh+7,y-d*.25);
     m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};m.userData.walls=BK[bk]||null;return m;};
-  DD.roofs=[slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(830,112,100,48,25,'p3'),slab(30,-440,120,76,25,'hv')];
+  DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(830,112,100,48,25,'p3'),slab(30,-440,120,76,25,'hv')];
   for(const m of DD.roofs)m.castShadow=true;
   // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
-  {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.pill,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG,DD_SPOT.hillMG]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y),g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;
+  {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.leftMG,DD_SPOT.pill,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG,DD_SPOT.hillMG]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y),g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;
       const q=(geo,px,py,pz,rz,ry)=>{const b=new T.Mesh(geo,gm);b.position.set(px,py,pz);if(rz)b.rotation.z=rz;if(ry)b.rotation.y=ry;b.castShadow=true;g.add(b);};
       q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}

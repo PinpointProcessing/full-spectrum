@@ -247,3 +247,12 @@ Not built: voices for the ride (a coxswain's shout), a man of the squads' own dy
 ## Version 133
 
 Bryan: "Let's make a fifth slot for engineer". Each squad is five: medic, gunner, sharpshooter, demolition, engineer (`DD_CORE`); Bravo has its sharpshooter back. The boat seats ten (rows 13 apart), the squad bar takes five names (its columns set in `ddBar`) and on a phone the tools are narrower with no owner line so seven fit.
+
+## Version 134 (Bryan, on screenshots of 133)
+
+"1) a little farther back on the boat and looking slightly from above. The camera can move around from this fixed spot so the player can look around. 2) the left side bunker is still there. Remove the circled part and make it a road, move the bunker more the right so it's at the center left of the map. 3) the top is blocked off by the reinforcements left. How about just three people emoji and a count 20/20 and it goes down. Also get rid of sneak and fit map."
+
+- The ride's camera: above and behind the stern, looking a little down; a drag turns it from that spot (`dd.land.look`, read from how far the drag moved `camT`; `VB.z1` is out at sea until `ddAshore`).
+- The block of rock he circled (the left mass's foot at dx 330-470) is gone (`DD_FACE`): a road along the top of the beach from the left edge to the draw's mouth, where it meets the path to the other bunkers (`ddRawH`, painted in `paintDDGround`). What he calls the left bunker was the old sandbag position in the left pocket: it's a real bunker now (`bk:'p0'`, `DD_SPOT.leftMG`, tag 'left': a machine gun and three riflemen) on that road at dx 300-384.
+- The replacements chip is three heads and "20/20", top right (`#ddChip`, moved out of `#tl`). No Fit map or gait button on this map (css), and the squad that runs itself no longer sneaks.
+- The bot won in 157 s with 2 lost: with the rock gone and five a squad it's a good deal easier than 132.

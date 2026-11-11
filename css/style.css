@@ -345,6 +345,8 @@ body.hqm .dock,body.hqm #gaitBtn{visibility:hidden}   /* the Headquarters is man
 
 /* D-Day test (ddplay.js) */
 #ddChip{background:rgba(10,14,18,.88);color:#dfe6ea;border-color:rgba(200,210,216,.4);font-variant-numeric:tabular-nums}
+body.dd #ddChip{position:absolute;top:10px;right:10px;left:auto;z-index:3;display:inline-flex;align-items:center;gap:6px;padding:5px 9px;margin:0}body.dd #ddChip[hidden]{display:none}#ddChip svg{width:26px;height:14px}#ddChip b{font-size:13px;letter-spacing:.03em}
+body.dd #fitBtn,body.dd #gaitBtn{display:none!important}
 body.dd #alert,body.dd #alertLvl,body.dd #allBtn{display:none!important}
 #oob{position:absolute;inset:0;z-index:6;pointer-events:none;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px}
 #oob[hidden]{display:none}
