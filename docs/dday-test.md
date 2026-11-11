@@ -243,3 +243,7 @@ Built:
 - Tests: `$SP/dd16.js [w h]` steps the ride and the landing with pictures; `dd15.js` the path, the hilltop and the aiming strip. The bot (`dd2.js`), two runs: won at 378 s with 7 lost and at 418 s with 13 lost (v131: 205 s, 3 lost), before the grace was added.
 
 Not built: voices for the ride (a coxswain's shout), a man of the squads' own dying in the boat (Bryan's "maybe"; the boat beside them goes instead), range and blast rings while aiming beyond what the game already drew.
+
+## Version 133
+
+Bryan: "Let's make a fifth slot for engineer". Each squad is five: medic, gunner, sharpshooter, demolition, engineer (`DD_CORE`); Bravo has its sharpshooter back. The boat seats ten (rows 13 apart), the squad bar takes five names (its columns set in `ddBar`) and on a phone the tools are narrower with no owner line so seven fit.

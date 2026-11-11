@@ -22,7 +22,7 @@ const DD_ROLES={
   eng:{ab:'ENGINEER',n:'Engineer',cls:'defender',weapon:'rifle',spec:'build',specN:3}};   // (Version 131, Bryan: "a new unit that builds makeshift defenses under fire": build.js's kit, a barricade where you tap)
 // who's in each squad to start, and so which types a replacement fills first: Bravo has the engineer in its sharpshooter's place for
 // now, so he can be tried (a question for Bryan: a fifth man, or in someone's place)
-const DD_CORE={A:['medic','gunner','sharp','demo'],B:['medic','gunner','eng','demo']};
+const DD_CORE={A:['medic','gunner','sharp','demo','eng'],B:['medic','gunner','sharp','demo','eng']};   // (five a squad since Version 133: Bryan, "Let's make a fifth slot for engineer")
 const DD_ORDER=['medic','gunner','sharp','demo'];
 const DD_TRAITS=[{n:'Steady',nerveK:.75},{n:'Sharp-eyed',aimK:.06},{n:'Quick',spdK:1.1},{n:'Tough',dmgIn:.88},{n:'Green',aimK:-.04,nerveK:1.2},{n:'Hothead',bold:1.6},{n:'Careful',bold:.6},{n:'Old hand',aimK:.03,nerveK:.85}];
 const DD_NAMES=['Kelly','Murphy','Novak','Rossi','Schmidt','Carter','Dalton','Greer','Hobbs','Jensen','Kowal','Larkin','Mercer','Nolan','Ortiz','Pruitt','Quinn','Riley','Sawyer','Tanner','Voss','Walsh','Yates','Zielinski','Baker','Cobb','Dunn','Ellis','Finch','Gallo','Hart','Irwin','Joyce','Keane','Lowe','Mack','Nash','Owens','Pike','Reed','Stone','Tully','Vance','Webb','Abbott','Boone','Cross','Drake'];
@@ -138,7 +138,7 @@ function ddCrew(n){const L=[];for(let i=0;i<n;i++)L.push(ddNpc(DDX+500,900));ret
 function ddBoat(dx,men,own,o){
   o=o||{};const y0=o.y0||1120;
   const m=ddBoatMesh(DD.scene),b={m,x:dx+DDX,y0,y:y0,y1:806,t:0,T:o.T||(own?7.5:6+Math.random()*3),pw:o.pw||2.2,men,own:!!own,st:'in',out:0,doom:o.doom||0};
-  men.forEach((u,i)=>{u.inBoat=true;u.afloat=true;u.boat=b;u.seat2=[(i%2?7:-7)+(Math.random()-.5)*3,-30+Math.floor(i/2)*15];u.path=[];});
+  men.forEach((u,i)=>{u.inBoat=true;u.afloat=true;u.boat=b;u.seat2=[(i%2?7:-7)+(Math.random()-.5)*3,-30+Math.floor(i/2)*13];u.path=[];});
   dd.boats.push(b);ddBoatPose(b);return b;
 }
 function ddBoatPose(b){
@@ -496,7 +496,7 @@ function ddBar(){
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolU&&mode?DD_TOOLS.find(t=>t.k===dd.toolK&&t.mode===mode):null;
     if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],h=`${T.label} · ${dd.toolU.name}<small>${verb} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
-  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}
+  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
