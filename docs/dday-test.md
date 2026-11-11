@@ -187,3 +187,16 @@ Built:
 
 Open: one grenade a man for now (so a squad shows 4): Bryan's "4x grenades per unit" could mean four each. Whether the
 bar should replace the cards in the Warehouse Yard too. Whether the path is what he pictured.
+
+## Bryan's answers and the bunkers (Version 130)
+
+One grenade a man (the squad shows 4). The wire alone is the barrier, no gates. The path is right. The squad's bar is
+for D-Day only for now. And: "Make the bunkers interiors. Like the wall goes transparent when they get in there. Units are
+only seen if looking from the front hole or entry way. When it becomes transparent because troops are inside, then the
+units are fully visible."
+
+Built: the two bunkers on the path and the heavy gun's emplacement are closed rooms (dday.js: `bk` on their `ddpb` walls):
+walls to the roof, a firing slit along the front, open at the back. The side walls block sight and shots (`full`), so the
+men inside are seen and hit only through the slit or the entry. With one of ours inside, the walls and roof of that bunker
+go clear together (`ddFrame`, the roof's `userData.walls`). The camera sits a little higher over the squad so the bar
+doesn't cover them (`DD_CAM` look 30, shift .09).
