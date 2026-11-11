@@ -69,6 +69,7 @@ const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by t
   hillMG2:{x:904,y:140,ang:Math.PI/2-.42,arc:.48},pathMG:{x:292,y:-424,ang:1.32,arc:.8},sniper2:{x:206,y:-590},
   hillMG:{x:856,y:140,ang:Math.PI/2+.42,arc:.5},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
   mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
+  barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},barr3:{x:1012,y:-716,w:180,h:60},door3:{x:1090,y:-640},tankWay:[[1185,-556],[930,-556],[800,-562]],   // (Version 145: a second barracks behind the highest bunker, and the far base's to the right, where the counterattack comes from)
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
 function ddObjects(){
   const L=[],o=(kind,dx,y,w,h,ex)=>{const q=Object.assign({kind,x:dx+DDX,y,w,h,full:false},ex||{});L.push(q);return q;};
@@ -111,6 +112,7 @@ function ddObjects(){
   for(const[x,y]of[[840,-462],[900,-452],[952,-464]])o('sandbag',x,y,44,10);
   for(const[x,y]of[[450,-520],[560,-560],[640,-500],[520,-462],[760,-540],[330,-470],[250,-500]])o('ddcrate',x,y,22,20,{cover:1});
   o('ddbarr',DD_SPOT.barracks.x,DD_SPOT.barracks.y,DD_SPOT.barracks.w,DD_SPOT.barracks.h,{full:true,hp:380,tag:'barracks'});
+  {const b=DD_SPOT.barr2,c=DD_SPOT.barr3;o('ddbarr',b.x,b.y,b.w,b.h,{full:true,hp:380,tag:'barr2'});o('ddbarr',c.x,c.y,c.w,c.h,{full:true});}
   // the base's vehicles, tents, drums and radio mast (their looks: ddlook.js)
   o('ddtruck',958,-648,26,58,{full:true});o('ddtruck',612,-712,26,58,{full:true});o('ddtent',470,-724,40,46,{full:true});o('ddtent',410,-720,40,46,{full:true});o('ddtent',180,-520,40,46,{full:true});
   for(const[x,y]of[[668,-650],[946,-724],[300,-548],[560,-470]])o('dddrum',x,y,16,16,{cover:1});

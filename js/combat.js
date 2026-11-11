@@ -326,6 +326,7 @@ const ACT_R=100;   // (10 m)
 const inCircle=(p,o)=>!!p&&p.every(q=>hyp(q.x-o.x,q.y-o.y)<=ACT_R+3);
 let farSaidT=-1e9;
 function tooFar(u){
+  if(MAPID==='dd'&&typeof ddNote==='function')ddNote('Too far');
   bubble(u,'Too far. Move me closer.',C.warn);
   const now=performance.now();if(now-farSaidT>1500&&now-cantSaidT>1500&&typeof say==='function'){farSaidT=now;say(u,'far');}
   return false;
@@ -564,7 +565,7 @@ const nadeRange=u=>u&&u.gl?M203.range:170;
 const nadeFull=u=>u.gl?M203.rounds:isCls(u,'assault')?CLS.frags:1;   // (stations refill to this: hq.js)
 function throwNade(u,tx,ty){
   const gl=!!u.gl;
-  if(hyp(tx-u.x,ty-u.y)>nadeRange(u)){bubble(u,gl?'Out of range from here':'Too far from here');return false;}   // (orderThrow walks him into reach first: this is a last check)
+  if(hyp(tx-u.x,ty-u.y)>nadeRange(u)){if(MAPID==='dd'&&typeof ddNote==='function')ddNote('Not in range');bubble(u,gl?'Out of range from here':'Too far from here');return false;}   // (orderThrow walks him into reach first: this is a last check)
   const f=throwFrom(u,tx,ty,'nade');
   if(!f){bubble(u,'No clear throw from here');return false;}
   const L={fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y};
@@ -591,8 +592,8 @@ function popSmoke(x,y){smokes.push({x,y,t0:simT});if(typeof sfxSmoke==='function
 const PRPG={range:380,min:60,aim:.6,blast:55,dmg:120,speed:300};
 function fireRPG(u,tx,ty){
   if(u.spec!=='rpg'||!u.specN){banner(`${u.name} has no rockets left.`,1600);return false;}
-  const d=hyp(tx-u.x,ty-u.y);if(d<PRPG.min){bubble(u,'Too close for a rocket');return false;}
-  if(d>PRPG.range){bubble(u,'Out of range from here');return false;}
+  const d=hyp(tx-u.x,ty-u.y);if(d<PRPG.min){if(MAPID==='dd'&&typeof ddNote==='function')ddNote('Too close');bubble(u,'Too close for a rocket');return false;}
+  if(d>PRPG.range){if(MAPID==='dd'&&typeof ddNote==='function')ddNote('Not in range');bubble(u,'Out of range from here');return false;}
   if(MAPID==='dd'&&d>240){const k=(d-240)*.17,a=Math.random()*TAU,r=Math.sqrt(Math.random())*k;tx+=Math.cos(a)*r;ty+=Math.sin(a)*r;}   // (D-Day: the Bazooka reaches a long way, but past 24 m it strays, more the further it goes: Bryan)
   const f=throwFrom(u,tx,ty,'rpg');if(!f){bubble(u,'Something’s in the way');return false;}
   u.specN--;u.lastOrder=simT;u.nadeT=simT;u.ang=Math.atan2(ty-f.y,tx-f.x);u.aimT=simT+PRPG.aim+.5;leanOut(u,{fx:f.x,fy:f.y,tx,ty,lean:f.x!==u.x||f.y!==u.y});

@@ -398,10 +398,6 @@ body.dd .panel{position:fixed;left:max(8px,env(safe-area-inset-left,0px));top:46
 body.dd .hint,body.dd #clearBtn{display:none}
 body.dd .dock{grid-auto-flow:row;gap:6px}
 body.dd .dock button{min-height:44px;width:70px;background:rgba(10,14,18,.86)}
-body.dd #sq{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"aim aim" "men tools";align-items:end;gap:5px;bottom:6px}
-body.dd #sq[hidden]{display:none}
-body.dd .sq-aim{grid-area:aim;justify-self:center;margin:0}
-body.dd .sq-men{grid-area:men;gap:4px}body.dd .sq-tools{grid-area:tools;gap:4px;justify-content:flex-end}
-body.dd .sq-tool{min-height:50px;padding:4px 6px;column-gap:5px}body.dd .sq-tool svg{width:22px;height:22px}body.dd .sq-tool b{font-size:18px}body.dd .sq-tool small{display:none}
-body.dd .sq-man{padding:3px 6px 4px}body.dd .sq-man span em{display:none}
+body.dd #sq{bottom:6px}
+}
 }

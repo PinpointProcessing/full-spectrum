@@ -321,3 +321,16 @@ Bryan: "Can we make it work horizontal too? If I flip my phone sideways? Also, t
 - Landscape on a phone (`@media (orientation:landscape) and (max-height:540px)`, `body.dd` only, at the end of css/style.css): the map takes the whole screen; the title, status chip, hint line and Clear are hidden; Sound and Pause sit over the top right corner with the count beside them; the Alpha and Bravo tabs go down the left edge; the squad's men and tools share one row along the bottom (`#sq` as a grid), the aim strip above it. Only D-Day has this layout: the other levels are as before.
 - The ride in is first person again, through the eyes of the last man in the boat (`ddCam`), with the left-right look as before. (Version 140's view from the back corner is gone.)
 - Test: `$SP/dd31.js 844 390` (pictures of the ride, play and a tool in hand).
+
+## Version 145: the counterattack, a second barracks, "Too far" at the finger
+
+Bryan, on Version 144: the squad's menu on a wide screen "is perfectly laid out", horizontal should look like it; the scope "should be the size of the players upper torso"; "if something is too far, can a message pop up where the using is selecting. 'Too far' or 'Not in range'"; "Have a tank come out of the far base with 4 squads from the barracks to the right of the level's barracks"; "Make another large barrack directly behind the top bunker... Units regenerate from here too"; "The mission is 'take control of the beach' that shows on top for 5-10 seconds when the match starts".
+
+- The phone on its side keeps the squad's bar as on a wide screen (men over tools with their names), not the one-row version of 144.
+- The scope is the size of a man's upper body (`ddDrawTargets`).
+- A refusal is said where the finger was: "Too far", "Not in range", "Too close" (`ddNote`, `dd.tapW` set in input.js's `tap`, `dd.notes`; from combat.js's `tooFar`, `throwNade` and `fireRPG`), as well as the bubble over the man.
+- A second barracks behind the highest bunker (`DD_SPOT.barr2`, `door2`, tag 'barr2', 380 HP): the barracks' men come out of both in turn (`ddBarracks`), up to 8 at once; blown, it sends nobody.
+- The counterattack (`ddCounter`, `dd.ctr`): the first time one of the squads' men is within 33 m of the barracks' door, a tank drives in from the right edge (`DD_SPOT.tankWay`, `ddTankSpawn`, `ddTankTick`, `dd.tank`) and four squads of four (tag 'counter') come out of the far base's barracks beyond the map's right edge (`barr3`, `door3`, scenery). The tank is not a unit: bullets do nothing to it, it shells the nearest of ours it has a line to every 5.5-7.5 s, and blasts hurt it (`ddTankHit` from `ddBlast`: two close rockets, or three). The barracks can't be held while it's alive nearby.
+- "Mission: take control of the beach" in the banner for 8 s at the start, then "Thirty seconds to the beach!".
+- For later (Bryan): "Parts of buildings can collapse and kill people within it. Bunkers don't collapse. We can talk about that later." Open question to him: the scope on gun nests, tanks and buildings (wanted there too, or seen there by mistake?).
+- Test: `$SP/dd33.js`.
