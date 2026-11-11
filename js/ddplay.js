@@ -59,6 +59,7 @@ function spawnDDay(){
   ddGunner('pill',S.pill);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddFoe('wall',60,282,{post:true});ddFoe('wall',130,214,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',215,290,{post:true});ddFoe('pill',250,286,{post:true,nade:1});
   for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',790,262,{post:true});ddFoe('draw',800,-52,{zone:Z(752,-95,1000,40)});
   ddFoe('draw',484,178,{post:true});ddFoe('draw',520,178,{post:true});ddFoe('draw',600,60,{zone:Z(480,0,660,130)});ddFoe('draw',470,-20,{zone:Z(400,-60,640,60),nade:1});ddFoe('draw',556,178,{post:true,nade:1});
+  ddGunner('hill',S.hillMG);ddFoe('hill',856,136,{post:true});ddFoe('art',780,100,{post:true,name:'Gun crew'});ddFoe('art',832,100,{post:true,name:'Gun crew'});
   ddGunner('draw',S.drawMG);ddFoe('draw',420,-150,{zone:Z(380,-200,640,-60)});ddFoe('draw',542,-164,{zone:Z(380,-200,640,-60),nade:1});
   ddFoe('draw',252,-282,{zone:Z(150,-320,420,-220)});ddFoe('draw',318,-258,{zone:Z(150,-320,420,-220)});
   ddFoe('heavy',56,-412,{post:true,name:'Gun crew'});ddFoe('heavy',126,-412,{post:true,name:'Gun crew'});
@@ -77,7 +78,7 @@ function enterDDay(){
   tankFires=[];rockets=[];charges=[];units=[];players=[];enemies=[];civs=[];
   MAPID='dd';LEVEL=5;groundH=ddH;
   dd={t0:simT,pool:DD_POOL,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
-    land:{t:0,done:false},boats:[],waveT:0,spawnT:simT+20,aiT:0,npcT:0,shellT:{heavy:simT+9,cannon:simT+14},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{}};
+    land:{t:0,done:false},boats:[],waveT:0,spawnT:simT+30,aiT:0,npcT:0,shellT:{heavy:simT+19,cannon:simT+26,art:simT+22},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{}};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
   dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;
   const B=DD_SPOT.boat;
@@ -87,10 +88,12 @@ function enterDDay(){
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   mission.t0=simT;sel=[];cardGroup=[];
   VB={x0:DDX,z0:-720,x1:DDX+DDW,z1:820};FIT.w=DDW+40;FIT.h=1560;fitDist();
-  MAXZ=11;camShift=DD_CAM.shift;zoom=DD_CAM.boat;yaw=0;tilt=ddTilt(DD_CAM.boat);camT={x:B.x+DDX,z:B.y+300};clampCam();updateCamera();
+  MAXZ=11;camShift=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:B.x+DDX,z:640};clampCam();updateCamera();
   document.body.classList.add('dd');ddSky(0);DD.dayShown=0;
   // the boats: the squads' own, and the first wave of the others either side
-  ddBoat(B.x,players,true);ddBoat(250,ddCrew(9));ddBoat(770,ddCrew(9));ddBoat(110,ddCrew(8));ddBoat(900,ddCrew(8));
+  // (since Version 132 a longer ride under fire, seven boats abreast, one of them lost on the way: Bryan, "There should be multiple boats landing")
+  ddBoat(B.x,players,true,{y0:1620,T:17,pw:1.4});ddBoat(548,ddCrew(6),false,{y0:1430,T:15,pw:1.4,doom:9.4});ddBoat(436,ddCrew(7),false,{y0:1500,T:16,pw:1.4});
+  ddBoat(300,ddCrew(7),false,{y0:1420,T:15.2,pw:1.4});ddBoat(690,ddCrew(7),false,{y0:1460,T:15.6,pw:1.4});ddBoat(160,ddCrew(6),false,{y0:1560,T:17.5,pw:1.4});ddBoat(850,ddCrew(6),false,{y0:1520,T:16.8,pw:1.4});
   for(const o of objs)if(o.kind==='ddwreck')tankFires.push({x:o.x+o.w/2,y:o.y+o.h/2,r:10,t0:simT,puffs:[],emit:0});
   updateObjUI();setStatus();buildCards();hud();
 }
@@ -107,31 +110,34 @@ function startDDay(){
   reset();
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   enterDDay();state='play';endAt=0;
-  banner('Thirty seconds to the beach. Keep your heads down.',3600);hud();
+  banner('Thirty seconds to the beach!',3000);hud();
 }
 function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();}
 const ddBusy=()=>!!dd&&!dd.land.done;
-/* ---------- the camera: semi-fixed to the squad being played ----------
-   It keeps a little ahead of the squad's middle, close and low. A drag, pinch, twist or tilt still works: a drag moves the
-   view off them and it eases back about two seconds after the finger lifts. On the ride in it rides with the boat. */
+/* ---------- the camera ----------
+   Since Version 132 it stays where the player puts it (Bryan: "Maybe the camera shouldnt move unless dragged by the user. But
+   i do want the camera to switch to the selected squad still"): it goes to a squad when that squad is picked (ddSelected) and
+   to the squad being played as they come off the boat, and otherwise never moves by itself. On the ride in it's inside the
+   boat, just behind the last man's head, looking over the others at the beach (Bryan: "it should be behind the last units
+   head inside"); as they land it swings up and out to the usual view. */
 function ddTilt(z){const z0=zoom;zoom=z;const t=Math.max(0,basePitch()-DD_CAM.pitch);zoom=z0;return t;}
 function ddCam(rdt){
-  if(!dd||state!=='play'||camPan)return;rdt=rdt>0?Math.min(rdt,.1):0;
-  if(!dd.land.done){const b=dd.boats.find(q=>q.own);if(b){camT.x=b.x;camT.z=b.y-70;updateCamera();}return;}
-  const C=dd.cam||(dd.cam={off:{x:0,z:0},t:-9,last:null});
-  let m=players.filter(p=>p.team===dd.active&&alive(p)&&!p.inBoat&&!p.joining);if(!m.length)m=players.filter(p=>alive(p)&&!p.inBoat);if(!m.length)return;
-  const cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length,gx=cx-Math.sin(yaw)*DD_CAM.look,gz=cy-Math.cos(yaw)*DD_CAM.look,now=performance.now()/1000;
-  C.gx=C.gx==null?gx:C.gx+(gx-C.gx)*Math.min(1,rdt*3.5);C.gz=C.gz==null?gz:C.gz+(gz-C.gz)*Math.min(1,rdt*3.5);
-  const held=typeof ptr!=='undefined'&&!!ptr;
-  if(C.last&&(held||hyp(camT.x-C.last.x,camT.z-C.last.z)>.5)){C.off.x=camT.x-C.gx;C.off.z=camT.z-C.gz;C.t=now;}   // the player moved the view
-  if(held){C.last={x:camT.x,z:camT.z};return;}
-  if(now-C.t>2.2){const k=Math.exp(-rdt*2.6);C.off.x*=k;C.off.z*=k;}
-  camT.x=C.gx+C.off.x;camT.z=C.gz+C.off.z;clampCam();updateCamera();C.last={x:camT.x,z:camT.z};
+  if(!dd||state!=='play')return;rdt=rdt>0?Math.min(rdt,.1):0;
+  const C=dd.cam||(dd.cam={k:1,p:null,q:null});
+  if(!dd.land.done){const b=dd.boats.find(q=>q.own);if(!b)return;
+    camT.x=b.x;camT.z=b.y-40;   // (where the sound is heard from)
+    const nar=camera.aspect<1?1:0,by=b.m.position.y+nar*6,t=simT,hit=dd.land.jolt||0;   // (a narrow screen: a little higher and further back, so the beach shows over the helmets)
+    camera.position.set(b.x+2.5+Math.sin(t*1.3)*.5+(Math.random()-.5)*hit,by+33+Math.sin(t*1.7+1)*.7+(Math.random()-.5)*hit,b.y+37+nar*12);
+    camera.lookAt(b.x+Math.sin(t*.5)*6,by+18+Math.sin(t*1.1)*1.2,b.y-240);camera.rotateZ(Math.sin(t*1.3)*.025);camera.updateMatrixWorld();
+    dd.land.jolt=Math.max(0,hit-rdt*3);C.k=0;C.p=camera.position.clone();C.q=camera.quaternion.clone();return;}
+  if(C.k<1&&C.p){C.k=Math.min(1,C.k+rdt/1.7);const e=C.k*C.k*(3-2*C.k),to=camera.quaternion.clone();   // off the boat: up and out to the usual view
+    camera.position.lerpVectors(C.p,camera.position,e);camera.quaternion.copy(C.q).slerp(to,e);camera.updateMatrixWorld();camShift=DD_CAM.shift*e;}
 }
 /* ---------- the boats ---------- */
 function ddCrew(n){const L=[];for(let i=0;i<n;i++)L.push(ddNpc(DDX+500,900));return L;}
-function ddBoat(dx,men,own){
-  const m=ddBoatMesh(DD.scene),b={m,x:dx+DDX,y:1120,y1:806,t:0,T:own?7.5:6+Math.random()*3,men,own:!!own,st:'in',out:0};
+function ddBoat(dx,men,own,o){
+  o=o||{};const y0=o.y0||1120;
+  const m=ddBoatMesh(DD.scene),b={m,x:dx+DDX,y0,y:y0,y1:806,t:0,T:o.T||(own?7.5:6+Math.random()*3),pw:o.pw||2.2,men,own:!!own,st:'in',out:0,doom:o.doom||0};
   men.forEach((u,i)=>{u.inBoat=true;u.afloat=true;u.boat=b;u.seat2=[(i%2?7:-7)+(Math.random()-.5)*3,-30+Math.floor(i/2)*15];u.path=[];});
   dd.boats.push(b);ddBoatPose(b);return b;
 }
@@ -139,27 +145,72 @@ function ddBoatPose(b){
   b.m.position.set(b.x,1.2+Math.sin(simT*1.7+b.x)*.5,b.y);b.m.rotation.z=Math.sin(simT*1.3+b.x)*.03;b.m.rotation.x=Math.sin(simT*1.1+b.x*.3)*.02;
   for(const u of b.men)if(u.inBoat){u.x=b.x+u.seat2[0];u.y=b.y+u.seat2[1];u.elev=4.4+b.m.position.y;u.ang=-Math.PI/2;u.path=[];u.cool=Math.max(u.cool,.8);}
 }
+// a boat hit on the way in: gone, with everyone in it (one of the first wave, beside the squads' own: Bryan, "Maybe someone dies or a boat gets blown up")
+function ddBoatHit(b){
+  b.st='sunk';b.t=0;booms.push({x:b.x,y:b.y-10,t:0,size:1.6},{x:b.x+8,y:b.y+22,t:-.18,size:1.1});shake(.9);ddSplash(b.x,b.y,2.6);ddSplash(b.x-14,b.y+20,1.6);ddGib(b.x,b.y,10,0x5d6b58,1.4);dd.land.jolt=1.2;
+  for(const u of b.men){u.dead=true;u.inBoat=false;dd.npcLost++;if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);const i=units.indexOf(u);if(i>=0)units.splice(i,1);}
+  dd.npcs=dd.npcs.filter(u=>units.includes(u));b.men=[];
+  b.m.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.color.setHex(0x1f2120);}});
+  b.fire={x:b.x,y:b.y,r:12,t0:simT,puffs:[],emit:0};tankFires.push(b.fire);
+  if(typeof sfxScream==='function')sfxScream({x:b.x,y:b.y,id:'N0',side:'P'},.9);
+  banner('The boat beside you is gone. Heads down!',2800);
+}
+// where each of the squads' men runs to as he comes off the ramp: cover on the sand, picked for the squad together
+function ddLandPlan(b){
+  const ex=b.x,ey=b.y-58;
+  for(const t of['A','B']){const m=b.men.filter(u=>u.team===t&&!u.dead&&!u.npc);if(!m.length)continue;
+    const sv=m.map(u=>[u.x,u.y]);for(const u of m){u.x=ex+(Math.random()-.5)*8;u.y=ey;u.inBoat=false;}
+    let as=[];try{as=makeAssign(m,DDX+(t==='A'?432:566),626);}catch(e){}
+    for(const a of as)a.u.landDest=a.path&&a.path.length?a.path[a.path.length-1]:null;
+    m.forEach((u,i)=>{u.x=sv[i][0];u.y=sv[i][1];u.inBoat=true;});}
+}
 function ddBoatsTick(dt){
   for(const b of dd.boats){
     b.t+=dt;
-    if(b.st==='in'){const k=Math.min(1,b.t/b.T),e=1-Math.pow(1-k,2.2);b.y=1120+(b.y1-1120)*e;ddBoatPose(b);
-      if(k>=1){b.st='ramp';b.t=0;if(typeof sfxClang==='function')sfxClang(b.x,b.y-50);}}
-    else if(b.st==='ramp'){ddBoatPose(b);b.m.userData.ramp.rotation.x=-Math.min(1,b.t/.7)*1.75;if(b.t>.8){b.st='out';b.t=0;b.out=0;}}
-    else if(b.st==='out'){ddBoatPose(b);
-      while(b.out<b.men.length&&b.t>b.out*.28){const u=b.men[b.out++];if(u.dead)continue;
-        Object.assign(u,{inBoat:false,afloat:false,boat:null,elev:0,x:b.x+(b.out%2?5:-5),y:b.y-58});
-        const tx=clamp(u.x+(b.out-b.men.length/2)*16,DDX+30,DDX+DDW-30),ty=700-Math.random()*26,p=findPath(u.x,u.y,tx,ty,FOOT);u.path=p||[{x:tx,y:ty}];u.lastOrder=simT;u.hopT=simT+2+Math.random()*2;}
-      if(b.out>=b.men.length&&b.t>b.men.length*.28+1){b.st='wait';b.t=0;if(b.own){dd.land.done=true;ddAshore();}}}
+    if(b.st==='in'){const k=Math.min(1,b.t/b.T),e=1-Math.pow(1-k,b.pw);b.y=b.y0+(b.y1-b.y0)*e;ddBoatPose(b);
+      if(b.doom&&b.t>=b.doom){ddBoatHit(b);continue;}
+      if(k>=1){b.st='ramp';b.t=0;if(typeof sfxClang==='function')sfxClang(b.x,b.y-50);if(b.own){banner('Ramp\'s down! Go! Go! Get to cover!',3200);dd.land.jolt=.6;}}}
+    else if(b.st==='ramp'){ddBoatPose(b);b.m.userData.ramp.rotation.x=-Math.min(1,b.t/.7)*1.75;if(b.t>.8){b.st='out';b.t=0;b.out=0;if(b.own)ddLandPlan(b);}}
+    else if(b.st==='out'){ddBoatPose(b);const gap=b.own?.2:.24;
+      while(b.out<b.men.length&&b.t>b.out*gap){const u=b.men[b.out++];if(u.dead)continue;
+        Object.assign(u,{inBoat:false,afloat:false,boat:null,elev:0,x:b.x+(b.out%2?5:-5),y:b.y-58,lastOrder:simT});
+        // straight up the sand to cover, shooting as he goes: nobody stands at the water's edge (Bryan: "They all pile out of the boat and wait, they should all be running to cover and engaging")
+        let p=null;
+        if(u.npc){u.hopT=0;u.path=[];ddNpcThink(u,ddLine());p=u.path.length?u.path:null;}
+        else if(u.landDest&&!u.joining)p=findPath(u.x,u.y,u.landDest.x,u.landDest.y);
+        if(!p||!p.length){const tx=clamp(u.x+(b.out-b.men.length/2)*16,DDX+30,DDX+DDW-30),ty=690-Math.random()*40;p=findPath(u.x,u.y,tx,ty,FOOT)||[{x:tx,y:ty}];if(u.npc)u.hopT=simT+.8+Math.random();}
+        u.path=p;u.gaitForce=null;}
+      if(b.out>=b.men.length){b.st='wait';b.t=0;if(b.own){dd.land.done=true;ddAshore();}}}
     else if(b.st==='wait'){if(b.t>5){b.st='back';b.t=0;}}
     else if(b.st==='back'){b.y+=dt*34;b.m.position.z=b.y;b.m.userData.ramp.rotation.x=-Math.max(0,1-b.t/1.2)*1.75;if(b.y>1160){if(b.m.parent)b.m.parent.remove(b.m);b.st='gone';}}
+    else if(b.st==='sunk'){b.m.position.y-=dt*1.5;b.m.rotation.z+=dt*.06;b.m.rotation.x-=dt*.035;if(b.t>10){if(b.m.parent)b.m.parent.remove(b.m);const i=tankFires.indexOf(b.fire);if(i>=0)tankFires.splice(i,1);b.st='gone';}}
   }
   dd.boats=dd.boats.filter(b=>b.st!=='gone');
 }
+// the ride in (Bryan: "It should feel like they are under heavy fire approaching the beach"): machine gun fire from the bunkers into
+// the water round the boats and onto their hulls, shells in the sea, the noise of it. None of it hurts the squads' own boat
+function ddRideFx(dt){
+  const L=dd.land,b=dd.boats.find(q=>q.own);if(!b)return;L.t+=dt;const S=DD_SPOT,far=b.st==='in'?1-Math.min(1,b.t/b.T):0;
+  if(!L.said&&L.t>6.5){L.said=1;banner('Keep your heads down!',2200);}
+  if((L.fxT=(L.fxT||0)-dt)<=0){L.fxT=.05+Math.random()*(.1+far*.22);
+    const src=[S.pill,S.nests[0],S.nests[1],S.hillMG][(Math.random()*4)|0],bs=dd.boats.filter(q=>q.st!=='sunk'),tb=Math.random()<.45?b:bs[(Math.random()*bs.length)|0];
+    const hit=Math.random()<.22,tx=tb.x+(Math.random()-.5)*(hit?24:170),ty=hit?tb.y-52-Math.random()*8:tb.y-Math.random()*260+70;
+    tracers.push({x1:src.x+DDX,y1:src.y,x2:tx,y2:ty,t:0,col:'255,231,163'});
+    if(hit){sparks.push({x:tx,y:ty,t:0});if(tb===b){L.jolt=Math.max(L.jolt||0,.25);if(typeof playSample==='function')playSample('hit_metal',tx,ty,.9,.8+Math.random()*.5);}}
+    else if(ty>706)ddSplash(tx,ty,.35+Math.random()*.25);
+    if(Math.random()<.5&&typeof sfxShot==='function')sfxShot({x:b.x+(src.x+DDX-b.x)*.3,y:b.y-170-far*120,side:'E',gunner:true,weapon:'rifle',thudT:0});
+    if(Math.random()<.16&&typeof playSample==='function')playSample('hit_ground',b.x+(Math.random()-.5)*60,b.y-20,.7,.8+Math.random()*.5);
+  }
+  if((L.shT=(L.shT==null?1.2:L.shT)-dt)<=0){L.shT=.9+Math.random()*1.5;
+    const bs=dd.boats.filter(q=>q.st==='in'),tb=bs.length?bs[(Math.random()*bs.length)|0]:b,x=tb.x+(Math.random()<.5?-1:1)*(30+Math.random()*90),y=Math.max(730,tb.y-30-Math.random()*220);
+    ddSplash(x,y,1.5+Math.random());if(typeof sfxBoom==='function')sfxBoom(x,y,.75);const d=hyp(x-b.x,y-b.y);if(d<170){shake(.4*(1-d/200));L.jolt=Math.max(L.jolt||0,.7*(1-d/200));}}
+}
 function ddBoatsFrame(){}   // (the boats move on game time: ddBoatsTick)
 function ddAshore(){
-  banner('Off the boat! Get to cover: the shell holes and the obstacles. Then the wall.',4200);
   select(players.filter(p=>p.team==='A'&&alive(p)));dd.active='A';
-  camPan={from:{x:camT.x,z:camT.z,zoom,yaw,tilt},to:{x:camT.x,z:640,zoom:DD_CAM.zoom,yaw:0,tilt:ddTilt(DD_CAM.zoom)},t:0,dur:1.4};dd.cam={off:{x:0,z:0},t:-9,last:null};hud();
+  dd.graceT=simT+8;for(const p of players){p.dmgIn0=p.dmgIn;p.dmgIn=(p.dmgIn||1)*.55;}   // (the run up the sand from the ramp: hurt, not wiped out, before the player has had a say)
+  const m=players.filter(p=>p.team==='A'&&p.landDest),cx=m.length?m.reduce((a,u)=>a+u.landDest.x,0)/m.length:camT.x,cy=m.length?m.reduce((a,u)=>a+u.landDest.y,0)/m.length:640;
+  zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:cx,z:cy-DD_CAM.look+40};clampCam();updateCamera();hud();   // (ddCam swings the view out of the boat to here)
 }
 /* ---------- who shoots whom (combat.js's pickTarget) ---------- */
 function ddPick(u){
@@ -192,7 +243,7 @@ function ddDamage(t,dmg,src){
     return true;
   }
   if(t.inBoat)return true;   // (the ride in costs the squads nobody: Bryan)
-  const dead_on=dmg>=70,head=!dead_on&&!dd.wireHit&&dmg>3&&dmg<45&&Math.random()<.04;
+  const dead_on=dmg>=70,head=!dead_on&&!dd.wireHit&&simT>(dd.graceT||0)&&dmg>3&&dmg<45&&Math.random()<.04;
   if(dead_on||head){ddKill(t,head?'Shot through the head':'Blown apart',dead_on);return true;}
   return false;
 }
@@ -220,7 +271,7 @@ function ddWreck(o,by){
     tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});}
   else{for(const m of o.meshes||[])m.visible=false;removeObstacle(o,[]);dEpoch++;}   // a gate or the wire: gone, the way's open
   if(o.tag==='barracks'){dd.won=true;bigText('Barracks destroyed','complete');banner('The barracks is gone. The base is yours.',4000);endAt=performance.now()+4200;}
-  else banner({wire:'The wire is blown open there.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.'}[o.tag]||'',2600);
+  else banner({wire:'The wire is blown open there.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.',art:'The artillery on the hill is knocked out.'}[o.tag]||'',2600);
   updateObjUI();
 }
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
@@ -231,7 +282,8 @@ function ddSelected(){
   dd.active=t;dd.idle[t]=0;
   const m=players.filter(p=>p.team===t&&alive(p));if(!m.length)return;
   const cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length;
-  if(hyp(cx-camT.x,cy-camT.z)>60)camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:cx-Math.sin(yaw)*DD_CAM.look,z:cy-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.7};if(dd.cam)dd.cam.off={x:0,z:0};
+  if(dd.land.done)camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:cx-Math.sin(yaw)*DD_CAM.look,z:cy-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.7};   // (the one time the camera moves by itself: to the squad just picked)
+  banner(`${teamName(t)} is yours. ${teamName(t==='A'?'B':'A')} looks after itself.`,2200);
   for(const u of m){u.gaitForce=null;}
 }
 /* ---------- the squad that runs itself ---------- */
@@ -249,7 +301,7 @@ function ddSquadAI(t){
   if(Math.random()<.02+.14*Math.min(1,idle/70)){
     const bold=u=>Math.random()<(u.bold||1)*.7;
     const dm=m.find(u=>u.spec==='rpg'&&u.specN>0&&!u.path.length&&!pinnedNow(u)&&bold(u));
-    const gun=dm&&foes.filter(e=>e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='mortar').sort((a,b)=>hyp(a.x-dm.x,a.y-dm.y)-hyp(b.x-dm.x,b.y-dm.y))[0];
+    const gun=dm&&foes.filter(e=>e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar').sort((a,b)=>hyp(a.x-dm.x,a.y-dm.y)-hyp(b.x-dm.x,b.y-dm.y))[0];
     if(dm&&gun&&hyp(gun.x-dm.x,gun.y-dm.y)<PRPG.range+60&&hyp(gun.x-dm.x,gun.y-dm.y)>PRPG.min+10){orderThrow(dm,gun.x,gun.y,'rpg');}
     else{const g=m.find(u=>(u.grenade||0)>0&&!u.path.length&&!pinnedNow(u)&&bold(u)),tg=g&&foes.filter(e=>hyp(e.x-g.x,e.y-g.y)<nadeRange(g)+40&&!players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<70)).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];
       if(g&&tg)orderThrow(g,tg.x,tg.y,'nade');
@@ -319,11 +371,11 @@ function ddShelling(){
   const al=dd.allies.filter(u=>!u.inBoat);if(!al.length)return;
   const pickAt=f=>{const c=al.filter(f);const u=(c.length?c:al)[(Math.random()*(c.length?c.length:al.length))|0];return{x:u.x+(Math.random()-.5)*90,y:u.y+(Math.random()-.5)*90};};
   for(const e of enemies){if(e.tag!=='mortar'||beaten(e)||simT<e.mortarT)continue;e.mortarT=simT+11+Math.random()*8;const p=pickAt(u=>u.y<360);ddShell(e,p.x,p.y,50,78,2.6);e.throwT=simT;}
-  for(const tag of['heavy','cannon']){
+  for(const tag of['heavy','cannon','art']){
     if(simT<dd.shellT[tag]||dd.blown[tag])continue;const crew=enemies.find(e=>e.tag===tag&&!beaten(e));if(!crew){dd.shellT[tag]=simT+5;continue;}
-    dd.shellT[tag]=simT+(tag==='heavy'?8:11)+Math.random()*5;
-    const sea=tag==='heavy'&&Math.random()<.45,p=sea?{x:DDX+80+Math.random()*840,y:700+Math.random()*150}:pickAt(u=>tag==='heavy'?u.y>300:u.y<300);
-    ddShell(crew,p.x,p.y,tag==='heavy'?64:54,tag==='heavy'?100:84,2.8);
+    dd.shellT[tag]=simT+(tag==='heavy'?10:tag==='art'?13:11)+Math.random()*5;
+    const sea=tag==='heavy'&&Math.random()<.45,p=sea?{x:DDX+80+Math.random()*840,y:700+Math.random()*150}:pickAt(u=>tag==='cannon'?u.y<300:u.y>300);
+    ddShell(crew,p.x,p.y,tag==='heavy'?64:54,tag==='heavy'?100:tag==='art'?80:84,2.8);
     const g=objs.find(o=>o.tag===tag);if(g){flashes.push({x:g.x+g.w/2,y:g.y+g.h+40,t:0});if(typeof sfxCannon==='function')sfxCannon(g.x,g.y);}
   }
 }
@@ -342,7 +394,8 @@ function ddTick(dt){
   contact=true;teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   dd.allies=units.filter(ddAlly);
   ddBoatsTick(dt);stationTick(dt);
-  if(!dd.land.done)return;
+  if(!dd.land.done)ddRideFx(dt);
+  else if(dd.graceT&&simT>dd.graceT){dd.graceT=0;for(const p of players)if(p.dmgIn0!=null){p.dmgIn=p.dmgIn0;p.dmgIn0=null;}}   // (the other boats' men fight on from the moment their ramps drop: nothing waits for the squads)
   // the dead: out of the squad (the body stays), a replacement on the way while they last
   for(const p of players.slice()){
     if(p.critical&&p.crit>45)p.crit=45;   // (no long wait on the beach)
@@ -432,20 +485,24 @@ function ddBar(){
   const box=$('#sq');if(!box)return;const show=!!dd&&state==='play'&&dd.land.done&&!!sel.length;if(box.hidden===show)box.hidden=!show;if(!show)return;
   if(dd.toolU&&!mode&&performance.now()-dd.toolAt>250)ddToolDone();
   const sq=ddSquad();
-  const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u;
-    return`<button type="button" class="sq-man${on?' on':''}${u.downed?' down':''}" data-id="${u.id}" style="--tc:${teamCol(u)};--hp:${u.downed?100:hp}%;--hc:${hc}"><b>${u.role}</b><span>${u.name}<em>${st[0]}</em></span><i><u></u></i></button>`;}).join('');
+  const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u,user=dd.toolU===u&&!!mode;
+    return`<button type="button" class="sq-man${on?' on':''}${user?' user':''}${u.downed?' down':''}" data-id="${u.id}" style="--tc:${teamCol(u)};--hp:${u.downed?100:hp}%;--hc:${hc}"><b>${u.role}</b><span>${u.name}<em>${st[0]}</em></span><i><u></u></i></button>`;}).join('');
   const up=sq.filter(alive),medic=up.some(u=>u.ddRole==='medic'),downN=sq.filter(u=>u.downed).length;
   const wy=up.length?up.reduce((a,u)=>a+u.y,0)/up.length:0,wireOn=up.length&&wy>330&&wy<720&&!!ddWireNear(up.reduce((a,u)=>a+u.x,0)/up.length,wy,420);
-  const tools=DD_TOOLS.map(T=>{if(T.k==='wire'){if(!wireOn)return'';const n=up.reduce((a,u)=>a+(u.grenade||0)+(u.spec==='rpg'?u.specN||0:0),0);return`<button type="button" class="sq-tool" data-k="wire" style="--c:${T.col}" ${n?'':'disabled'}>${T.svg()}<b>${n}</b><span>Blow wire</span></button>`;}
-    if(T.k==='revive'){if(!medic&&!downN)return'';return`<button type="button" class="sq-tool" data-k="revive" style="--c:${T.col}" ${medic&&downN?'':'disabled'}>${T.svg()}<b>${downN||'·'}</b><span>${downN?'Revive':'Revive'}</span></button>`;}
-    const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'||u.spec===T.k);if(!has)return'';const on=dd.toolU&&dd.toolK===T.k&&mode===T.mode;
-    return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${on?'Tap where':T.label}</span></button>`;}).join('');
+  const tools=DD_TOOLS.map(T=>{if(T.k==='wire'){if(!wireOn)return'';const n=up.reduce((a,u)=>a+(u.grenade||0)+(u.spec==='rpg'?u.specN||0:0),0);return`<button type="button" class="sq-tool" data-k="wire" style="--c:${T.col}" ${n?'':'disabled'}>${T.svg()}<b>${n}</b><span>Blow wire</span><small>nearest man with one</small></button>`;}
+    if(T.k==='revive'){if(!medic&&!downN)return'';return`<button type="button" class="sq-tool" data-k="revive" style="--c:${T.col}" ${medic&&downN?'':'disabled'}>${T.svg()}<b>${downN||'·'}</b><span>Revive</span><small>${medic?'the medic goes':'no medic up'}</small></button>`;}
+    const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'||u.spec===T.k);if(!has)return'';const on=dd.toolU&&dd.toolK===T.k&&mode===T.mode;
+    return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${T.label}</span><small>${on?'tap the map':who}</small></button>`;}).join('');
+  // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
+  {const a=box.querySelector('.sq-aim'),T=dd.toolU&&mode?DD_TOOLS.find(t=>t.k===dd.toolK&&t.mode===mode):null;
+    if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],h=`${T.label} · ${dd.toolU.name}<small>${verb} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
   const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
   box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
-    if(t&&!t.disabled)ddToolUse(t.dataset.k);
+    if(ev.target.closest('.sq-aim')){mode=null;ddToolDone();hud();}
+    else if(t&&!t.disabled)ddToolUse(t.dataset.k);
     else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){dd.toolU=null;u.card.el.click();}}
     ddBar();});
 }
@@ -453,7 +510,7 @@ function ddBarBind(){
 function ddObjUI(el){
   if(!dd){el.hidden=true;return;}
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),b=objs.find(o=>o.tag==='barracks');
-  const L=[['The pillbox',dead('pill')],['The upper bunker',dead('nest')],['The heavy gun',!!dd.blown.heavy||dead('heavy')],['The cannon and the back line',(!!dd.blown.cannon||dead('cannon'))&&dead('top')],['The mortars',dead('mortar')],['Destroy the barracks',!!dd.blown.barracks]];
+  const L=[['The pillbox',dead('pill')],['The upper bunker',dead('nest')],['The hill: bunker and artillery',dead('hill')&&(!!dd.blown.art||dead('art'))],['The heavy gun',!!dd.blown.heavy||dead('heavy')],['The cannon and the back line',(!!dd.blown.cannon||dead('cannon'))&&dead('top')],['The mortars',dead('mortar')],['Destroy the barracks',!!dd.blown.barracks]];
   el.querySelector('b').textContent='D-Day · Baker Red';
   el.querySelector('span').textContent=!dd.land.done?'Thirty seconds to the beach':dd.blown.barracks?'The base is yours':dd.front>330?'Get off the beach: reach the wall':dd.front>-300?'Up the draw: the only way to the top':`Destroy the barracks${b&&b.hp<380?` (${Math.max(1,Math.round(b.hp/380*100))}%)`:''}`;
   const h=L.map(([t,d])=>`<li${d?' class="done"':''}>${t}</li>`).join('');const ol=el.querySelector('ol');if(ol.dataset.h!==h){ol.dataset.h=h;ol.innerHTML=h;}
@@ -462,19 +519,20 @@ function ddObjUI(el){
 }
 function ddHint(){
   if(!dd)return'';
-  if(!dd.land.done)return'Coming in. Nothing to do until the ramp drops.';
+  if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
-  if(dd.front>330)return`Shell holes and steel obstacles are cover. Tap the wire (or Blow wire below) and a man with a grenade opens it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
+  if(dd.front>330)return`The camera stays where you put it; picking a squad takes it there. Shell holes and steel obstacles are cover. Tap the wire (or Blow wire below) and a man with a grenade opens it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
   if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
   return'The base. The barracks keeps sending men down until it\'s destroyed: grenades and Bazooka rockets, close.';
 }
 function drawDDay(now){
-  if(!dd||!DD)return;ddBar();
+  if(!dd||!DD)return;ddBar();if(!dd.land.done)return;   // (nothing written over the ride in)
   const lab=(dx,y,h,text,col)=>{toSBack=false;const[sx,sy]=toS(dx+DDX,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,9,700);};
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),S=DD_SPOT;
   if(!dead('pill'))lab(668,262,30,'PILLBOX','#ff8a6a');
   if(enemies.some(e=>e.tag==='draw'&&e.gunner&&!beaten(e))&&dd.front<330)lab(466,-150,26,'MG NEST','#ff8a6a');
   if(!dead('nest'))lab(906,262,30,'UPPER BUNKER','#ff8a6a');
+  if(!dead('hill'))lab(880,130,30,'HILL BUNKER','#ff8a6a');if(!dd.blown.art&&!dead('art'))lab(806,90,30,'ARTILLERY','#ff8a6a');
   if(!dd.blown.heavy&&!dead('heavy'))lab(90,-410,34,'HEAVY GUN','#ff8a6a');
   if(!dd.blown.cannon&&!dead('cannon'))lab(240,-600,30,'CANNON','#ff8a6a');
   if(!dead('mortar'))lab(915,-470,24,'MORTARS','#ff8a6a');

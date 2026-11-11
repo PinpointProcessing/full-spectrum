@@ -222,6 +222,7 @@ function drawOverlay(rdt,now){
     const crowd=players.filter((o,i)=>i<players.indexOf(u)&&!o.dead&&o.seat!=='driver'&&hyp(o.x-u.x,o.y-u.y)<16).length;
     const vx=u.x+u.lx,vy=u.y+u.ly,ev=u.onTower||u.climb?u.elev||0:0,[hx,hy0]=toS(vx,vy,24+ev),hy=hy0-crowd*10,[fx,fy]=toS(vx,vy,ev);   // (up the watchtower: on the platform)
     if(u.gone)continue;   // lost on an earlier visit (loaded save): no body here
+    if(u.inBoat&&MAPID==='dd')continue;   // (D-Day's ride in: nothing over the men in the boat)
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
     if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     {const md=!u.downed&&players.find(o=>o.medGo&&o.medGo.heal&&o.medGo.t===u&&o.medGo.prog>0);if(md){gPath(vx,vy,13,-Math.PI/2,-Math.PI/2+md.medGo.prog/HEAL_T*TAU,false,ev);ox.strokeStyle=md.sup>PINNED?C.warn:C.good;ox.lineWidth=2.4;ox.stroke();}}   // a medic kit on a man who's up (combat.js)

@@ -331,7 +331,8 @@ function audioFrame(){
   else if(MAPID==='l1'&&typeof l1!=='undefined'&&l1.away!=null&&L1.boat)setLoop('boat',.22,L1.boat.position.x,L1.boat.position.z,1.4);   // Level 1's boat going out
   else if(MAPID==='l2'&&typeof l2!=='undefined'&&L2&&(l2.land||l2.away!=null))setLoop('boat',live?.24:0,(l2.land?L2.landBoat:L2.boat).position.x,(l2.land?L2.landBoat:L2.boat).position.z,l2.land?1:1.4);   // Level 2's boat in and out
   else setLoop('boat',live&&landing?.26:0,DOCK.moor.x,DOCK.moor.y+100,landing&&landing.t>LAND_T*.7?1:1.5);
-  {const tk=MAPID==='out'&&enemies.find(e=>e.veh&&!e.dead);setLoop('truck',live&&tk?(tk.path.length?.3:.1):0,tk?tk.x:null,tk?tk.y:null,tk&&tk.path.length?1.5:.8);}   // the gun truck: driving, or idling where it's parked
+  if(MAPID==='dd'){const rb=typeof dd!=='undefined'&&dd&&!dd.land.done&&dd.boats.find(q=>q.own);setLoop('truck',live&&rb?.55:0,rb?rb.x:null,rb?rb.y:null,rb&&rb.st==='in'?1.25:.7);}   // (D-Day: the landing craft's diesel on the ride in)
+  else  {const tk=MAPID==='out'&&enemies.find(e=>e.veh&&!e.dead);setLoop('truck',live&&tk?(tk.path.length?.3:.1):0,tk?tk.x:null,tk?tk.y:null,tk&&tk.path.length?1.5:.8);}   // the gun truck: driving, or idling where it's parked
 }
 function bindAudio(){
   const wake=()=>audioInit();
