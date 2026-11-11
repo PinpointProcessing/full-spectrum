@@ -381,3 +381,5 @@ body.dd #cards{display:none!important}
 .sq-tool:disabled{opacity:.38;cursor:default}
 @media (max-width:520px){.sq-tools{gap:4px}.sq-tool{min-width:0;min-height:52px;padding:4px 2px;column-gap:3px;grid-template-columns:auto auto;justify-content:center}.sq-tool svg{grid-row:1;width:20px;height:20px}.sq-tool b{font-size:17px}.sq-tool span{grid-column:1/3;text-align:center;font-size:8.5px;letter-spacing:0}.sq-tool small{display:none}.sq-men{gap:3px}.sq-man{padding:3px 4px 4px}.sq-man b{font-size:8.5px;letter-spacing:.02em}.sq-man span{font-size:11px}.sq-man span em{display:none}}
 body.dd #gaitBtn{bottom:136px}
+
+body.dd #banner{top:10px;left:10px;right:auto;max-width:calc(100% - 128px);text-align:left;transform:translateY(-6px)}body.dd #banner.show{transform:none}

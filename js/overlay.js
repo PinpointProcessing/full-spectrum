@@ -225,6 +225,9 @@ function drawOverlay(rdt,now){
     if(u.inBoat&&MAPID==='dd')continue;   // (D-Day's ride in: nothing over the men in the boat)
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
     if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
+    if(MAPID==='dd'&&sel.includes(u)&&!u.downed){   // D-Day: an arrowhead on his ring the way he faces (Bryan: "when you select a squad, it shows you the direction they are facing")
+      const A=u.ang,P=(r,d)=>toS(vx+Math.cos(A+d)*r,vy+Math.sin(A+d)*r,ev||0),t=P(19,0),l=P(12.5,.34),r2=P(12.5,-.34);
+      ox.beginPath();ox.moveTo(t[0],t[1]);ox.lineTo(l[0],l[1]);ox.lineTo(r2[0],r2[1]);ox.closePath();ox.fillStyle=teamCol(u);ox.fill();ox.strokeStyle='rgba(8,11,14,.8)';ox.lineWidth=1;ox.stroke();}
     {const md=!u.downed&&players.find(o=>o.medGo&&o.medGo.heal&&o.medGo.t===u&&o.medGo.prog>0);if(md){gPath(vx,vy,13,-Math.PI/2,-Math.PI/2+md.medGo.prog/HEAL_T*TAU,false,ev);ox.strokeStyle=md.sup>PINNED?C.warn:C.good;ox.lineWidth=2.4;ox.stroke();}}   // a medic kit on a man who's up (combat.js)
     if(u.downed){
       const k=u.critical?(u.noBleed?1:u.crit/CRIT_T):u.bleed/BLEED_T;gPath(u.x,u.y,13,-Math.PI/2,-Math.PI/2+k*TAU);ox.strokeStyle=u.critical?'#ff3b30':C.bad;ox.lineWidth=u.critical?3:2;ox.stroke();
