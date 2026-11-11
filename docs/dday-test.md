@@ -301,3 +301,13 @@ Bryan: "I hit squad Alpha and tried to shoot a bazooka. Instead the whole team r
 ## Version 140
 
 Bryan: "The pov camera should be the last man in the boat to the bottom right corner from above. So every unit is seen in the boat, not just the first two." The ride's camera is over the last man's shoulder at the boat's back right corner, a little above, looking down its length (`ddCam`); left and right to look, as before.
+
+## Version 141: picking squads, one use a press, the scope, the Bazooka
+
+Bryan, after Version 140: "I had a problem selecting squads. It would take a couple of presses. I don't like the 'throw/use as many as you can' idea with the equipment. Let's just make sure the player is able to clearly use a tool so they aren't spamming press. Maybe a press after using a tool doesn't do anything. They would double press to move towards it. Can we make a scoop emoji around the unit selected for that squad to attack? Can we draw a large bazooka and see the player actually use it, and watch a rocket go through the air?"
+
+- Picking a squad: a team tab never deselects on this map (pressed on the squad already picked it used to clear the selection, so the next press picked it again: the "couple of presses"); pressed again it takes the camera to that squad (`ddGoSquad`). A tap on one of ours on the map is always his whole squad, never just him.
+- Tools: one use a press again (Version 139's "stays in hand" is gone). The tool's button, then one tap on the map: he does it, the tool is put away and the squad is picked again (`ddToolKeep`). For 2.5 s after that a tap on the ground does nothing but say "Double tap to move." (taps on an enemy or one of ours still work); a double tap there moves the squad at once (`ddTap`, `dd.usedAt`, `dd.lastTap`).
+- The scope: a red scope ring with cross-hairs on the man the squad you play was told to shoot (`u.focus`), drawn in `ddDrawTargets`. "Scoop emoji" read as a scope/cross-hair: Bryan to say if he meant something else.
+- The Bazooka: a big M1 on this map (figure.js: a long open tube with a flared muzzle, a wooden shoulder stock, two grips, a sight), shouldered and aimed for 1.15 s before it fires (`PRPG.aim`, put back on leaving) and kept up a second after. The rocket is a 3D model with fins and a burning tail on a shallow arc, a white smoke trail behind it, a flash at the muzzle and the back-blast behind the man (dday.js's `ddRockets` from `ddFrame`).
+- Test: `$SP/dd25.js` (tabs, one rocket a press, the ignored tap, the double tap), `$SP/dd26.js` (close-up pictures).

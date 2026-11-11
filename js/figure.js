@@ -271,6 +271,17 @@ function makeFigure(u){
     const tube=new T.Mesh(new T.CylinderGeometry(.55,.55,7.2,10),lm);tube.rotation.z=Math.PI/2;launcher.add(tube);
     const head=new T.Mesh(new T.ConeGeometry(.9,2.2,10),lm);head.rotation.z=-Math.PI/2;head.position.x=4.6;launcher.add(head);
     const grip=new T.Mesh(new T.BoxGeometry(.4,1.1,.4),lm);grip.position.set(.4,-.8,0);launcher.add(grip);
+    if(MAPID==='dd'){   // D-Day: a big M1 Bazooka, a long tube over the shoulder (Bryan: "Can we draw a large bazooka and see the player actually use it")
+      launcher.remove(tube,head,grip);const wm=new T.MeshStandardMaterial({color:0x6a4526,roughness:.8}),dk=new T.MeshStandardMaterial({color:0x1c1f18,roughness:.6,metalness:.4});
+      const add=(geo,mat,x,y,z,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(rz)m.rotation.z=rz;launcher.add(m);return m;};
+      add(new T.CylinderGeometry(.72,.72,15,12,1,true),lm,.6,0,0,Math.PI/2).material.side=T.DoubleSide;   // the tube, open both ends
+      add(new T.CylinderGeometry(1.05,.72,1.3,12,1,true),lm,8.6,0,0,-Math.PI/2);   // the flared muzzle
+      add(new T.CylinderGeometry(.95,.95,.5,12),dk,-6.6,0,0,Math.PI/2);   // the wire guard ring at the back
+      add(new T.BoxGeometry(2.6,1.5,.7),wm,-2.4,-1.2,0);   // the wooden shoulder stock
+      add(new T.BoxGeometry(.5,1.5,.5),wm,.9,-1.3,0);add(new T.BoxGeometry(.5,1.4,.5),wm,3.0,-1.25,0);   // two grips
+      add(new T.BoxGeometry(.25,1.0,.25),dk,2.2,1.05,0);   // the sight
+      launcher.scale.setScalar(1.12);
+    }
     for(const o of launcher.children)o.castShadow=true;launcher.position.set(.6,2.65,1.7);launcher.visible=false;bones[BI.chest].add(launcher);
   }
   scene.add(g);
@@ -327,7 +338,7 @@ function figState(u){
   if(u.tk&&u.tk.strike)return'grab';
   if(u.gunner)return'gunner';
   if(u.carry)return'carry';
-  if(u.rpgAim||simT-(u.rpgT||-9)<.5)return'rpg';
+  if(u.rpgAim||simT-(u.rpgT||-9)<(MAPID==='dd'?1.0:.5))return'rpg';
   if(simT-(u.throwT||-9)<.75)return'throw';
   if((u.medGo&&u.medGo.prog>0)||(u.carryGo&&u.carryGo.prog>0)||(typeof zipOf==='function'&&zipOf(u)&&!u.path.length)||u.plant||reviving(u))return'kneelwork';
   if(typeof useOf==='function'&&(g=>g&&!u.path.length&&g.a.secs)(useOf(u)))return'standwork';

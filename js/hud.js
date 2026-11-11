@@ -122,7 +122,7 @@ function startView(){zoom=2.4;yaw=0;tilt=0;camT={x:190,z:760};clampCam();updateC
 function bindHud(){
   {const n=$('#notice');if(n)n.addEventListener('click',()=>{n.hidden=true;});}   // (waves.js's notices: a tap closes one)
   // team tabs toggle: pressing the tab of the group that's already selected deselects it
-  const tabSelect=list=>{if(state!=='play'||(typeof endingBusy==='function'&&endingBusy()))return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));if(on)select([]);else if(!selectAway(list))return;preview=null;mode=null;hud();};   // (a team somewhere else: the camera goes to them, not while the men on screen are under fire: input.js)
+  const tabSelect=list=>{if(state!=='play'||(typeof endingBusy==='function'&&endingBusy()))return;const on=list.length&&sel.length===list.length&&list.every(u=>sel.includes(u));if(on&&MAPID==='dd'){ddGoSquad(list[0].team);}else if(on)select([]);else if(!selectAway(list))return;   /* (D-Day: a tab never deselects; pressed again it takes the camera to that squad. Bryan: picking a squad "would take a couple of presses") */preview=null;mode=null;hud();};   // (a team somewhere else: the camera goes to them, not while the men on screen are under fire: input.js)
   // (Level 1's tutorial lets through only what its step or tip asks for: tutAllows in level1.js; the camera, Pause and Fit map always work)
   for(const tab of document.querySelectorAll('.tab[data-team]'))tab.addEventListener('click',()=>{if(tutAllows('tab',tab.dataset.team))tabSelect(players.filter(p=>p.team===tab.dataset.team&&alive(p)));});
   $('#allBtn').addEventListener('click',()=>{if(tutAllows('tab','all'))tabSelect(players.filter(alive));});

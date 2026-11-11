@@ -363,8 +363,39 @@ function ddSpark(x,h,y,k=1){
   for(const b of q.bits){const a=Math.random()*TAU,s=30+Math.random()*60;b.v=[Math.cos(a)*s,25+Math.random()*70,Math.sin(a)*s*.6+18];b.m.position.set(0,0,0);}
 }
 // every frame (from render): the sea, the boats, the bits, the day going by, the roofs over our men
+// Our rockets in 3D (Bryan: "watch a rocket go through the air"): a fat rocket with fins and a burning tail, a white smoke trail left behind it,
+// and at the launch a flash at the muzzle and the blast out of the back of the tube
+function ddRockets(rdt){
+  const T=THREE,R=DD.rk||(DD.rk={pool:[],puffs:[],n:0});
+  if(!R.geo){R.geo=new T.SphereGeometry(1,7,5);
+    R.mk=()=>{const g=new T.Group(),bm=new T.MeshStandardMaterial({color:0x4a5038,roughness:.6,metalness:.3}),fm=new T.MeshBasicMaterial({color:0xffc060,transparent:true,opacity:.95,fog:false});
+      const b=new T.Mesh(new T.CylinderGeometry(.75,.75,5.2,10),bm);b.rotation.z=-Math.PI/2;g.add(b);
+      const n=new T.Mesh(new T.ConeGeometry(1.05,2.6,10),bm);n.rotation.z=-Math.PI/2;n.position.x=3.9;g.add(n);
+      for(let i=0;i<4;i++){const f=new T.Mesh(new T.BoxGeometry(1.8,1.7,.14),bm);f.position.set(-2.6,0,0);const h=new T.Group();h.rotation.x=i*Math.PI/2;f.position.y=.9;h.add(f);g.add(h);}
+      const fl=new T.Mesh(new T.ConeGeometry(1.0,6,8),fm);fl.rotation.z=Math.PI/2;fl.position.x=-5.6;g.add(fl);g.userData.fl=fl;
+      const gl=new T.Mesh(R.geo,new T.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.9,fog:false}));gl.scale.setScalar(1.5);gl.position.x=-3.2;g.add(gl);
+      g.scale.setScalar(2.1);DD.scene.add(g);return g;};
+    R.puff=(x,h,y,s,life,col,vy)=>{let p=R.puffs.find(q=>q.t>=q.life);if(!p){if(R.puffs.length>260)return;const m=new T.Mesh(R.geo,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));DD.scene.add(m);p={m,t:0,life:0};R.puffs.push(p);}
+      p.t=0;p.life=life;p.s=s;p.vy=vy||3;p.m.material.color.setHex(col);p.m.position.set(x+(Math.random()-.5)*2,h+(Math.random()-.5)*2,y+(Math.random()-.5)*2);p.m.visible=true;};
+  }
+  let i=0;
+  for(const r of rockets){if(!r.by||r.by.side!=='P'||!r.total)continue;
+    const f=1-r.left/r.total,sx=r.x-r.dx*(r.total-r.left),sy=r.y-r.dy*(r.total-r.left),ex=r.x+r.dx*r.left,ey=r.y+r.dy*r.left;
+    const h0=ddH(sx,sy)+(r.z0||15)*1.3,h1=ddH(ex,ey)+(r.z1||8),h=Math.max(h0+(h1-h0)*f+Math.sin(f*Math.PI)*Math.min(26,r.total*.05),ddH(r.x,r.y)+4);
+    const g=R.pool[i]||(R.pool[i]=R.mk());i++;g.visible=true;
+    if(!r.dd3){r.dd3={h};   // the launch: the flash, and the back-blast behind the man
+      for(let k=0;k<7;k++)R.puff(sx-r.dx*(10+k*5),h0-1,sy-r.dy*(10+k*5),5+k*1.6,.9+k*.12,k<2?0xffb040:0xd8d4c8,5);
+      for(let k=0;k<3;k++)R.puff(sx+r.dx*(12+k*4),h0,sy+r.dy*(12+k*4),4,.35,0xffd070,2);}
+    const dh=h-r.dd3.h;r.dd3.h=h;g.position.set(r.x,h,r.y);g.rotation.set(0,-Math.atan2(r.dy,r.dx),0);g.rotateZ(Math.atan2(dh,Math.max(.01,(r.speed||300)*Math.max(rdt,.001))));
+    g.userData.fl.scale.set(1,.8+Math.random()*.7,1);
+    r.dd3.e=(r.dd3.e||0)+rdt;while(r.dd3.e>0){r.dd3.e-=.012;R.puff(r.x-r.dx*(9+Math.random()*4),h,r.y-r.dy*(9+Math.random()*4),4.2,1.8,0xe8e6de,4);}
+  }
+  for(;i<R.pool.length;i++)R.pool[i].visible=false;
+  for(const p of R.puffs){if(p.t>=p.life){if(p.m.visible)p.m.visible=false;continue;}p.t+=rdt;const q=Math.min(1,p.t/p.life);p.m.scale.setScalar(p.s*(.55+q*1.5));p.m.position.y+=p.vy*rdt;p.m.material.opacity=.7*(1-q)*(1-q);}
+}
 function ddFrame(rdt,now){
   if(!DD)return;
+  ddRockets(rdt);
   if(DD.sea&&DD.sea.material.map)DD.sea.material.map.offset.set(now*.004,now*.012);
   if(DD.foam){DD.foam.position.z=702+Math.sin(now*.7)*5;DD.foam.material.opacity=.55+.3*Math.sin(now*.7+1.2);DD.foam.material.map.offset.x=now*.004;}
   if(Math.abs(DD.day-DD.dayShown)>.004){DD.dayShown+=clamp(DD.day-DD.dayShown,-rdt*.05,rdt*.05);ddSky(DD.dayShown);}

@@ -251,7 +251,7 @@ function tap(sx,sy){
   if(!tutAllows('tap',sx,sy))return;   // Level 1's tutorial: only what the step or tip asks for (level1.js)
   const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)
   sel=sel.filter(alive);
-  if(MAPID==='dd'&&!mode&&inMap&&ddTap(wx,wy))return;   // (D-Day: a tap on the wire blows it, ddplay.js)
+  if(MAPID==='dd'&&!mode&&inMap&&ddTap(wx,wy,sx,sy))return;   // (D-Day: a tap on the wire blows it, ddplay.js)
   // aiming modes (Bryan: suppressing or throwing must never move anyone): a tap that misses keeps the mode and says why;
   // one that lands gives the order and briefly guards against the next tap turning into a move (moveGuard below)
   if(mode==='charge'){   // demolition charge: tap a fuel tank (mission.js)
@@ -316,6 +316,7 @@ function tap(sx,sy){
     }
     // Bryan: with several selected, tapping one of them picks just him, like tapping his card (the cards on show stay);
     // tapping him again goes back to the group. Anyone else: his fire team, as before
+    if(MAPID==='dd'){if(pu.team!==dd.active||sel.length<2||!sel.includes(pu))selectTeam(pu.team);preview=null;return;}   // (D-Day: a tap on a man is always his whole squad, never just him: ddplay.js)
     if(sel.length>1&&sel.includes(pu)){select([pu]);preview=null;mode=null;return;}
     if(sel.length===1&&sel[0]===pu&&cardGroup.filter(alive).length>1){select(cardGroup.filter(alive));preview=null;mode=null;return;}
     selectTeam(pu.team);return;

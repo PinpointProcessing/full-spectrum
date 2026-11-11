@@ -82,7 +82,8 @@ function enterDDay(){
   dd={t0:simT,pool:DD_POOL,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
     land:{t:0,done:false},boats:[],waveT:0,spawnT:simT+30,aiT:0,npcT:0,shellT:{heavy:simT+19,cannon:simT+26,art:simT+22},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{}};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
-  dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;
+  dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;   // (the Bazooka is shouldered and aimed long enough to be seen)
+ 
   const B=DD_SPOT.boat;
   ['A','B'].forEach(t=>DD_CORE[t].forEach((r,i)=>ddNewMan(t,t+(i+1),r,B.x+DDX,B.y+60)));
   players=units.filter(u=>u.side==='P'&&!u.npc);
@@ -102,7 +103,7 @@ function enterDDay(){
 }
 function leaveDDayNow(){
   if(MAPID!=='dd')return;const out=STASH.out;
-  for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;
+  for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;PRPG.aim=dd.rpgA;
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   document.body.classList.remove('dd');{const q=$('#sq');if(q)q.hidden=true;}{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
   groundH=null;MAXZ=6;camShift=0;zoom=Math.min(zoom,6);useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';LEVEL=3;
@@ -306,6 +307,11 @@ function ddWreck(o,by){
   else banner({wire:'The wire is blown open there.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.',art:'The artillery on the hill is knocked out.'}[o.tag]||'',2600);
   updateObjUI();
 }
+function ddGoSquad(t){
+  if(!dd||!dd.land.done)return;const m=players.filter(p=>p.team===t&&alive(p));if(!m.length)return;
+  const cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length;
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:cx-Math.sin(yaw)*DD_CAM.look,z:cy-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.7};
+}
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
 function ddSelected(){
   if(!dd||!sel.length)return;
@@ -315,7 +321,7 @@ function ddSelected(){
   dd.active=t;dd.idle[t]=0;
   const m=players.filter(p=>p.team===t&&alive(p));if(!m.length)return;
   const cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length;
-  if(dd.land.done)camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:cx-Math.sin(yaw)*DD_CAM.look,z:cy-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.7};   // (the one time the camera moves by itself: to the squad just picked)
+  ddGoSquad(t);   // (the one time the camera moves by itself: to the squad just picked)
   banner(`${teamName(t)} is yours. ${teamName(t==='A'?'B':'A')} looks after itself.`,2200);
   for(const u of m){u.gaitForce=null;}
 }
@@ -463,6 +469,12 @@ function ddDrawTargets(now){
     if(u.raise&&u.raise.t)disc(u.raise.t.x,u.raise.t.y,15,GN,GNL);}
   for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P')continue;if(n.smoke)disc(n.x1,n.y1,58,GR,GRL);else disc(n.x1,n.y1,n.R||58,OR,ORL);}
   for(const r of rockets){if(!r.by||r.by.side!=='P'||r.left==null)continue;disc(r.x+r.dx*r.left,r.y+r.dy*r.left,PRPG.blast||55,OR,ORL);}
+  // a scope on the man the squad you play was told to shoot (Bryan: "a scoop emoji around the unit selected for that squad to attack")
+  const seen=new Set();for(const u of players){const e=u.focus;if(!alive(u)||u.team!==dd.active||!e||e.dead||beaten(e)||seen.has(e))continue;seen.add(e);
+    toSBack=false;const a=toS(e.x,e.y,0),b=toS(e.x,e.y,22);if(toSBack)continue;const cx=(a[0]+b[0])/2,cy=(a[1]+b[1])/2,r=Math.max(13,hyp(a[0]-b[0],a[1]-b[1])*.72)*(1+.05*pu);
+    ox.save();ox.lineCap='round';for(const[w,c]of[[5,'rgba(0,0,0,.55)'],[2.4,'rgba(255,58,40,.98)']]){ox.strokeStyle=c;ox.lineWidth=w;ox.beginPath();ox.arc(cx,cy,r,0,TAU);
+      for(let k=0;k<4;k++){const q=k*Math.PI/2,c1=Math.cos(q),s1=Math.sin(q);ox.moveTo(cx+c1*r*.45,cy+s1*r*.45);ox.lineTo(cx+c1*r*1.32,cy+s1*r*1.32);}ox.stroke();}
+    ox.fillStyle='rgba(255,58,40,.98)';ox.beginPath();ox.arc(cx,cy,2.2,0,TAU);ox.fill();ox.restore();}
 }
 function ddDrawZones(){
   const H=dd.held;if(!H)return;
@@ -593,9 +605,8 @@ function ddToolUse(k){
 }
 // kept in hand (from ddBar, every frame): once the last use is on its way, the next man who has one and is free takes it up; none left, it's put away
 function ddToolKeep(){
-  if(!dd.toolK||mode||simT-dd.toolAt<.2)return;const T=DD_TOOLS.find(t=>t.k===dd.toolK);
-  if(!ddSquad().some(u=>alive(u)&&T.n(u)>0)){ddToolEnd(`No ${T.label.toLowerCase()} left.`);return;}
-  const f=ddToolFree(T);if(f.length)ddToolArm(f.includes(dd.toolU)?dd.toolU:f[0]);
+  if(!dd.toolK||mode)return;   // its tap landed (or it couldn't be readied): one use a press, then it's put away and the squad is picked again
+  const used=performance.now()-fireOrderAt<600;ddToolEnd();if(used){dd.usedAt=performance.now();dd.lastTap=null;}
 }
 // the wire: the nearest stretch in front of the squad (or the one tapped) is blown open by whoever has a grenade, or by a rocket
 function ddWireNear(x,y,max){let b=null,bd=max;for(const o of dd.wires||[])if(!o.gone){const d=rectDist(x,y,o);if(d<bd){bd=d;b=o;}}return b;}
@@ -608,8 +619,16 @@ function ddBlowWire(o){
   if(!u){banner('Nobody free with a grenade or a rocket. They can climb it: it cuts.',2600);return false;}
   orderThrow(u,tx,ty,u===g?'nade':'rpg');u.lastOrder=simT;u.hotT=simT+6;banner(`${u.name} blows the wire${u===g?' with a grenade':' with the Bazooka'}.`,2000);return true;
 }
-function ddTap(wx,wy){if(!dd||ddBusy())return false;if(dd.toolK)return true;   // (a tool in hand and its man busy with the last use: the tap does nothing else)
-  if(!sel.length)return false;const o=ddWireNear(wx,wy,9);if(!o)return false;ddBlowWire(o);hud();return true;}
+// A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
+// running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
+function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.toolK)return true;
+  if(!sel.length)return false;const o=ddWireNear(wx,wy,9);if(o){ddBlowWire(o);hud();return true;}
+  const now=performance.now();
+  if(sx!=null&&now-(dd.usedAt||-1e9)<2500&&!enemyAtScreen(sx,sy)&&!unitAtScreen(sx,sy,false)){
+    const L=dd.lastTap;dd.lastTap={t:now,sx,sy};
+    if(L&&now-L.t<600&&hyp(L.sx-sx,L.sy-sy)<48){const m=sel.filter(alive),tg=tapTarget(sx,sy),as=makeAssign(m,tg.x,tg.y);dd.usedAt=-1e9;dd.lastTap=null;preview=null;if(as.length)commit(as);else banner('Can\u2019t get there.');return true;}
+    banner('Double tap to move.',1100);return true;}
+  return false;}
 function ddToolDone(){ddToolEnd();}
 function ddBar(){
   const box=$('#sq');if(!box)return;const show=!!dd&&state==='play'&&dd.land.done&&!!sel.length;if(box.hidden===show)box.hidden=!show;if(!show)return;
@@ -625,7 +644,7 @@ function ddBar(){
     return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${T.label}</span><small>${on?'in hand · tap the map':who}</small></button>`;}).join('');
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
-    if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'wait: he\'s busy with the last one'} · stays in hand · tap here to put it away</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
+    if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
   const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}
 }
 function ddBarBind(){
