@@ -57,10 +57,11 @@ function ddFoe(tag,dx,y,ex){
 function ddGunner(tag,s,name){const u=ddFoe(tag,s.x,s.y-6,{name:name||'Machine gunner',gunner:true,post:true,ang:s.ang});u.onGun={x:s.x+DDX,y:s.y,ang:s.ang,arc:s.arc};return u;}
 function spawnDDay(){
   const S=DD_SPOT,Z=(x0,y0,x1,y1)=>({x0:x0+DDX,x1:x1+DDX,y0,y1});
-  ddGunner('pill',S.pill);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddGunner('left',S.leftMG);ddFoe('left',316,262,{post:true});ddFoe('left',246,282,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',150,290,{post:true});ddFoe('left',400,268,{post:true,nade:1});
+  ddGunner('pill',S.pill);for(const g of S.pillMGs)ddGunner('pill',g);for(const g of S.leftMGs)ddGunner('left',g);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddGunner('left',S.leftMG);ddFoe('left',316,262,{post:true});ddFoe('left',246,282,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',150,290,{post:true});ddFoe('left',400,268,{post:true,nade:1});
   for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',790,262,{post:true});ddFoe('draw',800,-52,{zone:Z(752,-95,1000,40)});
   ddFoe('draw',484,178,{post:true});ddFoe('draw',520,178,{post:true});ddFoe('draw',600,60,{zone:Z(480,0,660,130)});ddFoe('draw',470,-20,{zone:Z(400,-60,640,60),nade:1});ddFoe('draw',556,178,{post:true,nade:1});
-  ddGunner('hill',S.hillMG);ddFoe('hill',856,136,{post:true});ddFoe('art',676,-410,{post:true,name:'Gun crew'});ddFoe('art',746,-404,{post:true,name:'Gun crew'});ddFoe('art',830,-410,{post:true,name:'Gun crew'});
+  ddGunner('hill',S.hillMG);ddGunner('hill',S.hillMG2);ddFoe('hill',880,128,{post:true,name:'Grenadier',mortarT:simT+24+Math.random()*6,lob:1});
+  ddGunner('top',S.pathMG,'Light machine gunner');ddFoe('top',S.sniper2.x,S.sniper2.y,{post:true,name:'Sniper',weapon:'sniper'});ddFoe('art',676,-410,{post:true,name:'Gun crew'});ddFoe('art',746,-404,{post:true,name:'Gun crew'});ddFoe('art',830,-410,{post:true,name:'Gun crew'});
   ddGunner('draw',S.drawMG);ddFoe('draw',420,-150,{zone:Z(380,-200,640,-60)});ddFoe('draw',542,-164,{zone:Z(380,-200,640,-60),nade:1});
   ddFoe('draw',252,-282,{zone:Z(150,-320,420,-220)});ddFoe('draw',318,-258,{zone:Z(150,-320,420,-220)});
   ddFoe('heavy',56,-412,{post:true,name:'Gun crew'});ddFoe('heavy',126,-412,{post:true,name:'Gun crew'});
@@ -305,6 +306,7 @@ function ddWreck(o,by){
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
 function ddSelected(){
   if(!dd||!sel.length)return;
+  if(dd.toolK&&!(sel.length===1&&sel[0]===dd.toolU)){dd.toolK=null;dd.toolU=null;mode=null;}   // (a tool in hand is put away by picking anyone else)
   const t=sel[0].team;if(sel.some(u=>u.team!==t)){sel=sel.filter(u=>u.team===t);cardGroup=players.filter(p=>p.team===t);}
   if(t===dd.active)return;
   dd.active=t;dd.idle[t]=0;
@@ -379,7 +381,8 @@ function ddWaves(){
   if(simT>dd.spawnT&&live<24&&!dd.won){dd.spawnT=simT+9+Math.random()*6;
     const lanes=[90,200,300,400,600,700,800,910].filter(x=>!dd.boats.some(b=>Math.abs(b.x-DDX-x)<70));for(let k=0;k<2&&lanes.length;k++){const i=(Math.random()*lanes.length)|0,x=lanes.splice(i,1)[0];ddBoat(x+(Math.random()-.5)*40,ddCrew(6+((Math.random()*3)|0)));}}
   // replacements due: each lands in a boat of his own with a few others, and makes for his squad
-  for(const q of dd.queue.slice()){if(simT<q.at)continue;dd.queue.splice(dd.queue.indexOf(q),1);
+  for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}   // (the medic's at him: wait)
+    dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;
     const u=ddNewMan(q.team,q.id,ddPickRole(q.team),DDX+500,900);u.joining=true;players.push(u);players.sort((a,b)=>a.id<b.id?-1:1);
     const mates=players.filter(p=>p.team===q.team&&p!==u&&!p.dead),lx=clamp((mates.length?mates.reduce((a,p)=>a+p.x,0)/mates.length:DDX+500)-DDX,90,910);
     ddBoat(lx+(Math.random()-.5)*60,[u,...ddCrew(3)]);buildCards();
@@ -398,7 +401,9 @@ function ddShell(by,x,y,R,D,dur){nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,b
 function ddShelling(){
   const al=dd.allies.filter(u=>!u.inBoat);if(!al.length)return;
   const pickAt=f=>{const c=al.filter(f);const u=(c.length?c:al)[(Math.random()*(c.length?c.length:al.length))|0];return{x:u.x+(Math.random()-.5)*90,y:u.y+(Math.random()-.5)*90};};
-  for(const e of enemies){if(e.tag!=='mortar'||beaten(e)||simT<e.mortarT)continue;e.mortarT=simT+11+Math.random()*8;const p=pickAt(u=>u.y<360);ddShell(e,p.x,p.y,50,78,2.6);e.throwT=simT;}
+  for(const e of enemies){if(e.mortarT==null||beaten(e)||simT<e.mortarT)continue;e.mortarT=simT+11+Math.random()*8;
+    if(e.lob){const c=al.filter(u=>hyp(u.x-e.x,u.y-e.y)<430);if(!c.length)continue;const u=c[(Math.random()*c.length)|0];ddShell(e,u.x+(Math.random()-.5)*70,u.y+(Math.random()-.5)*70,42,62,2.2);e.throwT=simT;continue;}   // the hill bunker's grenadier: rifle grenades down onto whoever's nearest
+    const p=pickAt(u=>u.y<360);ddShell(e,p.x,p.y,50,78,2.6);e.throwT=simT;}
   for(const tag of['heavy','cannon','art']){
     if(simT<dd.shellT[tag]||dd.blown[tag])continue;const crew=enemies.find(e=>e.tag===tag&&!beaten(e));if(!crew){dd.shellT[tag]=simT+5;continue;}
     dd.shellT[tag]=simT+(tag==='heavy'?12:tag==='art'?8:11)+Math.random()*(tag==='art'?4:5);
@@ -443,6 +448,19 @@ function ddZones(){
   if(near>=2&&!foes){dd.holdT=(dd.holdT||0)+.5;if(dd.holdT>=4){dd.won=true;H.base=true;bigText('Barracks taken','complete');banner('The barracks is yours. The base is taken.',4000);endAt=performance.now()+4200;updateObjUI();}}
   else dd.holdT=0;
 }
+// where a tool is going (Bryan: "When the player selects a location for a tool it should be a filled in circle. Orange for the to the rocket shows and
+// orange area of intended impact. Same with grenades and when they land. Smoke could be a grey circle. Medic would be a deep green around the player
+// targeted for a heal or revive"): from the order until it lands or it's done
+function ddDrawTargets(now){
+  const disc=(x,y,r,fill,line)=>{gPath(x,y,r);if(toSBack)return;ox.fillStyle=fill;ox.fill();ox.strokeStyle=line;ox.lineWidth=2;ox.stroke();},pu=.5+.5*Math.sin(now*6);
+  const OR=`rgba(255,138,30,${(.26+pu*.1).toFixed(3)})`,ORL='rgba(255,170,70,.95)',GR='rgba(150,158,166,.4)',GRL='rgba(215,222,228,.9)',GN=`rgba(20,120,60,${(.34+pu*.1).toFixed(3)})`,GNL='rgba(60,200,110,.95)';
+  for(const u of players){if(!alive(u))continue;const g=u.throwGo;
+    if(g){if(g.kind==='smoke')disc(g.x,g.y,58,GR,GRL);else disc(g.x,g.y,g.kind==='rpg'?PRPG.blast||55:58,OR,ORL);}
+    const md=u.medGo;if(md&&md.t&&!md.t.dead)disc(md.t.x,md.t.y,15,GN,GNL);
+    if(u.raise&&u.raise.t)disc(u.raise.t.x,u.raise.t.y,15,GN,GNL);}
+  for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P')continue;if(n.smoke)disc(n.x1,n.y1,58,GR,GRL);else disc(n.x1,n.y1,n.R||58,OR,ORL);}
+  for(const r of rockets){if(!r.by||r.by.side!=='P'||r.left==null)continue;disc(r.x+r.dx*r.left,r.y+r.dy*r.left,PRPG.blast||55,OR,ORL);}
+}
 function ddDrawZones(){
   const H=dd.held;if(!H)return;
   for(const Z of DD_ZONES){if(!H[Z.k])continue;const[x0,y0,x1,y1]=Z.r,P=[];let bad=false;
@@ -457,22 +475,39 @@ function ddDrawZones(){
    once the medic is beside him, or with a kit if he's critical), and mends anyone of his squad within 5 m, himself too, 5 HP a second */
 function ddMedics(){
   for(const m of players){if(m.ddRole!=='medic'||!alive(m)||m.inBoat)continue;
-    const calm=m.sup<.5&&simT-(m.firedOnT||-9)>3;if(!calm)continue;
+    const calm=m.sup<.5&&simT-(m.firedOnT||-9)>3;if(!calm){if(m.raise){m.raise.p=0;}continue;}
     const mates=players.filter(p=>p.team===m.team&&!p.dead&&!p.inBoat);
     const down=mates.filter(p=>p.downed&&!p.carriedBy&&hyp(p.x-m.x,p.y-m.y)<300).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y))[0];
     if(down&&!m.path.length&&!m.medGo&&!m.throwGo&&simT-m.lastOrder>2.5){
       if(down.critical){if(hasKit(m))orderMedkit(m,down);}
       else if(hyp(down.x-m.x,down.y-m.y)>22){const p=goBeside(m,down);if(p&&p.length){m.path=p;m.gaitForce=null;callout(m,'Medic coming',C.good);}}
       continue;}
+    // a dead man of his squad (Bryan: "If the player has a dead unit the medics can revive. It takes a lot longer than a heal and shouldn't be done in battle"):
+    // 12 s beside the body, and only while it's quiet round him; shot at or pinned, he stops and it starts over
+    {const body=m.raise&&m.raise.t;
+      if(body&&(body.noRev||!units.includes(body)||simT-m.lastOrder<1&&m.lastOrder>m.raise.t0+.01)){m.raise=null;}
+      if(!m.raise&&!m.path.length&&!m.medGo&&!m.throwGo&&simT-m.lastOrder>2.5){
+        const c=units.filter(u=>u.corpse&&u.team===m.team&&u.id0&&!u.gone&&!u.noRev&&hyp(u.x-m.x,u.y-m.y)<340&&!players.some(o=>o!==m&&o.raise&&o.raise.t===u)&&players.filter(q=>q.team===m.team&&!q.dead).length<DD_CORE[m.team].length).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y))[0];
+        if(c){m.raise={t:c,p:0,t0:simT};if(hyp(c.x-m.x,c.y-m.y)>20){const s=openSpot(c.x,c.y+12,players.filter(o=>o!==m&&!o.dead).map(destOf))||c,pp=findPath(m.x,m.y,s.x,s.y);if(pp&&pp.length){m.path=pp;m.gaitForce=null;}}callout(m,'Going to him',C.good);}}
+      if(m.raise&&!m.path.length){const c=m.raise.t;
+        if(hyp(c.x-m.x,c.y-m.y)>30){m.raise=null;}
+        else{m.raise.p+=1;m.ang=Math.atan2(c.y-m.y,c.x-m.x);m.aimT=simT;if(m.raise.p>=12){ddRaise(c,m);m.raise=null;}continue;}}}
     if(m.path.length)continue;
     for(const p of mates)if(alive(p)&&p.hp<100&&hyp(p.x-m.x,p.y-m.y)<50&&p.sup<.65){p.hp=Math.min(100,p.hp+5);if(!p.mendT||simT>p.mendT){p.mendT=simT+4;callout(p,p===m?'Patching up':'Patched up',C.good);}}
   }
+}
+function ddRaise(p,m){
+  const i=dd.queue.findIndex(q=>q.body===p);if(i>=0){dd.queue.splice(i,1);dd.pool++;}
+  if(p.noRev||!units.includes(p))return;
+  Object.assign(p,{id:p.id0,dead:false,downed:false,critical:false,hp:35,revive:0,boxRev:0,bleed:BLEED_T,sup:.2,npc:false,corpse:false,path:[],shyT:simT+6,lastOrder:simT});
+  dd.lost=Math.max(0,dd.lost-1);players.push(p);players.sort((a,b)=>a.id<b.id?-1:1);buildCards();if(m)m.stats.revives=(m.stats.revives||0)+1;
+  callout(p,'Back on his feet',C.good);banner(`${m?m.name:'The medic'} brought ${p.name} back.`,2600);updateObjUI();hud();
 }
 // the man doing what was just ordered from the bar is outlined in orange until it's done (Bryan: "Can the unit that is doing the action be highlighted orange. Like the outline of their body")
 function ddHot(){
   if(typeof figInkHot!=='function')return;
   for(const u of players){const F=u.m&&u.m.fig;if(!F||!F.ink)continue;
-    const hot=alive(u)&&(u===dd.toolU||!!u.throwGo||!!u.build||(!!u.medGo&&u.team===dd.active)||simT<(u.hotT||0)),want=hot?figInkHot():figInk();
+    const hot=alive(u)&&(u===dd.toolU||!!u.throwGo||!!u.build||(!!u.medGo&&u.team===dd.active)||(!!u.raise&&u.raise.p>0)||simT<(u.hotT||0)),want=hot?figInkHot():figInk();
     if(F.ink.material!==want)F.ink.material=want;}
 }
 /* ---------- every tick (combat.js's update) ---------- */
@@ -487,9 +522,10 @@ function ddTick(dt){
   for(const p of players.slice()){
     if(p.critical&&p.crit>45)p.crit=45;   // (no long wait on the beach)
     if(!p.dead)continue;
-    players.splice(players.indexOf(p),1);dd.lost++;p.npc=true;p.corpse=true;p.deadT=simT;const id=p.id;p.id='X'+dd.lost;
+    players.splice(players.indexOf(p),1);dd.lost++;p.npc=true;p.corpse=true;p.deadT=simT;const id=p.id;p.id0=id;p.id='X'+(dd.xid=(dd.xid||0)+1);
+    const canRaise=!p.gone&&!p.inBoat&&p.ddRole!=='medic'&&players.some(q=>q.team===p.team&&q.ddRole==='medic'&&!q.dead);   // (his squad's medic may bring him back: the replacement holds off half a minute for it)
     sel=sel.filter(x=>x!==p);cardGroup=cardGroup.filter(x=>x!==p);
-    if(dd.pool>0){dd.pool--;dd.queue.push({team:p.team,id,at:simT+5+Math.random()*3});}
+    if(dd.pool>0){dd.pool--;dd.queue.push({team:p.team,id,at:simT+(canRaise?32:5+Math.random()*3),body:p});}else p.noRev=!canRaise;
     buildCards();updateObjUI();
   }
   for(const p of players)if(p.joining)ddJoin(p);
@@ -537,24 +573,26 @@ const DD_TOOLS=[
   {k:'medkit',label:'Medic kit',col:'#ff8a7e',svg:()=>SPECIALS.medkit.svg,n:u=>u.spec==='medkit'?u.specN||0:0,btn:'spec',mode:'medkit'},
   {k:'revive',label:'Revive',col:'#5fe08e',svg:()=>'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.2 2.2 8.6a3.4 3.4 0 0 1 4.8-4.8l1 1 1-1a3.4 3.4 0 0 1 4.8 4.8z"/><path d="M4 8.4h2.2l1-2 1.6 4 1-2H12" fill="none" stroke="#0b0f13" stroke-width="1.2"/></svg>'}];
 const ddSquad=()=>players.filter(p=>p.team===dd.active&&!p.dead);
+// Since Version 139 a tool stays in hand: every tap on the map uses it again, by whoever of the squad has one and is free, until they've none left or
+// it's put away (its button again, the strip over the bar, another tool, a team tab). Nothing else happens meanwhile: no moves, no fire orders (Bryan:
+// "I hit squad Alpha and tried to shoot a bazooka. Instead the whole team ran. We have to make sure when the tool icon is selected, no other action can
+// be performed. I am thinking we should keep it on that action until all of it is used up")
+function ddToolArm(u){const T=DD_TOOLS.find(t=>t.k===dd.toolK);if(!T||!u||!u.card)return;dd.toolU=u;mode=null;u.card[T.btn].click();dd.toolAt=simT;}
+function ddToolEnd(why){if(!dd||!dd.toolK)return;dd.toolK=null;dd.toolU=null;mode=null;const m=ddSquad().filter(alive);if(m.length)select(m);if(why)banner(why,1800);hud();}
+function ddToolFree(T){return ddSquad().filter(u=>alive(u)&&T.n(u)>0&&u.card&&!u.throwGo&&!u.build&&!u.medGo&&!pinnedNow(u));}
 function ddToolUse(k){
   if(!dd||state!=='play'||ddBusy())return;const m=ddSquad().filter(alive);
-  if(k==='revive'){
-    const med=m.find(u=>u.ddRole==='medic'),down=players.filter(p=>p.team===dd.active&&p.downed&&!p.dead&&!p.carriedBy);
-    if(!med){banner('No medic on his feet in this squad.',1800);return;}
-    if(!down.length){banner('Nobody in the squad is down.',1600);return;}
-    if(pinnedNow(med)){refusePinned(med);return;}
-    const d=down.sort((a,b)=>hyp(a.x-med.x,a.y-med.y)-hyp(b.x-med.x,b.y-med.y))[0];
-    if(d.critical){if(hasKit(med))orderMedkit(med,d);else banner(`${d.name} is critical and ${med.name} has no medic kit left.`,2200);}
-    else{const p=goBeside(med,d);if(p){med.path=p;med.lastOrder=simT;med.gaitForce=null;med.hotT=simT+8;callout(med,'Going to him',C.good);}}
-    return;
-  }
-  if(k==='wire'){ddBlowWire(null);return;}
-  const T=DD_TOOLS.find(t=>t.k===k),was=dd.toolU&&dd.toolK===k&&mode===T.mode;
-  if(was){mode=null;ddToolDone();hud();return;}   // the same tool again: put it away
-  const c=m.filter(u=>T.n(u)>0&&u.card);if(!c.length){banner(`No ${T.label.toLowerCase()} left in this squad.`,1600);return;}
-  const u=c.sort((a,b)=>(pinnedNow(a)-pinnedNow(b))||((!!a.throwGo)-(!!b.throwGo))||(T.n(b)-T.n(a)))[0];
-  mode=null;u.card[T.btn].click();dd.toolU=u;dd.toolK=k;dd.toolAt=performance.now();
+  if(k==='wire'){ddToolEnd();ddBlowWire(null);return;}
+  if(dd.toolK===k){ddToolEnd();return;}   // the same tool again: put it away
+  const T=DD_TOOLS.find(t=>t.k===k),c=m.filter(u=>T.n(u)>0&&u.card);if(!c.length){banner(`No ${T.label.toLowerCase()} left in this squad.`,1600);return;}
+  if(dd.toolK)ddToolEnd();
+  dd.toolK=k;const f=ddToolFree(T),u=(f.length?f:c).sort((a,b)=>(T.n(b)-T.n(a)))[0];ddToolArm(u);
+}
+// kept in hand (from ddBar, every frame): once the last use is on its way, the next man who has one and is free takes it up; none left, it's put away
+function ddToolKeep(){
+  if(!dd.toolK||mode||simT-dd.toolAt<.2)return;const T=DD_TOOLS.find(t=>t.k===dd.toolK);
+  if(!ddSquad().some(u=>alive(u)&&T.n(u)>0)){ddToolEnd(`No ${T.label.toLowerCase()} left.`);return;}
+  const f=ddToolFree(T);if(f.length)ddToolArm(f.includes(dd.toolU)?dd.toolU:f[0]);
 }
 // the wire: the nearest stretch in front of the squad (or the one tapped) is blown open by whoever has a grenade, or by a rocket
 function ddWireNear(x,y,max){let b=null,bd=max;for(const o of dd.wires||[])if(!o.gone){const d=rectDist(x,y,o);if(d<bd){bd=d;b=o;}}return b;}
@@ -567,31 +605,32 @@ function ddBlowWire(o){
   if(!u){banner('Nobody free with a grenade or a rocket. They can climb it: it cuts.',2600);return false;}
   orderThrow(u,tx,ty,u===g?'nade':'rpg');u.lastOrder=simT;u.hotT=simT+6;banner(`${u.name} blows the wire${u===g?' with a grenade':' with the Bazooka'}.`,2000);return true;
 }
-function ddTap(wx,wy){if(!dd||!sel.length||ddBusy())return false;const o=ddWireNear(wx,wy,9);if(!o)return false;ddBlowWire(o);hud();return true;}
-function ddToolDone(){if(!dd||!dd.toolU)return;dd.toolU=null;const m=ddSquad().filter(alive);if(m.length)select(m);}
+function ddTap(wx,wy){if(!dd||ddBusy())return false;if(dd.toolK)return true;   // (a tool in hand and its man busy with the last use: the tap does nothing else)
+  if(!sel.length)return false;const o=ddWireNear(wx,wy,9);if(!o)return false;ddBlowWire(o);hud();return true;}
+function ddToolDone(){ddToolEnd();}
 function ddBar(){
   const box=$('#sq');if(!box)return;const show=!!dd&&state==='play'&&dd.land.done&&!!sel.length;if(box.hidden===show)box.hidden=!show;if(!show)return;
-  if(dd.toolU&&!mode&&performance.now()-dd.toolAt>250)ddToolDone();
+  ddToolKeep();
   const sq=ddSquad();
-  const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u,user=dd.toolU===u&&!!mode;
+  const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u,user=dd.toolU===u&&!!dd.toolK;
     return`<button type="button" class="sq-man${on?' on':''}${user?' user':''}${u.downed?' down':''}" data-id="${u.id}" style="--tc:${teamCol(u)};--hp:${u.downed?100:hp}%;--hc:${hc}"><b>${u.role}</b><span>${u.name}<em>${st[0]}</em></span><i><u></u></i></button>`;}).join('');
   const up=sq.filter(alive),medic=up.some(u=>u.ddRole==='medic'),downN=sq.filter(u=>u.downed).length;
   const wy=up.length?up.reduce((a,u)=>a+u.y,0)/up.length:0,wireOn=up.length&&wy>330&&wy<720&&!!ddWireNear(up.reduce((a,u)=>a+u.x,0)/up.length,wy,420);
   const tools=DD_TOOLS.map(T=>{if(T.k==='wire'){if(!wireOn)return'';const n=up.reduce((a,u)=>a+(u.grenade||0)+(u.spec==='rpg'?u.specN||0:0),0);return`<button type="button" class="sq-tool" data-k="wire" style="--c:${T.col}" ${n?'':'disabled'}>${T.svg()}<b>${n}</b><span>Blow wire</span><small>nearest man with one</small></button>`;}
-    if(T.k==='revive'){if(!medic&&!downN)return'';return`<button type="button" class="sq-tool" data-k="revive" style="--c:${T.col}" ${medic&&downN?'':'disabled'}>${T.svg()}<b>${downN||'·'}</b><span>Revive</span><small>${medic?'the medic goes':'no medic up'}</small></button>`;}
-    const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'||u.spec===T.k);if(!has)return'';const on=dd.toolU&&dd.toolK===T.k&&mode===T.mode;
-    return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${T.label}</span><small>${on?'tap the map':who}</small></button>`;}).join('');
+    if(T.k==='revive')return'';   // (no button since Version 139: the medics get men up by themselves, ddMedics)
+    const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'||u.spec===T.k);if(!has)return'';const on=dd.toolK===T.k;
+    return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${T.label}</span><small>${on?'in hand · tap the map':who}</small></button>`;}).join('');
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
-  {const a=box.querySelector('.sq-aim'),T=dd.toolU&&mode?DD_TOOLS.find(t=>t.k===dd.toolK&&t.mode===mode):null;
-    if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],h=`${T.label} · ${dd.toolU.name}<small>${verb} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
+  {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
+    if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'wait: he\'s busy with the last one'} · stays in hand · tap here to put it away</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
   const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
   box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
-    if(ev.target.closest('.sq-aim')){mode=null;ddToolDone();hud();}
+    if(ev.target.closest('.sq-aim')){ddToolEnd();}
     else if(t&&!t.disabled)ddToolUse(t.dataset.k);
-    else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){dd.toolU=null;u.card.el.click();}}
+    else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){ddToolEnd();u.card.el.click();}}
     ddBar();});
 }
 /* ---------- the HUD ---------- */
@@ -615,7 +654,7 @@ function ddHint(){
 }
 function drawDDay(now){
   if(!dd||!DD)return;ddBar();if(!dd.land.done)return;   // (nothing written over the ride in)
-  ddDrawZones();
+  ddDrawZones();ddDrawTargets(now);
   const lab=(dx,y,h,text,col)=>{toSBack=false;const[sx,sy]=toS(dx+DDX,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,9,700);};
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),S=DD_SPOT;
   if(!dead('left'))lab(342,262,30,'LEFT BUNKER','#ff8a6a');
@@ -628,6 +667,7 @@ function drawDDay(now){
   if(!dead('mortar'))lab(915,-470,24,'MORTARS','#ff8a6a');
   if(!dd.won)lab(820,-690,46,dd.holdT>0?`BARRACKS · HOLDING ${Math.max(1,Math.ceil(4-dd.holdT))}`:dd.holdN?(dd.holdFoes?`BARRACKS · ${dd.holdFoes} OF THEIRS STILL NEAR`:'BARRACKS · TWO MEN AT THE DOOR'):'BARRACKS · TAKE IT','#ffcf4a');
   if(dd.front>300){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · TAP IT TO BLOW IT · CLIMBING CUTS','#ffcf4a');}
+  for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
   // a man coming up to join: a line to him from his squad's tab colour
   for(const p of players)if(p.joining&&alive(p)&&!p.inBoat){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
   const o=$('#oob');if(o){const on=dd.oob>0&&state==='play';o.hidden=!on;if(on){o.style.opacity=Math.min(.86,.35+dd.oob*.06).toFixed(2);o.querySelector('b').textContent=`Turn back · ${Math.max(0,Math.ceil(10-dd.oob))}`;}}

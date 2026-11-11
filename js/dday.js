@@ -61,8 +61,13 @@ function ddH(x,y){
 
 /* ---------- the map's objects (play-area coordinates dx 0..1000, then moved over by DDX) ---------- */
 const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by these
-  pill:{x:668,y:280,ang:Math.PI/2,arc:1.3},leftMG:{x:342,y:280,ang:Math.PI/2,arc:.9},nests:[{x:868,y:280,ang:2.05,arc:1.25},{x:946,y:280,ang:Math.PI/2,arc:1.25}],
-  hillMG:{x:880,y:140,ang:Math.PI/2,arc:.95},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
+  // (Version 139, Bryan: "add more stationary machine tunes in each one": three in each bunker on the path, fanned out, each with a narrow swing, so
+  // between them a bunker covers what its one gun did; two on the hill; a light one at the top of the way up)
+  pill:{x:668,y:280,ang:Math.PI/2,arc:.36},pillMGs:[{x:644,y:280,ang:Math.PI/2+.62,arc:.36},{x:692,y:280,ang:Math.PI/2-.62,arc:.36}],
+  leftMG:{x:342,y:280,ang:Math.PI/2,arc:.34},leftMGs:[{x:318,y:280,ang:Math.PI/2+.6,arc:.34},{x:366,y:280,ang:Math.PI/2-.6,arc:.34}],
+  nests:[{x:858,y:280,ang:Math.PI/2+.66,arc:.38},{x:906,y:280,ang:Math.PI/2,arc:.36},{x:954,y:280,ang:Math.PI/2-.5,arc:.36}],
+  hillMG2:{x:904,y:140,ang:Math.PI/2-.42,arc:.48},pathMG:{x:292,y:-424,ang:1.32,arc:.8},sniper2:{x:206,y:-590},
+  hillMG:{x:856,y:140,ang:Math.PI/2+.42,arc:.5},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
   mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
 function ddObjects(){
@@ -100,7 +105,8 @@ function ddObjects(){
   // the base at the top: the heavy gun's emplacement, the long position along the back, the mortar pits, crates, the barracks
   o('ddpb',30,-372,120,8,{cover:2,bk:'hv'});o('ddpb',30,-440,8,68,{cover:2,full:true,bk:'hv'});o('ddpb',142,-440,8,68,{cover:2,full:true,bk:'hv'});
   o('ddgun',78,-408,24,22,{cover:1,hp:200,tag:'heavy'});
-  o('ddpb',90,-572,300,8,{cover:2});
+  o('ddpb',90,-572,300,8,{cover:2,bk:'tp'});o('ddpb',90,-620,8,48,{cover:2,full:true,bk:'tp'});o('ddpb',382,-620,8,48,{cover:2,full:true,bk:'tp'});   // the highest bunker: closed in like the others since Version 139
+  o('sandbag',262,-410,58,10);o('sandbag',256,-440,10,34);o('sandbag',322,-440,10,34);   // the light machine gun's nest at the top of the way up, in front of it
   o('ddgun',228,-600,24,20,{cover:1,hp:200,tag:'cannon'});
   for(const[x,y]of[[840,-462],[900,-452],[952,-464]])o('sandbag',x,y,44,10);
   for(const[x,y]of[[450,-520],[560,-560],[640,-500],[520,-462],[760,-540],[330,-470],[250,-500]])o('ddcrate',x,y,22,20,{cover:1});
@@ -260,14 +266,13 @@ function ddProps(sc,objsL){
       if(!o.bk)box(o,15,conc);
       else{const m=bkM(o.bk),md=bkM(o.bk,1),me=bkM(o.bk,2);o.meshes=o.meshes||[];const P=(geo,mat,x,y,z,ry,rx,rz)=>{const q=add(geo,mat,x,y,z,ry,rx,rz);o.meshes.push(q);return q;};
         if(o.w>o.h){   // the front: a battered lower wall, the slit, a heavy lintel, piers at the ends and the middle
-          const sh=new T.Shape();sh.moveTo(-o.h/2-4,0);sh.lineTo(o.h/2+1,0);sh.lineTo(o.h/2+1,10);sh.lineTo(-o.h/2,10);sh.closePath();
+          const sh=new T.Shape();sh.moveTo(-o.h/2-4,0);sh.lineTo(o.h/2+1,0);sh.lineTo(o.h/2+1,6.5);sh.lineTo(-o.h/2,6.5);sh.closePath();   // (since Version 139 a low wall and a tall opening: Bryan, "The bunker's embrasure should be much larger, the player can see inside the bunker from the ground")
           const low=P(new T.ExtrudeGeometry(sh,{depth:o.w+6,bevelEnabled:false}),m,o.x-3,g0,cy,Math.PI/2);
-          P(new T.BoxGeometry(o.w+6,10,o.h+2),m,cx,g0+19.5,cy);                         // the lintel
-          P(new T.BoxGeometry(o.w+10,1.6,o.h+7),md,cx,g0+14.2,cy+1);                      // its drip edge over the slit
-          P(new T.BoxGeometry(o.w-6,5,1.2),new T.MeshBasicMaterial({color:0x0b0c0c,transparent:true}),cx,g0+12,cy-o.h/2+.4).userData.dark=1;   // the dark of the throat
-          for(const fx of[0,.5,1])P(new T.BoxGeometry(7,5,o.h+2),m,o.x+3.5+fx*(o.w-7),g0+12,cy);
+          P(new T.BoxGeometry(o.w+6,5.5,o.h+2),m,cx,g0+21.8,cy);                         // the lintel
+          P(new T.BoxGeometry(o.w+10,1.4,o.h+7),md,cx,g0+18.6,cy+1);                      // its drip edge over the opening
+          for(const fx of(o.w>200?[0,.25,.5,.75,1]:[0,1]))P(new T.BoxGeometry(6,12.6,o.h+2),m,o.x+3+fx*(o.w-6),g0+12.6,cy);
         }else{P(new T.BoxGeometry(o.w+2,24.5,o.h+4),m,cx,g0+12.2,cy+1);
-          const east=cx>DDX+({p0:342,p1:668,p2:906,p3:880}[o.bk]||90)?1:-1;if(!((o.bk==='p1'&&east>0)||(o.bk==='p2'&&east<0))){const be=P(new T.SphereGeometry(1,10,7),me,cx+east*9,g0+1,cy+4);be.scale.set(13,15,o.h*.62);   // earth banked against the side
+          const east=cx>DDX+({p0:342,p1:668,p2:906,p3:880,tp:240}[o.bk]||90)?1:-1;if(!((o.bk==='p1'&&east>0)||(o.bk==='p2'&&east<0))){const be=P(new T.SphereGeometry(1,10,7),me,cx+east*9,g0+1,cy+4);be.scale.set(13,15,o.h*.62);   // earth banked against the side
           const tf=P(new T.SphereGeometry(1,8,6),bkM(o.bk,3),cx+east*10,g0+13,cy+6);tf.scale.set(8,4.5,o.h*.4);}}
       }}
     else if(o.kind==='ddgate'){   // a steel frame gate with cross bars
@@ -310,10 +315,10 @@ function ddProps(sc,objsL){
     for(let k=0;k<5;k++){const b=add(bagG,bkM(bk,2),x-w/2+6+k*8.5,g0+hh+6.4,y+d/2+1);b.scale.set(4.4,2.2,3);}
     add(new T.CylinderGeometry(1.1,1.1,7,7),bkM(bk,1),x+w*.3,g0+hh+7,y-d*.25);
     m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};m.userData.walls=BK[bk]||null;return m;};
-  DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(830,112,100,48,25,'p3'),slab(30,-440,120,76,25,'hv')];
+  DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(830,112,100,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,120,76,25,'hv')];
   for(const m of DD.roofs)m.castShadow=true;
   // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
-  {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.leftMG,DD_SPOT.pill,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG,DD_SPOT.hillMG]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y),g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;
+  {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.leftMG,...DD_SPOT.leftMGs,DD_SPOT.pill,...DD_SPOT.pillMGs,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG,DD_SPOT.hillMG,DD_SPOT.hillMG2,DD_SPOT.pathMG]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y),g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;
       const q=(geo,px,py,pz,rz,ry)=>{const b=new T.Mesh(geo,gm);b.position.set(px,py,pz);if(rz)b.rotation.z=rz;if(ry)b.rotation.y=ry;b.castShadow=true;g.add(b);};
       q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
