@@ -313,3 +313,11 @@ Bryan, after Version 140: "I had a problem selecting squads. It would take a cou
 - Test: `$SP/dd25.js` (tabs, one rocket a press, the ignored tap, the double tap), `$SP/dd26.js` (close-up pictures).
 
 After it (Bryan: "The messages that show up on the screen should be all the way on top, to the left of the reinforcement count"; "when you select a squad, it shows you the direction they are facing?"): on this map the banner sits top left, beside the count (`body.dd #banner`), and each selected man's ring has an arrowhead in his team's colour the way he faces (overlay.js).
+
+## Version 144: the phone on its side, first person in the boat
+
+Bryan: "Can we make it work horizontal too? If I flip my phone sideways? Also, the view make it first person to the last unit in the boat."
+
+- Landscape on a phone (`@media (orientation:landscape) and (max-height:540px)`, `body.dd` only, at the end of css/style.css): the map takes the whole screen; the title, status chip, hint line and Clear are hidden; Sound and Pause sit over the top right corner with the count beside them; the Alpha and Bravo tabs go down the left edge; the squad's men and tools share one row along the bottom (`#sq` as a grid), the aim strip above it. Only D-Day has this layout: the other levels are as before.
+- The ride in is first person again, through the eyes of the last man in the boat (`ddCam`), with the left-right look as before. (Version 140's view from the back corner is gone.)
+- Test: `$SP/dd31.js 844 390` (pictures of the ride, play and a tool in hand).

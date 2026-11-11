@@ -149,9 +149,10 @@ function ddCam(rdt){
     // Since Version 140 from over the last man's shoulder at the boat's back right corner, a little above, looking down its length: everyone in
     // the boat is in the picture, the ramp and the beach beyond (Bryan: "the last man in the boat to the bottom right corner from above. So every
     // unit is seen in the boat, not just the first two")
-    const nar=camera.aspect<1?1:0,t=simT,hit=(dd.land.jolt||0)*.5,py=-.24-nar*.08+Math.sin(t*1.1)*.006,yw=-.14+K.y+Math.sin(t*.5)*.012,by=b.m.position.y;
+    // Since Version 144 first person again, through the eyes of the last man in the boat (Bryan: "the view make it first person to the last unit in the boat")
+    const t=simT,hit=(dd.land.jolt||0)*.5,py=-.15+Math.sin(t*1.1)*.006,yw=K.y+Math.sin(t*.5)*.012,me=[...b.men].reverse().find(u=>!u.dead&&u.inBoat&&!u.npc)||b.men[b.men.length-1];
     if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}
-    camera.position.set(b.x+19+Math.sin(t*1.3)*.3+(Math.random()-.5)*hit,by+45+nar*20+Math.sin(t*1.7+1)*.5+(Math.random()-.5)*hit,b.y+58+nar*22);
+    camera.position.set(me.x+Math.sin(t*1.3)*.3+(Math.random()-.5)*hit,(me.elev||0)+26.5+Math.sin(t*1.7+1)*.5+(Math.random()-.5)*hit,me.y-5);
     camera.lookAt(camera.position.x+Math.sin(yw)*Math.cos(py)*300,camera.position.y+Math.sin(py)*300,camera.position.z-Math.cos(yw)*Math.cos(py)*300);camera.rotateZ(Math.sin(t*1.3)*.02);camera.updateMatrixWorld();
     dd.land.jolt=Math.max(0,hit-rdt*3);C.k=0;C.p=camera.position.clone();C.q=camera.quaternion.clone();return;}
   if(C.k<1&&C.p){C.k=Math.min(1,C.k+rdt/1.7);const e=C.k*C.k*(3-2*C.k),to=camera.quaternion.clone();   // off the boat: up and out to the usual view
