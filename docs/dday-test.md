@@ -256,3 +256,7 @@ Bryan: "Let's make a fifth slot for engineer". Each squad is five: medic, gunner
 - The block of rock he circled (the left mass's foot at dx 330-470) is gone (`DD_FACE`): a road along the top of the beach from the left edge to the draw's mouth, where it meets the path to the other bunkers (`ddRawH`, painted in `paintDDGround`). What he calls the left bunker was the old sandbag position in the left pocket: it's a real bunker now (`bk:'p0'`, `DD_SPOT.leftMG`, tag 'left': a machine gun and three riflemen) on that road at dx 300-384.
 - The replacements chip is three heads and "20/20", top right (`#ddChip`, moved out of `#tl`). No Fit map or gait button on this map (css), and the squad that runs itself no longer sneaks.
 - The bot won in 157 s with 2 lost: with the rock gone and five a squad it's a good deal easier than 132.
+
+## Version 135
+
+Bryan: "Get rid of the level name on top, it's just in the way. Maybe show it for the first five seconds. Maybe flash it in front of the screen. Chapter 1: D-Day". No objective box on this map (`ddObjUI`, hud.js); "Chapter 1: D-Day" in the middle of the screen for 5 s at the start (`bigText` with the class `chapter`), then the "Thirty seconds" banner.
