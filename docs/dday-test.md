@@ -47,3 +47,58 @@ His rules:
   dead" and then slowly; it can use special items and grenades, rarely, and more the longer the player ignores it.
 
 Checked: the voice tool (Zonos, its model, the scream reference) still runs in this environment, so new voices can be made.
+
+## Bryan's nine answers (11 Nov)
+
+1. The only way up is the path. The rock face is too steep to climb. The gates are passable: climbed or destroyed.
+2. The match ends when the barracks is destroyed. The top of the hill is a moderately sized flat base; the barracks keeps
+   sending troops down to the fight until it's destroyed. The base becomes the player's.
+3. 20 replacement troops. No tutorial here (a boot camp level will come before it).
+4. Replacements: random, but a missing type is filled first (demolition man / anti-tank, assault / gunner, medic,
+   sharpshooter). My recommendation, built: fill a missing type first, random only when all four are there.
+5. The squad that runs itself: "enemies in front of them" dead before it moves.
+6. New screaming voices: a follow-up. For now the screams of men dying, bullets, explosions, machine guns and ambience
+   already in the game.
+7. A man can be killed outright by a headshot or a blast dead on. Graphic: limbs and body parts fly off, blood, "war is hell".
+8. The graphics plan is fine; the day goes by as the level advances (evening at the top of the hill).
+9. The kind of level in Medal of Honor: Allied Assault, with our own rules, models and map: start on a transport boat,
+   bullets overhead, bombs in the water, a close camera; maybe a man or two dies before the beach, or a boat is hit and
+   they swim. "The intro part does not negate units for the player." A small script for the ride in: a follow-up.
+
+## The first playable (v126 code, published as Version 127)
+
+Intro card: "D-Day test · Normandy". Nothing of the Warehouse Yard was removed. Code: `js/dday.js` (the map and its look)
+and `js/ddplay.js` (the rules); the engine's hooks are listed in CLAUDE.md.
+
+What's in:
+- The map from the drawing, with real height (the first map here with it): the beach, shell holes and steel obstacles, wire,
+  the line of gate / sandbags / concrete / gate, the pillbox behind the left gate, the draw up between the rock (the only
+  way up), the two nests on the right, the heavy gun, the long position with sniper, cannon and machine gun, the mortars,
+  the barracks. Mirror copies of the land either side, sea to the horizon, a sky that goes from grey dawn to a warm evening
+  as the squads climb.
+- Landing craft: the two squads ride in together (nobody can be hurt on the ride yet), other boats either side, more waves
+  every 16-26 s.
+- Two squads of four (medic, gunner with a BAR, sharpshooter with a Springfield, demolition man with a Bazooka, 4 rockets),
+  random names and one trait each (steady, sharp-eyed, quick, tough, green, hothead, careful, old hand).
+- One squad is played; picking the other (its tab or one of its men) changes over and the camera goes to it. The other runs
+  itself: gets its own wounded up, fights, moves up only when nobody's left in front of it and never more than about 17 m
+  ahead of the squad being played, and uses a rocket, a grenade or smoke now and then, more often the longer it's left.
+- A man killed (bled out, a headshot: 4 % of hits, a blast of 70+ on him) leaves the squad; a replacement lands 5-8 s
+  later in a boat near his squad and runs up to it, while the 20 last. Missing type first.
+- Other troops (grey rings, not selectable) land and fight but hold at lines behind what the squads have opened.
+- Defenders: 32 to start, dug in (they take 28 % less), the guns reach further than rifles; the barracks sends a man down
+  every 8-12 s (at most 9 at a time) until it's destroyed. Mortars, the heavy gun and the cannon shell the beach with a
+  red INCOMING circle while they're crewed.
+- Gates and the wire blow open with a grenade or a rocket; the guns can be wrecked; the barracks takes four blasts.
+- Gore: blood, and body parts thrown from a blast dead on.
+- Off the map's sides: the screen darkens with "Turn back" and a count; at 10 s the man is lost.
+- Lost when nobody's left standing and nobody's coming.
+
+Tested headless: loads with no errors; the landing; taps land where aimed on the hill (five spots, exact); squad switch;
+the off-map count and death at 10.0 s; replacements arriving and joining; a gate blown and the way open; the loss screen
+and "Land again"; Level 1 afterwards (height hook off, weapon names back). A reckless bot playing Alpha (moves only, a hop
+every 40 s at most) won in 4 min 10 s with 6 of the squads' men killed and 50 of the other troops: so it can be won, and
+it kills. Not judged yet: pacing with a real player, performance on a phone (up to ~70 figures), sound mix.
+
+Not in yet (follow-ups): the ride-in script (men lost before the beach, a boat hit, swimming ashore), the new screaming
+voices, enemy vehicles, a report with XP, saves.

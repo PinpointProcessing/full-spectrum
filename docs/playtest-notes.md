@@ -1278,3 +1278,7 @@ Then: a Godot test scene, and maybe the move to Godot if it's the right time; te
 Bryan's answers to the three: Breach only at doors (as now: real doorways into rooms, not every gap). A second gun takes up the
 special-item slot (giving up smoke, a medkit or the RPG to carry it). The AK-47 as proposed: harder hits (about 13-18) but less
 accurate, worse at range, slightly slower bursts than the M4.
+
+## D-Day test (first playable, Version 127)
+Built as a separate game on the intro card ("D-Day test · Normandy"); the Warehouse Yard is untouched. Details and what's
+still to come: `docs/dday-test.md`. Follow-ups Bryan asked for: the ride-in script, new screaming voices.

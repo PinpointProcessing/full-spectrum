@@ -202,7 +202,8 @@ const BARKS={spot:['There!','Contact!','Over there!'],lost:['Lost him!','Where d
   body:['Man down here!','Body! Over here!','We have a body!'],what:['What was that?','Hey... what is that?','Something over there.'],grenade:['Grenade out!','Frag out!','Fire in the hole!'],
   surrender:['Don\'t shoot!','I give up!','Please, don\'t shoot!'],
   hit:['Aaagh!','I\'m hit! I\'m hit!','Argh! My leg!'],panic:['They\'re everywhere!','Where is it coming from?!','Fall back! Fall back!']};   // (the last three: layers.js)
-function bark(e,k,force){
+function bark(e,k,force){if(MAPID==='dd')return;   // (D-Day's defenders have no voices yet: ddplay.js)
+
   if(!e||e.dead||e.dog||e.veh)return;if(!force&&(simT<(e.barkT||0)||simT<barkAllT))return;if(simT<barkHardT)return;   // (Bryan: everyone talked all the time: even urgent shouts don't pile up)
   if(!players.some(p=>alive(p)&&!p.offMap&&hyp(p.x-e.x,p.y-e.y)<340))return;   // out of earshot
   if(offFloor(e))return;
@@ -284,7 +285,7 @@ function huntTick(dt){
   if(searched.length)searched=searched.filter(s=>simT-s.t<40);
   for(const e of enemies)if(e.flanking&&!e.path.length)e.flanking=false;
   // contact ends once no alerted hostile on the squad's ground has seen them for a while, and nothing's been fired
-  if(contact&&state==='play'){
+  if(contact&&state==='play'&&MAPID!=='dd'){
     const inside=MAPID==='in',quiet=inside?IN_QUIET:CONTACT_END;
     const floors=inside?new Set(players.filter(p=>alive(p)&&!p.offMap).map(p=>floorOf(p.x,p.y))):null;
     const seen=enemies.some(e=>!e.dead&&e.alerted&&(!floors||floors.has(e.floor))&&simT-(e.sawT??-99)<quiet);

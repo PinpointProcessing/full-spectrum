@@ -14,6 +14,7 @@ function mk(side,team,id,name,x,y,ang){
   units.push(u);return u;
 }
 function reset(){
+  if(typeof leaveDDayNow==='function')leaveDDayNow();   // (D-Day: dday.js)
   leaveLevel1Now();leaveLevel2Now();leaveHQNow();leaveTunnelNow();leaveHillNow();   // (Level 4: level4.js)   // (Level 1: level1.js; Level 2: level2.js; the Headquarters: fortress.js)
   leaveInteriorNow();   // a new game or Continue from inside the office building: back to the outdoor map first
   resetRoad();   // the road east closed again (road.js)

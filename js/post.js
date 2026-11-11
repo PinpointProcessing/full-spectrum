@@ -174,15 +174,15 @@ function fxFrame(){
   // muzzle flashes
   let i=0;
   for(const f of flashes){if(i>=P.flare.length)break;if(f.t>.07)continue;const s=P.flare[i++],k=1-f.t/.07;
-    const at=f.u&&muzzleAt(f.u,_fxv);if(at)s.position.copy(at);else s.position.set(f.x,12,f.y);
+    const at=f.u&&muzzleAt(f.u,_fxv);if(at)s.position.copy(at);else s.position.set(f.x,12+gndH(f.x,f.y),f.y);
     if(!f.rot){f.rot=Math.random()*6.28;f.sz=5+Math.random()*2.5;}s.material.rotation=f.rot;s.scale.setScalar(f.sz*(.7+k*.5));s.material.opacity=k;s.visible=true;}
   for(;i<P.flare.length;i++)P.flare[i].visible=false;
   // blasts: a fireball while it burns, then smoke that rises and spreads
   i=0;
   for(const b of booms){if(b.t<0)continue;if(!P.seen.has(b)){P.seen.add(b);for(let k=0;k<6;k++)P.puffs.push({x:b.x+(Math.random()-.5)*24,y:b.y+(Math.random()-.5)*24,h:6+Math.random()*8,t0:simT,life:2.6+Math.random()*1.6,sz:(18+Math.random()*16)*(b.size||1),rot:Math.random()*6.28});}
-    if(i>=P.fire.length||b.t>.6)continue;const s=P.fire[i++],k=b.t/.6;s.position.set(b.x,10+k*14,b.y);s.scale.setScalar((22+k*40)*(b.size||1));s.material.opacity=Math.min(1,(1-k)*1.6);s.material.rotation=b.x;s.visible=true;}
+    if(i>=P.fire.length||b.t>.6)continue;const s=P.fire[i++],k=b.t/.6;s.position.set(b.x,10+k*14+gndH(b.x,b.y),b.y);s.scale.setScalar((22+k*40)*(b.size||1));s.material.opacity=Math.min(1,(1-k)*1.6);s.material.rotation=b.x;s.visible=true;}
   for(;i<P.fire.length;i++)P.fire[i].visible=false;
   P.puffs=P.puffs.filter(p=>simT-p.t0<p.life);
-  i=0;for(const p of P.puffs){if(i>=P.smoke.length)break;const s=P.smoke[i++],k=(simT-p.t0)/p.life;s.position.set(p.x,p.h+k*26,p.y);s.scale.setScalar(p.sz*(.6+k*1.3));s.material.opacity=.75*(1-k)*Math.min(1,k*6);s.material.rotation=p.rot+k*.6;s.visible=true;}
+  i=0;for(const p of P.puffs){if(i>=P.smoke.length)break;const s=P.smoke[i++],k=(simT-p.t0)/p.life;s.position.set(p.x,p.h+k*26+gndH(p.x,p.y),p.y);s.scale.setScalar(p.sz*(.6+k*1.3));s.material.opacity=.75*(1-k)*Math.min(1,k*6);s.material.rotation=p.rot+k*.6;s.visible=true;}
   for(;i<P.smoke.length;i++)P.smoke[i].visible=false;
 }

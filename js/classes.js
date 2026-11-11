@@ -21,7 +21,7 @@ const CLASSES={
 let classes=readClasses();
 function readClasses(){try{const c=JSON.parse(localStorage.getItem(CLASS_KEY)||'{}');for(const k in c)if(!CLASSES[c[k]])delete c[k];return c;}catch(e){return{};}}
 function saveClasses(){try{localStorage.setItem(CLASS_KEY,JSON.stringify(classes));}catch(e){}}
-const classOf=u=>u&&u.side==='P'&&(!u.joined||u.kitted)?classes[u.id]||null:null;   // (the freed prisoners have no class)
+const classOf=u=>MAPID==='dd'?(u&&u.ddCls)||null:u&&u.side==='P'&&(!u.joined||u.kitted)?classes[u.id]||null:null;   // (D-Day: his role there, not the campaign's class, dday.js)   // (the freed prisoners have no class)
 const isCls=(u,k)=>classOf(u)===k;
 // Bryan, after v100: "allow level ups but no new equipment until the Radio Tower is built": soldiers keep levelling up, but
 // nobody picks a class until radio control is up at the HQ (after Level 4: coming next); the report and the boat screen say

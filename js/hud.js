@@ -15,6 +15,7 @@ function objHint(){
 function setStatus(){
   const s=$('#status');
   if(state==='end'){s.className='chip';return;}
+  if(MAPID==='dd'){s.textContent='Assault';s.className='chip contact';return;}
   const quiet=enemies.some(e=>!e.dead&&e.alerted&&!e.dormant&&!(MAPID==='l4'&&e.mon))?'Hunted':'Undetected';   // (not her brood asleep, or Level 4's monsters: they hunt everyone)   // hunted: they're searching for you (hunt.js)
   const hid=contact?[...new Set(players.filter(p=>alive(p)&&!p.offMap&&!caught(p)).map(p=>teamName(p.team)))]:[],cTxt=hid.length?hid.join(' & ')+' hidden':'Contact';   // (one team caught, the other still covert: hunt.js)
   if(wave.phase==='hq'){s.textContent=contact?cTxt:obj>=6?quiet:obj>=5?'Bridge down':quiet;s.className='chip'+(contact?' contact':'');return;}
@@ -22,6 +23,7 @@ function setStatus(){
   s.textContent=contact?cTxt:quiet;s.className='chip'+(contact?' contact':'');
 }
 function finish(){
+  if(MAPID==='dd'){ddFinish();return;}   // (D-Day: dday.js)
   if(typeof tutStop==='function'&&MAPID==='l1')tutStop();
   if(LEVEL===2){$('#endEyebrow').textContent='Mission failed';$('#endTitle').textContent='Squad lost';state='end';setStatus();$('#status').textContent='Lost';$('#endText').textContent='The squad went down. Try again: the hole in the fence on the west side is the quiet way in, and a Breach takes the control building.';$('#againBtn').textContent='Try Level 2 again';$('#retryBtn').hidden=true;$('#end').hidden=false;return;}   // (level2.js)
   const win=players.some(alive)&&(wave.phase==='hq'?obj>=5:enemies.every(beaten));
@@ -79,6 +81,7 @@ function hud(){
   else if(act.length===1&&act[0].onTower&&!preview)h=act[0].weapon==='sniper'?`${act[0].name} is up the tower with the sniper rifle: he sees 70 m the way he faces (all round while he's the one selected). Tap the gun on his card to swap back to his ${WEAPON[act[0].weapon2||'rifle'].label}. Any move order brings him down first.`:`${act[0].name} is up the tower. Any move order brings him down first.`;
   else if(!preview&&enemies.some(e=>e.surr&&!e.tied&&!e.dead&&e.vis&&!offFloor(e)))h=act.length?'A hostile has surrendered: tap him to zip-tie him (2 s beside him).':'A hostile has surrendered: select a soldier, then tap him to zip-tie him.';   // (layers.js)
   else if(selCrew().length&&!preview)h='Tap the ground, then tap again to drive there. Tap a hostile to line the gun up on him. Dismount is bottom right.';
+  else if(MAPID==='dd'&&!preview&&!act.length)h=ddHint();   // (dday.js)
   else if(MAPID==='l1'&&!preview&&!act.length)h=l1Hint();   // (level1.js)
   else if(MAPID==='l2'&&!preview&&!act.length)h=l2Hint();   // (level2.js)
   else if(MAPID==='hq'&&!preview&&!act.length)h=hqHint();   // (fortress.js)
@@ -151,7 +154,7 @@ function bindHud(){
   {const ob=$('#obj'),tg=()=>{objPingT=performance.now();if(ob.classList.contains('nm')){if(ob.classList.contains('min'))objNMShow();else objNMHide();return;}   // (the next mission: open it, or close it: mission.js)
     ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
-  $('#againBtn').addEventListener('click',()=>{if(LEVEL===1){startLevel1(true);return;}if(LEVEL===2){startLevel2(true);return;}startLevel3();});
+  $('#againBtn').addEventListener('click',()=>{if(MAPID==='dd'){startDDay();return;}if(LEVEL===1){startLevel1(true);return;}if(LEVEL===2){startLevel2(true);return;}startLevel3();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}

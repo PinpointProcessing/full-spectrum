@@ -33,7 +33,7 @@ function frame(nowMs){
   if(state==='equip'){guard('equip',()=>{equipFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);});return;}   // between missions: the squad at sea (equip.js)
   if(state==='play')guard('update',()=>{
     const dt=rdt*timeScale();if(dt>0)update(dt);
-    if(!reduced&&!paused&&MAPID!=='in'&&MAPID!=='tun'&&!hqIndoors()&&!l4In()){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
+    if(!reduced&&!paused&&MAPID!=='in'&&MAPID!=='dd'&&MAPID!=='tun'&&!hqIndoors()&&!l4In()){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors
     if(endAt&&nowMs>=endAt)finish();
   });
   guard('frame',()=>{
@@ -66,7 +66,7 @@ addEventListener('pagehide',()=>{try{sessionStorage.removeItem('wy.alive');}catc
 if(!initGL())$('#nogl').hidden=false;
 else{
   postInit();
-  bindInput();bindHud();bindAudio();bindVoice();bindFloors();bindEquip();hqcBind();bindTalk();refreshSaveButtons();crashNote();
+  bindInput();bindHud();bindAudio();bindVoice();bindFloors();bindEquip();hqcBind();if(typeof bindDDay==='function')bindDDay();bindTalk();refreshSaveButtons();crashNote();
   buildWorld();reset();
   new ResizeObserver(resize).observe(stage);resize();
   hud();

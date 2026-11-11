@@ -342,3 +342,11 @@ body.hqm .dock,body.hqm #gaitBtn{visibility:hidden}   /* the Headquarters is man
 .uc-gsvg{display:contents}
 .sdtip[data-s="g"]{fill:#52d273}.sdtip[data-s="y"]{fill:#ffcf4a}.sdtip[data-s="r"]{fill:#ff4a3a}
 #cards.compact .uc-gun.sd{display:flex;height:10px}#cards.compact .uc-gun.sd svg{width:30px;height:10px}#cards.compact .uc-gun.sd b{display:none}
+
+/* D-Day test (ddplay.js) */
+#ddChip{background:rgba(10,14,18,.88);color:#dfe6ea;border-color:rgba(200,210,216,.4);font-variant-numeric:tabular-nums}
+body.dd #alert,body.dd #alertLvl,body.dd #allBtn{display:none!important}
+#oob{position:absolute;inset:0;z-index:6;pointer-events:none;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px}
+#oob[hidden]{display:none}
+#oob b{font-size:30px;color:#ff5a4a;letter-spacing:.06em;text-transform:uppercase}
+#oob span{color:#e8ecef;font-size:14px;max-width:320px}

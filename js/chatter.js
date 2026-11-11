@@ -151,11 +151,12 @@ function chatContact(amb){   // first contact: the man who sees them says where;
   const l1=L(u,`cdir_${near}_${many?'many':'one'}`,CDIR[many?'many':'one'].replace('{D}',CLOCK[near]));
   if(!chat('contact',6,l1,gen(leaderOf([u]),'engage')))say(u,'contact');
 }
-function chatDown(t){   // a man down: the nearest calls it, the next one goes to him
+function chatDown(t){if(MAPID==='dd')return;   // (D-Day's men come and go: no lines by name, ddplay.js)
+   // a man down: the nearest calls it, the next one goes to him
   const a=nearestTo(t.x,t.y,[t]),b=players.filter(p=>up(p)&&p!==t&&p!==a&&canSay(p,'gotyou',t)).sort((p,q)=>hyp(p.x-t.x,p.y-t.y)-hyp(q.x-t.x,q.y-t.y))[0];
   if(!chat('down',2,named(a,'down',t),named(b,'gotyou',t)))say(a,'man_down');
 }
-function chatRevived(t,by){if(by&&by!==t&&!t.dead&&chat('thanks',4,named(t,'thanks',by)))return true;say(t,'revived');return false;}
+function chatRevived(t,by){if(MAPID==='dd'){say(t,'revived');return false;}if(by&&by!==t&&!t.dead&&chat('thanks',4,named(t,'thanks',by)))return true;say(t,'revived');return false;}
 function chatKill(u){if(Math.random()<.1){const m=[partnerOf(u),...players.filter(p=>p!==u&&up(p)&&p.team===u.team)].find(p=>canSay(p,'nice',u));if(m)chat('nice',60,named(m,'nice',u));}}
 function chatTakedown(u){const m=partnerOf(u);chat('tk',25,gen(u,'tkdone'),m&&hyp(m.x-u.x,m.y-u.y)<260&&Math.random()<.3?gen(m,'tknice'):null);}
 function chatHush(e){   // a guard heard or saw something: the nearest man says freeze; when he settles, they move on
@@ -174,7 +175,8 @@ function chatFree(u){chat('free',3,gen(u,'free'));}
 function chatSci(u){chat('sci',6,gen(u,'sci'));}
 function chatScan(u){chat('scan',4,gen(u,'scan'));}
 // once the shooting stops: the lead checks on the man who's hurt worst; he answers how he is
-function chatStatus(){
+function chatStatus(){if(MAPID==='dd')return;
+
   const a=leaderOf();if(!a)return;const hurt=players.filter(p=>up(p)&&p!==a&&p.hp<90).sort((x,y)=>x.hp-y.hp)[0];if(!hurt)return;
   chat('status',120,named(a,'check',hurt),gen(hurt,hurt.hp>=70?'fine':hurt.hp>=35?'hurt':'bad'));
 }

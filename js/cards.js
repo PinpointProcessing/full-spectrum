@@ -62,7 +62,7 @@ function buildCards(){
   for(const u of players){
     const el=document.createElement('div');el.className='ucard';el.style.setProperty('--tc',teamCol(u));
     el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',`${u.id} ${u.name}`);
-    el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${classOf(u)?CLASSES[classOf(u)].ab:rankOf(u.level).ab}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
+    el.innerHTML=`<div class="uc-top"><canvas class="uc-face" width="64" height="64"></canvas><div class="uc-id"><b>${u.id} · ${u.role||(classOf(u)?CLASSES[classOf(u)].ab:rankOf(u.level).ab)}</b><span class="uc-name">${u.name}</span><span class="uc-st">Ready</span></div></div>`+
       `<div class="uc-hpb"><i></i><span class="uc-hp">100</span></div>`+
       `<div class="uc-gun"></div>`+   // (filled by updateCards: gunHTML)
       `<div class="uc-bot">${C4_ON?'<button class="uc-rpg" aria-label="Demolition charge">C4<i>1</i></button>':''}<button class="uc-skill" aria-label="Class skill" hidden></button><button class="uc-spec" aria-label="Special item"></button><button class="uc-nade" aria-label="Grenade">${NADE_SVG}<i>1</i></button></div>`;
@@ -138,7 +138,7 @@ function updateCards(){
     // his own slot (A3 third along); the name goes up beside the callsign and the rank comes off, a line less per row
     const ck=compact?'c':'n';if(c.el.dataset.k!==ck){c.el.dataset.k=ck;const n=+u.id.slice(1)||1;
       c.el.style.gridRow=compact?(u.team==='A'?'1':'2'):'';c.el.style.gridColumn=compact?String(Math.min(4,n)):'';
-      c.idb.textContent=compact?u.name:`${u.id} · ${classOf(u)?CLASSES[classOf(u)].ab:rankOf(u.level).ab}`;}
+      c.idb.textContent=compact?u.name:`${u.id} · ${u.role||(classOf(u)?CLASSES[classOf(u)].ab:rankOf(u.level).ab)}`;}
     c.el.classList.toggle('sel',sel.includes(u));c.el.classList.toggle('downed',u.downed);c.el.classList.toggle('kia',u.dead);
     const[t,cls]=statusText(u);c.st.textContent=t;c.st.className='uc-st'+(cls?' '+cls:'');
     c.hp.textContent=u.dead?'KIA':`${Math.ceil(u.hp)}`;c.hp.classList.toggle('kia',u.dead);

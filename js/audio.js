@@ -296,7 +296,7 @@ function audioFrame(){
   if(live)footsteps();
   if(typeof chatTick==='function')chatTick();   // the squad's conversations (chatter.js)
   sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:18000,t,.12);   // slow-mo and pause sound muffled
-  for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='in'||hqIndoors()?.25:MAPID==='tun'||l4In()?.15:1),t,.4);   // indoors the rain is just a hiss on the roof
+  for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='dd'?0:MAPID==='in'||hqIndoors()?.25:MAPID==='tun'||l4In()?.15:1),t,.4);   // indoors the rain is just a hiss on the roof
   if(amb){
     const inside=MAPID==='in'||MAPID==='tun'||hqIndoors()||l4In();amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
     amb.wg.gain.setTargetAtTime(inside?0:.05+.04*Math.max(0,amb.gust),t,.8);amb.hum.gain.setTargetAtTime(inside?1:0,t,.8);

@@ -17,7 +17,7 @@ function unitAtScreen(sx,sy,activeOnly){
     if(d<lim&&d<bd){bd=d;best=u;}}
   return best;
 }
-const noOrders=()=>!!landing||(typeof l4Busy==='function'&&l4Busy())||(typeof heliBusy==='function'&&heliBusy())||(typeof endingBusy==='function'&&endingBusy())||(MAPID==='l1'&&l1&&l1.away!=null)||(MAPID==='l2'&&(!!l2.land||l2.away!=null));   // in the dinghy coming in, the helicopter, or the boat going out
+const noOrders=()=>!!landing||(MAPID==='dd'&&typeof ddBusy==='function'&&ddBusy())||(typeof l4Busy==='function'&&l4Busy())||(typeof heliBusy==='function'&&heliBusy())||(typeof endingBusy==='function'&&endingBusy())||(MAPID==='l1'&&l1&&l1.away!=null)||(MAPID==='l2'&&(!!l2.land||l2.away!=null));   // in the dinghy coming in, the helicopter, or the boat going out
 function enemyAtScreen(sx,sy){
   let best=null,bd=26;
   for(const e of enemies){if(e.dead||!e.vis)continue;const[x,y]=toS(e.x+e.lx,e.y+e.ly,8+(e.elev||0));const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=e;}}
@@ -182,6 +182,7 @@ function select(list){
   for(const u of list)if(!sel.includes(u))u.gaitForce=null;
   if(!(list.length===1&&cardGroup.includes(list[0])))cardGroup=players.filter(p=>list.some(u=>u.team===p.team));
   sel=list;
+  if(MAPID==='dd'&&typeof ddSelected==='function')ddSelected();   // (D-Day: one squad is played at a time, dday.js)
 }
 /* ---------- the squads apart (Bryan: "if selecting the other squad, it should bring you to them. You cant change squads if
    they are in different locations and your squad is under attack") ---------- */

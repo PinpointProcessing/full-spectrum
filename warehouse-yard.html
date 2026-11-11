@@ -15,6 +15,7 @@
   </div>
   <div id="stage">
     <div id="hitFlash" aria-hidden="true"></div>
+    <div id="oob" hidden><b>Turn back</b><span>You are leaving the battle. Ten seconds out here and he is lost.</span></div>
     <canvas id="cv"></canvas>
     <canvas id="ov"></canvas>
     <div id="nogl" hidden>This demo needs WebGL, which this browser has turned off.</div>
@@ -41,6 +42,7 @@
       <div id="obj" hidden role="button" tabindex="0" aria-expanded="false" aria-label="Objectives"><b>Objective 1/5</b><span>Take the warehouse</span><ol></ol></div>
       <span class="chip" id="savedChip" hidden>Saved</span>
       <span class="chip" id="outChip" hidden>Comms down</span>
+      <span class="chip" id="ddChip" hidden></span>
     </div>
     <div id="tut" hidden aria-live="polite"></div>
     <button id="tutPin" hidden aria-label="Show the tip again">?</button>
@@ -121,6 +123,7 @@
     <button class="go alt" id="startBtn">Level 3 · The Bio Lab</button>
     <button class="go alt" id="afterBtn">Level 3 · The HQ, After the Battle</button>
     <button class="go alt" id="l4Btn">Level 4 · The Old Radio Tower</button>
+    <button class="go alt" id="ddBtn">D-Day test · Normandy</button>
     <details class="cps"><summary>Levels 3 and 4 · start at a checkpoint</summary><div id="cpBtns"></div></details><!-- (save.js: startCheckpoint) -->
     <button class="linkish" id="resetXpBtn" type="button">Reset squad XP, ranks and classes</button>
   </div>
@@ -206,4 +209,6 @@
 <script src="js/voice.js"></script>
 <script src="js/chatter.js"></script>
 <script src="js/story.js"></script>
+<script src="js/dday.js"></script>
+<script src="js/ddplay.js"></script>
 <script src="js/main.js"></script>

@@ -121,6 +121,7 @@ function hitChance(s,t,L){
   if(s.side==='P')c+=rankAim(s)+ob+(nearCaptain(s)?CLS.leadAim:0)+(s.rallyT>simT?SKILL.rally.aim:0);   // (a Captain's rally: skills.js)   // rank: steadier aim; on Watch / breaching: a bonus
   if(s.side==='E')c-=ENEMY_AIM+(s.aimPen??(s.l1?L1E.aim:0));   // (Level 1's and Level 2's guards: worse still, level1.js, level2.js)
   if(s.gunner)c-=0.05;   // machine gun: sprays
+  if(s.aimK)c+=s.aimK;   // (a man's own eye: D-Day's replacements and other troops, dday.js)
   return clamp(c,0.05,0.95);
 }
 function threats(){
@@ -414,6 +415,7 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 // src: who did it (credited with the kill for the after-action report)
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
+  if(MAPID==='dd'&&ddDamage(t,dmg,src))return;   // (D-Day: the other troops, killed outright, the gore: dday.js)
   if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun jeep (mission.js): bullets (at GJEEP.bullet) and blasts
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
   if(t.dmgIn)dmg*=t.dmgIn;else if(t.l1)dmg*=L1E.dmgIn;   // Level 1's and Level 2's guards go down faster (level1.js, level2.js)
@@ -444,6 +446,7 @@ function damage(t,dmg,src){
 }
 
 function pickTarget(u){
+  if(MAPID==='dd')return ddPick(u);   // (D-Day: everyone's in the fight, the other troops too: dday.js)
   // undetected, the squad holds fire except at a hostile you've told them to shoot (or into a room they're breaching)
   if(u.side==='P'&&volleyHeld(u))return null;   // the silencers are about to take him: wait for it
   let foes=u.side==='P'?(caught(u)||simT<(u.breachT||0)?enemies.filter(e=>!beaten(e)):u.focus&&!beaten(u.focus)?[u.focus]:u.watch?enemies.filter(e=>inWatch(u,e)):[]):players.filter(p=>alive(p)&&(!contact||caught(p)));
@@ -494,7 +497,7 @@ function resolveShot(s){
   if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
   if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0,u});   // a silencer hides the flash
-  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t)*(nearCaptain(t)?CLS.leadNerve:1):1)*(isCls(u,'support')?CLS.supMul:1));   // machine guns, sniper rounds and shotgun blasts pin people down (a Support harder; a Captain steadies the men near him: classes.js)
+  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t)*(nearCaptain(t)?CLS.leadNerve:1):1)*(isCls(u,'support')?CLS.supMul:1)*(t.nerveK||1));   // machine guns, sniper rounds and shotgun blasts pin people down (a Support harder; a Captain steadies the men near him: classes.js)
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');}   // the jeep: rounds spark off its body, and some find the crew
   else if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(t.side==='P'&&Math.random()<.45)sfxGrunt(t,false);}   // (an enemy's cry is in damage())   // a hit: the thud, and often a grunt
   if(s.hit){const W=wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,t.veh?dm*GJEEP.bullet:dm,u);}
@@ -1086,7 +1089,7 @@ function updateUnit(u,dt){
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
     const sz=slowAt(u.x,u.y),held=doorWait(u,p,dt),sp=held?0:(u.veh?GJEEP.speed:u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.mon?(u.monSpd||(u.mon==='boss'?BOSS.walk:HOUND.run)):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
-      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl
+      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*(u.spdK||1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl
     if(held){}else if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}   // (held: opening a door in his way, orders.js)
     if(u.veh)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*3);   // the jeep swings round
     else if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
@@ -1138,6 +1141,7 @@ function update(dt){
   missionFx(dt);
   if(state==='play'&&!endAt){
     vehTick(dt);waveTick(dt);l1Tick(dt);l2Tick(dt);monTick(dt);hqTickWin();baseTick(dt);roadTick(dt);l4Tick(dt);exitTick(dt);   // (the monsters and the Headquarters: monsters.js, fortress.js)   // (Level 1: level1.js) cleared the warehouse? then the reinforcements; cleared those? mission complete
-    if(!endAt&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
+    if(typeof ddTick==='function')ddTick(dt);   // (D-Day: dday.js; its own way of losing, with replacements)
+    if(!endAt&&MAPID!=='dd'&&players.every(p=>!alive(p))&&players.every(p=>p.dead||p.revive===0))endAt=performance.now()+1500;
   }
 }

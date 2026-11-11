@@ -40,8 +40,9 @@ let camShift=0,camShiftOn=false;   // the picture moved down by this much of the
 function updateCamera(){
   const dist=dist0/zoom,p=Math.max(PITCH_MIN,basePitch()-tilt);
   const hd=dist*Math.cos(p);
-  camera.position.set(camT.x+Math.sin(yaw)*hd,dist*Math.sin(p),camT.z+Math.cos(yaw)*hd);
-  camera.lookAt(camT.x,0,camT.z);camera.updateMatrixWorld();
+  const g0=groundH?groundH(camT.x,camT.z):0;   // (a hilly map: the view's centre sits on the ground there)
+  camera.position.set(camT.x+Math.sin(yaw)*hd,g0+dist*Math.sin(p),camT.z+Math.cos(yaw)*hd);
+  camera.lookAt(camT.x,g0,camT.z);camera.updateMatrixWorld();
   if(camShift>.001){camera.setViewOffset(cw,ch,0,-ch*camShift,cw,ch);camShiftOn=true;}else if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}
 }
 // the zoom that frames a w by h piece of ground round the view's centre, for this screen's shape (the sequences' close shots:
@@ -60,12 +61,16 @@ function clampCam(){
 // world -> screen. A point behind the camera can't be drawn: it comes back far off screen and sets toSBack, so shapes that
 // touch one (view cones, area outlines, fires) skip themselves instead of turning inside out across the whole screen
 let toSBack=false;
-function toS(x,y,h=0){_v.set(x,h,y).project(camera);if(_v.z>1){toSBack=true;return[-1e4,-1e4];}return[(_v.x+1)/2*cw,(1-_v.y)/2*ch];}
+// the ground's height where a map has hills (dday.js sets groundH; null everywhere else: flat). gndH(x,y) is 0 on a flat map
+let groundH=null;const gndH=(x,y)=>groundH?groundH(x,y):0;
+function toS(x,y,h=0){_v.set(x,groundH?h+groundH(x,y):h,y).project(camera);if(_v.z>1){toSBack=true;return[-1e4,-1e4];}return[(_v.x+1)/2*cw,(1-_v.y)/2*ch];}
 function toW(sx,sy){
   _o.setFromMatrixPosition(camera.matrixWorld);
   _d.set(sx/cw*2-1,-(sy/ch)*2+1,0.5).unproject(camera).sub(_o).normalize();
   if(_d.y>-1e-4)return[camT.x,camT.z];
-  const t=-_o.y/_d.y;return[_o.x+_d.x*t,_o.z+_d.z*t];
+  let t=-_o.y/_d.y;
+  if(groundH)for(let k=0;k<7;k++){const h=groundH(_o.x+_d.x*t,_o.z+_d.z*t);t=(h-_o.y)/_d.y;}   // (a hilly map: where the ray meets the ground drawn there, dday.js)
+  return[_o.x+_d.x*t,_o.z+_d.z*t];
 }
 // Where a tap points. On open ground that's just the ground point. If the tap lands on the side or top of a wall,
 // container, crate or sandbag first, it's the spot just in front of that face (towards the camera), so tapping the
@@ -96,9 +101,10 @@ function tapTarget(sx,sy){
   _d.set(sx/cw*2-1,-(sy/ch)*2+1,0.5).unproject(camera).sub(_o).normalize();
   const org=[_o.x,_o.y,_o.z],dir=[_d.x,_d.y,_d.z];
   let bt=_d.y<-1e-4?-_o.y/_d.y:1e9,best=null;
+  if(groundH&&bt<1e9){const[gx,gz]=toW(sx,sy);bt=hyp(gx-_o.x,gz-_o.z)/Math.max(1e-6,hyp(_d.x,_d.z));}   // (a hilly map: the ground under the finger)
   for(const o of objs){
     const h=o.kind==='tower'||isHillBox(o)?0:objHeight(o);if(!h)continue;   // the watchtower stands on open legs: taps go through to the road behind it; the hill: below
-    const mn=[o.x,0,o.y],mx=[o.x+o.w,h,o.y+o.h];
+    const g0=groundH?groundH(o.x+o.w/2,o.y+o.h/2):0,mn=[o.x,g0,o.y],mx=[o.x+o.w,g0+h,o.y+o.h];
     let t0=0,t1=bt,ax=-1,sg=0,miss=false;
     for(let k=0;k<3;k++){
       if(Math.abs(dir[k])<1e-9){if(org[k]<mn[k]||org[k]>mx[k]){miss=true;break;}continue;}
@@ -221,6 +227,7 @@ function decalOn(g,d){
   else{g.fillStyle='rgba(80,8,6,.7)';g.beginPath();g.ellipse(d.x+2,d.y+1,9+d.r*4,6+d.r*3,d.r*3,0,7);g.fill();}
 }
 function paintDecal(d){
+  if(MAPID==='dd'&&typeof DD!=='undefined'&&DD&&DD.canvas){const g=DD.canvas.getContext('2d');g.setTransform(DDS,0,0,DDS,-DDB.x0*DDS,-DDB.y0*DDS);decalOn(g,d);DD.tex.needsUpdate=true;return;}   // D-Day's beach (dday.js)
   if(MAPID==='l1'&&L1){const g=L1.canvas.getContext('2d');g.setTransform(L1S,0,0,L1S,-L1B.x0*L1S,-L1B.y0*L1S);decalOn(g,d);L1.tex.needsUpdate=true;return;}   // Level 1's own ground (level1.js)
   if(MAPID==='tun'&&TUN&&TUN.tex){const g=TUN.tex.image.getContext('2d');g.setTransform(1.5,0,0,1.5,-TUNB.x0*1.5,-TUNB.y0*1.5);decalOn(g,d);TUN.tex.needsUpdate=true;return;}   // the tunnel's own (tunnel.js)
   if(MAPID==='hq'&&HQ&&HQ.tex){const g=HQ.tex.image.getContext('2d');g.setTransform(1.2,0,0,1.2,-HQB.x0*1.2,-HQB.y0*1.2);decalOn(g,d);HQ.tex.needsUpdate=true;return;}   // the Headquarters' own floor (fortress.js; they landed on the big map's ground before)
@@ -756,7 +763,7 @@ function syncUnits(t){
   for(const u of units){
     const m=u.m;if(!m)continue;
     const pk=peekOf(u);u.lx+=((pk?pk.x-u.x:0)-u.lx)*.25;u.ly+=((pk?pk.y-u.y:0)-u.ly)*.25;  // step out to the lean spot and back
-    m.g.position.set(u.x+u.lx,(u.elev||0)+stairElev(u.x,u.y),u.y+u.ly);m.g.rotation.y=-u.ang;   // (on the office stairs: up or down with the steps, interior.js)
+    m.g.position.set(u.x+u.lx,(u.elev||0)+stairElev(u.x,u.y)+(groundH&&!u.afloat?groundH(u.x+u.lx,u.y+u.ly):0),u.y+u.ly);m.g.rotation.y=-u.ang;   // (on the office stairs: up or down with the steps, interior.js)
     m.g.visible=!u.gone&&!u.inHeli&&!u.away&&!offFloor(u)&&((u.side==='P'&&u.seat!=='driver')||u.vis||(u.dead&&u.seen)||(!!u.gunner&&u.side==='P')||(u.side==='C'&&!!(u.detained||u.crew)));   // (a detained scientist is always with the squad: office.js; the Headquarters' crew are ours: base.js)   // our jeep gunner is always in plain view (an enemy machine gunner only once seen); riders sit visible, the driver is hidden
     if(u.mon){monPose(u,t);continue;}   // (monsters.js)
     if(u.dog){dogPose(u,t);continue;}   // (hunt.js)
@@ -788,8 +795,9 @@ function render(rdt,now){
   lampLights(now);
   hemi.intensity=(hemi.userData.base??.24)+storm*1.6+(MAPID==='in'?Math.max(0,2.2-zoom)*.16:MAPID==='tun'?Math.max(0,2.2-zoom)*.05:l4In()?Math.max(0,2.2-zoom)*(curFloor==='PL'?.1:.07):0);   // inside: more ambient light zoomed out, where the pooled lamps can't reach every room (the tunnel only a little: pitch black, road.js)
   const fl=flashes.slice(-2);
-  for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13,f.y);m.intensity=(MAPID==='in'||MAPID==='tun'?6:4.5)*(1-f.t/.07);}else m.intensity=0;}   // muzzle flashes light the scene up (most of all indoors)
-  const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18,b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;
+  for(let k=0;k<2;k++){const m=muzzle[k],f=fl[k];if(f){m.position.set(f.x,13+gndH(f.x,f.y),f.y);m.intensity=(MAPID==='in'||MAPID==='tun'?6:4.5)*(1-f.t/.07);}else m.intensity=0;}   // muzzle flashes light the scene up (most of all indoors)
+  const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18+gndH(b.x,b.y),b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;
+  if(MAPID==='dd'&&typeof ddFrame==='function')ddFrame(rdt,now);   // (D-Day: its sea, sky, boats, gibs and the day going by, dday.js)
   fxFrame();postRender(scene,camera);   // (post.js: bloom, the grade, vignette, grain; or straight to the screen)
   drawOverlay(rdt,now);
 }

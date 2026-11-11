@@ -16,4 +16,4 @@ const hyp=Math.hypot, clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const hashId=s=>{let h=7;for(const c of String(s))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h);};   // a stable number from an id (whose voice a hostile has)
 function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const TAU=Math.PI*2;
-function teamCol(u){return u.side==='E'?C.enemy:u.team==='A'?C.alpha:C.bravo;}
+function teamCol(u){return u.side==='E'?C.enemy:u.team==='A'?C.alpha:u.team==='N'?'#aeb7bd':C.bravo;}   // (N: D-Day's other troops, dday.js)

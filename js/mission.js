@@ -430,7 +430,7 @@ function rpgBlast(x,y,by,spec=RPG){
 /* ---------- fuel tanks ---------- */
 function tankHit(o,dmg,by){if(o.burst)return;o.hp=(o.hp??100)-dmg;if(o.hp<=0)tankExplode(o,by);}
 // a blast near the tanks (from explode): close enough and they go up
-function tankBlast(x,y,by){l1Blast(x,y,by);if(typeof labBlast==='function')labBlast(x,y,by);buildBlast(x,y);for(const o of objs)if((o.kind==='tank'||o.explosive)&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
+function tankBlast(x,y,by){l1Blast(x,y,by);if(MAPID==='dd')ddBlast(x,y,by);if(typeof labBlast==='function')labBlast(x,y,by);buildBlast(x,y);for(const o of objs)if((o.kind==='tank'||o.explosive)&&!o.burst){const d=rectDist(x,y,o);if(d<25)tankExplode(o,by);else if(d<45)tankHit(o,80*(1-d/45),by);}}   // right next to it: it goes up
 function tankExplode(o,by){
   if(o.burst)return;o.burst=true;o.hp=0;shake(clamp(1.4-hyp(o.x-camT.x,o.y-camT.z)/600,0,1.2));
   const cx=o.x+o.w/2,cy=o.y+o.h/2;
@@ -485,6 +485,7 @@ function objCompleted(n){
 function updateObjUI(flash){
   const el=$('#obj');if(!el)return;
   const nmMin=el.classList.contains('min');el.classList.remove('nm','min');   // (only the next mission collapses: anything else shows in full, Level 4's and Levels 1 and 2's too)
+  if(MAPID==='dd'){ddObjUI(el);return;}   // (dday.js)
   if(MAPID==='l4'&&typeof l4ObjUI==='function'&&L4){l4ObjUI(el);return;}   // (level4.js)
   if(MAPID==='l2'){el.querySelector('b').textContent='Level 2';el.querySelector('span').textContent=l2.exfil?'Get to the boat (the bay, east)':l2.powerDown?'Lights out':'Shut down the power station';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}   // (level2.js)
   if(MAPID==='l1'){el.querySelector('b').textContent='Tutorial';el.querySelector('span').textContent=l1.exfil?'Back to the boat (the beach)':l1.relayDown?'Radio tower down':l1.yardClear?'Bring down the radio tower':'Knock out the radio tower (north)';el.querySelector('ol').innerHTML='';el.hidden=state!=='play';return;}
@@ -554,6 +555,7 @@ function drawObjArrow(now){
   if(ping)label(`${t.n} · ${Math.round(d/10)} m`,px-vx*24,py-vy*24,`rgba(140,240,165,${Math.min(1,ping*1.5).toFixed(2)})`,9,700);
 }
 function drawMission(rdt,now){
+  if(MAPID==='dd'){drawDDay(now);return;}   // (dday.js)
   drawGunMark(now);drawObjArrow(now);
   if(MAPID==='out'){drawLastFoes(now);drawTower(now);}drawL1(now);drawL2(now);if(typeof drawL4==='function')drawL4(now);if(typeof drawGrates==='function')drawGrates(now);drawMonsters(now);drawHQ(now);drawGather(now);drawActs(now);drawOffice(now);   // (the last three: interior.js, office.js)
   const pulse=(Math.sin(now*9)+1)/2,slow=(Math.sin(now*3)+1)/2;
