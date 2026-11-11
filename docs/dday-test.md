@@ -157,3 +157,33 @@ Not built, recorded: the radioman, a fifth type who unlocks after the first miss
 barrage on a marked spot after a delay), air strikes (a pass along a line), and perhaps an observation balloon (sight over
 a wide area while it's up, and it can be shot down). Questions for then: does he take a squad slot or come as a fifth man;
 how often each call; whether the defenders get the same.
+
+## Bryan's third round (Version 129)
+
+"I think I like stocky the most, but lean looks good too. Let's go with stocky for now. The left side pill box needs to
+share a path with the upper pill box. The mountain face runs along the path. The current mountain between them should be a
+path running horizontally to both bases. A fence blocks all access and has to be climbed or blown up. A fence runs across
+the beach blocking access to the paths and pillboxes. Climbing would hurt because of barbed wire. The units items are so
+hard to see and they are not visible. [...] a squad shares an equipment menu. So the whole bar at the bottom where the
+cards are currently, is a mix of the units selected. The names and unit stats on the top, and at the bottom, their
+collective tools. If they have an rpg unit, and two medics, the player would see 1 rpg ready (used by rpg unit only) and
+have a defibrillator (revive) and 2 (or however many) medic packs. The players with that skill/tool will only be able to
+use that skill or tool. Smoke would also act the same, and the player would get 4x grenades per unit. Only the unit with
+the grenade would use it."
+
+Built:
+- Stocky soldiers (figure.js: `STOCKY`, a flag `S` in the kit key on this map): the same skeleton and animation, each
+  bone's parts thicker, the head, hands and boots bigger, the whole man a little wider than tall, and an ink outline
+  (`figInk`: the mesh drawn again, back faces, pushed out). Not yet the draft's own helmet shapes and webbing.
+- One path (`DD_LEDGE`, `ddPathH`): along the foot of the mountain's face at the beach's edge, from the first bunker at
+  its west end (by the bottom of the draw) up 4 m to the second at its east end. The old shelf above it keeps two men.
+- The wire (`ddwire`, 20 stretches of 5 m right across the beach in front of everything): climbing it costs 13-19 health
+  ("Cut on the wire"), a grenade or a rocket blows a stretch open. The gates are gone: the gaps behind the wire are open.
+- The squad's bar (`ddBar`, `DD_TOOLS`, `ddToolUse` in ddplay.js; `#sq`): the men of the squad being played along the top
+  (role, name, health, what he's doing; a tap picks just him), and under them what they carry between them, added up, as
+  big buttons: grenades, smoke, Bazooka rockets, medic kits, Revive. A tap gives the job to a man who has that item (one
+  who isn't pinned or busy first) and aims it; afterwards the squad is selected again. Revive sends the medic to the
+  nearest man down.
+
+Open: one grenade a man for now (so a squad shows 4): Bryan's "4x grenades per unit" could mean four each. Whether the
+bar should replace the cards in the Warehouse Yard too. Whether the path is what he pictured.

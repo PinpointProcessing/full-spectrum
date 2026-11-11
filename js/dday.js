@@ -17,13 +17,13 @@ const DD_FACE=[[0,120],[330,120],[330,300],[470,300],[600,85],[120,-320],[0,-320
   DD_RRIGHT=[[316,-312],[440,-435],[1000,-435],[1000,-95],[752,-95]];
 function ddIn(poly,x,y){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[xi,yi]=poly[i],[xj,yj]=poly[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;}return c;}
 const ddMx=x=>{let d=x-DDX;if(d<0)d=-d;if(d>DDW)d=2*DDW-d;return clamp(d,0,DDW);};   // the play area's x (0..1000) for any x: the edges mirror it
-const DD_LEDGE={x0:598,x1:740,y0:212,y1:300};   // the first bunker's shelf, cut into the foot of the hill the nests stand on (Bryan: "The first bunker should share the same hill going up to the second bunker, just at the edge of the beach")
+const DD_LEDGE={x0:598,x1:1000,y0:212,y1:300},ddPathH=dx=>28+clamp((dx-598)/402,0,1)*40;   // since Version 129 one path along the foot of the mountain's face, at the beach's edge, from the first bunker up to the second (Bryan: "The current mountain between them should be a path running horizontally to both bases"); it climbs 4 m on the way   // the first bunker's shelf, cut into the foot of the hill the nests stand on (Bryan: "The first bunker should share the same hill going up to the second bunker, just at the edge of the beach")
 const ddLedge=(dx,y)=>dx>=DD_LEDGE.x0&&dx<=DD_LEDGE.x1&&y>=DD_LEDGE.y0&&y<DD_LEDGE.y1;
 const ddRock=(dx,y)=>ddLedge(dx,y)?0:ddIn(DD_FACE,dx,y)?1:ddIn(DD_RWALL,dx,y)?2:ddIn(DD_RRIGHT,dx,y)?3:0;
 const ddRamp=y=>18+clamp((300-y)/620,0,1)*132;   // the draw's floor: 1.8 m at the gate to 15 m at the top
 const DD_HOLES=[{x:380,y:520,r:34,c:2,n:'deep'},{x:640,y:560,r:30,c:1},{x:820,y:470,r:20,c:1},{x:250,y:400,r:18,c:1},{x:545,y:392,r:18,c:1},{x:130,y:600,r:20,c:1},{x:900,y:640,r:22,c:1}];
 function ddRawH(dx,y){
-  if(dx>=DD_LEDGE.x0&&dx<=DD_LEDGE.x1&&y>=DD_LEDGE.y0&&y<318)return ddRamp(DD_LEDGE.y1)+10;   // the shelf, and its lip down to the sand
+  if(dx>=DD_LEDGE.x0&&dx<=DD_LEDGE.x1&&y>=DD_LEDGE.y0&&y<318)return ddPathH(dx);   // the path, and its lip down to the sand
   if(y>=316)return y<700?16*(700-y)/384:y<770?-7*(y-700)/70:Math.max(-20,-7-(y-770)*.16);
   const r=ddRock(dx,y),n=Math.sin(dx*.071+y*.043)*7+Math.sin(dx*.023-y*.061)*9;
   if(r===1)return Math.min(ddRamp(y)+58,172)+n;
@@ -54,7 +54,7 @@ function ddH(x,y){
 
 /* ---------- the map's objects (play-area coordinates dx 0..1000, then moved over by DDX) ---------- */
 const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by these
-  pill:{x:668,y:280,ang:Math.PI/2,arc:1.3},nests:[{x:842,y:14,ang:2.4,arc:1.05},{x:930,y:14,ang:2.0,arc:1.05}],
+  pill:{x:668,y:280,ang:Math.PI/2,arc:1.3},nests:[{x:868,y:280,ang:2.05,arc:1.25},{x:946,y:280,ang:Math.PI/2,arc:1.25}],
   heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},sniper:{x:122,y:-590},
   mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
@@ -67,16 +67,17 @@ function ddObjects(){
       if(!inR&&run!=null){o('drop',run,y,dx-run,20,{rock:1});run=null;}}}
   o('drop',0,300,24,16,{rock:1});
   // the line at the top of the beach: gate, sandbags, concrete, gate, concrete (the rock wall carries on to the right)
-  o('ddgate',DD_SPOT.gateL.x,302,DD_SPOT.gateL.w,12,{cover:1,hp:70,tag:'gateL'});
   for(const x of[120,190,260])o('sandbag',x,304,66,10);
   o('ddconc',330,300,140,16,{full:true});
-  o('ddgate',DD_SPOT.gateM.x,302,DD_SPOT.gateM.w,12,{cover:1,hp:70,tag:'gateM'});
+  // the wire: a fence of barbed wire right across the beach, between the sand and everything else. It can be climbed, which cuts
+  // (ddplay.js), or blown open a stretch at a time (Bryan: "A fence blocks all access and has to be climbed or blown up")
+  for(let x=0;x<1000;x+=50)o('ddwire',x,340,50,8,{hp:40,tag:'wire'});
   o('ddconc',540,300,60,16,{full:true});
   // the pillbox behind the left gate: concrete to the front and sides, open at the back
   o('ddpb',626,290,84,8,{cover:2});o('ddpb',626,250,8,40,{cover:2});o('ddpb',702,250,8,40,{cover:2});
   o('sandbag',716,286,22,10);o('sandbag',100,200,66,10);o('ddcrate',190,190,22,20,{cover:1});   // (the pocket behind the left gate, where the bunker was: a sandbag line)
   // the two machine gun nests on the rock to the right: open on the draw's side
-  o('ddpb',790,30,190,8,{cover:2});o('ddpb',980,-30,8,68,{cover:2});
+  o('ddpb',826,290,160,8,{cover:2});o('ddpb',826,250,8,40,{cover:2});o('ddpb',978,250,8,40,{cover:2});
   // the draw: sandbags across it at three heights, and boulders
   for(const[x,y]of[[500,190],[430,-130],[520,-152],[230,-270]])o('sandbag',x,y,66,10);
   for(const[x,y]of[[590,120],[660,20],[540,-40],[430,-80],[610,-100],[380,-190],[500,-215],[310,-245],[420,-262],[640,-170],[560,250],[520,105]])o('ddbould',x,y,18,15,{cover:1});
@@ -94,7 +95,6 @@ function ddObjects(){
   o('ddmast',676,-742,8,8,{});
   // the beach: obstacles, wire, the holes' forward lips (cover from up the hill), two wrecks
   for(const[x,y]of[[150,640],[330,650],[520,660],[700,640],[880,655],[240,560],[450,600],[760,585],[120,430],[690,405],[930,540],[60,520],[470,470]])o('ddhog',x,y,14,14,{cover:1});
-  o('fence',60,466,190,8,{tag:'wire',hp:40});
   for(const h of DD_HOLES)o('ddrim',h.x-h.r,h.y-h.r-3,h.r*2,6,{cover:h.c});
   o('ddwreck',296,488,46,26,{full:true});o('ddwreck',838,596,24,56,{full:true,lc:1});
   // the edges: mirror images of the rock that reaches them, so the cliffs carry on (nobody fights there)
@@ -105,7 +105,7 @@ function ddObjects(){
   L.push({kind:'water',x:0,y:776,w:1400,h:124,full:false});
   return L;
 }
-VAULTABLE.add('ddgate');   // a gate can be climbed (pathfinding.js), or blown open (ddBlast in ddplay.js)
+VAULTABLE.add('ddgate');VAULTABLE.add('ddwire');   // a gate can be climbed (pathfinding.js), or blown open (ddBlast in ddplay.js)
 
 /* ---------- the ground's picture ---------- */
 function paintDDGround(g){
@@ -234,6 +234,12 @@ function ddProps(sc,objsL){
     else if(o.kind==='ddcrate'){box(o,13,wood);}
     else if(o.kind==='ddhog'){   // a steel hedgehog: three girders crossed
       o.meshes=[];for(const[rx,rz]of[[.6,.6],[-.6,.6],[0,-1.0]])o.meshes.push(add(new T.BoxGeometry(2,22,2),rust,cx,g0+7,cy,r()*.4,rx,rz));
+    }else if(o.kind==='ddwire'){   // the fence: posts, three strands and a coil of barbed wire along the top
+      o.meshes=[];const wm=M(0x4a4640,.5,.7);
+      for(let x=o.x;x<o.x+o.w-1;x+=12.5){const p=add(new T.BoxGeometry(1.3,17,1.3),wood,x+.6,ddH(x,cy)+8.5,cy);o.meshes.push(p);}
+      for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(o.w,.35,.35),wm,cx,g0+hh,cy));
+      for(let x=o.x+3;x<o.x+o.w;x+=6)o.meshes.push(add(new T.TorusGeometry(2.6,.28,4,8),wm,x,ddH(x,cy)+17.5,cy,Math.PI/2+.4));
+      for(let x=o.x+4;x<o.x+o.w;x+=8)o.meshes.push(add(new T.TorusGeometry(2.2,.25,4,8),wm,x,ddH(x,cy+5)+2.2,cy+5,Math.PI/2-.3));
     }else if(o.kind==='fence'){   // coils of barbed wire on stakes
       o.meshes=[];const n=Math.round(o.w/7),wm=M(0x55504a,.5,.7);
       for(let k=0;k<n;k++){const x=o.x+k*7+3.5,t=add(new T.TorusGeometry(4,.3,4,9),wm,x,ddH(x,cy)+4.2,cy,Math.PI/2+.35);o.meshes.push(t);}
@@ -253,7 +259,7 @@ function ddProps(sc,objsL){
   }
   // roofs over the pillbox and the nests (they fade when one of ours is inside: ddFrame), the heavy gun's and the cannon's shields
   const slab=(dx0,y0,w,d,hh)=>{const x=dx0+DDX+w/2,y=y0+d/2,m=add(new T.BoxGeometry(w+8,4,d+8),new T.MeshStandardMaterial({color:0x7d7c76,roughness:.95,transparent:true}),x,ddH(x,y)+hh,y);m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};return m;};
-  DD.roofs=[slab(626,250,84,48,17),slab(790,-30,198,68,17),slab(30,-440,120,76,17)];
+  DD.roofs=[slab(626,250,84,48,17),slab(826,250,160,48,17),slab(30,-440,120,76,17)];
   for(const m of DD.roofs)m.castShadow=true;
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored

@@ -73,7 +73,7 @@ function figKitKey(u,L){
   else if(L.k==='pri')w=u.weapon?(u.weapon==='sniper'?'sniper':'ak'):'none';
   const helm=L.k==='en'&&(u.gunner||u.helm||(typeof alertStage==='function'&&alertStage()>=2));
   const role=L.k==='sq'?(u.id==='A1'?'lead':u.id==='B2'||u.spec==='med'?'med':u.id==='B1'?'mg':''):'';
-  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}${u.gl&&(w==='m4'||w==='m4s')?'g':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;   // (g: an M203 under the rifle, Level 4's find)
+  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}${u.gl&&(w==='m4'||w==='m4s')?'g':''}${typeof MAPID!=='undefined'&&MAPID==='dd'?'S':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;   // (g: an M203 under the rifle, Level 4's find)
 }
 
 /* ---------- the parts ---------- */
@@ -191,15 +191,24 @@ function figParts(key){
 // the grips (where his wrists go, in the gun's frame) and the back of the stock, per weapon
 const GRIP={m4:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},m4s:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},hmg:{R:[-.45,-.55,.25],L:[2.3,-.75,-.3],butt:-3.4},
   sniper:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-3.4},shotgun:{R:[-.3,-.45,.22],L:[2.7,-.45,-.25],butt:-3.1},ak:{R:[-.3,-.5,.22],L:[2.4,-.5,-.25],butt:-3.1},none:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-2.9}};
+// the D-Day test's build (Bryan, of the three drafts: "Let's go with stocky for now"): each bone's parts made thicker (a limb
+// runs along its bone's y), the head, hands and boots bigger; ddplay.js makes the whole man a little wider than tall on top
+const STOCKY={head:[1.5,1.5,1.5],neck:[1.3,1,1.3],arm:[1.45,1,1.45],fore:[1.45,1,1.45],hand:[1.55,1.4,1.55],thigh:[1.4,1,1.38],shin:[1.45,1,1.45],foot:[1.3,1.35,1.5],
+  hips:[1.2,1,1.2],spine:[1.24,1,1.24],chest:[1.24,1,1.24],clav:[1.2,1.1,1.2],gun:[GUN_S*1.12,GUN_S*1.25,GUN_S*1.25]};
+let FIG_INK=null;
+function figInk(){   // an ink line round him: the same mesh drawn again, its back faces only, pushed out along its normals
+  if(FIG_INK)return FIG_INK;const m=new T.MeshBasicMaterial({color:0x17130f,side:T.BackSide,skinning:true});
+  m.onBeforeCompile=s=>{s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  transformed+=normalize(normal)*.2;');};m.customProgramCacheKey=()=>'figink';return FIG_INK=m;
+}
 function figGeometry(key){
   let G=FIG_GEO.get(key);if(G)return G;
-  const parts=figParts(key);let nv=0,ni=0;
+  const parts=figParts(key),stocky=key.split('|')[2].includes('S');let nv=0,ni=0;
   for(const p of parts){nv+=p.g.attributes.position.count;ni+=p.g.index?p.g.index.count:p.g.attributes.position.count;}
   const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),col=new Float32Array(nv*3),mid=new Float32Array(nv),si=new Uint16Array(nv*4),sw=new Float32Array(nv*4),idx=new Uint32Array(ni);
   const M=new T.Matrix4(),N=new T.Matrix3(),v3=new T.Vector3();let v=0,k=0;
   for(const p of parts){
     const g=p.g,P=g.attributes.position,Nn=g.attributes.normal,base=v,R=FB_REST[p.b];
-    M.makeTranslation(R[0],R[1],R[2]);const sc=p.b===BI.gun?GUN_S:p.b===BI.head?1.1:1;if(sc!==1)M.multiply(new T.Matrix4().makeScale(sc,sc,sc));M.multiply(p.m);N.getNormalMatrix(M);
+    M.makeTranslation(R[0],R[1],R[2]);const sc=p.b===BI.gun?GUN_S:p.b===BI.head?1.1:1;if(stocky){const q=STOCKY[FB[p.b][0].replace(/[LR]$/,'')]||[1,1,1];M.multiply(new T.Matrix4().makeScale(q[0],q[1],q[2]));}else if(sc!==1)M.multiply(new T.Matrix4().makeScale(sc,sc,sc));M.multiply(p.m);N.getNormalMatrix(M);
     for(let i=0;i<P.count;i++,v++){
       v3.fromBufferAttribute(P,i).applyMatrix4(M);pos[v*3]=v3.x;pos[v*3+1]=v3.y;pos[v*3+2]=v3.z;
       v3.fromBufferAttribute(Nn,i).applyMatrix3(N).normalize();nor[v*3]=v3.x;nor[v*3+1]=v3.y;nor[v*3+2]=v3.z;
@@ -243,6 +252,7 @@ function makeFigure(u){
   const bones=FB.map(([n,,o])=>{const b=new T.Bone();b.name=n;b.position.set(...o);return b;});
   FB.forEach(([,p],i)=>{if(p>=0)bones[p].add(bones[i]);});
   mesh.add(bones[0]);mesh.bind(new T.Skeleton(bones));mesh.castShadow=true;pose.add(mesh);
+  let ink=null;if(key.split('|')[2].includes('S')){ink=new T.SkinnedMesh(mesh.geometry,figInk());ink.bind(mesh.skeleton,mesh.bindMatrix);ink.frustumCulled=false;pose.add(ink);}
   const col=new T.Color(teamCol(u)),civ=L.k==='pri'||L.k==='sci';
   const ring=new T.Mesh(SG.ring,new T.MeshBasicMaterial({color:u.side==='P'||!civ?col:new T.Color(L.k==='pri'?'#9aa3a8':'#e8ecef'),transparent:true,opacity:u.side==='P'||!civ?.85:.45,depthWrite:false,toneMapped:false}));
   ring.rotation.x=-Math.PI/2;ring.position.y=.5;g.add(ring);
@@ -259,13 +269,13 @@ function makeFigure(u){
     for(const o of launcher.children)o.castShadow=true;launcher.position.set(.6,2.65,1.7);launcher.visible=false;bones[BI.chest].add(launcher);
   }
   scene.add(g);
-  const F={mesh,bones,mat,L,key,launcher,lt:simT,px:u.x,py:u.y,spd:0,mvx:1,mvz:0,phase:0,state:'',blendT:-9,seed:(seedOf(u)>>>0)%1000/1000,
+  const F={mesh,ink,bones,mat,L,key,launcher,lt:simT,px:u.x,py:u.y,spd:0,mvx:1,mvz:0,phase:0,state:'',blendT:-9,seed:(seedOf(u)>>>0)%1000/1000,
     foot:[new T.Vector3(.2,ANKLE,-1.1),new T.Vector3(-.3,ANKLE,1.1)],hex:[new T.Vector3(),new T.Vector3()],hw:[1,1],hq:[new T.Quaternion(),new T.Quaternion()],fresh:true};
   u.m={g,pose,ring,spot,beam,rifle:null,fig:F,person:civ};
   return u.m;
 }
 // change what he wears/carries: the same skeleton, another geometry
-function figRefresh(u){const F=u.m&&u.m.fig;if(!F)return;const key=figKitKey(u,F.L);if(key!==F.key){F.key=key;F.mesh.geometry=figGeometry(key);}}
+function figRefresh(u){const F=u.m&&u.m.fig;if(!F)return;const key=figKitKey(u,F.L);if(key!==F.key){F.key=key;F.mesh.geometry=figGeometry(key);if(F.ink)F.ink.geometry=F.mesh.geometry;}}
 
 /* ---------- the pose solver ---------- */
 const _fq=[...Array(8)].map(()=>new T.Quaternion()),_fv=[...Array(12)].map(()=>new T.Vector3()),_fe=new T.Euler(),_fmx=new T.Matrix4();

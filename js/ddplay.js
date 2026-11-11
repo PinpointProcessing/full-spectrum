@@ -29,7 +29,7 @@ const DD_ROUTE=[[440,640],[450,520],[430,380],[505,336],[545,240],[570,120],[520
 const DD_LINES=[344,236,-20,-290,-470];
 let dd=null;
 // by day: no night rim light or self-light on anyone (figure.js's material)
-function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.setScalar(DD_FIG);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.05;U.uGlow.value=u.side==='P'?.5:0;}});}
+function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.set(DD_FIG*1.06,DD_FIG*.9,DD_FIG*1.06);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.14;U.uGlow.value=u.side==='P'?.5:0;}});}
 const ddAlly=u=>u.side==='P'&&!u.dead&&!u.downed&&!u.away;
 const ddSq=t=>players.filter(p=>p.team===t&&!p.dead);
 function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_ORDER.filter(r=>!have.includes(r));return miss.length?miss[0]:DD_ORDER[(Math.random()*4)|0];}
@@ -53,7 +53,7 @@ function ddGunner(tag,s,name){const u=ddFoe(tag,s.x,s.y-6,{name:name||'Machine g
 function spawnDDay(){
   const S=DD_SPOT,Z=(x0,y0,x1,y1)=>({x0:x0+DDX,x1:x1+DDX,y0,y1});
   ddGunner('pill',S.pill);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddFoe('wall',60,282,{post:true});ddFoe('wall',130,214,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',215,290,{post:true});ddFoe('pill',250,286,{post:true,nade:1});
-  for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',800,-52,{zone:Z(752,-95,1000,40)});
+  for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',790,262,{post:true});ddFoe('draw',800,-52,{zone:Z(752,-95,1000,40)});
   ddFoe('draw',484,178,{post:true});ddFoe('draw',520,178,{post:true});ddFoe('draw',600,60,{zone:Z(480,0,660,130)});ddFoe('draw',470,-20,{zone:Z(400,-60,640,60),nade:1});ddFoe('draw',556,178,{post:true,nade:1});
   ddFoe('draw',450,-142,{zone:Z(380,-200,640,-60)});ddFoe('draw',542,-164,{zone:Z(380,-200,640,-60),nade:1});
   ddFoe('draw',252,-282,{zone:Z(150,-320,420,-220)});ddFoe('draw',318,-258,{zone:Z(150,-320,420,-220)});
@@ -94,7 +94,7 @@ function leaveDDayNow(){
   if(MAPID!=='dd')return;const out=STASH.out;
   for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
-  document.body.classList.remove('dd');{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
+  document.body.classList.remove('dd');{const q=$('#sq');if(q)q.hidden=true;}{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
   groundH=null;MAXZ=6;camShift=0;zoom=Math.min(zoom,6);useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';LEVEL=3;
   units=[...out.units];players=[];enemies=units.filter(u=>u.side==='E');civs=[];
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();dd=null;disposeDD();
@@ -105,7 +105,7 @@ function startDDay(){
   enterDDay();state='play';endAt=0;
   banner('Thirty seconds to the beach. Keep your heads down.',3600);hud();
 }
-function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);}
+function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();}
 const ddBusy=()=>!!dd&&!dd.land.done;
 /* ---------- the camera: semi-fixed to the squad being played ----------
    It keeps a little ahead of the squad's middle, close and low. A drag, pinch, twist or tilt still works: a drag moves the
@@ -188,7 +188,7 @@ function ddDamage(t,dmg,src){
     return true;
   }
   if(t.inBoat)return true;   // (the ride in costs the squads nobody: Bryan)
-  const dead_on=dmg>=70,head=!dead_on&&dmg>3&&dmg<45&&Math.random()<.04;
+  const dead_on=dmg>=70,head=!dead_on&&!dd.wireHit&&dmg>3&&dmg<45&&Math.random()<.04;
   if(dead_on||head){ddKill(t,head?'Shot through the head':'Blown apart',dead_on);return true;}
   return false;
 }
@@ -216,7 +216,7 @@ function ddWreck(o,by){
     tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});}
   else{for(const m of o.meshes||[])m.visible=false;removeObstacle(o,[]);dEpoch++;}   // a gate or the wire: gone, the way's open
   if(o.tag==='barracks'){dd.won=true;bigText('Barracks destroyed','complete');banner('The barracks is gone. The base is yours.',4000);endAt=performance.now()+4200;}
-  else banner({gateL:'The left gate is blown open.',gateM:'The middle gate is blown open.',wire:'The wire is cut.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.'}[o.tag]||'',2600);
+  else banner({wire:'The wire is blown open there.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.'}[o.tag]||'',2600);
   updateObjUI();
 }
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
@@ -265,7 +265,7 @@ function ddSquadAI(t){
 /* ---------- the other troops ---------- */
 function ddLine(){   // how far up they may go: behind the squads, and no further than what's been opened
   let k=0;const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e));
-  if(dd.front<330&&(dead('pill')||dd.blown.gateM||dd.front<250))k=1;
+  if(dd.front<330&&(dead('pill')||dd.blown.wire||dd.front<250))k=1;
   if(k===1&&dead('nest')&&dd.front<140)k=2;
   if(k===2&&dd.front<-150)k=3;
   if(k===3&&dd.front<-380&&dead('heavy'))k=4;
@@ -352,6 +352,8 @@ function ddTick(dt){
   for(const p of up){const out=!p.inBoat&&(p.x<DDX-6||p.x>DDX+DDW+6);p.oob=out?(p.oob||0)+dt:0;worst=Math.max(worst,p.oob);
     if(p.oob>=10){booms.push({x:p.x,y:p.y,t:0});if(typeof sfxBoom==='function')sfxBoom(p.x,p.y,1);ddKill(p,'He strayed out of the battle',true);}}
   dd.oob=worst;
+  for(const o of dd.wires||(dd.wires=objs.filter(q=>q.kind==='ddwire'))){if(o.gone)continue;
+    for(const u of dd.allies)if(!u.inBoat&&u.y>o.y-3&&u.y<o.y+o.h+3&&u.x>o.x-2&&u.x<o.x+o.w+2&&simT>(u.wireT||0)){u.wireT=simT+3;dd.wireHit=true;damage(u,13+Math.random()*6,null);dd.wireHit=false;if(!u.npc&&!u.dead)callout(u,'Cut on the wire',C.bad);}}
   // the squad that isn't being played, the other troops, the boats, the shells, the barracks
   dd.idle[dd.active]=0;const other=dd.active==='A'?'B':'A';
   if((dd.aiT-=dt)<=0){dd.aiT=1;dd.idle[other]+=1;ddSquadAI(other);if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}
@@ -370,11 +372,63 @@ function ddTidy(){   // the dead don't pile up for ever: the oldest bodies go
   for(const u of dead.slice(0,dead.length-22)){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);units.splice(units.indexOf(u),1);}
   enemies=enemies.filter(e=>units.includes(e));dd.npcs=dd.npcs.filter(u=>units.includes(u));
 }
+/* ---------- the squad's bar (Bryan, after Version 128: "The units items are so hard to see... a squad shares an equipment
+   menu... The names and unit stats on the top, and at the bottom, their collective tools... The players with that skill/tool
+   will only be able to use that skill or tool") ----------
+   Along the top the men of the squad being played (role, name, health, what he's doing; a tap picks just him, again the squad).
+   Underneath, what they carry between them, added up: grenades, smoke, Bazooka rockets, medic kits, and Revive while there's
+   a medic. A tap on a tool hands it to a man who has one (not pinned, not busy, if there's a choice) and aims it the way his
+   own card's button does; once it's thrown, fired or called off the squad is selected again. */
+const DD_TOOLS=[
+  {k:'nade',label:'Grenade',col:'#e8ecef',svg:()=>NADE_SVG,n:u=>u.grenade||0,btn:'nade',mode:'grenade'},
+  {k:'smoke',label:'Smoke',col:'#cfd6dc',svg:()=>SPECIALS.smoke.svg,n:u=>u.spec==='smoke'?u.specN||0:0,btn:'spec',mode:'smoke'},
+  {k:'rpg',label:'Bazooka',col:'#ffb36b',svg:()=>SPECIALS.rpg.svg,n:u=>u.spec==='rpg'?u.specN||0:0,btn:'spec',mode:'rpg'},
+  {k:'medkit',label:'Medic kit',col:'#ff8a7e',svg:()=>SPECIALS.medkit.svg,n:u=>u.spec==='medkit'?u.specN||0:0,btn:'spec',mode:'medkit'},
+  {k:'revive',label:'Revive',col:'#5fe08e',svg:()=>'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.2 2.2 8.6a3.4 3.4 0 0 1 4.8-4.8l1 1 1-1a3.4 3.4 0 0 1 4.8 4.8z"/><path d="M4 8.4h2.2l1-2 1.6 4 1-2H12" fill="none" stroke="#0b0f13" stroke-width="1.2"/></svg>'}];
+const ddSquad=()=>players.filter(p=>p.team===dd.active&&!p.dead);
+function ddToolUse(k){
+  if(!dd||state!=='play'||ddBusy())return;const m=ddSquad().filter(alive);
+  if(k==='revive'){
+    const med=m.find(u=>u.ddRole==='medic'),down=players.filter(p=>p.team===dd.active&&p.downed&&!p.dead&&!p.carriedBy);
+    if(!med){banner('No medic on his feet in this squad.',1800);return;}
+    if(!down.length){banner('Nobody in the squad is down.',1600);return;}
+    if(pinnedNow(med)){refusePinned(med);return;}
+    const d=down.sort((a,b)=>hyp(a.x-med.x,a.y-med.y)-hyp(b.x-med.x,b.y-med.y))[0];
+    if(d.critical){if(hasKit(med))orderMedkit(med,d);else banner(`${d.name} is critical and ${med.name} has no medic kit left.`,2200);}
+    else{const p=goBeside(med,d);if(p){med.path=p;med.lastOrder=simT;med.gaitForce=null;callout(med,'Going to him',C.good);}}
+    return;
+  }
+  const T=DD_TOOLS.find(t=>t.k===k),was=dd.toolU&&dd.toolK===k&&mode===T.mode;
+  if(was){mode=null;ddToolDone();hud();return;}   // the same tool again: put it away
+  const c=m.filter(u=>T.n(u)>0&&u.card);if(!c.length){banner(`No ${T.label.toLowerCase()} left in this squad.`,1600);return;}
+  const u=c.sort((a,b)=>(pinnedNow(a)-pinnedNow(b))||((!!a.throwGo)-(!!b.throwGo))||(T.n(b)-T.n(a)))[0];
+  mode=null;u.card[T.btn].click();dd.toolU=u;dd.toolK=k;dd.toolAt=performance.now();
+}
+function ddToolDone(){if(!dd||!dd.toolU)return;dd.toolU=null;const m=ddSquad().filter(alive);if(m.length)select(m);}
+function ddBar(){
+  const box=$('#sq');if(!box)return;const show=!!dd&&state==='play'&&dd.land.done&&!!sel.length;if(box.hidden===show)box.hidden=!show;if(!show)return;
+  if(dd.toolU&&!mode&&performance.now()-dd.toolAt>250)ddToolDone();
+  const sq=ddSquad();
+  const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u;
+    return`<button type="button" class="sq-man${on?' on':''}${u.downed?' down':''}" data-id="${u.id}" style="--tc:${teamCol(u)};--hp:${u.downed?100:hp}%;--hc:${hc}"><b>${u.role}</b><span>${u.name}<em>${st[0]}</em></span><i><u></u></i></button>`;}).join('');
+  const up=sq.filter(alive),medic=up.some(u=>u.ddRole==='medic'),downN=sq.filter(u=>u.downed).length;
+  const tools=DD_TOOLS.map(T=>{if(T.k==='revive'){if(!medic&&!downN)return'';return`<button type="button" class="sq-tool" data-k="revive" style="--c:${T.col}" ${medic&&downN?'':'disabled'}>${T.svg()}<b>${downN||'·'}</b><span>${downN?'Revive':'Revive'}</span></button>`;}
+    const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'||u.spec===T.k);if(!has)return'';const on=dd.toolU&&dd.toolK===T.k&&mode===T.mode;
+    return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${on?'Tap where':T.label}</span></button>`;}).join('');
+  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}
+}
+function ddBarBind(){
+  const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
+  box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
+    if(t&&!t.disabled)ddToolUse(t.dataset.k);
+    else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){dd.toolU=null;u.card.el.click();}}
+    ddBar();});
+}
 /* ---------- the HUD ---------- */
 function ddObjUI(el){
   if(!dd){el.hidden=true;return;}
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),b=objs.find(o=>o.tag==='barracks');
-  const L=[['The pillbox',dead('pill')],['The two machine gun nests',dead('nest')],['The heavy gun',!!dd.blown.heavy||dead('heavy')],['The cannon and the back line',(!!dd.blown.cannon||dead('cannon'))&&dead('top')],['The mortars',dead('mortar')],['Destroy the barracks',!!dd.blown.barracks]];
+  const L=[['The pillbox',dead('pill')],['The upper bunker',dead('nest')],['The heavy gun',!!dd.blown.heavy||dead('heavy')],['The cannon and the back line',(!!dd.blown.cannon||dead('cannon'))&&dead('top')],['The mortars',dead('mortar')],['Destroy the barracks',!!dd.blown.barracks]];
   el.querySelector('b').textContent='D-Day · Baker Red';
   el.querySelector('span').textContent=!dd.land.done?'Thirty seconds to the beach':dd.blown.barracks?'The base is yours':dd.front>330?'Get off the beach: reach the wall':dd.front>-300?'Up the draw: the only way to the top':`Destroy the barracks${b&&b.hp<380?` (${Math.max(1,Math.round(b.hp/380*100))}%)`:''}`;
   const h=L.map(([t,d])=>`<li${d?' class="done"':''}>${t}</li>`).join('');const ol=el.querySelector('ol');if(ol.dataset.h!==h){ol.dataset.h=h;ol.innerHTML=h;}
@@ -385,21 +439,21 @@ function ddHint(){
   if(!dd)return'';
   if(!dd.land.done)return'Coming in. Nothing to do until the ramp drops.';
   const other=dd.active==='A'?'Bravo':'Alpha';
-  if(dd.front>330)return`Shell holes and steel obstacles are cover. The pillbox at the foot of the hill, right of the middle gate, covers the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
-  if(dd.front>-300)return'The gates can be climbed, or blown open with a grenade or the Bazooka. The only way up is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
+  if(dd.front>330)return`Shell holes and steel obstacles are cover. The wire across the beach can be climbed, but it cuts; a grenade or the Bazooka opens it. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
+  if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
   return'The base. The barracks keeps sending men down until it\'s destroyed: grenades and Bazooka rockets, close.';
 }
 function drawDDay(now){
-  if(!dd||!DD)return;
+  if(!dd||!DD)return;ddBar();
   const lab=(dx,y,h,text,col)=>{toSBack=false;const[sx,sy]=toS(dx+DDX,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,9,700);};
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),S=DD_SPOT;
   if(!dead('pill'))lab(668,262,30,'PILLBOX','#ff8a6a');
-  if(!dead('nest'))lab(885,0,30,'MG NESTS','#ff8a6a');
+  if(!dead('nest'))lab(906,262,30,'UPPER BUNKER','#ff8a6a');
   if(!dd.blown.heavy&&!dead('heavy'))lab(90,-410,34,'HEAVY GUN','#ff8a6a');
   if(!dd.blown.cannon&&!dead('cannon'))lab(240,-600,30,'CANNON','#ff8a6a');
   if(!dead('mortar'))lab(915,-470,24,'MORTARS','#ff8a6a');
   if(!dd.blown.barracks){const b=objs.find(o=>o.tag==='barracks');lab(820,-690,46,b&&b.hp<380?`BARRACKS · ${Math.max(1,Math.round(b.hp/380*100))}%`:'BARRACKS','#ffcf4a');}
-  for(const g of['gateL','gateM'])if(!dd.blown[g]&&dd.front>120){const s=S[g];lab(s.x+s.w/2,306,22,'GATE · CLIMB OR BLOW','#cfd6dc');}
+  if(dd.front>300){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · CLIMB (IT CUTS) OR BLOW IT','#cfd6dc');}
   // a man coming up to join: a line to him from his squad's tab colour
   for(const p of players)if(p.joining&&alive(p)&&!p.inBoat){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
   const o=$('#oob');if(o){const on=dd.oob>0&&state==='play';o.hidden=!on;if(on){o.style.opacity=Math.min(.86,.35+dd.oob*.06).toFixed(2);o.querySelector('b').textContent=`Turn back · ${Math.max(0,Math.ceil(10-dd.oob))}`;}}
@@ -410,6 +464,7 @@ function ddFinish(){
   $('#endEyebrow').textContent=win?'Beach taken':'Beach lost';$('#endTitle').textContent=win?'The base is yours':'The squads are gone';
   $('#endText').textContent=win?`The barracks destroyed in ${mm}:${ss}. ${dd.lost} of the squads' men were killed (${DD_POOL-dd.pool} replacements used), and ${dd.npcLost} of the other troops fell on the way up.`
     :`Both squads were lost after ${mm}:${ss}, with no replacements left. ${dd?dd.npcLost:0} of the other troops fell with them. Smoke the machine guns, keep to the holes and the boulders, and let the demolition man open the bunkers.`;
+  {const q=$('#sq');if(q)q.hidden=true;}
   $('#againBtn').textContent='Land again';$('#retryBtn').hidden=true;$('#end').hidden=false;
   const o=$('#oob');if(o)o.hidden=true;
 }
