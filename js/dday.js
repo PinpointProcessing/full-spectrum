@@ -17,10 +17,13 @@ const DD_FACE=[[0,120],[330,120],[330,300],[470,300],[600,85],[120,-320],[0,-320
   DD_RRIGHT=[[316,-312],[440,-435],[1000,-435],[1000,-95],[752,-95]];
 function ddIn(poly,x,y){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[xi,yi]=poly[i],[xj,yj]=poly[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;}return c;}
 const ddMx=x=>{let d=x-DDX;if(d<0)d=-d;if(d>DDW)d=2*DDW-d;return clamp(d,0,DDW);};   // the play area's x (0..1000) for any x: the edges mirror it
-const ddRock=(dx,y)=>ddIn(DD_FACE,dx,y)?1:ddIn(DD_RWALL,dx,y)?2:ddIn(DD_RRIGHT,dx,y)?3:0;
+const DD_LEDGE={x0:598,x1:740,y0:212,y1:300};   // the first bunker's shelf, cut into the foot of the hill the nests stand on (Bryan: "The first bunker should share the same hill going up to the second bunker, just at the edge of the beach")
+const ddLedge=(dx,y)=>dx>=DD_LEDGE.x0&&dx<=DD_LEDGE.x1&&y>=DD_LEDGE.y0&&y<DD_LEDGE.y1;
+const ddRock=(dx,y)=>ddLedge(dx,y)?0:ddIn(DD_FACE,dx,y)?1:ddIn(DD_RWALL,dx,y)?2:ddIn(DD_RRIGHT,dx,y)?3:0;
 const ddRamp=y=>18+clamp((300-y)/620,0,1)*132;   // the draw's floor: 1.8 m at the gate to 15 m at the top
 const DD_HOLES=[{x:380,y:520,r:34,c:2,n:'deep'},{x:640,y:560,r:30,c:1},{x:820,y:470,r:20,c:1},{x:250,y:400,r:18,c:1},{x:545,y:392,r:18,c:1},{x:130,y:600,r:20,c:1},{x:900,y:640,r:22,c:1}];
 function ddRawH(dx,y){
+  if(dx>=DD_LEDGE.x0&&dx<=DD_LEDGE.x1&&y>=DD_LEDGE.y0&&y<318)return ddRamp(DD_LEDGE.y1)+10;   // the shelf, and its lip down to the sand
   if(y>=316)return y<700?16*(700-y)/384:y<770?-7*(y-700)/70:Math.max(-20,-7-(y-770)*.16);
   const r=ddRock(dx,y),n=Math.sin(dx*.071+y*.043)*7+Math.sin(dx*.023-y*.061)*9;
   if(r===1)return Math.min(ddRamp(y)+58,172)+n;
@@ -51,7 +54,7 @@ function ddH(x,y){
 
 /* ---------- the map's objects (play-area coordinates dx 0..1000, then moved over by DDX) ---------- */
 const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by these
-  pill:{x:130,y:186,ang:Math.PI/2,arc:1.2},nests:[{x:842,y:14,ang:2.4,arc:1.05},{x:930,y:14,ang:2.0,arc:1.05}],
+  pill:{x:668,y:280,ang:Math.PI/2,arc:1.3},nests:[{x:842,y:14,ang:2.4,arc:1.05},{x:930,y:14,ang:2.0,arc:1.05}],
   heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},sniper:{x:122,y:-590},
   mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
@@ -70,7 +73,8 @@ function ddObjects(){
   o('ddgate',DD_SPOT.gateM.x,302,DD_SPOT.gateM.w,12,{cover:1,hp:70,tag:'gateM'});
   o('ddconc',540,300,60,16,{full:true});
   // the pillbox behind the left gate: concrete to the front and sides, open at the back
-  o('ddpb',80,198,100,8,{cover:2});o('ddpb',80,150,8,48,{cover:2});o('ddpb',172,150,8,48,{cover:2});
+  o('ddpb',626,290,84,8,{cover:2});o('ddpb',626,250,8,40,{cover:2});o('ddpb',702,250,8,40,{cover:2});
+  o('sandbag',716,286,22,10);o('sandbag',100,200,66,10);o('ddcrate',190,190,22,20,{cover:1});   // (the pocket behind the left gate, where the bunker was: a sandbag line)
   // the two machine gun nests on the rock to the right: open on the draw's side
   o('ddpb',790,30,190,8,{cover:2});o('ddpb',980,-30,8,68,{cover:2});
   // the draw: sandbags across it at three heights, and boulders
@@ -210,7 +214,7 @@ function buildDDay(){
 function ddProps(sc,objsL){
   const G=new T.Group();DD.props=G;sc.add(G);
   const M=(c,r=.9,m=0)=>new T.MeshStandardMaterial({color:c,roughness:r,metalness:m}),
-    conc=M(0xb4b0a4,.95),concD=M(0x8a877c,.95),bag=M(0xb8a372,1),steel=M(0x3a3632,.6,.7),rust=M(0x5a4030,.8,.4),wood=M(0x5d4a34,.95),rockM=M(0x9a8e78,1),olive=M(0x4d5540,.9),dark=M(0x26282a,.7,.5);
+    conc=M(0xb4b0a4,.95),concD=M(0x8a877c,.95),bag=M(0xb8a372,1),steel=M(0x3a3632,.6,.7),rust=M(0x5a4030,.8,.4),wood=M(0x5d4a34,.95),rockM=new T.MeshStandardMaterial({color:0x857a68,roughness:1,flatShading:true}),olive=M(0x4d5540,.9),dark=M(0x26282a,.7,.5);
   const add=(geo,mat,x,y,z,ry,rx,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;if(rx)m.rotation.x=rx;if(rz)m.rotation.z=rz;m.castShadow=true;m.receiveShadow=true;G.add(m);return m;};
   const box=(o,h,mat,lift=0)=>{const g0=ddH(o.x+o.w/2,o.y+o.h/2);const m=add(new T.BoxGeometry(o.w,h,o.h),mat,o.x+o.w/2,g0+h/2+lift,o.y+o.h/2);(o.meshes=o.meshes||[]).push(m);return m;};
   const bagG=new T.SphereGeometry(1,7,5),r=rng(66);
@@ -249,7 +253,7 @@ function ddProps(sc,objsL){
   }
   // roofs over the pillbox and the nests (they fade when one of ours is inside: ddFrame), the heavy gun's and the cannon's shields
   const slab=(dx0,y0,w,d,hh)=>{const x=dx0+DDX+w/2,y=y0+d/2,m=add(new T.BoxGeometry(w+8,4,d+8),new T.MeshStandardMaterial({color:0x7d7c76,roughness:.95,transparent:true}),x,ddH(x,y)+hh,y);m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};return m;};
-  DD.roofs=[slab(80,150,100,56,17),slab(790,-30,198,68,17),slab(30,-440,120,76,17)];
+  DD.roofs=[slab(626,250,84,48,17),slab(790,-30,198,68,17),slab(30,-440,120,76,17)];
   for(const m of DD.roofs)m.castShadow=true;
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored
@@ -289,4 +293,5 @@ function ddFrame(rdt,now){
       const fl=ddH(p.x,p.z)+1.2;if(p.y<=fl){p.y=fl;if(Math.abs(g.v[1])>50){g.v[1]*=-.3;g.v[0]*=.5;g.v[2]*=.5;paintDecal({k:'body',x:p.x,y:p.z,a:0,r:Math.random()*.4});}else g.v=null;}}
     if(g.t>26){g.on=false;g.m.visible=false;}}
   if(typeof ddLookFrame==='function')ddLookFrame(dt,now);
+  if(typeof ddCam==='function')ddCam(rdt);   // (ddplay.js: the camera keeps with the squad)
 }

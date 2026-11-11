@@ -125,3 +125,35 @@ very barren and ugly. The graphics are very bad. If we can have something like T
 
 Still plain: the bunkers and walls (flat concrete), the figures themselves (the Warehouse Yard's), no dust or water
 splashes from shell bursts. Not measured: speed on a phone with ~90 figures.
+
+## Bryan's second round (same day, also in Version 128)
+
+"I don't like the hum in the background, and the audio is too modern sounding. It needs to fit the aesthetic of D-Day. The
+troops should look bubblier and better drawn, show me some drafts of different character model. The turrets should have a
+THUD THUD THUD sounding like a heavy machine gunner would. The first bunker should share the same hill going up to the
+second bunker, just at the edge of the beach. I'd also like to add a new unit, radioman, which will unlock after the first
+mission or two. He calls in artillery, airstrikes, and maybe even balloon (like in Battlefield 1). Make the camera much
+closer to the units by default, like a third person for the full squad, think Full Spectrum Warrior. Also make sure the
+camera is angled so the player can see the horizon. I'd like the camera semi-fixed to the team."
+
+Built:
+- Camera (`DD_CAM`, `ddCam` in ddplay.js): close behind the squad being played (zoom 8.5, 11 allowed here), low (about
+  17°) with the picture moved down so the hill and the horizon are in; it keeps a little ahead of the squad's middle. A
+  drag still moves the view and it eases back about 2 s after the finger lifts; pinch, twist and tilt work as before; Fit
+  map gives the overview. It rides with the boat on the way in.
+- The first bunker: on a shelf cut into the foot of the hill the nests stand on, right of the middle gate, at the beach's
+  edge (`DD_LEDGE`), reached from the bottom of the draw. The pocket behind the left gate keeps a sandbag line and two men.
+- Sound: no drone under the fight (that was the hum), more wind; mounted guns thud, about six heavy beats a second
+  (`sfxShotDD` in audio.js); the BAR a slower, deeper bark; rifles the older semi-automatic's crack, pitched down, with a
+  ping as an M1's clip goes; none of the Warehouse squad's radio talk here (their lines and words are modern).
+  Still the same recordings underneath (no period recordings in the project yet): real M1, MG42 and BAR recordings, if
+  free ones can be found, would do more than any of this.
+- Character drafts: `docs/drafts/troops-sheet.jpg`, `troops-A.jpg`, `-B.jpg`, `-C.jpg`, `troops-gameview.jpg`, made by
+  `tools/drafts/troops.html` (?opt=A|B|C|all, &top=1): rounded parts, a toon shade, an ink outline. A Bubble (big head,
+  small round body), B Stocky (barrel chest, thick short limbs), C Lean toon (longer limbs, smaller head). The game's
+  figures are unchanged until Bryan picks; the pick then needs the 21-bone animation fitted to it.
+
+Not built, recorded: the radioman, a fifth type who unlocks after the first mission or two: he calls in artillery (a
+barrage on a marked spot after a delay), air strikes (a pass along a line), and perhaps an observation balloon (sight over
+a wide area while it's up, and it can be shot down). Questions for then: does he take a squad slot or come as a fifth man;
+how often each call; whether the defenders get the same.

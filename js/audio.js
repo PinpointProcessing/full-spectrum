@@ -118,10 +118,25 @@ function sfxPA(x,y){   // the base's loudspeakers coming back (waves.js's outage
 function sfxShot(u,quiet){
   if(quiet){const out=voice(u.x,u.y,.3,.3);if(!out)return;const t=AC.currentTime;   // silenced: a muffled cough and the action cycling
     noiseHit(out,t,.07,'bandpass',800,1.1,.8,.002);noiseHit(out,t,.14,'lowpass',520,0,.45,.003,140);noiseHit(out,t+.035,.03,'highpass',3500,0,.18,.001);return;}
+  if(MAPID==='dd'&&sfxShotDD(u))return;
   const w=u.weapon,kind=u.gunner||w==='hmg'?'mg':w==='sniper'?'enemy':u.side==='E'?'enemy':w==='shotgun'?'shotgun':'shot',r=(w==='sniper'?.78:.95)+Math.random()*.1;   // (a sniper rifle: the big single shot, deeper)
   if(playSample(kind,u.x,u.y,kind==='mg'?.75:kind==='shotgun'||w==='sniper'?.85:.6,r))return;
   const out=voice(u.x,u.y,.45,.3);if(!out)return;const t=AC.currentTime;   // fallback: a sharp crack and a body
   noiseHit(out,t,.05,'highpass',2500,0,1);noiseHit(out,t,.18,'lowpass',2600*r,0,.8,.002,300);toneHit(out,t,.09,'sine',110,40,.5);
+}
+// D-Day's guns (Bryan: "the audio is too modern sounding"; "The turrets should have a THUD THUD THUD sounding like a heavy
+// machine gunner would"): a mounted gun a slow heavy thud, each one a deep body under a dull crack, about six a second
+// however fast its rounds go out; the BAR a slower, deeper bark than a modern gun; rifles the older semi-automatic's crack,
+// pitched down for the M1 (a ping as its clip goes, every eighth round) and the sharpshooter's and the defenders' bolt rifles
+function sfxShotDD(u){
+  const now=AC.currentTime,w=u.weapon;
+  if(u.gunner){if(now-(u.thudT||0)<.165)return true;u.thudT=now;const out=voice(u.x,u.y,1,.5);if(!out)return true;
+    toneHit(out,now,.16,'sine',92,38,.95);noiseHit(out,now,.11,'lowpass',420,0,.9,.002,90);noiseHit(out,now,.03,'bandpass',1500,1,.35,.001);return true;}
+  if(w==='hmg'){if(now-(u.thudT||0)<.12)return true;u.thudT=now;if(!playSample('enemy',u.x,u.y,.7,.62+Math.random()*.05)){const out=voice(u.x,u.y,.6,.3);if(out){toneHit(out,now,.1,'sine',120,50,.7);noiseHit(out,now,.09,'lowpass',900,0,.8,.002,150);}}return true;}
+  const r=w==='sniper'?.66:u.side==='P'?.8:.9;
+  if(!playSample('enemy',u.x,u.y,w==='sniper'?.85:.6,r+Math.random()*.06)){const out=voice(u.x,u.y,.45,.3);if(out){noiseHit(out,now,.05,'highpass',1800,0,.9);noiseHit(out,now,.2,'lowpass',1700,0,.8,.002,220);toneHit(out,now,.1,'sine',95,40,.5);}}
+  if(u.side==='P'&&w==='rifle'){u.clipN=(u.clipN||0)+1;if(u.clipN>=8){u.clipN=0;const out=voice(u.x,u.y,.25,.2);if(out){toneHit(out,now+.09,.16,'sine',2750,2500,.22);toneHit(out,now+.09,.1,'sine',4100,3900,.1);}}}
+  return true;
 }
 // low rumble and falling debris under every explosion, so they carry weight
 function rumble(x,y,size){
@@ -301,7 +316,7 @@ function audioFrame(){
     const inside=MAPID==='in'||MAPID==='tun'||hqIndoors()||l4In();amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
     amb.wg.gain.setTargetAtTime(inside?0:.05+.04*Math.max(0,amb.gust),t,.8);amb.hum.gain.setTargetAtTime(inside?1:0,t,.8);
     const hunted=enemies.some(e=>!e.dead&&e.alerted),k=state==='play'?Math.max(contact?1:detection(),hunted?.6:0):0;   // the drone follows the danger
-    amb.dr.gain.setTargetAtTime(.0001+k*k*.085,t,.6);amb.df.frequency.setTargetAtTime(140+k*520,t,.8);
+    amb.dr.gain.setTargetAtTime(MAPID==='dd'?.0001:.0001+k*k*.085,t,.6);if(MAPID==='dd')amb.wg.gain.setTargetAtTime(.09+.05*Math.max(0,amb.gust),t,.8);   // (D-Day: no drone under the fight, Bryan: "I don't like the hum"; wind and surf instead)amb.df.frequency.setTargetAtTime(140+k*520,t,.8);
   }
   // explosions and launches, picked up as they appear (grenades, rockets, tank shells, fuel tanks, vehicles)
   let n=0;for(const b of booms)if(!b.snd&&b.t>=0){b.snd=1;if(n++<2)sfxBoom(b.x,b.y,b.size||1);}

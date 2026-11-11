@@ -40,7 +40,7 @@ function ddDress(G,sc,M){
   for(let i=0;i<150;i++){const x=r()*X1,y=350+r()*340;if(ddGroundAt(x,y)!=='sand')continue;
     if(r()<.45)junk.push({x,y,h:ddH(x,y)+1.6,ry:r()*6,sx:.7+r()*.7,c:pick([0x6b6f48,0x7c6a48,0x565c44])});else helm.push({x,y,h:ddH(x,y)+.9,ry:r()*6,rz:(r()-.5)*1.2,sx:1,c:pick([0x5d6a42,0x4f5a3c])});}
   const lam=(c)=>new T.MeshLambertMaterial({color:c});
-  const tg=new T.ConeGeometry(1.5,5,4);tg.translate(0,1.2,0);
+  const tg=new T.ConeGeometry(.8,3.4,3);tg.translate(0,.6,0);
   ddInst(G,tg,lam(0xffffff),tufts,false);
   ddInst(G,new T.IcosahedronGeometry(1,0),lam(0xffffff),bush,true);
   ddInst(G,new T.CylinderGeometry(1.1,1.7,14,6),lam(0x5a4630),trunk,true);

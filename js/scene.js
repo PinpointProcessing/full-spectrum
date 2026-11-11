@@ -33,7 +33,7 @@ function initGL(){
 // The camera distance is fitted to the yard's size (FIT); VB is where it may roam: the yard, then the whole map once the depot opens.
 const FIT={w:YARD_W,h:H};let VB={x0:0,z0:0,x1:YARD_W,z1:H};   // VB z runs TOP..H once the whole map is open
 let CANAL_PLANE=null;   // the canal's water (road.js clips it at the shore)
-const MAXZ=6,ZP=4,CAM_OVER=220;let zoom=1,camT={x:FIT.w/2,z:FIT.h/2},dist0=1200,yaw=0,tilt=0;   // (MAXZ was 4 until v111: Bryan, "can we have the ability to zoom into the troops a little closer?")
+const ZP=4,CAM_OVER=220;let MAXZ=6,zoom=1,camT={x:FIT.w/2,z:FIT.h/2},dist0=1200,yaw=0,tilt=0;   // (MAXZ was 4 until v111: Bryan, "can we have the ability to zoom into the troops a little closer?")
 const PITCH0=60*Math.PI/180,PITCH1=46*Math.PI/180,PITCH2=41*Math.PI/180,PITCH_MIN=14*Math.PI/180;   // tilt lowers the camera towards the horizon, down to PITCH_MIN
 function basePitch(){const z=Math.min(zoom,ZP);return PITCH0+(PITCH1-PITCH0)*(z-1)/(ZP-1)+(zoom>ZP?(PITCH2-PITCH1)*(zoom-ZP)/(MAXZ-ZP):0);}   // (60° zoomed out to 46° at 4x as before, then on down to 41° at the closest)
 let camShift=0,camShiftOn=false;   // the picture moved down by this much of the screen's height (road.js: the first walk across, since v115, so the horizon and some sky are in at the game's lowest angle)

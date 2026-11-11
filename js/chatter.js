@@ -119,7 +119,7 @@ const tutBy=(x,y)=>players.filter(p=>up(p)&&!p.joined).sort((a,b)=>hyp(a.x-x,a.y
 // queue an exchange (cd: seconds before this kind can happen again); returns true if it was queued
 const URGENT_CHAT=new Set(['contact','down','frag','reinf']);
 function chat(kind,cd,...lines){
-  if(!sndOn||state!=='play'||!lines[0])return false;
+  if(!sndOn||state!=='play'||!lines[0]||MAPID==='dd')return false;   // (D-Day: none of the Warehouse squad's talk)
   if(!URGENT_CHAT.has(kind)&&!kind.startsWith('tut_')&&performance.now()/1000<voiceBusyTill+TALK_GAP)return false;   // (Bryan: they talked all the time)
   if(simT<(chatCD[kind]||0)||talkQ.length>3)return false;chatCD[kind]=simT+cd;
   for(const l of lines)if(l){l.at=simT;talkQ.push(l);}return true;

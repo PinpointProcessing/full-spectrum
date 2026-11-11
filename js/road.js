@@ -421,7 +421,7 @@ function roadSetOff(){
   up.forEach((p,i)=>{const t=openSpot(ROAD_STOP.x-Math.floor(i/2)*24,ROAD_STOP.y+(i%2?16:-16),taken)||ROAD_STOP;taken.push(t);p.path=findPath(p.x,p.y,t.x,t.y)||[];p.lastOrder=simT;p.ret=null;});
 }
 function roadTick(dt){   // (every tick: combat.js's update)
-  {const want=road&&road.intro&&MAPID==='out'?(road.intro.ph==='east'?ROAD_LOOK.shift:road.intro.ph==='see'?.12:0):0;if(camShift!==want){camShift+=(want-camShift)*Math.min(1,dt*1.6);if(Math.abs(camShift-want)<.002)camShift=want;}}   // (the first walk across: the picture moved down so the horizon and some sky are in, since v115; back as it was for the turn to the mouth)
+  if(MAPID!=='dd'){const want=road&&road.intro&&MAPID==='out'?(road.intro.ph==='east'?ROAD_LOOK.shift:road.intro.ph==='see'?.12:0):0;if(camShift!==want){camShift+=(want-camShift)*Math.min(1,dt*1.6);if(Math.abs(camShift-want)<.002)camShift=want;}}   // (the first walk across: the picture moved down so the horizon and some sky are in, since v115; back as it was for the turn to the mouth)
   if(EAST.beam&&EAST.grp&&EAST.grp.visible){EAST.beam.rotation.y=simT*.7;if(EAST.water){const o=EAST.water.normalMap.offset;o.x=simT*.004;o.y=simT*.0025;}if(EAST.fall)EAST.fall.offset.y=simT*1.6;if(EAST.foam){EAST.foam.offset.x=Math.sin(simT*1.3)*.012;EAST.foam.offset.y=Math.sin(simT*.9)*.01;}}   // the lighthouse's beam going round, the water's ripple drifting
   centiTick(dt);
   if(MAPID==='tun'&&typeof tunTick==='function')tunTick(dt);   // (her young in the tunnel: tunnel.js)

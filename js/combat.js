@@ -437,7 +437,7 @@ function damage(t,dmg,src){
       chatDown(t);   // "Hayes is down!" ... "Hang on, Hayes, I've got you." (chatter.js)
       sel=sel.filter(x=>x!==t);preview=null;
     }else{
-      t.dead=true;t.path=[];callout(t,t.mon?'Got it':'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog){const r=Math.random();if(r<.35)sfxScream(t,.85);else if(r<.65)sfxGrunt(t,true);}}
+      t.dead=true;t.path=[];callout(t,t.mon?'Got it':MAPID==='dd'?'Got him':'Tango down',C.good);if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);if(!t.dog){const r=Math.random();if(r<.35)sfxScream(t,.85);else if(r<.65)sfxGrunt(t,true);}}
       {const o=enemies.find(q=>q!==t&&!q.dead&&!q.dog&&q.alerted&&hyp(q.x-t.x,q.y-t.y)<220);if(o)bark(o,'down');}
       if(src&&src.side==='P'){creditKill(src);if(Math.random()<.25)say(src,'kill');chatKill(src);}
       if(t.mon)monDied(t);else paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});addBody(t);enemyDown(t);   // (a body someone may find: layers.js; the sniper's rifle: mission.js)

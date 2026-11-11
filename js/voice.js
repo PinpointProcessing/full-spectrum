@@ -163,7 +163,7 @@ const vOrder={};
 function nextVariant(id,key,n){const k=id+key;let q=vOrder[k];if(!q||!q.length){q=vOrder[k]=[...Array(n).keys()].map(i=>i+1).sort(()=>Math.random()-.5);}return q.shift();}
 // speak line `key` as soldier u (urgent lines cut in; others wait their turn or are dropped)
 function say(u,key){
-  if(!u||u.side!=='P'||!sndOn||!VOICE_LINES[key]||state!=='play')return;
+  if(!u||u.side!=='P'||!sndOn||!VOICE_LINES[key]||state!=='play'||MAPID==='dd')return;   // (D-Day: the Warehouse squad's radio lines don't belong there; its own voices are to come)
   const now=performance.now()/1000,k=u.id+key;
   if(voiceLast[k]&&now-voiceLast[k]<(key==='cant'||key==='far'?4:SAY_AGAIN))return;
   if(key==='far'&&VSPR&&!(VSPR.speakers[u.id]&&VSPR.speakers[u.id].clips.far_1))return;   // (not in his file: the bubble says it)
