@@ -12,7 +12,7 @@
    - Out past the map's edge the screen darkens; ten seconds out and the man is lost.
    Hooks: combat.js (ddPick, ddDamage, ddTick), mission.js (ddBlast, ddObjUI, drawDDay), input.js (ddSelected, ddBusy),
    hud.js (ddHint, ddFinish), state.js (leaveDDayNow). */
-const DD_POOL=20;
+const DD_POOL=20,DD_FIG=1.3,DD_US='#7f7d4e',DD_GER='#56646e';   // (DD_FIG: the men drawn bigger here, so they read from further up)
 const DD_ROLES={
   medic:{ab:'MEDIC',n:'Medic',cls:'medic',weapon:'rifle',spec:'medkit',specN:3},
   gunner:{ab:'GUNNER',n:'Gunner',cls:'support',weapon:'hmg',spec:'smoke',specN:2},
@@ -27,6 +27,8 @@ const DD_ROUTE=[[440,640],[450,520],[430,380],[505,336],[545,240],[570,120],[520
 // where the other troops hold until the squads have opened the next stretch
 const DD_LINES=[344,236,-20,-290,-470];
 let dd=null;
+// by day: no night rim light or self-light on anyone (figure.js's material)
+function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.setScalar(DD_FIG);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.05;U.uGlow.value=u.side==='P'?.5:0;}});}
 const ddAlly=u=>u.side==='P'&&!u.dead&&!u.downed&&!u.away;
 const ddSq=t=>players.filter(p=>p.team===t&&!p.dead);
 function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_ORDER.filter(r=>!have.includes(r));return miss.length?miss[0]:DD_ORDER[(Math.random()*4)|0];}
@@ -35,16 +37,16 @@ function ddNewMan(team,id,role,x,y){
   const R=DD_ROLES[role],tr=DD_TRAITS[(Math.random()*DD_TRAITS.length)|0],u=mk('P',team,id,ddName(),x,y,-Math.PI/2);
   Object.assign(u,{dmgIn:1.15,role:R.ab,ddRole:role,ddCls:R.cls,weapon:R.weapon,weapon2:null,spec:R.spec,specN:R.specN,grenade:1,freed:true,trait:tr.n,bold:1,level:1},tr);delete u.n;
   u.skillN=typeof skillFull==='function'?skillFull(u):0;u.skillT=0;
-  makeSoldier(u);return u;
+  u.cloth=DD_US;makeSoldier(u);ddDayFig(u);return u;
 }
 function ddNpc(x,y){
   const u=mk('P','N','N'+(++dd.nid),'GI',x,y,-Math.PI/2);
   Object.assign(u,{npc:true,freed:true,weapon:'rifle',grenade:0,spec:null,specN:0,aimK:-.1,lane:clamp(x+(Math.random()-.5)*120,DDX+40,DDX+DDW-40),hopT:simT+Math.random()*2,nerveK:1.15});
-  makeSoldier(u);u.m.ring.material.opacity=.35;dd.npcs.push(u);dd.npcN++;return u;
+  u.cloth=DD_US;makeSoldier(u);ddDayFig(u);u.m.ring.material.opacity=.35;dd.npcs.push(u);dd.npcN++;return u;
 }
 function ddFoe(tag,dx,y,ex){
-  const u=hostile('G'+(++dd.eid),dx+DDX,y,Object.assign({name:'Defender',ang:Math.PI/2,alerted:true,aware:1,jumpy:false,helm:true,cloth:'#5b6359',nade:0,aimPen:-.03,dmgIn:.72,tag},ex||{}));
-  u.sawT=simT;return u;
+  const u=hostile('G'+(++dd.eid),dx+DDX,y,Object.assign({name:'Defender',ang:Math.PI/2,alerted:true,aware:1,jumpy:false,helm:true,cloth:DD_GER,nade:0,aimPen:-.03,dmgIn:.72,tag},ex||{}));
+  u.sawT=simT;ddDayFig(u);return u;
 }
 function ddGunner(tag,s,name){const u=ddFoe(tag,s.x,s.y-6,{name:name||'Machine gunner',gunner:true,post:true,ang:s.ang});u.onGun={x:s.x+DDX,y:s.y,ang:s.ang,arc:s.arc};return u;}
 function spawnDDay(){
@@ -83,7 +85,8 @@ function enterDDay(){
   zoom=3.2;yaw=0;tilt=.18;camT={x:B.x+DDX,z:B.y+40};clampCam();updateCamera();
   document.body.classList.add('dd');ddSky(0);DD.dayShown=0;
   // the boats: the squads' own, and the first wave of the others either side
-  ddBoat(B.x,players,true);ddBoat(250,ddCrew(7));ddBoat(770,ddCrew(7));
+  ddBoat(B.x,players,true);ddBoat(250,ddCrew(9));ddBoat(770,ddCrew(9));ddBoat(110,ddCrew(8));ddBoat(900,ddCrew(8));
+  for(const o of objs)if(o.kind==='ddwreck')tankFires.push({x:o.x+o.w/2,y:o.y+o.h/2,r:10,t0:simT,puffs:[],emit:0});
   updateObjUI();setStatus();buildCards();hud();
 }
 function leaveDDayNow(){
@@ -267,8 +270,8 @@ function ddNpcThink(u,line){
 }
 function ddWaves(){
   const live=dd.npcs.filter(u=>!u.dead).length;
-  if(simT>dd.spawnT&&live<16&&dd.npcN<90&&!dd.won){dd.spawnT=simT+16+Math.random()*10;
-    const lanes=[120,280,640,800,900,400].filter(x=>!dd.boats.some(b=>Math.abs(b.x-DDX-x)<70));if(lanes.length)ddBoat(lanes[(Math.random()*lanes.length)|0],ddCrew(5+((Math.random()*3)|0)));}
+  if(simT>dd.spawnT&&live<24&&!dd.won){dd.spawnT=simT+9+Math.random()*6;
+    const lanes=[90,200,300,400,600,700,800,910].filter(x=>!dd.boats.some(b=>Math.abs(b.x-DDX-x)<70));for(let k=0;k<2&&lanes.length;k++){const i=(Math.random()*lanes.length)|0,x=lanes.splice(i,1)[0];ddBoat(x+(Math.random()-.5)*40,ddCrew(6+((Math.random()*3)|0)));}}
   // replacements due: each lands in a boat of his own with a few others, and makes for his squad
   for(const q of dd.queue.slice()){if(simT<q.at)continue;dd.queue.splice(dd.queue.indexOf(q),1);
     const u=ddNewMan(q.team,q.id,ddPickRole(q.team),DDX+500,900);u.joining=true;players.push(u);players.sort((a,b)=>a.id<b.id?-1:1);
@@ -344,9 +347,9 @@ function ddTick(dt){
   if(!endAt&&!dd.won&&!players.some(alive)&&!dd.queue.length&&(dd.pool<=0||!players.length)&&players.every(p=>p.dead||p.revive===0)){dd.over=true;endAt=performance.now()+1800;}
 }
 function ddTidy(){   // the dead don't pile up for ever: the oldest bodies go
-  const dead=units.filter(u=>u.dead&&(u.npc||u.side==='E')&&!u.veh);if(dead.length<=34)return;
+  const dead=units.filter(u=>u.dead&&(u.npc||u.side==='E')&&!u.veh);if(dead.length<=22)return;
   dead.sort((a,b)=>(a.deadT||0)-(b.deadT||0));
-  for(const u of dead.slice(0,dead.length-34)){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);units.splice(units.indexOf(u),1);}
+  for(const u of dead.slice(0,dead.length-22)){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);units.splice(units.indexOf(u),1);}
   enemies=enemies.filter(e=>units.includes(e));dd.npcs=dd.npcs.filter(u=>units.includes(u));
 }
 /* ---------- the HUD ---------- */

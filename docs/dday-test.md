@@ -102,3 +102,26 @@ it kills. Not judged yet: pacing with a real player, performance on a phone (up 
 
 Not in yet (follow-ups): the ride-in script (men lost before the beach, a boat hit, swimming ashore), the new screaming
 voices, enemy vehicles, a report with XP, saves.
+
+## Graphics pass and more troops (Version 128)
+
+Bryan, after the first playable: "Remember to have dozens of ai units running in too. The drafts you are sending me look
+very barren and ugly. The graphics are very bad. If we can have something like Tiny Troopers but not as cute looking."
+(A bright, chunky, busy look of our own; nothing copied from that game.)
+
+- The ground is worked out point by point from its height and steepness: golden sand with ripples, wet sand at the water,
+  layered rock on the steep faces, grass on the cliff tops and the base, worn earth in the draw; lit from the sun's side.
+- `js/ddlook.js`, scenery: about 2,000 grass tufts, gorse and bushes on the tops, hedgerow trees, stones on the faces,
+  stakes in the surf, sand lips round the shell holes, dropped crates and helmets, mine signs; at the base trucks, tents,
+  fuel drums and a radio mast (these block the way and give cover); a pitched roof on the barracks.
+- Beyond the map: a sky with cloud, ships on the horizon, barrage balloons, landing craft and 96 men going up the beaches
+  either side (cheap instanced figures, looks only), three lines of surf, a painted moving sea.
+- Daylight picture: more colour, no cold night shadows, less vignette, grain and glow (post.js, this map only).
+- Soldiers drawn 30 % bigger, olive drab against the defenders' grey-blue, without the night levels' blue rim light.
+- Other troops: five boats in the first wave (about 34 men besides the squads), then two boats of 6-8 every 9-15 s while
+  fewer than 24 are alive; up to ~40 in play at once.
+- Found on the way: the sea drew nearly black, then washed white: the ripple map and the distance haze both go wrong on
+  that sheet here, so the sea has a painted surface and no haze.
+
+Still plain: the bunkers and walls (flat concrete), the figures themselves (the Warehouse Yard's), no dust or water
+splashes from shell bursts. Not measured: speed on a phone with ~90 figures.

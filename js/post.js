@@ -29,19 +29,19 @@ function postInit(){
     POST.M.down=mk(`uniform sampler2D tSrc;uniform vec2 px;varying vec2 vUv;
       void main(){gl_FragColor=vec4((texture2D(tSrc,vUv-px).rgb+texture2D(tSrc,vUv+px).rgb+texture2D(tSrc,vUv+vec2(px.x,-px.y)).rgb+texture2D(tSrc,vUv+vec2(-px.x,px.y)).rgb)*.25,1.);}`,
       {tSrc:{value:null},px:{value:new T.Vector2()}});
-    POST.M.final=mk(`uniform sampler2D tScene,tB1,tB2;uniform float bloom1,bloom2,time,grain,vig;uniform vec2 res;varying vec2 vUv;
+    POST.M.final=mk(`uniform sampler2D tScene,tB1,tB2;uniform float bloom1,bloom2,time,grain,vig,sat,cold;uniform vec2 res;varying vec2 vUv;
       float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
       void main(){
         vec3 c=texture2D(tScene,vUv).rgb+texture2D(tB1,vUv).rgb*bloom1+texture2D(tB2,vUv).rgb*bloom2;
         float l=dot(c,vec3(.299,.587,.114));
-        c=mix(c,c*vec3(.88,1.0,1.08)+vec3(0.,.006,.012),(1.-smoothstep(0.,.42,l))*.55);   // cold shadows
+        c=mix(c,c*vec3(.88,1.0,1.08)+vec3(0.,.006,.012),(1.-smoothstep(0.,.42,l))*cold);   // cold shadows
         c=mix(c,c*vec3(1.08,1.0,.88),smoothstep(.3,1.,l)*.65)*1.05;                     // warm lights, a little brighter overall
-        c=clamp(mix(vec3(l),c,1.08),0.,1.);c=mix(c,c*c*(3.-2.*c),.22);                  // a touch more colour and contrast
+        c=clamp(mix(vec3(l),c,sat),0.,1.);c=mix(c,c*c*(3.-2.*c),.22);                  // a touch more colour and contrast
         c=c*.975+vec3(.006,.011,.016);                                                  // blacks lifted a little, toward blue-green
         vec2 q=vUv-.5;c*=1.-vig*dot(q,q)*1.6;                                            // vignette
         c+=(h(floor(vUv*res)+fract(time*7.31)*vec2(91.7,47.3))-.5)*grain;              // film grain
         gl_FragColor=vec4(c,1.);}`,
-      {tScene:{value:null},tB1:{value:null},tB2:{value:null},bloom1:{value:1.0},bloom2:{value:.65},time:{value:0},grain:{value:.03},vig:{value:.42},res:{value:new T.Vector2()}});
+      {tScene:{value:null},tB1:{value:null},tB2:{value:null},bloom1:{value:1.0},bloom2:{value:.65},time:{value:0},grain:{value:.03},vig:{value:.42},sat:{value:1.08},cold:{value:.55},res:{value:new T.Vector2()}});
     POST.ok=true;
   }catch(e){POST.ok=false;}
   POST.tier=matchMedia('(pointer:coarse)').matches?1:2;
@@ -62,6 +62,7 @@ function postRender(sc,cam){
   if(!POST.ok||POST.tier===0||!POST.rt){renderer.setRenderTarget(null);renderer.render(sc,cam);return;}
   const M=POST.M,Q=POST.quad,pass=(mat,dst)=>{Q.material=mat;renderer.setRenderTarget(dst);renderer.render(POST.scene,POST.cam);};
   renderer.setRenderTarget(POST.rt);renderer.render(sc,cam);
+  M.bright.uniforms.thr.value=MAPID==='dd'?.86:.54;
   M.bright.uniforms.tSrc.value=POST.rt.texture;M.bright.uniforms.px.value.set(1/POST.w,1/POST.h);pass(M.bright,POST.b1);
   const B=M.blur.uniforms,bw=POST.b1.width,bh=POST.b1.height;
   B.tSrc.value=POST.b1.texture;B.dir.value.set(1/bw,0);pass(M.blur,POST.b2);
@@ -74,6 +75,7 @@ function postRender(sc,cam){
     B.tSrc.value=POST.c2.texture;B.dir.value.set(0,1/ch2);pass(M.blur,POST.c1);
   }
   const F=M.final.uniforms;F.tScene.value=POST.rt.texture;F.tB1.value=POST.b1.texture;F.tB2.value=wide?POST.c1.texture:POST.b1.texture;F.bloom2.value=wide?.65:0;
+  {const day=MAPID==='dd';F.sat.value=day?1.2:1.08;F.cold.value=day?.12:.55;F.vig.value=day?.2:.42;F.grain.value=day?.012:.03;F.bloom1.value=day?.35:1;M.bright.uniforms.thr.value=day?.86:.54;}   // (D-Day: daylight)
   F.time.value=reduced?0:performance.now()/1000;F.res.value.set(POST.w,POST.h);
   pass(M.final,null);
 }
