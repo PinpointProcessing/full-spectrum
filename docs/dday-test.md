@@ -442,3 +442,12 @@ Bryan's answers (after Version 156):
 - Recruits are unlimited and start at the lowest level available (after chapter 1 that's level 2, and so on). Special-equipment troops should cost something: Bryan's idea, a Medal of Honor awarded each match unlocks them. Open: one every match with the MVP?
 - Armory sharing within a class; grenades and smoke for everyone.
 - Vehicles: after this round.
+
+### Draft 2 (Bryan's sketches)
+
+`docs/drafts/dday-after-battle-draft-2.png`; his two notebook pages are `docs/drafts/dday-barracks-sketch-1.jpg` and `-2.jpg`.
+
+Bryan, on draft 1: each squad lines up diagonally across from the other; the stats look fine; then a bird's-eye view of the base with Armory, Barracks and Vehicle Depot each over its own building. The barracks from his sketches:
+- Top: Alpha and Bravo rows of four slots showing unit types; an empty one is an open slot (+).
+- Click a unit: name and type, the man on a stand, level and rank under him, stats and equipment to the right, two buttons: Reserve (he goes to the reserve pool) and Replace (goes to the recruits).
+- Recruits: grey boxes, a small gold star top right if they have something special. Reserve: green boxes with type and level, a gold star for special equipment.
