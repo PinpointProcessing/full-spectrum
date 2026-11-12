@@ -425,3 +425,20 @@ Bryan: "when a player's name is selected in the squad menu, can the camera go to
 - Dragging the map lets go: the camera stays where you put it until the next pick. Pinching or turning the view doesn't let go.
 - If the man being followed dies, the camera goes back to following his squad.
 - Not followed from the landing: the first pick starts it (tap the squad's tab again to start following the squad you're already playing).
+
+## After the battle, the base, the barracks: Bryan's answers and the draft (not built)
+
+Draft picture: `docs/drafts/dday-after-battle-draft.png` (three phone screens: the report, the base, the barracks).
+
+Bryan's answers (after Version 156):
+- The report shows the two squads the player ended with, standing, stats growing above them; the dead are shown too.
+- Stats: kills, revives, guns/bunkers knocked out, XP and level-ups. One **unit** MVP (not a squad). Open: may a dead man be MVP?
+- Whoever the player ends with is the roster. The dead stay dead, gone for good with their equipment, unless a man of the same class swaps gear with the dead man (only with a dead man, only the same class).
+- Rifleman: Bryan asks what his special would be; if added he'd take the Sharpshooter's place in the starting four and the Sharpshooter becomes a later unlock. Open.
+- Stats shown as bars to the right of the unit, the unit's body on a stand like a character select: Health, Aim, Speed, Bravery. All rise a little per level; some units start better. Special traits with their own description: Nerves of Steel (never pinned), Double Life (two health bars), Marathon Runner (bonus speed), 20/20 (bonus aim).
+- Upgraded weapons from the start on some: a Gunner with a minigun, a Sharpshooter with a .50 cal, a Demo with a guided rocket, a Medic with a dart gun.
+- Lots of extra equipment per class. Some can be saved and replicated in the armory; some exist only while the man carrying it stays alive.
+- The base is the one taken; the beach is no longer part of the map.
+- Recruits are unlimited and start at the lowest level available (after chapter 1 that's level 2, and so on). Special-equipment troops should cost something: Bryan's idea, a Medal of Honor awarded each match unlocks them. Open: one every match with the MVP?
+- Armory sharing within a class; grenades and smoke for everyone.
+- Vehicles: after this round.
