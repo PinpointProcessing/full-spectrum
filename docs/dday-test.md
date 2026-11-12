@@ -383,3 +383,12 @@ Bryan, on the mock-up: "Let's make the change and see how it feels". The Alpha a
 ## Version 151
 
 Bryan: "I saw a sniper shoot but got the too far sign." A shot (or suppress) order: if anyone in the squad can fire on the target, nothing shows at the finger; each man who can't reach says "Too far" over his own head. Only when nobody can does "Too far" show at the finger (once, no bubbles). A tool (bazooka, grenade, smoke) only ever reports for the tool's own user.
+
+## Version 152
+
+Bryan: "If the soldiers can get too cover to shoot they won't move on their own. The player would have to then move them up to shoot. From each area the player controls, that's where the units will respawn from. So reinforcements come quicker. Crank up the reinforcements to 50 units. The upper right barracks is awkward to turn too. Can we make it more direct on the path? Or within the mountain."
+
+- A shoot or suppress order moves nobody. A man fires from where he stands, or says "Too far" (out of range) or "No clear shot" (in range, something in the way) over his head. If nobody can, the finger says it once.
+- Replacements come on foot out of the held place nearest the squad's men who are ashore: the left bunker, the pillbox, the upper bunker, the hill bunker, the way up, the heavy gun, the artillery, the barracks. With nothing held nearer than the waterline, a boat as before. The banner says where he comes from.
+- The pool is 50.
+- The hill's barracks (the one that opens the road to their base) stood far to the right along the top. It now stands straight ahead where the way up comes out, beside the other barracks behind the top bunker. Not built: a barracks set into the mountain.

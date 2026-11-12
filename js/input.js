@@ -230,7 +230,7 @@ function orderSuppress(list,pt){
   const go=[];let far=false;
   for(const u of sh){
     const here=u.onGun||u.onTower||!!sightOf(u,pt.x,pt.y)||enemies.some(e=>!beaten(e)&&hyp(e.x-pt.x,e.y-pt.y)<55&&fireLine(u,e));let s=null;   // (suppressShot's own test)
-    if(!here){if(pinnedNow(u)){refusePinned(u);continue;}s=lineSpot(u,{x:pt.x,y:pt.y,vis:true});if(!s){tooFar(u,true);far=true;continue;}}
+    if(!here){if(pinnedNow(u)){refusePinned(u);continue;}s=MAPID==='dd'?null:lineSpot(u,{x:pt.x,y:pt.y,vis:true});if(!s){tooFar(u,true,MAPID==='dd'&&hyp(pt.x-u.x,pt.y-u.y)<=wRange(u)?'No clear shot':null);far=true;continue;}}
     Object.assign(u,{supT:{x:pt.x,y:pt.y},focus:null,noLine:0,lastOrder:simT,watch:null});if(s){u.path=s.path;u.exposeT=0;callout(u,'Getting a line',C.warn);}go.push(u);
   }
   if(!go.length){if(far&&MAPID==='dd'&&typeof ddNote==='function')ddNote('Too far');return false;}

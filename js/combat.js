@@ -327,8 +327,8 @@ const inCircle=(p,o)=>!!p&&p.every(q=>hyp(q.x-o.x,q.y-o.y)<=ACT_R+3);
 let farSaidT=-1e9;
 // some: one of several given the same order (a shot, suppressing). On D-Day he says it over his own head and the note at the
 // finger is the caller's, only when nobody at all can do it (Bryan, Version 151: "I saw a sniper shoot but got the too far sign")
-function tooFar(u,some){
-  if(MAPID==='dd'){if(!some&&typeof ddNote==='function')ddNote('Too far');bubble(u,'Too far',C.warn);return false;}
+function tooFar(u,some,txt){
+  if(MAPID==='dd'){if(!some&&typeof ddNote==='function')ddNote('Too far');bubble(u,txt||'Too far',C.warn);return false;}
   bubble(u,'Too far. Move me closer.',C.warn);
   const now=performance.now();if(now-farSaidT>1500&&now-cantSaidT>1500&&typeof say==='function'){farSaidT=now;say(u,'far');}
   return false;
@@ -935,11 +935,11 @@ function orderFire(list,e){
     if(u.onGun||u.onTower||u.climb){fire.push(u);continue;}   // on a gun or up the tower: he fires from there if he can
     if(fireLine(u,e)&&hyp(e.x-u.x,e.y-u.y)<=wRange(u)){fire.push(u);continue;}
     if(pinnedNow(u)){refusePinned(u);none.push(u);continue;}   // (he'd have to leave his spot for a line: not while he's pinned, Bryan after v104; he fires on him once he can)
-    const s=lineSpot(u,e);
+    const s=MAPID==='dd'?null:lineSpot(u,e);   // (D-Day, Version 152, Bryan: "they won't move on their own. The player would have to then move them up to shoot")
     if(s){Object.assign(u,{fireGo:{e,t0:simT,tries:1,o:{x:u.x,y:u.y}},path:s.path,lastOrder:simT,watch:null,exposeT:0});move.push(u);callout(u,'Getting a line',C.warn);}
-    else{none.push(u);tooFar(u,true);}   // (no line anywhere inside his circle: he says so; he fires on him once he can)
+    else{none.push(u);tooFar(u,true,hyp(e.x-u.x,e.y-u.y)<=wRange(u)?'No clear shot':'Too far');}   // (no line anywhere inside his circle: he says so; he fires on him once he can)
   }
-  if(MAPID==='dd'&&!crew.length&&!moveQ.length&&!fire.length&&!move.length&&none.some(u=>!pinnedNow(u))&&typeof ddNote==='function'){ddNote('Too far');bubbles=bubbles.filter(b=>!none.includes(b.u)||b.text!=='Too far');}   // (nobody can: said once, at the finger)
+  if(MAPID==='dd'&&!crew.length&&!moveQ.length&&!fire.length&&!move.length&&none.some(u=>!pinnedNow(u))&&typeof ddNote==='function'){ddNote(none.some(u=>hyp(e.x-u.x,e.y-u.y)<=wRange(u))?'No clear shot · move up':'Too far');bubbles=bubbles.filter(b=>!none.includes(b.u));}   // (nobody can: said once, at the finger)
   return{crew,moveQ,fire,move,none};
 }
 function fireGoTick(){   // on his way to a spot with a line: there, he fires (his focus); the man moved, he looks again (once)

@@ -13,7 +13,7 @@
    Hooks: combat.js (ddPick, ddDamage, ddTick), mission.js (ddBlast, ddObjUI, drawDDay), input.js (ddSelected, ddBusy),
    hud.js (ddHint, ddFinish), state.js (leaveDDayNow). */
 const DD_CAM={zoom:8.5,pitch:.29,shift:.09,look:30,boat:7};   // the camera: close behind the squad being played, low enough for the horizon (Bryan: "like a third person for the full squad, think Full Spectrum Warrior"; "semi-fixed to the team")
-const DD_POOL=30,DD_REVIVE=8,DD_BLEED=20,DD_CRIT=10,DD_FIG=1.3,DD_US='#7f7d4e',DD_GER='#56646e';   // (DD_FIG: the men drawn bigger here, so they read from further up)
+const DD_POOL=50,DD_REVIVE=8,DD_BLEED=20,DD_CRIT=10,DD_FIG=1.3,DD_US='#7f7d4e',DD_GER='#56646e';   // (DD_FIG: the men drawn bigger here, so they read from further up)
 const DD_ROLES={
   medic:{ab:'MEDIC',n:'Medic',cls:'medic',weapon:'rifle',spec:'medkit',specN:3},
   gunner:{ab:'GUNNER',n:'Gunner',cls:'support',weapon:'hmg',spec:'smoke',specN:2},
@@ -29,7 +29,7 @@ const DD_TRAITS=[{n:'Steady',nerveK:.75},{n:'Sharp-eyed',aimK:.06},{n:'Quick',sp
 const DD_NAMES=['Kelly','Murphy','Novak','Rossi','Schmidt','Carter','Dalton','Greer','Hobbs','Jensen','Kowal','Larkin','Mercer','Nolan','Ortiz','Pruitt','Quinn','Riley','Sawyer','Tanner','Voss','Walsh','Yates','Zielinski','Baker','Cobb','Dunn','Ellis','Finch','Gallo','Hart','Irwin','Joyce','Keane','Lowe','Mack','Nash','Owens','Pike','Reed','Stone','Tully','Vance','Webb','Abbott','Boone','Cross','Drake'];
 const DD_LABELS={rifle:'M1 Garand',hmg:'BAR',sniper:'Springfield'};
 // the squads' way up (dx, y): where the squad that runs itself goes next, once nobody's left in front of it
-const DD_ROUTE=[[440,640],[450,520],[430,380],[505,336],[545,240],[570,120],[520,0],[420,-110],[320,-230],[230,-340],[300,-470],[520,-540],[720,-600]];
+const DD_ROUTE=[[440,640],[450,520],[430,380],[505,336],[545,240],[570,120],[520,0],[420,-110],[320,-230],[230,-340],[300,-470],[430,-540],[520,-600]];
 // where the other troops hold until the squads have opened the next stretch
 const DD_LINES=[344,236,-20,-290,-470];
 let dd=null;
@@ -400,8 +400,23 @@ function ddWaves(){
     dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;
     const u=ddNewMan(q.team,q.id,ddPickRole(q.team),DDX+500,900);u.joining=true;players.push(u);players.sort((a,b)=>a.id<b.id?-1:1);
     const mates=players.filter(p=>p.team===q.team&&p!==u&&!p.dead),lx=clamp((mates.length?mates.reduce((a,p)=>a+p.x,0)/mates.length:DDX+500)-DDX,90,910);
+    // (Version 152, Bryan: "From each area the player controls, that's where the units will respawn from. So reinforcements come quicker"):
+    // he comes out of the held place nearest his squad, on foot; with nothing held past the beach, a boat as before
+    const up=mates.filter(p=>!p.inBoat&&!p.joining),M=up.length?up:mates,mx=M.length?M.reduce((a,p)=>a+p.x,0)/M.length:DDX+500,my=M.length?M.reduce((a,p)=>a+p.y,0)/M.length:600,from=ddSpawnAt(mx,my);   // (where the men of his squad who are ashore are)
+    if(from){const sp=openSpot(from.x,from.y,players.filter(p=>p!==u&&!p.dead).map(destOf))||from;u.x=sp.x;u.y=sp.y;u.inBoat=false;u.ang=Math.atan2(mx-sp.x,my-sp.y);u.seen=true;buildCards();
+      banner(`${u.name} (${DD_ROLES[u.ddRole].n}, ${u.trait.toLowerCase()}) joins ${teamName(q.team)} from ${from.n}.`,3200);continue;}
     ddBoat(lx+(Math.random()-.5)*60,[u,...ddCrew(3)]);buildCards();
     banner(`${u.name} (${DD_ROLES[u.ddRole].n}, ${u.trait.toLowerCase()}) is coming in for ${teamName(q.team)}.`,3200);}
+}
+// where a replacement comes from: the held place (not the beach) nearest his squad, if it's nearer them than the waterline is
+const DD_SPAWN={left:[352,236],pill:[668,236],nest:[906,236],hill:[880,110],draw:[530,60],heavy:[120,-380],art:[770,-390]};
+function ddSpawnAt(mx,my){
+  const H=dd.held||{},L=[];
+  for(const k in DD_SPAWN)if(H[k]){const Z=DD_ZONES.find(z=>z.k===k);L.push({x:DD_SPAWN[k][0]+DDX,y:DD_SPAWN[k][1],n:Z.n.toLowerCase()});}
+  if(dd.blown.barracks)L.push({x:DD_SPOT.door.x+DDX,y:DD_SPOT.door.y+14,n:'the barracks'});
+  let best=null,bd=Math.max(60,760-my);   // (the boat lands him about there)
+  for(const p of L){const d=hyp(p.x-mx,p.y-my);if(d<bd){bd=d;best=p;}}
+  return best;
 }
 function ddJoin(u){   // a replacement on his way up to his squad
   if(u.inBoat||!alive(u))return;
@@ -446,7 +461,7 @@ function ddBarracks(){
    while it's alive nearby ---------- */
 function ddCounter(dt){
   const C=dd.ctr||(dd.ctr={on:false,sq:0,t:0});
-  if(!C.on){const d=DD_SPOT.door;if(!dd.land.done||dd.won||!players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<330))return;
+  if(!C.on){const d=DD_SPOT.door;if(!dd.land.done||dd.won||!players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<230))return;
     C.on=true;C.t=simT+2;banner('Counterattack! A tank and infantry out of their base, down the road on the right.',4600);
     const W=DD_SPOT.tankWay;ddTankSpawn({x:W[0][0]+DDX,y:W[0][1],way:W.slice(1).map(q=>[q[0]+DDX,q[1]])});
     if(typeof ddBaseGarrison==='function')ddBaseGarrison();}

@@ -68,7 +68,8 @@ const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by t
   nests:[{x:858,y:280,ang:Math.PI/2+.66,arc:.38},{x:906,y:280,ang:Math.PI/2,arc:.36},{x:954,y:280,ang:Math.PI/2-.5,arc:.36}],
   hillMG2:{x:904,y:140,ang:Math.PI/2-.42,arc:.48},pathMG:{x:292,y:-424,ang:1.32,arc:.8},sniper2:{x:206,y:-590},
   hillMG:{x:856,y:140,ang:Math.PI/2+.42,arc:.5},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
-  mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
+  mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:400,y:-715,w:240,h:60},door:{x:520,y:-640},   // (Version 152, Bryan: "The upper right barracks is awkward to turn too. Can we make it more direct on the path?": it stood at dx 700-940, a long way east along the top; now it's straight ahead where the way up comes out, beside the other one)
+  
   barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},door3:{x:1085,y:-600},tankWay:[[1085,-600],[930,-578],[800,-565]],   // (Version 145: a second barracks behind the highest bunker; since Version 148 the counterattack comes out of their base's gate, ddbase.js)
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
 function ddObjects(){
@@ -114,7 +115,7 @@ function ddObjects(){
   o('ddbarr',DD_SPOT.barracks.x,DD_SPOT.barracks.y,DD_SPOT.barracks.w,DD_SPOT.barracks.h,{full:true,hp:380,tag:'barracks'});
   {const b=DD_SPOT.barr2;o('ddbarr',b.x,b.y,b.w,b.h,{full:true,hp:380,tag:'barr2'});}
   // the base's vehicles, tents, drums and radio mast (their looks: ddlook.js)
-  o('ddtruck',958,-648,26,58,{full:true});o('ddtruck',612,-712,26,58,{full:true});o('ddtent',470,-724,40,46,{full:true});o('ddtent',410,-720,40,46,{full:true});o('ddtent',180,-520,40,46,{full:true});
+  o('ddtruck',958,-648,26,58,{full:true});o('ddtruck',700,-712,26,58,{full:true});o('ddtent',790,-724,40,46,{full:true});o('ddtent',850,-720,40,46,{full:true});o('ddtent',180,-520,40,46,{full:true});
   for(const[x,y]of[[668,-650],[946,-724],[300,-548],[560,-470]])o('dddrum',x,y,16,16,{cover:1});
   o('ddmast',676,-742,8,8,{});
   // the beach: obstacles, wire, the holes' forward lips (cover from up the hill), two wrecks
