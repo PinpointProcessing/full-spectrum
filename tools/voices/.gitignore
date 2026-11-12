@@ -1,0 +1,6 @@
+venv/
+*.onnx
+*.bin
+lines.json
+out/
+__pycache__/
