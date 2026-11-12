@@ -389,8 +389,8 @@ body.dd .tab.ddon .tname{color:#0b0f13;font-weight:700}body.dd .tab.ddon .pips i
 body.dd #sq[data-team]::before{content:attr(data-team) " squad";align-self:flex-start;pointer-events:none;font-family:var(--font-hud);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#0b0f13;background:var(--sqc,#fff);padding:2px 8px;border-radius:5px;margin-bottom:-2px}
 /* D-Day with the phone on its side (Bryan: "Can we make it work horizontal too?"): the map takes the whole screen, Pause and sound sit over its top right
    corner, the squad tabs down its left edge, and the squad's men and tools share one row along the bottom */
-@media (orientation:landscape) and (max-height:540px){
-body.dd #app{grid-template-rows:minmax(0,1fr);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+/* Version 147: on every screen, upright too (Bryan: "I do not like the black border at all. Also the menu is way too up on the screen"): no page frame round the map, no dark edge over it, the squad's bar at the very bottom */
+body.dd #app{grid-template-rows:minmax(0,1fr);padding:0}
 body.dd{margin:0}
 body.dd #stage{border-radius:0}
 body.dd .bar{position:fixed;top:6px;right:max(8px,env(safe-area-inset-right,0px));z-index:5;padding:0;gap:6px}
@@ -402,6 +402,7 @@ body.dd .panel{position:fixed;left:max(8px,env(safe-area-inset-left,0px));top:46
 body.dd .hint,body.dd #clearBtn{display:none}
 body.dd .dock{grid-auto-flow:row;gap:6px}
 body.dd .dock button{min-height:44px;width:70px;background:rgba(10,14,18,.86)}
-body.dd #sq{bottom:6px}
-}
-}
+body.dd #sq{bottom:max(6px,env(safe-area-inset-bottom,0px))}
+body.dd #stage::after{display:none}
+@media (max-width:520px){body.dd #ddChip{top:46px;right:8px}body.dd #banner{max-width:calc(100% - 150px)}body.dd .dock button{width:62px}}
+

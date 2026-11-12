@@ -345,3 +345,7 @@ Bryan's answers on 145: the counterattack starts "when you are near the barracks
 - The squad being played: a filled disc and thick ring in its colour under each man and a marker over his head, the other squad a thin ring (overlay.js); its tab filled in its colour (`.tab.ddon`) and "ALPHA SQUAD" / "BRAVO SQUAD" over the bar (`#sq[data-team]::before`).
 - A tap on the tank sends a rocket from the squad's Bazooka man (a grenade if that's all there is and he's near enough), with the scope on the tank meanwhile (`ddTap`, `dd.tankAim`).
 - Test: `$SP/dd34.js` (pool 30; with no medic a helper set off and had him up at 18.5 s; left alone, critical at 20 s and dead at 30 s).
+
+## Version 147: full screen, the bar at the bottom
+
+Bryan: "I do not like the black border at all. Also the menu is way too up on the screen to work with." Read as the dark page frame round the map (title bar, side padding, hint line, tabs row) that pushed the squad's bar up. On D-Day the map now fills the screen in both orientations (`body.dd` rules at the end of css/style.css, no media query): no title, status chip, hint line or Clear; Sound and Pause over the top right corner; the Alpha and Bravo tabs down the left edge; the squad's bar at the very bottom. The dark edge over the picture is gone too (`#stage::after` off, post.js's vignette 0 in dd). If he meant the black outline on the soldiers, that's figure.js's `figInk`.

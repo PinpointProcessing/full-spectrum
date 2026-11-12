@@ -75,7 +75,7 @@ function postRender(sc,cam){
     B.tSrc.value=POST.c2.texture;B.dir.value.set(0,1/ch2);pass(M.blur,POST.c1);
   }
   const F=M.final.uniforms;F.tScene.value=POST.rt.texture;F.tB1.value=POST.b1.texture;F.tB2.value=wide?POST.c1.texture:POST.b1.texture;F.bloom2.value=wide?.65:0;
-  {const day=MAPID==='dd';F.sat.value=day?1.2:1.08;F.cold.value=day?.12:.55;F.vig.value=day?.2:.42;F.grain.value=day?.012:.03;F.bloom1.value=day?.35:1;M.bright.uniforms.thr.value=day?.86:.54;}   // (D-Day: daylight)
+  {const day=MAPID==='dd';F.sat.value=day?1.2:1.08;F.cold.value=day?.12:.55;F.vig.value=day?0:.42;F.grain.value=day?.012:.03;F.bloom1.value=day?.35:1;M.bright.uniforms.thr.value=day?.86:.54;}   // (D-Day: daylight)
   F.time.value=reduced?0:performance.now()/1000;F.res.value.set(POST.w,POST.h);
   pass(M.final,null);
 }
