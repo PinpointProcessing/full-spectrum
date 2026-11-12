@@ -104,7 +104,7 @@ function swapWeapon(u){
   [u.weapon,u.weapon2]=[u.weapon2,u.weapon];u.cool=Math.max(u.cool||0,.8);u.silent=null;
   callout(u,WEAPON[u.weapon].label,C.good);return true;
 }
-function wRange(u){return u.gunner?440:wOf(u).range;}
+function wRange(u){return u.gunner?u.longR||440:wOf(u).range;}
 function hitChance(s,t,L){
   L=L||lineOf(s,t);
   const ob=s.side==='P'?(s.watch&&inWatch(s,t)?WATCH.bonus:0)+(simT<(s.breachT||0)?BREACH.bonus:0):0;   // Watch and Breach (orders.js)
@@ -112,6 +112,7 @@ function hitChance(s,t,L){
   const sg=s.weapon==='shotgun';
   const W=wOf(s);let c=sg?1-Math.max(0,d-80)/150:W.far?0.92-d/2600:0.86-d/900;   // a shotgun: near-certain within 8 m, falling off fast beyond; a sniper rifle barely falls off
   c+=W.acc||0;if(s.path.length)c+=W.move||0;
+  if(s.longR&&d>420)c-=.28+(d-420)/700;   // (D-Day's hill bunker: it reaches further than the other guns, and sprays past 42 m)
   let cov=shotCover(L);if(t.inVeh||t.onTower)cov=Math.max(cov,1);   // inside the jeep, or up the watchtower behind its rails: partial cover
   if(cov===1)c-=sg?0.2:0.28;else if(cov===2)c-=sg?0.3:0.42;   // the pellet spread makes cover count for less
   c-=s.sup>0.65?0.25:s.sup*0.15;

@@ -54,13 +54,13 @@ function ddFoe(tag,dx,y,ex){
   const u=hostile('G'+(++dd.eid),dx+DDX,y,Object.assign({name:'Defender',ang:Math.PI/2,alerted:true,aware:1,jumpy:false,helm:true,cloth:DD_GER,nade:0,aimPen:-.03,dmgIn:.72,tag},ex||{}));
   u.sawT=simT;ddDayFig(u);return u;
 }
-function ddGunner(tag,s,name){const u=ddFoe(tag,s.x,s.y-6,{name:name||'Machine gunner',gunner:true,post:true,ang:s.ang});u.onGun={x:s.x+DDX,y:s.y,ang:s.ang,arc:s.arc};return u;}
+function ddGunner(tag,s,name,ex){const u=ddFoe(tag,s.x,s.y-6,Object.assign({name:name||'Machine gunner',gunner:true,post:true,ang:s.ang},ex||{}));u.onGun={x:s.x+DDX,y:s.y,ang:s.ang,arc:s.arc};return u;}
 function spawnDDay(){
   const S=DD_SPOT,Z=(x0,y0,x1,y1)=>({x0:x0+DDX,x1:x1+DDX,y0,y1});
   ddGunner('pill',S.pill);for(const g of S.pillMGs)ddGunner('pill',g);for(const g of S.leftMGs)ddGunner('left',g);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddGunner('left',S.leftMG);ddFoe('left',316,262,{post:true});ddFoe('left',246,282,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',150,290,{post:true});ddFoe('left',400,268,{post:true,nade:1});
   for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',790,262,{post:true});ddFoe('draw',800,-52,{zone:Z(752,-95,1000,40)});
   ddFoe('draw',484,178,{post:true});ddFoe('draw',520,178,{post:true});ddFoe('draw',600,60,{zone:Z(480,0,660,130)});ddFoe('draw',470,-20,{zone:Z(400,-60,640,60),nade:1});ddFoe('draw',556,178,{post:true,nade:1});
-  ddGunner('hill',S.hillMG);ddGunner('hill',S.hillMG2);ddFoe('hill',880,128,{post:true,name:'Grenadier',mortarT:simT+24+Math.random()*6,lob:1});
+  for(const g of[S.hillMG,S.hillMG2,S.hillMG3])ddGunner('hill',g,null,{longR:700});ddFoe('hill',880,166,{post:true,name:'Grenadier',mortarT:simT+24+Math.random()*6,lob:1});   // (Version 155: on the lip; they reach 70 m, wild past 42: Bryan, "longer but much more inaccurate after 42m")
   ddGunner('top',S.pathMG,'Light machine gunner');ddFoe('top',S.sniper2.x,S.sniper2.y,{post:true,name:'Sniper',weapon:'sniper'});ddFoe('art',676,-410,{post:true,name:'Gun crew'});ddFoe('art',746,-404,{post:true,name:'Gun crew'});ddFoe('art',830,-410,{post:true,name:'Gun crew'});
   ddGunner('draw',S.drawMG);ddFoe('draw',420,-150,{zone:Z(380,-200,640,-60)});ddFoe('draw',542,-164,{zone:Z(380,-200,640,-60),nade:1});
   ddFoe('draw',252,-282,{zone:Z(150,-320,420,-220)});ddFoe('draw',318,-258,{zone:Z(150,-320,420,-220)});
@@ -409,7 +409,7 @@ function ddWaves(){
     banner(`${u.name} (${DD_ROLES[u.ddRole].n}, ${u.trait.toLowerCase()}) is coming in for ${teamName(q.team)}.`,3200);}
 }
 // where a replacement comes from: the held place (not the beach) nearest his squad, if it's nearer them than the waterline is
-const DD_SPAWN={left:[352,236],pill:[668,236],nest:[906,236],hill:[880,110],draw:[530,60],heavy:[120,-380],art:[770,-390]};
+const DD_SPAWN={left:[352,236],pill:[668,236],nest:[906,236],hill:[880,120],draw:[530,60],heavy:[120,-380],art:[770,-390]};
 function ddSpawnAt(mx,my){
   const H=dd.held||{},L=[];
   for(const k in DD_SPAWN)if(H[k]){const Z=DD_ZONES.find(z=>z.k===k);L.push({x:DD_SPAWN[k][0]+DDX,y:DD_SPAWN[k][1],n:Z.n.toLowerCase()});}
@@ -520,7 +520,7 @@ function ddTankHit(x,y,k=1){
    base is the last: held with the barracks, which is the win (Bryan: "The player doesn't need to destroy the barracks, just control it") */
 const DD_ZONES=[
   {k:'beach',n:'The beach',r:[0,348,1000,776],tags:[]},{k:'left',n:'The left bunker',r:[236,204,468,344],tags:['left'],bk:'p0'},{k:'pill',n:'The pillbox',r:[600,206,770,344],tags:['pill'],bk:'p1'},
-  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,170],tags:['hill'],bk:'p3'},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},
+  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},
   {k:'heavy',n:'The heavy gun',r:[14,-456,166,-344],tags:['heavy'],bk:'hv'},{k:'art',n:'The artillery',r:[640,-436,900,-336],tags:['art']},{k:'base',n:'The base',r:[200,-756,1000,-440],tags:['base','top','cannon','mortar','reinf']}];
 function ddZones(){
   const H=dd.held||(dd.held={});
@@ -800,7 +800,7 @@ function drawDDay(now){
   if(!dead('pill'))lab(668,262,30,'PILLBOX','#ff8a6a');
   if(enemies.some(e=>e.tag==='draw'&&e.gunner&&!beaten(e)))lab(466,-150,26,'MG NEST','#ff8a6a');
   if(!dead('nest'))lab(906,262,30,'UPPER BUNKER','#ff8a6a');
-  if(!dead('hill'))lab(880,130,30,'HILL BUNKER','#ff8a6a');if(!dd.blown.art&&!dead('art'))lab(756,-392,44,'ARTILLERY','#ff8a6a');
+  if(!dead('hill'))lab(880,176,30,'HILL BUNKER','#ff8a6a');if(!dd.blown.art&&!dead('art'))lab(756,-392,44,'ARTILLERY','#ff8a6a');
   if(!dd.blown.heavy&&!dead('heavy'))lab(90,-410,34,'HEAVY GUN','#ff8a6a');
   if(!dd.blown.cannon&&!dead('cannon'))lab(240,-600,30,'CANNON','#ff8a6a');
   if(!dead('mortar'))lab(915,-470,24,'MORTARS','#ff8a6a');

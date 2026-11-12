@@ -407,3 +407,11 @@ Bryan: "Bullets go through the hill at the top. Enemies can shoot right through 
 
 - The ground now stops bullets and sight on this map. Before, rock only stopped feet. Measured per fixed gun: the bunkers at beach level see exactly what they saw; the hill bunker was hitting 77-82% of the beach in its reach through the rock rim in front of it and now hits none.
 - Draft, not built: `docs/drafts/dday-hill-bunker-draft.png`. The hilltop carried about 4 m south to the cliff's edge and the bunker put on that lip, three guns (one down the path, two on the beach): 87% of the path and 99% of the beach in a 42 m reach, worked out from the terrain. Questions for Bryan: its reach, whether the upper bunker below stays, whether the grenadier stays.
+
+## Version 155
+
+Bryan's answers to the hill bunker draft: "1) longer but much more inaccurate after 42m. 2) that can stay. 3) yes."
+
+- Built as drawn: the hilltop carried south to the cliff's edge and the bunker on that lip, over the upper bunker and the path. Three guns (one down the path, two on the beach), the grenadier behind them.
+- Its guns reach 70 m. Past 42 m they lose a lot of accuracy (measured: 36% at 30 m, the 5% floor at 60 m, on a man in the open).
+- The upper bunker below it stays as it was.
