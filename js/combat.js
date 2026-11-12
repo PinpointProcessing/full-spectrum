@@ -325,8 +325,10 @@ function refusePinned(u){
 const ACT_R=100;   // (10 m)
 const inCircle=(p,o)=>!!p&&p.every(q=>hyp(q.x-o.x,q.y-o.y)<=ACT_R+3);
 let farSaidT=-1e9;
-function tooFar(u){
-  if(MAPID==='dd'&&typeof ddNote==='function')ddNote('Too far');
+// some: one of several given the same order (a shot, suppressing). On D-Day he says it over his own head and the note at the
+// finger is the caller's, only when nobody at all can do it (Bryan, Version 151: "I saw a sniper shoot but got the too far sign")
+function tooFar(u,some){
+  if(MAPID==='dd'){if(!some&&typeof ddNote==='function')ddNote('Too far');bubble(u,'Too far',C.warn);return false;}
   bubble(u,'Too far. Move me closer.',C.warn);
   const now=performance.now();if(now-farSaidT>1500&&now-cantSaidT>1500&&typeof say==='function'){farSaidT=now;say(u,'far');}
   return false;
@@ -935,8 +937,9 @@ function orderFire(list,e){
     if(pinnedNow(u)){refusePinned(u);none.push(u);continue;}   // (he'd have to leave his spot for a line: not while he's pinned, Bryan after v104; he fires on him once he can)
     const s=lineSpot(u,e);
     if(s){Object.assign(u,{fireGo:{e,t0:simT,tries:1,o:{x:u.x,y:u.y}},path:s.path,lastOrder:simT,watch:null,exposeT:0});move.push(u);callout(u,'Getting a line',C.warn);}
-    else{none.push(u);tooFar(u);}   // (no line anywhere inside his circle: he says so; he fires on him once he can)
+    else{none.push(u);tooFar(u,true);}   // (no line anywhere inside his circle: he says so; he fires on him once he can)
   }
+  if(MAPID==='dd'&&!crew.length&&!moveQ.length&&!fire.length&&!move.length&&none.some(u=>!pinnedNow(u))&&typeof ddNote==='function'){ddNote('Too far');bubbles=bubbles.filter(b=>!none.includes(b.u)||b.text!=='Too far');}   // (nobody can: said once, at the finger)
   return{crew,moveQ,fire,move,none};
 }
 function fireGoTick(){   // on his way to a spot with a line: there, he fires (his focus); the man moved, he looks again (once)

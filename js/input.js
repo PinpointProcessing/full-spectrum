@@ -227,13 +227,13 @@ function orderSuppress(list,pt){
   const sh=list.filter(alive);if(!sh.length)return false;
   // a line on the spot from where he is (or leaning out); without one he steps to one inside his circle; pinned, he doesn't
   // go anywhere, and too far, he says so (Bryan, after v104: "All actions should work like that")
-  const go=[];
+  const go=[];let far=false;
   for(const u of sh){
     const here=u.onGun||u.onTower||!!sightOf(u,pt.x,pt.y)||enemies.some(e=>!beaten(e)&&hyp(e.x-pt.x,e.y-pt.y)<55&&fireLine(u,e));let s=null;   // (suppressShot's own test)
-    if(!here){if(pinnedNow(u)){refusePinned(u);continue;}s=lineSpot(u,{x:pt.x,y:pt.y,vis:true});if(!s){tooFar(u);continue;}}
+    if(!here){if(pinnedNow(u)){refusePinned(u);continue;}s=lineSpot(u,{x:pt.x,y:pt.y,vis:true});if(!s){tooFar(u,true);far=true;continue;}}
     Object.assign(u,{supT:{x:pt.x,y:pt.y},focus:null,noLine:0,lastOrder:simT,watch:null});if(s){u.path=s.path;u.exposeT=0;callout(u,'Getting a line',C.warn);}go.push(u);
   }
-  if(!go.length)return false;
+  if(!go.length){if(far&&MAPID==='dd'&&typeof ddNote==='function')ddNote('Too far');return false;}
   callout(go[0],'Suppressing!',C.warn);chatSuppress(go[0]);
   mode=null;preview=null;fireOrderAt=performance.now();return true;
 }

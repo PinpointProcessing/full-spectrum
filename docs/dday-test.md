@@ -379,3 +379,7 @@ Bryan: "Can the camera pan to the unit farthest ahead. Also, can the units have 
 ## Version 150
 
 Bryan, on the mock-up: "Let's make the change and see how it feels". The Alpha and Bravo tabs are at the bottom left, stacked just above the squad's bar, in both orientations.
+
+## Version 151
+
+Bryan: "I saw a sniper shoot but got the too far sign." A shot (or suppress) order: if anyone in the squad can fire on the target, nothing shows at the finger; each man who can't reach says "Too far" over his own head. Only when nobody can does "Too far" show at the finger (once, no bubbles). A tool (bazooka, grenade, smoke) only ever reports for the tool's own user.
