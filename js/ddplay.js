@@ -461,7 +461,12 @@ function ddBarracks(){
    while it's alive nearby ---------- */
 function ddCounter(dt){
   const C=dd.ctr||(dd.ctr={on:false,sq:0,t:0});
-  if(!C.on){const d=DD_SPOT.door;if(!dd.land.done||dd.won||!players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<230))return;
+  if(!C.on){const d=DD_SPOT.door;if(!dd.land.done||dd.won)return;
+    // (Version 153: with the barracks at the top of the way up since 152, "near the barracks" was true the moment the squads came out on top, so the tank,
+    // sixteen men and the base's garrison all arrived while the top bunker, the cannon and both barracks were still fighting. Now it waits until the top's
+    // own guns are all but silenced, or someone is right at the barracks' door)
+    const near=r=>players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<r),topLeft=enemies.filter(e=>(e.tag==='top'||e.tag==='cannon')&&!beaten(e)).length;
+    if(!(near(100)||near(230)&&topLeft<=1))return;
     C.on=true;C.t=simT+2;banner('Counterattack! A tank and infantry out of their base, down the road on the right.',4600);
     const W=DD_SPOT.tankWay;ddTankSpawn({x:W[0][0]+DDX,y:W[0][1],way:W.slice(1).map(q=>[q[0]+DDX,q[1]])});
     if(typeof ddBaseGarrison==='function')ddBaseGarrison();}
@@ -582,13 +587,21 @@ function ddHelpers(){
 }
 function ddMedics(){
   for(const m of players){if(m.ddRole!=='medic'||!alive(m)||m.inBoat)continue;
-    const calm=m.sup<.5&&simT-(m.firedOnT||-9)>3;if(!calm){if(m.raise){m.raise.p=0;}continue;}
+    // (Version 153, Bryan: "medics don't appear to be reviving/healing on their own when giving an opportunity": he used to wait until nobody had
+    // shot at him for 3 s, which in a fight is never. Now only being pinned stops him going to a downed man, and when it's quiet he patches up a
+    // man who's hurt but on his feet, keeping one kit back for a critical man)
+    const calm=m.sup<.5&&simT-(m.firedOnT||-9)>3,pinned=m.sup>PINNED;
     const mates=players.filter(p=>p.team===m.team&&!p.dead&&!p.inBoat);
-    const down=mates.filter(p=>p.downed&&!p.carriedBy&&hyp(p.x-m.x,p.y-m.y)<300).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y))[0];
+    const down=pinned?null:mates.filter(p=>p.downed&&!p.carriedBy&&hyp(p.x-m.x,p.y-m.y)<300).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y))[0];
+    if(!down&&!calm){if(m.raise){m.raise.p=0;}continue;}
+    if(!down&&!m.path.length&&!m.medGo&&!m.throwGo&&!m.raise&&simT-m.lastOrder>2.5&&hasKit(m)&&m.specN>1){
+      const hurt=mates.filter(p=>!p.downed&&p.hp<55&&!p.joining&&hyp(p.x-m.x,p.y-m.y)<200&&!players.some(q=>q!==m&&q.medGo&&q.medGo.t===p)).sort((a,b)=>a.hp-b.hp)[0];
+      if(hurt&&orderMedkit(m,hurt))continue;}
     if(down&&!m.path.length&&!m.medGo&&!m.throwGo&&simT-m.lastOrder>2.5){
       if(down.critical){if(hasKit(m))orderMedkit(m,down);}
       else if(hyp(down.x-m.x,down.y-m.y)>22){const p=goBeside(m,down);if(p&&p.length){m.path=p;m.gaitForce=null;callout(m,'Medic coming',C.good);}}
       continue;}
+    if(!calm){if(m.raise)m.raise.p=0;continue;}   // (bringing back the dead still waits for quiet)
     // a dead man of his squad (Bryan: "If the player has a dead unit the medics can revive. It takes a lot longer than a heal and shouldn't be done in battle"):
     // 12 s beside the body, and only while it's quiet round him; shot at or pinned, he stops and it starts over
     {const body=m.raise&&m.raise.t;

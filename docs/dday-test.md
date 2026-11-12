@@ -392,3 +392,11 @@ Bryan: "If the soldiers can get too cover to shoot they won't move on their own.
 - Replacements come on foot out of the held place nearest the squad's men who are ashore: the left bunker, the pillbox, the upper bunker, the hill bunker, the way up, the heavy gun, the artillery, the barracks. With nothing held nearer than the waterline, a boat as before. The banner says where he comes from.
 - The pool is 50.
 - The hill's barracks (the one that opens the road to their base) stood far to the right along the top. It now stands straight ahead where the way up comes out, beside the other barracks behind the top bunker. Not built: a barracks set into the mountain.
+
+## Version 153
+
+Bryan, after 152: "my troops are dying at a much higher rate. AI units aren't moving up, and medics don't appear to be reviving/healing on their own when giving an opportunity."
+
+- Found: with the barracks moved to the top of the way up, "near the barracks" was true as soon as the squads came out on top, so the tank, sixteen men and the base's garrison arrived while the top bunker, the cannon and both barracks were still in the fight. The counterattack now waits until the top's own guns are down to one, or a man is at the barracks' door.
+- Medics went to a downed man only after 3 s without being shot at, which in a fight is never. Now only being pinned stops them. When it's quiet they also patch up a squad mate under 55 HP (one kit, kept to the last but one). They never healed men who were up before this.
+- Not found: a crash, or a change in how the other troops advance. Hands-off test battles on 150, 151 and 152 differ more from run to run than from version to version.
