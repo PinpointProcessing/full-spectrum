@@ -161,7 +161,7 @@ function bindInput(){
       // moves the map the same amount as anywhere else; capped per move
       const[ax,az]=toW(cw/2,ch/2),[bx,bz]=toW(cw/2+x-ptr.lx,ch/2+y-ptr.ly),cap=160/zoom;
       const dx=clamp(ax-bx,-cap,cap),dy=clamp(az-bz,-cap,cap);
-      camT.x+=dx;camT.z+=dy;clampCam();updateCamera();
+      camT.x+=dx;camT.z+=dy;clampCam();updateCamera();if(typeof dd!=='undefined'&&dd&&dd.track)dd.track=null;   // (the player moved the camera: it stops following)
       (ptr.hist=ptr.hist||[]).push({t:now,x:camT.x,z:camT.z});while(ptr.hist.length>1&&now-ptr.hist[0].t>120)ptr.hist.shift();
       ptr.lx=x;ptr.ly=y;ptr.lt=now;
     }

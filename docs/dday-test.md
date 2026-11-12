@@ -415,3 +415,13 @@ Bryan's answers to the hill bunker draft: "1) longer but much more inaccurate af
 - Built as drawn: the hilltop carried south to the cliff's edge and the bunker on that lip, over the upper bunker and the path. Three guns (one down the path, two on the beach), the grenadier behind them.
 - Its guns reach 70 m. Past 42 m they lose a lot of accuracy (measured: 36% at 30 m, the 5% floor at 60 m, on a man in the open).
 - The upper bunker below it stays as it was.
+
+## Version 156: the camera stays with who you picked
+
+Bryan: "when a player's name is selected in the squad menu, can the camera go to them and track them. The camera should go to the squad or player selected and then track that team or unit until the player moves the camera."
+
+- Picking a squad (its tab, a tap on one of its men) sends the camera to its man furthest ahead, as before, and now it stays with him as the squad moves.
+- Tapping a man's name in the squad bar selects just him, sends the camera to him and follows him. Tapping his name again goes back to the squad.
+- Dragging the map lets go: the camera stays where you put it until the next pick. Pinching or turning the view doesn't let go.
+- If the man being followed dies, the camera goes back to following his squad.
+- Not followed from the landing: the first pick starts it (tap the squad's tab again to start following the squad you're already playing).

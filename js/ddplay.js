@@ -155,6 +155,7 @@ function ddCam(rdt){
     camera.position.set(me.x+Math.sin(t*1.3)*.3+(Math.random()-.5)*hit,(me.elev||0)+26.5+Math.sin(t*1.7+1)*.5+(Math.random()-.5)*hit,me.y-5);
     camera.lookAt(camera.position.x+Math.sin(yw)*Math.cos(py)*300,camera.position.y+Math.sin(py)*300,camera.position.z-Math.cos(yw)*Math.cos(py)*300);camera.rotateZ(Math.sin(t*1.3)*.02);camera.updateMatrixWorld();
     dd.land.jolt=Math.max(0,hit-rdt*3);C.k=0;C.p=camera.position.clone();C.q=camera.quaternion.clone();return;}
+  ddTrack(rdt);
   if(C.k<1&&C.p){C.k=Math.min(1,C.k+rdt/1.7);const e=C.k*C.k*(3-2*C.k),to=camera.quaternion.clone();   // off the boat: up and out to the usual view
     camera.position.lerpVectors(C.p,camera.position,e);camera.quaternion.copy(C.q).slerp(to,e);camera.updateMatrixWorld();camShift=DD_CAM.shift*e;}
 }
@@ -315,6 +316,29 @@ function ddGoSquad(t){
   // to the man of that squad who's furthest ahead (Bryan: "Can the camera pan to the unit farthest ahead"): up the beach and the draw that's north; on the top, east toward their base
   const ahead=u=>u.y<-440?3000+u.x:-u.y,f=m.filter(u=>!u.inBoat&&!u.joining),L=(f.length?f:m).reduce((a,u)=>ahead(u)>ahead(a)?u:a),cx=L.x,cy=L.y;
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:cx-Math.sin(yaw)*DD_CAM.look,z:cy-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.7};
+  dd.track={team:t};
+}
+// Since Version 156 the camera stays with whoever was picked (Bryan: "when a player's name is selected in the squad menu, can the camera go to them
+// and track them. The camera should go to the squad or player selected and then track that team or unit until the player moves the camera"):
+// dd.track is a squad ({team}: its man furthest ahead) or one man ({team,id}); a drag of the map lets go (input.js), a pinch or a turn doesn't
+function ddTrackAt(){
+  const T=dd.track;if(!T)return null;
+  let u=T.id&&players.find(p=>p.id===T.id&&alive(p));
+  if(!u){const m=players.filter(p=>p.team===T.team&&alive(p)&&!p.inBoat&&!p.joining);if(!m.length)return null;
+    const ahead=q=>q.y<-440?3000+q.x:-q.y;u=m.reduce((a,q)=>ahead(q)>ahead(a)?q:a);}
+  return u;
+}
+function ddGoMan(u){
+  if(!dd||!dd.land.done||!u)return;
+  camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:u.x-Math.sin(yaw)*DD_CAM.look,z:u.y-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.6};
+  dd.track={team:u.team,id:u.id};
+}
+function ddTrack(rdt){
+  if(!dd.track||camPan||(typeof ptr!=='undefined'&&ptr)||(typeof pinch!=='undefined'&&pinch))return;
+  const u=ddTrackAt();if(!u)return;
+  const tx=u.x-Math.sin(yaw)*DD_CAM.look,tz=u.y-Math.cos(yaw)*DD_CAM.look,k=Math.min(1,rdt*(dd.track.id?3.2:1.6));   // (a squad's lead man changes: eased slower)
+  if(hyp(tx-camT.x,tz-camT.z)<1.5)return;
+  camT.x+=(tx-camT.x)*k;camT.z+=(tz-camT.z)*k;clampCam();
 }
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
 function ddSelected(){
@@ -768,7 +792,7 @@ function ddBarBind(){
   box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
     if(ev.target.closest('.sq-aim')){ddToolEnd();}
     else if(t&&!t.disabled)ddToolUse(t.dataset.k);
-    else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){ddToolEnd();u.card.el.click();}}
+    else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){ddToolEnd();u.card.el.click();if(sel.length===1&&sel[0]===u)ddGoMan(u);else ddGoSquad(u.team);}}
     ddBar();});
 }
 /* ---------- the HUD ---------- */
