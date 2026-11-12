@@ -162,7 +162,7 @@ function segHitsRect(x1,y1,x2,y2,o,pad){
 }
 // a soldier inside a structure (a sentry in the guard tower, the watchtower lookout) sees out of it, and can be seen
 function inRect(x,y,o){return x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h;}
-function los(ax,ay,bx,by,noSmoke){for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0)&&!inRect(ax,ay,o)&&!inRect(bx,by,o))return false;}return noSmoke||!smokes.length||!smokeBlocks(ax,ay,bx,by);}   // (noSmoke: a throw or a rocket, which smoke doesn't stop)
+function los(ax,ay,bx,by,noSmoke){if(MAPID==='dd'&&typeof ddSightOK==='function'&&!ddSightOK(ax,ay,bx,by))return false;for(const o of objs){if(o.full&&segHitsRect(ax,ay,bx,by,o,0)&&!inRect(ax,ay,o)&&!inRect(bx,by,o))return false;}return noSmoke||!smokes.length||!smokeBlocks(ax,ay,bx,by);}   // (noSmoke: a throw or a rocket, which smoke doesn't stop)
 // smoke grenades (Bryan, in place of C4 for this level): a cloud that blocks sight both ways, not movement. It grows to
 // SMOKE.r over SMOKE.grow s, blocks from SMOKE.from s until SMOKE.fade s before it's gone, then thins out
 const SMOKE={r:60,grow:1.6,from:.4,life:14,fade:2,range:260};   // (range: how far it's thrown, 26 m)

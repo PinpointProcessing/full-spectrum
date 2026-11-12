@@ -59,6 +59,16 @@ function ddH(x,y){
   return(g[k]*(1-u)+g[k+1]*u)*(1-v)+(g[k+DDG.nx]*(1-u)+g[k+DDG.nx+1]*u)*v;
 }
 
+// the ground in the way (Version 154, Bryan: "Bullets go through the hill at the top. Enemies can shoot right through it"): rock was only a
+// 'drop', which stops feet and not eyes, so every hill was glass. A line from eye to eye is blocked where the ground rises above it.
+const DD_EYE=15;
+function ddSightOK(ax,ay,bx,by){
+  if(!DDG.h)return true;const d=Math.hypot(bx-ax,by-ay);if(d<40)return true;
+  const ha=ddH(ax,ay)+DD_EYE,hb=ddH(bx,by)+DD_EYE,n=Math.min(48,Math.ceil(d/16));
+  for(let i=1;i<n;i++){const t=i/n;if(t*d<14||(1-t)*d<14)continue;if(ddH(ax+(bx-ax)*t,ay+(by-ay)*t)>ha+(hb-ha)*t+3)return false;}
+  return true;
+}
+
 /* ---------- the map's objects (play-area coordinates dx 0..1000, then moved over by DDX) ---------- */
 const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by these
   // (Version 139, Bryan: "add more stationary machine tunes in each one": three in each bunker on the path, fanned out, each with a narrow swing, so

@@ -400,3 +400,10 @@ Bryan, after 152: "my troops are dying at a much higher rate. AI units aren't mo
 - Found: with the barracks moved to the top of the way up, "near the barracks" was true as soon as the squads came out on top, so the tank, sixteen men and the base's garrison arrived while the top bunker, the cannon and both barracks were still in the fight. The counterattack now waits until the top's own guns are down to one, or a man is at the barracks' door.
 - Medics went to a downed man only after 3 s without being shot at, which in a fight is never. Now only being pinned stops them. When it's quiet they also patch up a squad mate under 55 HP (one kit, kept to the last but one). They never healed men who were up before this.
 - Not found: a crash, or a change in how the other troops advance. Hands-off test battles on 150, 151 and 152 differ more from run to run than from version to version.
+
+## Version 154
+
+Bryan: "Bullets go through the hill at the top. Enemies can shoot right through it. The bunker on top of the first hill, on the right, should be positioned better so it can shoot down the path onto the beach and the beach itself. Draw me a draft."
+
+- The ground now stops bullets and sight on this map. Before, rock only stopped feet. Measured per fixed gun: the bunkers at beach level see exactly what they saw; the hill bunker was hitting 77-82% of the beach in its reach through the rock rim in front of it and now hits none.
+- Draft, not built: `docs/drafts/dday-hill-bunker-draft.png`. The hilltop carried about 4 m south to the cliff's edge and the bunker put on that lip, three guns (one down the path, two on the beach): 87% of the path and 99% of the beach in a 42 m reach, worked out from the terrain. Questions for Bryan: its reach, whether the upper bunker below stays, whether the grenadier stays.
