@@ -451,3 +451,9 @@ Bryan, on draft 1: each squad lines up diagonally across from the other; the sta
 - Top: Alpha and Bravo rows of four slots showing unit types; an empty one is an open slot (+).
 - Click a unit: name and type, the man on a stand, level and rank under him, stats and equipment to the right, two buttons: Reserve (he goes to the reserve pool) and Replace (goes to the recruits).
 - Recruits: grey boxes, a small gold star top right if they have something special. Reserve: green boxes with type and level, a gold star for special equipment.
+
+### Draft 3: inside the barracks
+
+`docs/drafts/dday-after-battle-draft-3.png` (the bunk room is a 3D scene built for the draft by `tools/drafts/dday-barracks-room.js`, run from the scratchpad harness).
+
+Bryan, on draft 2: "Take" should be "Recruit". Equipment can be changed from within the barracks, but only equipment from reserves, squad mates, or equipment placed in the armory (saved for later by the player, like a supply chest in Kingdom Come: Deliverance). Going into the barracks should look like the inside of the barracks: a line of bunks with each unit standing in front of his bunk, his equipment laid out on a trunk to his right; pressing a piece of equipment changes it out.
