@@ -76,7 +76,7 @@ function spawnDDay(){
 function enterDDay(){
   buildDDay();stashOut(players);
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
-  useMap({objs:DD.objs,hq:DD.hq,slow:[{x:0,y:700,w:1400,h:78,k:.62}],lamps:DD.lamps,scene:DD.scene,lights:DD.lights,x1:DDB.x1});
+  useMap({objs:DD.objs,hq:DD.hq,slow:[{x:0,y:700,w:1400,h:78,k:.62}],lamps:DD.lamps,scene:DD.scene,lights:DD.lights,x1:NAV_W});
   tankFires=[];rockets=[];charges=[];units=[];players=[];enemies=[];civs=[];
   MAPID='dd';LEVEL=5;groundH=ddH;
   dd={t0:simT,pool:DD_POOL,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
@@ -301,12 +301,13 @@ function ddBlast(x,y,by){
 function ddWreck(o,by){
   o.gone=true;dd.blown[o.tag]=true;const cx=o.x+o.w/2,cy=o.y+o.h/2;
   for(let k=0;k<(o.tag==='barracks'?6:2);k++)booms.push({x:cx+(Math.random()-.5)*o.w,y:cy+(Math.random()-.5)*o.h,t:-k*.12,size:o.tag==='barracks'?1.4:1});
+  if(o.tag==='fuel'&&typeof ddFuelBlast==='function')ddFuelBlast(o,by);
   paintDecal({k:'scorch',x:cx,y:cy,r:Math.random()});shake(o.tag==='barracks'?1:.5);if(typeof sfxBoom==='function')sfxBoom(cx,cy,o.tag==='barracks'?1.4:1);
   if(o.kind==='ddbarr'||o.kind==='ddgun'){for(const m of o.meshes||[]){if(m.material&&m.material.color){m.material=m.material.clone();m.material.color.setHex(0x1b1a18);}m.rotation.z+=(Math.random()-.5)*.25;}if(o.barrel)o.barrel.rotation.x=Math.PI/2+.5;
     tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});}
   else{for(const m of o.meshes||[])m.visible=false;removeObstacle(o,[]);dEpoch++;}   // a gate or the wire: gone, the way's open
-  if(o.tag==='barracks'){dd.won=true;bigText('Barracks destroyed','complete');banner('The barracks is gone. The base is yours.',4000);endAt=performance.now()+4200;}
-  else banner({wire:'The wire is blown open there.',barr2:'The barracks behind the bunker is destroyed: nobody comes out of it now.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.',art:'The artillery on the hill is knocked out.'}[o.tag]||'',2600);
+  if(o.tag==='barracks'){(dd.held||(dd.held={})).base=true;ddBaseOpen();}   // (blown up instead of held: the way on is open all the same)
+  else banner({wire:'The wire is blown open there.',barr2:'The barracks behind the bunker is destroyed: nobody comes out of it now.',bA:'Barracks A is destroyed: nobody comes out of it now.',bB:'Barracks B is destroyed: nobody comes out of it now.',fuel:'Their fuel dump goes up.',aa:'The anti-aircraft gun is knocked out.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.',art:'The artillery on the hill is knocked out.'}[o.tag]||'',2600);
   updateObjUI();
 }
 function ddGoSquad(t){
@@ -352,6 +353,7 @@ function ddSquadAI(t){
   // forward, slowly, only once nobody's left in front of them (and not far past the squad being played, unless long ignored)
   if(near.length||simT<dd.hop[t]||m.some(u=>u.path.length))return;
   const lead=players.filter(p=>p.team!==t&&alive(p)),leadY=lead.length?Math.min(...lead.map(p=>p.y)):cy;
+  if(dd.base&&dd.base.open&&cy<-430){ddSquadEast(t,m,cx,cy);return;}   // (ddbase.js)
   let i=dd.wp[t];while(i<DD_ROUTE.length-1&&DD_ROUTE[i][1]>cy-30)i++;
   const W=DD_ROUTE[i];if(!W||W[1]>cy-20)return;
   if(lead.length&&W[1]<leadY-170)return;
@@ -370,6 +372,7 @@ function ddLine(){   // how far up they may go: behind the squads, and no furthe
 }
 function ddNpcThink(u,line){
   if(u.dead||u.inBoat||u.path.length||simT<u.hopT)return;
+  if(dd.base&&dd.base.open&&u.y<-430){ddNpcEast(u);return;}   // (on the top, once the barracks is ours: east to their base, ddbase.js)
   if(u.y<=line+24){u.hopT=simT+3;return;}
   if(u.eng&&!u.dug&&u.y>360&&u.y<690&&u.sup>.3&&(dd.npcForts||0)<7){   // an engineer among them, under fire on the sand: a barricade, and the others use it
     if(!u.bT){u.bT=simT+2.4;u.hopT=simT+2.6;callout(u,'Digging in',C.warn);return;}
@@ -443,43 +446,50 @@ function ddBarracks(){
 function ddCounter(dt){
   const C=dd.ctr||(dd.ctr={on:false,sq:0,t:0});
   if(!C.on){const d=DD_SPOT.door;if(!dd.land.done||dd.won||!players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<330))return;
-    C.on=true;C.t=simT+2;banner('Counterattack! A tank and infantry from the far base on the right.',4600);ddTankSpawn();}
+    C.on=true;C.t=simT+2;banner('Counterattack! A tank and infantry out of their base, down the road on the right.',4600);
+    const W=DD_SPOT.tankWay;ddTankSpawn({x:W[0][0]+DDX,y:W[0][1],way:W.slice(1).map(q=>[q[0]+DDX,q[1]])});
+    if(typeof ddBaseGarrison==='function')ddBaseGarrison();}
   if(C.sq<4&&simT>=C.t&&!dd.won){C.sq++;C.t=simT+4;const D=DD_SPOT.door3,G=DD_SPOT.door;
     for(let i=0;i<4;i++){const e=ddFoe('counter',D.x+(Math.random()-.5)*50,D.y+(Math.random()-.5)*26,{nade:i===0?1:0,ang:Math.PI});enemies.push(e);
       const tx=G.x+DDX+70+(Math.random()-.5)*170,ty=G.y+30+Math.random()*100,s=openSpot(tx,ty,enemies.filter(o=>o!==e&&!o.dead).map(destOf)),p=s&&findPath(e.x,e.y,s.x,s.y,FOOT);
       if(p){e.path=p;e.zone={x0:s.x-150,x1:s.x+150,y0:s.y-120,y1:s.y+120};}else e.zone={x0:DDX+600,x1:DDX+1000,y0:-700,y1:-440};}}
   ddTankTick(dt);
 }
-function ddTankSpawn(){
+// a tank (since Version 148 there can be several, dd.tanks): o = {x,y,ang,way:[[x,y]..] in map coordinates,name,range,hold}; hold keeps it where it is until it's let go
+function ddTankSpawn(o){
   const T=THREE,g=new T.Group(),M=c=>new T.MeshStandardMaterial({color:c,roughness:.8,metalness:.25}),gy=M(0x5a5e54),dk=M(0x2a2c28);
   const add=(par,geo,m,x,y,z)=>{const q=new T.Mesh(geo,m);q.position.set(x,y,z);q.castShadow=true;par.add(q);return q;};
   add(g,new T.BoxGeometry(60,11,30),gy,0,12,0);add(g,new T.BoxGeometry(50,5,26),gy,-2,20,0);
   for(const z of[-17,17]){add(g,new T.BoxGeometry(66,10,8),dk,0,5,z);for(let k=-2;k<=2;k++){const w=add(g,new T.CylinderGeometry(4.6,4.6,8.6,10),gy,k*13,5,z);w.rotation.x=Math.PI/2;}}
   const tur=new T.Group();tur.position.set(-3,22,0);g.add(tur);add(tur,new T.BoxGeometry(27,10,22),gy,0,5,0);add(tur,new T.BoxGeometry(8,4,8),dk,-6,12,-4);
   const br=add(tur,new T.CylinderGeometry(1.7,2,42,8),dk,33,6,0);br.rotation.z=Math.PI/2;add(tur,new T.CylinderGeometry(2.6,2.6,6,8),dk,55,6,0).rotation.z=Math.PI/2;
-  DD.scene.add(g);const P=DD_SPOT.tankWay;
-  dd.tank={x:P[0][0]+DDX,y:P[0][1],ang:Math.PI,ta:Math.PI,hp:330,hp0:330,i:1,g,tur,fireT:simT+5,side:'E',name:'Tank',id:'TANK',stats:{},mats:[gy,dk]};
+  DD.scene.add(g);const L=dd.tanks||(dd.tanks=[]),a=o.ang==null?Math.PI:o.ang;
+  const K={x:o.x,y:o.y,ang:a,ta:a,hp:330,hp0:330,i:0,way:o.way||[],g,tur,fireT:simT+5,side:'E',name:o.name||'Tank',id:'TANK'+(L.length+1),stats:{},mats:[gy,dk],range:o.range||520,hold:!!o.hold};
+  L.push(K);K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;return K;
 }
+const ddTanksUp=()=>(dd&&dd.tanks||[]).filter(K=>K.hp>0);
 function ddTankTick(dt){
-  const K=dd.tank;if(!K)return;const turn=(a,b,m)=>{let d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI;return a+clamp(d,-m,m);};
-  if(K.hp>0){
-    const P=DD_SPOT.tankWay,W=P[K.i];
-    if(W){const dx=W[0]+DDX-K.x,dy=W[1]-K.y,d=hyp(dx,dy);if(d<4)K.i++;else{K.ang=turn(K.ang,Math.atan2(dy,dx),dt*1.2);K.x+=Math.cos(K.ang)*20*dt;K.y+=Math.sin(K.ang)*20*dt;K.mov=true;}}else K.mov=false;
-    let t=null,bd=520;for(const u of dd.allies){if(u.inBoat||!alive(u))continue;const d=hyp(u.x-K.x,u.y-K.y);if(d<bd&&d>50&&los(K.x,K.y,u.x,u.y)){bd=d;t=u;}}
-    if(t){K.ta=turn(K.ta,Math.atan2(t.y-K.y,t.x-K.x),dt*1.6);
-      if(simT>=K.fireT&&Math.abs(((Math.atan2(t.y-K.y,t.x-K.x)-K.ta+Math.PI*3)%(Math.PI*2))-Math.PI)<.12){K.fireT=simT+5.5+Math.random()*2;
-        ddShell(K,t.x+(Math.random()-.5)*46,t.y+(Math.random()-.5)*46,48,80,Math.max(.5,bd/420));flashes.push({x:K.x+Math.cos(K.ta)*58,y:K.y+Math.sin(K.ta)*58,t:0});if(typeof sfxCannon==='function')sfxCannon(K.x,K.y);shake(.25);}}
-    else K.ta=turn(K.ta,K.ang,dt*.8);
+  const turn=(a,b,m)=>{let d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI;return a+clamp(d,-m,m);};
+  for(const K of dd.tanks||[]){
+    if(K.hp>0){
+      const W=K.hold?null:K.way[K.i];
+      if(W){const dx=W[0]-K.x,dy=W[1]-K.y,d=hyp(dx,dy);if(d<4)K.i++;else{K.ang=turn(K.ang,Math.atan2(dy,dx),dt*1.2);K.x+=Math.cos(K.ang)*20*dt;K.y+=Math.sin(K.ang)*20*dt;}}
+      let t=null,bd=K.range;for(const u of dd.allies){if(u.inBoat||!alive(u))continue;const d=hyp(u.x-K.x,u.y-K.y);if(d<bd&&d>50&&los(K.x,K.y,u.x,u.y)){bd=d;t=u;}}
+      if(t){K.ta=turn(K.ta,Math.atan2(t.y-K.y,t.x-K.x),dt*1.6);
+        if(simT>=K.fireT&&Math.abs(((Math.atan2(t.y-K.y,t.x-K.x)-K.ta+Math.PI*3)%(Math.PI*2))-Math.PI)<.12){K.fireT=simT+5.5+Math.random()*2;
+          ddShell(K,t.x+(Math.random()-.5)*46,t.y+(Math.random()-.5)*46,48,80,Math.max(.5,bd/420));flashes.push({x:K.x+Math.cos(K.ta)*58,y:K.y+Math.sin(K.ta)*58,t:0});if(typeof sfxCannon==='function')sfxCannon(K.x,K.y);shake(.25);}}
+      else K.ta=turn(K.ta,K.ang,dt*.8);
+    }
+    K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;K.tur.rotation.y=-(K.ta-K.ang);
   }
-  K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;K.tur.rotation.y=-(K.ta-K.ang);
 }
-function ddTankHit(x,y){
-  const K=dd.tank;if(!K||K.hp<=0)return;const d=hyp(x-K.x,y-K.y);if(d>58)return;
-  K.hp-=170*(1-d/75);
-  if(K.hp>0){banner(`The tank is hit (${Math.max(1,Math.round(K.hp/K.hp0*100))}% left). Hit it again.`,2200);return;}
-  K.hp=0;for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;
-  for(let k=0;k<5;k++)booms.push({x:K.x+(Math.random()-.5)*40,y:K.y+(Math.random()-.5)*26,t:-k*.12,size:1.3});
-  tankFires.push({x:K.x,y:K.y,r:12,t0:simT,puffs:[],emit:0});shake(1);if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.4);banner('The tank is knocked out.',3000);
+function ddTankHit(x,y,k=1){
+  for(const K of dd.tanks||[]){if(K.hp<=0)continue;const d=hyp(x-K.x,y-K.y);if(d>58*k)continue;
+    K.hp-=170*k*(1-d/(75*k));
+    if(K.hp>0){banner(`${K.name} is hit (${Math.max(1,Math.round(K.hp/K.hp0*100))}% left). Hit it again.`,2200);continue;}
+    K.hp=0;for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;
+    for(let q=0;q<5;q++)booms.push({x:K.x+(Math.random()-.5)*40,y:K.y+(Math.random()-.5)*26,t:-q*.12,size:1.3});
+    tankFires.push({x:K.x,y:K.y,r:12,t0:simT,puffs:[],emit:0});shake(1);if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.4);banner(`${K.name} is knocked out.`,3000);}
 }
 /* ---------- ground taken (Version 137, a draft for Bryan: "a blue highlight around each bunker or pill box when the team takes control of
    it. Every area under control of the ally is highlighted in very light transparent blue. Only the buildings and the borders of the
@@ -501,9 +511,9 @@ function ddZones(){
     for(const m of(Z.bk&&DD&&DD.bk&&DD.bk[Z.bk])||[])if(m&&m.color){m.color.lerp(new T.Color(0x5fa4ff),.42);if(m.emissive)m.emissive.setHex(0x12305a);}
   }
   // the barracks: ours once nobody of theirs is left near it and two of ours have stood at its door for four seconds
-  if(dd.won)return;const d=DD_SPOT.door,B=DD_SPOT.barracks,near=players.filter(p=>alive(p)&&hyp(p.x-d.x-DDX,p.y-d.y)<140).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-(B.x+B.w/2+DDX),e.y-(B.y+B.h))<320).length+(dd.tank&&dd.tank.hp>0&&hyp(dd.tank.x-(B.x+B.w/2+DDX),dd.tank.y-(B.y+B.h))<420?1:0);
+  if(dd.won||dd.blown.barracks)return;const d=DD_SPOT.door,B=DD_SPOT.barracks,near=players.filter(p=>alive(p)&&hyp(p.x-d.x-DDX,p.y-d.y)<140).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-(B.x+B.w/2+DDX),e.y-(B.y+B.h))<200).length+ddTanksUp().filter(K=>hyp(K.x-(B.x+B.w/2+DDX),K.y-(B.y+B.h))<300).length;
   dd.holdN=near;dd.holdFoes=foes;
-  if(near>=2&&!foes){dd.holdT=(dd.holdT||0)+.5;if(dd.holdT>=4){dd.won=true;H.base=true;bigText('Barracks taken','complete');banner('The barracks is yours. The base is taken.',4000);endAt=performance.now()+4200;updateObjUI();}}
+  if(near>=2&&!foes){dd.holdT=(dd.holdT||0)+.5;if(dd.holdT>=4){H.base=true;dd.blown.barracks=true;ddBaseOpen();updateObjUI();}}   // (since Version 148 the battle goes on: their base down the road, ddbase.js)
   else dd.holdT=0;
 }
 // where a tool is going (Bryan: "When the player selects a location for a tool it should be a filled in circle. Orange for the to the rocket shows and
@@ -524,11 +534,11 @@ function ddDrawTargets(now){
     ox.fillStyle='rgba(255,58,40,.98)';ox.beginPath();ox.arc(cx,cy,1.4,0,TAU);ox.fill();ox.restore();};
   const seen=new Set();for(const u of players){const e=u.focus;if(!alive(u)||u.team!==dd.active||!e||e.dead||beaten(e)||seen.has(e))continue;seen.add(e);
     toSBack=false;const a=toS(e.x,e.y,9),b=toS(e.x,e.y,19);if(toSBack)continue;scope((a[0]+b[0])/2,(a[1]+b[1])/2,Math.max(6,hyp(a[0]-b[0],a[1]-b[1])*.62)*(1+.05*pu));}   // (the size of his upper body: Bryan, "It should be the size of a soldiers torso")
-  {const K=dd.tank;if(K&&K.hp>0&&simT<(dd.tankAim||0)){toSBack=false;const a=toS(K.x,K.y,6),b=toS(K.x,K.y,30);if(!toSBack)scope((a[0]+b[0])/2,(a[1]+b[1])/2,Math.max(10,hyp(a[0]-b[0],a[1]-b[1])*.7)*(1+.05*pu));}}   // (the tank, while a rocket's been ordered onto it)
+  {const K=dd.tankAimK;if(K&&K.hp>0&&simT<(dd.tankAim||0)){toSBack=false;const a=toS(K.x,K.y,6),b=toS(K.x,K.y,30);if(!toSBack)scope((a[0]+b[0])/2,(a[1]+b[1])/2,Math.max(10,hyp(a[0]-b[0],a[1]-b[1])*.7)*(1+.05*pu));}}   // (the tank, while a rocket's been ordered onto it)
   // said where the finger was (Bryan: "if something is too far, can a message pop up where the using is selecting. 'Too far' or 'Not in range'")
   for(const n of dd.notes||[]){const q=(performance.now()-n.t)/1700;if(q>=1)continue;toSBack=false;const[sx,sy]=toS(n.x,n.y,4);if(toSBack)continue;ox.globalAlpha=q>.7?(1-q)/.3:1;label(n.text,sx,sy-10-q*14,'#ff6a55',13,700);ox.globalAlpha=1;}
   if(dd.notes)dd.notes=dd.notes.filter(n=>performance.now()-n.t<1700);
-  {const K=dd.tank;if(K&&K.hp>0){toSBack=false;const[sx,sy]=toS(K.x,K.y,44);if(!toSBack){label('TANK \u00b7 BAZOOKA OR GRENADES',sx,sy,'#ff8a6a',11,700);bar(sx-20,sy+8,40,K.hp/K.hp0,C.bad);}}}
+  for(const K of ddTanksUp()){toSBack=false;const[sx,sy]=toS(K.x,K.y,44);if(!toSBack){label('TANK \u00b7 BAZOOKA OR GRENADES',sx,sy,'#ff8a6a',11,700);bar(sx-20,sy+8,40,K.hp/K.hp0,C.bad);}}
 }
 function ddNote(text){const p=dd&&dd.tapW;if(!p||performance.now()-p.t>900)return;(dd.notes||(dd.notes=[])).push({x:p.x,y:p.y,text,t:performance.now()});}
 
@@ -597,7 +607,7 @@ function ddTick(dt){
   contact=true;teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   dd.allies=units.filter(ddAlly);
   ddBoatsTick(dt);stationTick(dt);
-  ddCounter(dt);
+  ddCounter(dt);if(typeof ddBaseTick==='function')ddBaseTick(dt);
   if(!dd.land.done)ddRideFx(dt);
   else if(dd.graceT&&simT>dd.graceT){dd.graceT=0;for(const p of players)if(p.dmgIn0!=null){p.dmgIn=p.dmgIn0;p.dmgIn0=null;}}   // (the other boats' men fight on from the moment their ramps drop: nothing waits for the squads)
   // the dead: out of the squad (the body stays), a replacement on the way while they last
@@ -616,7 +626,7 @@ function ddTick(dt){
   const up=players.filter(alive);
   if(up.length){dd.front=Math.min(dd.front,...up.filter(p=>!p.joining&&!p.inBoat).map(p=>p.y),dd.front);DD.day=clamp((330-dd.front)/850,0,1);}
   let worst=0;
-  for(const p of up){const out=!p.inBoat&&(p.x<DDX-6||p.x>DDX+DDW+6);p.oob=out?(p.oob||0)+dt:0;worst=Math.max(worst,p.oob);
+  for(const p of up){const out=!p.inBoat&&(p.x<DDX-6||p.x>DDX+DDW+6&&!(p.y<-440&&p.x<1800));   /* (the top carries on east to their base) */p.oob=out?(p.oob||0)+dt:0;worst=Math.max(worst,p.oob);
     if(p.oob>=10){booms.push({x:p.x,y:p.y,t:0});if(typeof sfxBoom==='function')sfxBoom(p.x,p.y,1);ddKill(p,'He strayed out of the battle',true);}}
   dd.oob=worst;
   for(const o of dd.wires||(dd.wires=objs.filter(q=>q.kind==='ddwire'))){if(o.gone)continue;
@@ -693,11 +703,11 @@ function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.toolK)return tru
   if(!sel.length)return false;const o=ddWireNear(wx,wy,9);if(o){ddBlowWire(o);hud();return true;}
   // the tank under the finger: the squad's own answer to armour, a rocket (a grenade if that's all there is and he's near enough). Bryan: "our
   // units use explosives only for heavily armored vehicles when targeted? Like a rocket?"
-  {const K=dd.tank;if(K&&K.hp>0&&sx!=null){toSBack=false;const[tx,ty]=toS(K.x,K.y,16);if(!toSBack&&hyp(tx-sx,ty-sy)<46){
+  {const K=sx==null?null:ddTanksUp().find(q=>{toSBack=false;const[tx,ty]=toS(q.x,q.y,16);return!toSBack&&hyp(tx-sx,ty-sy)<46;});if(K){{
     const m=ddSquad().filter(u=>alive(u)&&!pinnedNow(u)&&!u.throwGo&&!u.rpgAim),by=(a,b)=>hyp(a.x-K.x,a.y-K.y)-hyp(b.x-K.x,b.y-K.y);
     const r=m.filter(u=>u.spec==='rpg'&&u.specN>0&&hyp(u.x-K.x,u.y-K.y)>PRPG.min+6).sort(by)[0],g=m.filter(u=>(u.grenade||0)>0&&hyp(u.x-K.x,u.y-K.y)<nadeRange(u)+NADE_WALK).sort(by)[0],u=r||g;
     if(!u){ddNote(ddSquad().some(q=>alive(q)&&q.spec==='rpg'&&q.specN>0)?'Bazooka man busy':'No rockets left');banner('Only a rocket or a grenade hurts the tank.',2200);return true;}
-    if(orderThrow(u,K.x,K.y,u===r?'rpg':'nade')){u.lastOrder=simT;u.hotT=simT+6;dd.tankAim=simT+7;dd.usedAt=performance.now();dd.lastTap=null;banner(`${u.name} goes for the tank with ${u===r?'the Bazooka':'a grenade'}.`,2200);}
+    if(orderThrow(u,K.x,K.y,u===r?'rpg':'nade')){u.lastOrder=simT;u.hotT=simT+6;dd.tankAim=simT+7;dd.tankAimK=K;dd.usedAt=performance.now();dd.lastTap=null;banner(`${u.name} goes for the tank with ${u===r?'the Bazooka':'a grenade'}.`,2200);}
     hud();return true;}}}
   const now=performance.now();
   if(sx!=null&&now-(dd.usedAt||-1e9)<2500&&!enemyAtScreen(sx,sy)&&!unitAtScreen(sx,sy,false)){
@@ -714,7 +724,7 @@ function ddBar(){
   const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u,user=dd.toolU===u&&!!dd.toolK;
     return`<button type="button" class="sq-man${on?' on':''}${user?' user':''}${u.downed?' down':''}" data-id="${u.id}" style="--tc:${teamCol(u)};--hp:${u.downed?100:hp}%;--hc:${hc}"><b>${u.role}</b><span>${u.name}<em>${st[0]}</em></span><i><u></u></i></button>`;}).join('');
   const up=sq.filter(alive),medic=up.some(u=>u.ddRole==='medic'),downN=sq.filter(u=>u.downed).length;
-  const wy=up.length?up.reduce((a,u)=>a+u.y,0)/up.length:0,wireOn=up.length&&wy>330&&wy<720&&!!ddWireNear(up.reduce((a,u)=>a+u.x,0)/up.length,wy,420);
+  const wy=up.length?up.reduce((a,u)=>a+u.y,0)/up.length:0,wx0=up.length?up.reduce((a,u)=>a+u.x,0)/up.length:0,wireOn=up.length&&(wy>330&&wy<720&&!!ddWireNear(wx0,wy,420)||wx0>1150&&wy<-440&&!!ddWireNear(wx0,wy,200));
   const tools=DD_TOOLS.map(T=>{if(T.k==='wire'){if(!wireOn)return'';const n=up.reduce((a,u)=>a+(u.grenade||0)+(u.spec==='rpg'?u.specN||0:0),0);return`<button type="button" class="sq-tool" data-k="wire" style="--c:${T.col}" ${n?'':'disabled'}>${T.svg()}<b>${n}</b><span>Blow wire</span><small>nearest man with one</small></button>`;}
     if(T.k==='revive')return'';   // (no button since Version 139: the medics get men up by themselves, ddMedics)
     const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'||u.spec===T.k);if(!has)return'';const on=dd.toolK===T.k;
@@ -749,6 +759,7 @@ function ddHint(){
   const other=dd.active==='A'?'Bravo':'Alpha';
   if(dd.front>330)return`The camera stays where you put it; picking a squad takes it there. Shell holes and steel obstacles are cover. Tap the wire (or Blow wire below) and a man with a grenade opens it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
   if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
+  if(dd.base&&dd.base.open)return ddBaseHint();
   return'The base. Take the barracks: clear their men from round it and put two of yours at its door for four seconds. Nobody comes out of it while yours are at the door.';
 }
 function drawDDay(now){
@@ -764,7 +775,8 @@ function drawDDay(now){
   if(!dd.blown.heavy&&!dead('heavy'))lab(90,-410,34,'HEAVY GUN','#ff8a6a');
   if(!dd.blown.cannon&&!dead('cannon'))lab(240,-600,30,'CANNON','#ff8a6a');
   if(!dead('mortar'))lab(915,-470,24,'MORTARS','#ff8a6a');
-  if(!dd.won)lab(820,-690,46,dd.holdT>0?`BARRACKS · HOLDING ${Math.max(1,Math.ceil(4-dd.holdT))}`:dd.holdN?(dd.holdFoes?`BARRACKS · ${dd.holdFoes} OF THEIRS STILL NEAR`:'BARRACKS · TWO MEN AT THE DOOR'):'BARRACKS · TAKE IT','#ffcf4a');
+  if(typeof ddBaseDraw==='function')ddBaseDraw(lab);
+  if(!dd.won&&!dd.blown.barracks)lab(820,-690,46,dd.holdT>0?`BARRACKS · HOLDING ${Math.max(1,Math.ceil(4-dd.holdT))}`:dd.holdN?(dd.holdFoes?`BARRACKS · ${dd.holdFoes} OF THEIRS STILL NEAR`:'BARRACKS · TWO MEN AT THE DOOR'):'BARRACKS · TAKE IT','#ffcf4a');
   if(dd.front>300){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · TAP IT TO BLOW IT · CLIMBING CUTS','#ffcf4a');}
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
   // a man coming up to join: a line to him from his squad's tab colour
@@ -775,7 +787,7 @@ function ddFinish(){
   const win=!!(dd&&dd.won);state='end';setStatus();$('#status').textContent=win?'Taken':'Lost';
   const t=Math.floor(simT-(dd?dd.t0:0)),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0'),kills=players.reduce((n,p)=>n+p.stats.kills,0);
   $('#endEyebrow').textContent=win?'Beach taken':'Beach lost';$('#endTitle').textContent=win?'The base is yours':'The squads are gone';
-  $('#endText').textContent=win?`The barracks taken in ${mm}:${ss}. ${dd.lost} of the squads' men were killed (${DD_POOL-dd.pool} replacements used), and ${dd.npcLost} of the other troops fell on the way up.`
+  $('#endText').textContent=win?`Their base taken in ${mm}:${ss}. ${dd.lost} of the squads' men were killed (${DD_POOL-dd.pool} replacements used), and ${dd.npcLost} of the other troops fell on the way up.`
     :`Both squads were lost after ${mm}:${ss}, with no replacements left. ${dd?dd.npcLost:0} of the other troops fell with them. Smoke the machine guns, keep to the holes and the boulders, and let the demolition man open the bunkers.`;
   {const q=$('#sq');if(q)q.hidden=true;}
   $('#againBtn').textContent='Land again';$('#retryBtn').hidden=true;$('#end').hidden=false;

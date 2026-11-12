@@ -44,7 +44,7 @@ function ddRawH(dx,y){
 const DDG={nx:141,ny:167,h:null};
 function ddBuildH(){
   const{nx,ny}=DDG;let a=new Float32Array(nx*ny),b=new Float32Array(nx*ny);
-  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)a[j*nx+i]=ddRawH(ddMx(i*10),DDB.y0+j*10);
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)a[j*nx+i]=i*10>=1290&&DDB.y0+j*10<=-330?152:ddRawH(ddMx(i*10),DDB.y0+j*10);   // (east of the old play area the top is flat ground, not a mirror image: the road on to their base, ddbase.js)
   for(let p=0;p<2;p++){   // soften the cliffs a little (a wall of stretched triangles otherwise)
     for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){let s=0,n=0;for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++){const x=i+u,y=j+v;if(x<0||y<0||x>=nx||y>=ny)continue;s+=a[y*nx+x];n++;}b[j*nx+i]=s/n;}
     [a,b]=[b,a];
@@ -69,7 +69,7 @@ const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by t
   hillMG2:{x:904,y:140,ang:Math.PI/2-.42,arc:.48},pathMG:{x:292,y:-424,ang:1.32,arc:.8},sniper2:{x:206,y:-590},
   hillMG:{x:856,y:140,ang:Math.PI/2+.42,arc:.5},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
   mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:700,y:-715,w:240,h:60},door:{x:820,y:-640},
-  barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},barr3:{x:1012,y:-716,w:180,h:60},door3:{x:1090,y:-640},tankWay:[[1185,-556],[930,-556],[800,-562]],   // (Version 145: a second barracks behind the highest bunker, and the far base's to the right, where the counterattack comes from)
+  barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},door3:{x:1085,y:-600},tankWay:[[1085,-600],[930,-578],[800,-565]],   // (Version 145: a second barracks behind the highest bunker; since Version 148 the counterattack comes out of their base's gate, ddbase.js)
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
 function ddObjects(){
   const L=[],o=(kind,dx,y,w,h,ex)=>{const q=Object.assign({kind,x:dx+DDX,y,w,h,full:false},ex||{});L.push(q);return q;};
@@ -112,7 +112,7 @@ function ddObjects(){
   for(const[x,y]of[[840,-462],[900,-452],[952,-464]])o('sandbag',x,y,44,10);
   for(const[x,y]of[[450,-520],[560,-560],[640,-500],[520,-462],[760,-540],[330,-470],[250,-500]])o('ddcrate',x,y,22,20,{cover:1});
   o('ddbarr',DD_SPOT.barracks.x,DD_SPOT.barracks.y,DD_SPOT.barracks.w,DD_SPOT.barracks.h,{full:true,hp:380,tag:'barracks'});
-  {const b=DD_SPOT.barr2,c=DD_SPOT.barr3;o('ddbarr',b.x,b.y,b.w,b.h,{full:true,hp:380,tag:'barr2'});o('ddbarr',c.x,c.y,c.w,c.h,{full:true});}
+  {const b=DD_SPOT.barr2;o('ddbarr',b.x,b.y,b.w,b.h,{full:true,hp:380,tag:'barr2'});}
   // the base's vehicles, tents, drums and radio mast (their looks: ddlook.js)
   o('ddtruck',958,-648,26,58,{full:true});o('ddtruck',612,-712,26,58,{full:true});o('ddtent',470,-724,40,46,{full:true});o('ddtent',410,-720,40,46,{full:true});o('ddtent',180,-520,40,46,{full:true});
   for(const[x,y]of[[668,-650],[946,-724],[300,-548],[560,-470]])o('dddrum',x,y,16,16,{cover:1});
@@ -127,6 +127,7 @@ function ddObjects(){
     if(dx+q.w>800)L.push(Object.assign({},q,{x:DDX+2*DDW-dx-q.w}));}
   L.push({kind:'drop',x:0,y:300,w:DDX,h:16,full:false,rock:1},{kind:'drop',x:DDX+DDW,y:300,w:DDX,h:16,full:false,rock:1});   // the line carries on as rock across the edges
   L.push({kind:'water',x:0,y:776,w:1400,h:124,full:false});
+  if(typeof ddBaseObjects==='function')for(const q of ddBaseObjects())L.push(q);   // (their base east of the top: ddbase.js)
   return L;
 }
 VAULTABLE.add('ddgate');VAULTABLE.add('ddwire');   // a gate can be climbed (pathfinding.js), or blown open (ddBlast in ddplay.js)
@@ -327,7 +328,9 @@ function ddProps(sc,objsL){
       G.add(g);}}
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored
-  for(const s of[-1,1]){const c=G.clone(true);c.scale.x=-1;c.position.x=s<0?0:2*(DDB.x1-DDB.x0);sc.add(c);}
+  for(const s of[-1,1]){const c=G.clone(true);c.scale.x=-1;c.position.x=s<0?0:2*(DDB.x1-DDB.x0);sc.add(c);
+    for(const m of c.children)if(!m.isInstancedMesh&&m.position.z<-330&&m.position.x>(s<0?1200:860))m.visible=false;}   // (no mirror image where their base stands, or of it: ddbase.js)
+  if(typeof ddBaseBuild==='function')ddBaseBuild(sc);
 }
 // a landing craft: a steel box of a hull, a ramp at the bow (north, -z) that drops
 function ddBoatMesh(parent,wreck){
