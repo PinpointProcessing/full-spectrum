@@ -457,3 +457,9 @@ Bryan, on draft 1: each squad lines up diagonally across from the other; the sta
 `docs/drafts/dday-after-battle-draft-3.png` (the bunk room is a 3D scene built for the draft by `tools/drafts/dday-barracks-room.js`, run from the scratchpad harness).
 
 Bryan, on draft 2: "Take" should be "Recruit". Equipment can be changed from within the barracks, but only equipment from reserves, squad mates, or equipment placed in the armory (saved for later by the player, like a supply chest in Kingdom Come: Deliverance). Going into the barracks should look like the inside of the barracks: a line of bunks with each unit standing in front of his bunk, his equipment laid out on a trunk to his right; pressing a piece of equipment changes it out.
+
+### Draft 4: Alpha left, Bravo right
+
+`docs/drafts/dday-after-battle-draft-4.png` (room: `tools/drafts/dday-barracks-room.js`, which swaps `figKitKey` so a man with `atEase` has no rifle in his hands).
+
+Bryan, on draft 3: Alpha's bunks on the left side, Bravo's on the right. Along the top, large squares with the unit type's icon instead of names; when one is chosen his name appears above him. The men stand at ease: fidgeting with their hands, stretching and so on. The gun lies across the bunk, and the change-equipment menu appears under the man's feet and across to under the gun.
