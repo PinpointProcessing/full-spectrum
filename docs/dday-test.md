@@ -368,3 +368,10 @@ Bryan's answers on the draft: "One hard front but keep the other options and sec
 - The win: two of ours at the command post's door for 4 s with none of theirs within 24 m and no tank within 34 m (`ddBaseTick`).
 - The squad that runs itself and the other troops carry on east once the barracks is ours (`ddSquadEast`, `ddNpcEast`).
 - Test: `$SP/dd40.js` (the ground, paths, 30 men, three tanks, pictures), `$SP/dd41.js` (the barracks held, the ammo drop, the camera's bounds, men out of the barracks, the second tank, a tank knocked out, the fuel dump, the command post held: won). Not run: a whole battle played through by the bot, so how hard the base is isn't known.
+
+## Version 149
+
+Bryan: "Can the camera pan to the unit farthest ahead. Also, can the units have icons over their head with what unit type they are?"
+
+- Picking a squad (its tab, pressing the tab again, or a tap on one of its men) pans to that squad's man who is furthest ahead, not the squad's middle: furthest north on the beach and up the draw, furthest east once on the top. The camera still never follows by itself.
+- A round badge over every squad man's head with his role: a cross (medic), a belt of rounds (gunner), a scope (sharpshooter), a rocket (demolition). Filled in the squad's colour with a pointer for the squad being played, an outline for the other squad. Not on the other troops or the enemy.

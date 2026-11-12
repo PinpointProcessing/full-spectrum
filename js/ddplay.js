@@ -312,7 +312,8 @@ function ddWreck(o,by){
 }
 function ddGoSquad(t){
   if(!dd||!dd.land.done)return;const m=players.filter(p=>p.team===t&&alive(p));if(!m.length)return;
-  const cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length;
+  // to the man of that squad who's furthest ahead (Bryan: "Can the camera pan to the unit farthest ahead"): up the beach and the draw that's north; on the top, east toward their base
+  const ahead=u=>u.y<-440?3000+u.x:-u.y,f=m.filter(u=>!u.inBoat&&!u.joining),L=(f.length?f:m).reduce((a,u)=>ahead(u)>ahead(a)?u:a),cx=L.x,cy=L.y;
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:cx-Math.sin(yaw)*DD_CAM.look,z:cy-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.7};
 }
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */

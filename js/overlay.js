@@ -227,7 +227,17 @@ function drawOverlay(rdt,now){
     if(MAPID==='dd'&&dd&&u.side==='P'&&!u.npc){   // D-Day: the squad you play stands out (Bryan: "I was getting confused with what squad I was using and where they were"):
       const mine=u.team===dd.active,tc=teamCol(u);   // a filled disc and a thick ring in its colour under each man and a marker over his head; the other squad a thin ring
       gPath(vx,vy,mine?13:9,0,TAU,false,ev);if(!toSBack){if(mine){ox.globalAlpha=.3;ox.fillStyle=tc;ox.fill();ox.globalAlpha=1;}ox.strokeStyle=tc;ox.lineWidth=mine?3:1.2;ox.globalAlpha=mine?1:.55;ox.stroke();ox.globalAlpha=1;}
-      if(mine&&!u.downed){const y0=hy-(u.hp<99||u.sup>=.08?19:11);ox.beginPath();ox.moveTo(hx-7,y0-11);ox.lineTo(hx+7,y0-11);ox.lineTo(hx,y0);ox.closePath();ox.fillStyle=tc;ox.fill();ox.strokeStyle='rgba(8,11,14,.85)';ox.lineWidth=1.2;ox.stroke();}}
+      if(!u.downed&&!u.inBoat){   // his role over his head (Bryan: "can the units have icons over their head with what unit type they are?"): a badge, filled in for the squad being played
+        const R=mine?9:7.5,bx=hx,by=hy-(u.hp<99||u.sup>=.08?20:12)-R,fg=mine?'#0b0f13':tc;
+        ox.beginPath();ox.arc(bx,by,R,0,TAU);ox.fillStyle=mine?tc:'rgba(10,14,18,.86)';ox.fill();ox.strokeStyle=mine?'rgba(8,11,14,.9)':tc;ox.lineWidth=1.4;ox.stroke();
+        if(mine){ox.beginPath();ox.moveTo(bx-4,by+R-.5);ox.lineTo(bx+4,by+R-.5);ox.lineTo(bx,by+R+5);ox.closePath();ox.fillStyle=tc;ox.fill();}
+        const k=R/9;ox.save();ox.translate(bx,by);ox.scale(k,k);ox.fillStyle=fg;ox.strokeStyle=fg;ox.lineWidth=1.6;ox.lineCap='round';
+        if(u.ddRole==='medic'){ox.fillRect(-1.8,-5.5,3.6,11);ox.fillRect(-5.5,-1.8,11,3.6);}
+        else if(u.ddRole==='gunner'){for(const x of[-4.4,-1,2.4]){ox.beginPath();ox.moveTo(x,5);ox.lineTo(x,-1.5);ox.quadraticCurveTo(x+1,-5.5,x+2,-1.5);ox.lineTo(x+2,5);ox.closePath();ox.fill();}}   // a belt of rounds
+        else if(u.ddRole==='sharp'){ox.beginPath();ox.arc(0,0,4,0,TAU);ox.moveTo(-6.2,0);ox.lineTo(-2,0);ox.moveTo(2,0);ox.lineTo(6.2,0);ox.moveTo(0,-6.2);ox.lineTo(0,-2);ox.moveTo(0,2);ox.lineTo(0,6.2);ox.stroke();ox.beginPath();ox.arc(0,0,.9,0,TAU);ox.fill();}   // a scope
+        else if(u.ddRole==='demo'){ox.rotate(-.7);ox.beginPath();ox.moveTo(6.2,0);ox.lineTo(3,-2);ox.lineTo(-3.4,-2);ox.lineTo(-6,-4);ox.lineTo(-4.6,0);ox.lineTo(-6,4);ox.lineTo(-3.4,2);ox.lineTo(3,2);ox.closePath();ox.fill();}   // a rocket
+        else{ox.beginPath();ox.moveTo(-4.5,4.5);ox.lineTo(4.5,-4.5);ox.stroke();ox.beginPath();ox.arc(4,-4,2.4,0,TAU);ox.stroke();}   // (the Engineer: a spanner)
+        ox.restore();}}
     if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(MAPID==='dd'&&sel.includes(u)&&!u.downed){   // D-Day: an arrowhead on his ring the way he faces (Bryan: "when you select a squad, it shows you the direction they are facing")
       const A=u.ang,P=(r,d)=>toS(vx+Math.cos(A+d)*r,vy+Math.sin(A+d)*r,ev||0),t=P(19,0),l=P(12.5,.34),r2=P(12.5,-.34);
