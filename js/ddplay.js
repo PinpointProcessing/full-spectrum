@@ -13,7 +13,7 @@
    Hooks: combat.js (ddPick, ddDamage, ddTick), mission.js (ddBlast, ddObjUI, drawDDay), input.js (ddSelected, ddBusy),
    hud.js (ddHint, ddFinish), state.js (leaveDDayNow). */
 const DD_CAM={zoom:8.5,pitch:.29,shift:.09,look:30,boat:7};   // the camera: close behind the squad being played, low enough for the horizon (Bryan: "like a third person for the full squad, think Full Spectrum Warrior"; "semi-fixed to the team")
-const DD_POOL=20,DD_FIG=1.3,DD_US='#7f7d4e',DD_GER='#56646e';   // (DD_FIG: the men drawn bigger here, so they read from further up)
+const DD_POOL=30,DD_REVIVE=8,DD_BLEED=20,DD_CRIT=10,DD_FIG=1.3,DD_US='#7f7d4e',DD_GER='#56646e';   // (DD_FIG: the men drawn bigger here, so they read from further up)
 const DD_ROLES={
   medic:{ab:'MEDIC',n:'Medic',cls:'medic',weapon:'rifle',spec:'medkit',specN:3},
   gunner:{ab:'GUNNER',n:'Gunner',cls:'support',weapon:'hmg',spec:'smoke',specN:2},
@@ -519,11 +519,12 @@ function ddDrawTargets(now){
   for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P')continue;if(n.smoke)disc(n.x1,n.y1,58,GR,GRL);else disc(n.x1,n.y1,n.R||58,OR,ORL);}
   for(const r of rockets){if(!r.by||r.by.side!=='P'||r.left==null)continue;disc(r.x+r.dx*r.left,r.y+r.dy*r.left,PRPG.blast||55,OR,ORL);}
   // a scope on the man the squad you play was told to shoot (Bryan: "a scoop emoji around the unit selected for that squad to attack")
-  const seen=new Set();for(const u of players){const e=u.focus;if(!alive(u)||u.team!==dd.active||!e||e.dead||beaten(e)||seen.has(e))continue;seen.add(e);
-    toSBack=false;const a=toS(e.x,e.y,9),b=toS(e.x,e.y,19);if(toSBack)continue;const cx=(a[0]+b[0])/2,cy=(a[1]+b[1])/2,r=Math.max(6,hyp(a[0]-b[0],a[1]-b[1])*.62)*(1+.05*pu);   // (the size of his upper body: Bryan, "It should be the size of a soldiers torso")
-    ox.save();ox.lineCap='round';for(const[w,c]of[[3.6,'rgba(0,0,0,.55)'],[1.8,'rgba(255,58,40,.98)']]){ox.strokeStyle=c;ox.lineWidth=w;ox.beginPath();ox.arc(cx,cy,r,0,TAU);
+  const scope=(cx,cy,r)=>{ox.save();ox.lineCap='round';for(const[w,c]of[[3.6,'rgba(0,0,0,.55)'],[1.8,'rgba(255,58,40,.98)']]){ox.strokeStyle=c;ox.lineWidth=w;ox.beginPath();ox.arc(cx,cy,r,0,TAU);
       for(let k=0;k<4;k++){const q=k*Math.PI/2,c1=Math.cos(q),s1=Math.sin(q);ox.moveTo(cx+c1*r*.45,cy+s1*r*.45);ox.lineTo(cx+c1*r*1.32,cy+s1*r*1.32);}ox.stroke();}
-    ox.fillStyle='rgba(255,58,40,.98)';ox.beginPath();ox.arc(cx,cy,1.4,0,TAU);ox.fill();ox.restore();}
+    ox.fillStyle='rgba(255,58,40,.98)';ox.beginPath();ox.arc(cx,cy,1.4,0,TAU);ox.fill();ox.restore();};
+  const seen=new Set();for(const u of players){const e=u.focus;if(!alive(u)||u.team!==dd.active||!e||e.dead||beaten(e)||seen.has(e))continue;seen.add(e);
+    toSBack=false;const a=toS(e.x,e.y,9),b=toS(e.x,e.y,19);if(toSBack)continue;scope((a[0]+b[0])/2,(a[1]+b[1])/2,Math.max(6,hyp(a[0]-b[0],a[1]-b[1])*.62)*(1+.05*pu));}   // (the size of his upper body: Bryan, "It should be the size of a soldiers torso")
+  {const K=dd.tank;if(K&&K.hp>0&&simT<(dd.tankAim||0)){toSBack=false;const a=toS(K.x,K.y,6),b=toS(K.x,K.y,30);if(!toSBack)scope((a[0]+b[0])/2,(a[1]+b[1])/2,Math.max(10,hyp(a[0]-b[0],a[1]-b[1])*.7)*(1+.05*pu));}}   // (the tank, while a rocket's been ordered onto it)
   // said where the finger was (Bryan: "if something is too far, can a message pop up where the using is selecting. 'Too far' or 'Not in range'")
   for(const n of dd.notes||[]){const q=(performance.now()-n.t)/1700;if(q>=1)continue;toSBack=false;const[sx,sy]=toS(n.x,n.y,4);if(toSBack)continue;ox.globalAlpha=q>.7?(1-q)/.3:1;label(n.text,sx,sy-10-q*14,'#ff6a55',13,700);ox.globalAlpha=1;}
   if(dd.notes)dd.notes=dd.notes.filter(n=>performance.now()-n.t<1700);
@@ -543,6 +544,16 @@ function ddDrawZones(){
 /* ---------- the medics, by themselves (Bryan: "Can medics heal automatically when they are not being shot out, or not pinned down") ----------
    A squad's medic who isn't pinned and hasn't been shot at for 3 s: goes to a man of his squad who's down (he's got up the usual way
    once the medic is beside him, or with a kit if he's critical), and mends anyone of his squad within 5 m, himself too, 5 HP a second */
+// Anyone gets a downed man up (Version 146, Bryan: "When a user is downed, anyone can pick them up. It just take a while for non medics"): 8 s
+// beside him for a rifleman (combat.js's revive, DD_REVIVE), a medic as quick as ever. With no medic left in the squad, the nearest man who isn't
+// being shot at goes to him by himself; with one, the medic goes (below) and a tap on the downed man still sends whoever's selected
+function ddHelpers(){
+  for(const d of players){if(!d.downed||d.dead||d.critical||d.inBoat||d.carriedBy)continue;
+    const mates=players.filter(p=>p.team===d.team&&alive(p)&&!p.inBoat);if(mates.some(p=>p.ddRole==='medic'))continue;
+    if(mates.some(p=>hyp(p.x-d.x,p.y-d.y)<24||p.helpGo===d&&p.path.length))continue;
+    const c=mates.filter(p=>!p.path.length&&!p.throwGo&&!p.medGo&&!p.rpgAim&&p.sup<.5&&simT-(p.firedOnT||-9)>3&&simT-p.lastOrder>2.5&&hyp(p.x-d.x,p.y-d.y)<220).sort((a,b)=>hyp(a.x-d.x,a.y-d.y)-hyp(b.x-d.x,b.y-d.y))[0];
+    if(c){const w=goBeside(c,d);if(w&&w.length){c.path=w;c.helpGo=d;callout(c,'Getting him up',C.good);}}}
+}
 function ddMedics(){
   for(const m of players){if(m.ddRole!=='medic'||!alive(m)||m.inBoat)continue;
     const calm=m.sup<.5&&simT-(m.firedOnT||-9)>3;if(!calm){if(m.raise){m.raise.p=0;}continue;}
@@ -591,12 +602,13 @@ function ddTick(dt){
   else if(dd.graceT&&simT>dd.graceT){dd.graceT=0;for(const p of players)if(p.dmgIn0!=null){p.dmgIn=p.dmgIn0;p.dmgIn0=null;}}   // (the other boats' men fight on from the moment their ramps drop: nothing waits for the squads)
   // the dead: out of the squad (the body stays), a replacement on the way while they last
   for(const p of players.slice()){
-    if(p.critical&&p.crit>45)p.crit=45;   // (no long wait on the beach)
+    // (Version 146, Bryan: "I'm wondering they should be cycled through faster - like die off": 20 s down, 10 s critical, then he's dead and the next man comes)
+    if(p.downed&&!p.critical&&p.bleed>DD_BLEED)p.bleed=DD_BLEED;if(p.critical&&p.crit>DD_CRIT)p.crit=DD_CRIT;
     if(!p.dead)continue;
     players.splice(players.indexOf(p),1);dd.lost++;p.npc=true;p.corpse=true;p.deadT=simT;const id=p.id;p.id0=id;p.id='X'+(dd.xid=(dd.xid||0)+1);
     const canRaise=!p.gone&&!p.inBoat&&p.ddRole!=='medic'&&players.some(q=>q.team===p.team&&q.ddRole==='medic'&&!q.dead);   // (his squad's medic may bring him back: the replacement holds off half a minute for it)
     sel=sel.filter(x=>x!==p);cardGroup=cardGroup.filter(x=>x!==p);
-    if(dd.pool>0){dd.pool--;dd.queue.push({team:p.team,id,at:simT+(canRaise?32:5+Math.random()*3),body:p});}else p.noRev=!canRaise;
+    if(dd.pool>0){dd.pool--;dd.queue.push({team:p.team,id,at:simT+(canRaise?14:4+Math.random()*3),body:p});}else p.noRev=!canRaise;
     buildCards();updateObjUI();
   }
   for(const p of players)if(p.joining)ddJoin(p);
@@ -613,7 +625,7 @@ function ddTick(dt){
   dd.idle[dd.active]=0;const other=dd.active==='A'?'B':'A';
   ddHot();
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;ddSquadAI(other);if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}
-  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();ddTidy();updateObjUI();}
+  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();ddHelpers();ddTidy();updateObjUI();}
   // the battle next door: tracers and shell bursts off to both sides, splashes out at sea
   if((dd.ambT-=dt)<=0){dd.ambT=.12+Math.random()*.2;const side=Math.random()<.5?-1:1,x=side<0?-80-Math.random()*700:DDB.x1+80+Math.random()*700,y=-300+Math.random()*900;
     tracers.push({x1:x,y1:y,x2:x+(Math.random()-.5)*200,y2:y+(Math.random()<.5?260:-260)*(.5+Math.random()),t:0,col:Math.random()<.5?'255,231,163':'255,140,100'});
@@ -679,6 +691,14 @@ function ddBlowWire(o){
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
 function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.toolK)return true;
   if(!sel.length)return false;const o=ddWireNear(wx,wy,9);if(o){ddBlowWire(o);hud();return true;}
+  // the tank under the finger: the squad's own answer to armour, a rocket (a grenade if that's all there is and he's near enough). Bryan: "our
+  // units use explosives only for heavily armored vehicles when targeted? Like a rocket?"
+  {const K=dd.tank;if(K&&K.hp>0&&sx!=null){toSBack=false;const[tx,ty]=toS(K.x,K.y,16);if(!toSBack&&hyp(tx-sx,ty-sy)<46){
+    const m=ddSquad().filter(u=>alive(u)&&!pinnedNow(u)&&!u.throwGo&&!u.rpgAim),by=(a,b)=>hyp(a.x-K.x,a.y-K.y)-hyp(b.x-K.x,b.y-K.y);
+    const r=m.filter(u=>u.spec==='rpg'&&u.specN>0&&hyp(u.x-K.x,u.y-K.y)>PRPG.min+6).sort(by)[0],g=m.filter(u=>(u.grenade||0)>0&&hyp(u.x-K.x,u.y-K.y)<nadeRange(u)+NADE_WALK).sort(by)[0],u=r||g;
+    if(!u){ddNote(ddSquad().some(q=>alive(q)&&q.spec==='rpg'&&q.specN>0)?'Bazooka man busy':'No rockets left');banner('Only a rocket or a grenade hurts the tank.',2200);return true;}
+    if(orderThrow(u,K.x,K.y,u===r?'rpg':'nade')){u.lastOrder=simT;u.hotT=simT+6;dd.tankAim=simT+7;dd.usedAt=performance.now();dd.lastTap=null;banner(`${u.name} goes for the tank with ${u===r?'the Bazooka':'a grenade'}.`,2200);}
+    hud();return true;}}}
   const now=performance.now();
   if(sx!=null&&now-(dd.usedAt||-1e9)<2500&&!enemyAtScreen(sx,sy)&&!unitAtScreen(sx,sy,false)){
     const L=dd.lastTap;dd.lastTap={t:now,sx,sy};
@@ -689,6 +709,7 @@ function ddToolDone(){ddToolEnd();}
 function ddBar(){
   const box=$('#sq');if(!box)return;const show=!!dd&&state==='play'&&dd.land.done&&!!sel.length;if(box.hidden===show)box.hidden=!show;if(!show)return;
   ddToolKeep();
+  {const nm=dd.active==='A'?'Alpha':'Bravo';if(box.dataset.team!==nm){box.dataset.team=nm;box.style.setProperty('--sqc',dd.active==='A'?'var(--alpha)':'var(--bravo)');for(const t of document.querySelectorAll('.tab[data-team]'))t.classList.toggle('ddon',t.dataset.team===dd.active);}}   // (which squad is being played: its tab filled in, its name over the bar)
   const sq=ddSquad();
   const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u,user=dd.toolU===u&&!!dd.toolK;
     return`<button type="button" class="sq-man${on?' on':''}${user?' user':''}${u.downed?' down':''}" data-id="${u.id}" style="--tc:${teamCol(u)};--hp:${u.downed?100:hp}%;--hc:${hc}"><b>${u.role}</b><span>${u.name}<em>${st[0]}</em></span><i><u></u></i></button>`;}).join('');

@@ -334,3 +334,14 @@ Bryan, on Version 144: the squad's menu on a wide screen "is perfectly laid out"
 - "Mission: take control of the beach" in the banner for 8 s at the start, then "Thirty seconds to the beach!".
 - For later (Bryan): "Parts of buildings can collapse and kill people within it. Bunkers don't collapse. We can talk about that later." Open question to him: the scope on gun nests, tanks and buildings (wanted there too, or seen there by mistake?).
 - Test: `$SP/dd33.js`.
+
+## Version 146: anyone picks a man up, quicker turnover, 30 men, the squad plainly shown, a rocket for the tank
+
+Bryan's answers on 145: the counterattack starts "when you are near the barracks" (as built); the scope on a tank only if "our units use explosives only for heavily armored vehicles when targeted? Like a rocket?"; "I wonder if we should make a long press a quick way for a rocket strike or suppression" (a hold on an enemy already suppresses, input.js; not extended yet). Then: "When a user is downed, anyone can pick them up. It just take a while for non medics. I'm wondering they should be cycled through faster - like die off. And increase the troops to 30 for this match. I would also like the squad to be seen more predominantly, right now I was getting confused with what squad I was using and where they were."
+
+- Anyone gets a downed man up: 8 s beside him for a rifleman (`DD_REVIVE`, combat.js's revive), a medic as quick as before. With no medic left in the squad the nearest man who isn't being shot at goes by himself (`ddHelpers`, `u.helpGo`); a tap on the downed man still sends whoever's selected.
+- Quicker turnover: 20 s down (`DD_BLEED`), 10 s critical (`DD_CRIT`), then dead; his replacement 4-7 s later, 14 s if the squad's medic might still raise him (it was 32).
+- 30 replacements (`DD_POOL`).
+- The squad being played: a filled disc and thick ring in its colour under each man and a marker over his head, the other squad a thin ring (overlay.js); its tab filled in its colour (`.tab.ddon`) and "ALPHA SQUAD" / "BRAVO SQUAD" over the bar (`#sq[data-team]::before`).
+- A tap on the tank sends a rocket from the squad's Bazooka man (a grenade if that's all there is and he's near enough), with the scope on the tank meanwhile (`ddTap`, `dd.tankAim`).
+- Test: `$SP/dd34.js` (pool 30; with no medic a helper set off and had him up at 18.5 s; left alone, critical at 20 s and dead at 30 s).

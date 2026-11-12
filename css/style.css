@@ -383,6 +383,10 @@ body.dd #cards{display:none!important}
 body.dd #gaitBtn{bottom:136px}
 
 body.dd #banner{top:10px;left:10px;right:auto;max-width:calc(100% - 128px);text-align:left;transform:translateY(-6px)}body.dd #banner.show{transform:none}
+/* D-Day: the squad being played shown plainly (Bryan: "I was getting confused with what squad I was using"): its tab filled in its colour, its name over the bar */
+body.dd .tab.ddon{background:var(--tc);border-color:var(--tc);box-shadow:0 0 0 2px color-mix(in srgb,var(--tc) 45%,transparent)}
+body.dd .tab.ddon .tname{color:#0b0f13;font-weight:700}body.dd .tab.ddon .pips i{box-shadow:0 0 0 1px #0b0f13}
+body.dd #sq[data-team]::before{content:attr(data-team) " squad";align-self:flex-start;pointer-events:none;font-family:var(--font-hud);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#0b0f13;background:var(--sqc,#fff);padding:2px 8px;border-radius:5px;margin-bottom:-2px}
 /* D-Day with the phone on its side (Bryan: "Can we make it work horizontal too?"): the map takes the whole screen, Pause and sound sit over its top right
    corner, the squad tabs down its left edge, and the squad's men and tools share one row along the bottom */
 @media (orientation:landscape) and (max-height:540px){

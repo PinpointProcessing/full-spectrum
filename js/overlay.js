@@ -224,6 +224,10 @@ function drawOverlay(rdt,now){
     if(u.gone)continue;   // lost on an earlier visit (loaded save): no body here
     if(u.inBoat&&MAPID==='dd')continue;   // (D-Day's ride in: nothing over the men in the boat)
     if(u.dead){label('KIA',hx,hy,'#8c959b',9);continue;}
+    if(MAPID==='dd'&&dd&&u.side==='P'&&!u.npc){   // D-Day: the squad you play stands out (Bryan: "I was getting confused with what squad I was using and where they were"):
+      const mine=u.team===dd.active,tc=teamCol(u);   // a filled disc and a thick ring in its colour under each man and a marker over his head; the other squad a thin ring
+      gPath(vx,vy,mine?13:9,0,TAU,false,ev);if(!toSBack){if(mine){ox.globalAlpha=.3;ox.fillStyle=tc;ox.fill();ox.globalAlpha=1;}ox.strokeStyle=tc;ox.lineWidth=mine?3:1.2;ox.globalAlpha=mine?1:.55;ox.stroke();ox.globalAlpha=1;}
+      if(mine&&!u.downed){const y0=hy-(u.hp<99||u.sup>=.08?19:11);ox.beginPath();ox.moveTo(hx-7,y0-11);ox.lineTo(hx+7,y0-11);ox.lineTo(hx,y0);ox.closePath();ox.fillStyle=tc;ox.fill();ox.strokeStyle='rgba(8,11,14,.85)';ox.lineWidth=1.2;ox.stroke();}}
     if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(MAPID==='dd'&&sel.includes(u)&&!u.downed){   // D-Day: an arrowhead on his ring the way he faces (Bryan: "when you select a squad, it shows you the direction they are facing")
       const A=u.ang,P=(r,d)=>toS(vx+Math.cos(A+d)*r,vy+Math.sin(A+d)*r,ev||0),t=P(19,0),l=P(12.5,.34),r2=P(12.5,-.34);

@@ -1125,7 +1125,7 @@ function update(dt){
     if(!p.carriedBy){const z=zoneAt(p.x,p.y);if(z&&z.k==='med'){p.boxRev+=dt;if(p.boxRev>=BOXREV_T){reviveUp(p,35,null);continue;}}else p.boxRev=0;}   // lying in a medical box: back up
     if(!p.critical){
       const helper=helperOf(p);   // Bryan: no reviving while pinned (a Medic beside him does it if there is one)
-      if(helper){const md=isCls(helper,'medic');p.revive+=dt;p.reviveNeed=md?CLS.reviveT:3;if(p.revive>=p.reviveNeed)reviveUp(p,md?CLS.reviveHp:35,helper);}   // (a Medic: quicker, and he comes up better: classes.js)
+      if(helper){const md=isCls(helper,'medic');p.revive+=dt;p.reviveNeed=md?CLS.reviveT:MAPID==='dd'?DD_REVIVE:3;   /* (D-Day: anyone gets a man up, a medic quickly, the rest slowly: ddplay.js) */if(p.revive>=p.reviveNeed)reviveUp(p,md?CLS.reviveHp:35,helper);}   // (a Medic: quicker, and he comes up better: classes.js)
       else{p.revive=Math.max(0,p.revive-dt);if(!(typeof hqCalm==='function'&&hqCalm()))p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
     }else{
       if(!p.noBleed&&!(typeof hqCalm==='function'&&hqCalm()))p.crit-=dt;   // (the man off the basement wall has no clock: office.js; nor anyone while the Headquarters' end plays: fortress.js)
