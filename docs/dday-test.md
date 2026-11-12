@@ -375,3 +375,7 @@ Bryan: "Can the camera pan to the unit farthest ahead. Also, can the units have 
 
 - Picking a squad (its tab, pressing the tab again, or a tap on one of its men) pans to that squad's man who is furthest ahead, not the squad's middle: furthest north on the beach and up the draw, furthest east once on the top. The camera still never follows by itself.
 - A round badge over every squad man's head with his role: a cross (medic), a belt of rounds (gunner), a scope (sharpshooter), a rocket (demolition). Filled in the squad's colour with a pointer for the squad being played, an outline for the other squad. Not on the other troops or the enemy.
+
+## Version 150
+
+Bryan, on the mock-up: "Let's make the change and see how it feels". The Alpha and Bravo tabs are at the bottom left, stacked just above the squad's bar, in both orientations.

@@ -398,7 +398,7 @@ body.dd .bar .title,body.dd .bar #status{display:none}
 body.dd .bar button{min-height:32px;padding:0 9px;background:rgba(10,14,18,.86)}
 body.dd #ddChip{top:8px;right:142px}
 body.dd #banner{top:8px;max-width:calc(100% - 270px)}
-body.dd .panel{position:fixed;left:max(8px,env(safe-area-inset-left,0px));top:46%;transform:translateY(-50%);z-index:5;padding:0}
+body.dd .panel{position:fixed;left:max(8px,env(safe-area-inset-left,0px));top:auto;bottom:calc(max(6px,env(safe-area-inset-bottom,0px)) + 150px);z-index:5;padding:0}   /* Version 150: the tabs at the bottom left, just over the squad's bar (Bryan) */
 body.dd .hint,body.dd #clearBtn{display:none}
 body.dd .dock{grid-auto-flow:row;gap:6px}
 body.dd .dock button{min-height:44px;width:70px;background:rgba(10,14,18,.86)}
