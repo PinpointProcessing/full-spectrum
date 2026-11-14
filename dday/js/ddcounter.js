@@ -10,7 +10,7 @@
    and ddTick hands over to dcTick. `dd.dc` is the fight: ph 'intro' (the camera up the road to the column) -> 'setup' (DCA.setup s) ->
    'w1' -> 'lull' -> 'w2' -> 'lull' -> 'w3' -> won. DCA.guns are the mounted guns (three forward nests, two on the wall, two field guns): a
    tap on one with a squad picked sends its nearest free man (dcTap, dcMan), the other troops take what's left (dcNpc). */
-const DCA={x0:200,x1:1200,wallY:556,gate:[640,760],road:700,setup:20,lull:15,
+const DCA={x0:200,x1:1200,wallY:556,gate:[640,760],road:700,setup:20,lull:15,gunHit:42,
   cp:{x:1000,y:650,w:120,h:110},cpZone:{x0:950,y0:600,x1:1170,y1:810},
   barracks:[{x:260,y:660,w:170,h:50},{x:260,y:740,w:170,h:50}],door:{x:460,y:700},
   armory:{x:250,y:812,w:110,h:56},depot:{x:1004,y:812,w:150,h:56},   // (in the south corners: between the camera and the square they hid it)
@@ -131,7 +131,7 @@ function enterCounter(){
   MAPID='dd';LEVEL=5;groundH=ddH;
   dd={counter:true,t0:simT,pool:ddRoster.reserve.length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
     land:{t:0,done:true},boats:[],waveT:0,spawnT:1e9,aiT:0,npcT:0,shellT:{},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{},tanks:[],held:{},wires:[],
-    dc:{ph:'intro',t:0,wave:0,cpT:0,guns:DCA.guns.map(g=>({...g,man:null,going:null,fireT:0,orderT:-99,aim:null})),art:null,col:[]}};
+    dc:{ph:'intro',t:0,wave:0,cpT:0,guns:DCA.guns.map(g=>({...g,man:null,going:null,fireT:0,orderT:-99,aim:null,hits:0,dead:false,smokeT:0})),art:null,col:[],shells:[]}};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
   dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;
   // the squads on the parade square, the other troops along the wall
@@ -172,6 +172,7 @@ function dcTap(wx,wy){
     if(d<DCA.art.min){banner('Too close for the gun.',1800);return true;}if(d>DCA.art.max){banner('Out of the gun\'s reach.',1800);return true;}
     g.aim={x:wx,y:wy};g.orderT=simT;if(simT<g.fireT)banner(`${g.n} is reloading: it fires there when it is ready.`,2200);return true;}
   const g=dcGunAt(wx,wy);if(!g)return false;
+  if(g.dead){banner(`${g.n} is knocked out.`,1800);return true;}
   if(g.t==='art'&&g.man&&!g.man.npc){C.art=g;banner(`${g.n}: tap where to shell.`,2600);return true;}
   const c=sel.filter(u=>alive(u)&&!u.onGun&&!u.carry).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y));
   if(g.man&&!g.man.npc){banner(`${g.man.name} is on it.`,1600);return true;}
@@ -185,9 +186,24 @@ function dcFire(g,x,y){
   flashes.push({x:g.x,y:g.y-44,t:0});if(typeof sfxCannon==='function')sfxCannon(g.x,g.y);shake(.35);
   const m=DD.dcGuns&&DD.dcGuns[g.k];if(m){m.rotation.y=-Math.atan2(y-g.y,x-g.x);m.userData.kick=1;}
 }
+// a tank's shell on a gun (Bryan, after Version 159: "A tank can knock a gun out, in three hits. You can see it smoke after one, then dark smoke
+// after 2"): a shell landing within DCA.gunHit of it is a hit; one and it smokes, two and the smoke is dark, three and it's wrecked for the fight
+function dcGunHit(g){
+  if(g.dead)return;g.hits++;const m=DD.dcGuns&&DD.dcGuns[g.k];
+  if(g.hits<3){banner(g.hits===1?`${g.n} is hit and smoking. Two more and it is gone.`:`${g.n} is hit again: one more and it is gone.`,3000);return;}
+  g.dead=true;g.aim=null;if(dd.dc.art===g)dd.dc.art=null;
+  for(const u of[g.man,g.going])if(u){if(u.onGun){u.onGun=null;u.gunner=false;}if(u.dcGun===g)u.dcGun=null;}g.man=null;g.going=null;
+  if(m){m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.color.setHex(0x1b1a18);}});}
+  for(let q=0;q<3;q++)booms.push({x:g.x+(Math.random()-.5)*24,y:g.y+(Math.random()-.5)*20,t:-q*.1,size:1});tankFires.push({x:g.x,y:g.y-8,r:9,t0:simT,puffs:[],emit:0});
+  shake(.6);if(typeof sfxBoom==='function')sfxBoom(g.x,g.y,1.1);banner(`${g.n} is knocked out.`,3200);
+}
 function dcGunsTick(dt){
   const C=dd.dc,foes=enemies.filter(e=>!beaten(e)),tanks=ddTanksUp();
+  for(const sh of C.shells.slice())if(simT>=sh.at){C.shells.splice(C.shells.indexOf(sh),1);for(const g of C.guns)if(hyp(sh.x-g.x,sh.y-g.y)<DCA.gunHit)dcGunHit(g);}
   for(const g of C.guns){
+    if(g.hits&&(g.smokeT-=dt)<=0&&DD.rk&&DD.rk.puff){g.smokeT=g.hits>=2?.11:.22;const h=ddH(g.x,g.y)+(g.t==='art'?16:12);   // one hit: thin grey smoke; two: thick and dark; wrecked: black
+      DD.rk.puff(g.x+(Math.random()-.5)*8,h,g.y-8+(Math.random()-.5)*8,g.hits>=2?7+Math.random()*4:4+Math.random()*2.5,g.hits>=2?3.4:2.4,g.hits>=3?0x161514:g.hits===2?0x2b2927:0x9a9690,g.hits>=2?13:9);}
+    if(g.dead)continue;
     const m=g.man;if(m&&alive(m)&&m.dcGun===g&&m.path.length&&!(m.lastOrder>g.manT+.01)){m.path=[];m.x=dcSeat(g).x;m.y=dcSeat(g).y;}   // (he stays on it under fire: only an order of the player's takes him off)
     if(m&&(!alive(m)||m.path.length||m.dcGun!==g)){if(m.onGun){m.onGun=null;m.gunner=false;}if(m.dcGun===g)m.dcGun=null;g.man=null;if(C.art===g)C.art=null;}
     const u=g.going;if(u){const s=dcSeat(g);if(!alive(u)||u.dcGun!==g||simT-g.goT>40)g.going=null;
@@ -278,7 +294,8 @@ function dcHint(){
 function dcDraw(){
   const C=dd.dc,lab=(x,y,h,text,col,sz=9)=>{toSBack=false;const[sx,sy]=toS(x,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,sz,700);};
   for(const g of C.guns){const m=g.man,mine=m&&!m.npc;
-    lab(g.x,g.y,g.t==='art'?34:24,m?(g.t==='art'?(simT<g.fireT?`${g.n} · RELOADING ${Math.ceil(g.fireT-simT)}`:mine?(C.art===g?`${g.n} · TAP A TARGET`:`${g.n} · TAP TO AIM`):g.n):mine?`${g.n} · ${m.name.toUpperCase()}`:g.n):(g.going?`${g.n} · ON HIS WAY`:`${g.n} · TAP TO MAN`),m?(mine?'#8fd0ff':'#cfd6dc'):'#ffcf4a');}
+    if(g.dead){lab(g.x,g.y,24,`${g.n} · KNOCKED OUT`,'#8b949c');continue;}
+    lab(g.x,g.y,g.t==='art'?34:24,m?(g.t==='art'?(simT<g.fireT?`${g.n} · RELOADING ${Math.ceil(g.fireT-simT)}`:mine?(C.art===g?`${g.n} · TAP A TARGET`:`${g.n} · TAP TO AIM`):g.n):mine?`${g.n} · ${m.name.toUpperCase()}`:g.n):(g.going?`${g.n} · ON HIS WAY`:`${g.n} · TAP TO MAN`)+(g.hits?` · HIT ${g.hits}/3`:''),g.hits===2?'#ff8a6a':m?(mine?'#8fd0ff':'#cfd6dc'):'#ffcf4a');}
   if(C.art){const g=C.art;gPath(g.x,g.y,DCA.art.max);ox.strokeStyle='rgba(255,207,74,.5)';ox.lineWidth=1.5;ox.setLineDash([8,6]);ox.stroke();ox.setLineDash([]);}
   for(const K of dd.tanks)if(K.hp>0&&K.y>DCA.treeY-60)lab(K.x,K.y,44,`TANK ${Math.round(K.hp/K.hp0*100)}%`,'#ff8a6a');
   if(C.cpN)lab(DCA.cp.x+60,DCA.cp.y+50,54,C.cpT>1?`COMMAND POST · THEIRS IN ${Math.max(1,Math.ceil(20-C.cpT))}`:'COMMAND POST · THEY ARE IN','#ff5a4a',11);

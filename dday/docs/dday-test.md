@@ -517,4 +517,7 @@ How it plays:
 - A man lost is replaced out of the barracks while the reserve lasts.
 - Won when the third wave is all dead: the report, then the base. Lost if they stand in the command post for 20 seconds with none of yours there, or both squads are gone: Try again puts the roster back as it was when you left the barracks.
 
-Not as drawn: the corner watchtowers are scenery (nobody mans them), and a tank doesn't knock a gun out, though its shell can kill the man on it. The armory and the depot stand in the base's south corners, not its middle: there they hid the square from the camera.
+Not as drawn: the corner watchtowers are scenery (nobody mans them). The armory and the depot stand in the base's south corners, not its middle: there they hid the square from the camera.
+
+### Version 160: a tank can knock a gun out
+Bryan: "A tank can knock a gun out, in three hits. You can see it smoke after one, then dark smoke after 2." A tank's shell landing within about 4 m of a nest, a wall gun or a field gun is a hit on it. One: thin grey smoke, and its label reads HIT 1/3. Two: thick dark smoke, HIT 2/3 in red. Three: wrecked, burning, black smoke; whoever was on it is off it, nobody can man it again that fight, and the other troops leave it alone. Bullets, mortars and grenades don't count; only tank shells.
