@@ -493,3 +493,12 @@ The rules built, with the defaults taken where Bryan hadn't answered:
 - The dead can be MVP.
 
 Not built yet: the Rifleman and the Sharpshooter as an unlock, swapping kit with a dead man in the field, copying kit in the armory, the vehicle depot, a second mission, and the men walking about the base.
+
+## Version 158: its own game; the Rifleman; the counterattack drafted
+
+Bryan, after Version 157: "I would like to separate this completely with the horror game we built before we move forward. Next up is a counter attack on the base the player just took." "Let's just create a separate folder, keep it simple for now. Rifleman idea with the rifle grenade, let's do it."
+
+- D-Day lives in `dday/` with its own page and link; the horror game no longer has a D-Day button or its files.
+- The Rifleman replaces the Sharpshooter in the starting squads: rifle grenades (three, 36 m, a bigger blast than a frag), smoke, steadier on the move. The Sharpshooter unlocks after the first win.
+
+The counterattack, Bryan's answers: from inland; a large force seen marching toward the base ahead of time, tanks and troops; the base has MGs the player can put troops on by selecting them; leaving the barracks triggers it, with about 20 seconds to set up; artillery and MG nests are available in the field in front of the base; hold until all units are dead, three waves; the other troops fight too. Draft: `docs/drafts/counterattack-draft.png` (a plan and how it runs; the questions on it are open). Also raised, to discuss: switching between third and first person on a single unit.

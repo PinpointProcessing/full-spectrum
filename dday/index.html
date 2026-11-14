@@ -1,0 +1,203 @@
+<meta charset="utf-8">
+<title>D-Day</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+
+<div id="app">
+  <div class="bar">
+    <div class="title">D-Day<small>Squad tactics</small></div>
+    <span class="chip" id="status">Undetected</span>
+    <button id="sndBtn" aria-label="Sound on. Press to mute." aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="mute" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button id="pauseBtn" aria-label="Pause">Pause</button>
+  </div>
+  <div id="stage">
+    <div id="hitFlash" aria-hidden="true"></div>
+    <div id="oob" hidden><b>Turn back</b><span>You are leaving the battle. Ten seconds out here and he is lost.</span></div>
+    <canvas id="cv"></canvas>
+    <canvas id="ov"></canvas>
+    <div id="nogl" hidden>This demo needs WebGL, which this browser has turned off.</div>
+    <div id="alert" role="img" aria-label="Detection 0%" hidden>
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="ring" cx="18" cy="18" r="15"/>
+        <circle id="alertArc" cx="18" cy="18" r="15" transform="rotate(-90 18 18)" stroke-dasharray="94.25" stroke-dashoffset="94.25"/>
+      </svg>
+      <b>!!</b>
+    </div>
+    <div id="secure" role="img" aria-label="Securing" hidden>
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="ring" cx="18" cy="18" r="15"/>
+        <circle id="secureArc" cx="18" cy="18" r="15" transform="rotate(-90 18 18)" stroke-dasharray="94.25" stroke-dashoffset="94.25"/>
+      </svg>
+      <small>Securing</small>
+    </div>
+    <div id="alertLvl" role="img" aria-label="Base alert" hidden><b>Base · Calm</b><span><i></i><i></i><i></i></span></div>
+    <div id="countdown" role="timer" hidden><small>Incoming!</small><b>5.00</b></div>
+    <div id="bigText" aria-live="assertive"></div>
+    <div id="banner"></div>
+    <div id="notice" hidden role="status" aria-live="polite"></div>
+    <div id="tl"><!-- top left: the objective box with the "Saved" chip stacked under it, so they never overlap -->
+      <div id="obj" hidden role="button" tabindex="0" aria-expanded="false" aria-label="Objectives"><b>Objective 1/5</b><span>Take the warehouse</span><ol></ol></div>
+      <span class="chip" id="savedChip" hidden>Saved</span>
+      <span class="chip" id="outChip" hidden>Comms down</span>
+    </div>
+    <span class="chip" id="ddChip" hidden></span>
+    <div id="tut" hidden aria-live="polite"></div>
+    <button id="tutPin" hidden aria-label="Show the tip again">?</button>
+    <div id="talk" hidden><!-- a conversation outside battle (story.js): tap for the next line -->
+      <div class="tk-box"><canvas class="tk-face" width="96" height="96" aria-hidden="true"></canvas><div class="tk-body"><b class="tk-name"></b><p class="tk-text" aria-live="polite"></p><span class="tk-more">Tap to continue</span></div><button class="tk-skip" type="button">Skip</button></div>
+    </div>
+    <span class="chip slow" id="speed" hidden>Slow-mo</span>
+    <div id="cards" hidden></div>
+    <div id="sq" hidden><div class="sq-aim" hidden></div><div class="sq-men"></div><div class="sq-tools" role="toolbar" aria-label="The squad's equipment"></div></div>
+    <div id="floors" hidden aria-label="Floors"></div>
+    <div id="fade" hidden></div>
+    <div id="equip" hidden><!-- between missions: the squad in the dinghy at sea, and the loadout (equip.js) -->
+      <div class="eq-head"><small>Between missions</small><b id="eqNext">Next: Level 2</b></div>
+      <div class="eq-panel">
+        <div class="eq-title">Loadout</div>
+        <div id="eqRows"></div>
+        <p class="eq-note">Silenced rifles for everyone. The armory has one M240, one RPG and two medic kits. A frag each.</p>
+        <button class="go" id="eqGo" type="button">Deploy</button>
+      </div>
+    </div>
+    <div id="hqc" hidden role="dialog" aria-modal="true" aria-labelledby="hqcTitle"><!-- the Headquarters' command center: missions, the squad, deploy (base.js) -->
+      <div class="eq-panel hqc-panel">
+        <div class="hqc-top"><div><small>Command center</small><b id="hqcTitle">Missions</b></div><button type="button" id="hqcX" class="hqc-x">Close</button></div>
+        <div id="hqcBody"></div>
+        <div class="hqc-act"><button type="button" id="hqcBack" class="hqc-x" hidden>Back</button><button class="go" id="hqcGo" type="button">Squad</button></div>
+      </div>
+    </div>
+    <button id="fitBtn" hidden>Fit map</button>
+    <button id="gaitBtn" aria-pressed="false" disabled><small>Auto</small><span>Sneak</span></button>
+  </div>
+  <div class="panel">
+    <div class="hint" id="hint"></div>
+    <div class="dock">
+      <button class="tab" data-team="A" style="--tc:var(--alpha)"><span class="tname">Alpha</span><span class="pips"></span></button>
+      <button class="tab" data-team="B" style="--tc:var(--bravo)"><span class="tname">Bravo</span><span class="pips"></span></button>
+      <button class="tab" id="allBtn" style="--tc:var(--text)"><span class="tname">All</span><span class="pips"></span></button>
+      <button id="clearBtn">Clear</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="intro">
+  <div class="card">
+    <div class="eyebrow">Normandy · June 1944</div>
+    <h1>D-Day</h1>
+    <p>Two squads of four land on the beach with the first wave. Get off the sand, up the draw and through their guns, and take the base on the top. The men you finish with are yours to keep: after the battle you see who did what, then run the base you took.</p>
+    <details class="controls"><summary>Controls</summary>
+    <ul>
+      <li><b>Squads:</b> tap ALPHA or BRAVO to play that squad; the other looks after itself. Tap a man's name in the bar to follow just him.</li>
+      <li><b>Move:</b> tap the ground. <b>Shoot:</b> tap an enemy. <b>Pin them:</b> hold a finger on an enemy.</li>
+      <li><b>Tools:</b> tap a tool in the bar (grenade, smoke, bazooka, medic kit), then where to use it.</li>
+      <li><b>Camera:</b> drag to move, pinch to zoom, twist to turn. It follows the squad you picked until you drag.</li>
+      <li><b>The fallen:</b> a medic can bring a man back for a short while; after that a replacement comes up from the ground you hold.</li>
+    </ul>
+    </details>
+    <p class="crash" id="crashNote" hidden></p>
+    <button class="go" id="ddBtn">Land at Normandy</button>
+    <button class="linkish" id="ddResetBtn" type="button">Start over with new squads</button>
+    <div hidden style="display:none" aria-hidden="true"><!-- the other game's buttons: its scripts still look for them -->
+    <button class="go" id="l1Btn">Tutorial · The Radio Tower</button>
+    <button class="go" id="l2Btn">Level 2 · Lights Out</button>
+    <button class="go" id="continueBtn" hidden>Continue</button>
+    <button class="go alt" id="startBtn">Level 3 · The Bio Lab</button>
+    <button class="go alt" id="afterBtn">Level 3 · The HQ, After the Battle</button>
+    <button class="go alt" id="l4Btn">Level 4 · The Old Radio Tower</button>
+    <button class="go alt" id="ddBtn">D-Day test · Normandy</button>
+    <details class="cps"><summary>Levels 3 and 4 · start at a checkpoint</summary><div id="cpBtns"></div></details><!-- (save.js: startCheckpoint) -->
+    <button class="linkish" id="resetXpBtn" type="button">Reset squad XP, ranks and classes</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="aar" hidden>
+  <div class="card aar">
+    <div class="eyebrow">After-action report</div>
+    <h1>Mission complete</h1>
+    <p id="aarSum"></p>
+    <div id="aarRows"></div>
+    <button class="go" id="aarBtn">Continue</button>
+  </div>
+</div>
+
+<div class="overlay light" id="hqPop" hidden>
+  <div class="card">
+    <div class="eyebrow">Temporary HQ established</div>
+    <h1>Warehouse secured</h1>
+    <p>This warehouse is now your temporary HQ. You can heal, resupply, and repair your troops and equipment. Continue pushing to control more temporary HQs and establish a permanent HQ.</p>
+    <ul>
+      <li><b>Medical (red +):</b> soldiers standing inside heal.</li>
+      <li><b>Supply:</b> soldiers standing inside get their grenade and special item back.</li>
+      <li><b>Next:</b> take the bridge over the canal to the north. Every objective you take gets boxes like these.</li>
+    </ul>
+    <button class="go" id="hqBtn">Got it</button>
+  </div>
+</div>
+
+<div class="overlay" id="end" hidden>
+  <div class="card">
+    <div class="eyebrow" id="endEyebrow">Mission complete</div>
+    <h1 id="endTitle">Warehouse secured</h1>
+    <p id="endText"></p>
+    <button class="go" id="retryBtn" hidden>Retry from last save</button>
+    <button class="go" id="againBtn">Run it again</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Game code: plain scripts sharing one global scope, so load order matters. main.js boots the game. -->
+<script src="js/core.js"></script>
+<script src="js/map.js"></script>
+<script src="js/pathfinding.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/figure.js"></script>
+<script src="js/post.js"></script>
+<script src="js/state.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/hunt.js"></script>
+<script src="js/orders.js"></script>
+<script src="js/layers.js"></script>
+<script src="js/waves.js"></script>
+<script src="js/hq.js"></script>
+<script src="js/mission.js"></script>
+<script src="js/office-layout.js"></script>
+<script src="js/interior.js"></script>
+<script src="js/office.js"></script>
+<script src="js/level1.js"></script>
+<script src="js/level2.js"></script>
+<script src="js/monsters.js"></script>
+<script src="js/fortress.js"></script>
+<script src="js/creatures.js"></script>
+<script src="js/base.js"></script>
+<script src="js/hqfloors.js"></script>
+<script src="js/road.js"></script>
+<script src="js/queen.js"></script>
+<script src="js/terrain.js"></script>
+<script src="js/tunnel.js"></script>
+<script src="js/level4.js"></script>
+<script src="js/vehicle.js"></script>
+<script src="js/overlay.js"></script>
+<script src="js/input.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/progress.js"></script>
+<script src="js/save.js"></script>
+<script src="js/classes.js"></script>
+<script src="js/build.js"></script>
+<script src="js/skills.js"></script>
+<script src="js/equip.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/chatter.js"></script>
+<script src="js/story.js"></script>
+<script src="js/dday.js"></script>
+<script src="js/ddlook.js"></script>
+<script src="js/ddplay.js"></script>
+<script src="js/ddbase.js"></script>
+<script src="js/ddmeta.js"></script>
+<script src="js/main.js"></script>

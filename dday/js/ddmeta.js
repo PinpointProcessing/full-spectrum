@@ -20,9 +20,10 @@ const DDM_ICON={
   medic:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" fill="currentColor"/></svg>',
   gunner:'<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><path d="M4 21V9l2.5-5L9 9v12z"/><path d="M10.5 21V9L13 4l2.5 5v12z"/><path d="M17 21V9l2.5-5L22 9v12z"/></g></svg>',
   sharp:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v7M12 15v7M2 12h7M15 12h7" stroke="currentColor" stroke-width="2"/></svg>',
+  rifle:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 13h13l2-3h5v3h-3l-1 2h-5l-1 4H9l1-4H2z" fill="currentColor"/></svg>',
   demo:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14 13 4h7v7L10 21l-3-4z" fill="currentColor"/><circle cx="16" cy="8" r="2" fill="#20262c"/></svg>',
   eng:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3a6 6 0 0 0-5.6 8.2L3 16.6 7.4 21l5.4-5.4A6 6 0 0 0 21 10l-4 3-3-3 3-4a6 6 0 0 0-3-3z" fill="currentColor"/></svg>'};
-const DDM_ROLE={medic:'Medic',gunner:'Gunner',sharp:'Sharpshooter',demo:'Demo',eng:'Engineer'};
+const DDM_ROLE={medic:'Medic',gunner:'Gunner',rifle:'Rifleman',sharp:'Sharpshooter',demo:'Demo',eng:'Engineer'};
 const DDM_TRAITS={
   steel:{n:'Nerves of Steel',d:'Never pinned down.'},
   double:{n:'Double Life',d:'Takes half the damage: two health bars in one.'},
@@ -30,15 +31,16 @@ const DDM_TRAITS={
   eyes:{n:'20/20',d:'Bonus aim.'}};
 // kit: s the slot, role who may carry it (none: anyone), std standard issue (never runs out, never stored), star one of a kind (lost with its owner)
 const DDM_ITEMS={
-  garand:{s:'w',n:'M1 Garand',role:['medic','demo','eng'],std:1,weapon:'rifle',d:'Standard rifle.'},
+  garand:{s:'w',n:'M1 Garand',role:['medic','rifle','demo','eng'],std:1,weapon:'rifle',d:'Standard rifle.'},
   bar:{s:'w',n:'BAR',role:['gunner'],std:1,weapon:'hmg',d:'Suppresses hard, slow on the move.'},
   spring:{s:'w',n:'Springfield',role:['sharp'],std:1,weapon:'sniper',d:'Scoped rifle: one round, long reach.'},
   minigun:{s:'w',n:'Minigun',role:['gunner'],star:1,weapon:'hmg',d:'Pins half as hard again.',mod:{supK:1.5}},
   fifty:{s:'w',n:'.50 cal rifle',role:['sharp'],star:1,weapon:'sniper',d:'Steadier at any range.',mod:{aimK:.08}},
-  tuned:{s:'w',n:'Garand, tuned',role:['medic','demo','eng'],weapon:'rifle',d:'A little more accurate.',mod:{aimK:.04}},
+  tuned:{s:'w',n:'Garand, tuned',role:['medic','rifle','demo','eng'],weapon:'rifle',d:'A little more accurate.',mod:{aimK:.04}},
   longbar:{s:'w',n:'BAR, long barrel',role:['gunner'],weapon:'hmg',d:'A little more accurate.',mod:{aimK:.04}},
   frag:{s:'g',n:'Frag ×1',std:1,grenade:1,d:'One grenade.'},
   frag2:{s:'g',n:'Frag ×2',grenade:2,d:'A bandolier: two grenades.'},
+  rgren:{s:'g',n:'Rifle grenades ×3',role:['rifle'],std:1,grenade:3,gl:1,d:'Fired from the rifle: further and flatter than a throw, a bigger blast.'},
   smoke:{s:'t',n:'Smoke ×2',std:1,spec:'smoke',specN:2,d:'Smoke for anyone.'},
   medkit:{s:'t',n:'Medic kit ×3',role:['medic'],std:1,spec:'medkit',specN:3,d:'Gets a man up, or patches one who is hurt.'},
   bazooka:{s:'t',n:'Bazooka ×4',role:['demo'],std:1,spec:'rpg',specN:4,d:'Bunkers, guns and tanks.'},
@@ -46,7 +48,7 @@ const DDM_ITEMS={
   guided:{s:'t',n:'Guided rockets ×6',role:['demo'],star:1,spec:'rpg',specN:6,d:'Six rockets a battle (guidance comes later).'},
   build:{s:'t',n:'Barricade kit',role:['eng'],std:1,spec:'build',specN:3,d:'Builds cover under fire.'}};
 const DDM_SLOT={w:'Weapon',g:'Grenade',t:'Tool'};
-const ddmStd=(role,slot)=>slot==='w'?(role==='gunner'?'bar':role==='sharp'?'spring':'garand'):slot==='g'?'frag':(role==='medic'?'medkit':role==='demo'?'bazooka':role==='eng'?'build':'smoke');
+const ddmStd=(role,slot)=>slot==='w'?(role==='gunner'?'bar':role==='sharp'?'spring':'garand'):slot==='g'?(role==='rifle'?'rgren':'frag'):(role==='medic'?'medkit':role==='demo'?'bazooka':role==='eng'?'build':'smoke');
 const ddmCan=(rm,id)=>{const I=DDM_ITEMS[id];return!!I&&(!I.role||I.role.includes(rm.role));};
 const ddmNeed=n=>250+50*(n-1);   // (XP for the next level: a strong first battle is two levels, not five)
 function ddmRosterNew(){return{v:1,medals:0,minLevel:1,battles:0,squads:{A:[null,null,null,null],B:[null,null,null,null]},reserve:[],armory:[],recruits:[],uid:1};}
@@ -58,14 +60,15 @@ function ddmName(){const used=new Set([...ddmAll(),...ddRoster.recruits].map(m=>
 // has something special (a trait for a medal, or a one-of-a-kind piece of kit for two)
 function ddmNewMan(role,level,star,name){
   const r=()=>38+Math.round(Math.random()*32),up=(level-1)*2,st={hp:r()+up,aim:r()+up,spd:r()+up,brv:r()+up};
-  if(role==='gunner')st.hp+=6;if(role==='sharp')st.aim+=10;if(role==='medic')st.brv+=6;if(role==='demo')st.spd+=5;
+  if(role==='gunner')st.hp+=6;if(role==='sharp')st.aim+=10;if(role==='rifle'){st.aim+=4;st.spd+=4;}if(role==='medic')st.brv+=6;if(role==='demo')st.spd+=5;
   for(const k in st)st[k]=clamp(st[k],20,99);
-  const m={uid:ddRoster.uid++,name:name||ddmName(),role,level,xp:0,kills:0,stars:0,st,trait:null,gear:{w:ddmStd(role,'w'),g:'frag',t:ddmStd(role,'t')},cost:0};
+  const m={uid:ddRoster.uid++,name:name||ddmName(),role,level,xp:0,kills:0,stars:0,st,trait:null,gear:{w:ddmStd(role,'w'),g:ddmStd(role,'g'),t:ddmStd(role,'t')},cost:0};
   if(star){const sp=role==='gunner'?['w','minigun']:role==='sharp'?['w','fifty']:role==='medic'?['t','dart']:role==='demo'?['t','guided']:null;
     if(sp&&Math.random()<.5){m.gear[sp[0]]=sp[1];m.cost=2;}else{const ks=Object.keys(DDM_TRAITS);m.trait=ks[(Math.random()*ks.length)|0];m.cost=1;}}
   return m;
 }
-function ddmRecruits(){const R=ddRoster,roles=['medic','gunner','sharp','demo'];R.recruits=[];for(let i=0;i<8;i++)R.recruits.push(ddmNewMan(roles[i%4],R.minLevel,i>=4&&Math.random()<.6||i===7));}
+const ddmSharpOpen=()=>{if(!ddRoster)ddRoster=ddmRead();return ddRoster.battles>0;};   // (the Sharpshooter: unlocked by the first battle won)
+function ddmRecruits(){const R=ddRoster,roles=['medic','gunner','rifle','demo','sharp','rifle','gunner','sharp'];R.recruits=[];for(let i=0;i<8;i++)R.recruits.push(ddmNewMan(roles[i],R.minLevel,i>=4&&Math.random()<.6||i===7));}
 // the unit's numbers from the man: called by ddNewMan before his figure is made (a replacement with no man yet gets one made for him)
 function ddmAttach(u,rm){
   if(!ddRoster)ddRoster=ddmRead();
@@ -75,7 +78,7 @@ function ddmAttach(u,rm){
   u.trait=rm.trait?DDM_TRAITS[rm.trait].n:'level '+rm.level;
   if(rm.trait==='steel')u.nerveK=.001;if(rm.trait==='double')u.dmgIn*=.5;if(rm.trait==='marathon')u.spdK+=.15;if(rm.trait==='eyes')u.aimK+=.08;
   for(const k of['w','g','t']){if(!ddmCan(rm,rm.gear[k]))rm.gear[k]=ddmStd(rm.role,k);const I=DDM_ITEMS[rm.gear[k]];
-    if(I.weapon)u.weapon=I.weapon;if(I.grenade)u.grenade=I.grenade;if(I.spec){u.spec=I.spec;u.specN=I.specN;}
+    if(I.weapon)u.weapon=I.weapon;if(I.grenade){u.grenade=I.grenade;u.gl=!!I.gl;}if(I.spec){u.spec=I.spec;u.specN=I.specN;}
     if(I.mod)for(const q in I.mod)u[q]=q==='supK'?I.mod[q]:(u[q]||0)+I.mod[q];}
 }
 const ddmSlotMan=(t,i)=>{if(!ddRoster)ddRoster=ddmRead();return ddRoster.squads[t][i]||null;};
@@ -203,7 +206,7 @@ function ddmBarracksHTML(){
 // what was put by in the armory; and putting his own special piece by
 function ddmSwapList(m,k){
   const R=ddRoster,L=[],cur=m.gear[k];
-  for(const id of new Set([ddmStd(m.role,k),...(k==='t'?['smoke']:[])]))if(id!==cur)L.push({id,n:DDM_ITEMS[id].n,from:'standard issue',verb:'take',std:1});
+  for(const id of new Set([ddmStd(m.role,k),...(k==='t'?['smoke']:k==='g'?['frag']:[])]))if(id!==cur)L.push({id,n:DDM_ITEMS[id].n,from:'standard issue',verb:'take',std:1});
   const where=q=>R.reserve.includes(q)?'reserve':'squad mate';
   for(const q of ddmAll())if(q!==m&&!DDM_ITEMS[q.gear[k]].std&&ddmCan(m,q.gear[k]))L.push({id:q.gear[k],n:DDM_ITEMS[q.gear[k]].n,from:`${where(q)}, ${q.name}`,verb:'swap',man:q,star:DDM_ITEMS[q.gear[k]].star});
   R.armory.forEach((id,i)=>{if(DDM_ITEMS[id].s===k&&ddmCan(m,id))L.push({id,n:DDM_ITEMS[id].n,from:'armory',verb:'take',arm:i,star:DDM_ITEMS[id].star});});

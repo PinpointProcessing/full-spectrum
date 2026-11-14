@@ -17,14 +17,15 @@ const DD_POOL=50,DD_REVIVE=8,DD_BLEED=20,DD_CRIT=10,DD_FIG=1.3,DD_US='#7f7d4e',D
 const DD_ROLES={
   medic:{ab:'MEDIC',n:'Medic',cls:'medic',weapon:'rifle',spec:'medkit',specN:3},
   gunner:{ab:'GUNNER',n:'Gunner',cls:'support',weapon:'hmg',spec:'smoke',specN:2},
+  rifle:{ab:'RIFLEMAN',n:'Rifleman',cls:'assault',weapon:'rifle',spec:'smoke',specN:2},   // (Version 158, in the Sharpshooter's place to start with: rifle grenades where his frag would be, u.gl from ddmeta.js's kit, and steadier on the move, classes.js's Assault)
   sharp:{ab:'SHARPSHOOTER',n:'Sharpshooter',cls:'recon',weapon:'sniper',spec:'smoke',specN:2},
   demo:{ab:'DEMOLITION',n:'Demolition man',cls:null,weapon:'rifle',spec:'rpg',specN:4},
   eng:{ab:'ENGINEER',n:'Engineer',cls:'defender',weapon:'rifle',spec:'build',specN:3}};   // (Version 131, Bryan: "a new unit that builds makeshift defenses under fire": build.js's kit, a barricade where you tap)
 // who's in each squad to start, and so which types a replacement fills first: Bravo has the engineer in its sharpshooter's place for
 // now, so he can be tried (a question for Bryan: a fifth man, or in someone's place)
 const DD_ENG=false;   // (the Engineer unlocks in the next level: Bryan, after Version 137, "get rid of the engineer for this round... Only 4 per squad"; his role, kit and the other troops' digging in stay in the code behind this)
-const DD_CORE={A:['medic','gunner','sharp','demo'],B:['medic','gunner','sharp','demo']};   // (five a squad since Version 133: Bryan, "Let's make a fifth slot for engineer")
-const DD_ORDER=['medic','gunner','sharp','demo'];
+const DD_CORE={A:['medic','gunner','rifle','demo'],B:['medic','gunner','rifle','demo']};   // (five a squad since Version 133: Bryan, "Let's make a fifth slot for engineer")
+const DD_ORDER=['medic','gunner','rifle','demo'];
 const DD_TRAITS=[{n:'Steady',nerveK:.75},{n:'Sharp-eyed',aimK:.06},{n:'Quick',spdK:1.1},{n:'Tough',dmgIn:.88},{n:'Green',aimK:-.04,nerveK:1.2},{n:'Hothead',bold:1.6},{n:'Careful',bold:.6},{n:'Old hand',aimK:.03,nerveK:.85}];
 const DD_NAMES=['Kelly','Murphy','Novak','Rossi','Schmidt','Carter','Dalton','Greer','Hobbs','Jensen','Kowal','Larkin','Mercer','Nolan','Ortiz','Pruitt','Quinn','Riley','Sawyer','Tanner','Voss','Walsh','Yates','Zielinski','Baker','Cobb','Dunn','Ellis','Finch','Gallo','Hart','Irwin','Joyce','Keane','Lowe','Mack','Nash','Owens','Pike','Reed','Stone','Tully','Vance','Webb','Abbott','Boone','Cross','Drake'];
 const DD_LABELS={rifle:'M1 Garand',hmg:'BAR',sniper:'Springfield'};
@@ -37,7 +38,7 @@ let dd=null;
 function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.set(DD_FIG*1.06,DD_FIG*.9,DD_FIG*1.06);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.14;U.uGlow.value=u.side==='P'?.5:0;}});}
 const ddAlly=u=>u.side==='P'&&!u.dead&&!u.downed&&!u.away;
 const ddSq=t=>players.filter(p=>p.team===t&&!p.dead);
-function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_CORE[team].filter(r=>!have.includes(r)),all=Object.keys(DD_ROLES).filter(r=>DD_ENG||r!=='eng');return miss.length?miss[0]:all[(Math.random()*all.length)|0];}
+function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_CORE[team].filter(r=>!have.includes(r)),all=Object.keys(DD_ROLES).filter(r=>(DD_ENG||r!=='eng')&&(r!=='sharp'||(typeof ddmSharpOpen==='function'&&ddmSharpOpen())));return miss.length?miss[0]:all[(Math.random()*all.length)|0];}
 function ddName(){const used=new Set(units.map(u=>u.name));for(let k=0;k<40;k++){const n=DD_NAMES[(Math.random()*DD_NAMES.length)|0];if(!used.has(n))return n;}return DD_NAMES[(Math.random()*DD_NAMES.length)|0];}
 function ddNewMan(team,id,role,x,y,rm){   // (rm: the roster's man he is, ddmeta.js; without one, a replacement, and a man is made for him)
   const R=DD_ROLES[role],tr=DD_TRAITS[(Math.random()*DD_TRAITS.length)|0],u=mk('P',team,id,ddName(),x,y,-Math.PI/2);
@@ -118,7 +119,8 @@ function startDDay(){
   enterDDay();state='play';endAt=0;
   bigText('Chapter 1: D\u2011Day','chapter');banner('Mission: take control of the beach',8000);setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},8400);hud();
 }
-function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();}
+function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();
+  const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';});}
 const ddBusy=()=>!!dd&&!dd.land.done;
 /* ---------- the camera ----------
    Since Version 132 it stays where the player puts it (Bryan: "Maybe the camera shouldnt move unless dragged by the user. But
@@ -713,7 +715,8 @@ function ddTidy(){   // the dead don't pile up for ever: the oldest bodies go
    a medic. A tap on a tool hands it to a man who has one (not pinned, not busy, if there's a choice) and aims it the way his
    own card's button does; once it's thrown, fired or called off the squad is selected again. */
 const DD_TOOLS=[
-  {k:'nade',label:'Grenade',col:'#e8ecef',svg:()=>NADE_SVG,n:u=>u.grenade||0,btn:'nade',mode:'grenade'},
+  {k:'nade',label:'Grenade',col:'#e8ecef',svg:()=>NADE_SVG,n:u=>u.gl?0:u.grenade||0,btn:'nade',mode:'grenade'},
+  {k:'rgl',label:'Rifle grenade',col:'#d7e59a',svg:()=>M203_SVG,n:u=>u.gl?u.grenade||0:0,btn:'nade',mode:'grenade'},   // (the Rifleman's: further and flatter than a throw, combat.js's M203)
   {k:'smoke',label:'Smoke',col:'#cfd6dc',svg:()=>SPECIALS.smoke.svg,n:u=>u.spec==='smoke'?u.specN||0:0,btn:'spec',mode:'smoke'},
   {k:'rpg',label:'Bazooka',col:'#ffb36b',svg:()=>SPECIALS.rpg.svg,n:u=>u.spec==='rpg'?u.specN||0:0,btn:'spec',mode:'rpg'},
   {k:'build',label:'Barricade',col:'#d9b46a',svg:()=>SPECIALS.build.svg,n:u=>u.spec==='build'?u.specN||0:0,btn:'spec',mode:'build'},
@@ -782,7 +785,7 @@ function ddBar(){
   const wy=up.length?up.reduce((a,u)=>a+u.y,0)/up.length:0,wx0=up.length?up.reduce((a,u)=>a+u.x,0)/up.length:0,wireOn=up.length&&(wy>330&&wy<720&&!!ddWireNear(wx0,wy,420)||wx0>1150&&wy<-440&&!!ddWireNear(wx0,wy,200));
   const tools=DD_TOOLS.map(T=>{if(T.k==='wire'){if(!wireOn)return'';const n=up.reduce((a,u)=>a+(u.grenade||0)+(u.spec==='rpg'?u.specN||0:0),0);return`<button type="button" class="sq-tool" data-k="wire" style="--c:${T.col}" ${n?'':'disabled'}>${T.svg()}<b>${n}</b><span>Blow wire</span><small>nearest man with one</small></button>`;}
     if(T.k==='revive')return'';   // (no button since Version 139: the medics get men up by themselves, ddMedics)
-    const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'||u.spec===T.k);if(!has)return'';const on=dd.toolK===T.k;
+    const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'?!u.gl:T.k==='rgl'?!!u.gl:u.spec===T.k);if(!has)return'';const on=dd.toolK===T.k;
     return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${T.label}</span><small>${on?'in hand · tap the map':who}</small></button>`;}).join('');
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
