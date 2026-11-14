@@ -1052,6 +1052,7 @@ function dashToCover(p,sh){
   return true;
 }
 function playerThink(p){
+  if(p.fp)return;   // (played by hand: ddfp.js)
   if(!alive(p)||p.path.length||p.inVeh||p.onTower||p.climb||p.onGun||!caught(p)||p.supT||(breach&&breach.team.includes(p))||simT-(p.nadeT??-99)<6||onJob(p)){p.exposeT=0;return;}   // a soldier suppressing holds his spot, and one who's just thrown a grenade stays put (Bryan: those orders mustn't move them)
   const sh=simT-p.lastOrder>=DASH.order?shootersOf(p):[];   // shot at, with nothing between him and the man shooting: he runs for it
   if(sh.length&&sh.some(e=>{const L=fireLine(e,p);return!!L&&coverAt(p.x,p.y,L.fx,L.fy)===0;})&&dashToCover(p,sh))return;
@@ -1099,14 +1100,15 @@ function updateUnit(u,dt){
     if(held){}else if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}   // (held: opening a door in his way, orders.js)
     if(u.veh)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*3);   // the jeep swings round
     else if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);
-  }else if(simT-u.aimT>2){
+  }else if(u.fp){if(typeof fpUnit==='function')fpUnit(u,dt);}   // (a man the player has taken over himself: ddfp.js)
+  else if(simT-u.aimT>2){
     if(u.side==='P'){const th=threats();let n=th[0],nd=1e9;for(const t of th){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}
     else if(!u.alerted&&u.aware>=AWARE_LOOK&&u.susp)u.ang=turn(u.ang,Math.atan2(u.susp.y-u.y,u.susp.x-u.x),dt*2);
     else if(u.alerted){const ps=players.filter(p=>alive(p)&&!p.away&&sameFloor(p.x,p.y,u.x,u.y));if(ps.length){let n=ps[0],nd=1e9;for(const t of ps){const d=hyp(t.x-u.x,t.y-u.y);if(d<nd){nd=d;n=t;}}if(u.veh)u.aimA=turn(u.aimA,Math.atan2(n.y-u.y,n.x-u.x),dt*3);else u.ang=turn(u.ang,Math.atan2(n.y-u.y,n.x-u.x),dt*3);}}
   }
   u.cool-=dt*(u.sup>0.65?0.4:1);
   if(u.rpg&&u.alerted&&u.aimAt)rpgThink(u);   // mid-aim: fire when ready
-  if(u.cool<=0&&!u.vaultK&&!u.carry&&!u.cargo&&!u.dog&&!(u.reloadT>simT)&&!(u.dazeT>simT)&&u.weapon!==null){   // (dazed by a flashbang: skills.js)   // (carrying a man: hands full; a freed prisoner without a rifle yet: office.js)
+  if(u.cool<=0&&!u.fp&&!u.vaultK&&!u.carry&&!u.cargo&&!u.dog&&!(u.reloadT>simT)&&!(u.dazeT>simT)&&u.weapon!==null){   // (dazed by a flashbang: skills.js)   // (carrying a man: hands full; a freed prisoner without a rifle yet: office.js)
     if(u.side==='E'&&!u.alerted)u.cool=.3;
     else if(u.rpg)rpgThink(u);
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank

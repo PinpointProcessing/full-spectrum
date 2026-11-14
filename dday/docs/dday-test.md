@@ -521,3 +521,10 @@ Not as drawn: the corner watchtowers are scenery (nobody mans them). The armory 
 
 ### Version 160: a tank can knock a gun out
 Bryan: "A tank can knock a gun out, in three hits. You can see it smoke after one, then dark smoke after 2." A tank's shell landing within about 4 m of a nest, a wall gun or a field gun is a hit on it. One: thin grey smoke, and its label reads HIT 1/3. Two: thick dark smoke, HIT 2/3 in red. Three: wrecked, burning, black smoke; whoever was on it is off it, nobody can man it again that fight, and the other troops leave it alone. Bullets, mortars and grenades don't count; only tank shells.
+
+## Version 161: play one man yourself
+Bryan: "Let's do follow view and maybe first person on mounted objects. But we can build that after the counter. I would like it to turn into an actual 3rd or 1st person shooter when switching to it. So it can switch back and forth to team control or individual control." On what the rest of the squad does: "Follow him. But they fight on their own, throw grenades and use items when needed".
+
+Built (js/ddfp.js): Control on the squad bar (or F) takes over the man picked, or the squad's lead man. Third person from behind his shoulder or first person (a button, V); first person always on a machine gun or field gun. He moves by a stick or WASD, looks by dragging or the mouse, and fires where the crosshair is: a hit is a hit, with a clip and a reload per gun. Grenade and item go where the crosshair meets the ground. Next man changes who is played; Command goes back to the squad view; if he goes down it goes back by itself. The squad follows, shoots, and uses rockets on tanks, grenades on men bunched or dug in, smoke when pinned.
+
+For Bryan to judge: the third-person camera's distance and height, the look speed on a phone, the guns' damage and rate by hand (a rifleman who aims well kills faster than the squad does by itself), whether the other squad should also be playable this way while commanding, and what's missing first (crouch, a sprint, hands on the gun).

@@ -182,7 +182,7 @@ function drawOverlay(rdt,now){
       else if(e.sup>0.65&&e.alerted)label('PINNED',hx,hy-14,C.warn,9,700);
       else if(e.sup>0.08&&e.alerted)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
       const stalked=players.some(p=>p.tk&&p.tk.e===e);
-      if(!e.mon&&(stalked||act.length)){   // (none under a monster either: a swarm of them each with a hit chance was a wall of words)   // his label: TAKEDOWN if his back is to the one soldier selected (and while he's stalked), else the best hit chance. Worked out ~7 times a second, not every frame
+      if(!e.mon&&(stalked||act.length)&&!(typeof dd!=='undefined'&&dd&&dd.fp)){   // (nor while one man is played by hand: he aims himself, ddfp.js)   // (none under a monster either: a swarm of them each with a hit chance was a wall of words)   // his label: TAKEDOWN if his back is to the one soldier selected (and while he's stalked), else the best hit chance. Worked out ~7 times a second, not every frame
         const key=act.map(u=>u.id).join(),nowMs=performance.now();let pc=e._pill;
         if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150||volley&&nowMs-pc.t>60){
           let text,col;

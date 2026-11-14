@@ -104,6 +104,7 @@ function enterDDay(){
   updateObjUI();setStatus();buildCards();hud();
 }
 function leaveDDayNow(){
+  if(dd&&dd.fp&&typeof fpExit==='function')fpExit();
   DD_MODE='beach';
   if(typeof ddmEnd==='function')ddmEnd();
   if(MAPID!=='dd')return;const out=STASH.out;
@@ -122,7 +123,7 @@ function startDDay(){
 }
 // the start card's second button: there once D-Day is won
 function ddCtrBtnShow(){const c=$('#ddCtrBtn');if(!c)return;let R=null;try{R=typeof ddmRead==='function'?ddmRead():null;}catch(e){}c.hidden=!(R&&R.stage>=1);}
-function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();
+function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
   ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}
   const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}
 const ddBusy=()=>!!dd&&!dd.land.done;
@@ -163,6 +164,7 @@ function ddCam(rdt){
     camera.position.set(me.x+Math.sin(t*1.3)*.3+(Math.random()-.5)*hit,(me.elev||0)+26.5+Math.sin(t*1.7+1)*.5+(Math.random()-.5)*hit,me.y-5);
     camera.lookAt(camera.position.x+Math.sin(yw)*Math.cos(py)*300,camera.position.y+Math.sin(py)*300,camera.position.z-Math.cos(yw)*Math.cos(py)*300);camera.rotateZ(Math.sin(t*1.3)*.02);camera.updateMatrixWorld();
     dd.land.jolt=Math.max(0,hit-rdt*3);C.k=0;C.p=camera.position.clone();C.q=camera.quaternion.clone();return;}
+  if(dd.fp&&fpCam(rdt))return;   // (a man taken over: the view is his, ddfp.js)
   ddTrack(rdt);
   if(C.k<1&&C.p){C.k=Math.min(1,C.k+rdt/1.7);const e=C.k*C.k*(3-2*C.k),to=camera.quaternion.clone();   // off the boat: up and out to the usual view
     camera.position.lerpVectors(C.p,camera.position,e);camera.quaternion.copy(C.q).slerp(to,e);camera.updateMatrixWorld();camShift=DD_CAM.shift*e;}
@@ -618,7 +620,7 @@ function ddHelpers(){
     if(c){const w=goBeside(c,d);if(w&&w.length){c.path=w;c.helpGo=d;callout(c,'Getting him up',C.good);}}}
 }
 function ddMedics(){
-  for(const m of players){if(m.ddRole!=='medic'||!alive(m)||m.inBoat)continue;
+  for(const m of players){if(m.ddRole!=='medic'||!alive(m)||m.inBoat||m.fp)continue;
     // (Version 153, Bryan: "medics don't appear to be reviving/healing on their own when giving an opportunity": he used to wait until nobody had
     // shot at him for 3 s, which in a fight is never. Now only being pinned stops him going to a downed man, and when it's quiet he patches up a
     // man who's hurt but on his feet, keeping one kit back for a critical man)
@@ -680,6 +682,7 @@ function ddTick(dt){
   if(MAPID!=='dd'||!dd)return;
   contact=true;teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   dd.allies=units.filter(ddAlly);
+  if(dd.fp)fpTick(dt);   // (one man played by hand: ddfp.js)
   if(dd.counter){dcTick(dt);return;}   // (the counterattack runs itself: ddcounter.js)
   ddBoatsTick(dt);stationTick(dt);
   ddCounter(dt);if(typeof ddBaseTick==='function')ddBaseTick(dt);
@@ -795,15 +798,18 @@ function ddBar(){
     if(T.k==='revive')return'';   // (no button since Version 139: the medics get men up by themselves, ddMedics)
     const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'?!u.gl:T.k==='rgl'?!!u.gl:u.spec===T.k);if(!has)return'';const on=dd.toolK===T.k;
     return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${T.label}</span><small>${on?'in hand · tap the map':who}</small></button>`;}).join('');
+  // Version 161: take one of them over and play him yourself (ddfp.js): the one picked by his name, else the squad's lead man
+  const fpU=typeof fpPick==='function'?fpPick():null,fpB=fpU?`<button type="button" class="sq-tool sq-fp" data-k="fp" style="--c:#8fd3ff" aria-label="Take control of ${fpU.name}"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4" stroke="currentColor" stroke-width="1.4"/></svg><b></b><span>Control</span><small>play ${fpU.name} yourself</small></button>`:'';
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
     if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
-  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}
+  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools+fpB){B.dataset.h=tools+fpB;B.innerHTML=tools+fpB;}
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
   box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
     if(ev.target.closest('.sq-aim')){ddToolEnd();}
+    else if(t&&t.dataset.k==='fp'){ddToolEnd();fpEnter();return;}
     else if(t&&!t.disabled)ddToolUse(t.dataset.k);
     else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){ddToolEnd();u.card.el.click();if(sel.length===1&&sel[0]===u)ddGoMan(u);else ddGoSquad(u.team);}}
     ddBar();});

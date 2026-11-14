@@ -446,3 +446,36 @@ body.ddm .panel,body.ddm .bar>*{visibility:hidden!important}
 .ddm-pool{display:grid;grid-template-columns:1fr 1fr;gap:4px}.ddm-pool button{border-radius:6px;padding:5px 2px 3px;position:relative;background:#3a3f45!important;color:#e9eef2!important}.ddm-pool.res button{background:#1f5a34!important}
 .ddm-pool button svg{width:22px;height:22px;display:block;margin:0 auto}.ddm-pool button small{display:block;font-size:9px;color:#cdd}.ddm-pool button.on{outline:2px solid #fff}
 @media (orientation:landscape) and (max-height:520px){.ddm-rep{top:44px;max-width:none;display:flex;justify-content:space-between;pointer-events:none}.ddm-sqd{width:200px}.ddm-rep .ddm-g4{grid-template-columns:1fr 1fr}.ddm-c{padding:3px 6px}.ddm-c i{float:right;width:14px;height:14px}.ddm-stats,.ddm-pick{top:76px}.ddm-bar.top{padding-bottom:5px}.ddm-sq{width:36px;height:36px}.ddm-btn{padding:7px 6px}.ddm-swap{top:76px;left:6px;right:auto;width:300px;margin:0;max-height:52%}.ddm-kit button{min-height:36px}}
+/* Version 161: one man taken over (ddfp.js): his own screen over the map, the squad's bar and tabs put away */
+#fp{position:fixed;inset:0;z-index:6;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair;font-family:var(--font-hud,system-ui);color:#e8ecef}
+#fp[hidden]{display:none}
+body.fp #sq,body.fp .panel,body.fp #ddChip{display:none!important}
+.fp-x{position:absolute;left:50%;top:50%;width:0;height:0;--gap:6px;pointer-events:none}
+.fp-x i{position:absolute;background:#fff;box-shadow:0 0 2px #000,0 0 1px #000}
+.fp-x i:nth-child(1){width:2px;height:9px;left:-1px;top:calc(-9px - var(--gap))}.fp-x i:nth-child(2){width:2px;height:9px;left:-1px;top:var(--gap)}
+.fp-x i:nth-child(3){height:2px;width:9px;top:-1px;left:calc(-9px - var(--gap))}.fp-x i:nth-child(4){height:2px;width:9px;top:-1px;left:var(--gap)}
+.fp-x b{position:absolute;left:-1.5px;top:-1.5px;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 2px #000}
+.fp-x.hit i,.fp-x.hit b{background:#ffcf4a}.fp-x.kill i,.fp-x.kill b{background:#ff5a48}
+.fp-x.hit::after{content:"";position:absolute;left:-11px;top:-11px;width:22px;height:22px;background:linear-gradient(45deg,transparent 46%,#fff 46%,#fff 54%,transparent 54%),linear-gradient(-45deg,transparent 46%,#fff 46%,#fff 54%,transparent 54%);opacity:.9}
+.fp-scopeV{position:absolute;inset:0;pointer-events:none;display:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent min(36vh,36vw),#000 calc(min(36vh,36vw) + 2px))}
+body.fp-scope .fp-scopeV{display:block}
+.fp-top{position:absolute;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:max(44px,env(safe-area-inset-top,0px));display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#fp button{font:inherit;font-weight:700;font-size:13px;letter-spacing:.04em;color:#e8ecef;background:rgba(10,14,18,.82);border:1.5px solid rgba(232,236,239,.55);border-radius:10px;min-height:40px;padding:0 12px;cursor:pointer;touch-action:none}
+#fp button:disabled{opacity:.4}#fp button b{color:#fff;font-size:16px;margin-left:4px}#fp button.on{background:#e8ecef;color:#0b0f13}
+.fp-who{flex:1 1 150px;min-width:0;max-width:320px;background:rgba(10,14,18,.82);border-radius:10px;padding:5px 10px 7px;display:grid;gap:2px}
+.fp-who b{font-size:13px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fp-who span{font-size:11.5px;color:#aab4bb}
+.fp-who i{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden}.fp-who u{display:block;height:100%;background:#5fe08e}
+.fp-msg{position:absolute;left:50%;top:58%;transform:translateX(-50%);background:rgba(10,14,18,.86);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;pointer-events:none;white-space:nowrap}
+.fp-msg[hidden]{display:none}
+.fp-stick{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:2px solid rgba(232,236,239,.5);background:rgba(10,14,18,.3);pointer-events:none;left:84px;top:calc(100% - 110px);opacity:.45}
+.fp-stick.on{opacity:1}.fp-stick i{position:absolute;left:28px;top:28px;width:40px;height:40px;border-radius:50%;background:rgba(232,236,239,.7)}
+.fp-btns{position:absolute;right:max(10px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:auto auto;gap:8px;justify-items:stretch;align-items:end}
+.fp-btns [hidden]{display:none}
+.fp-btns [data-a="use"]{grid-column:1/3;border-color:#8fd3ff!important;color:#8fd3ff!important}
+#fp .fp-fire{grid-column:1/3;min-height:70px;font-size:18px;letter-spacing:.14em;border-color:#ff8a7e;color:#ffd9d4;background:rgba(120,24,16,.6)}
+.fp-ammo{grid-column:1/3;text-align:right;pointer-events:none;text-shadow:0 1px 3px #000}
+.fp-ammo b{display:block;font-size:24px;font-variant-numeric:tabular-nums}.fp-ammo span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#cfd6dc}
+.fp-keys{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);font-size:11px;color:#cfd6dc;background:rgba(10,14,18,.6);padding:3px 10px;border-radius:6px;white-space:nowrap;pointer-events:none}
+@media (hover:none),(max-width:820px){.fp-keys{display:none}}
+@media (hover:hover) and (min-width:821px){.fp-stick{display:none}}
+@media (max-height:480px){#fp button{min-height:34px}#fp .fp-fire{min-height:52px}.fp-ammo b{font-size:18px}.fp-top{top:max(40px,env(safe-area-inset-top,0px))}}
