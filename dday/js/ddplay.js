@@ -104,6 +104,7 @@ function enterDDay(){
   updateObjUI();setStatus();buildCards();hud();
 }
 function leaveDDayNow(){
+  DD_MODE='beach';
   if(typeof ddmEnd==='function')ddmEnd();
   if(MAPID!=='dd')return;const out=STASH.out;
   for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;PRPG.aim=dd.rpgA;
@@ -119,8 +120,11 @@ function startDDay(){
   enterDDay();state='play';endAt=0;
   bigText('Chapter 1: D\u2011Day','chapter');banner('Mission: take control of the beach',8000);setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},8400);hud();
 }
+// the start card's second button: there once D-Day is won
+function ddCtrBtnShow(){const c=$('#ddCtrBtn');if(!c)return;let R=null;try{R=typeof ddmRead==='function'?ddmRead():null;}catch(e){}c.hidden=!(R&&R.stage>=1);}
 function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();
-  const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';});}
+  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}
+  const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}
 const ddBusy=()=>!!dd&&!dd.land.done;
 /* ---------- the camera ----------
    Since Version 132 it stays where the player puts it (Bryan: "Maybe the camera shouldnt move unless dragged by the user. But
@@ -659,14 +663,7 @@ function ddHot(){
     if(F.ink.material!==want)F.ink.material=want;}
 }
 /* ---------- every tick (combat.js's update) ---------- */
-function ddTick(dt){
-  if(MAPID!=='dd'||!dd)return;
-  contact=true;teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
-  dd.allies=units.filter(ddAlly);
-  ddBoatsTick(dt);stationTick(dt);
-  ddCounter(dt);if(typeof ddBaseTick==='function')ddBaseTick(dt);
-  if(!dd.land.done)ddRideFx(dt);
-  else if(dd.graceT&&simT>dd.graceT){dd.graceT=0;for(const p of players)if(p.dmgIn0!=null){p.dmgIn=p.dmgIn0;p.dmgIn0=null;}}   // (the other boats' men fight on from the moment their ramps drop: nothing waits for the squads)
+function ddDeadTick(){
   // the dead: out of the squad (the body stays), a replacement on the way while they last
   for(const p of players.slice()){
     // (Version 146, Bryan: "I'm wondering they should be cycled through faster - like die off": 20 s down, 10 s critical, then he's dead and the next man comes)
@@ -678,6 +675,17 @@ function ddTick(dt){
     if(dd.pool>0){dd.pool--;dd.queue.push({team:p.team,id,at:simT+(canRaise?14:4+Math.random()*3),body:p});}else p.noRev=!canRaise;
     buildCards();updateObjUI();
   }
+}
+function ddTick(dt){
+  if(MAPID!=='dd'||!dd)return;
+  contact=true;teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
+  dd.allies=units.filter(ddAlly);
+  if(dd.counter){dcTick(dt);return;}   // (the counterattack runs itself: ddcounter.js)
+  ddBoatsTick(dt);stationTick(dt);
+  ddCounter(dt);if(typeof ddBaseTick==='function')ddBaseTick(dt);
+  if(!dd.land.done)ddRideFx(dt);
+  else if(dd.graceT&&simT>dd.graceT){dd.graceT=0;for(const p of players)if(p.dmgIn0!=null){p.dmgIn=p.dmgIn0;p.dmgIn0=null;}}   // (the other boats' men fight on from the moment their ramps drop: nothing waits for the squads)
+  ddDeadTick();
   for(const p of players)if(p.joining)ddJoin(p);
   // how far they've got (the day goes by with it), and the edge of the map
   const up=players.filter(alive);
@@ -757,7 +765,7 @@ function ddBlowWire(o){
 }
 // A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
-function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.toolK)return true;
+function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;
   if(!sel.length)return false;const o=ddWireNear(wx,wy,9);if(o){ddBlowWire(o);hud();return true;}
   // the tank under the finger: the squad's own answer to armour, a rocket (a grenade if that's all there is and he's near enough). Bryan: "our
   // units use explosives only for heavily armored vehicles when targeted? Like a rocket?"
@@ -809,10 +817,11 @@ function ddObjUI(el){
   el.querySelector('span').textContent=!dd.land.done?'Thirty seconds to the beach':dd.blown.barracks?'The base is yours':dd.front>330?'Get off the beach: reach the wall':dd.front>-300?'Up the draw: the only way to the top':`Destroy the barracks${b&&b.hp<380?` (${Math.max(1,Math.round(b.hp/380*100))}%)`:''}`;
   const h=L.map(([t,d])=>`<li${d?' class="done"':''}>${t}</li>`).join('');const ol=el.querySelector('ol');if(ol.dataset.h!==h){ol.dataset.h=h;ol.innerHTML=h;}
   el.hidden=true;   // (no objective box on this map: Bryan, "Get rid of the level name on top, it's just in the way"; the chapter's name flashes up at the start instead)
-  const c=$('#ddChip');if(c){c.hidden=state!=='play';const t=`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
+  const c=$('#ddChip');if(c){c.hidden=state!=='play';const t=dd.counter?`${dd.pool} in reserve`:`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
 }
 function ddHint(){
   if(!dd)return'';
+  if(dd.counter)return dcHint();
   if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
   if(dd.front>330)return`The camera stays where you put it; picking a squad takes it there. Shell holes and steel obstacles are cover. Tap the wire (or Blow wire below) and a man with a grenade opens it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
@@ -822,6 +831,7 @@ function ddHint(){
 }
 function drawDDay(now){
   if(!dd||!DD)return;ddBar();if(!dd.land.done)return;   // (nothing written over the ride in)
+  if(dd.counter){ddDrawTargets(now);dcDraw();return;}
   ddDrawZones();ddDrawTargets(now);
   const lab=(dx,y,h,text,col)=>{toSBack=false;const[sx,sy]=toS(dx+DDX,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,9,700);};
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),S=DD_SPOT;
@@ -842,7 +852,8 @@ function drawDDay(now){
   const o=$('#oob');if(o){const on=dd.oob>0&&state==='play';o.hidden=!on;if(on){o.style.opacity=Math.min(.86,.35+dd.oob*.06).toFixed(2);o.querySelector('b').textContent=`Turn back · ${Math.max(0,Math.ceil(10-dd.oob))}`;}}
 }
 function ddFinish(){
-  if(dd&&dd.won&&typeof ddmStart==='function'){ddmStart();return;}   // (a win goes on to the report, the base and the barracks: ddmeta.js)
+  if(dd&&dd.won&&typeof ddmStart==='function'){ddmStart();return;}
+  if(dd&&dd.counter){dcFinishLost();return;}   // (the counterattack lost: a retry, ddcounter.js)   // (a win goes on to the report, the base and the barracks: ddmeta.js)
   const win=!!(dd&&dd.won);state='end';setStatus();$('#status').textContent=win?'Taken':'Lost';
   const t=Math.floor(simT-(dd?dd.t0:0)),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0'),kills=players.reduce((n,p)=>n+p.stats.kills,0);
   $('#endEyebrow').textContent=win?'Beach taken':'Beach lost';$('#endTitle').textContent=win?'The base is yours':'The squads are gone';

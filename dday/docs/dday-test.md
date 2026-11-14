@@ -502,3 +502,19 @@ Bryan, after Version 157: "I would like to separate this completely with the hor
 - The Rifleman replaces the Sharpshooter in the starting squads: rifle grenades (three, 36 m, a bigger blast than a frag), smoke, steadier on the move. The Sharpshooter unlocks after the first win.
 
 The counterattack, Bryan's answers: from inland; a large force seen marching toward the base ahead of time, tanks and troops; the base has MGs the player can put troops on by selecting them; leaving the barracks triggers it, with about 20 seconds to set up; artillery and MG nests are available in the field in front of the base; hold until all units are dead, three waves; the other troops fight too. Draft: `docs/drafts/counterattack-draft.png` (a plan and how it runs; the questions on it are open). Also raised, to discuss: switching between third and first person on a single unit.
+
+## Version 159: Chapter 2, the counterattack (built)
+
+Bryan, on the draft: the forward nests as drawn; reserve men come out of the barracks; a loss is a retry of the counterattack; a field gun fires where it's told, "or automatic if ignored". "Let's build the counter attack first."
+On the camera: "Let's do follow view and maybe first person on mounted objects. But we can build that after the counter. I would like it to turn into an actual 3rd or 1st person shooter when switching to it. So it can switch back and forth to team control or individual control." Not built; next.
+
+How it plays:
+- After D-Day's report and the base, going into the barracks and coming back out starts it (the button there reads LEAVE THE BARRACKS). From the start card: "Chapter 2 · Hold the base", once D-Day is won.
+- The camera goes up the road to the column, comes back, and a 20 second clock starts. Pick a squad and tap a nest, a wall gun or a field gun: the nearest free man of that squad goes to it. Whatever is left empty the other troops take.
+- A man on a gun stays on it under fire; only an order of yours takes him off.
+- A field gun you hold: tap it, then where to shell (17 to 96 m). Nine seconds to reload. Left alone for six seconds it picks its own target: the nearest tank, else where their men are thickest.
+- Wave 1: 22 infantry across the field. Wave 2: 16 infantry and a tank down the road, mortars on manned forward nests. Wave 3: 20 infantry and two tanks, one round each flank. Fifteen seconds between waves.
+- A man lost is replaced out of the barracks while the reserve lasts.
+- Won when the third wave is all dead: the report, then the base. Lost if they stand in the command post for 20 seconds with none of yours there, or both squads are gone: Try again puts the roster back as it was when you left the barracks.
+
+Not as drawn: the corner watchtowers are scenery (nobody mans them), and a tank doesn't knock a gun out, though its shell can kill the man on it. The armory and the depot stand in the base's south corners, not its middle: there they hid the square from the camera.

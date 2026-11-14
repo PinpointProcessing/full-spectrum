@@ -154,7 +154,7 @@ function bindHud(){
   {const ob=$('#obj'),tg=()=>{objPingT=performance.now();if(ob.classList.contains('nm')){if(ob.classList.contains('min'))objNMShow();else objNMHide();return;}   // (the next mission: open it, or close it: mission.js)
     ob.classList.toggle('open');ob.setAttribute('aria-expanded',ob.classList.contains('open'));};ob.addEventListener('click',tg);ob.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tg();}});}
   $('#resetXpBtn').addEventListener('click',()=>{resetProgress();banner('Squad XP and ranks reset.',1600);});
-  $('#againBtn').addEventListener('click',()=>{if(MAPID==='dd'){startDDay();return;}if(LEVEL===1){startLevel1(true);return;}if(LEVEL===2){startLevel2(true);return;}startLevel3();});
+  $('#againBtn').addEventListener('click',()=>{if(MAPID==='dd'){if(dd&&dd.counter)startCounter(true);else startDDay();return;}if(LEVEL===1){startLevel1(true);return;}if(LEVEL===2){startLevel2(true);return;}startLevel3();});
   addEventListener('keydown',e=>{
     if(state!=='play')return;
     if(e.code==='Space'){e.preventDefault();paused=!paused;hud();}

@@ -129,6 +129,7 @@ function sfxShot(u,quiet){
 // however fast its rounds go out; the BAR a slower, deeper bark than a modern gun; rifles the older semi-automatic's crack,
 // pitched down for the M1 (a ping as its clip goes, every eighth round) and the sharpshooter's and the defenders' bolt rifles
 function sfxShotDD(u){
+  if(!AC)return true;   // (no sound yet: nothing to play)
   const now=AC.currentTime,w=u.weapon;
   if(u.gunner){if(now-(u.thudT||0)<.165)return true;u.thudT=now;const out=voice(u.x,u.y,1,.5);if(!out)return true;
     toneHit(out,now,.16,'sine',92,38,.95);noiseHit(out,now,.11,'lowpass',420,0,.9,.002,90);noiseHit(out,now,.03,'bandpass',1500,1,.35,.001);return true;}

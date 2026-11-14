@@ -11,7 +11,7 @@
    machine gun), the mortars and the barracks on the right. Rock is a 'drop': it stops feet, not eyes (everything up there
    looks down on the beach). */
 const DDB={x0:0,x1:1400,y0:-760,y1:900},DDX=200,DDW=1000,DDS=1.2;
-let DD=null;
+let DD=null,DD_MODE='beach';   // (DD_MODE 'counter': the base and the field inland of it, ddcounter.js; the same scene builder with its own ground, objects and props)
 const DD_FACE=[[0,120],[600,85],[120,-320],[0,-320]],   // (until Version 133 a block of it came down to the beach at dx 330-470; Bryan circled it: "Remove the circled part and make it a road")
   DD_RWALL=[[600,316],[600,280],[740,40],[1000,40],[1000,316]],
   DD_RRIGHT=[[316,-312],[440,-435],[1000,-435],[1000,-95],[752,-95]];
@@ -45,6 +45,7 @@ function ddRawH(dx,y){
 }
 const DDG={nx:141,ny:167,h:null};
 function ddBuildH(){
+  if(DD_MODE==='counter'){DDG.h=dcHeights();return;}
   const{nx,ny}=DDG;let a=new Float32Array(nx*ny),b=new Float32Array(nx*ny);
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)a[j*nx+i]=i*10>=1290&&DDB.y0+j*10<=-330?152:ddRawH(ddMx(i*10),DDB.y0+j*10);   // (east of the old play area the top is flat ground, not a mirror image: the road on to their base, ddbase.js)
   for(let p=0;p<2;p++){   // soften the cliffs a little (a wall of stretched triangles otherwise)
@@ -85,6 +86,7 @@ const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by t
   barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},door3:{x:1085,y:-600},tankWay:[[1085,-600],[930,-578],[800,-565]],   // (Version 145: a second barracks behind the highest bunker; since Version 148 the counterattack comes out of their base's gate, ddbase.js)
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
 function ddObjects(){
+  if(DD_MODE==='counter')return dcObjects();
   const L=[],o=(kind,dx,y,w,h,ex)=>{const q=Object.assign({kind,x:dx+DDX,y,w,h,full:false},ex||{});L.push(q);return q;};
   // rock: rows of 'drop' 20 deep, from the three masses (and their mirror images in the edges)
   for(let y=-440;y<320;y+=20){let run=null;
@@ -147,6 +149,7 @@ VAULTABLE.add('ddgate');VAULTABLE.add('ddwire');   // a gate can be climbed (pat
 
 /* ---------- the ground's picture ---------- */
 function paintDDGround(g){
+  if(DD_MODE==='counter'){dcPaint(g);return;}
   const W0=DDW,r=rng(1944),c=document.createElement('canvas');c.width=Math.round(W0*DDS);c.height=Math.round((DDB.y1-DDB.y0)*DDS);
   const x=c.getContext('2d');x.setTransform(DDS,0,0,DDS,0,-DDB.y0*DDS);
   // the ground, a picture worked out point by point (2 units a point): what it is (sand, wet sand, rock face, grass on the
@@ -226,21 +229,22 @@ function buildDDay(){
     geo.computeVertexNormals();
     const gmat=new T.MeshStandardMaterial({map:tex,roughness:.96,metalness:0});
     const land=new T.Mesh(geo,gmat);land.rotation.x=-Math.PI/2;land.position.set(gw/2,0,(DDB.y0+DDB.y1)/2);land.receiveShadow=true;sc.add(land);
-    for(const s of[-1,1]){const m=new T.Mesh(geo,gmat);m.rotation.x=-Math.PI/2;m.scale.x=-1;m.position.set(s<0?-gw/2:gw*1.5,0,(DDB.y0+DDB.y1)/2);m.receiveShadow=true;sc.add(m);}
+    for(const s of[-1,1]){const m=new T.Mesh(geo,gmat);m.rotation.x=-Math.PI/2;m.scale.x=-1;m.position.set(s<0?-gw/2:gw*1.5,0,(DDB.y0+DDB.y1)/2);m.receiveShadow=true;sc.add(m);(DD.bo=DD.bo||[]).push(m);}
     // far land behind the base, and the sea bed out to the horizon
-    const far=new T.Mesh(new T.PlaneGeometry(9000,3000),new T.MeshStandardMaterial({color:0x6f9440,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,151,DDB.y0-1500);sc.add(far);
+    const far=new T.Mesh(new T.PlaneGeometry(9000,3000),new T.MeshStandardMaterial({color:0x6f9440,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,151,DDB.y0-1500);sc.add(far);DD.bo.push(far);
     // the sea: grey-green, a slow swell in its normals, pale where it thins over the sand
     const seaT=canvasTex(256,256,(q,w,h)=>{const r2=rng(5);q.fillStyle='#e4ecee';q.fillRect(0,0,w,h);for(let i=0;i<90;i++){const y=r2()*h,x=r2()*w,l=30+r2()*70;q.strokeStyle=r2()<.5?`rgba(255,255,255,${.4+r2()*.5})`:`rgba(120,150,164,${.35+r2()*.4})`;q.lineWidth=1+r2()*2.5;q.beginPath();for(let k=0;k<=8;k++){const px=x+l*k/8,py=y+Math.sin(k*.9+i)*2.4;for(const ox of[-w,0,w])for(const oy of[-h,0,h])k?0:q.moveTo(px+ox,py+oy);q.lineTo(px,py);}q.stroke();}});
     seaT.wrapS=seaT.wrapT=T.RepeatWrapping;seaT.repeat.set(40,12);
-    {const bed=new T.Mesh(new T.PlaneGeometry(9000,2700),new T.MeshLambertMaterial({color:0x6f887c,fog:false}));bed.rotation.x=-Math.PI/2;bed.position.set(700,-20,880+1350);sc.add(bed);}   // the sea bed beyond the land's sheet
+    {const bed=new T.Mesh(new T.PlaneGeometry(9000,2700),new T.MeshLambertMaterial({color:0x6f887c,fog:false}));bed.rotation.x=-Math.PI/2;bed.position.set(700,-20,880+1350);sc.add(bed);DD.bo.push(bed);}   // the sea bed beyond the land's sheet
     const wm=new T.MeshLambertMaterial({color:0x2f7890,map:seaT,transparent:true,opacity:.84,fog:false});
-    const sea=new T.Mesh(new T.PlaneGeometry(9000,2800,60,20),wm);sea.rotation.x=-Math.PI/2;sea.position.set(700,.2,700+1400);sea.receiveShadow=true;sc.add(sea);DD.sea=sea;
+    const sea=new T.Mesh(new T.PlaneGeometry(9000,2800,60,20),wm);sea.rotation.x=-Math.PI/2;sea.position.set(700,.2,700+1400);sea.receiveShadow=true;sc.add(sea);DD.sea=sea;DD.bo.push(sea);
     const foamT=canvasTex(256,32,(q,w,h)=>{const r=rng(7);q.clearRect(0,0,w,h);for(let i=0;i<500;i++){const a=r()*.5*(1-Math.abs(r()-.5)*2);q.fillStyle=`rgba(236,240,238,${a})`;q.beginPath();q.arc(r()*w,h*.5+(r()-.5)*h*.7,1+r()*3,0,7);q.fill();}});
     foamT.wrapS=T.RepeatWrapping;foamT.repeat.set(26,1);
-    const foam=new T.Mesh(new T.PlaneGeometry(9000,26),new T.MeshBasicMaterial({map:foamT,transparent:true,opacity:.8,depthWrite:false}));foam.rotation.x=-Math.PI/2;foam.position.set(700,.5,702);sc.add(foam);DD.foam=foam;
+    const foam=new T.Mesh(new T.PlaneGeometry(9000,26),new T.MeshBasicMaterial({map:foamT,transparent:true,opacity:.8,depthWrite:false}));foam.rotation.x=-Math.PI/2;foam.position.set(700,.5,702);sc.add(foam);DD.foam=foam;DD.bo.push(foam);
     // a sky to look at when the camera's tilted down: a big dome the colour of the haze
     const dome=new T.Mesh(new T.SphereGeometry(5200,24,12),new T.MeshBasicMaterial({color:0x8e9aa2,side:T.BackSide,fog:false,depthWrite:false}));dome.position.set(700,0,0);sc.add(dome);DD.dome=dome;
     ddProps(sc,objsL);
+    if(DD_MODE==='counter'){for(const m of DD.bo)m.visible=false;dcScenery(sc);}else
     if(typeof ddScenery==='function')ddScenery(sc);   // (ddlook.js: sky, ships, balloons, the landings either side)
     // the light: an overcast dawn (ddSky moves it on through the day)
     const hemi=new T.HemisphereLight(0xc2d2de,0x8a7a5c,.5);hemi.userData.base=.5;sc.add(hemi);
@@ -323,6 +327,7 @@ function ddProps(sc,objsL){
       for(const dxw of[-80,-40,40,80])o.meshes.push(add(new T.BoxGeometry(12,8,1.2),new T.MeshBasicMaterial({color:0xd9b46a}),cx+dxw,g0+15,o.y+o.h+.5));
     }
   }
+  if(DD_MODE==='counter'){DD.roofs=[];dcBuild(G,sc,M,add);return;}   // (the counterattack's own props: ddcounter.js)
   // roofs over the pillbox and the nests (they fade when one of ours is inside: ddFrame), the heavy gun's and the cannon's shields
   // a bunker's roof: a thick slab with a chamfered edge, turf and a few sandbags on top, a vent pipe; all in the bunker's own materials
   const slab=(dx0,y0,w,d,hh,bk)=>{const x=dx0+DDX+w/2,y=y0+d/2,g0=ddH(x,y),rm=bkM(bk,1),m=add(new T.BoxGeometry(w+12,5,d+12),rm,x,g0+hh,y);
