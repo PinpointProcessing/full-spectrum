@@ -31,6 +31,7 @@ function frame(nowMs){
   requestAnimationFrame(frame);   // (first: whatever goes wrong below, the next frame still comes)
   const raw=(nowMs-last)/1000,rdt=Math.min(.05,raw);last=nowMs;guard('frame',()=>postWatch(raw));
   if(state==='equip'){guard('equip',()=>{equipFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);});return;}   // between missions: the squad at sea (equip.js)
+  if(state==='ddmeta'){guard('ddmeta',()=>{ddMetaFrame(rdt,nowMs/1000);audioFrame();markAlive(rdt);});return;}   // D-Day after a win: the report, the base, the barracks (ddmeta.js)
   if(state==='play')guard('update',()=>{
     const dt=rdt*timeScale();if(dt>0)update(dt);
     if(!reduced&&!paused&&MAPID!=='in'&&MAPID!=='dd'&&MAPID!=='tun'&&!hqIndoors()&&!l4In()){stormT-=rdt;if(stormT<=0){storm=1;stormT=18+Math.random()*25;sfxThunder();}}   // no lightning indoors

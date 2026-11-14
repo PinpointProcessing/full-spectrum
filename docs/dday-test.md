@@ -472,3 +472,24 @@ Bryan, on draft 4: "This works, but I think it could look better. Can you give m
 - Version B: a wooden hut (plank walls and floor, roof beams, hanging lamps, a stove, a flag and notice board), bunks head to the wall as in draft 4.
 - Version C: a painted hut, darker, bunks lengthwise along the walls; the chosen man's view is square on to his bunk like a character select, the gun in full view along the lower bunk above its slot in the equipment bar.
 Draft notes: a figure's mesh needs `frustumCulled=false` for a camera other than the game's, and the draft holds the men at the floor's height.
+
+## Version 157: after the battle (built)
+
+Bryan, on draft 5: "I think I agree with you. Let's do it" (the wooden hut's look with the bunks along the walls and the square-on view).
+
+What a win does now:
+1. **The report.** The men he ended with stand in two diagonal lines in front of the barracks on the hill. A card each: kills, revives, XP counting up, his level (gold if it went up), and one MVP. The fallen are listed underneath. If the MVP died it says so, and the medal is still the player's.
+2. **The base from above.** BARRACKS, ARMORY and VEHICLE DEPOT each over its own building. The armory opens a list of what's been saved; the depot says it comes later. NEXT MISSION is D-Day again with the roster's men; MENU goes back to the start card.
+3. **The barracks.** A wooden hut: Alpha's bunks down the left wall, Bravo's down the right, each man at ease by his bunk with his gun laid on it. Eight big squares along the top with the unit type's icon; a dashed + is an empty bunk. Tap a square or a man: the camera goes square on to his bunk, his name over his head, his stats beside him, his kit in a bar under his feet with the weapon's slot under the gun. Press a piece of kit for what he could carry instead. RESERVE moves him to the reserve; REPLACE opens the recruits and the reserve.
+
+The rules built, with the defaults taken where Bryan hadn't answered:
+- The roster is whoever he ended with; the dead and their kit are gone. A lost battle changes nothing.
+- XP: 40 a kill, 50 a revive, 60 for living, 100 for the MVP. A level costs 250, then 50 more each time. A level is +2 on every stat.
+- Stats run 20-99. Health is damage taken, Aim his accuracy, Speed how fast he moves, Bravery how quickly he's pinned.
+- Traits: Nerves of Steel (never pinned), Double Life (half damage; not yet a second bar on screen), Marathon Runner, 20/20.
+- Kit slots: weapon, grenade, tool. Standard issue never runs out. Special pieces: Minigun (pins half as hard again), .50 cal (steadier), Dart gun (five heals), Guided rockets (six rockets). The last two are more of the same tool for now: darts at range and guidance aren't built. They and the first two are one of a kind.
+- A swap comes from a squad mate or a reserve man of the same type (they trade), or from the armory; "Put it in the armory" saves a special piece for later. Smoke is for anyone.
+- One medal a win (the MVP's). Eight recruits on offer at the lowest level (2 after chapter 1); about one in four has a trait (one medal) or a special piece (two). A recruit taken is replaced by another. The man replaced goes to the reserve, or is dismissed if it's full (eight), his special kit kept in the armory.
+- The dead can be MVP.
+
+Not built yet: the Rifleman and the Sharpshooter as an unlock, swapping kit with a dead man in the field, copying kit in the armory, the vehicle depot, a second mission, and the men walking about the base.

@@ -39,9 +39,10 @@ const ddAlly=u=>u.side==='P'&&!u.dead&&!u.downed&&!u.away;
 const ddSq=t=>players.filter(p=>p.team===t&&!p.dead);
 function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_CORE[team].filter(r=>!have.includes(r)),all=Object.keys(DD_ROLES).filter(r=>DD_ENG||r!=='eng');return miss.length?miss[0]:all[(Math.random()*all.length)|0];}
 function ddName(){const used=new Set(units.map(u=>u.name));for(let k=0;k<40;k++){const n=DD_NAMES[(Math.random()*DD_NAMES.length)|0];if(!used.has(n))return n;}return DD_NAMES[(Math.random()*DD_NAMES.length)|0];}
-function ddNewMan(team,id,role,x,y){
+function ddNewMan(team,id,role,x,y,rm){   // (rm: the roster's man he is, ddmeta.js; without one, a replacement, and a man is made for him)
   const R=DD_ROLES[role],tr=DD_TRAITS[(Math.random()*DD_TRAITS.length)|0],u=mk('P',team,id,ddName(),x,y,-Math.PI/2);
   Object.assign(u,{dmgIn:1.15,role:R.ab,ddRole:role,ddCls:R.cls,weapon:R.weapon,weapon2:null,spec:R.spec,specN:R.specN,grenade:1,freed:true,trait:tr.n,bold:1,level:1},tr);delete u.n;
+  if(typeof ddmAttach==='function')ddmAttach(u,rm);   // (his stats, trait and kit from the roster: ddmeta.js)
   u.skillN=typeof skillFull==='function'?skillFull(u):0;u.skillT=0;
   u.cloth=DD_US;makeSoldier(u);ddDayFig(u);return u;
 }
@@ -85,7 +86,7 @@ function enterDDay(){
   dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;   // (the Bazooka is shouldered and aimed long enough to be seen)
  
   const B=DD_SPOT.boat;
-  ['A','B'].forEach(t=>DD_CORE[t].forEach((r,i)=>ddNewMan(t,t+(i+1),r,B.x+DDX,B.y+60)));
+  ['A','B'].forEach(t=>DD_CORE[t].forEach((r,i)=>{const rm=typeof ddmSlotMan==='function'?ddmSlotMan(t,i):null;ddNewMan(t,t+(i+1),rm?rm.role:r,B.x+DDX,B.y+60,rm);}));   // (the roster's men, where there are any: ddmeta.js)
   players=units.filter(u=>u.side==='P'&&!u.npc);
   spawnDDay();
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
@@ -102,6 +103,7 @@ function enterDDay(){
   updateObjUI();setStatus();buildCards();hud();
 }
 function leaveDDayNow(){
+  if(typeof ddmEnd==='function')ddmEnd();
   if(MAPID!=='dd')return;const out=STASH.out;
   for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;PRPG.aim=dd.rpgA;
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
@@ -837,6 +839,7 @@ function drawDDay(now){
   const o=$('#oob');if(o){const on=dd.oob>0&&state==='play';o.hidden=!on;if(on){o.style.opacity=Math.min(.86,.35+dd.oob*.06).toFixed(2);o.querySelector('b').textContent=`Turn back · ${Math.max(0,Math.ceil(10-dd.oob))}`;}}
 }
 function ddFinish(){
+  if(dd&&dd.won&&typeof ddmStart==='function'){ddmStart();return;}   // (a win goes on to the report, the base and the barracks: ddmeta.js)
   const win=!!(dd&&dd.won);state='end';setStatus();$('#status').textContent=win?'Taken':'Lost';
   const t=Math.floor(simT-(dd?dd.t0:0)),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0'),kills=players.reduce((n,p)=>n+p.stats.kills,0);
   $('#endEyebrow').textContent=win?'Beach taken':'Beach lost';$('#endTitle').textContent=win?'The base is yours':'The squads are gone';

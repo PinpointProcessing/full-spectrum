@@ -68,7 +68,8 @@ function figLook(u){
 // silencer wears out, the base goes to Alert II...)
 function figKitKey(u,L){
   let w='none';
-  if(L.k==='sq')w=u.weapon==='hmg'?'hmg':u.weapon==='sniper'?'sniper':u.weapon==='shotgun'?'shotgun':(u.weapon==='m4s'&&(u.sil??1)>0?'m4s':'m4');   // (the silencer on the muzzle: a silenced rifle, or the silencer item while it lasts)
+  if(L.k==='sq'&&u.atEase)w='none';   // (off duty in the barracks, his gun on his bunk: ddmeta.js)
+  else if(L.k==='sq')w=u.weapon==='hmg'?'hmg':u.weapon==='sniper'?'sniper':u.weapon==='shotgun'?'shotgun':(u.weapon==='m4s'&&(u.sil??1)>0?'m4s':'m4');   // (the silencer on the muzzle: a silenced rifle, or the silencer item while it lasts)
   else if(L.k==='en')w=u.noGun?'none':u.weapon==='sniper'||(u.post&&/sniper/i.test(u.name||''))?'sniper':'ak';
   else if(L.k==='pri')w=u.weapon?(u.weapon==='sniper'?'sniper':'ak'):'none';
   const helm=L.k==='en'&&(u.gunner||u.helm||(typeof alertStage==='function'&&alertStage()>=2));
@@ -326,6 +327,7 @@ function figState(u){
   if(u.dead)return'dead';
   if(u.downed)return'downed';
   if(simT<(u.stunT||0))return'stun';
+  if(u.atEase&&!u.path.length)return'ease';   // (standing about in the barracks: ddmeta.js)
   if(u.strapped&&!u.joined)return'strapped';
   if(u.railed&&!u.path.length)return'tied';   // (a scientist tied to the drawbridge's railings: monsters.js)
   if(u.grabbed)return'grabbed';
@@ -498,6 +500,15 @@ function poseTorso(u,F,st,gait,P){
     P.hipsP.set(-.6,5.3,0);P.chestE[2]=st==='tied'?-.12:.05;P.headE[2]=st==='tied'?-.35:-.1;P.chestE[0]=Math.sin(t*7+sd*4)*.012;
     G.mode='body';G.P.set(4.2,.35,.6);G.X.set(1,0,.25).normalize();G.Y.set(0,1,0);return;   // his rifle on the ground in front of him
   }
+  if(st==='ease'){   // at ease: weight from foot to foot, a look round, and now and then a stretch or his hands at something (Bryan: "standing, fidgeting with their hands, stretching, etc.")
+    const e=easeG(sd,t),sw=Math.sin(t*.55+sd*11);P.hipsP.set(0,8.85+Math.sin(t*1.7+sd*9)*.05,sw*.28);P.hipsE[0]=sw*.05;P.spineE[0]=-sw*.04;P.chestE[2]=breathe;
+    P.headE[1]=Math.sin(t*.37+sd*7)*.45;P.headE[2]=Math.sin(t*.23+sd*3)*.08;P.rate=8;
+    if(e.g===1){P.headE[2]-=.3*e.k;P.headE[1]*=1-e.k;P.chestE[2]-=.06*e.k;}                      // looking down at his hands
+    else if(e.g===2){P.spineE[2]+=.14*e.k;P.chestE[2]+=.12*e.k;P.headE[2]+=.3*e.k;P.hipsP.y+=.25*e.k;}   // a stretch, arms up
+    else if(e.g===3){P.headE[0]=Math.sin(t*1.6)*.35*e.k;P.neckE[0]=Math.sin(t*1.6)*.2*e.k;}         // rolling his neck
+    else if(e.g===4){P.chestE[1]=Math.sin(t*1.1)*.3*e.k;P.hipsE[1]=Math.sin(t*1.1)*.12*e.k;}        // twisting at the waist
+    slung();return;
+  }
   if(st==='cower'){P.hipsP.set(-.8,4.3,0);P.spineE[2]=-.4;P.chestE[2]=-.35;P.headE[2]=-.45;P.chestE[0]=Math.sin(t*23+sd*7)*.02;slung();return;}
   if(st==='strapped'){P.hipsP.set(0,9,0);P.headE[2]=-.42+Math.sin(t*.7)*.06;P.headE[1]=Math.sin(t*.4+1)*.2;P.chestE[0]=Math.sin(t*.9)*.04;slung();return;}
   if(st==='grabbed'){P.hipsP.set(-.8,8.2,0);P.spineE[2]=.3;P.chestE[2]=.25;P.headE[2]=.35;P.headE[0]=Math.sin(t*14)*.08;G.P.set(2.0,-1.5,.9);G.E[0]=0;G.E[1]=.3;G.E[2]=-1.2;return;}
@@ -613,6 +624,15 @@ function poseLimbs(u,F,st,gait,P){
     else{const a=smooth((k-.34)/.66);hand(1,lerp(3.4,2.4,a),lerp(15.8,10.5,a),lerp(1.2,1.0,a));}
     EL[1].set(-1,-.3,1);return;
   }
+  if(st==='ease'){
+    const e=easeG(sd,t),k=e.k,w=Math.sin(t*5+sd*3)*.25,sh0=shoulder(0),sh1=shoulder(1);
+    let a0=[sh0.x+.35,sh0.y-5.4,sh0.z+.35],a1=[sh1.x+.35,sh1.y-5.4,sh1.z-.35],b0=a0,b1=a1;EL[0].set(-1,0,-.2);EL[1].set(-1,0,.2);
+    if(e.g===1){b0=[chestP.x+3.0+w*.3,chestP.y-2.6+w,-.45];b1=[chestP.x+3.1-w*.3,chestP.y-2.5-w,.45];EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);}
+    else if(e.g===2){b0=[sh0.x+.3,sh0.y+7.2,sh0.z-1.2];b1=[sh1.x+.3,sh1.y+7.2,sh1.z+1.2];EL[0].set(.2,.2,-1);EL[1].set(.2,.2,1);}
+    else if(e.g===5){b1=[headP.x+.4,headP.y+1.5,headP.z+1.3+w*.3];EL[1].set(-.2,.3,1);}               // a scratch of the head
+    else if(e.g===6){b0=[chestP.x+2.7,chestP.y-.6,.9];b1=[chestP.x+2.9,chestP.y-1.2,-.9];EL[0].set(-.2,-1,-1);EL[1].set(-.2,-1,1);}   // arms folded
+    hand(0,lerp(a0[0],b0[0],k),lerp(a0[1],b0[1],k),lerp(a0[2],b0[2],k));hand(1,lerp(a1[0],b1[0],k),lerp(a1[1],b1[1],k),lerp(a1[2],b1[2],k));return;
+  }
   if(u.vaultK>.2)hand(0,3.2,7.0,-1.2);   // a hand down on the sill
   if(!armed){   // nothing in his hands: they swing as he walks
     if(gait.mv){const c=Math.sin(F.phase*TAU2)*(gait.run?2.4:1.6);fromSh(0,.3+c,-5.3+Math.abs(c)*.25,.45);fromSh(1,.3-c,-5.3+Math.abs(c)*.25,-.45);}
@@ -621,6 +641,12 @@ function poseLimbs(u,F,st,gait,P){
   }else if(P.gun.aimed){EL[1].set(-.3,-.35,1);EL[0].set(.2,-1,-.4);}
 }
 const lerp=(a,b,k)=>a+(b-a)*k;
+// what a man at ease is doing just now: every few seconds one of a handful of things (0 nothing, 1 his hands, 2 a stretch, 3 his neck, 4 a twist,
+// 5 a scratch, 6 arms folded), eased in and out; each man on his own clock (his seed)
+function easeG(sd,t){
+  const T0=5.5,x=(t+sd*37)/T0,slot=Math.floor(x),f=x-slot,h=Math.abs(Math.sin(slot*12.9898+sd*78.233)*43758.5453)%1;
+  const g=h<.3?0:1+Math.floor((h-.3)/.7*6);return{g,k:g?smooth(clamp(Math.min(f,1-f)*5,0,1)):0};
+}
 
 /* ---------- placing the man being carried on his carrier's shoulders (drawn only: the game keeps him where it keeps him) ---------- */
 function figCarried(u,m){
