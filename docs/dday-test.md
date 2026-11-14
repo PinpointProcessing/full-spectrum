@@ -463,3 +463,12 @@ Bryan, on draft 2: "Take" should be "Recruit". Equipment can be changed from wit
 `docs/drafts/dday-after-battle-draft-4.png` (room: `tools/drafts/dday-barracks-room.js`, which swaps `figKitKey` so a man with `atEase` has no rifle in his hands).
 
 Bryan, on draft 3: Alpha's bunks on the left side, Bravo's on the right. Along the top, large squares with the unit type's icon instead of names; when one is chosen his name appears above him. The men stand at ease: fidgeting with their hands, stretching and so on. The gun lies across the bunk, and the change-equipment menu appears under the man's feet and across to under the gun.
+
+### Draft 5: two more looks for the barracks
+
+`docs/drafts/dday-after-battle-draft-5.png` (`tools/drafts/dday-barracks-room.js B|C`, run from the scratchpad harness; hanging spot lamps with shadows, the game's own lights off for the shot).
+
+Bryan, on draft 4: "This works, but I think it could look better. Can you give me another version or two before we commit?"
+- Version B: a wooden hut (plank walls and floor, roof beams, hanging lamps, a stove, a flag and notice board), bunks head to the wall as in draft 4.
+- Version C: a painted hut, darker, bunks lengthwise along the walls; the chosen man's view is square on to his bunk like a character select, the gun in full view along the lower bunk above its slot in the equipment bar.
+Draft notes: a figure's mesh needs `frustumCulled=false` for a camera other than the game's, and the draft holds the men at the floor's height.
