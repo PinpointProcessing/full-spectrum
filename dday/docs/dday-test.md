@@ -559,5 +559,7 @@ Several things that went were Bryan's own earlier asks (the hit chance under eve
 
 Found on the way: the horror game's "base alert" was running on D-Day and writing "The base is on alert", "Alert II: helmets and vests on" and "Lockdown: a hunter team is coming" (no team comes) over the battle; the words are gone, the alert itself still counts as before (longer eyes, then helmets and vests on them), since the balance was tested with it. Bryan to say if it should go.
 
+Reviewed by independent agents after it was built: 13 problems confirmed and fixed (the red fields vanishing near the guns, the command post's countdown hidden behind a tank warning, a black tank bar in the counterattack, guns shelling you not marked, arrows under the pill, and smaller ones; CLAUDE.md lists them).
+
 For Bryan to judge: whether anything gone is missed (the bunker names, the hit chance on every enemy, the other squad's badges at full strength), the objective's words, how strong the red fields of fire are on the beach, where the pill sits on his phone.
 

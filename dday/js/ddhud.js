@@ -10,6 +10,10 @@
      edge toward it (a marker over it when it's on screen). Replaces the place names and the top-centre lines. */
 
 const DD_OK='#5fe08e',DD_HALF='#ffcf4a',DD_OPEN='#ff5a48';
+// how far an enemy's fire reaches, the same for the shield and the field drawn (a machine gun past 64 m only hits by luck)
+const ddReach=e=>e.gunner?Math.min(wRange(e)*1.45,640):wRange(e)*1.12;
+// can a mounted gun swing onto (x,y)? (ddplay.js's ddPick's own test, from the gun, not the man behind it)
+function ddCanSwing(e,x,y){if(!e.onGun)return true;let da=Math.atan2(y-e.onGun.y,x-e.onGun.x)-e.onGun.ang;da=Math.atan2(Math.sin(da),Math.cos(da));return Math.abs(da)<=e.onGun.arc;}
 // 2 full cover, 1 half, 0 open, from the worst of the enemies in reach who could see him (seen ones: you know they're there)
 let ddCoverN=0;   // (at most two shields worked out a frame: ddDanger resets it)
 function ddCover(u){
@@ -17,7 +21,7 @@ function ddCover(u){
   let k=2;
   for(const e of enemies){
     if(beaten(e)||e.side!=='E'||e.mon||!(e.seen||e.vis))continue;
-    if(hyp(e.x-u.x,e.y-u.y)>wRange(e)*(e.gunner?1.45:1.12))continue;
+    if(hyp(e.x-u.x,e.y-u.y)>ddReach(e)||!ddCanSwing(e,u.x,u.y))continue;
     if(!los(e.x,e.y,u.x,u.y))continue;   // something between: he can't hit him
     const c=coverAt(u.x,u.y,e.x,e.y);if(c<k)k=c;if(!k)break;
   }
@@ -47,13 +51,17 @@ function ddWedge(e,g,R){
     pts.push([g.x+dx*Math.max(lo,30),g.y+dy*Math.max(lo,30)]);}
   e._wd={t:simT,R,x:g.x,a:g.ang,pts};return pts;
 }
+const _dv=new T.Vector3();
+const ddDepth=(x,y)=>-_dv.set(x,gndH(x,y)+1,y).applyMatrix4(camera.matrixWorldInverse).z;   // (how far in front of the camera; below 0 behind it)
 function ddDanger(now){
-  const W=[];ddWedgeN=0;ddCoverN=0;
+  const W=[];ddWedgeN=0;ddCoverN=0;const lim=Math.max(2,camera.near*3);
   for(const e of enemies){
     if(!e.gunner||!e.onGun||beaten(e)||e.side!=='E'||!(e.seen||e.vis))continue;
-    const g=e.onGun,R=Math.min(wRange(e)*1.45,640),pts=ddWedge(e,g,R);
-    toSBack=false;const S=[toS(g.x,g.y,1)];for(const[x,y]of pts)S.push(toS(x,y,1));if(toSBack)continue;
-    W.push({S,hot:simT-(e.shotAtT??-99)<1.2});
+    const g=e.onGun,pts=ddWedge(e,g,ddReach(e)),dg=ddDepth(g.x,g.y);if(dg<lim)continue;   // (the gun itself behind the camera: nothing to draw)
+    const S=[];toSBack=false;S.push(toS(g.x,g.y,1));
+    for(const[x,y]of pts){const d=ddDepth(x,y);let px=x,py=y;if(d<lim){const k=(dg-lim)/(dg-d);px=g.x+(x-g.x)*k;py=g.y+(y-g.y)*k;}   // a ray running past the camera: cut where it meets the plane just in front of it
+      toSBack=false;const q=toS(px,py,1);if(!toSBack)S.push(q);}
+    if(S.length<3)continue;W.push({S,hot:simT-(e.shotAtT??-99)<1.2});
   }
   if(!W.length)return;
   // one shape for all of them, filled once (overlapping fields don't stack into a solid red), then each one's far edge
@@ -63,13 +71,15 @@ function ddDanger(now){
   for(const{S,hot}of W){ox.beginPath();ox.moveTo(S[1][0],S[1][1]);for(let i=2;i<S.length;i++)ox.lineTo(S[i][0],S[i][1]);ox.strokeStyle=`rgba(255,90,70,${hot?.6:.35})`;ox.stroke();}
   ox.setLineDash([]);
 }
+
 // the screen's usable box: under the buttons at the top, over the squad's bar at the bottom (read from the page about once a second)
 let ddBoxC=null;
 function ddBox(){
   const t=performance.now();if(ddBoxC&&t-ddBoxC.t<1000&&ddBoxC.w===cw&&ddBoxC.h===ch)return ddBoxC;
   const st=$('#stage'),R=st?st.getBoundingClientRect():{top:0,left:0},sq=$('#sq');let bot=ch-14;
   if(sq&&!sq.hidden&&sq.offsetParent){const r=sq.getBoundingClientRect();if(r.height)bot=Math.min(bot,r.top-R.top-10);}
-  const top=cw<560?96:62;ddBoxC={t,w:cw,h:ch,l:16,r:cw-16,top:Math.min(top,bot-80),bot};return ddBoxC;
+  let top=cw<560?96:62;const po=$('#ddObj');if(po&&!po.hidden){const r=po.getBoundingClientRect();if(r.height)top=Math.max(top,r.bottom-R.top+8);}   // (under the objective pill, wherever it sits)
+  ddBoxC={t,w:cw,h:ch,l:16,r:cw-16,top:Math.min(top,bot-80),bot};return ddBoxC;
 }
 // where a world point is on screen, or which way it lies when it's off it: {on, x, y, dx, dy} (dx,dy a unit screen direction)
 function ddWhere(x,y,h){
@@ -91,7 +101,9 @@ function ddEdgeArrow(dx,dy,col,text,size){
 // whoever has fired on the squad you play in the last 2 s: a ring on him, or an arrow toward him
 function ddShooters(now){
   const mine=players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat);if(!mine.length)return;
-  const S=new Set();for(const e of enemies)if(!beaten(e)&&!e.mon&&e.target&&mine.includes(e.target)&&simT-(e.shotAtT??-99)<2)S.add(e);
+  const S=new Set();for(const e of enemies){if(beaten(e)||e.mon)continue;
+    if(e.target&&mine.includes(e.target)&&simT-(e.shotAtT??-99)<2)S.add(e);
+    const L=e.shellAt;if(L&&simT-L.t<3&&mine.some(u=>hyp(u.x-L.x,u.y-L.y)<(L.R||50)+60))S.add(e);}   // (ddplay.js's ddShell: the heavy gun, the cannon, the artillery, mortars, the grenadier)
   const pu=.5+.5*Math.sin(now*9);let arrows=0;
   for(const e of S){const w=ddWhere(e.x,e.y,14);
     if(w.on){gPath(e.x,e.y,13+pu*3);if(!toSBack){ox.strokeStyle=`rgba(255,60,40,${(.55+pu*.4).toFixed(2)})`;ox.lineWidth=2.4;ox.stroke();}}
@@ -109,11 +121,13 @@ function ddObjective(){
   const mine=players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat),ours=mine.length?mine:players.filter(p=>alive(p)&&!p.inBoat);if(!ours.length)return null;
   const dM=P=>Math.min(...ours.map(u=>hyp(u.x-P.x,u.y-P.y))),near=(L,f)=>{let b=null,bd=1e9;for(const q of L){const d=dM(f?f(q):q);if(d<bd){bd=d;b=q;}}return b;};
   const known=e=>!beaten(e)&&(e.seen||e.vis),Ly=Math.min(...ours.map(u=>u.y));   // (Ly: the squad's man furthest up the map)
+  // the counterattack's command post: while their clock runs it comes before anything (losing it loses the base)
+  if(dd.counter&&dd.dc&&dd.dc.ph!=='intro'&&dd.dc.cpN&&dd.dc.cpT>0){const C=dd.dc,K=(dd.tanks||[]).find(K=>K.hp>0&&dcIn(K,DCA.cpZone));
+    return{t:`${K?'Tank in the command post':'Retake the command post'} · ${Math.max(1,Math.ceil(20-C.cpT))}`,x:K?K.x:975,y:K?K.y:705,h:K?20:0,k:'danger'};}   // (975,705: in front of its west door, outside the building)
   // a tank in the fight comes first (one dug in counts: it fires from its pit; one waiting to be let loose doesn't)
   const tank=near((dd.tanks||[]).filter(K=>K.hp>0&&!K.left&&!K.retreat&&!K.wreck&&(dd.counter?!K.hold:(K.range||0)>1)&&dM(K)<(K.range||520)+120));
   if(tank)return{t:dd.counter?'Tank! Field gun or bazooka':'Tank! Bazooka or grenades',x:tank.x,y:tank.y,h:20,k:'danger'};
   if(dd.counter){const C=dd.dc;if(!C||C.ph==='intro')return null;
-    if(C.cpN){const K=(dd.tanks||[]).find(K=>K.hp>0&&dcIn(K,DCA.cpZone));return{t:`Retake the command post · ${Math.max(1,Math.ceil(20-C.cpT))}`,x:K?K.x:975,y:K?K.y:705,h:K?20:0,k:'danger'};}   // (975,705: in front of its west door, outside the building)
     if(C.ph==='setup'||C.ph==='lull'){const s=Math.max(0,Math.ceil((C.ph==='setup'?DCA.setup:DCA.lull)-C.t));
       const free=C.guns.filter(g=>!g.dead&&!(g.man&&!g.man.npc)&&!(g.going&&!g.going.npc)),g=ours.some(u=>!u.dcGun)?near(free,dcSeat):null;   // (a gun one of the other troops holds counts as free: a squad man takes it over)
       const t=C.ph==='setup'?`They attack in ${s}`:`Wave ${C.wave+1} in ${s}`;
@@ -168,7 +182,7 @@ function ddObjDraw(now){
   if(el.dataset.k!==k)el.dataset.k=k;el.hidden=false;
   if(O.x==null||dd.fp||m==null)return;   // (there: no arrow; first person has its own view)
   const col=k==='danger'?'#ff7a5c':k==='hold'?'#8fd0ff':'#ffcf4a',w=ddWhere(O.x,O.y,O.h||0);
-  if(w.on){const pu=.5+.5*Math.sin(now*4),y=w.y-30-pu*4;   // a chevron over it
+  if(w.on){const pu=.5+.5*Math.sin(now*4),y=Math.max(w.y-30-pu*4,ddBox().top+10);   // a chevron over it (never up under the pill)
     ox.save();ox.beginPath();ox.moveTo(w.x-8,y-8);ox.lineTo(w.x+8,y-8);ox.lineTo(w.x,y+3);ox.closePath();ox.fillStyle=col;ox.fill();ox.lineWidth=2;ox.strokeStyle='rgba(8,11,14,.85)';ox.stroke();ox.restore();}
   else ddEdgeArrow(w.dx,w.dy,col,`${m} m`,13);
 }

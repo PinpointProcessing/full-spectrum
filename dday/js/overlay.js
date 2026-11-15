@@ -202,11 +202,11 @@ function drawOverlay(rdt,now){
             let best=0,bc=0,lean=false,bu=null;
             for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;bu=u;}}
             if(best>0){const pct=Math.round(best*100);text=`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing(bu)?' · ambush':''}`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
-            else{text=DDM?'':'no line';col='#7d8a94';}
+            else{text=DDM?'no line · move up':'no line';col='#7d8a94';}
           }
           pc=e._pill={t:nowMs,key,stalked,text,col};
         }
-        if(pc.text)pill(pc.text,fx,fy+16,pc.col);
+        pill(pc.text,fx,fy+16,pc.col);
       }
       if(!DDM&&act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
       if(e.reloadT>simT)label('RELOADING',fx,fy+29,C.good,9,700);   // the run's heavy gun: dash now
@@ -214,6 +214,8 @@ function drawOverlay(rdt,now){
         if(e.call){gPath(vx,vy,15,-Math.PI/2,-Math.PI/2+e.call.t/CALL_T*TAU);ox.strokeStyle='#ff3b2a';ox.lineWidth=2.6;ox.stroke();}}
       if(players.some(p=>p.silent&&p.silent.e===e)){gPath(vx,vy,9+Math.sin(now*9)*1.2);ox.strokeStyle='rgba(169,196,214,.95)';ox.lineWidth=1.6;ox.stroke();}   // lined up for a silent shot
       if(stalked){gPath(vx,vy,11+Math.sin(now*6)*1.5);ox.strokeStyle=C.good;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);}   // being stalked for a takedown
+    }else if(DDM&&e.seen&&e.last&&!e.gunner&&simT-(e.last.t||0)<8){   // D-Day: where he ducked out of sight, faint and only for 8 s (you can still hold on it to suppress)
+      gPath(e.last.x,e.last.y,7);ox.setLineDash([3,3]);ox.strokeStyle=`rgba(255,90,72,${(.6*(1-(simT-(e.last.t||0))/8)).toFixed(3)})`;ox.lineWidth=1.3;ox.stroke();ox.setLineDash([]);
     }else if(e.seen&&e.last&&!DDM){
       gPath(e.last.x,e.last.y,7);ox.setLineDash([3,3]);ox.strokeStyle='rgba(255,90,72,.7)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);
       const[sx,sy]=toS(e.last.x,e.last.y,6);label('?',sx,sy,'rgba(255,110,90,.95)',11,700);

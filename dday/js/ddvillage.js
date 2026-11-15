@@ -489,7 +489,7 @@ function vgWaves(){
       ddTankSpawn({x:722,y:-880,ang:Math.PI/2,way:[[722,-700],[722,-560],[716,-450],[712,-390]],name:'Tank'}).node='gate';
       for(let i=0;i<6;i++){const e=ddFoe('r2',290+i*14-DDX,-748+(i%2)*10,{reinf:2,ang:Math.PI/2,dmgIn:.85,aimPen:.06,nade:i%3===0?1:0});enemies.push(e);dd.vg.spawned++;vgSend(e,i%2?'church':'square');}
       vgCompany(10,330,2);
-      banner('A tank down the main street: bazookas and grenades.',4000);}}
+      banner('A tank down the main street, men from the west.',4000);}}
 }
 function vgBazooka(){
   for(const u of dd.npcs){if(u.spec!=='rpg'||!alive(u)||!(u.specN>0))continue;
@@ -583,7 +583,6 @@ function vgDraw(){
   // (Version 167: the machine guns show their fields of fire on the ground and the objective pill says where to go, ddhud.js: what's left here is short)
   for(const e of enemies)if(e.weapon==='sniper'&&!beaten(e)&&e.seen)lab(e.x,e.y,(e.elev||0)+30,'SNIPER','#ff8a6a');
   if(V.ph==='village')for(const z of VG.zones){const h=V.held[z.k];lab(z.lx,z.ly,h?36:44,h?`${z.n} · OURS`:z.n,h?'#8fd0ff':'#ffcf4a',9);}
-  for(const K of dd.tanks)if(K.hp>0&&K.y>-760){toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
   for(const p of players)if(p.joining&&alive(p)){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
 }

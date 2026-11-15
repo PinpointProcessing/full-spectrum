@@ -380,7 +380,7 @@ function ddSquadAI(t){
   if(Math.random()<.02+.14*Math.min(1,idle/70)){
     const bold=u=>Math.random()<(u.bold||1)*.7;
     const dm=m.find(u=>u.spec==='rpg'&&u.specN>0&&!u.path.length&&!pinnedNow(u)&&bold(u));
-    const gun=dm&&foes.filter(e=>e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar').sort((a,b)=>hyp(a.x-dm.x,a.y-dm.y)-hyp(b.x-dm.x,b.y-dm.y))[0];
+    const gun=dm&&foes.filter(e=>(e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar')&&!players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<70)).sort((a,b)=>hyp(a.x-dm.x,a.y-dm.y)-hyp(b.x-dm.x,b.y-dm.y))[0];
     if(dm&&gun&&hyp(gun.x-dm.x,gun.y-dm.y)<PRPG.range+60&&hyp(gun.x-dm.x,gun.y-dm.y)>PRPG.min+10){orderThrow(dm,gun.x,gun.y,'rpg');}
     else{const g=m.find(u=>(u.grenade||0)>0&&!u.path.length&&!pinnedNow(u)&&bold(u)),tg=g&&foes.filter(e=>hyp(e.x-g.x,e.y-g.y)<nadeRange(g)+40&&!players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<70)).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];
       if(g&&tg)orderThrow(g,tg.x,tg.y,'nade');
@@ -472,7 +472,7 @@ function ddJoin(u){   // a replacement on his way up to his squad
   if(p)u.path=p;
 }
 /* ---------- the shelling: mortars, the heavy gun, the cannon (while they're crewed) ---------- */
-function ddShell(by,x,y,R,D,dur){nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,by,enemy:true,R,D});if(dd&&dd.counter&&by&&by.way)dd.dc.shells.push({x,y,at:simT+dur});}   // (a tank's shell: where and when it lands, for the guns it can knock out, ddcounter.js)
+function ddShell(by,x,y,R,D,dur){if(by&&by.side==='E')by.shellAt={x,y,R,t:simT};nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,by,enemy:true,R,D});if(dd&&dd.counter&&by&&by.way)dd.dc.shells.push({x,y,at:simT+dur});}   // (a tank's shell: where and when it lands, for the guns it can knock out, ddcounter.js)
 function ddShelling(){
   const al=dd.allies.filter(u=>!u.inBoat);if(!al.length)return;
   const pickAt=f=>{const c=al.filter(f);const u=(c.length?c:al)[(Math.random()*(c.length?c.length:al.length))|0];return{x:u.x+(Math.random()-.5)*90,y:u.y+(Math.random()-.5)*90};};
@@ -597,12 +597,14 @@ function ddZones(){
 function ddDrawTargets(now){
   const disc=(x,y,r,fill,line)=>{gPath(x,y,r);if(toSBack)return;ox.fillStyle=fill;ox.fill();ox.strokeStyle=line;ox.lineWidth=2;ox.stroke();},pu=.5+.5*Math.sin(now*6);
   const OR=`rgba(255,138,30,${(.26+pu*.1).toFixed(3)})`,ORL='rgba(255,170,70,.95)',GR='rgba(150,158,166,.4)',GRL='rgba(215,222,228,.9)',GN=`rgba(20,120,60,${(.34+pu*.1).toFixed(3)})`,GNL='rgba(60,200,110,.95)';
-  for(const u of players){if(!alive(u)||u.team!==dd.active)continue;const g=u.throwGo;   // (the squad you play only: Version 167)
-    if(g){if(g.kind==='smoke')disc(g.x,g.y,58,GR,GRL);else disc(g.x,g.y,g.kind==='rpg'?PRPG.blast||55:58,OR,ORL);}
+  const mine=players.filter(p=>alive(p)&&p.team===dd.active),RL='rgba(255,70,50,.95)',near=(x,y,R)=>mine.some(p=>hyp(p.x-x,p.y-y)<R+15);   // (Version 167: the squad you play, and anyone else's frag or rocket that would land on it: friendly fire is on)
+  for(const u of players){if(!alive(u))continue;const g=u.throwGo,own=u.team===dd.active;
+    if(g){const R=g.kind==='rpg'?PRPG.blast||55:58;if(own){if(g.kind==='smoke')disc(g.x,g.y,58,GR,GRL);else disc(g.x,g.y,R,OR,ORL);}else if(g.kind!=='smoke'&&near(g.x,g.y,R))disc(g.x,g.y,R,OR,RL);}
+    if(!own)continue;
     const md=u.medGo;if(md&&md.t&&!md.t.dead)disc(md.t.x,md.t.y,15,GN,GNL);
     if(u.raise&&u.raise.t)disc(u.raise.t.x,u.raise.t.y,15,GN,GNL);}
-  for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P'||n.by.team!==dd.active)continue;if(n.smoke)disc(n.x1,n.y1,58,GR,GRL);else disc(n.x1,n.y1,n.R||58,OR,ORL);}
-  for(const r of rockets){if(!r.by||r.by.side!=='P'||r.by.team!==dd.active||r.left==null)continue;disc(r.x+r.dx*r.left,r.y+r.dy*r.left,PRPG.blast||55,OR,ORL);}
+  for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P')continue;const own=n.by.team===dd.active;if(own&&n.smoke)disc(n.x1,n.y1,58,GR,GRL);else if(!n.smoke&&(own||near(n.x1,n.y1,n.R||58)))disc(n.x1,n.y1,n.R||58,OR,own?ORL:RL);}
+  for(const r of rockets){if(!r.by||r.by.side!=='P'||r.left==null)continue;const x=r.x+r.dx*r.left,y=r.y+r.dy*r.left,own=r.by.team===dd.active;if(own||near(x,y,PRPG.blast||55))disc(x,y,PRPG.blast||55,OR,own?ORL:RL);}
   // a scope on the man the squad you play was told to shoot (Bryan: "a scoop emoji around the unit selected for that squad to attack")
   const scope=(cx,cy,r)=>{ox.save();ox.lineCap='round';for(const[w,c]of[[3.6,'rgba(0,0,0,.55)'],[1.8,'rgba(255,58,40,.98)']]){ox.strokeStyle=c;ox.lineWidth=w;ox.beginPath();ox.arc(cx,cy,r,0,TAU);
       for(let k=0;k<4;k++){const q=k*Math.PI/2,c1=Math.cos(q),s1=Math.sin(q);ox.moveTo(cx+c1*r*.45,cy+s1*r*.45);ox.lineTo(cx+c1*r*1.32,cy+s1*r*1.32);}ox.stroke();}
@@ -613,7 +615,7 @@ function ddDrawTargets(now){
   // said where the finger was (Bryan: "if something is too far, can a message pop up where the using is selecting. 'Too far' or 'Not in range'")
   for(const n of dd.notes||[]){const q=(performance.now()-n.t)/1700;if(q>=1)continue;toSBack=false;const[sx,sy]=toS(n.x,n.y,4);if(toSBack)continue;ox.globalAlpha=q>.7?(1-q)/.3:1;label(n.text,sx,sy-10-q*14,'#ff6a55',13,700);ox.globalAlpha=1;}
   if(dd.notes)dd.notes=dd.notes.filter(n=>performance.now()-n.t<1700);
-  for(const K of ddTanksUp()){toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}   // (its health; what to use on it is in the objective pill)
+  for(const K of ddTanksUp()){if(dd.vil&&K.y<=-760||dd.counter&&(K.hold||K.y<=DCA.treeY-60))continue;toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}   // (its health, once it's in the fight; what to use on it is in the objective pill)
 }
 function ddNote(text){const p=dd&&dd.tapW;if(!p||performance.now()-p.t>900)return;(dd.notes||(dd.notes=[])).push({x:p.x,y:p.y,text,t:performance.now()});}
 

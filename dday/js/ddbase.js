@@ -181,6 +181,7 @@ function ddNpcEast(u){
 /* ---------- on the overlay, and the hint ---------- */
 function ddBaseDraw(lab){
   const b=dd.base;if(!b||!b.garr)return;const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),X=x=>x-DDX;
+  if(!dd.blown.bA)lab(X(DB.bA.x+60),DB.bA.y+20,46,'BARRACKS A','#ff8a6a');if(!dd.blown.bB)lab(X(DB.bB.x+60),DB.bB.y+20,46,'BARRACKS B','#ff8a6a');   // (they send men until they're blown up)
   if(!dd.blown.fuel)lab(X(DB.fuel.x+25),DB.fuel.y+20,34,'FUEL DUMP','#ffcf4a');   // (Version 167: the rest of the names are gone; the objective pill names the command post, ddhud.js)
 }
 function ddBaseHint(){

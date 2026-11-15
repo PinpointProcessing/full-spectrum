@@ -968,7 +968,7 @@ function computeVis(){
     e.vis=players.some(p=>alive(p)&&canSee(p,e))||(simT<(e.revealT||0)&&!offFloor(e));   // (revealT: he gave himself away firing at us, or one of ours is shooting at him; Bryan couldn't find who was shooting)
     if(e.vis){
       if(!e.seen){e.seen=true;callout(e,e.mon==='boss'?'Brood Mother':e.mon?(e.kind==='crawler'?'The Crawler!':e.kind==='young'?'Her young!':'Hunter!'):'Hostile!',C.bad);if(!contact&&simT-spotBannerT>4){spotBannerT=simT;banner(e.grp===0?'Hostile spotted inside the warehouse.':'Hostile spotted.');}}
-      e.last={x:e.x,y:e.y};
+      e.last={x:e.x,y:e.y,t:simT};
     }
     {let n=null,nd=1e9;for(const p of players){if(!alive(p))continue;const d=hyp(p.x-e.x,p.y-e.y);if(d<nd){nd=d;n=p;}}e.coverNow=!!n&&e.alerted&&coverAt(e.x,e.y,n.x,n.y)>0;}
     if(e.surr)continue;   // he gave up (layers.js)

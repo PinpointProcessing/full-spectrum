@@ -26,12 +26,23 @@ await ok('cover shield: in the open in front of a gun',()=>{const g=enemies.find
   // a spot straight out in front of the gun, in its reach and in its sight
   let spot=null;for(let d=120;d<400&&!spot;d+=20){const x=g.onGun.x+Math.cos(g.onGun.ang)*d,y=g.onGun.y+Math.sin(g.onGun.ang)*d;if(isFree(x,y)&&los(g.x,g.y,x,y)&&coverAt(x,y,g.x,g.y)===0)spot={x,y};}
   if(!spot)return{ok:false,why:'no open spot'};const ox0=u.x,oy0=u.y;u.x=spot.x;u.y=spot.y;u._cv=null;const k=ddCover(u);u.x=ox0;u.y=oy0;u._cv=null;return{ok:k===0,k,spot:[Math.round(spot.x),Math.round(spot.y)]};});
+await ok('fields of fire still drawn with the squad right under the guns',()=>{const M=players.filter(p=>p.team===dd.active&&alive(p)),P=M.map(u=>[u.x,u.y]);const G=enemies.filter(e=>e.gunner&&e.onGun&&!beaten(e));for(const e of G)e.seen=true;
+  const r=[];for(const y of[600,450,360]){M.forEach((u,i)=>{u.x=820+i*12;u.y=y;});ddGoSquad(dd.active);for(let i=0;i<40;i++){panTick(1/30);ddFrame(1/30,simT);}render(.001,simT);
+    let n=0;const lim=Math.max(2,camera.near*3);for(const e of G){const pts=ddWedge(e,e.onGun,ddReach(e));if(ddDepth(e.onGun.x,e.onGun.y)>=lim)n++;}
+    const fill=[];const f0=ox.fill.bind(ox);ox.fill=function(){fill.push(1);return f0.apply(ox,arguments);};ddDanger(simT);ox.fill=f0;r.push({y,guns:G.length,inFront:n,filled:fill.length});}
+  M.forEach((u,i)=>{u.x=P[i][0];u.y=P[i][1];});return{ok:r.every(q=>q.filled>0),r};});
+await ok('shield ignores a gun that cannot swing onto him',()=>{const g=enemies.find(e=>e.gunner&&e.onGun&&!beaten(e)&&e.onGun.arc<1);const u=players.find(p=>p.team===dd.active&&alive(p));
+  const a=g.onGun.ang+g.onGun.arc+.5,x=g.onGun.x+Math.cos(a)*200,y=g.onGun.y+Math.sin(a)*200;return{ok:!ddCanSwing(g,x,y)&&ddCanSwing(g,g.onGun.x+Math.cos(g.onGun.ang)*200,g.onGun.y+Math.sin(g.onGun.ang)*200),arc:g.onGun.arc};});
+await ok('a gun shelling the squad is marked',()=>{const u=players.find(p=>p.team===dd.active&&alive(p)),e=enemies.find(e=>(e.tag==='heavy'||e.tag==='mortar'||e.tag==='art')&&!beaten(e))||enemies.find(e=>!beaten(e));const n0=nades.length;ddShell(e,u.x+20,u.y,50,78,2.6);nades.length=n0;
+  let marked=false;const g0=gPath,a0=ddEdgeArrow;window.gPath=function(x,y){if(x===e.x&&y===e.y)marked=true;return g0.apply(this,arguments);};ddEdgeArrow=function(){marked=true;return a0.apply(this,arguments);};ddShooters(simT);window.gPath=g0;ddEdgeArrow=a0;e.shellAt=null;return{ok:marked,tag:e.tag};});
+await ok('the box starts under the pill',()=>{drawOverlay(.03,simT);ddBoxC=null;const B=ddBox(),r=$('#ddObj').getBoundingClientRect(),st=$('#stage').getBoundingClientRect();return{ok:$('#ddObj').hidden||B.top>=r.bottom-st.top,top:B.top,pillBottom:r.bottom-st.top};});
 await ok('blood: a sprite that fades',()=>{const e=enemies.find(e=>!beaten(e)&&!e.gunner);ddGore(e,true);const on=DD.blood.filter(q=>q.on).length;RUN(32);const left=DD.blood.filter(q=>q.on&&q.t<28).length;return{ok:on>0&&DD.blood.every(q=>!q.on||q.t<28),on,left,ground:'not painted'};});
 await ok('a squad man hurt shows a bar, the target only gets the pill',()=>{const u=players.find(p=>p.team===dd.active&&alive(p));u.hp=60;const e=enemies.find(q=>q.vis&&!beaten(q));if(e){for(const p of players)if(p.team===dd.active)p.focus=e;}drawOverlay(.03,simT);u.hp=100;return{ok:true,target:!!e,pill:e&&e._pill?e._pill.text:null};});
 // the base: the barracks taken, the command post
-await ok('the way up, then the barracks, then the command post',()=>{const M=players.filter(p=>p.team===dd.active&&alive(p)),P=M.map(u=>[u.x,u.y]);const at=(x,y)=>M.forEach(u=>{u.x=x;u.y=y;});
+await ok('the way up, then the barracks, then the command post',()=>{const M=players.filter(p=>p.team===dd.active&&alive(p)),P=M.map(u=>[u.x,u.y]);const GS=enemies.filter(e=>e.gunner).map(e=>[e,e.seen,e.vis]);for(const[e]of GS){e.seen=false;e.vis=false;}   // (guns unseen: the steps for knocking them out are checked by the woods and field cases)
+const at=(x,y)=>M.forEach(u=>{u.x=x;u.y=y;});
   at(ddRouteX(150),150);const w=OBJ();at(ddRouteX(-200),-200);const up=OBJ();at(720,-420);const a=OBJ();at(720,-620);const F0=dd.holdFoes;dd.holdFoes=0;const nr=OBJ();dd.holdT=2;const b2=OBJ();dd.holdT=0;dd.holdFoes=F0;
-  const r={w,up,a,nr,b:b2};if(typeof ddBaseOpen==='function'&&!(dd.base&&dd.base.open)){try{ddBaseOpen();}catch(e){r.err=String(e);}}const c=OBJ();r.c=c;M.forEach((u,i)=>{u.x=P[i][0];u.y=P[i][1];});
+  const r={w,up,a,nr,b:b2};if(typeof ddBaseOpen==='function'&&!(dd.base&&dd.base.open)){try{ddBaseOpen();}catch(e){r.err=String(e);}}const c=OBJ();r.c=c;M.forEach((u,i)=>{u.x=P[i][0];u.y=P[i][1];});for(const[e,s0,v0]of GS){e.seen=s0;e.vis=v0;}
   return{ok:/bunker|pillbox|draw/.test(w.t)&&/Up the draw|MG nest/.test(up.t)&&/the barracks|machine gun/.test(a.t)&&/Two men at the door|Take the barracks/.test(nr.t)&&/Hold the barracks · 2/.test(b2.t)&&(!dd.base||!dd.base.open||/command post/.test(c.t)),...r};});
 // --- the counterattack
 await ev(()=>{SEEN.clear();ddRoster.stage=1;startCounter();});await page.waitForTimeout(400);
@@ -39,6 +50,8 @@ await ok('counter: intro then man the guns',()=>{const a=OBJ();RUN(8);const b2=O
 await ok('counter: a gun manned changes the target',()=>{const C=dd.dc,g0=OBJ();const u=players.find(p=>alive(p));const g=C.guns.find(q=>!q.man&&!q.dead&&Math.round(q.x)===g0.x&&Math.round(q.y)===g0.y);if(!g)return{ok:false,why:'no gun at target',g0};g.man=u;const g1=OBJ();g.man=null;return{ok:g1.x!==g0.x||g1.y!==g0.y||/They attack/.test(g1.t),g0,g1};});
 await ok('counter: the wave',()=>{RUN(26);const o=OBJ();return{ok:/Hold the base/.test(o.t||''),ph:dd.dc.ph,...o};});
 await ok('counter: the command post',()=>{dd.dc.cpN=2;dd.dc.cpT=5;const o=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;return{ok:/Retake the command post · 15/.test(o.t)&&o.k==='danger'&&o.x<1000,...o};});
+await ok('counter: the command post clock comes before a tank',()=>{const K=dd.tanks.find(K=>K.hp>0);const h=K.hold,x=K.x,y=K.y;K.hold=false;const u=players.find(p=>alive(p));K.x=u.x;K.y=u.y-300;dd.dc.cpN=1;dd.dc.cpT=8;const o=OBJ();K.x=1000;K.y=700;const o2=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;K.hold=h;K.x=x;K.y=y;
+  return{ok:/Retake the command post · 12/.test(o.t)&&/Tank in the command post · 12/.test(o2.t),o,o2};});
 await ok('counter: a tank comes first',()=>{const K=dd.tanks.find(K=>K.hp>0);if(!K)return{ok:false};const h=K.hold,x=K.x,y=K.y;K.hold=false;const u=players.find(p=>alive(p));K.x=u.x;K.y=u.y-300;const o=OBJ();K.hold=h;K.x=x;K.y=y;return{ok:/Tank! Field gun or bazooka/.test(o.t),...o};});
 await ok('counter: callouts only from the keep-list',()=>{RUN(10);const bad=[...SEEN].filter(t=>!DD_SAY.has(t));return{ok:!bad.length,bad};});
 // --- the village

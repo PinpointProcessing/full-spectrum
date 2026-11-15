@@ -220,7 +220,7 @@ let fireOrderAt=-1e9;   // when the last suppress/grenade/smoke order was given 
 function suppressAt(sx,sy){
   const en=enemyAtScreen(sx,sy);if(en&&!en.surr)return{x:en.x,y:en.y,en};
   let best=null,bd=34;
-  for(const e of enemies){if(e.dead||e.surr||!e.seen)continue;const p=e.vis?e:e.last;if(!p)continue;toSBack=false;const[x,y]=toS(p.x,p.y,8);if(toSBack)continue;const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best={x:p.x,y:p.y,en:e.vis?e:null};}}
+  for(const e of enemies){if(e.dead||e.surr||!e.seen)continue;const p=e.vis?e:e.last;if(!p||!e.vis&&MAPID==='dd'&&simT-(p.t||0)>8)continue;toSBack=false;const[x,y]=toS(p.x,p.y,8);if(toSBack)continue;const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best={x:p.x,y:p.y,en:e.vis?e:null};}}   // (D-Day: where he ducked out of sight only for 8 s, while it's marked: overlay.js)
   return best;
 }
 function orderSuppress(list,pt){

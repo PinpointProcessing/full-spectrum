@@ -297,7 +297,7 @@ function dcDraw(){
     if(g.dead){lab(g.x,g.y,24,`${g.n} · KNOCKED OUT`,'#8b949c');continue;}
     lab(g.x,g.y,g.t==='art'?34:24,m?(g.t==='art'?(simT<g.fireT?`${g.n} · RELOADING ${Math.ceil(g.fireT-simT)}`:mine?(C.art===g?`${g.n} · TAP A TARGET`:`${g.n} · TAP TO AIM`):g.n):mine?`${g.n} · ${m.name.toUpperCase()}`:g.n):(g.going?`${g.n} · ON HIS WAY`:`${g.n} · TAP TO MAN`)+(g.hits?` · HIT ${g.hits}/3`:''),g.hits===2?'#ff8a6a':m?(mine?'#8fd0ff':'#cfd6dc'):'#ffcf4a');}
   if(C.art){const g=C.art;gPath(g.x,g.y,DCA.art.max);ox.strokeStyle='rgba(255,207,74,.5)';ox.lineWidth=1.5;ox.setLineDash([8,6]);ox.stroke();ox.setLineDash([]);}
-  for(const K of dd.tanks)if(K.hp>0&&K.y>DCA.treeY-60){toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}   // (Version 167: its health as a bar; the command post and the clock are in the objective pill, ddhud.js)
+  // (Version 167: the tanks' health is ddplay.js's ddDrawTargets' bar; the command post and the clock are in the objective pill, ddhud.js)
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
 }
 function dcFinishLost(){
