@@ -86,6 +86,7 @@ const ddmSlotMan=(t,i)=>{if(!ddRoster)ddRoster=ddmRead();return ddRoster.squads[
 /* ---------- the end of a battle won: who's left, what they did ---------- */
 // where the line-up stands and what the base view looks at, on the beach's map or the counterattack's (ddcounter.js)
 function ddmSpots(){
+  if(dd&&dd.vil)return{line:[700,-468],cam:[770,-520],zoom:[1.75,3],bk:VG.meta.bk,ar:VG.meta.ar,vd:VG.meta.vd,sq:[672,-536],off:{bk:[0,-10],ar:[0,-14],vd:[0,-12]}};   // (the village, Chapter 3: its town hall the barracks, ddvillage.js)
   if(dd&&dd.counter)return{line:[885,655],cam:[700,720],zoom:[1.75,3],bk:[DCA.barracks[0].x+85,DCA.barracks[0].y+50],ar:[DCA.armory.x+55,DCA.armory.y+28],vd:[DCA.depot.x+75,DCA.depot.y+28],sq:[DCA.square.x-30,DCA.square.y-20],off:{bk:[0,-10],ar:[-10,24],vd:[30,24]}};
   return{line:[DDX+520,-556],cam:[1545,-592],zoom:[2.6,3.6],bk:[(DB.bA.x+DB.bB.x+DB.bB.w)/2,DB.bA.y+DB.bA.h/2],ar:[DB.ammo.x+DB.ammo.w/2,DB.ammo.y+DB.ammo.h/2],vd:[DB.pool.x+DB.pool.w/2,DB.pool.y+DB.pool.h/2],sq:[1500,-592],off:{bk:[0,-6],ar:[34,-14],vd:[-34,20]}};
 }
@@ -101,10 +102,12 @@ function ddmStart(){
   const dead=fallen.map(u=>({name:u.name,role:u.ddRole,kills:u.stats.kills,rev:u.stats.revives||0,mvp:u===mvp}));
   // whoever he ended with is the roster (Bryan); the dead are gone, and their kit with them
   for(const t of['A','B']){R.squads[t]=[null,null,null,null];for(const u of alive8.filter(p=>p.team===t)){const i=clamp((+String(u.id).slice(1)||1)-1,0,3);R.squads[t][R.squads[t][i]?R.squads[t].indexOf(null):i]=u.rm;}}
-  R.medals++;R.battles++;R.minLevel=Math.max(R.minLevel,dd.counter?3:2);R.stage=Math.max(R.stage||0,dd.counter?2:1);ddmRecruits();ddmSave();
+  const chap=dd.vil?3:dd.counter?2:1;   // (1 D-Day, 2 the counterattack, 3 the village)
+  R.medals++;R.battles++;R.minLevel=Math.max(R.minLevel,chap+1);R.stage=Math.max(R.stage||0,chap);ddmRecruits();ddmSave();
   const t=Math.floor(simT-dd.t0);
-  ddm={ph:'report',t:0,rows,dead,mvp,chap:dd.counter?'CHAPTER 2 · THE COUNTERATTACK':'CHAPTER 1 · D-DAY',sp:ddmSpots(),sum:`${dd.counter?'The base held for':'Their base taken in'} ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):enemies.filter(e=>e.dead).length} enemy down${dd.counter?' · '+dd.tanks.filter(K=>K.hp<=0).length+' tanks knocked out':''} · ${dd.lost} of ours lost`,pick:null,slot:null,ui:null,room:null,cam:{k:1}};
+  ddm={ph:'report',t:0,rows,dead,mvp,chap:['CHAPTER 1 · D-DAY','CHAPTER 2 · THE COUNTERATTACK','CHAPTER 3 · THE VILLAGE'][chap-1],sp:ddmSpots(),sum:`${chap===3?'The village taken in':dd.counter?'The base held for':'Their base taken in'} ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length} enemy down${chap===3?' · '+enemies.filter(e=>e.surr&&!e.dead).length+' taken prisoner':''}${dd.counter||chap===3?' · '+dd.tanks.filter(K=>K.hp<=0&&!K.left).length+' tank'+(dd.tanks.filter(K=>K.hp<=0&&!K.left).length===1?'':'s')+' knocked out':''} · ${dd.lost} of ours lost`,pick:null,slot:null,ui:null,room:null,cam:{k:1}};
   state='ddmeta';sel=[];cardGroup=[];mode=null;camPan=null;dd.track=null;paused=false;
+  if(chap===3)for(const K of dd.tanks||[])if(K.g)K.g.visible=false;   // (the village: the wrecked tank out of the line-up's way)
   document.body.classList.add('ddm');{const q=$('#sq');if(q)q.hidden=true;}{const o=$('#oob');if(o)o.hidden=true;}
   // the line-up: each squad in a diagonal line across from the other, in front of the barracks on the hill
   const[cx,cy]=ddm.sp.line;
@@ -148,8 +151,8 @@ function ddmUI(){
       <button type="button" class="ddm-tag" data-b="ar" data-a="armory">ARMORY<small>saved equipment</small></button>
       <button type="button" class="ddm-tag off" data-b="vd" data-a="depot">VEHICLE DEPOT<small>later</small></button>
       ${ddm.armory?`<div class="ddm-sheet mid"><div class="ddm-t">ARMORY · SAVED EQUIPMENT</div>${R.armory.length?R.armory.map(id=>`<div class="ddm-it${DDM_ITEMS[id].star?' gold':''}"><span><b>${DDM_ITEMS[id].star?'★ ':''}${DDM_ITEMS[id].n}</b> · ${DDM_ITEMS[id].d}</span><em>${DDM_ITEMS[id].role?DDM_ITEMS[id].role.map(r=>DDM_ROLE[r]).join(', '):'anyone'}</em></div>`).join(''):'<div class="ddm-dim" style="margin:8px 0">Nothing saved yet. In the barracks, press a piece of a man\'s kit and choose "Put it in the armory" to keep it here for later.</div>'}<button type="button" class="ddm-btn grey" data-a="armoryx">CLOSE</button></div>`:''}
-      <div class="ddm-bar bot">${(R.stage||0)<2?`<div class="ddm-post">Ready your squads in the barracks. When you come back out, they counterattack.</div><div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn" data-a="barracks">TO THE BARRACKS ▸</button></div>`
-        :`<div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn grey" data-a="next">D-DAY AGAIN</button><button type="button" class="ddm-btn" data-a="again2">HOLD THE BASE AGAIN</button></div><div class="ddm-dim">The base is held. The next chapter is still to come.</div>`}</div>`;
+      <div class="ddm-bar bot">${(R.stage||0)<3?`<div class="ddm-post">Ready your squads in the barracks. ${(R.stage||0)<2?'When you come back out, they counterattack.':'When you come back out, you set out for the village inland.'}</div><div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn" data-a="barracks">TO THE BARRACKS ▸</button></div>`
+        :`<div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn grey" data-a="next">D-DAY AGAIN</button><button type="button" class="ddm-btn grey" data-a="again2">HOLD THE BASE AGAIN</button><button type="button" class="ddm-btn" data-a="again3">THE VILLAGE AGAIN</button></div><div class="ddm-dim">The village is yours. The next chapter is still to come.</div>`}</div>`;
   }else h=ddmBarracksHTML();
   el.className='ph-'+ph;el.innerHTML=h;
   if(ph==='report'){const t0=performance.now();const tick=()=>{if(!ddm||ddm.ph!=='report')return;const k=clamp((performance.now()-t0-500)/1800,0,1),e=1-Math.pow(1-k,3);
@@ -160,7 +163,11 @@ function ddmUI(){
 function ddmPlace(){
   const el=$('#ddm');if(!el||!ddm)return;
   if(ddm.ph==='base'){const at=ddm.sp,off=at.off;
-    for(const b of el.querySelectorAll('.ddm-tag')){const p=at[b.dataset.b],q=toS(p[0],p[1]),o=off[b.dataset.b];b.style.left=clamp(q[0]+o[0],76,cw-76)+'px';b.style.top=clamp(q[1]+o[1],90,ch-110)+'px';}}
+    const T=[...el.querySelectorAll('.ddm-tag')].map(b=>{const p=at[b.dataset.b],q=toS(p[0],p[1]),o=off[b.dataset.b];const w=b.offsetWidth||150,h=b.offsetHeight||40;return{b,x:clamp(q[0]+o[0],w/2+8,cw-w/2-8),y:clamp(q[1]+o[1],90,ch-110),w,h};});
+    // (Version 164: tags that would sit on each other are pushed apart, the lower one further down: in landscape on a short screen the
+    // counterattack's barracks and armory tags overlapped and the armory's took the taps)
+    T.sort((a,b)=>a.y-b.y);for(let i=1;i<T.length;i++)for(let j=0;j<i;j++){const A=T[j],B=T[i];if(Math.abs(A.x-B.x)<(A.w+B.w)/2+4&&Math.abs(A.y-B.y)<(A.h+B.h)/2+4){const y2=A.y+(A.h+B.h)/2+6;if(y2<=ch-110)B.y=y2;else B.x=clamp(A.x+((B.x>=A.x||A.x<cw/2)?1:-1)*((A.w+B.w)/2+8),B.w/2+8,cw-B.w/2-8);}}
+    for(const t of T){t.b.style.left=t.x+'px';t.b.style.top=Math.min(t.y,ch-60)+'px';}}
   if(ddm.ph==='barracks'&&ddm.room)ddmRoomPlace(el);
 }
 function ddmClick(ev){
@@ -176,9 +183,10 @@ function ddmClick(ev){
   else if(a==='depot'){banner('The vehicle depot comes later.',2200);return;}
   else if(a==='menu'){ddmSave();reset();$('#end').hidden=true;$('#intro').hidden=false;state='intro';if(typeof ddCtrBtnShow==='function')ddCtrBtnShow();return;}
   else if(a==='again2'){ddmSave();ddmEnd();startCounter();return;}
+  else if(a==='again3'){ddmSave();ddmEnd();startVillage({skip:true});return;}
   else if(a==='next'){if(ddmAll().length<1){banner('Nobody in the squads. Recruit someone at the barracks first.',3000);return;}ddmNext();return;}
   else if(a==='barracks'){ddm.ph='barracks';ddm.slot=null;ddm.sub=null;ddm.swap=null;ddm.cand=null;if(!ddm.room)ddmRoomBuild();ddmRoomMen();ddm.cam={k:1};}
-  else if(a==='out'){if((R.stage||0)===1&&typeof startCounter==='function'){ddmSave();if(!ddmAll().length){banner('Nobody in the squads. Recruit someone first.',3000);return;}ddmEnd();startCounter();return;}   // (Bryan: "After the player enters the barracks and exit it, it triggers the counter attack")
+  else if(a==='out'){if(((R.stage||0)===1||(R.stage||0)===2)&&typeof startCounter==='function'){ddmSave();if(!ddmAll().length){banner('Nobody in the squads. Recruit someone first.',3000);return;}ddmEnd();if(R.stage===2)startVillage();else startCounter();return;}   // (stage 2: the sequence on the base, then Chapter 3, ddvillage.js)   // (Bryan: "After the player enters the barracks and exit it, it triggers the counter attack")
     ddm.ph='base';ddm.armory=false;}
   else ddmBarracksClick(a,b);
   ddmSave();ddmUI();
@@ -207,7 +215,7 @@ function ddmBarracksHTML(){
     if(ddm.swap){const L=ddmSwapList(m,ddm.swap);
       h+=`<div class="ddm-swap" data-follow="under">${L.length?L.map((o,i)=>`<button type="button" class="ddm-it${o.star?' gold':''}" data-a="swap" data-i="${i}"><span><b>${o.star?'★ ':''}${o.n}</b> · ${o.from}</span><em>${o.verb}</em></button>`).join(''):`<div class="ddm-dim">Nothing else he can carry in this slot yet.</div>`}</div>`;}
     h+=`<div class="ddm-bar bot"><div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="wide">‹ SQUADS</button><button type="button" class="ddm-btn grey" data-a="reserve"${R.reserve.length>=DDM_RES?' disabled':''}>RESERVE</button><button type="button" class="ddm-btn" data-a="replace">REPLACE</button></div></div>`;
-  }else h+=`<div class="ddm-bar bot"><div class="ddm-dim">Alpha's bunks on the left, Bravo's on the right. Tap a man or his square; a + is an empty bunk.</div><button type="button" class="ddm-btn${(R.stage||0)===1?'':' grey'}" data-a="out">${(R.stage||0)===1?'LEAVE THE BARRACKS ▸':'‹ BACK TO THE BASE'}</button></div>`;
+  }else h+=`<div class="ddm-bar bot"><div class="ddm-dim">Alpha's bunks on the left, Bravo's on the right. Tap a man or his square; a + is an empty bunk.</div><button type="button" class="ddm-btn${(R.stage||0)===1||(R.stage||0)===2?'':' grey'}" data-a="out">${(R.stage||0)===1||(R.stage||0)===2?'LEAVE THE BARRACKS ▸':'‹ BACK TO THE BASE'}</button></div>`;
   return h;
 }
 // what he could carry in that slot instead: standard issue, a special piece a squad mate or a reserve man of his kind holds (a swap), or

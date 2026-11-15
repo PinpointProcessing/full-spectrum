@@ -192,6 +192,7 @@ function coverAt(tx,ty,sx,sy){
 function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>EAST_X-10||y>H-10)return false;for(const o of objs)if(!o.door&&rectDist(x,y,o)<(o.kind==='jeep'&&pad<10?Math.min(pad,4):pad))return false;return true;}   // a parked jeep doesn't seal a gap: you can squeeze past it
 // How tall each kind of object stands in the 3D view, for working out what a tap actually landed on. Fences are see-through.
 function objHeight(o){
+  if(o.ht)return o.ht;   // (an object that says how tall it is: D-Day's village, ddvillage.js)
   if(o.door)return o.open?0:10.5;   // a door (interior.js): as tall as the cut-away walls while it's shut; open, nothing
   if(o.kind==='crate')return o.w*o.h>=400?14:11;
   if(o.kind==='container')return 26*(o.stack||1);

@@ -95,7 +95,8 @@ function drawSmoke(){
 }
 function drawOverlay(rdt,now){
   ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
-  if(typeof cineOn==='function'&&cineOn())return;   // (the montage after the Headquarters: just the picture, base.js)
+  if(typeof cineOn==='function'&&cineOn())return;
+  if(MAPID==='dd'&&dd&&dd.seq)return;   // (D-Day's sequence before Chapter 3: just the picture and the talk panel, ddvillage.js)   // (the montage after the Headquarters: just the picture, base.js)
   const pulse=(Math.sin(now*4)+1)/2;
   // enemy view cones (unaware, seen)
   for(const e of enemies){

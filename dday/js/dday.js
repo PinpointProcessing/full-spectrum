@@ -46,6 +46,7 @@ function ddRawH(dx,y){
 const DDG={nx:141,ny:167,h:null};
 function ddBuildH(){
   if(DD_MODE==='counter'){DDG.h=dcHeights();return;}
+  if(DD_MODE==='village'){DDG.h=vgHeights();return;}   // (Chapter 3: the woods, the field and the village, ddvillage.js)
   const{nx,ny}=DDG;let a=new Float32Array(nx*ny),b=new Float32Array(nx*ny);
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)a[j*nx+i]=i*10>=1290&&DDB.y0+j*10<=-330?152:ddRawH(ddMx(i*10),DDB.y0+j*10);   // (east of the old play area the top is flat ground, not a mirror image: the road on to their base, ddbase.js)
   for(let p=0;p<2;p++){   // soften the cliffs a little (a wall of stretched triangles otherwise)
@@ -67,6 +68,7 @@ function ddH(x,y){
 const DD_EYE=15;
 function ddSightOK(ax,ay,bx,by){
   if(!DDG.h)return true;const d=Math.hypot(bx-ax,by-ay);if(d<40)return true;
+  if(DD_MODE==='village'&&typeof vgSightOK==='function'&&!vgSightOK(ax,ay,bx,by))return false;   // (the woods' leaves: ddvillage.js)
   const ha=ddH(ax,ay)+DD_EYE,hb=ddH(bx,by)+DD_EYE,n=Math.min(48,Math.ceil(d/16));
   for(let i=1;i<n;i++){const t=i/n;if(t*d<14||(1-t)*d<14)continue;if(ddH(ax+(bx-ax)*t,ay+(by-ay)*t)>ha+(hb-ha)*t+3)return false;}
   return true;
@@ -87,6 +89,7 @@ const DD_SPOT={   // where things are (dx,y): ddplay.js posts the defenders by t
   gateL:{x:24,w:86},gateM:{x:474,w:62},boat:{x:500,y:772}};
 function ddObjects(){
   if(DD_MODE==='counter')return dcObjects();
+  if(DD_MODE==='village')return vgObjects();
   const L=[],o=(kind,dx,y,w,h,ex)=>{const q=Object.assign({kind,x:dx+DDX,y,w,h,full:false},ex||{});L.push(q);return q;};
   // rock: rows of 'drop' 20 deep, from the three masses (and their mirror images in the edges)
   for(let y=-440;y<320;y+=20){let run=null;
@@ -150,6 +153,7 @@ VAULTABLE.add('ddgate');VAULTABLE.add('ddwire');   // a gate can be climbed (pat
 /* ---------- the ground's picture ---------- */
 function paintDDGround(g){
   if(DD_MODE==='counter'){dcPaint(g);return;}
+  if(DD_MODE==='village'){vgPaint(g);return;}
   const W0=DDW,r=rng(1944),c=document.createElement('canvas');c.width=Math.round(W0*DDS);c.height=Math.round((DDB.y1-DDB.y0)*DDS);
   const x=c.getContext('2d');x.setTransform(DDS,0,0,DDS,0,-DDB.y0*DDS);
   // the ground, a picture worked out point by point (2 units a point): what it is (sand, wet sand, rock face, grass on the
@@ -245,6 +249,7 @@ function buildDDay(){
     const dome=new T.Mesh(new T.SphereGeometry(5200,24,12),new T.MeshBasicMaterial({color:0x8e9aa2,side:T.BackSide,fog:false,depthWrite:false}));dome.position.set(700,0,0);sc.add(dome);DD.dome=dome;
     ddProps(sc,objsL);
     if(DD_MODE==='counter'){for(const m of DD.bo)m.visible=false;dcScenery(sc);}else
+    if(DD_MODE==='village'){for(const m of DD.bo)m.visible=false;vgScenery(sc);}else
     if(typeof ddScenery==='function')ddScenery(sc);   // (ddlook.js: sky, ships, balloons, the landings either side)
     // the light: an overcast dawn (ddSky moves it on through the day)
     const hemi=new T.HemisphereLight(0xc2d2de,0x8a7a5c,.5);hemi.userData.base=.5;sc.add(hemi);
@@ -327,7 +332,8 @@ function ddProps(sc,objsL){
       for(const dxw of[-80,-40,40,80])o.meshes.push(add(new T.BoxGeometry(12,8,1.2),new T.MeshBasicMaterial({color:0xd9b46a}),cx+dxw,g0+15,o.y+o.h+.5));
     }
   }
-  if(DD_MODE==='counter'){DD.roofs=[];dcBuild(G,sc,M,add);return;}   // (the counterattack's own props: ddcounter.js)
+  if(DD_MODE==='counter'){DD.roofs=[];dcBuild(G,sc,M,add);return;}
+  if(DD_MODE==='village'){DD.roofs=[];vgBuild(G,sc,M,add);return;}   // (Chapter 3's own props: ddvillage.js)   // (the counterattack's own props: ddcounter.js)
   // roofs over the pillbox and the nests (they fade when one of ours is inside: ddFrame), the heavy gun's and the cannon's shields
   // a bunker's roof: a thick slab with a chamfered edge, turf and a few sandbags on top, a vent pipe; all in the bunker's own materials
   const slab=(dx0,y0,w,d,hh,bk)=>{const x=dx0+DDX+w/2,y=y0+d/2,g0=ddH(x,y),rm=bkM(bk,1),m=add(new T.BoxGeometry(w+12,5,d+12),rm,x,g0+hh,y);
@@ -435,5 +441,6 @@ function ddFrame(rdt,now){
     const fl=Math.max(0,1-q.t/.07);q.f.scale.setScalar(.01+q.k*2.3*fl);q.f.rotation.z=q.t*40;
     for(const b of q.bits){b.v[1]-=220*dt;b.m.position.x+=b.v[0]*dt;b.m.position.y+=b.v[1]*dt;b.m.position.z+=b.v[2]*dt;b.m.lookAt(q.g.position.x+b.m.position.x+b.v[0],q.g.position.y+b.m.position.y+b.v[1],q.g.position.z+b.m.position.z+b.v[2]);b.m.material.opacity=1-k;}}
   if(typeof ddLookFrame==='function')ddLookFrame(dt,now);
+  if(DD_MODE==='village'&&typeof vgFrame==='function')vgFrame(rdt,now);   // (the canopy opens over our men, ddvillage.js)
   if(typeof ddCam==='function')ddCam(rdt);   // (ddplay.js: the camera keeps with the squad)
 }

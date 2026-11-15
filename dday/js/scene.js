@@ -776,7 +776,7 @@ function syncUnits(t){
     if(u.veh){truckPose(u);continue;}   // the gun truck (mission.js)
     const lying=u.downed||u.dead||simT<(u.stunT||0),cr=!lying&&u.crawl;
     if(m.fig){if(u.carriedBy)figCarried(u,m);figRefresh(u);figAnimate(u,m);}
-    m.ring.visible=!u.dead&&!u.carriedBy;m.ring.material.opacity=u.downed?.35:m.person&&u.side!=='P'?.45:.85;
+    m.ring.visible=!u.dead&&!u.carriedBy&&!(MAPID==='dd'&&dd&&dd.seq);m.ring.material.opacity=u.downed?.35:m.person&&u.side!=='P'?.45:.85;   // (no rings in D-Day's sequence before Chapter 3)
     if(m.spot)m.spot.intensity=lying||cr?0:MAPID==='tun'||l4In()?4.4:2.6;   // no torch while lying or crawling (brighter in the pitch-black tunnel: tunnel.js)
     if(m.beam)m.beam.visible=!(lying||cr);
   }

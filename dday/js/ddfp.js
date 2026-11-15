@@ -12,7 +12,7 @@ const FP_W={   // the guns as he fires them himself: one round a press (held, th
   mg:{cool:.085,dmg:[12,17],clip:60,reload:2.6,spread:.02,kick:.004,range:620,sup:.09}};
 const fpArt=u=>dd&&dd.counter&&u.dcGun&&u.dcGun.man===u&&u.dcGun.t==='art'?u.dcGun:null;
 const fpWK=u=>u.onGun?'mg':FP_W[u.weapon]?u.weapon:'rifle';
-const fpOK=()=>!!dd&&state==='play'&&dd.land.done&&!endAt;
+const fpOK=()=>!!dd&&state==='play'&&dd.land.done&&!endAt&&!dd.seq;   // (not during the sequence before Chapter 3: ddvillage.js)
 function fpPick(){
   if(sel.length===1&&alive(sel[0])&&!sel[0].npc)return sel[0];
   const m=players.filter(p=>p.team===dd.active&&alive(p)&&!p.inBoat&&!p.joining);if(!m.length)return null;

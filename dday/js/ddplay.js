@@ -104,6 +104,7 @@ function enterDDay(){
   updateObjUI();setStatus();buildCards();hud();
 }
 function leaveDDayNow(){
+  if(typeof vgCleanup==='function')vgCleanup();
   if(dd&&dd.fp&&typeof fpExit==='function')fpExit();
   DD_MODE='beach';
   if(typeof ddmEnd==='function')ddmEnd();
@@ -122,11 +123,11 @@ function startDDay(){
   bigText('Chapter 1: D\u2011Day','chapter');banner('Mission: take control of the beach',8000);setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},8400);hud();
 }
 // the start card's second button: there once D-Day is won
-function ddCtrBtnShow(){const c=$('#ddCtrBtn');if(!c)return;let R=null;try{R=typeof ddmRead==='function'?ddmRead():null;}catch(e){}c.hidden=!(R&&R.stage>=1);}
+function ddCtrBtnShow(){const c=$('#ddCtrBtn');if(!c)return;let R=null;try{R=typeof ddmRead==='function'?ddmRead():null;}catch(e){}c.hidden=!(R&&R.stage>=1);const v=$('#ddVilBtn');if(v)v.hidden=!(R&&R.stage>=2);}   // (and the third: there once the base is held)
 function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
-  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}
+  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}
   const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}
-const ddBusy=()=>!!dd&&!dd.land.done;
+const ddBusy=()=>!!dd&&(!dd.land.done||!!dd.seq);   // (dd.seq: the sequence before Chapter 3, ddvillage.js)
 /* ---------- the camera ----------
    Since Version 132 it stays where the player puts it (Bryan: "Maybe the camera shouldnt move unless dragged by the user. But
    i do want the camera to switch to the selected squad still"): it goes to a squad when that squad is picked (ddSelected) and
@@ -145,6 +146,7 @@ function ddLookBind(){
 }
 function ddCam(rdt){
   if(!dd||state!=='play')return;rdt=rdt>0?Math.min(rdt,.1):0;
+  if(dd.seq){vgSeqCam(rdt);return;}   // (the sequence before Chapter 3 has its own shots: ddvillage.js)
   const C=dd.cam||(dd.cam={k:1,p:null,q:null});
   if(!dd.land.done){const b=dd.boats.find(q=>q.own);if(!b)return;
     // (a drag turns the view from this fixed spot: Bryan, "The camera can move around from this fixed spot so the player can look around")
@@ -260,7 +262,7 @@ function ddAshore(){
 /* ---------- who shoots whom (combat.js's pickTarget) ---------- */
 function ddPick(u){
   if(u.inBoat)return null;
-  const foes=u.side==='P'?enemies:dd.allies;
+  const foes=u.side==='P'?enemies:(dd.allies||(dd.allies=units.filter(ddAlly)));   // (before the first tick has listed them)
   let best=null,bs=-1;const R=u.side==='E'?wRange(u)*(u.gunner?1.45:1.12):wRange(u);
   for(const f of foes){
     if(u.side==='P'?beaten(f):(!ddAlly(f)||(f.inBoat&&!(f.npc&&f.boat&&f.boat.st!=='in'))))continue;
@@ -302,7 +304,7 @@ function ddKill(t,how,big){
 /* ---------- blasts (mission.js's tankBlast): the gates, the wire, the guns, the barracks ---------- */
 function ddBlast(x,y,by){
   if(!dd||(by&&by.side==='E'))return;
-  ddTankHit(x,y);
+  ddTankHit(x,y);if(typeof vgBlast==='function')vgBlast(x,y);   // (Chapter 3's trucks: ddvillage.js)
   for(const o of objs.slice()){
     if(o.hp==null||o.gone)continue;const d=rectDist(x,y,o);if(d>46)continue;
     o.hp-=110*(1-d/52);
@@ -692,6 +694,7 @@ function ddTick(dt){
   contact=true;teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   dd.allies=units.filter(ddAlly);
   if(dd.fp)fpTick(dt);   // (one man played by hand: ddfp.js)
+  if(dd.seq){vgSeqTick(dt);return;}if(dd.vil){vgTick(dt);return;}   // (Chapter 3 and the sequence before it: ddvillage.js)
   if(dd.counter){dcTick(dt);return;}   // (the counterattack runs itself: ddcounter.js)
   ddBoatsTick(dt);stationTick(dt);
   ddCounter(dt);if(typeof ddBaseTick==='function')ddBaseTick(dt);
@@ -832,10 +835,11 @@ function ddObjUI(el){
   el.querySelector('span').textContent=!dd.land.done?'Thirty seconds to the beach':dd.blown.barracks?'The base is yours':dd.front>330?'Get off the beach: reach the wall':dd.front>-300?'Up the draw: the only way to the top':`Destroy the barracks${b&&b.hp<380?` (${Math.max(1,Math.round(b.hp/380*100))}%)`:''}`;
   const h=L.map(([t,d])=>`<li${d?' class="done"':''}>${t}</li>`).join('');const ol=el.querySelector('ol');if(ol.dataset.h!==h){ol.dataset.h=h;ol.innerHTML=h;}
   el.hidden=true;   // (no objective box on this map: Bryan, "Get rid of the level name on top, it's just in the way"; the chapter's name flashes up at the start instead)
-  const c=$('#ddChip');if(c){c.hidden=state!=='play';const t=dd.counter?`${dd.pool} in reserve`:`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
+  const c=$('#ddChip');if(c){c.hidden=state!=='play'||!!dd.seq;const t=dd.counter||dd.vil?`${dd.pool} in reserve`:`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
 }
 function ddHint(){
   if(!dd)return'';
+  if(dd.seq)return'';if(dd.vil)return vgHint();
   if(dd.counter)return dcHint();
   if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
@@ -846,6 +850,7 @@ function ddHint(){
 }
 function drawDDay(now){
   if(!dd||!DD)return;ddBar();if(!dd.land.done)return;   // (nothing written over the ride in)
+  if(dd.seq)return;if(dd.vil){ddDrawTargets(now);vgDraw();return;}
   if(dd.counter){ddDrawTargets(now);dcDraw();return;}
   ddDrawZones();ddDrawTargets(now);
   const lab=(dx,y,h,text,col)=>{toSBack=false;const[sx,sy]=toS(dx+DDX,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,9,700);};
@@ -868,6 +873,7 @@ function drawDDay(now){
 }
 function ddFinish(){
   if(dd&&dd.won&&typeof ddmStart==='function'){ddmStart();return;}
+  if(dd&&dd.vil){vgFinishLost();return;}   // (Chapter 3 lost: a retry, ddvillage.js)
   if(dd&&dd.counter){dcFinishLost();return;}   // (the counterattack lost: a retry, ddcounter.js)   // (a win goes on to the report, the base and the barracks: ddmeta.js)
   const win=!!(dd&&dd.won);state='end';setStatus();$('#status').textContent=win?'Taken':'Lost';
   const t=Math.floor(simT-(dd?dd.t0:0)),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0'),kills=players.reduce((n,p)=>n+p.stats.kills,0);
