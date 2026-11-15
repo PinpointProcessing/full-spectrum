@@ -11,8 +11,9 @@
 
 const DD_OK='#5fe08e',DD_HALF='#ffcf4a',DD_OPEN='#ff5a48';
 // 2 full cover, 1 half, 0 open, from the worst of the enemies in reach who could see him (seen ones: you know they're there)
+let ddCoverN=0;   // (at most two shields worked out a frame: ddDanger resets it)
 function ddCover(u){
-  const now=performance.now();if(u._cv&&now-u._cv.t<250)return u._cv.k;   // (four times a second is plenty)
+  const now=performance.now();if(u._cv&&(now-u._cv.t<250||ddCoverN>=2))return u._cv.k;ddCoverN++;   // (four times a second is plenty)
   let k=2;
   for(const e of enemies){
     if(beaten(e)||e.side!=='E'||e.mon||!(e.seen||e.vis))continue;
@@ -47,7 +48,7 @@ function ddWedge(e,g,R){
   e._wd={t:simT,R,x:g.x,a:g.ang,pts};return pts;
 }
 function ddDanger(now){
-  const W=[];ddWedgeN=0;
+  const W=[];ddWedgeN=0;ddCoverN=0;
   for(const e of enemies){
     if(!e.gunner||!e.onGun||beaten(e)||e.side!=='E'||!(e.seen||e.vis))continue;
     const g=e.onGun,R=Math.min(wRange(e)*1.45,640),pts=ddWedge(e,g,R);
