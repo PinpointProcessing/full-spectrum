@@ -403,8 +403,13 @@ function ddLine(){   // how far up they may go: behind the squads, and no furthe
   if(k===1&&dead('nest')&&dd.front<140)k=2;
   if(k===2&&dd.front<-150)k=3;
   if(k===3&&dd.front<-380&&dead('heavy'))k=4;
-  return Math.max(DD_LINES[k],dd.front+50);
+  // Version 163 (Bryan: "I am already at the top of the hill and the AI units don't move past the beach line. They should follow the player up
+  // the hill"): they keep up with the squads wherever they've got to, a little behind them; the old lines held them back until each stretch's
+  // guns were down, which left them on the sand with the squads on the top
+  return Math.min(Math.max(DD_LINES[k],dd.front+50),dd.front+90);
 }
+// the way up for the other troops: off the beach they keep to the squads' route (the draw, then the top), not their landing lane
+function ddRouteX(y){const R=DD_ROUTE;if(y>=R[0][1])return R[0][0]+DDX;for(let i=1;i<R.length;i++){const[a,b]=R[i-1],[c,d]=R[i];if(y>=d){const t=(a===c&&b===d)?0:(b-y)/(b-d);return a+(c-a)*t+DDX;}}return R[R.length-1][0]+DDX;}
 function ddNpcThink(u,line){
   if(u.dead||u.inBoat||u.path.length||simT<u.hopT)return;
   if(dd.base&&dd.base.open&&u.y<-430){ddNpcEast(u);return;}   // (on the top, once the barracks is ours: east to their base, ddbase.js)
@@ -415,15 +420,19 @@ function ddNpcThink(u,line){
     return;}
   if(u.sup>.8){u.hopT=simT+1.5;return;}
   let best=null,bs=-1e9;const th=enemies.filter(e=>!beaten(e)&&hyp(e.x-u.x,e.y-u.y)<520).map(e=>({x:e.x,y:e.y}));
+  const off=u.y<330,lane=off?ddRouteX(Math.max(line,u.y-120))+(u.side2||(u.side2=(Math.random()-.5)*90)):u.lane,wide=off?110:150;   // (off the sand: up the squads' way)
   for(const c of coverPts){
-    if(c.y<line||c.y>u.y-24||c.y<u.y-190||Math.abs(c.x-u.lane)>150)continue;
+    if(c.y<line||c.y>u.y-24||c.y<u.y-190||Math.abs(c.x-lane)>wide)continue;
     if(dd.allies.some(o=>o!==u&&hyp(destOf(o).x-c.x,destOf(o).y-c.y)<14))continue;
-    const s=th.length?protStats(c,th).prot/th.length:0,sc=s*3-(u.y-c.y>150?.5:0)-Math.abs(c.x-u.lane)/160+Math.random()*.6;
+    const s=th.length?protStats(c,th).prot/th.length:0,sc=s*3-(u.y-c.y>150?.5:0)-Math.abs(c.x-lane)/160+Math.random()*.6;
     if(sc>bs){bs=sc;best=c;}
   }
-  const tgt=best||{x:clamp(u.lane+(Math.random()-.5)*60,DDX+30,DDX+DDW-30),y:Math.max(line+10,u.y-90-Math.random()*60)};
-  const p=findPath(u.x,u.y,tgt.x,tgt.y);
-  if(p&&p.length){u.path=p;u.hopT=simT+2.5+Math.random()*5;}else u.hopT=simT+2;
+  let tgt=best;
+  if(!tgt){const ty=Math.max(line+10,u.y-90-Math.random()*60),tx=off||u.y<400?ddRouteX(ty)+(u.side2||0):u.lane+(Math.random()-.5)*60;   // (nearing the bunkers: toward the way up)
+    tgt=openSpot(clamp(tx,DDX+30,DDX+DDW-30),ty,dd.allies.filter(o=>o!==u).map(destOf))||{x:tx,y:ty};}
+  let p=findPath(u.x,u.y,tgt.x,tgt.y);
+  if(!(p&&p.length)){const ty=Math.max(line+10,u.y-80),q=openSpot(ddRouteX(ty),ty,[]);if(q)p=findPath(u.x,u.y,q.x,q.y);}   // (nothing reachable there: straight up the route)
+  if(p&&p.length){u.path=p;u.hopT=simT+2.5+Math.random()*(off?2.5:5);}else u.hopT=simT+2;
 }
 function ddWaves(){
   const live=dd.npcs.filter(u=>!u.dead).length;
@@ -803,7 +812,7 @@ function ddBar(){
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
     if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
-  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools+fpB){B.dataset.h=tools+fpB;B.innerHTML=tools+fpB;}
+  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}   // (Version 163: the Control button, fpB, off the bar for now: Bryan, "remove the control button for now")
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
