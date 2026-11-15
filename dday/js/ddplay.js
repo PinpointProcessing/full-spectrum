@@ -555,7 +555,16 @@ function ddTankHit(x,y,k=1){
     if(K.hp>0){banner(`${K.name} is hit (${Math.max(1,Math.round(K.hp/K.hp0*100))}% left). Hit it again.`,2200);continue;}
     K.hp=0;for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;
     for(let q=0;q<5;q++)booms.push({x:K.x+(Math.random()-.5)*40,y:K.y+(Math.random()-.5)*26,t:-q*.12,size:1.3});
-    tankFires.push({x:K.x,y:K.y,r:12,t0:simT,puffs:[],emit:0});shake(1);if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.4);banner(`${K.name} is knocked out.`,3000);}
+    tankFires.push({x:K.x,y:K.y,r:12,t0:simT,puffs:[],emit:0});shake(1);if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.4);banner(`${K.name} is knocked out.`,3000);ddTankWreck(K);}
+}
+// a knocked-out tank stays where it died as heavy cover that blocks sight and feet (Bryan, after Version 165: "The dead tank should also be used
+// as cover"): an obstacle the size of its hull, square to the way it was facing; anyone caught where it now stands is moved just clear of it
+function ddTankWreck(K){
+  if(K.wreck||typeof addObstacle!=='function')return;
+  const c=Math.abs(Math.cos(K.ang)),s=Math.abs(Math.sin(K.ang)),w=c>.75?64:s>.75?36:52,h=c>.75?36:s>.75?64:52;
+  const o={kind:'ddtankw',x:K.x-w/2,y:K.y-h/2,w,h,full:true,cover:2,ht:26,meshes:[]};K.g.traverse(m=>{if(m.isMesh)o.meshes.push(m);});
+  addObstacle(o);K.wreck=o;dEpoch++;
+  for(const u of units){if(u.dead||u.inBoat||rectDist(u.x,u.y,o)>=7)continue;const p=openSpot(u.x,u.y,units.filter(q=>q!==u&&!q.dead).map(destOf));if(p){u.x=p.x;u.y=p.y;}u.path=[];}
 }
 /* ---------- ground taken (Version 137, a draft for Bryan: "a blue highlight around each bunker or pill box when the team takes control of
    it. Every area under control of the ally is highlighted in very light transparent blue. Only the buildings and the borders of the
