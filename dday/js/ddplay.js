@@ -778,7 +778,6 @@ function ddToolKeep(){
 }
 // the wire (Version 167, Bryan: "Blow wire shouldn't be a thing. They should blow up from just a regular explosive"): no button and no tap of its
 // own; a grenade, a rifle grenade or a rocket landing on it breaks that stretch (ddBlast: its hp 40, about 3 m from the blast does it)
-function ddWireNear(x,y,max){let b=null,bd=max;for(const o of dd.wires||[])if(!o.gone){const d=rectDist(x,y,o);if(d<bd){bd=d;b=o;}}return b;}
 // A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
 function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;
@@ -814,7 +813,7 @@ function ddBar(){
   const fpU=typeof fpPick==='function'?fpPick():null,fpB=fpU?`<button type="button" class="sq-tool sq-fp" data-k="fp" style="--c:#8fd3ff" aria-label="Take control of ${fpU.name}"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4" stroke="currentColor" stroke-width="1.4"/></svg><b></b><span>Control</span><small>play ${fpU.name} yourself</small></button>`:'';
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
-    if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
+    if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={rgl:'Tap where to fire it',nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
   const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}   // (Version 163: the Control button, fpB, off the bar for now: Bryan, "remove the control button for now")
 }
 function ddBarBind(){
