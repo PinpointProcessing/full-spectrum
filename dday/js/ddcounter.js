@@ -117,7 +117,7 @@ function dcBuild(G,sc,M,add){
 function startCounter(retry){
   if(!ddRoster)ddRoster=ddmRead();
   if(retry&&startCounter.snap){ddRoster=JSON.parse(startCounter.snap);ddmSave();}   // (a loss is a retry: the roster as it was when they left the barracks)
-  if(!ddmAll().length){banner('Nobody in the squads.',2600);return;}
+  if(!ddmFit().length){banner('Nobody fit in the squads: treat the wounded, or bring men in from the reserve.',3200);return;}
   startCounter.snap=JSON.stringify(ddRoster);
   reset();DD_MODE='counter';$('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   enterCounter();state='play';endAt=0;
@@ -129,7 +129,7 @@ function enterCounter(){
   useMap({objs:DD.objs,hq:DD.hq,slow:[],lamps:DD.lamps,scene:DD.scene,lights:DD.lights,x1:NAV_W});
   tankFires=[];rockets=[];charges=[];units=[];players=[];enemies=[];civs=[];
   MAPID='dd';LEVEL=5;groundH=ddH;
-  dd={counter:true,t0:simT,pool:ddRoster.reserve.length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
+  dd={counter:true,t0:simT,pool:ddmReserveFit().length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
     land:{t:0,done:true},boats:[],waveT:0,spawnT:1e9,aiT:0,npcT:0,shellT:{},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{},tanks:[],held:{},wires:[],
     dc:{ph:'intro',t:0,wave:0,cpT:0,guns:DCA.guns.map(g=>({...g,man:null,going:null,fireT:0,orderT:-99,aim:null,hits:0,dead:false,smokeT:0})),art:null,col:[],shells:[]}};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
@@ -257,7 +257,7 @@ function dcEnemy(){
 // a man lost, and somebody in the reserve: he comes out of the barracks for him
 function dcReplace(){
   for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}
-    dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;const rm=ddRoster.reserve.shift();dd.pool=ddRoster.reserve.length;if(!rm)continue;
+    dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;const rm=ddmTakeReserve();dd.pool=ddmReserveFit().length;if(!rm)continue;
     const sp=openSpot(DCA.door.x,DCA.door.y,players.filter(p=>!p.dead).map(destOf))||DCA.door,u=ddNewMan(q.team,q.id,rm.role,sp.x,sp.y,rm);u.inBoat=false;u.seen=true;players.push(u);players.sort((a,b)=>a.id<b.id?-1:1);buildCards();
     banner(`${u.name} (${DD_ROLES[u.ddRole].n}) comes out of the barracks for ${teamName(q.team)}.`,3200);}
 }
@@ -265,7 +265,7 @@ function dcReplace(){
 /* ---------- the fight's clock ---------- */
 function dcTick(dt){
   const C=dd.dc;C.t+=dt;
-  ddDeadTick();dd.pool=ddRoster.reserve.length;
+  ddDeadTick();dd.pool=ddmReserveFit().length;
   dcGunsTick(dt);ddHot();ddTankTick(dt);
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();}
   if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();}

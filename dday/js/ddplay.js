@@ -87,7 +87,7 @@ function enterDDay(){
   dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;   // (the Bazooka is shouldered and aimed long enough to be seen)
  
   const B=DD_SPOT.boat;
-  ['A','B'].forEach(t=>DD_CORE[t].forEach((r,i)=>{const rm=typeof ddmSlotMan==='function'?ddmSlotMan(t,i):null;ddNewMan(t,t+(i+1),rm?rm.role:r,B.x+DDX,B.y+60,rm);}));   // (the roster's men, where there are any: ddmeta.js)
+  ['A','B'].forEach(t=>DD_CORE[t].forEach((r,i)=>{const rm=typeof ddmSlotMan==='function'?ddmSlotMan(t,i):null;if(rm===false)return;ddNewMan(t,t+(i+1),rm?rm.role:r,B.x+DDX,B.y+60,rm);}));   // (the roster's men, where there are any: ddmeta.js)
   players=units.filter(u=>u.side==='P'&&!u.npc);
   spawnDDay();
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;

@@ -543,3 +543,8 @@ Built (js/ddvillage.js):
 - After the win: the report, then the village is your base (the town hall the barracks, a house the armory, the garage the vehicle depot).
 
 For Bryan to judge: the briefing's words (and the captain's name, Hale), the difficulty (a bot that only moves forward won 9 of 9 runs, losing 0 to 8 men; it walks into the open, so a player will likely do better), whether the woods should be quieter (the enemies there start unaware), how big the village battle should feel, and whether the tank should be one you have to destroy rather than one that can pull back. Untested by hand and on a real phone.
+
+## Version 165: the wounded
+Bryan: "Another round of mid-battle customizing and healing happens before they set out." His answers to my questions: in the existing report → base → barracks stop, before the briefing; men still down when the battle ends are wounded and sit out the next chapter unless treated; next chapter only; one treatment a round free, then a medal each; the player picks the stand-in (or the squad goes short); kit swaps as now; after every chapter.
+
+Built: the report marks the wounded; the base view has a field hospital (the command post, or the church in the village) where TREAT heals one free and then costs a medal; in the barracks a wounded man lies in his top bunk with a red cross on his square and his own TREAT; Replace puts a reserve man or a recruit in his place; leaving the barracks with a wounded man still in a squad warns once. A man who sat out a chapter is fit again after it. Untested by hand.

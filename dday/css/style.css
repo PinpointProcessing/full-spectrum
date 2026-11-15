@@ -483,3 +483,12 @@ body.fp-scope .fp-scopeV{display:block}
 body.ddseq .panel,body.ddseq #sq,body.ddseq #ddChip,body.ddseq #oob,body.ddseq #cards{display:none!important}
 #vgSkip{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:max(52px,env(safe-area-inset-top,0px));z-index:7;font:inherit;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#e8ecef;background:rgba(10,14,18,.78);border:1.5px solid rgba(232,236,239,.5);border-radius:10px;min-height:38px;padding:0 14px;cursor:pointer}
 #vgSkip[hidden]{display:none}
+/* Version 165: the wounded (ddmeta.js): the report's tag, the field hospital, the barracks' squares and panels */
+.ddm-hurt{background:#c8312a;color:#fff;font-weight:800;font-size:9px;border-radius:3px;padding:1px 4px;display:inline-block;margin:3px 0 0 3px}
+.ddm-dead.hurt span:before{content:"✚ ";color:#ff6a5e}
+.ddm-tag.hurt{border-color:#ff6a5e!important}.ddm-tag.hurt small{color:#ff9a8e}
+.ddm-sq.hurt:before,.ddm-pool button.hurt:before{content:"✚";position:absolute;left:3px;top:1px;color:#ff5a4e;font-size:12px;font-weight:900}
+.ddm-sq.hurt svg{opacity:.55}
+.ddm-perk.hurt{background:#2c1a1a;border-color:#ff6a5e}.ddm-perk.hurt .ddm-btn{margin-top:5px}
+.ddm-btn.sm{min-height:30px;padding:0 10px;font-size:11px;flex:none}
+.ddm-it>span{flex:1 1 auto;min-width:0}.ddm-it .ddm-btn.sm{width:auto!important;flex:0 0 auto!important;white-space:nowrap}

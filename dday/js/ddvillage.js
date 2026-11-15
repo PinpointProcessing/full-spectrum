@@ -21,7 +21,7 @@ const VG={x0:200,x1:1200,road:700,start:{x:700,y:852},
   zones:[{k:'gate',n:'THE BARRICADE',x0:596,y0:-362,x1:804,y1:-276,lx:700,ly:-300},{k:'square',n:'THE SQUARE',x0:636,y0:-596,x1:764,y1:-446,lx:700,ly:-520},
     {k:'church',n:'THE CHURCH',x0:408,y0:-760,x1:624,y1:-598,lx:500,ly:-640},{k:'hall',n:'THE TOWN HALL',x0:780,y0:-724,x1:962,y1:-582,lx:865,ly:-640}],
   // where the meta screens look once the village is theirs (ddmeta.js's ddmSpots): the town hall the barracks, the garage the depot
-  meta:{bk:[865,-650],ar:[485,-456],vd:[1060,-422]}};
+  meta:{bk:[865,-650],ar:[485,-456],vd:[1060,-422],hs:[500,-686]}};   // (the church the field hospital, Version 165)
 if(typeof VAULTABLE!=='undefined'){VAULTABLE.add('vglog');VAULTABLE.add('vgwall');}   // (logs and low walls are climbed over, like sandbags: pathfinding.js)
 const VG_TRACK=[[700,910],[688,800],[652,700],[648,600],[690,520],[728,450],[722,380],[700,320],[700,-770]];
 const vgEdge=x=>318+18*Math.sin(x*.021)+10*Math.sin(x*.057+1);   // the woods' north edge
@@ -250,7 +250,7 @@ function startVillage(o){
   o=o||{};
   if(!ddRoster)ddRoster=ddmRead();
   if(o.retry&&startVillage.snap){ddRoster=JSON.parse(startVillage.snap);ddmSave();}   // (a loss is a retry: the roster as it was when they left the barracks)
-  if(!ddmAll().length){banner('Nobody in the squads.',2600);return;}
+  if(!ddmFit().length){banner('Nobody fit in the squads: treat the wounded, or bring men in from the reserve.',3200);return;}
   if(!o.retry)startVillage.snap=JSON.stringify(ddRoster);
   if(o.retry||o.skip){vgBattle();return;}
   vgSeqStart();
@@ -263,7 +263,7 @@ function vgSeqStart(){
   useMap({objs:DD.objs,hq:DD.hq,slow:[],lamps:DD.lamps,scene:DD.scene,lights:DD.lights,x1:NAV_W});
   tankFires=[];rockets=[];charges=[];units=[];players=[];enemies=[];civs=[];
   MAPID='dd';LEVEL=5;groundH=ddH;
-  dd={seq:{ph:'intro',t:0,cap:null,cp:null,cl:null},t0:simT,pool:ddRoster.reserve.length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
+  dd={seq:{ph:'intro',t:0,cap:null,cp:null,cl:null},t0:simT,pool:ddmReserveFit().length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
     land:{t:0,done:true},boats:[],waveT:0,spawnT:1e9,aiT:0,npcT:0,shellT:{},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{},tanks:[],held:{},wires:[]};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
   dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;
@@ -350,7 +350,7 @@ function vgEnter(){
   useMap({objs:DD.objs,hq:DD.hq,slow:[],lamps:DD.lamps,scene:DD.scene,lights:DD.lights,x1:NAV_W});
   tankFires=[];rockets=[];charges=[];units=[];players=[];enemies=[];civs=[];
   MAPID='dd';LEVEL=5;groundH=ddH;
-  dd={vil:true,t0:simT,pool:ddRoster.reserve.length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:900,won:false,over:false,
+  dd={vil:true,t0:simT,pool:ddmReserveFit().length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:900,won:false,over:false,
     land:{t:0,done:true},boats:[],waveT:0,spawnT:1e9,aiT:0,npcT:0,shellT:{},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{},tanks:[],held:{},wires:[],
     vg:{ph:'woods',t:0,vT:0,front:900,held:{},r1:null,r2:null,trucks:[],follow:{},mortT:{},said:{}}};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
@@ -532,7 +532,7 @@ const vgRally=p=>{(dd.vg.rally||(dd.vg.rally=[])).push(p);};
 // a man lost, and somebody in the reserve: he comes up from the nearest place already ours and makes for his squad
 function vgReplace(){
   for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}
-    dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;let rm=ddRoster.reserve.shift();dd.pool=ddRoster.reserve.length;const fox=!rm&&dd.vg.ph==='village'&&(dd.vg.foxR||0)>0;if(!rm&&!fox)continue;if(fox)dd.vg.foxR--;
+    dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;let rm=ddmTakeReserve();dd.pool=ddmReserveFit().length;const fox=!rm&&dd.vg.ph==='village'&&(dd.vg.foxR||0)>0;if(!rm&&!fox)continue;if(fox)dd.vg.foxR--;
     const mates=players.filter(p=>p.team===q.team&&alive(p)),mx=mates.length?mates.reduce((a,p)=>a+p.x,0)/mates.length:VG.road,my=mates.length?mates.reduce((a,p)=>a+p.y,0)/mates.length:VG.start.y;
     const R=[{x:VG.road,y:874,n:'the track'},...(dd.vg.rally||[]).filter(p=>!enemies.some(e=>!beaten(e)&&hyp(e.x-p.x,e.y-p.y)<260))];let b=R[0];for(const p of R)if(hyp(p.x-mx,p.y-my)<hyp(b.x-mx,b.y-my))b=p;
     const sp=openSpot(b.x,b.y,players.filter(p=>!p.dead).map(destOf))||b,u=ddNewMan(q.team,q.id,rm?rm.role:ddPickRole(q.team),sp.x,sp.y,rm||undefined);Object.assign(u,{inBoat:false,seen:true,joining:true});
@@ -546,7 +546,7 @@ function vgGiveUp(e){
 /* ---------- the fight's clock ---------- */
 function vgTick(dt){
   const V=dd.vg;V.t+=dt;
-  ddDeadTick();dd.pool=ddRoster.reserve.length+(V.ph==='village'?(V.foxR||0):0);   // (in the village, Fox Company can spare a few men once the reserve's gone)
+  ddDeadTick();dd.pool=ddmReserveFit().length+(V.ph==='village'?(V.foxR||0):0);   // (in the village, Fox Company can spare a few men once the reserve's gone)
   for(const p of players)if(p.joining)ddJoin(p);
   ddHot();ddTankTick(dt);stationTick(dt);vgTrucks(dt);vgMortars();vgWaves();vgBazooka();vgTankThink();
   const up=players.filter(p=>alive(p)&&!p.joining);
