@@ -499,3 +499,5 @@ body.ddseq .panel,body.ddseq #sq,body.ddseq #ddChip,body.ddseq #oob,body.ddseq #
 #ddObj[data-k="hold"]{border-color:#8fd0ff}
 body:not(.dd) #ddObj,body.ddm #ddObj,body.ddseq #ddObj{display:none!important}
 @media (max-width:560px){#ddObj{top:86px;font-size:13px;padding:5px 12px}}
+body.fp #ddObj{top:104px}   /* (first person: under its own buttons along the top, ddfp.js) */
+@media (max-width:560px){body.fp #ddObj{top:150px}}

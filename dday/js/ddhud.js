@@ -97,38 +97,63 @@ function ddShooters(now){
     else if(arrows++<4)ddEdgeArrow(w.dx,w.dy,`rgba(255,70,50,${(.75+pu*.25).toFixed(2)})`,null,10);}
 }
 
-/* ---------- the objective ---------- */
+/* ---------- the objective ----------
+   One step at a time, the first that applies, each with where it is ({t text, x,y,h the spot, k 'danger'|'hold', nod: no distance
+   in the pill, for a spot that keeps moving ahead of you). Worked out from the battle's own state, so it can't fall behind it. */
 const ddTitle=s=>s.toLowerCase();
+// how far up DD_ROUTE from y0 to y1 (y1 further north), for the pill on the way up
+function ddRouteLeft(y0,y1){let d=0,px=ddRouteX(y0);for(let y=y0-10;y>=y1;y-=10){const x=ddRouteX(y);d+=hyp(x-px,10);px=x;}return d;}
 function ddObjective(){
   if(!dd||!dd.land||!dd.land.done||dd.seq||dd.won||state!=='play')return null;
-  const mine=players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat),ours=mine.length?mine:players.filter(p=>alive(p)&&!p.inBoat);
-  const near=(L,f)=>{let b=null,bd=1e9;for(const q of L){const P=f?f(q):q;const d=Math.min(...ours.map(u=>hyp(u.x-P.x,u.y-P.y)),1e9);if(d<bd){bd=d;b=q;}}return b;};
-  // a tank in the fight comes first
-  const tanks=(dd.tanks||[]).filter(K=>K.hp>0&&!K.left&&!K.hold&&!K.wreck&&ours.some(u=>hyp(u.x-K.x,u.y-K.y)<760));
-  if(tanks.length){const K=near(tanks);return{t:dd.counter?'Tank! Field gun or bazooka':'Tank! Bazooka or grenades',x:K.x,y:K.y,h:20,k:'danger'};}
+  const mine=players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat),ours=mine.length?mine:players.filter(p=>alive(p)&&!p.inBoat);if(!ours.length)return null;
+  const dM=P=>Math.min(...ours.map(u=>hyp(u.x-P.x,u.y-P.y))),near=(L,f)=>{let b=null,bd=1e9;for(const q of L){const d=dM(f?f(q):q);if(d<bd){bd=d;b=q;}}return b;};
+  const known=e=>!beaten(e)&&(e.seen||e.vis),Ly=Math.min(...ours.map(u=>u.y));   // (Ly: the squad's man furthest up the map)
+  // a tank in the fight comes first (one dug in counts: it fires from its pit; one waiting to be let loose doesn't)
+  const tank=near((dd.tanks||[]).filter(K=>K.hp>0&&!K.left&&!K.retreat&&!K.wreck&&(dd.counter?!K.hold:(K.range||0)>1)&&dM(K)<(K.range||520)+120));
+  if(tank)return{t:dd.counter?'Tank! Field gun or bazooka':'Tank! Bazooka or grenades',x:tank.x,y:tank.y,h:20,k:'danger'};
   if(dd.counter){const C=dd.dc;if(!C||C.ph==='intro')return null;
-    const s=Math.max(0,Math.ceil((C.ph==='setup'?DCA.setup:DCA.lull)-C.t));
-    if(C.cpN)return{t:C.cpT>1?`They're in the command post · ${Math.max(1,Math.ceil(20-C.cpT))}`:'They\'re in the command post',x:DCA.cp.x+60,y:DCA.cp.y+55,k:'danger'};
-    const free=C.guns.filter(g=>!g.dead&&!g.man&&!g.going),g=near(free);
-    if(C.ph==='setup')return g?{t:`Man the guns · ${s}`,x:g.x,y:g.y,h:10}:{t:`They attack in ${s}`};
-    if(C.ph==='lull')return g?{t:`Man the guns · wave ${C.wave+1} in ${s}`,x:g.x,y:g.y,h:10}:{t:`Wave ${C.wave+1} in ${s}`};
-    const foes=enemies.filter(e=>e.tag==='w'+C.wave&&!beaten(e)),seen=foes.filter(e=>e.seen||e.vis),f=near(seen);
-    return f?{t:`Hold the base · ${foes.length} left`,x:f.x,y:f.y,h:14,k:'danger'}:{t:`Hold the base · wave ${C.wave} of 3`};}
+    if(C.cpN){const K=(dd.tanks||[]).find(K=>K.hp>0&&dcIn(K,DCA.cpZone));return{t:`Retake the command post · ${Math.max(1,Math.ceil(20-C.cpT))}`,x:K?K.x:975,y:K?K.y:705,h:K?20:0,k:'danger'};}   // (975,705: in front of its west door, outside the building)
+    if(C.ph==='setup'||C.ph==='lull'){const s=Math.max(0,Math.ceil((C.ph==='setup'?DCA.setup:DCA.lull)-C.t));
+      const free=C.guns.filter(g=>!g.dead&&!(g.man&&!g.man.npc)&&!(g.going&&!g.going.npc)),g=ours.some(u=>!u.dcGun)?near(free,dcSeat):null;   // (a gun one of the other troops holds counts as free: a squad man takes it over)
+      const t=C.ph==='setup'?`They attack in ${s}`:`Wave ${C.wave+1} in ${s}`;
+      if(!g)return{t};const P=dcSeat(g);return{t:`Man the guns · ${s}`,x:P.x,y:P.y,h:10};}
+    const n=enemies.filter(e=>e.tag==='w'+C.wave&&!beaten(e)).length+(dd.tanks||[]).filter(K=>K.w===C.wave&&K.hp>0).length,f=near(enemies.filter(e=>e.tag==='w'+C.wave&&known(e)));
+    return f?{t:`Hold the base · ${n} left`,x:f.x,y:f.y,h:14,k:'danger'}:{t:`Hold the base · ${n} left`};}
   if(dd.vil){const V=dd.vg;if(!V)return null;
-    if(V.ph==='woods'){const fy=Math.min(...ours.map(u=>u.y),900),ty=Math.max(320,Math.min(fy-160,760));return{t:'Through the woods',x:vgTrackX(ty),y:ty};}
-    if(V.ph==='field'){const gun=near(enemies.filter(e=>(e.tag==='fh'||e.tag==='ff')&&e.gunner&&!beaten(e)&&(e.seen||e.vis)));
+    if(V.ph==='woods')return{t:'To the edge of the woods',x:VG.road,y:vgEdge(VG.road)};
+    if(V.ph==='field'){const gun=near(enemies.filter(e=>(e.tag==='fh'||e.tag==='ff')&&e.gunner&&known(e)&&dM(e)<260));
       if(gun)return{t:'Knock out the machine gun',x:gun.x,y:gun.y,h:14,k:'danger'};
-      const gp=near(VG.gaps.map(([a,b])=>({x:(a+b)/2,y:VG.hedgeY})));return{t:'Through the hedgerow',x:gp.x,y:gp.y};}
-    const left=VG.zones.filter(z=>!V.held[z.k]),n=4-left.length;
-    if(left.length){const z=near(left,z=>({x:z.lx,y:z.ly}));return{t:`Take ${ddTitle(z.n)} · ${n}/4`,x:z.lx,y:z.ly};}
-    const rest=enemies.filter(e=>!beaten(e)&&e.side==='E'&&e.y<-50),f=near(rest.filter(e=>e.seen||e.vis));
-    return f?{t:`Hold the village · ${rest.length} left`,x:f.x,y:f.y,h:14}:{t:'Hold the village'};}
+      const road=enemies.some(e=>e.tag==='fh'&&e.gunner&&!beaten(e)),G=near(VG.gaps.filter(g=>!(road&&g[0]===672)),g=>({x:(g[0]+g[1])/2,y:-43}));   // (not the road's gap while its gun is up: round by the orchard or the farm)
+      return{t:'Through the hedgerow',x:(G[0]+G[1])/2,y:VG.hedgeY+7};}
+    const truck=near((V.trucks||[]).filter(K=>K.hp>0&&(K.ph==='drive'||K.ph==='unload')&&dM(K)<450));
+    if(truck)return{t:'Blow up the truck',x:truck.x,y:truck.y,h:12,k:'danger'};
+    const left=VG.zones.filter(z=>!V.held[z.k]),SP={gate:[700,-300],square:[700,-505],church:[500,-624],hall:[870,-598]};   // (standing spots: the hall's and the church's label points are inside the buildings)
+    if(left.length){const z=near(left,z=>({x:SP[z.k][0],y:SP[z.k][1]})),nm=ddTitle(z.n),inz=enemies.filter(e=>!beaten(e)&&e.x>z.x0&&e.x<z.x1&&e.y>z.y0&&e.y<z.y1);
+      const sn=inz.length&&inz.every(e=>e.weapon==='sniper')?inz[0]:null,f=near(inz.filter(known));
+      if(sn)return{t:'Shoot the sniper in the tower',x:sn.x,y:sn.y,h:(sn.elev||0)+14,k:'danger'};
+      return inz.length?{t:`Clear ${nm} · ${inz.length} left`,x:f?f.x:SP[z.k][0],y:f?f.y:SP[z.k][1],h:f?14:0,k:'danger'}:{t:`Take ${nm} · ${4-left.length}/4`,x:SP[z.k][0],y:SP[z.k][1]};}
+    if(!V.r2)return{t:'Hold the village · more coming',k:'hold'};
+    const rest=enemies.filter(e=>!beaten(e)&&e.side==='E'&&e.y<-160),f=near(rest.filter(known));
+    return f?{t:`Clear the village · ${Math.max(1,rest.length-2)} more`,x:f.x,y:f.y,h:14}:{t:'Clear the village'};}
   // the beach and the top
+  const hold=(T,N,F,what,door,R)=>{const d=dM(door);
+    if(F){const f=near(enemies.filter(e=>known(e)&&hyp(e.x-door.x,e.y-door.y)<R));return{t:`Clear ${what} · ${F} left`,x:f?f.x:door.x,y:f?f.y:door.y,h:f?14:0,k:'danger'};}
+    if(T>0)return{t:`Hold ${what} · ${Math.max(1,Math.ceil(4-T))}`,x:door.x,y:door.y,k:'hold'};
+    if(d<200)return{t:'Two men at the door',x:door.x,y:door.y,k:'hold'};
+    return{t:`Take ${what}`,x:door.x,y:door.y};};
   const b=dd.base;
-  const hold=(T,N,F,what,x,y)=>T>0?{t:`Hold ${what} · ${Math.max(1,Math.ceil(4-T))}`,x,y,k:'hold'}:N&&F?{t:`Clear ${what} · ${F} left`,x,y,k:'danger'}:N?{t:`Two men at the door of ${what}`,x,y,k:'hold'}:{t:`Take ${what}`,x,y};
-  if(b&&b.open)return hold(b.holdT,b.holdN,b.holdFoes,'the command post',DB.cp.door.x,DB.cp.door.y);
-  if(dd.front>-300){const P=DD_ROUTE.find(([x,y])=>y<dd.front-60)||DD_ROUTE[DD_ROUTE.length-1];return{t:dd.front>330?'Get off the beach':'Up the draw to the top',x:P[0]+DDX,y:P[1]};}
-  return hold(dd.holdT,dd.holdN,dd.holdFoes,'the barracks',DD_SPOT.door.x+DDX,DD_SPOT.door.y);
+  if(b&&b.open&&Ly<=-300)return hold(b.holdT,b.holdN,b.holdFoes,'the command post',{x:DB.cp.door.x,y:DB.cp.door.y},240);
+  if(Ly>=340){const W=(dd.wires||[]).filter(o=>o.y===340),lx=ours.reduce((a,u)=>a+u.x,0)/ours.length,G=W.filter(o=>o.gone&&Math.abs(o.x+o.w/2-lx)<150),o=near(G.length?G:W.filter(o=>!o.gone),o=>({x:o.x+o.w/2,y:344}));
+    return o?{t:G.length?'Through the gap in the wire':'Through the wire',x:o.x+o.w/2,y:344}:{t:'Get off the beach',x:ddRouteX(300),y:300};}
+  if(Ly>200){const H=dd.held||{},P={left:{x:DD_SPOT.leftMG.x+DDX,y:262,n:'the left bunker'},pill:{x:DD_SPOT.pill.x+DDX,y:262,n:'the pillbox'}},k=near(['left','pill'].filter(k=>!H[k]),k=>P[k]);
+    if(k)return{t:`Take ${P[k].n}`,x:P[k].x,y:P[k].y};}
+  if(Ly>-300){const g=enemies.find(e=>e.tag==='draw'&&e.gunner&&known(e));
+    if(g&&Ly>-160)return{t:'Knock out the MG nest',x:g.x,y:g.y,h:14,k:'danger'};
+    const ty=Math.max(-340,Ly-120);return{t:'Up the draw to the top',x:ddRouteX(ty),y:ty,far:ddRouteLeft(Ly,-340)};}
+  const g=near(enemies.filter(e=>e.tag==='top'&&e.gunner&&known(e)&&dM(e)<300));
+  if(g&&!(b&&b.open))return{t:'Knock out the machine gun',x:g.x,y:g.y,h:14,k:'danger'};
+  if(!(b&&b.open))return hold(dd.holdT,dd.holdN,dd.holdFoes,'the barracks',{x:DD_SPOT.door.x+DDX,y:DD_SPOT.door.y},200);
+  return{t:'Up the draw to the top',x:ddRouteX(-340),y:-340};
 }
 // the pill at the top (DOM) and, on the map, the arrow or the marker; called from overlay.js every frame
 function ddObjDraw(now){
@@ -136,7 +161,7 @@ function ddObjDraw(now){
   const O=ddObjective();
   if(!O){if(!el.hidden)el.hidden=true;return;}
   const lead=players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat);
-  let d=null;if(O.x!=null&&lead.length)d=Math.min(...lead.map(u=>hyp(u.x-O.x,u.y-O.y)));
+  let d=null;if(O.x!=null&&lead.length)d=O.far!=null?O.far:Math.min(...lead.map(u=>hyp(u.x-O.x,u.y-O.y)));
   const m=d!=null&&d>=60?Math.round(d/10):null,txt=O.t+(m?` · ${m} m`:''),k=O.k||'go';
   if(el.dataset.t!==txt){el.dataset.t=txt;el.querySelector('span').textContent=txt;}
   if(el.dataset.k!==k)el.dataset.k=k;el.hidden=false;

@@ -18,7 +18,7 @@ await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRea
 await page.click('#ddBtn');await page.waitForTimeout(400);
 await ok('no pill on the ride in',()=>{RUN(1);drawOverlay(.03,simT);return{ok:$('#ddObj').hidden&&!ddObjective(),done:dd.land.done};});
 await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(4);});
-await ok('beach objective',()=>{drawOverlay(.03,simT);const o=OBJ();return{ok:/Get off the beach/.test(o.t||'')&&!!o.pill,...o};});
+await ok('beach objective: the wire',()=>{drawOverlay(.03,simT);const o=OBJ(),W=(dd.wires||[]).filter(o=>o.y===340).length;return{ok:/wire/.test(o.t||'')&&!!o.pill&&W>0,wires:W,...o};});
 await ok('callouts only from the keep-list',()=>{RUN(20);const bad=[...SEEN].filter(t=>!DD_SAY.has(t));return{ok:!bad.length,seen:[...SEEN],bad};});
 await ok('no rings under the other troops or the other squad',()=>{render(.03,simT);const npc=units.filter(u=>u.npc&&u.m&&u.m.ring&&u.m.ring.visible).length,other=players.filter(u=>u.team!==dd.active&&u.m&&u.m.ring.visible).length,mine=players.filter(u=>u.team===dd.active&&alive(u)&&!u.inBoat&&u.m&&u.m.ring.visible).length;return{ok:!npc&&!other&&mine>0,npc,other,mine};});
 await ok('a known gun has a field of fire',()=>{const g=enemies.find(e=>e.gunner&&e.onGun&&!beaten(e));if(!g)return{ok:false,why:'no gun'};g.seen=true;drawOverlay(.03,simT);return{ok:!!(g._wd&&g._wd.pts.length===17),tag:g.tag,pts:g._wd&&g._wd.pts.length,first:g._wd&&g._wd.pts[0].map(Math.round)};});
@@ -29,23 +29,24 @@ await ok('cover shield: in the open in front of a gun',()=>{const g=enemies.find
 await ok('blood: a sprite that fades',()=>{const e=enemies.find(e=>!beaten(e)&&!e.gunner);ddGore(e,true);const on=DD.blood.filter(q=>q.on).length;RUN(32);const left=DD.blood.filter(q=>q.on&&q.t<28).length;return{ok:on>0&&DD.blood.every(q=>!q.on||q.t<28),on,left,ground:'not painted'};});
 await ok('a squad man hurt shows a bar, the target only gets the pill',()=>{const u=players.find(p=>p.team===dd.active&&alive(p));u.hp=60;const e=enemies.find(q=>q.vis&&!beaten(q));if(e){for(const p of players)if(p.team===dd.active)p.focus=e;}drawOverlay(.03,simT);u.hp=100;return{ok:true,target:!!e,pill:e&&e._pill?e._pill.text:null};});
 // the base: the barracks taken, the command post
-await ok('top: the barracks, then the command post',()=>{dd.front=-400;const a=OBJ();dd.holdT=2;const b2=OBJ();dd.holdT=0;
-  dd.held=dd.held||{};const r={a,b:b2};if(typeof ddBaseOpen==='function'&&!(dd.base&&dd.base.open)){try{ddBaseOpen();}catch(e){r.err=String(e);}}const c=OBJ();r.c=c;
-  return{ok:/Take the barracks/.test(a.t)&&/Hold the barracks · 2/.test(b2.t)&&(!dd.base||!dd.base.open||/command post/.test(c.t)),...r};});
+await ok('the way up, then the barracks, then the command post',()=>{const M=players.filter(p=>p.team===dd.active&&alive(p)),P=M.map(u=>[u.x,u.y]);const at=(x,y)=>M.forEach(u=>{u.x=x;u.y=y;});
+  at(ddRouteX(150),150);const w=OBJ();at(ddRouteX(-200),-200);const up=OBJ();at(720,-420);const a=OBJ();at(720,-620);const F0=dd.holdFoes;dd.holdFoes=0;const nr=OBJ();dd.holdT=2;const b2=OBJ();dd.holdT=0;dd.holdFoes=F0;
+  const r={w,up,a,nr,b:b2};if(typeof ddBaseOpen==='function'&&!(dd.base&&dd.base.open)){try{ddBaseOpen();}catch(e){r.err=String(e);}}const c=OBJ();r.c=c;M.forEach((u,i)=>{u.x=P[i][0];u.y=P[i][1];});
+  return{ok:/bunker|pillbox|draw/.test(w.t)&&/Up the draw|MG nest/.test(up.t)&&/the barracks|machine gun/.test(a.t)&&/Two men at the door|Take the barracks/.test(nr.t)&&/Hold the barracks · 2/.test(b2.t)&&(!dd.base||!dd.base.open||/command post/.test(c.t)),...r};});
 // --- the counterattack
 await ev(()=>{SEEN.clear();ddRoster.stage=1;startCounter();});await page.waitForTimeout(400);
 await ok('counter: intro then man the guns',()=>{const a=OBJ();RUN(8);const b2=OBJ();return{ok:!a.t&&/Man the guns · \d+/.test(b2.t||'')&&b2.x!=null,a,b:b2};});
 await ok('counter: a gun manned changes the target',()=>{const C=dd.dc,g0=OBJ();const u=players.find(p=>alive(p));const g=C.guns.find(q=>!q.man&&!q.dead&&Math.round(q.x)===g0.x&&Math.round(q.y)===g0.y);if(!g)return{ok:false,why:'no gun at target',g0};g.man=u;const g1=OBJ();g.man=null;return{ok:g1.x!==g0.x||g1.y!==g0.y||/They attack/.test(g1.t),g0,g1};});
 await ok('counter: the wave',()=>{RUN(26);const o=OBJ();return{ok:/Hold the base/.test(o.t||''),ph:dd.dc.ph,...o};});
-await ok('counter: the command post',()=>{dd.dc.cpN=2;dd.dc.cpT=5;const o=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;return{ok:/command post · 15/.test(o.t)&&o.k==='danger',...o};});
+await ok('counter: the command post',()=>{dd.dc.cpN=2;dd.dc.cpT=5;const o=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;return{ok:/Retake the command post · 15/.test(o.t)&&o.k==='danger'&&o.x<1000,...o};});
 await ok('counter: a tank comes first',()=>{const K=dd.tanks.find(K=>K.hp>0);if(!K)return{ok:false};const h=K.hold,x=K.x,y=K.y;K.hold=false;const u=players.find(p=>alive(p));K.x=u.x;K.y=u.y-300;const o=OBJ();K.hold=h;K.x=x;K.y=y;return{ok:/Tank! Field gun or bazooka/.test(o.t),...o};});
 await ok('counter: callouts only from the keep-list',()=>{RUN(10);const bad=[...SEEN].filter(t=>!DD_SAY.has(t));return{ok:!bad.length,bad};});
 // --- the village
 await ev(()=>{startVillage({skip:true});});await page.waitForTimeout(400);
-await ok('village: the woods',()=>{RUN(1);const o=OBJ();return{ok:/Through the woods/.test(o.t||'')&&o.y>=320,...o};});
+await ok('village: the woods',()=>{RUN(1);const o=OBJ();return{ok:/edge of the woods/.test(o.t||'')&&o.y>280&&o.y<360,...o};});
 await ok('village: the field',()=>{dd.vg.ph='field';const o=OBJ();return{ok:/machine gun|hedgerow/.test(o.t),...o};});
 await ok('village: the four places',()=>{dd.vg.ph='village';const a=OBJ();dd.vg.held.gate=true;dd.vg.held.square=true;const b2=OBJ();for(const z of VG.zones)dd.vg.held[z.k]=true;const c=OBJ();for(const z of VG.zones)dd.vg.held[z.k]=false;dd.vg.ph='woods';
-  return{ok:/Take the .* · 0\/4/.test(a.t)&&/· 2\/4/.test(b2.t)&&/Hold the village/.test(c.t),a,b:b2,c};});
+  return{ok:/(Take|Clear) the barricade/.test(a.t)&&/church|hall|sniper/.test(b2.t)&&/Hold the village/.test(c.t),a,b:b2,c};});
 await ok('village: the pill and an arrow or marker drawn',()=>{drawOverlay(.03,simT);return{ok:!$('#ddObj').hidden,pill:$('#ddObj').textContent,box:ddBox()};});
 // --- off the battle
 await ok('the pill hides on the report',()=>{dd.won=true;endAt=performance.now();finish();const h=$('#ddObj').hidden||getComputedStyle($('#ddObj')).display==='none';return{ok:h,state};});
