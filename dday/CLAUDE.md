@@ -33,6 +33,7 @@ Bryan: "Let's do follow view and maybe first person on mounted objects... I woul
 - The squad: `fpMates` once a second (the free ones `makeAssign`ed behind him when he's moved `FPC.follow` or they're far; men on guns or on a job stay), `fpTools` (a rocket at a tank in reach, sometimes at a gun; a grenade where they're bunched or dug in; smoke when pinned). They shoot by themselves as always.
 - HUD: `#fp` built in `fpBuild` (from `bindDDay`): crosshair with a hit mark, Command / view / Next man, health, ammo, Reload, item, grenade, Aim, FIRE, Use; left of the screen a floating stick, the right a drag to look; mouse and keys on a desktop (pointer lock when the browser allows, plain mouse movement otherwise). `body.fp` hides the squad bar and tabs; overlay.js draws no hit-chance pills meanwhile.
 - Tests: `tools/drafts/control-counter-test.js`, `control-beach-touch-test.js` (touch through CDP: send one sequence per finger; replace `damage` for the squad or the man dies on the beach), `control-keys-test.js`. A test that aims has to solve the aim from `fpPose().O`, not from the man: the third-person camera is off to his side.
+- Version 162: the button by a gun reads Enter (Bryan), not Man the gun.
 - Not built: crouch/prone, a jump, melee, hands on the first-person gun, recoil patterns, the tank or a vehicle driven by hand. Untested on a real phone.
 
 ## The code (from the root notes, as it stood at the split)

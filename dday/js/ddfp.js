@@ -250,7 +250,7 @@ function fpHud(){
   set('.fp-ammo',A?`<b>${simT>=A.fireT?'READY':'LOADING '+Math.ceil(A.fireT-simT)}</b><span>${gname}</span>`:`<b>${F.reloadT?'RELOADING':F.clip+' / '+W.clip}</b><span>${gname}</span>`);
   const nb=set('[data-a="nade"]',`${u.gl?'Rifle grenade':'Grenade'} <b>${u.grenade||0}</b>`);nb.disabled=!(u.grenade>0)||mt;
   const sn={smoke:'Smoke',rpg:'Bazooka',medkit:'Medic kit',build:'Barricade'}[u.spec]||'Item',sb=set('[data-a="spec"]',`${sn} <b>${u.spec?u.specN||0:0}</b>`);sb.disabled=!u.spec||!(u.specN>0)||mt;sb.hidden=!u.spec;
-  const ub=el.querySelector('[data-a="use"]'),g=mt?null:fpGunNear(),ut=mt?'Leave the gun':g?(g.t==='art'?'Man the field gun':'Man the gun'):'';if(ub.hidden!==!ut)ub.hidden=!ut;if(ut&&ub.textContent!==ut)ub.textContent=ut;
+  const ub=el.querySelector('[data-a="use"]'),g=mt?null:fpGunNear(),ut=mt?'Leave the gun':g?'Enter':'';if(ub.hidden!==!ut)ub.hidden=!ut;if(ut&&ub.textContent!==ut)ub.textContent=ut;
   el.querySelector('[data-a="reload"]').hidden=!!A;el.querySelector('[data-a="aim"]').classList.toggle('on',F.aim);
   const x=el.querySelector('.fp-x');x.classList.toggle('hit',now-F.hitT<150);x.classList.toggle('kill',now-F.killT<320);x.style.setProperty('--gap',(5+Math.min(14,(F.moving?5:0)+F.kick*90+u.sup*5)).toFixed(1)+'px');
   const m=el.querySelector('.fp-msg'),on=!!F.msg&&now<F.msg.until;if(m.hidden===on)m.hidden=!on;if(on&&m.textContent!==F.msg.t)m.textContent=F.msg.t;
