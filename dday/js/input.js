@@ -252,7 +252,7 @@ function tap(sx,sy){
   const[wx,wy]=toW(sx,sy),[bx,by]=toS(wx,wy),onGround=hyp(bx-sx,by-sy)<4,inMap=onGround&&wx>=VB.x0&&wy>=VB.z0&&wx<=VB.x1&&wy<=VB.z1;   // only where the camera may go (the yard until the depot opens)
   sel=sel.filter(alive);
   if(MAPID==='dd'&&dd)dd.tapW={x:wx,y:wy,t:performance.now()};   // (where the finger was: a refusal is said there, ddNote)
-  if(MAPID==='dd'&&!mode&&inMap&&ddTap(wx,wy,sx,sy))return;   // (D-Day: a tap on the wire blows it, ddplay.js)
+  if(MAPID==='dd'&&!mode&&inMap&&ddTap(wx,wy,sx,sy))return;   // (D-Day: the counterattack's guns, the tank, ddplay.js)
   // aiming modes (Bryan: suppressing or throwing must never move anyone): a tap that misses keeps the mode and says why;
   // one that lands gives the order and briefly guards against the next tap turning into a move (moveGuard below)
   if(mode==='charge'){   // demolition charge: tap a fuel tank (mission.js)

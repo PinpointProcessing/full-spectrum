@@ -754,7 +754,6 @@ const DD_TOOLS=[
   {k:'smoke',label:'Smoke',col:'#cfd6dc',svg:()=>SPECIALS.smoke.svg,n:u=>u.spec==='smoke'?u.specN||0:0,btn:'spec',mode:'smoke'},
   {k:'rpg',label:'Bazooka',col:'#ffb36b',svg:()=>SPECIALS.rpg.svg,n:u=>u.spec==='rpg'?u.specN||0:0,btn:'spec',mode:'rpg'},
   {k:'build',label:'Barricade',col:'#d9b46a',svg:()=>SPECIALS.build.svg,n:u=>u.spec==='build'?u.specN||0:0,btn:'spec',mode:'build'},
-  {k:'wire',label:'Blow wire',col:'#ffcf4a',svg:()=>'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 12h14v1.6H1zM3 4.5l2 3-2 3M8 4.5l2 3-2 3M13 4.5l-2 3 2 3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 1.2 8 3l1-1.8.6 2.2L11.6 3 10.4 4.8 8 5.6 5.6 4.8 4.4 3l2 .4z"/></svg>'},
   {k:'medkit',label:'Medic kit',col:'#ff8a7e',svg:()=>SPECIALS.medkit.svg,n:u=>u.spec==='medkit'?u.specN||0:0,btn:'spec',mode:'medkit'},
   {k:'revive',label:'Revive',col:'#5fe08e',svg:()=>'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.2 2.2 8.6a3.4 3.4 0 0 1 4.8-4.8l1 1 1-1a3.4 3.4 0 0 1 4.8 4.8z"/><path d="M4 8.4h2.2l1-2 1.6 4 1-2H12" fill="none" stroke="#0b0f13" stroke-width="1.2"/></svg>'}];
 const ddSquad=()=>players.filter(p=>p.team===dd.active&&!p.dead);
@@ -767,7 +766,6 @@ function ddToolEnd(why){if(!dd||!dd.toolK)return;dd.toolK=null;dd.toolU=null;mod
 function ddToolFree(T){return ddSquad().filter(u=>alive(u)&&T.n(u)>0&&u.card&&!u.throwGo&&!u.build&&!u.medGo&&!pinnedNow(u));}
 function ddToolUse(k){
   if(!dd||state!=='play'||ddBusy())return;const m=ddSquad().filter(alive);
-  if(k==='wire'){ddToolEnd();ddBlowWire(null);return;}
   if(dd.toolK===k){ddToolEnd();return;}   // the same tool again: put it away
   const T=DD_TOOLS.find(t=>t.k===k),c=m.filter(u=>T.n(u)>0&&u.card);if(!c.length){banner(`No ${T.label.toLowerCase()} left in this squad.`,1600);return;}
   if(dd.toolK)ddToolEnd();
@@ -778,21 +776,13 @@ function ddToolKeep(){
   if(!dd.toolK||mode)return;   // its tap landed (or it couldn't be readied): one use a press, then it's put away and the squad is picked again
   const used=performance.now()-fireOrderAt<600;ddToolEnd();if(used){dd.usedAt=performance.now();dd.lastTap=null;}
 }
-// the wire: the nearest stretch in front of the squad (or the one tapped) is blown open by whoever has a grenade, or by a rocket
+// the wire (Version 167, Bryan: "Blow wire shouldn't be a thing. They should blow up from just a regular explosive"): no button and no tap of its
+// own; a grenade, a rifle grenade or a rocket landing on it breaks that stretch (ddBlast: its hp 40, about 3 m from the blast does it)
 function ddWireNear(x,y,max){let b=null,bd=max;for(const o of dd.wires||[])if(!o.gone){const d=rectDist(x,y,o);if(d<bd){bd=d;b=o;}}return b;}
-function ddBlowWire(o){
-  const m=ddSquad().filter(alive);if(!m.length)return false;const cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length;
-  o=o||ddWireNear(cx,cy,420);if(!o){banner('No wire near enough.',1600);return false;}
-  const tx=o.x+o.w/2,ty=o.y+o.h/2,by=(a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty);
-  const g=m.filter(u=>(u.grenade||0)>0&&!pinnedNow(u)).sort(by)[0],r=m.filter(u=>u.spec==='rpg'&&u.specN>0&&!pinnedNow(u)&&hyp(u.x-tx,u.y-ty)>PRPG.min+6).sort(by)[0];
-  const u=g&&hyp(g.x-tx,g.y-ty)<nadeRange(g)+NADE_WALK?g:r||g;
-  if(!u){banner('Nobody free to blow it. Climb it: it cuts.',2400);return false;}
-  orderThrow(u,tx,ty,u===g?'nade':'rpg');u.lastOrder=simT;u.hotT=simT+6;return true;   // (no banner: he's outlined in orange while he does it, Version 167)
-}
 // A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
 function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;
-  if(!sel.length)return false;const o=ddWireNear(wx,wy,9);if(o){ddBlowWire(o);hud();return true;}
+  if(!sel.length)return false;
   // the tank under the finger: the squad's own answer to armour, a rocket (a grenade if that's all there is and he's near enough). Bryan: "our
   // units use explosives only for heavily armored vehicles when targeted? Like a rocket?"
   {const K=sx==null?null:ddTanksUp().find(q=>{toSBack=false;const[tx,ty]=toS(q.x,q.y,16);return!toSBack&&hyp(tx-sx,ty-sy)<46;});if(K){{
@@ -816,8 +806,7 @@ function ddBar(){
   const men=sq.map(u=>{const st=statusText(u),hp=Math.max(0,Math.round(u.hp)),hc=u.downed?'#ff5a48':hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff9a4a',on=sel.length===1&&sel[0]===u,user=dd.toolU===u&&!!dd.toolK;
     return`<button type="button" class="sq-man${on?' on':''}${user?' user':''}${u.downed?' down':''}" data-id="${u.id}" style="--tc:${teamCol(u)};--hp:${u.downed?100:hp}%;--hc:${hc}"><b>${u.role}</b><span>${u.name}<em>${st[0]}</em></span><i><u></u></i></button>`;}).join('');
   const up=sq.filter(alive),medic=up.some(u=>u.ddRole==='medic'),downN=sq.filter(u=>u.downed).length;
-  const wy=up.length?up.reduce((a,u)=>a+u.y,0)/up.length:0,wx0=up.length?up.reduce((a,u)=>a+u.x,0)/up.length:0,wireOn=up.length&&(wy>330&&wy<720&&!!ddWireNear(wx0,wy,420)||wx0>1150&&wy<-440&&!!ddWireNear(wx0,wy,200));
-  const tools=DD_TOOLS.map(T=>{if(T.k==='wire'){if(!wireOn)return'';const n=up.reduce((a,u)=>a+(u.grenade||0)+(u.spec==='rpg'?u.specN||0:0),0);return`<button type="button" class="sq-tool" data-k="wire" style="--c:${T.col}" ${n?'':'disabled'}>${T.svg()}<b>${n}</b><span>Blow wire</span><small>nearest man with one</small></button>`;}
+  const tools=DD_TOOLS.map(T=>{
     if(T.k==='revive')return'';   // (no button since Version 139: the medics get men up by themselves, ddMedics)
     const own=up.filter(u=>T.n(u)>0),who=own.length===1?own[0].name:own.length?`${own.length} men carry one`:'none left';const n=up.reduce((a,u)=>a+T.n(u),0),has=sq.some(u=>T.k==='nade'?!u.gl:T.k==='rgl'?!!u.gl:u.spec===T.k);if(!has)return'';const on=dd.toolK===T.k;
     return`<button type="button" class="sq-tool${on?' on':''}" data-k="${T.k}" style="--c:${T.col}" ${n?'':'disabled'} aria-label="${T.label}, ${n} left">${T.svg()}<b>${n}</b><span>${T.label}</span><small>${on?'in hand · tap the map':who}</small></button>`;}).join('');
@@ -854,7 +843,7 @@ function ddHint(){
   if(dd.counter)return dcHint();
   if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
-  if(dd.front>330)return`The camera stays where you put it; picking a squad takes it there. Shell holes and steel obstacles are cover. Tap the wire (or Blow wire below) and a man with a grenade opens it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
+  if(dd.front>330)return`The camera stays where you put it; picking a squad takes it there. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
   if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
   if(dd.base&&dd.base.open)return ddBaseHint();
   return'The base. Take the barracks: clear their men from round it and put two of yours at its door for four seconds. Nobody comes out of it while yours are at the door.';
@@ -868,7 +857,7 @@ function drawDDay(now){
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),S=DD_SPOT;
   // (Version 167: no place names over the bunkers and guns: the objective pill says where to go, ddhud.js, and a machine gun's field of fire is on the ground)
   if(typeof ddBaseDraw==='function')ddBaseDraw(lab);
-  if(dd.front>300&&(dd.wires||[]).some(o=>!o.gone)){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · TAP TO BLOW','#ffcf4a');}
+  if(dd.front>300&&(dd.wires||[]).some(o=>!o.gone)){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · GRENADE IT OR CLIMB','#ffcf4a');}
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
   // a man coming up to join: a line to him from his squad's tab colour
   for(const p of players)if(p.joining&&alive(p)&&!p.inBoat){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}

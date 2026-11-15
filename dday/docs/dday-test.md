@@ -563,3 +563,5 @@ Reviewed by independent agents after it was built: 13 problems confirmed and fix
 
 For Bryan to judge: whether anything gone is missed (the bunker names, the hit chance on every enemy, the other squad's badges at full strength), the objective's words, how strong the red fields of fire are on the beach, where the pill sits on his phone.
 
+Bryan, after seeing this version's build described: "Blow wire shouldn't be a thing. They should blow up from just a regular explosive." The Blow wire button and the tap on the wire are gone; a grenade, a rifle grenade or a Bazooka rocket landing on the wire breaks that stretch (that part already worked). The wire's label and the objective say "grenade it or climb it". The enemy's own shells still don't break it: a decision for Bryan, since the beach's shelling lands round the wire all the time and would open it for you.
+

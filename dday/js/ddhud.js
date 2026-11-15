@@ -159,7 +159,7 @@ function ddObjective(){
   const b=dd.base;
   if(b&&b.open&&Ly<=-300)return hold(b.holdT,b.holdN,b.holdFoes,'the command post',{x:DB.cp.door.x,y:DB.cp.door.y},240);
   if(Ly>=340){const W=(dd.wires||[]).filter(o=>o.y===340),lx=ours.reduce((a,u)=>a+u.x,0)/ours.length,G=W.filter(o=>o.gone&&Math.abs(o.x+o.w/2-lx)<150),o=near(G.length?G:W.filter(o=>!o.gone),o=>({x:o.x+o.w/2,y:344}));
-    return o?{t:G.length?'Through the gap in the wire':'Through the wire',x:o.x+o.w/2,y:344}:{t:'Get off the beach',x:ddRouteX(300),y:300};}
+    return o?{t:G.length?'Through the gap in the wire':'Grenade the wire, or climb it',x:o.x+o.w/2,y:344}:{t:'Get off the beach',x:ddRouteX(300),y:300};}
   if(Ly>200){const H=dd.held||{},P={left:{x:DD_SPOT.leftMG.x+DDX,y:262,n:'the left bunker'},pill:{x:DD_SPOT.pill.x+DDX,y:262,n:'the pillbox'}},k=near(['left','pill'].filter(k=>!H[k]),k=>P[k]);
     if(k)return{t:`Take ${P[k].n}`,x:P[k].x,y:P[k].y};}
   if(Ly>-300){const g=enemies.find(e=>e.tag==='draw'&&e.gunner&&known(e));
