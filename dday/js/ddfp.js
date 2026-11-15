@@ -148,9 +148,9 @@ function fpTools(m,u){
   const by=p=>(a,b)=>hyp(a.x-p.x,a.y-p.y)-hyp(b.x-p.x,b.y-p.y),near=(x,y,r)=>dd.allies.some(q=>hyp(q.x-x,q.y-y)<r);
   // a rocket at a tank whenever there is one; at a gun now and then
   const dm=m.find(p=>p.spec==='rpg'&&p.specN>0&&ready(p));
-  if(dm){const K=ddTanksUp().filter(k=>{const d=hyp(k.x-dm.x,k.y-dm.y);return d>PRPG.min+10&&d<PRPG.range&&!near(k.x,k.y,70);}).sort(by(dm))[0];
+  if(dm){const K=ddTanksUp().filter(k=>{const d=hyp(k.x-dm.x,k.y-dm.y);return d>PRPG.min+10&&d<PRPG.range&&ddRocketClear(k.x,k.y,d);}).sort(by(dm))[0];
     if(K){if(Math.random()<.5&&orderThrow(dm,K.x,K.y,'rpg'))callout(dm,'Rocket on the tank!',C.warn);return;}
-    const gun=foes.filter(e=>e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar').filter(e=>{const d=hyp(e.x-dm.x,e.y-dm.y);return d>PRPG.min+10&&d<PRPG.range+40&&!near(e.x,e.y,70);}).sort(by(dm))[0];
+    const gun=foes.filter(e=>e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar').filter(e=>{const d=hyp(e.x-dm.x,e.y-dm.y);return d>PRPG.min+10&&d<PRPG.range+40&&ddRocketClear(e.x,e.y,d);}).sort(by(dm))[0];
     if(gun&&Math.random()<.14){orderThrow(dm,gun.x,gun.y,'rpg');return;}}
   // a grenade where they're bunched or dug in
   const g=m.find(p=>(p.grenade||0)>0&&ready(p));

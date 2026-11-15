@@ -263,7 +263,7 @@ function ddAshore(){
 function ddPick(u){
   if(u.inBoat)return null;
   const foes=u.side==='P'?enemies:(dd.allies||(dd.allies=units.filter(ddAlly)));   // (before the first tick has listed them)
-  let best=null,bs=-1;const R=u.side==='E'?wRange(u)*(u.gunner?1.45:1.12):wRange(u);
+  let best=null,bs=-1;const R=u.side==='E'?ddFireR(u):wRange(u);
   for(const f of foes){
     if(u.side==='P'?beaten(f):(!ddAlly(f)||(f.inBoat&&!(f.npc&&f.boat&&f.boat.st!=='in'))))continue;
     if(hyp(f.x-u.x,f.y-u.y)>R)continue;
@@ -380,7 +380,7 @@ function ddSquadAI(t){
   if(Math.random()<.02+.14*Math.min(1,idle/70)){
     const bold=u=>Math.random()<(u.bold||1)*.7;
     const dm=m.find(u=>u.spec==='rpg'&&u.specN>0&&!u.path.length&&!pinnedNow(u)&&bold(u));
-    const gun=dm&&foes.filter(e=>(e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar')&&!players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<70)).sort((a,b)=>hyp(a.x-dm.x,a.y-dm.y)-hyp(b.x-dm.x,b.y-dm.y))[0];
+    const gun=dm&&foes.filter(e=>(e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar')&&ddRocketClear(e.x,e.y,hyp(e.x-dm.x,e.y-dm.y))).sort((a,b)=>hyp(a.x-dm.x,a.y-dm.y)-hyp(b.x-dm.x,b.y-dm.y))[0];
     if(dm&&gun&&hyp(gun.x-dm.x,gun.y-dm.y)<PRPG.range+60&&hyp(gun.x-dm.x,gun.y-dm.y)>PRPG.min+10){orderThrow(dm,gun.x,gun.y,'rpg');}
     else{const g=m.find(u=>(u.grenade||0)>0&&!u.path.length&&!pinnedNow(u)&&bold(u)),tg=g&&foes.filter(e=>hyp(e.x-g.x,e.y-g.y)<nadeRange(g)+40&&!players.some(p=>alive(p)&&hyp(p.x-e.x,p.y-e.y)<70)).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];
       if(g&&tg)orderThrow(g,tg.x,tg.y,'nade');
@@ -472,7 +472,12 @@ function ddJoin(u){   // a replacement on his way up to his squad
   if(p)u.path=p;
 }
 /* ---------- the shelling: mortars, the heavy gun, the cannon (while they're crewed) ---------- */
-function ddShell(by,x,y,R,D,dur){if(by&&by.side==='E')by.shellAt={x,y,R,t:simT};nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,by,enemy:true,R,D});if(dd&&dd.counter&&by&&by.way)dd.dc.shells.push({x,y,at:simT+dur});}   // (a tank's shell: where and when it lands, for the guns it can knock out, ddcounter.js)
+// how far an enemy shoots on D-Day (ddPick; ddhud.js's cover shield uses the same)
+const ddFireR=u=>wRange(u)*(u.gunner?1.45:1.12);
+// is it safe for one of ours to fire a rocket at (x,y) from d away? Nobody of ours within its blast and how far it can stray (combat.js's fireRPG: past 24 m)
+function ddRocketClear(x,y,d){const R=(PRPG.blast||55)+15+Math.max(0,(d-240)*.17);return!(dd.allies||[]).some(q=>!q.inBoat&&!q.dead&&hyp(q.x-x,q.y-y)<R);}
+// a shell: where and when it lands, kept on whoever fired it (ddhud.js's ddShooters marks him from firing till 3 s after it lands); one fired from off the map (the counterattack's mortars) is kept in dd.offShells with where it came from
+function ddShell(by,x,y,R,D,dur){if(by&&by.side==='E'&&dd){const L={x,y,R,t:simT+dur};by.shells=(by.shells||[]).filter(s=>simT<s.t+3);by.shells.push(L);if(!enemies.includes(by)&&!(dd.tanks||[]).includes(by))(dd.offShells||(dd.offShells=[])).push(Object.assign({fx:by.x,fy:by.y},L));}nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,by,enemy:true,R,D});if(dd&&dd.counter&&by&&by.way)dd.dc.shells.push({x,y,at:simT+dur});}   // (a tank's shell: where and when it lands, for the guns it can knock out, ddcounter.js)
 function ddShelling(){
   const al=dd.allies.filter(u=>!u.inBoat);if(!al.length)return;
   const pickAt=f=>{const c=al.filter(f);const u=(c.length?c:al)[(Math.random()*(c.length?c.length:al.length))|0];return{x:u.x+(Math.random()-.5)*90,y:u.y+(Math.random()-.5)*90};};
@@ -615,7 +620,7 @@ function ddDrawTargets(now){
   // said where the finger was (Bryan: "if something is too far, can a message pop up where the using is selecting. 'Too far' or 'Not in range'")
   for(const n of dd.notes||[]){const q=(performance.now()-n.t)/1700;if(q>=1)continue;toSBack=false;const[sx,sy]=toS(n.x,n.y,4);if(toSBack)continue;ox.globalAlpha=q>.7?(1-q)/.3:1;label(n.text,sx,sy-10-q*14,'#ff6a55',13,700);ox.globalAlpha=1;}
   if(dd.notes)dd.notes=dd.notes.filter(n=>performance.now()-n.t<1700);
-  for(const K of ddTanksUp()){if(dd.vil&&K.y<=-760||dd.counter&&(K.hold||K.y<=DCA.treeY-60))continue;toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}   // (its health, once it's in the fight; what to use on it is in the objective pill)
+  for(const K of ddTanksUp()){if(dd.counter?(K.hold||K.y<=DCA.treeY-60):((K.range||0)<=1||dd.vil&&K.y<=-760))continue;toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}   // (its health, once it's in the fight; what to use on it is in the objective pill)
 }
 function ddNote(text){const p=dd&&dd.tapW;if(!p||performance.now()-p.t>900)return;(dd.notes||(dd.notes=[])).push({x:p.x,y:p.y,text,t:performance.now()});}
 

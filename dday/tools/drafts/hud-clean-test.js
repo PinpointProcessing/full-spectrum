@@ -33,8 +33,18 @@ await ok('fields of fire still drawn with the squad right under the guns',()=>{c
   M.forEach((u,i)=>{u.x=P[i][0];u.y=P[i][1];});return{ok:r.every(q=>q.filled>0),r};});
 await ok('shield ignores a gun that cannot swing onto him',()=>{const g=enemies.find(e=>e.gunner&&e.onGun&&!beaten(e)&&e.onGun.arc<1);const u=players.find(p=>p.team===dd.active&&alive(p));
   const a=g.onGun.ang+g.onGun.arc+.5,x=g.onGun.x+Math.cos(a)*200,y=g.onGun.y+Math.sin(a)*200;return{ok:!ddCanSwing(g,x,y)&&ddCanSwing(g,g.onGun.x+Math.cos(g.onGun.ang)*200,g.onGun.y+Math.sin(g.onGun.ang)*200),arc:g.onGun.arc};});
-await ok('a gun shelling the squad is marked',()=>{const u=players.find(p=>p.team===dd.active&&alive(p)),e=enemies.find(e=>(e.tag==='heavy'||e.tag==='mortar'||e.tag==='art')&&!beaten(e))||enemies.find(e=>!beaten(e));const n0=nades.length;ddShell(e,u.x+20,u.y,50,78,2.6);nades.length=n0;
-  let marked=false;const g0=gPath,a0=ddEdgeArrow;window.gPath=function(x,y){if(x===e.x&&y===e.y)marked=true;return g0.apply(this,arguments);};ddEdgeArrow=function(){marked=true;return a0.apply(this,arguments);};ddShooters(simT);window.gPath=g0;ddEdgeArrow=a0;e.shellAt=null;return{ok:marked,tag:e.tag};});
+await ok('a gun shelling the squad is marked, from firing till after the salvo lands',()=>{const u=players.find(p=>p.team===dd.active&&alive(p)),e=enemies.find(e=>(e.tag==='art'||e.tag==='heavy'||e.tag==='mortar')&&!beaten(e))||enemies.find(e=>!beaten(e));const n0=nades.length,t0=simT;
+  ddShell(e,u.x+20,u.y,54,76,3.4);ddShell(e,u.x+130,u.y+100,54,76,3.6);ddShell(e,u.x-130,u.y-100,54,76,4.1);nades.length=n0;   // (an artillery salvo: the aimed shell, then two scattered)
+  const marked=()=>{let m=false;const g0=gPath,a0=ddEdgeArrow;window.gPath=function(x,y){if(x===e.x&&y===e.y)m=true;return g0.apply(this,arguments);};ddEdgeArrow=function(){m=true;return a0.apply(this,arguments);};ddShooters(simT);window.gPath=g0;ddEdgeArrow=a0;return m;};
+  const r={now:marked()};simT=t0+5;r.after=marked();simT=t0+8;r.later=marked();simT=t0;e.shells=[];
+  // the counterattack's kind: fired from off the map
+  return{ok:r.now&&r.after&&!r.later,tag:e.tag,...r};});
+await ok('holding on a known gun seen long ago still suppresses it',()=>{const g=enemies.find(e=>e.gunner&&e.onGun&&!beaten(e));const v=g.vis,l=g.last,s0=g.seen;g.seen=true;g.vis=false;g.last={x:g.x,y:g.y,t:simT-20};
+  toSBack=false;const[sx,sy]=toS(g.x,g.y,8);const r=toSBack?null:suppressAt(sx,sy);g.vis=v;g.last=l;g.seen=s0;return{ok:!!r,got:r&&[Math.round(r.x),Math.round(r.y)]};});
+await ok('camera turned to face back past the guns: fields still drawn, no bad numbers',()=>{const G=enemies.filter(e=>e.gunner&&e.onGun&&!beaten(e));for(const e of G)e.seen=true;const y0=yaw;let bad=0,fills=0;
+  const l0=ox.lineTo.bind(ox),m0=ox.moveTo.bind(ox),f0=ox.fill.bind(ox);ox.lineTo=(x,y)=>{if(!isFinite(x)||!isFinite(y))bad++;return l0(x,y);};ox.moveTo=(x,y)=>{if(!isFinite(x)||!isFinite(y))bad++;return m0(x,y);};ox.fill=function(){fills++;return f0.apply(ox,arguments);};
+  const out=[];for(const a of[0,Math.PI/2,Math.PI,-Math.PI/2]){yaw=y0+a;updateCamera();render(.001,simT);fills=0;ddDanger(simT);out.push(fills);}
+  ox.lineTo=l0;ox.moveTo=m0;ox.fill=f0;yaw=y0;updateCamera();return{ok:!bad,bad,fillsByTurn:out};});
 await ok('the box starts under the pill',()=>{drawOverlay(.03,simT);ddBoxC=null;const B=ddBox(),r=$('#ddObj').getBoundingClientRect(),st=$('#stage').getBoundingClientRect();return{ok:$('#ddObj').hidden||B.top>=r.bottom-st.top,top:B.top,pillBottom:r.bottom-st.top};});
 await ok('blood: a sprite that fades',()=>{const e=enemies.find(e=>!beaten(e)&&!e.gunner);ddGore(e,true);const on=DD.blood.filter(q=>q.on).length;RUN(32);const left=DD.blood.filter(q=>q.on&&q.t<28).length;return{ok:on>0&&DD.blood.every(q=>!q.on||q.t<28),on,left,ground:'not painted'};});
 await ok('a squad man hurt shows a bar, the target only gets the pill',()=>{const u=players.find(p=>p.team===dd.active&&alive(p));u.hp=60;const e=enemies.find(q=>q.vis&&!beaten(q));if(e){for(const p of players)if(p.team===dd.active)p.focus=e;}drawOverlay(.03,simT);u.hp=100;return{ok:true,target:!!e,pill:e&&e._pill?e._pill.text:null};});

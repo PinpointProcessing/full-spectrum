@@ -10,8 +10,9 @@
      edge toward it (a marker over it when it's on screen). Replaces the place names and the top-centre lines. */
 
 const DD_OK='#5fe08e',DD_HALF='#ffcf4a',DD_OPEN='#ff5a48';
-// how far an enemy's fire reaches, the same for the shield and the field drawn (a machine gun past 64 m only hits by luck)
-const ddReach=e=>e.gunner?Math.min(wRange(e)*1.45,640):wRange(e)*1.12;
+// how far a gun's field is drawn: its real reach (ddplay.js's ddFireR, which the shield uses), but no further than 64 m: the hill guns
+// reach 100 m and would paint the whole beach, where past 46 m they hit only by luck (Version 155)
+const ddReach=e=>Math.min(ddFireR(e),640);
 // can a mounted gun swing onto (x,y)? (ddplay.js's ddPick's own test, from the gun, not the man behind it)
 function ddCanSwing(e,x,y){if(!e.onGun)return true;let da=Math.atan2(y-e.onGun.y,x-e.onGun.x)-e.onGun.ang;da=Math.atan2(Math.sin(da),Math.cos(da));return Math.abs(da)<=e.onGun.arc;}
 // 2 full cover, 1 half, 0 open, from the worst of the enemies in reach who could see him (seen ones: you know they're there)
@@ -21,7 +22,7 @@ function ddCover(u){
   let k=2;
   for(const e of enemies){
     if(beaten(e)||e.side!=='E'||e.mon||!(e.seen||e.vis))continue;
-    if(hyp(e.x-u.x,e.y-u.y)>ddReach(e)||!ddCanSwing(e,u.x,u.y))continue;
+    if(hyp(e.x-u.x,e.y-u.y)>ddFireR(e)||!ddCanSwing(e,u.x,u.y))continue;
     if(!los(e.x,e.y,u.x,u.y))continue;   // something between: he can't hit him
     const c=coverAt(u.x,u.y,e.x,e.y);if(c<k)k=c;if(!k)break;
   }
@@ -57,29 +58,34 @@ function ddDanger(now){
   const W=[];ddWedgeN=0;ddCoverN=0;const lim=Math.max(2,camera.near*3);
   for(const e of enemies){
     if(!e.gunner||!e.onGun||beaten(e)||e.side!=='E'||!(e.seen||e.vis))continue;
-    const g=e.onGun,pts=ddWedge(e,g,ddReach(e)),dg=ddDepth(g.x,g.y);if(dg<lim)continue;   // (the gun itself behind the camera: nothing to draw)
-    const S=[];toSBack=false;S.push(toS(g.x,g.y,1));
-    for(const[x,y]of pts){const d=ddDepth(x,y);let px=x,py=y;if(d<lim){const k=(dg-lim)/(dg-d);px=g.x+(x-g.x)*k;py=g.y+(y-g.y)*k;}   // a ray running past the camera: cut where it meets the plane just in front of it
-      toSBack=false;const q=toS(px,py,1);if(!toSBack)S.push(q);}
-    if(S.length<3)continue;W.push({S,hot:simT-(e.shotAtT??-99)<1.2});
+    // the field [gun, ray ends...] clipped against a plane just in front of the camera (whatever part of it is behind is cut off, the
+    // rest drawn); each point notes whether the stretch after it is the field's far edge, so the dashed line never runs along a cut
+    const g=e.onGun,P=[[g.x,g.y],...ddWedge(e,g,ddReach(e))],D=P.map(([x,y])=>ddDepth(x,y)),C=[];
+    for(let i=0;i<P.length;i++){const j=(i+1)%P.length,a=P[i],b=P[j],ia=D[i]>=lim,ib=D[j]>=lim,far=i>0&&j>0;
+      if(ia)C.push({p:a,s:far});
+      if(ia!==ib){const t=(lim-D[i])/(D[j]-D[i]);C.push({p:[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],s:far&&!ia});}}
+    if(C.length<3)continue;
+    const S=[],F=[];for(const c of C){toSBack=false;const q=toS(c.p[0],c.p[1],1);if(toSBack)continue;S.push(q);F.push(c.s);}
+    if(S.length<3)continue;W.push({S,F,hot:simT-(e.shotAtT??-99)<1.2});
   }
   if(!W.length)return;
   // one shape for all of them, filled once (overlapping fields don't stack into a solid red), then each one's far edge
   ox.beginPath();for(const{S}of W){ox.moveTo(S[0][0],S[0][1]);for(let i=1;i<S.length;i++)ox.lineTo(S[i][0],S[i][1]);ox.closePath();}
   ox.fillStyle=W.some(w=>w.hot)?'rgba(255,52,36,.12)':'rgba(255,52,36,.09)';ox.fill('nonzero');
   ox.setLineDash([6,5]);ox.lineWidth=1.5;
-  for(const{S,hot}of W){ox.beginPath();ox.moveTo(S[1][0],S[1][1]);for(let i=2;i<S.length;i++)ox.lineTo(S[i][0],S[i][1]);ox.strokeStyle=`rgba(255,90,70,${hot?.6:.35})`;ox.stroke();}
+  for(const{S,F,hot}of W){ox.beginPath();for(let i=0;i<S.length;i++)if(F[i]){const b=S[(i+1)%S.length];ox.moveTo(S[i][0],S[i][1]);ox.lineTo(b[0],b[1]);}ox.strokeStyle=`rgba(255,90,70,${hot?.6:.35})`;ox.stroke();}
   ox.setLineDash([]);
 }
 
 // the screen's usable box: under the buttons at the top, over the squad's bar at the bottom (read from the page about once a second)
 let ddBoxC=null;
 function ddBox(){
-  const t=performance.now();if(ddBoxC&&t-ddBoxC.t<1000&&ddBoxC.w===cw&&ddBoxC.h===ch)return ddBoxC;
+  const t=performance.now(),po0=$('#ddObj'),k=(po0&&!po0.hidden?1:0)+(document.body.classList.contains('fp')?2:0);   // (the pill showing or not, first person or not: either moves the top)
+  if(ddBoxC&&t-ddBoxC.t<1000&&ddBoxC.w===cw&&ddBoxC.h===ch&&ddBoxC.k===k)return ddBoxC;
   const st=$('#stage'),R=st?st.getBoundingClientRect():{top:0,left:0},sq=$('#sq');let bot=ch-14;
   if(sq&&!sq.hidden&&sq.offsetParent){const r=sq.getBoundingClientRect();if(r.height)bot=Math.min(bot,r.top-R.top-10);}
   let top=cw<560?96:62;const po=$('#ddObj');if(po&&!po.hidden){const r=po.getBoundingClientRect();if(r.height)top=Math.max(top,r.bottom-R.top+8);}   // (under the objective pill, wherever it sits)
-  ddBoxC={t,w:cw,h:ch,l:16,r:cw-16,top:Math.min(top,bot-80),bot};return ddBoxC;
+  ddBoxC={t,k,w:cw,h:ch,l:16,r:cw-16,top:Math.min(top,bot-80),bot};return ddBoxC;
 }
 // where a world point is on screen, or which way it lies when it's off it: {on, x, y, dx, dy} (dx,dy a unit screen direction)
 function ddWhere(x,y,h){
@@ -98,12 +104,16 @@ function ddEdgeArrow(dx,dy,col,text,size){
   if(text)label(text,clamp(x-dx*24,B.l+20,B.r-20),clamp(y-dy*22,B.top+8,B.bot-8),col,10,700);
 }
 
-// whoever has fired on the squad you play in the last 2 s: a ring on him, or an arrow toward him
+// whoever has fired on the squad you play in the last 2 s, or whose shell is coming down on it or landed by it in the last 3 s (ddplay.js's ddShell):
+// a ring on him, or an arrow toward him
 function ddShooters(now){
   const mine=players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat);if(!mine.length)return;
+  const hit=L=>simT<L.t+3&&mine.some(u=>hyp(u.x-L.x,u.y-L.y)<(L.R||50)+60);
   const S=new Set();for(const e of enemies){if(beaten(e)||e.mon)continue;
     if(e.target&&mine.includes(e.target)&&simT-(e.shotAtT??-99)<2)S.add(e);
-    const L=e.shellAt;if(L&&simT-L.t<3&&mine.some(u=>hyp(u.x-L.x,u.y-L.y)<(L.R||50)+60))S.add(e);}   // (ddplay.js's ddShell: the heavy gun, the cannon, the artillery, mortars, the grenadier)
+    if((e.shells||[]).some(hit))S.add(e);}   // (the heavy gun, the cannon, the artillery, mortars, the grenadier)
+  for(const K of dd.tanks||[])if(K.hp>0&&(K.shells||[]).some(hit))S.add(K);
+  if(dd.offShells){dd.offShells=dd.offShells.filter(L=>simT<L.t+3);for(const L of dd.offShells)if(hit(L))S.add({x:L.fx,y:L.fy});}   // (fired from off the map: the arrow toward where it came from)
   const pu=.5+.5*Math.sin(now*9);let arrows=0;
   for(const e of S){const w=ddWhere(e.x,e.y,14);
     if(w.on){gPath(e.x,e.y,13+pu*3);if(!toSBack){ox.strokeStyle=`rgba(255,60,40,${(.55+pu*.4).toFixed(2)})`;ox.lineWidth=2.4;ox.stroke();}}
