@@ -120,7 +120,7 @@ function startDDay(){
   reset();
   $('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   enterDDay();state='play';endAt=0;
-  bigText('Chapter 1: D\u2011Day','chapter');banner('Mission: take control of the beach',8000);setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},8400);hud();
+  bigText('Chapter 1: D\u2011Day','chapter');setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},8400);hud();
 }
 // the start card's second button: there once D-Day is won
 function ddCtrBtnShow(){const c=$('#ddCtrBtn');if(!c)return;let R=null;try{R=typeof ddmRead==='function'?ddmRead():null;}catch(e){}c.hidden=!(R&&R.stage>=1);const v=$('#ddVilBtn');if(v)v.hidden=!(R&&R.stage>=2);}   // (and the third: there once the base is held)
@@ -276,8 +276,8 @@ function ddPick(u){
 }
 /* ---------- hits (combat.js's damage): the other troops; a man killed outright; the gore ---------- */
 function ddGore(t,big){
-  for(let k=0;k<(big?5:2);k++)paintDecal({k:'body',x:t.x+(Math.random()-.5)*(big?44:14),y:t.y+(Math.random()-.5)*(big?44:14),a:0,r:Math.random()});
-  if(big){t.gone=true;ddGib(t.x,t.y,8,t.side==='E'?0x5b6359:0x5d6b58,1.2);}else ddGib(t.x,t.y,3,null,.5);
+  for(let k=0;k<(big?2:1);k++)paintDecal({k:'body',x:t.x+(Math.random()-.5)*(big?20:6),y:t.y+(Math.random()-.5)*(big?20:6),a:0,r:Math.random()});   // (fewer and smaller since Version 167)
+  if(big){t.gone=true;ddGib(t.x,t.y,6,t.side==='E'?0x5b6359:0x5d6b58,1.2);}else ddGib(t.x,t.y,3,null,.5);
 }
 function ddDamage(t,dmg,src){
   if(t.side==='E'){if(dmg>=55&&dmg*(t.dmgIn||1)>=t.hp&&!t.veh)ddGore(t,true);else if(dmg*(t.dmgIn||1)>=t.hp&&Math.random()<.3)ddGore(t,false);return false;}
@@ -308,7 +308,7 @@ function ddBlast(x,y,by){
   for(const o of objs.slice()){
     if(o.hp==null||o.gone)continue;const d=rectDist(x,y,o);if(d>46)continue;
     o.hp-=110*(1-d/52);
-    if(o.hp<=0)ddWreck(o,by);else if(o.tag==='barracks')banner(`The barracks is burning. Hit it again (${Math.max(1,Math.round(o.hp/380*100))}% left).`,2200);
+    if(o.hp<=0)ddWreck(o,by);else if(o.tag==='barracks')banner(`Barracks hit · ${Math.max(1,Math.round(o.hp/380*100))}% left`,2200);
   }
 }
 function ddWreck(o,by){
@@ -320,7 +320,7 @@ function ddWreck(o,by){
     tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});}
   else{for(const m of o.meshes||[])m.visible=false;removeObstacle(o,[]);dEpoch++;}   // a gate or the wire: gone, the way's open
   if(o.tag==='barracks'){(dd.held||(dd.held={})).base=true;ddBaseOpen();}   // (blown up instead of held: the way on is open all the same)
-  else banner({wire:'The wire is blown open there.',barr2:'The barracks behind the bunker is destroyed: nobody comes out of it now.',bA:'Barracks A is destroyed: nobody comes out of it now.',bB:'Barracks B is destroyed: nobody comes out of it now.',fuel:'Their fuel dump goes up.',aa:'The anti-aircraft gun is knocked out.',heavy:'The heavy gun is knocked out.',cannon:'The cannon is knocked out.',art:'The artillery on the hill is knocked out.'}[o.tag]||'',2600);
+  else {const t={barr2:'Barracks destroyed: no more men from it.',bA:'Barracks A destroyed: no more men from it.',bB:'Barracks B destroyed: no more men from it.',fuel:'Their fuel dump goes up.',aa:'Anti-aircraft gun knocked out.',heavy:'Heavy gun knocked out.',cannon:'Cannon knocked out.',art:'The artillery is knocked out.'}[o.tag];if(t)banner(t,2600);}   // (short since Version 167; the wire says nothing: you see it go)
   updateObjUI();
 }
 function ddGoSquad(t){
@@ -362,7 +362,7 @@ function ddSelected(){
   const m=players.filter(p=>p.team===t&&alive(p));if(!m.length)return;
   const cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length;
   ddGoSquad(t);   // (the one time the camera moves by itself: to the squad just picked)
-  banner(`${teamName(t)} is yours. ${teamName(t==='A'?'B':'A')} looks after itself.`,2200);
+  // (Version 167: no banner; the tab, the squad's bar and the rings under the men say which one you play)
   for(const u of m){u.gaitForce=null;}
 }
 /* ---------- the squad that runs itself ---------- */
@@ -449,9 +449,9 @@ function ddWaves(){
     // he comes out of the held place nearest his squad, on foot; with nothing held past the beach, a boat as before
     const up=mates.filter(p=>!p.inBoat&&!p.joining),M=up.length?up:mates,mx=M.length?M.reduce((a,p)=>a+p.x,0)/M.length:DDX+500,my=M.length?M.reduce((a,p)=>a+p.y,0)/M.length:600,from=ddSpawnAt(mx,my);   // (where the men of his squad who are ashore are)
     if(from){const sp=openSpot(from.x,from.y,players.filter(p=>p!==u&&!p.dead).map(destOf))||from;u.x=sp.x;u.y=sp.y;u.inBoat=false;u.ang=Math.atan2(mx-sp.x,my-sp.y);u.seen=true;buildCards();
-      banner(`${u.name} (${DD_ROLES[u.ddRole].n}, ${u.trait.toLowerCase()}) joins ${teamName(q.team)} from ${from.n}.`,3200);continue;}
+      banner(`${u.name} joins ${teamName(q.team)} from ${from.n}.`,2600);continue;}
     ddBoat(lx+(Math.random()-.5)*60,[u,...ddCrew(3)]);buildCards();
-    banner(`${u.name} (${DD_ROLES[u.ddRole].n}, ${u.trait.toLowerCase()}) is coming in for ${teamName(q.team)}.`,3200);}
+    banner(`${u.name} lands by boat for ${teamName(q.team)}.`,2600);}
 }
 // where a replacement comes from: the held place (not the beach) nearest his squad, if it's nearer them than the waterline is
 const DD_SPAWN={left:[352,236],pill:[668,236],nest:[906,236],hill:[880,120],draw:[530,60],heavy:[120,-380],art:[770,-390]};
@@ -512,7 +512,7 @@ function ddCounter(dt){
     // own guns are all but silenced, or someone is right at the barracks' door)
     const near=r=>players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<r),topLeft=enemies.filter(e=>(e.tag==='top'||e.tag==='cannon')&&!beaten(e)).length;
     if(!(near(100)||near(230)&&topLeft<=1))return;
-    C.on=true;C.t=simT+2;banner('Counterattack! A tank and infantry out of their base, down the road on the right.',4600);
+    C.on=true;C.t=simT+2;banner('Counterattack! A tank and infantry from the right.',3600);
     const W=DD_SPOT.tankWay;ddTankSpawn({x:W[0][0]+DDX,y:W[0][1],way:W.slice(1).map(q=>[q[0]+DDX,q[1]])});
     if(typeof ddBaseGarrison==='function')ddBaseGarrison();}
   if(C.sq<4&&simT>=C.t&&!dd.won){C.sq++;C.t=simT+4;const D=DD_SPOT.door3,G=DD_SPOT.door;
@@ -552,7 +552,7 @@ function ddTankTick(dt){
 function ddTankHit(x,y,k=1){
   for(const K of dd.tanks||[]){if(K.hp<=0)continue;const d=hyp(x-K.x,y-K.y);if(d>58*k)continue;
     K.hp-=170*k*(1-d/(75*k));
-    if(K.hp>0){banner(`${K.name} is hit (${Math.max(1,Math.round(K.hp/K.hp0*100))}% left). Hit it again.`,2200);continue;}
+    if(K.hp>0)continue;   // (hit: the bar over it says how much is left, Version 167)
     K.hp=0;for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;
     for(let q=0;q<5;q++)booms.push({x:K.x+(Math.random()-.5)*40,y:K.y+(Math.random()-.5)*26,t:-q*.12,size:1.3});
     tankFires.push({x:K.x,y:K.y,r:12,t0:simT,puffs:[],emit:0});shake(1);if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.4);banner(`${K.name} is knocked out.`,3000);ddTankWreck(K);}
@@ -597,12 +597,12 @@ function ddZones(){
 function ddDrawTargets(now){
   const disc=(x,y,r,fill,line)=>{gPath(x,y,r);if(toSBack)return;ox.fillStyle=fill;ox.fill();ox.strokeStyle=line;ox.lineWidth=2;ox.stroke();},pu=.5+.5*Math.sin(now*6);
   const OR=`rgba(255,138,30,${(.26+pu*.1).toFixed(3)})`,ORL='rgba(255,170,70,.95)',GR='rgba(150,158,166,.4)',GRL='rgba(215,222,228,.9)',GN=`rgba(20,120,60,${(.34+pu*.1).toFixed(3)})`,GNL='rgba(60,200,110,.95)';
-  for(const u of players){if(!alive(u))continue;const g=u.throwGo;
+  for(const u of players){if(!alive(u)||u.team!==dd.active)continue;const g=u.throwGo;   // (the squad you play only: Version 167)
     if(g){if(g.kind==='smoke')disc(g.x,g.y,58,GR,GRL);else disc(g.x,g.y,g.kind==='rpg'?PRPG.blast||55:58,OR,ORL);}
     const md=u.medGo;if(md&&md.t&&!md.t.dead)disc(md.t.x,md.t.y,15,GN,GNL);
     if(u.raise&&u.raise.t)disc(u.raise.t.x,u.raise.t.y,15,GN,GNL);}
-  for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P')continue;if(n.smoke)disc(n.x1,n.y1,58,GR,GRL);else disc(n.x1,n.y1,n.R||58,OR,ORL);}
-  for(const r of rockets){if(!r.by||r.by.side!=='P'||r.left==null)continue;disc(r.x+r.dx*r.left,r.y+r.dy*r.left,PRPG.blast||55,OR,ORL);}
+  for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P'||n.by.team!==dd.active)continue;if(n.smoke)disc(n.x1,n.y1,58,GR,GRL);else disc(n.x1,n.y1,n.R||58,OR,ORL);}
+  for(const r of rockets){if(!r.by||r.by.side!=='P'||r.by.team!==dd.active||r.left==null)continue;disc(r.x+r.dx*r.left,r.y+r.dy*r.left,PRPG.blast||55,OR,ORL);}
   // a scope on the man the squad you play was told to shoot (Bryan: "a scoop emoji around the unit selected for that squad to attack")
   const scope=(cx,cy,r)=>{ox.save();ox.lineCap='round';for(const[w,c]of[[3.6,'rgba(0,0,0,.55)'],[1.8,'rgba(255,58,40,.98)']]){ox.strokeStyle=c;ox.lineWidth=w;ox.beginPath();ox.arc(cx,cy,r,0,TAU);
       for(let k=0;k<4;k++){const q=k*Math.PI/2,c1=Math.cos(q),s1=Math.sin(q);ox.moveTo(cx+c1*r*.45,cy+s1*r*.45);ox.lineTo(cx+c1*r*1.32,cy+s1*r*1.32);}ox.stroke();}
@@ -613,7 +613,7 @@ function ddDrawTargets(now){
   // said where the finger was (Bryan: "if something is too far, can a message pop up where the using is selecting. 'Too far' or 'Not in range'")
   for(const n of dd.notes||[]){const q=(performance.now()-n.t)/1700;if(q>=1)continue;toSBack=false;const[sx,sy]=toS(n.x,n.y,4);if(toSBack)continue;ox.globalAlpha=q>.7?(1-q)/.3:1;label(n.text,sx,sy-10-q*14,'#ff6a55',13,700);ox.globalAlpha=1;}
   if(dd.notes)dd.notes=dd.notes.filter(n=>performance.now()-n.t<1700);
-  for(const K of ddTanksUp()){toSBack=false;const[sx,sy]=toS(K.x,K.y,44);if(!toSBack){label('TANK \u00b7 BAZOOKA OR GRENADES',sx,sy,'#ff8a6a',11,700);bar(sx-20,sy+8,40,K.hp/K.hp0,C.bad);}}
+  for(const K of ddTanksUp()){toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}   // (its health; what to use on it is in the objective pill)
 }
 function ddNote(text){const p=dd&&dd.tapW;if(!p||performance.now()-p.t>900)return;(dd.notes||(dd.notes=[])).push({x:p.x,y:p.y,text,t:performance.now()});}
 
@@ -681,7 +681,7 @@ function ddRaise(p,m){
 function ddHot(){
   if(typeof figInkHot!=='function')return;
   for(const u of players){const F=u.m&&u.m.fig;if(!F||!F.ink)continue;
-    const hot=alive(u)&&(u===dd.toolU||!!u.throwGo||!!u.build||(!!u.medGo&&u.team===dd.active)||(!!u.raise&&u.raise.p>0)||simT<(u.hotT||0)),want=hot?figInkHot():figInk();
+    const hot=alive(u)&&u.team===dd.active&&(u===dd.toolU||!!u.throwGo||!!u.build||(!!u.medGo&&u.team===dd.active)||(!!u.raise&&u.raise.p>0)||simT<(u.hotT||0)),want=hot?figInkHot():figInk();
     if(F.ink.material!==want)F.ink.material=want;}
 }
 /* ---------- every tick (combat.js's update) ---------- */
@@ -784,8 +784,8 @@ function ddBlowWire(o){
   const tx=o.x+o.w/2,ty=o.y+o.h/2,by=(a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty);
   const g=m.filter(u=>(u.grenade||0)>0&&!pinnedNow(u)).sort(by)[0],r=m.filter(u=>u.spec==='rpg'&&u.specN>0&&!pinnedNow(u)&&hyp(u.x-tx,u.y-ty)>PRPG.min+6).sort(by)[0];
   const u=g&&hyp(g.x-tx,g.y-ty)<nadeRange(g)+NADE_WALK?g:r||g;
-  if(!u){banner('Nobody free with a grenade or a rocket. They can climb it: it cuts.',2600);return false;}
-  orderThrow(u,tx,ty,u===g?'nade':'rpg');u.lastOrder=simT;u.hotT=simT+6;banner(`${u.name} blows the wire${u===g?' with a grenade':' with the Bazooka'}.`,2000);return true;
+  if(!u){banner('Nobody free to blow it. Climb it: it cuts.',2400);return false;}
+  orderThrow(u,tx,ty,u===g?'nade':'rpg');u.lastOrder=simT;u.hotT=simT+6;return true;   // (no banner: he's outlined in orange while he does it, Version 167)
 }
 // A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
@@ -796,8 +796,8 @@ function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.counter&&dcTap(w
   {const K=sx==null?null:ddTanksUp().find(q=>{toSBack=false;const[tx,ty]=toS(q.x,q.y,16);return!toSBack&&hyp(tx-sx,ty-sy)<46;});if(K){{
     const m=ddSquad().filter(u=>alive(u)&&!pinnedNow(u)&&!u.throwGo&&!u.rpgAim),by=(a,b)=>hyp(a.x-K.x,a.y-K.y)-hyp(b.x-K.x,b.y-K.y);
     const r=m.filter(u=>u.spec==='rpg'&&u.specN>0&&hyp(u.x-K.x,u.y-K.y)>PRPG.min+6).sort(by)[0],g=m.filter(u=>(u.grenade||0)>0&&hyp(u.x-K.x,u.y-K.y)<nadeRange(u)+NADE_WALK).sort(by)[0],u=r||g;
-    if(!u){ddNote(ddSquad().some(q=>alive(q)&&q.spec==='rpg'&&q.specN>0)?'Bazooka man busy':'No rockets left');banner('Only a rocket or a grenade hurts the tank.',2200);return true;}
-    if(orderThrow(u,K.x,K.y,u===r?'rpg':'nade')){u.lastOrder=simT;u.hotT=simT+6;dd.tankAim=simT+7;dd.tankAimK=K;dd.usedAt=performance.now();dd.lastTap=null;banner(`${u.name} goes for the tank with ${u===r?'the Bazooka':'a grenade'}.`,2200);}
+    if(!u){ddNote(ddSquad().some(q=>alive(q)&&q.spec==='rpg'&&q.specN>0)?'Bazooka man busy':'No rockets left');return true;}
+    if(orderThrow(u,K.x,K.y,u===r?'rpg':'nade')){u.lastOrder=simT;u.hotT=simT+6;dd.tankAim=simT+7;dd.tankAimK=K;dd.usedAt=performance.now();dd.lastTap=null;}
     hud();return true;}}}
   const now=performance.now();
   if(sx!=null&&now-(dd.usedAt||-1e9)<2500&&!enemyAtScreen(sx,sy)&&!unitAtScreen(sx,sy,false)){
@@ -843,7 +843,7 @@ function ddObjUI(el){
   el.querySelector('b').textContent='D-Day · Baker Red';
   el.querySelector('span').textContent=!dd.land.done?'Thirty seconds to the beach':dd.blown.barracks?'The base is yours':dd.front>330?'Get off the beach: reach the wall':dd.front>-300?'Up the draw: the only way to the top':`Destroy the barracks${b&&b.hp<380?` (${Math.max(1,Math.round(b.hp/380*100))}%)`:''}`;
   const h=L.map(([t,d])=>`<li${d?' class="done"':''}>${t}</li>`).join('');const ol=el.querySelector('ol');if(ol.dataset.h!==h){ol.dataset.h=h;ol.innerHTML=h;}
-  el.hidden=true;   // (no objective box on this map: Bryan, "Get rid of the level name on top, it's just in the way"; the chapter's name flashes up at the start instead)
+  el.hidden=true;{const po=$('#ddObj');if(po&&(state!=='play'||dd.seq||!dd.land.done))po.hidden=true;}   // (the objective pill at the top, ddhud.js: hidden off the battle)   // (no objective box on this map: Bryan, "Get rid of the level name on top, it's just in the way"; the chapter's name flashes up at the start instead)
   const c=$('#ddChip');if(c){c.hidden=state!=='play'||!!dd.seq;const t=dd.counter||dd.vil?`${dd.pool} in reserve`:`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
 }
 function ddHint(){
@@ -864,23 +864,16 @@ function drawDDay(now){
   ddDrawZones();ddDrawTargets(now);
   const lab=(dx,y,h,text,col)=>{toSBack=false;const[sx,sy]=toS(dx+DDX,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,9,700);};
   const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),S=DD_SPOT;
-  if(!dead('left'))lab(342,262,30,'LEFT BUNKER','#ff8a6a');
-  if(!dead('pill'))lab(668,262,30,'PILLBOX','#ff8a6a');
-  if(enemies.some(e=>e.tag==='draw'&&e.gunner&&!beaten(e)))lab(466,-150,26,'MG NEST','#ff8a6a');
-  if(!dead('nest'))lab(906,262,30,'UPPER BUNKER','#ff8a6a');
-  if(!dead('hill'))lab(880,176,30,'HILL BUNKER','#ff8a6a');if(!dd.blown.art&&!dead('art'))lab(756,-392,44,'ARTILLERY','#ff8a6a');
-  if(!dd.blown.heavy&&!dead('heavy'))lab(90,-410,34,'HEAVY GUN','#ff8a6a');
-  if(!dd.blown.cannon&&!dead('cannon'))lab(240,-600,30,'CANNON','#ff8a6a');
-  if(!dead('mortar'))lab(915,-470,24,'MORTARS','#ff8a6a');
+  // (Version 167: no place names over the bunkers and guns: the objective pill says where to go, ddhud.js, and a machine gun's field of fire is on the ground)
   if(typeof ddBaseDraw==='function')ddBaseDraw(lab);
-  if(!dd.won&&!dd.blown.barracks)lab(820,-690,46,dd.holdT>0?`BARRACKS · HOLDING ${Math.max(1,Math.ceil(4-dd.holdT))}`:dd.holdN?(dd.holdFoes?`BARRACKS · ${dd.holdFoes} OF THEIRS STILL NEAR`:'BARRACKS · TWO MEN AT THE DOOR'):'BARRACKS · TAKE IT','#ffcf4a');
-  if(dd.front>300){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · TAP IT TO BLOW IT · CLIMBING CUTS','#ffcf4a');}
+  if(dd.front>300&&(dd.wires||[]).some(o=>!o.gone)){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · TAP TO BLOW','#ffcf4a');}
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
   // a man coming up to join: a line to him from his squad's tab colour
   for(const p of players)if(p.joining&&alive(p)&&!p.inBoat){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
   const o=$('#oob');if(o){const on=dd.oob>0&&state==='play';o.hidden=!on;if(on){o.style.opacity=Math.min(.86,.35+dd.oob*.06).toFixed(2);o.querySelector('b').textContent=`Turn back · ${Math.max(0,Math.ceil(10-dd.oob))}`;}}
 }
 function ddFinish(){
+  {const po=$('#ddObj');if(po)po.hidden=true;}
   if(dd&&dd.won&&typeof ddmStart==='function'){ddmStart();return;}
   if(dd&&dd.vil){vgFinishLost();return;}   // (Chapter 3 lost: a retry, ddvillage.js)
   if(dd&&dd.counter){dcFinishLost();return;}   // (the counterattack lost: a retry, ddcounter.js)   // (a win goes on to the report, the base and the barracks: ddmeta.js)

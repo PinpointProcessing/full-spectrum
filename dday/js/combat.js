@@ -69,7 +69,7 @@ function medTick(dt){   // medic kits being used, men being picked up, and carri
       if(g.heal){   // a man who's up: the medic goes to him, keeping up if he's on the move; another order calls it off
         if(!alive(u)||t.dead||t.hp>=100||u.lastOrder!==g.lo){u.medGo=null;continue;}
         if(t!==u){const end=u.path.length?u.path[u.path.length-1]:u;
-          if(hyp(end.x-t.x,end.y-t.y)>24&&simT>=(g.re||0)){g.re=simT+.4;const p=goBeside(u,t);if(!p){u.medGo=null;banner('No way to reach him from here.');continue;}u.path=p;}
+          if(hyp(end.x-t.x,end.y-t.y)>24&&simT>=(g.re||0)){g.re=simT+.4;const p=goBeside(u,t);if(!p){u.medGo=null;if(MAPID==='dd')bubble(u,'No way to him',C.warn);else banner('No way to reach him from here.');continue;}u.path=p;}
           if(u.path.length||hyp(u.x-t.x,u.y-t.y)>28)continue;}
         if(u.sup>PINNED)continue;g.prog+=dt;
         if(g.prog>=HEAL_T){u.medGo=null;u.specN--;u.stats.items++;t.hp=100;t.shyT=0;callout(t,'Good as new',C.good);if(t!==u)backSoon(u);}
@@ -300,7 +300,8 @@ function retTick(){
   }
 }
 
-function callout(u,text,col){callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});if(u.side==='P'&&CALLOUT_VOICE[text])say(u,CALLOUT_VOICE[text]);}   // soldiers say their callouts over the radio (voice.js)
+const DD_SAY=new Set(['Man down!','KIA','Critical','Grenade!',"Can't climb with him",'Can’t get there']);   // D-Day says only these over a man (Version 167, Bryan: "way too confusing and messy"): the rest was chatter
+function callout(u,text,col){if(MAPID==='dd'&&!DD_SAY.has(text))return;callouts.push({x:u.x,y:u.y,text,col:col||'#e6ecf0',t:0});if(u.side==='P'&&CALLOUT_VOICE[text])say(u,CALLOUT_VOICE[text]);}   // soldiers say their callouts over the radio (voice.js)
 /* A soldier who can't do what he's told says why in a speech bubble over his head (Bryan, after v104: "The only time someone
    can't do an action is if they are pinned and it would say I'm Pinned, I can't do that! And it should be a voice bubble above
    them, maybe even have them say it"): drawn by overlay.js's drawBubbles, timed in real seconds (slow-mo doesn't stretch it),
@@ -437,7 +438,7 @@ function damage(t,dmg,src){
     if(t.side==='P'){
       if(typeof sfxScream==='function'){if(Math.random()<.65)sfxScream(t);else sfxGrunt(t,true);sfxBodyFall(t.x,t.y);}   // he goes down screaming
       t.downed=true;t.wasDown=true;downCount++;t.stats.downs++;t.bleed=BLEED_T;t.critical=false;t.noBleed=false;t.revive=0;t.boxRev=0;t.path=[];t.supT=null;t.medGo=null;t.carryGo=null;if(t.carry)putDown(t);if(t.cargo&&typeof dropCargo==='function')dropCargo(t);
-      callout(t,'Man down!',C.bad);banner(`${t.name} is down. Get a teammate to him.`);
+      callout(t,'Man down!',C.bad);banner(MAPID==='dd'?`${t.name} is down.`:`${t.name} is down. Get a teammate to him.`);
       chatDown(t);   // "Hayes is down!" ... "Hang on, Hayes, I've got you." (chatter.js)
       sel=sel.filter(x=>x!==t);preview=null;
     }else{
@@ -1132,7 +1133,7 @@ function update(dt){
     if(!p.critical){
       const helper=helperOf(p);   // Bryan: no reviving while pinned (a Medic beside him does it if there is one)
       if(helper){const md=isCls(helper,'medic');p.revive+=dt;p.reviveNeed=md?CLS.reviveT:MAPID==='dd'?DD_REVIVE:3;   /* (D-Day: anyone gets a man up, a medic quickly, the rest slowly: ddplay.js) */if(p.revive>=p.reviveNeed)reviveUp(p,md?CLS.reviveHp:35,helper);}   // (a Medic: quicker, and he comes up better: classes.js)
-      else{p.revive=Math.max(0,p.revive-dt);if(!(typeof hqCalm==='function'&&hqCalm()))p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
+      else{p.revive=Math.max(0,p.revive-dt);if(!(typeof hqCalm==='function'&&hqCalm()))p.bleed-=dt;if(p.bleed<=0){p.critical=true;p.crit=CRIT_T;p.revive=0;callout(p,'Critical',C.bad);banner(MAPID==='dd'?`${p.name} critical: a medic kit now.`:`${p.name} is critical. Use a medic kit on him, or carry him to a medical box.`,3400);}}
     }else{
       if(!p.noBleed&&!(typeof hqCalm==='function'&&hqCalm()))p.crit-=dt;   // (the man off the basement wall has no clock: office.js; nor anyone while the Headquarters' end plays: fortress.js)
       if(p.crit<=0){if(p.carriedBy)putDown(p.carriedBy);p.dead=true;p.downed=false;p.critical=false;callout(p,'KIA',C.bad);banner(`${p.name} didn't make it.`);}

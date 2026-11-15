@@ -233,6 +233,7 @@ function decalOn(g,d){
   else{g.fillStyle='rgba(80,8,6,.7)';g.beginPath();g.ellipse(d.x+2,d.y+1,9+d.r*4,6+d.r*3,d.r*3,0,7);g.fill();}
 }
 function paintDecal(d){
+  if(MAPID==='dd'&&d.k==='body'&&typeof ddBlood==='function'){ddBlood(d.x,d.y,.8+(d.r||0)*.4);return;}   // D-Day's blood: small sprites that fade (dday.js, Version 167)
   if(MAPID==='dd'&&typeof DD!=='undefined'&&DD&&DD.canvas){const g=DD.canvas.getContext('2d');g.setTransform(DDS,0,0,DDS,-DDB.x0*DDS,-DDB.y0*DDS);decalOn(g,d);DD.tex.needsUpdate=true;return;}   // D-Day's beach (dday.js)
   if(MAPID==='l1'&&L1){const g=L1.canvas.getContext('2d');g.setTransform(L1S,0,0,L1S,-L1B.x0*L1S,-L1B.y0*L1S);decalOn(g,d);L1.tex.needsUpdate=true;return;}   // Level 1's own ground (level1.js)
   if(MAPID==='tun'&&TUN&&TUN.tex){const g=TUN.tex.image.getContext('2d');g.setTransform(1.5,0,0,1.5,-TUNB.x0*1.5,-TUNB.y0*1.5);decalOn(g,d);TUN.tex.needsUpdate=true;return;}   // the tunnel's own (tunnel.js)
@@ -776,7 +777,7 @@ function syncUnits(t){
     if(u.veh){truckPose(u);continue;}   // the gun truck (mission.js)
     const lying=u.downed||u.dead||simT<(u.stunT||0),cr=!lying&&u.crawl;
     if(m.fig){if(u.carriedBy)figCarried(u,m);figRefresh(u);figAnimate(u,m);}
-    m.ring.visible=!u.dead&&!u.carriedBy&&!(MAPID==='dd'&&dd&&dd.seq);m.ring.material.opacity=u.downed?.35:m.person&&u.side!=='P'?.45:.85;   // (no rings in D-Day's sequence before Chapter 3)
+    m.ring.visible=!u.dead&&!u.carriedBy&&!(MAPID==='dd'&&dd&&(dd.seq||u.side==='P'&&(u.npc||u.team!==dd.active)));m.ring.material.opacity=u.downed?.35:m.person&&u.side!=='P'?.45:MAPID==='dd'&&u.side==='E'?.5:.85;   // (no rings in D-Day's sequence before Chapter 3)
     if(m.spot)m.spot.intensity=lying||cr?0:MAPID==='tun'||l4In()?4.4:2.6;   // no torch while lying or crawling (brighter in the pitch-black tunnel: tunnel.js)
     if(m.beam)m.beam.visible=!(lying||cr);
   }

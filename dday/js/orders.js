@@ -201,7 +201,7 @@ function breachTick(){
 /* ---------- drawing (from the overlay) ---------- */
 function drawOrders(now){
   for(const u of players){   // the automatic watch: a faint wedge for the soldiers selected only (four at once would clutter a fight)
-    if(!u.watch||!alive(u)||offFloor(u)||!sel.includes(u))continue;
+    if(!u.watch||!alive(u)||offFloor(u)||!sel.includes(u)||MAPID==='dd')continue;   // (not on D-Day: Version 167)
     const w=u.watch,hot=(u.watchIn||[]).length>0;
     gPath(u.x,u.y,WATCH.range*.5,w.ang-WATCH.half,w.ang+WATCH.half,true);if(toSBack)continue;
     ox.fillStyle=`rgba(${hot?'255,207,74':'94,224,142'},${hot?.08:.035})`;ox.fill();

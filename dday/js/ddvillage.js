@@ -250,7 +250,7 @@ function startVillage(o){
   o=o||{};
   if(!ddRoster)ddRoster=ddmRead();
   if(o.retry&&startVillage.snap){ddRoster=JSON.parse(startVillage.snap);ddmSave();}   // (a loss is a retry: the roster as it was when they left the barracks)
-  if(!ddmFit().length){banner('Nobody fit in the squads: treat the wounded, or bring men in from the reserve.',3200);return;}
+  if(!ddmFit().length){banner('Nobody fit: treat the wounded or add reserves.',3200);return;}
   if(!o.retry)startVillage.snap=JSON.stringify(ddRoster);
   if(o.retry||o.skip){vgBattle();return;}
   vgSeqStart();
@@ -368,7 +368,7 @@ function vgEnter(){
   updateObjUI();setStatus();buildCards();hud();
   select(players.filter(p=>p.team==='A').length?players.filter(p=>p.team==='A'):players.filter(p=>p.team==='B'));
   dd.track={team:dd.active};
-  banner('The woods. Their pickets are somewhere in the trees: move from trunk to trunk. The other squad follows the one you play.',6500);
+  banner('Pickets in the woods: move from tree to tree.',4500);
 }
 // their men: the woods and the field not yet alerted (they notice, or hear the shooting), the village waiting for it
 function vgSpawn(){
@@ -483,13 +483,13 @@ function vgWaves(){
   const V=dd.vg;if(V.ph!=='village'||dd.won)return;const t=V.t-V.vT;
   if(!V.r1&&t>26){V.r1={at:V.t,done:false};
     vgTruck({way:[[650,-880],[650,-690]],men:6,goal:['square','church']});vgTruck({way:[[1290,-522],[1090,-522]],men:6,goal:['hall','square']});
-    banner('Trucks on the roads from the north and the east: their reinforcements. Fox Company is with you.',5200);}
+    banner('Enemy trucks coming from the north and east.',3600);}
   if(V.r1&&!V.r2){const left=enemies.filter(e=>e.reinf===1&&!beaten(e)).length;
     if(t>95||(V.r1.done&&V.t-V.r1.at>30&&left<=3)){V.r2={at:V.t};
       ddTankSpawn({x:722,y:-880,ang:Math.PI/2,way:[[722,-700],[722,-560],[716,-450],[712,-390]],name:'Tank'}).node='gate';
       for(let i=0;i<6;i++){const e=ddFoe('r2',290+i*14-DDX,-748+(i%2)*10,{reinf:2,ang:Math.PI/2,dmgIn:.85,aimPen:.06,nade:i%3===0?1:0});enemies.push(e);dd.vg.spawned++;vgSend(e,i%2?'church':'square');}
       vgCompany(10,330,2);
-      banner('A tank coming down the main street, and men from the west. Fox Company\'s second platoon is on its way up. Bazookas and grenades for the tank.',6000);}}
+      banner('A tank down the main street: bazookas and grenades.',4000);}}
 }
 function vgBazooka(){
   for(const u of dd.npcs){if(u.spec!=='rpg'||!alive(u)||!(u.specN>0))continue;
@@ -518,7 +518,7 @@ function vgMortars(){
   for(const e of enemies){if(e.tag!=='fm'||beaten(e)||!e.alerted)continue;if(simT<(V.mortT[e.id]||0))continue;V.mortT[e.id]=simT+11+Math.random()*5;
     const tg=players.filter(p=>alive(p)&&p.y<vgEdge(p.x)+30&&p.y>VG.hedgeY+12);if(!tg.length)continue;const p=tg[(Math.random()*tg.length)|0];
     ddShell(e,p.x+(Math.random()-.5)*60,p.y+(Math.random()-.5)*60,44,62,2.4);
-    if(!V.said.mort){V.said.mort=1;banner('Mortars! Keep moving: don\'t stay out in the open.',3600);}}
+    if(!V.said.mort){V.said.mort=1;banner('Mortars! Don\'t stay in the open.',3200);}}
 }
 // the village's places: ours once none of theirs is in it and one of ours is
 function vgZones(){
@@ -536,7 +536,7 @@ function vgReplace(){
     const mates=players.filter(p=>p.team===q.team&&alive(p)),mx=mates.length?mates.reduce((a,p)=>a+p.x,0)/mates.length:VG.road,my=mates.length?mates.reduce((a,p)=>a+p.y,0)/mates.length:VG.start.y;
     const R=[{x:VG.road,y:874,n:'the track'},...(dd.vg.rally||[]).filter(p=>!enemies.some(e=>!beaten(e)&&hyp(e.x-p.x,e.y-p.y)<260))];let b=R[0];for(const p of R)if(hyp(p.x-mx,p.y-my)<hyp(b.x-mx,b.y-my))b=p;
     const sp=openSpot(b.x,b.y,players.filter(p=>!p.dead).map(destOf))||b,u=ddNewMan(q.team,q.id,rm?rm.role:ddPickRole(q.team),sp.x,sp.y,rm||undefined);Object.assign(u,{inBoat:false,seen:true,joining:true});
-    players.push(u);players.sort((a,c)=>a.id<c.id?-1:1);buildCards();banner(fox?`${u.name} (${DD_ROLES[u.ddRole].n}) from Fox Company comes up to fill in for ${teamName(q.team)}.`:`${u.name} (${DD_ROLES[u.ddRole].n}) comes up from ${b.n} for ${teamName(q.team)}.`,3200);}
+    players.push(u);players.sort((a,c)=>a.id<c.id?-1:1);buildCards();banner(fox?`${u.name} from Fox Company joins ${teamName(q.team)}.`:`${u.name} joins ${teamName(q.team)} from ${b.n}.`,2600);}
 }
 function vgGiveUp(e){
   Object.assign(e,{surr:true,path:[],alerted:false,aware:0,wary:false,call:null,hunt:null,huntT0:0,lkp:null,flanking:false,bodyGo:null});
@@ -552,14 +552,14 @@ function vgTick(dt){
   const up=players.filter(p=>alive(p)&&!p.joining);
   if(up.length){V.front=Math.min(V.front,...up.map(p=>p.y));DD.day=clamp(.22+(870-V.front)/1600*.36,.22,.58);}
   if(V.ph==='woods'&&V.front<vgEdge(VG.road)+10){V.ph='field';vgRally({x:VG.road,y:300,n:'the edge of the woods'});
-    banner('Out of the trees. Their machine gun is in the hedgerow\'s gap on the road; the orchard on the left and the farm on the right are the ways round. Smoke blinds the gun.',7000);}
+    banner('MG in the hedgerow gap: go round, or smoke it.',4500);}
   if(V.ph==='field'&&(V.front<VG.hedgeY-14||(V.front<120&&!enemies.some(e=>(e.tag==='fh'||e.tag==='ff')&&!beaten(e))))){
     V.ph='village';V.vT=V.t;vgRally({x:VG.road,y:20,n:'the hedgerow'});
     for(const e of enemies)if(!beaten(e)&&e.tag[0]==='v'){e.alerted=true;e.aware=1;}
     vgCompany(16,320,1);dd.vg.foxR=4;
     if(typeof addZones==='function')addZones([{k:'med',x:620,y:262},{k:'sup',x:780,y:268}]);
     bigText('The village','complete');
-    banner('Fox Company is coming up behind you, with an aid post and ammunition at the edge of the woods. Take the barricade, the square, the church and the town hall.',7000);}
+    banner('Take the barricade, square, church and town hall.',4500);}
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();vgFollow();}
   if((dd.npcT-=dt)<=0){dd.npcT=.5;vgNpcs();vgEnemyPush();vgReplace();vgZones();ddHelpers();ddTidy();updateObjUI();}
   // won: everything taken, their reinforcements in and beaten, the tank out; the last of them give up
@@ -568,7 +568,7 @@ function vgTick(dt){
     if(all&&left.length<=2&&tk.length){V.tankOutT=V.tankOutT||V.t+22;if(V.t>V.tankOutT)for(const K of tk)vgTankOut(K);}
     if(all&&!tk.length&&left.length<=2&&V.trucks.every(K=>K.ph==='parked')){
       for(const e of enemies)if(!beaten(e))vgGiveUp(e);
-      dd.won=true;endAt=performance.now()+3600;bigText('The village is yours','complete');banner('The last of them throw down their rifles. The village is yours.',5200);}}
+      dd.won=true;endAt=performance.now()+3600;bigText('The village is yours','complete');}}
   if(!endAt&&!dd.won&&!players.some(alive)&&!dd.queue.length&&players.every(p=>p.dead||p.revive===0)){dd.over=true;dd.why='dead';endAt=performance.now()+1800;}
 }
 function vgHint(){
@@ -580,16 +580,12 @@ function vgHint(){
 function vgDraw(){
   const V=dd.vg,lab=(x,y,h,text,col,sz=9)=>{toSBack=false;const[sx,sy]=toS(x,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,sz,700);};
   const up=tag=>enemies.filter(e=>e.tag===tag&&!beaten(e));
-  if(V.ph!=='woods'){if(up('fh').some(e=>e.gunner))lab(700,-64,30,'MG · THE ROAD GAP','#ff8a6a');if(up('ff').some(e=>e.gunner))lab(1092,140,30,'MG · THE FARM','#ff8a6a');}
-  if(up('w3').some(e=>e.gunner&&(e.seen||e.vis)))lab(950,462,30,'MG','#ff8a6a');
-  for(const e of enemies)if(e.weapon==='sniper'&&!beaten(e)&&e.seen)lab(e.x,e.y,(e.elev||0)+30,e.tag==='vc'?'SNIPER · CHURCH TOWER':'SNIPER','#ff8a6a');
-  if(V.ph==='village')for(const z of VG.zones){const h=V.held[z.k];lab(z.lx,z.ly,h?36:44,h?`${z.n} · OURS`:`${z.n} · TAKE IT`,h?'#8fd0ff':'#ffcf4a',h?9:10);}
-  for(const K of dd.tanks)if(K.hp>0&&K.y>-760)lab(K.x,K.y,44,`TANK ${Math.round(K.hp/K.hp0*100)}%`,'#ff8a6a');
-  for(const K of V.trucks)if(K.hp>0&&K.ph!=='parked'&&K.y>-760)lab(K.x,K.y,36,K.ph==='unload'?'TRUCK · UNLOADING':'TRUCK','#ff8a6a');
+  // (Version 167: the machine guns show their fields of fire on the ground and the objective pill says where to go, ddhud.js: what's left here is short)
+  for(const e of enemies)if(e.weapon==='sniper'&&!beaten(e)&&e.seen)lab(e.x,e.y,(e.elev||0)+30,'SNIPER','#ff8a6a');
+  if(V.ph==='village')for(const z of VG.zones){const h=V.held[z.k];lab(z.lx,z.ly,h?36:44,h?`${z.n} · OURS`:z.n,h?'#8fd0ff':'#ffcf4a',9);}
+  for(const K of dd.tanks)if(K.hp>0&&K.y>-760){toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
   for(const p of players)if(p.joining&&alive(p)){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
-  const n=VG.zones.filter(z=>V.held[z.k]).length,t=V.ph==='woods'?'THE WOODS':V.ph==='field'?'THE FIELD':`THE VILLAGE · ${n} OF 4 TAKEN${V.r2&&ddTanksUp().length?' · TANK':''}`;
-  label(t,cw/2,cw<560?96:58,V.ph==='village'?'#ffcf4a':'#cfd6dc',13,800);
 }
 function vgFinishLost(){
   state='end';setStatus();$('#status').textContent='Lost';

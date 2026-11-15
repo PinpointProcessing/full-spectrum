@@ -113,7 +113,7 @@ function bindInput(){
       try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}
       const sp=!u&&!mode&&!noOrders()&&suppressAt(ptr.sx,ptr.sy);   // holding on an enemy, or where one was seen: suppress
       if(u){if(tutAllows('hold',u)){select([u]);preview=null;mode=null;callout(u,u.name,teamCol(u));}}
-      else if(sp){if(!sel.some(alive))banner('Select soldiers, then hold your finger on an enemy to suppress him.',2400);else if(tutAllows('suppress',sp))orderSuppress(sel,sp);}
+      else if(sp){if(!sel.some(alive))banner(MAPID==='dd'?'Pick a squad, then hold on an enemy.':'Select soldiers, then hold your finger on an enemy to suppress him.',2400);else if(tutAllows('suppress',sp))orderSuppress(sel,sp);}
       else if(tutAllows('lasso')){ptr.kind='lasso';ptr.loop=[[ptr.cx,ptr.cy]];}
       hud();
     },380);
@@ -263,7 +263,7 @@ function tap(sx,sy){
   if(mode==='medkit'){   // a medic kit (his special item): tap a downed teammate, or one who's hurt but up, or him: back to 100 (combat.js)
     const u=sel[0];let pu=unitAtScreen(sx,sy,false);if(!u){mode=null;return;}
     if(pu&&pu.carry)pu=pu.carry;   // tapping a carrier: the man he carries
-    if(!pu||pu.dead){banner('Tap a hurt or downed teammate, or him, to use the medic kit. Tap the kit on his card again to cancel.');return;}
+    if(!pu||pu.dead){banner(MAPID==='dd'?'Tap a hurt or downed man.':'Tap a hurt or downed teammate, or him, to use the medic kit. Tap the kit on his card again to cancel.');return;}
     if(orderMedkit(u,pu)){mode=null;preview=null;}return;
   }
   if(mode==='silent'){   // the silencer (combat.js): tap a hostile who hasn't noticed him

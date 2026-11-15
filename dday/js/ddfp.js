@@ -42,7 +42,7 @@ function fpExit(why){
   const m=players.filter(p=>p.team===u.team&&alive(p));if(m.length)select(m);
   camT.x=u.x-Math.sin(yaw)*DD_CAM.look;camT.z=u.y-Math.cos(yaw)*DD_CAM.look;dd.track={team:u.team};
   const C=dd.cam||(dd.cam={k:1,p:null,q:null});C.k=0;C.p=camera.position.clone();C.q=camera.quaternion.clone();   // (out to the usual view the way they come off the boat)
-  banner(why||'Back in command of the squad.',2000);hud();
+  if(why||!(endAt||dd.won))banner(why||'Back in command of the squad.',2000);hud();   // (not over the win's banner)
 }
 function fpNext(){
   const F=dd.fp;if(!F)return;const m=players.filter(p=>p.team===F.u.team&&alive(p)&&!p.inBoat&&!p.joining);if(m.length<2)return;

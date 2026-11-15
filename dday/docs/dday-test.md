@@ -548,3 +548,16 @@ For Bryan to judge: the briefing's words (and the captain's name, Hale), the dif
 Bryan: "Another round of mid-battle customizing and healing happens before they set out." His answers to my questions: in the existing report → base → barracks stop, before the briefing; men still down when the battle ends are wounded and sit out the next chapter unless treated; next chapter only; one treatment a round free, then a medal each; the player picks the stand-in (or the squad goes short); kit swaps as now; after every chapter.
 
 Built: the report marks the wounded; the base view has a field hospital (the command post, or the church in the village) where TREAT heals one free and then costs a medal; in the barracks a wounded man lies in his top bunk with a red cross on his square and his own TREAT; Replace puts a reserve man or a recruit in his place; leaving the barracks with a wounded man still in a squad warns once. A man who sat out a chapter is fit again after it. Untested by hand.
+
+## Version 167: a cleaner screen
+Bryan, after Version 166: "Okay, so for the normal user it still feels way to confusing and messy. The dead tank should also be used as cover. How can we make this more sound, user friendly, and fun?" (the tank went in Version 166). My proposal in three parts, then his "Yes go ahead":
+1. Clean screen: words only where the player has to decide something. The soldiers' running commentary (Moving to cover, Got him, Frag out...) is gone; the hit chance shows only under the man your squad is shooting; each man of the squad you play has a cover shield over his head (green full, yellow half, red in the open); his health only once he's hurt; banners one short line; blood smaller and gone after about half a minute; rings only under the squad you play.
+2. One objective, always in view: a pill at the top ("Take the square · 2/4 · 80 m") and an arrow at the screen's edge toward it, or a marker over it.
+3. Danger shown: the field of fire of every enemy machine gun you've seen is red on the ground, cut off where something blocks it; whoever is shooting your men gets a red ring, or an arrow at the edge of the screen when he's off it.
+
+Several things that went were Bryan's own earlier asks (the hit chance under every enemy, the soldiers' callouts, the names over the bunkers and guns): his "go ahead" covered the proposal that cut them. What stayed: the role badges, the facing arrow, the refusals ("Too far", "I'm pinned!"), Man down / KIA / Critical, the downed men's timers, the red scope on the target, the counterattack's gun labels (you tap them), the village's four places, WIRE · TAP TO BLOW.
+
+Found on the way: the horror game's "base alert" was running on D-Day and writing "The base is on alert", "Alert II: helmets and vests on" and "Lockdown: a hunter team is coming" (no team comes) over the battle; the words are gone, the alert itself still counts as before (longer eyes, then helmets and vests on them), since the balance was tested with it. Bryan to say if it should go.
+
+For Bryan to judge: whether anything gone is missed (the bunker names, the hit chance on every enemy, the other squad's badges at full strength), the objective's words, how strong the red fields of fire are on the beach, where the pill sits on his phone.
+

@@ -121,7 +121,7 @@ function ddBaseOpen(){
   const b=dd.base||(dd.base={});if(b.open)return;b.open=true;ddBaseGarrison();
   if(typeof addZones==='function')addZones([{k:'sup',x:DDX+DD_SPOT.door.x-40,y:DD_SPOT.door.y+34}]);
   VB.x1=DB.x1;clampCam();
-  bigText('Barracks taken','complete');banner('The barracks is yours: ammunition there now. Their base is down the road on the right. Take its command post.',6000);
+  bigText('Barracks taken','complete');banner('Ammo at the barracks. Next: their command post.',4000);
 }
 function ddBaseTick(dt){
   const b=dd.base;if(!b||!b.garr||dd.won)return;
@@ -142,7 +142,7 @@ function ddBaseTick(dt){
   if(!b.open)return;
   const d=DB.cp.door,near=up.filter(p=>hyp(p.x-d.x,p.y-d.y)<110).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-d.x,e.y-d.y)<240).length+ddTanksUp().filter(K=>hyp(K.x-d.x,K.y-d.y)<340).length;
   b.holdN=near;b.holdFoes=foes;
-  if(near>=2&&!foes){b.holdT=(b.holdT||0)+.5;if(b.holdT>=4){dd.won=true;bigText('Base taken','complete');banner('Their command post is yours. The base is taken.',4000);endAt=performance.now()+4200;updateObjUI();}}
+  if(near>=2&&!foes){b.holdT=(b.holdT||0)+.5;if(b.holdT>=4){dd.won=true;bigText('Base taken','complete');endAt=performance.now()+4200;updateObjUI();}}
   else b.holdT=0;
 }
 // the fuel dump goes up: everyone of theirs near it, and a tank beside it
@@ -181,11 +181,7 @@ function ddNpcEast(u){
 /* ---------- on the overlay, and the hint ---------- */
 function ddBaseDraw(lab){
   const b=dd.base;if(!b||!b.garr)return;const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e)),X=x=>x-DDX;
-  if(!dd.blown.bA)lab(X(DB.bA.x+60),DB.bA.y+20,46,'BARRACKS A','#ff8a6a');if(!dd.blown.bB)lab(X(DB.bB.x+60),DB.bB.y+20,46,'BARRACKS B','#ff8a6a');
-  if(!dd.blown.fuel)lab(X(DB.fuel.x+25),DB.fuel.y+20,34,'FUEL DUMP · BLOW IT UP','#ffcf4a');
-  if(!dead('bmortar'))lab(X(1694),-716,24,'MORTARS','#ff8a6a');
-  if(!dead('bwest'))lab(X(1300),-600,40,'GATE','#ff8a6a');
-  if(!dd.won)lab(X(DB.cp.x+42),DB.cp.y+44,62,!b.open?'COMMAND POST':b.holdT>0?`COMMAND POST · HOLDING ${Math.max(1,Math.ceil(4-b.holdT))}`:b.holdN?(b.holdFoes?`COMMAND POST · ${b.holdFoes} OF THEIRS STILL NEAR`:'COMMAND POST · TWO MEN AT THE DOOR'):'COMMAND POST · TAKE IT','#ffcf4a');
+  if(!dd.blown.fuel)lab(X(DB.fuel.x+25),DB.fuel.y+20,34,'FUEL DUMP','#ffcf4a');   // (Version 167: the rest of the names are gone; the objective pill names the command post, ddhud.js)
 }
 function ddBaseHint(){
   return'Their base. The gate is the hard way in: a bank and trench either side and a tank dug in behind it. The wire at both ends of that face and the gap in the south wire are the other ways. Their two barracks keep sending men until they\'re blown up or yours are at the doors; the fuel dump goes up with a rocket. Ammunition is at the barracks you took. Take the command post at the far end: two of yours at its door for four seconds, with none of theirs and no tank left near it.';

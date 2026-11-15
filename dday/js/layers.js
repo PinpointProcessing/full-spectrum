@@ -46,7 +46,8 @@ function raiseAlert(n,why,msg){
     reinf={at:simT+REINF_WARN,lk:{x:lk.x,y:lk.y},from:{x:lk.x,y:lk.y-250},obj:ga};
   }
   if(msg===false)return up;
-  if(up)banner(s===1?'The base is on alert: they look harder now.':s===2?'Alert II: helmets and vests on.':'Lockdown: a hunter team is coming for you.',2800);
+  if(MAPID==='dd'){}   // (D-Day: no alert stages written up; the horror game's base alert means nothing there, Version 167)
+  else if(up)banner(s===1?'The base is on alert: they look harder now.':s===2?'Alert II: helmets and vests on.':'Lockdown: a hunter team is coming for you.',2800);
   else if(msg)banner(msg,2400);
   return up;
 }
@@ -126,7 +127,7 @@ function moraleBreak(e){
   e.surrNext=simT+SURRENDER.every;if(Math.random()>SURRENDER.chance)return false;   // one roll every few seconds while it holds
   Object.assign(e,{surr:true,path:[],alerted:false,aware:0,wary:false,call:null,hunt:null,huntT0:0,lkp:null,flanking:false,bodyGo:null});
   {const i=(Math.random()*3)|0;callout(e,BARKS.surrender[i],'#ffcf4a');if(typeof sfxFear==='function')sfxFear(e);}   // the words on screen, a frightened yell out loud (Bryan: fear means screaming)setStatus();
-  if(!(e.grp!=null&&groups[e.grp]&&groupDone(e.grp)))banner('A hostile surrenders. Tap him to zip-tie him.',2400);   // (the last man: the checkpoint's message comes instead, and the hint line says it)
+  if(MAPID!=='dd'&&!(e.grp!=null&&groups[e.grp]&&groupDone(e.grp)))banner('A hostile surrenders. Tap him to zip-tie him.',2400);   // (D-Day: he just kneels, SURRENDERED over him)   // (the last man: the checkpoint's message comes instead, and the hint line says it)
   return true;
 }
 function orderZip(list,e){
@@ -171,7 +172,7 @@ function sensorTick(dt){
   for(const p of players)if(alive(p)){if(p.path.length)p.stillT=simT;else if(p.stillT==null)p.stillT=simT;}
   blips=blips.filter(b=>simT-b.t<SENSOR.blip);
   if((sensorT-=dt)>0)return;
-  const ups=players.filter(p=>alive(p)&&!p.offMap&&!offFloor(p));if(!ups.length||state!=='play'||landing){sensorT=.5;return;}
+  const ups=players.filter(p=>alive(p)&&!p.offMap&&!offFloor(p));if(!ups.length||state!=='play'||landing||MAPID==='dd'){sensorT=.5;return;}   // (no contact sensor on D-Day: Version 167)
   const cx=ups.reduce((a,p)=>a+p.x,0)/ups.length,cy=ups.reduce((a,p)=>a+p.y,0)/ups.length;
   const cy2=ups.some(p=>isCls(p,'cyber')),rng=cy2?CLS.sensorR:SENSOR.range;   // (Cyber Ops: classes.js)
   let near=1e9;for(const e of enemies){if(e.dead||e.surr||e.vis||!e.path.length||offFloor(e)||e.dormant)continue;const d=hyp(e.x-cx,e.y-cy);if(d>rng)continue;near=Math.min(near,d);blips.push({x:e.x,y:e.y,t:simT});}
@@ -185,10 +186,10 @@ let sensorC={x:0,y:0};
 function layersTick(dt){alertLayerTick(dt);checkInTick(dt);zipTick(dt);dodgeTick();sensorTick(dt);}
 function drawLayers(now){
   // the sensor's sweep and blips
-  const k=(simT-sweepT)/.9;if(k>=0&&k<1){gPath(sensorC.x,sensorC.y,SENSOR.range*k);ox.strokeStyle=`rgba(120,230,170,${(.35*(1-k)).toFixed(3)})`;ox.lineWidth=1.5;ox.stroke();}
-  for(const b of blips){toSBack=false;const[sx,sy]=toS(b.x,b.y,4);if(toSBack)continue;const a=1-(simT-b.t)/SENSOR.blip;ox.fillStyle=`rgba(255,90,70,${(.8*a).toFixed(3)})`;ox.beginPath();ox.arc(sx,sy,3.5+zoom,0,TAU);ox.fill();}
+  if(MAPID==='dd'){}else{const k=(simT-sweepT)/.9;if(k>=0&&k<1){gPath(sensorC.x,sensorC.y,SENSOR.range*k);ox.strokeStyle=`rgba(120,230,170,${(.35*(1-k)).toFixed(3)})`;ox.lineWidth=1.5;ox.stroke();}
+  for(const b of blips){toSBack=false;const[sx,sy]=toS(b.x,b.y,4);if(toSBack)continue;const a=1-(simT-b.t)/SENSOR.blip;ox.fillStyle=`rgba(255,90,70,${(.8*a).toFixed(3)})`;ox.beginPath();ox.arc(sx,sy,3.5+zoom,0,TAU);ox.fill();}}   // (not on D-Day: Version 167, nothing there that isn't a decision)
   // an incoming enemy grenade: where it'll land
-  for(const n of nades){if(!n.enemy)continue;const p=(Math.sin(now*14)+1)/2;gPath(n.x1,n.y1,ENADE.r);ox.fillStyle=`rgba(255,40,30,${((.12+p*.12)*(MAPID==='dd'?.3:1)).toFixed(3)})`;ox.fill();ox.strokeStyle='rgba(255,70,50,.9)';ox.lineWidth=2;ox.setLineDash([6,4]);ox.stroke();ox.setLineDash([]);const[lx,ly]=toS(n.x1,n.y1);label(MAPID==='dd'?'INCOMING':'GRENADE',lx,ly,'#ff5040',11,700);}
+  for(const n of nades){if(!n.enemy)continue;const p=(Math.sin(now*14)+1)/2;gPath(n.x1,n.y1,MAPID==='dd'?n.R||ENADE.r:ENADE.r);ox.fillStyle=`rgba(255,40,30,${((.12+p*.12)*(MAPID==='dd'?.3:1)).toFixed(3)})`;ox.fill();ox.strokeStyle='rgba(255,70,50,.9)';ox.lineWidth=2;ox.setLineDash([6,4]);ox.stroke();ox.setLineDash([]);if(MAPID!=='dd'){const[lx,ly]=toS(n.x1,n.y1);label('GRENADE',lx,ly,'#ff5040',11,700);}}   // (D-Day: the red circle alone, as big as the shell's blast: Version 167)
   // the ones who gave up
   for(const e of enemies){if(!e.surr||e.dead||offFloor(e)||!e.vis)continue;const[sx,sy]=toS(e.x,e.y,22);label(e.tied?'TIED':zipFor(e)?'ZIP-TYING':'SURRENDERED',sx,sy,'#ffcf4a',9,700);}
   for(const z of zipGos)if(!z.u.path.length){const u=z.u;gPath(u.x,u.y,14,-Math.PI/2,-Math.PI/2+z.prog/ZIP_T*TAU);ox.strokeStyle=C.good;ox.lineWidth=2.4;ox.stroke();}

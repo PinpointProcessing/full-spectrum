@@ -382,6 +382,18 @@ function ddSplash(x,y,s=1){
   if(!q){if(P.length>=22)return;const m=new T.Mesh(new T.ConeGeometry(1,1,7,1,true),new T.MeshBasicMaterial({color:0xeef3f2,transparent:true,opacity:.8,depthWrite:false,side:T.DoubleSide,fog:false}));m.geometry.translate(0,.5,0);DD.scene.add(m);q={m,on:false};P.push(q);}
   Object.assign(q,{on:true,t:0,s,x,y});q.m.visible=true;q.m.position.set(x,Math.max(.3,ddH(x,y)),y);
 }
+// blood on the ground (Version 167, Bryan: "way to confusing and messy"): small and gone again in about half a minute. Flat
+// sprites lying on the slope from a pool of 48 (the oldest reused), not paint baked into the ground's picture for good
+function ddBlood(x,y,s=1){
+  if(!DD||!DD.scene)return;
+  if(!DD.blood){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');
+    for(let i=0;i<7;i++){const a=i*2.4,d=i?6+Math.random()*12:0,cx=32+Math.cos(a)*d,cy=32+Math.sin(a)*d,r=i?5+Math.random()*7:17;const gr=g.createRadialGradient(cx,cy,0,cx,cy,r);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.7,'rgba(255,255,255,.9)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(cx,cy,r,0,TAU);g.fill();}
+    const tex=new T.CanvasTexture(c),geo=new T.PlaneGeometry(1,1);geo.rotateX(-Math.PI/2);DD.blood=[];DD.bloodI=0;
+    for(let i=0;i<48;i++){const m=new T.Mesh(geo,new T.MeshBasicMaterial({map:tex,color:0x4a0705,transparent:true,opacity:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));m.visible=false;m.renderOrder=1;DD.scene.add(m);DD.blood.push({m,on:false,t:0,r:1});}}
+  const q=DD.blood[DD.bloodI++%DD.blood.length],e=4,n=new T.Vector3(-(ddH(x+e,y)-ddH(x-e,y))/(2*e),1,-(ddH(x,y+e)-ddH(x,y-e))/(2*e)).normalize();
+  q.on=true;q.t=0;q.r=(7+Math.random()*5)*s;q.m.visible=true;q.m.position.set(x,ddH(x,y)+.3,y);
+  q.m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),n).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.random()*TAU));
+}
 // a bullet on steel: a white-hot flash and a few sparks thrown off (the boats' hulls and helmets on the ride in; steel obstacles and wrecks in the fight)
 function ddSpark(x,h,y,k=1){
   if(!DD)return;const P=DD.spk||(DD.spk=[]);let q=P.find(o=>!o.on);
@@ -433,8 +445,9 @@ function ddFrame(rdt,now){
   const dt=Math.min(.05,rdt)*(typeof timeScale==='function'&&state==='play'?timeScale():1);
   for(const g of DD.gibs){if(!g.on)continue;g.t+=dt;const p=g.m.position;
     if(g.v){g.v[1]-=260*dt;p.x+=g.v[0]*dt;p.y+=g.v[1]*dt;p.z+=g.v[2]*dt;g.m.rotation.x+=g.w[0]*dt;g.m.rotation.y+=g.w[1]*dt;g.m.rotation.z+=g.w[2]*dt;
-      const fl=ddH(p.x,p.z)+1.2;if(p.y<=fl){p.y=fl;if(Math.abs(g.v[1])>50){g.v[1]*=-.3;g.v[0]*=.5;g.v[2]*=.5;paintDecal({k:'body',x:p.x,y:p.z,a:0,r:Math.random()*.4});}else g.v=null;}}
-    if(g.t>26){g.on=false;g.m.visible=false;}}
+      const fl=ddH(p.x,p.z)+1.2;if(p.y<=fl){p.y=fl;if(Math.abs(g.v[1])>50){g.v[1]*=-.3;g.v[0]*=.5;g.v[2]*=.5;}else g.v=null;}}   // (no blood where it bounces: Version 167)
+    if(g.t>12){g.on=false;g.m.visible=false;}}
+  for(const q of DD.blood||[]){if(!q.on)continue;q.t+=dt;if(q.t>=28){q.on=false;q.m.visible=false;continue;}const k=Math.min(1,q.t/.5);q.m.scale.set(q.r*(.55+.45*k),1,q.r*(.55+.45*k)*.8);q.m.material.opacity=.82*Math.min(1,(28-q.t)/6);}   // (blood: spreads, then fades out from 22 s)
   for(const q of DD.spl||[]){if(!q.on)continue;q.t+=dt;const D=.5+q.s*.45,k=q.t/D;if(k>=1){q.on=false;q.m.visible=false;continue;}
     const up=Math.sin(Math.min(1,k*1.5)*Math.PI/2)*(1-k*k*.6);q.m.scale.set(q.s*(3+k*7),Math.max(.01,q.s*26*up),q.s*(3+k*7));q.m.material.opacity=.85*(1-k);}
   for(const q of DD.spk||[]){if(!q.on)continue;q.t+=dt;const k=q.t/.32;if(k>=1){q.on=false;q.g.visible=false;continue;}

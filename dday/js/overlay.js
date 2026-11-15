@@ -104,15 +104,17 @@ function drawOverlay(rdt,now){
     if(MAPID==='in')conePath(e);else{const{r:R,cone:A}=eyeOf(e);gPath(e.x,e.y,R,e.ang-A,e.ang+A,true);}   // indoors the cone stops at walls; a man with eyes of his own (Level 1's guards, the sniper) shows his own reach
     ox.fillStyle=`rgba(255,80,60,${(.07+e.aware*.2).toFixed(3)})`;ox.fill();
   }
+  const DDM=MAPID==='dd'&&!!dd;   // D-Day's screen, cleaned up (Version 167, ddhud.js): only what asks for a decision
+  if(DDM)ddDanger(now);   // the known machine guns' fields of fire, on the ground
   // suppression zones
   const zones=new Map();for(const p of players)if(alive(p)&&p.supT)zones.set(p.supT.x+','+p.supT.y,p.supT);
   for(const s of zones.values()){
     gPath(s.x,s.y,55);ox.setLineDash([5,5]);ox.lineDashOffset=-now*20;ox.strokeStyle=C.warn;ox.globalAlpha=.55+pulse*.3;ox.lineWidth=1.5;ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;
-    const[lx,ly]=below(s.x,s.y,62);label('SUPPRESSING',lx,ly,C.warn,9);
+    if(!DDM){const[lx,ly]=below(s.x,s.y,62);label('SUPPRESSING',lx,ly,C.warn,9);}
   }
   // move paths
   for(const u of players){
-    if(!alive(u)||!u.path.length||(typeof endingBusy==='function'&&endingBusy()))continue;const isSel=sel.includes(u);   // (none in the scene at the Headquarters' end: fortress.js)
+    if(!alive(u)||!u.path.length||(typeof endingBusy==='function'&&endingBusy()))continue;const isSel=sel.includes(u);if(DDM&&!isSel)continue;   // (D-Day: only the squad you play)   // (none in the scene at the Headquarters' end: fortress.js)
     ox.strokeStyle=teamCol(u);ox.globalAlpha=isSel?.7:.3;ox.setLineDash([4,5]);ox.lineWidth=1.4;
     toSBack=false;ox.beginPath();let[a,b]=toS(u.x,u.y,.5);ox.moveTo(a,b);for(const p of u.path){[a,b]=toS(p.x,p.y,.5);ox.lineTo(a,b);}if(!toSBack)ox.stroke();
     ox.setLineDash([]);
@@ -127,13 +129,13 @@ function drawOverlay(rdt,now){
       for(const p of a.path||[{x:a.x,y:a.y}]){const[px,py]=toS(p.x,p.y);ox.lineTo(px,py);}   // the way he'll actually go (round by a window, say)
       ox.stroke();ox.setLineDash([]);ox.globalAlpha=1;
       gPath(a.x,a.y,8);ox.fillStyle=a.cov?'rgba(95,224,142,.3)':'rgba(255,90,72,.3)';ox.fill();ox.strokeStyle=col;ox.lineWidth=2;ox.stroke();
-      const[lx,ly]=toS(a.x,a.y,18);label(a.u.id,lx,ly,teamCol(a.u),9,700);
+      if(!DDM){const[lx,ly]=toS(a.x,a.y,18);label(a.u.id,lx,ly,teamCol(a.u),9,700);}
       vaultMarks(a.u,a.path,'#eef2f5',.9);   // he'll go through a window to get there
     }
     if(!preview.veh){   // a drive order draws its own ghost (vehicle.js)
       gPath(preview.x,preview.y,15+pulse*3);ox.strokeStyle='rgba(235,240,245,.9)';ox.lineWidth=1.6;ox.stroke();
       const covN=preview.as.filter(a=>a.cov).length,[px,py]=below(preview.x,preview.y,24);
-      label(`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',10,700);
+      label(DDM?`Tap again · ${covN}/${preview.as.length} in cover`:`TAP AGAIN TO MOVE · ${covN}/${preview.as.length} IN COVER`,px,py+6,'#eef2f5',DDM?12:10,700);
     }
   }
   // a route being drawn (hold a soldier, then drag: input.js): the line, and a ring where it ends, green in cover, red in the open
@@ -157,7 +159,7 @@ function drawOverlay(rdt,now){
   }
   // (muzzle flashes: 3D sprites at the muzzle now, which the bloom makes glow: post.js's fxFrame)
   for(const s of sparks){const[sx,sy]=toS(s.x,s.y,6),k=1-s.t/.22;ox.fillStyle=`rgba(255,200,120,${k})`;for(let i=0;i<4;i++){const a=i*1.7+s.x,d=2+s.t*40;ox.fillRect(sx+Math.cos(a)*d,sy+Math.sin(a)*d,1.6,1.6);}}
-  for(const b of booms){const k=b.t/.6;gPath(b.x,b.y,10+70*k);ox.strokeStyle=`rgba(255,200,130,${1-k})`;ox.lineWidth=3*(1-k)+1;ox.stroke();}
+  for(const b of booms){if(DDM)break;const k=b.t/.6;gPath(b.x,b.y,10+70*k);ox.strokeStyle=`rgba(255,200,130,${1-k})`;ox.lineWidth=3*(1-k)+1;ox.stroke();}
   ox.globalCompositeOperation='source-over';
   for(const n of nades){
     const k=n.t/n.dur,x=n.x0+(n.x1-n.x0)*k,y=n.y0+(n.y1-n.y0)*k,h=Math.sin(k*Math.PI)*30+8*(1-k);
@@ -168,22 +170,23 @@ function drawOverlay(rdt,now){
 
   drawStations(now);drawVehicle(rdt,now);drawMission(rdt,now);   // (the medic stations' and ammo drops' rings: hq.js; the Headquarters' own bar is drawn from drawMission)
   // where the hunters think the squad is (hunt.js): a faint ring where they're searching
-  {const done=[];for(const e of enemies){if(e.dead||!e.alerted||!e.hunt||!e.lkp||offFloor(e))continue;const L=e.lkp;if(done.some(d=>hyp(d.x-L.x,d.y-L.y)<80))continue;done.push(L);
+  if(!DDM){const done=[];for(const e of enemies){if(e.dead||!e.alerted||!e.hunt||!e.lkp||offFloor(e))continue;const L=e.lkp;if(done.some(d=>hyp(d.x-L.x,d.y-L.y)<80))continue;done.push(L);
     gPath(L.x,L.y,22+Math.sin(now*3)*2);ox.setLineDash([3,5]);ox.strokeStyle='rgba(205,210,215,.55)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);const[lx,ly]=below(L.x,L.y+22,4);label('SEARCHING',lx,ly,'rgba(205,210,215,.75)',8,700);}}
   // enemy info
   const act=sel.filter(alive);
   for(const e of enemies){
     if(e.dead||offFloor(e))continue;
-    if(e.surr){if(e.vis&&!e.tied&&act.length&&!zipFor(e)){const[fx,fy]=toS(e.x,e.y);pill('ZIP-TIE',fx,fy+16,C.good);}continue;}   // he gave up: tap him (layers.js draws his label)
+    if(e.surr){if(!DDM&&e.vis&&!e.tied&&act.length&&!zipFor(e)){const[fx,fy]=toS(e.x,e.y);pill('ZIP-TIE',fx,fy+16,C.good);}continue;}   // he gave up: tap him (layers.js draws his label)
     if(e.vis){
       const vx=e.x+e.lx,vy=e.y+e.ly,[hx,hy]=toS(vx,vy,24),[fx,fy]=toS(vx,vy);
       if(e.hitFlash>0){gPath(vx,vy,7+(.25-e.hitFlash)*30);ox.strokeStyle=`rgba(255,60,40,${(e.hitFlash*3).toFixed(2)})`;ox.lineWidth=2;ox.stroke();}   // hit: a red pulse
-      {const mh=e.veh?GJEEP.hp:100,k=e.hp/mh;if(k<1)bar(hx-9,hy-6,18,k,k>.6?C.good:k>.3?C.warn:C.bad);}
-      if(e.mon){}   // (nothing over a monster but its health: Bryan)
+      const tgt=DDM&&act.some(u=>u.focus===e);if(DDM&&!tgt){}   // (D-Day: his health and PINNED only on the man your squad is shooting)
+      else{const mh=e.veh?GJEEP.hp:100,k=e.hp/mh;if(k<1)bar(hx-9,hy-6,18,k,k>.6?C.good:k>.3?C.warn:C.bad);}
+      if(e.mon||DDM&&!tgt){}   // (nothing over a monster but its health: Bryan)
       else if(e.sup>0.65&&e.alerted)label('PINNED',hx,hy-14,C.warn,9,700);
-      else if(e.sup>0.08&&e.alerted)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
+      else if(e.sup>0.08&&e.alerted&&!DDM)bar(hx-9,hy-1,18,e.sup/0.65,C.warn);
       const stalked=players.some(p=>p.tk&&p.tk.e===e);
-      if(!e.mon&&(stalked||act.length)&&!(typeof dd!=='undefined'&&dd&&dd.fp)){   // (nor while one man is played by hand: he aims himself, ddfp.js)   // (none under a monster either: a swarm of them each with a hit chance was a wall of words)   // his label: TAKEDOWN if his back is to the one soldier selected (and while he's stalked), else the best hit chance. Worked out ~7 times a second, not every frame
+      if(!e.mon&&(stalked||act.length)&&!(typeof dd!=='undefined'&&dd&&dd.fp)&&(!DDM||act.some(u=>u.focus===e))){   // (D-Day: only on the man your squad is shooting, under its scope)   // (nor while one man is played by hand: he aims himself, ddfp.js)   // (none under a monster either: a swarm of them each with a hit chance was a wall of words)   // his label: TAKEDOWN if his back is to the one soldier selected (and while he's stalked), else the best hit chance. Worked out ~7 times a second, not every frame
         const key=act.map(u=>u.id).join(),nowMs=performance.now();let pc=e._pill;
         if(!pc||pc.key!==key||pc.stalked!==stalked||nowMs-pc.t>150||volley&&nowMs-pc.t>60){
           let text,col;
@@ -199,19 +202,19 @@ function drawOverlay(rdt,now){
             let best=0,bc=0,lean=false,bu=null;
             for(const u of act){if(hyp(u.x-e.x,u.y-e.y)>wRange(u))continue;const L=fireLine(u,e);if(!L)continue;const c=hitChance(u,e,L);if(c>best){best=c;bc=shotCover(L);lean=L.lean;bu=u;}}
             if(best>0){const pct=Math.round(best*100);text=`${pct}% · ${bc===2?'heavy':bc===1?'cover':'open'}${lean?' · peek':''}${ambushing(bu)?' · ambush':''}`;col=pct>=60?C.good:pct>=35?C.warn:C.bad;}
-            else{text='no line';col='#7d8a94';}
+            else{text=DDM?'':'no line';col='#7d8a94';}
           }
           pc=e._pill={t:nowMs,key,stalked,text,col};
         }
-        pill(pc.text,fx,fy+16,pc.col);
+        if(pc.text)pill(pc.text,fx,fy+16,pc.col);
       }
-      if(act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
+      if(!DDM&&act.some(u=>u.focus===e)){gPath(vx,vy,11);ox.strokeStyle=C.warn;ox.lineWidth=2;ox.stroke();}
       if(e.reloadT>simT)label('RELOADING',fx,fy+29,C.good,9,700);   // the run's heavy gun: dash now
       if(e.radio){label(e.call?'CALLING IT IN':'RADIO',fx,fy+29,e.call?'#ff5a48':'#ffb0a0',8,700);   // the radio man (hunt.js): kill or pin him before the call goes out
         if(e.call){gPath(vx,vy,15,-Math.PI/2,-Math.PI/2+e.call.t/CALL_T*TAU);ox.strokeStyle='#ff3b2a';ox.lineWidth=2.6;ox.stroke();}}
       if(players.some(p=>p.silent&&p.silent.e===e)){gPath(vx,vy,9+Math.sin(now*9)*1.2);ox.strokeStyle='rgba(169,196,214,.95)';ox.lineWidth=1.6;ox.stroke();}   // lined up for a silent shot
       if(stalked){gPath(vx,vy,11+Math.sin(now*6)*1.5);ox.strokeStyle=C.good;ox.lineWidth=2;ox.setLineDash([4,3]);ox.stroke();ox.setLineDash([]);}   // being stalked for a takedown
-    }else if(e.seen&&e.last){
+    }else if(e.seen&&e.last&&!DDM){
       gPath(e.last.x,e.last.y,7);ox.setLineDash([3,3]);ox.strokeStyle='rgba(255,90,72,.7)';ox.lineWidth=1.4;ox.stroke();ox.setLineDash([]);
       const[sx,sy]=toS(e.last.x,e.last.y,6);label('?',sx,sy,'rgba(255,110,90,.95)',11,700);
     }
@@ -229,7 +232,7 @@ function drawOverlay(rdt,now){
       const mine=u.team===dd.active,tc=teamCol(u);   // a filled disc and a thick ring in its colour under each man and a marker over his head; the other squad a thin ring
       gPath(vx,vy,mine?13:9,0,TAU,false,ev);if(!toSBack){if(mine){ox.globalAlpha=.3;ox.fillStyle=tc;ox.fill();ox.globalAlpha=1;}ox.strokeStyle=tc;ox.lineWidth=mine?3:1.2;ox.globalAlpha=mine?1:.55;ox.stroke();ox.globalAlpha=1;}
       if(!u.downed&&!u.inBoat){   // his role over his head (Bryan: "can the units have icons over their head with what unit type they are?"): a badge, filled in for the squad being played
-        const R=mine?9:7.5,bx=hx,by=hy-(u.hp<99||u.sup>=.08?20:12)-R,fg=mine?'#0b0f13':tc;
+        const R=mine?9:7.5,bx=hx,by=hy-(u.hp<99?20:12)-R,fg=mine?'#0b0f13':tc;if(!mine)ox.globalAlpha=.5;   // (the other squad's, faint)
         ox.beginPath();ox.arc(bx,by,R,0,TAU);ox.fillStyle=mine?tc:'rgba(10,14,18,.86)';ox.fill();ox.strokeStyle=mine?'rgba(8,11,14,.9)':tc;ox.lineWidth=1.4;ox.stroke();
         if(mine){ox.beginPath();ox.moveTo(bx-4,by+R-.5);ox.lineTo(bx+4,by+R-.5);ox.lineTo(bx,by+R+5);ox.closePath();ox.fillStyle=tc;ox.fill();}
         const k=R/9;ox.save();ox.translate(bx,by);ox.scale(k,k);ox.fillStyle=fg;ox.strokeStyle=fg;ox.lineWidth=1.6;ox.lineCap='round';
@@ -239,8 +242,9 @@ function drawOverlay(rdt,now){
         else if(u.ddRole==='sharp'){ox.beginPath();ox.arc(0,0,4,0,TAU);ox.moveTo(-6.2,0);ox.lineTo(-2,0);ox.moveTo(2,0);ox.lineTo(6.2,0);ox.moveTo(0,-6.2);ox.lineTo(0,-2);ox.moveTo(0,2);ox.lineTo(0,6.2);ox.stroke();ox.beginPath();ox.arc(0,0,.9,0,TAU);ox.fill();}   // a scope
         else if(u.ddRole==='demo'){ox.rotate(-.7);ox.beginPath();ox.moveTo(6.2,0);ox.lineTo(3,-2);ox.lineTo(-3.4,-2);ox.lineTo(-6,-4);ox.lineTo(-4.6,0);ox.lineTo(-6,4);ox.lineTo(-3.4,2);ox.lineTo(3,2);ox.closePath();ox.fill();}   // a rocket
         else{ox.beginPath();ox.moveTo(-4.5,4.5);ox.lineTo(4.5,-4.5);ox.stroke();ox.beginPath();ox.arc(4,-4,2.4,0,TAU);ox.stroke();}   // (the Engineer: a spanner)
-        ox.restore();}}
-    if(sel.includes(u)){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
+        ox.restore();ox.globalAlpha=1;
+        if(mine){ddShield(bx+R+10,by,ddCover(u));if(u.sup>PINNED)label('PINNED',bx,by-R-9,C.warn,10,800);}}}   // how covered he is (ddhud.js), and pinned
+    if(sel.includes(u)&&!DDM){gPath(vx,vy,9.5,0,TAU,false,ev);ox.strokeStyle='rgba(240,245,250,.95)';ox.setLineDash([4,3]);ox.lineDashOffset=-now*10;ox.lineWidth=1.6;ox.stroke();ox.setLineDash([]);}
     if(MAPID==='dd'&&sel.includes(u)&&!u.downed){   // D-Day: an arrowhead on his ring the way he faces (Bryan: "when you select a squad, it shows you the direction they are facing")
       const A=u.ang,P=(r,d)=>toS(vx+Math.cos(A+d)*r,vy+Math.sin(A+d)*r,ev||0),t=P(19,0),l=P(12.5,.34),r2=P(12.5,-.34);
       ox.beginPath();ox.moveTo(t[0],t[1]);ox.lineTo(l[0],l[1]);ox.lineTo(r2[0],r2[1]);ox.closePath();ox.fillStyle=teamCol(u);ox.fill();ox.strokeStyle='rgba(8,11,14,.8)';ox.lineWidth=1;ox.stroke();}
@@ -254,6 +258,7 @@ function drawOverlay(rdt,now){
       label(txt,hx,hy-6,prog>0&&!(medic&&medic.sup>PINNED)?C.good:pinnedHelp||(medic&&medic.sup>PINNED)?C.warn:C.bad,9,700);
       continue;
     }
+    if(DDM){if(u.hp<99&&!u.inBoat)bar(hx-9,hy-6,18,u.hp/100,u.hp>60?C.good:u.hp>30?C.warn:C.bad);continue;}   // D-Day: his health only once he's hurt (his cover and PINNED are over his badge)
     // calm, unhurt and not selected: just his callsign, faint (the dark world breathes: docs/feel-plan.md); the bars come back
     // when he's selected, hurt, suppressed or in a fight
     if(!caught(u)&&!sel.includes(u)&&u.hp>=99&&u.sup<.08&&!u.carry){ox.globalAlpha=.55;label(u.id,fx,fy+15,teamCol(u),9,700);ox.globalAlpha=1;continue;}
@@ -265,6 +270,7 @@ function drawOverlay(rdt,now){
   }
   for(const c of callouts){if(offFloor(c))continue;const[sx,sy]=toS(c.x,c.y,30),k=c.t/(c.dur||1.7);ox.globalAlpha=(c.small?.85:1)*(1-Math.max(0,k-.6)/.4);label(c.text,sx,sy-k*16,c.col,c.small?9:11,c.small?600:700);ox.globalAlpha=1;}
   drawBubbles();
+  if(DDM&&!dd.seq){ddShooters(now);ddObjDraw(now);}   // who's shooting your men, and the objective (ddhud.js)
   if(ptr&&ptr.kind==='lasso'&&ptr.loop.length>1){   // lasso loop, closed back to its start
     ox.beginPath();ox.moveTo(...ptr.loop[0]);for(const p of ptr.loop)ox.lineTo(...p);ox.closePath();
     ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);

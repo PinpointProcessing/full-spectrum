@@ -117,7 +117,7 @@ function dcBuild(G,sc,M,add){
 function startCounter(retry){
   if(!ddRoster)ddRoster=ddmRead();
   if(retry&&startCounter.snap){ddRoster=JSON.parse(startCounter.snap);ddmSave();}   // (a loss is a retry: the roster as it was when they left the barracks)
-  if(!ddmFit().length){banner('Nobody fit in the squads: treat the wounded, or bring men in from the reserve.',3200);return;}
+  if(!ddmFit().length){banner('Nobody fit: treat the wounded or add reserves.',3200);return;}
   startCounter.snap=JSON.stringify(ddRoster);
   reset();DD_MODE='counter';$('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   enterCounter();state='play';endAt=0;
@@ -154,7 +154,7 @@ function enterCounter(){
   select(players.filter(p=>p.team==='A').length?players.filter(p=>p.team==='A'):players.filter(p=>p.team==='B'));dd.track=null;
   // the look up the road: there they are; then back, and the clock starts
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.road,z:-470+DD_CAM.look,zoom:6.5},t:0,dur:2.2};
-  banner('A column on the road: infantry and tanks. They are coming for the base.',5200);
+  banner('Infantry and tanks are coming for the base.',4000);
 }
 
 /* ---------- the guns ---------- */
@@ -170,7 +170,7 @@ function dcTap(wx,wy){
   const C=dd.dc;if(C.ph==='intro')return true;
   if(C.art){const g=C.art;C.art=null;const d=hyp(wx-g.x,wy-g.y);   // a field gun told where to fire
     if(d<DCA.art.min){banner('Too close for the gun.',1800);return true;}if(d>DCA.art.max){banner('Out of the gun\'s reach.',1800);return true;}
-    g.aim={x:wx,y:wy};g.orderT=simT;if(simT<g.fireT)banner(`${g.n} is reloading: it fires there when it is ready.`,2200);return true;}
+    g.aim={x:wx,y:wy};g.orderT=simT;if(simT<g.fireT)banner(`${g.n} reloading: fires there when ready.`,2200);return true;}
   const g=dcGunAt(wx,wy);if(!g)return false;
   if(g.dead){banner(`${g.n} is knocked out.`,1800);return true;}
   if(g.t==='art'&&g.man&&!g.man.npc){C.art=g;banner(`${g.n}: tap where to shell.`,2600);return true;}
@@ -190,7 +190,7 @@ function dcFire(g,x,y){
 // after 2"): a shell landing within DCA.gunHit of it is a hit; one and it smokes, two and the smoke is dark, three and it's wrecked for the fight
 function dcGunHit(g){
   if(g.dead)return;g.hits++;const m=DD.dcGuns&&DD.dcGuns[g.k];
-  if(g.hits<3){banner(g.hits===1?`${g.n} is hit and smoking. Two more and it is gone.`:`${g.n} is hit again: one more and it is gone.`,3000);return;}
+  if(g.hits<3){banner(g.hits===1?`${g.n} hit · 2 more and it's gone`:`${g.n} hit again · 1 more and it's gone`,2600);return;}
   g.dead=true;g.aim=null;if(dd.dc.art===g)dd.dc.art=null;
   for(const u of[g.man,g.going])if(u){if(u.onGun){u.onGun=null;u.gunner=false;}if(u.dcGun===g)u.dcGun=null;}g.man=null;g.going=null;
   if(m){m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.color.setHex(0x1b1a18);}});}
@@ -236,7 +236,7 @@ function dcSpawnWave(n){
     const e=ddFoe(tag,lane-DDX+(Math.random()-.5)*30,DCA.treeY-60-Math.random()*90,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=-1;enemies.push(e);}
   for(const e of enemies)if(e.tag===tag){e.cool=Math.min(e.cool,1+Math.random()*2);e.stage=0;e.advT=simT+Math.random()*3;e.gait=null;}
   for(const K of dd.tanks)if(K.w===n&&K.hp>0){K.hold=false;K.i=0;}
-  banner(n===1?'Here they come: infantry across the whole field.':n===2?'Second wave: a tank down the road, infantry behind it. Mortars on the forward nests.':'Third wave: two tanks, one on each flank. Everything they have left.',4600);
+  banner(n===1?'Here they come: infantry across the whole field.':n===2?'Wave 2: a tank on the road, mortars on the nests.':'Wave 3: two tanks, one on each flank.',3600);
 }
 // each man works his way down the field in bounds: the hedgerow, the open ground, the trench, the wire, then the gate and the command post
 const DC_STAGE=[-96,90,240,430];
@@ -259,7 +259,7 @@ function dcReplace(){
   for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}
     dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;const rm=ddmTakeReserve();dd.pool=ddmReserveFit().length;if(!rm)continue;
     const sp=openSpot(DCA.door.x,DCA.door.y,players.filter(p=>!p.dead).map(destOf))||DCA.door,u=ddNewMan(q.team,q.id,rm.role,sp.x,sp.y,rm);u.inBoat=false;u.seen=true;players.push(u);players.sort((a,b)=>a.id<b.id?-1:1);buildCards();
-    banner(`${u.name} (${DD_ROLES[u.ddRole].n}) comes out of the barracks for ${teamName(q.team)}.`,3200);}
+    banner(`${u.name} joins ${teamName(q.team)} from the barracks.`,2600);}
 }
 
 /* ---------- the fight's clock ---------- */
@@ -271,12 +271,12 @@ function dcTick(dt){
   if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();}
   const left=n=>enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length+dd.tanks.filter(K=>K.w===n&&K.hp>0).length;
   if(C.ph==='intro'){if(C.t>4.2&&!C.back){C.back=1;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.square.x,z:DCA.square.y-60+DD_CAM.look,zoom:DD_CAM.zoom},t:0,dur:1.6};}
-    if(C.t>6){C.ph='setup';C.t=0;banner(`${DCA.setup} seconds. Put your men on the guns: pick a squad, tap a nest, a wall gun or a field gun.`,6000);}}
+    if(C.t>6){C.ph='setup';C.t=0;banner(`${DCA.setup} seconds: pick a squad, then tap a gun.`,4500);}}
   else if(C.ph==='setup'){if(C.t>=DCA.setup){C.ph='w1';C.wave=1;C.t=0;dcSpawnWave(1);}}
   else if(C.ph==='lull'){if(C.t>=DCA.lull){C.wave++;C.ph='w'+C.wave;C.t=0;dcSpawnWave(C.wave);}}
   else if(C.t>4&&left(C.wave)===0){
-    if(C.wave>=3){if(!dd.won){dd.won=true;endAt=performance.now()+2200;banner('The last of them is down. The base is held.',5000);}}
-    else{C.ph='lull';C.t=0;banner(`Wave ${C.wave} broken. ${DCA.lull} seconds: get the wounded up, re-man the guns.`,5000);}}
+    if(C.wave>=3){if(!dd.won){dd.won=true;endAt=performance.now()+2200;banner('The last of them is down. Base held.',4000);}}
+    else{C.ph='lull';C.t=0;banner(`Wave ${C.wave} broken. ${DCA.lull} s to re-man the guns.`,3600);}}
   // the command post: theirs if they stand in it for 20 s with none of ours there
   const inCp=enemies.filter(e=>!beaten(e)&&dcIn(e,DCA.cpZone)).length+dd.tanks.filter(K=>K.hp>0&&dcIn(K,DCA.cpZone)).length,ours=dd.allies.filter(u=>alive(u)&&dcIn(u,DCA.cpZone)).length;
   C.cpT=inCp&&!ours?C.cpT+dt:Math.max(0,C.cpT-dt*2);C.cpN=inCp;
@@ -297,11 +297,7 @@ function dcDraw(){
     if(g.dead){lab(g.x,g.y,24,`${g.n} · KNOCKED OUT`,'#8b949c');continue;}
     lab(g.x,g.y,g.t==='art'?34:24,m?(g.t==='art'?(simT<g.fireT?`${g.n} · RELOADING ${Math.ceil(g.fireT-simT)}`:mine?(C.art===g?`${g.n} · TAP A TARGET`:`${g.n} · TAP TO AIM`):g.n):mine?`${g.n} · ${m.name.toUpperCase()}`:g.n):(g.going?`${g.n} · ON HIS WAY`:`${g.n} · TAP TO MAN`)+(g.hits?` · HIT ${g.hits}/3`:''),g.hits===2?'#ff8a6a':m?(mine?'#8fd0ff':'#cfd6dc'):'#ffcf4a');}
   if(C.art){const g=C.art;gPath(g.x,g.y,DCA.art.max);ox.strokeStyle='rgba(255,207,74,.5)';ox.lineWidth=1.5;ox.setLineDash([8,6]);ox.stroke();ox.setLineDash([]);}
-  for(const K of dd.tanks)if(K.hp>0&&K.y>DCA.treeY-60)lab(K.x,K.y,44,`TANK ${Math.round(K.hp/K.hp0*100)}%`,'#ff8a6a');
-  if(C.cpN)lab(DCA.cp.x+60,DCA.cp.y+50,54,C.cpT>1?`COMMAND POST · THEIRS IN ${Math.max(1,Math.ceil(20-C.cpT))}`:'COMMAND POST · THEY ARE IN','#ff5a4a',11);
-  // the clock, top centre
-  const t=C.ph==='setup'?`THEY ATTACK IN ${Math.max(0,Math.ceil(DCA.setup-C.t))}`:C.ph==='lull'?`WAVE ${C.wave+1} IN ${Math.max(0,Math.ceil(DCA.lull-C.t))}`:C.ph==='intro'?'':`WAVE ${C.wave} OF 3 · ${enemies.filter(e=>e.tag==='w'+C.wave&&!beaten(e)).length} MEN${dd.tanks.some(K=>K.w===C.wave&&K.hp>0)?' · '+dd.tanks.filter(K=>K.w===C.wave&&K.hp>0).length+' TANK'+(dd.tanks.filter(K=>K.w===C.wave&&K.hp>0).length>1?'S':''):''}`;
-  if(t)label(t,cw/2,58,C.ph==='setup'||C.ph==='lull'?'#ffcf4a':'#ff8a6a',13,800);
+  for(const K of dd.tanks)if(K.hp>0&&K.y>DCA.treeY-60){toSBack=false;const[sx,sy]=toS(K.x,K.y,40);if(!toSBack)bar(sx-20,sy,40,K.hp/K.hp0,C.bad);}   // (Version 167: its health as a bar; the command post and the clock are in the objective pill, ddhud.js)
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
 }
 function dcFinishLost(){
