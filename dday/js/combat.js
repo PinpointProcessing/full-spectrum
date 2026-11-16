@@ -267,6 +267,7 @@ function routeFromTrail(u,trail){
 }
 function commit(as){if(as&&as[0]&&!chatMove(as)&&Math.random()<.3)say(as[0].u,'ack_move');   // (a group move: often the lead calls his partner instead: chatter.js)
   for(const a of as){a.u.path=a.path;a.u.lastOrder=simT;a.u.supT=null;a.u.exposeT=0;a.u.watch=null;a.u.ret=null;}   // (a move ends a Watch: orders.js; and any way back to the group, below)
+  if(MAPID==='dd'&&typeof ddFollowAgain==='function')ddFollowAgain(as);   // (D-Day: a move of the squad you play brings the camera back to it, ddplay.js)
 }
 
 /* ---------- back to the group after a job (Bryan, after v91: "any time a unit does an action, they run back to the group if

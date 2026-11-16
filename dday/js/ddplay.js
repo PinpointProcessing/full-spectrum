@@ -375,7 +375,18 @@ function ddRouteWay(x,y){   // which way the route runs past (x,y): from the poi
   const s0=Math.min(s,end-DD_TURN.look*.5),p=at(s0),q=at(s0+DD_TURN.look),dx=q.x-p.x,dy=q.y-p.y,l=hyp(dx,dy)||1;
   return{x:dx/l,y:dy/l};
 }
-function ddTurnFree(){const C=dd&&dd.cam;if(C){C.heldT=0;C.yaw=yaw;}}   // (a squad or a man picked: the camera turns with the route again at once, whatever you'd turned it to)
+function ddTurnFree(){const C=dd&&dd.cam;if(C){C.heldT=0;C.yaw=yaw;}}
+// Version 177 (Bryan, after Version 176: "The view never automatically changed"): a drag of the map let go of the squad (Version 156) and only
+// picking a squad took it up again, so after the first look round on a phone the camera neither followed nor turned. Now any move you give the
+// squad you play (combat.js's commit: a group move, one man, a route drawn, a double tap) takes it up again: the camera glides back to the squad
+// and turns with the route. Not in the counterattack, where you hold a base and the camera stays where you put it; not the other squad's moves,
+// a man walking up to join, or first person
+function ddFollowAgain(as){
+  if(!dd||dd.counter||dd.fp||dd.seq||!dd.land||!dd.land.done)return;
+  if(!as||!as.some(a=>a&&a.u&&a.u.team===dd.active&&!a.u.npc&&!a.u.joining))return;
+  if(dd.track&&dd.track.team===dd.active)return;
+  dd.track={team:dd.active};ddTurnFree();
+}   // (a squad or a man picked: the camera turns with the route again at once, whatever you'd turned it to)
 function ddTurn(u,rdt){
   const w=ddRouteWay(u.x,u.y);if(!w)return;
   const C=dd.cam||(dd.cam={k:1,p:null,q:null}),now=performance.now();

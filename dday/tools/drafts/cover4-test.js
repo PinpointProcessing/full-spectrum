@@ -22,9 +22,10 @@ await ok('a man down in a new hole is covered from every side; just outside it h
   const ox=cx+h.r+30,oy=cy;let openOut=0;for(let a=0;a<6.28;a+=Math.PI/4){const sx=ox+Math.cos(a)*400,sy=oy+Math.sin(a)*400;if(coverAt(ox,oy,sx,sy)===0)openOut++;}
   return{ok:out.every(v=>v>=1)&&openOut>0,inside:out,openOutside:openOut};});
 await ok('four sent to each new hole: four green ghosts (in cover from the guns the squad knows)',()=>{for(const e of enemies)if(!beaten(e)){e.seen=true;e.vis=true;}
-  const A=players.filter(u=>u.team==='A'&&alive(u)).slice(0,4),res=[];
+  const A=players.filter(u=>u.team==='A'&&alive(u)).slice(0,4),res=[],near=[];
+  for(const u of players)if(u.team!=='A'){for(const[x,y]of NEW)if(hyp(u.x-x-DDX,u.y-y)<45)near.push(u.id);Object.assign(u,{x:DDX+960,y:720,path:[]});}   // (the other squad out of the way: a hole for four is full with one of them in it)
   for(const[x,y]of NEW){const cx=x+DDX;for(const u of A){u.x=cx+(Math.random()-.5)*60;u.y=y+70+Math.random()*20;u.path=[];}const as=makeAssign(A,cx,y);res.push(as.filter(a=>a.cov).length+'/'+as.length);}
-  return{ok:res.every(r=>r==='4/4'),res};});
+  return{ok:res.every(r=>r==='4/4'),res,otherSquadWasIn:near};});
 await ok('a shell 6.5 m off (outside its blast): nobody moves for it',()=>{const u=players.find(p=>p.team==='A'&&alive(p));u.path=[];u.lastOrder=-99;const R=50,x=u.x+R+15,y=u.y;
   nades.push({x0:x,y0:y-300,x1:x,y1:y,t:0,dur:2.6,by:enemies.find(e=>!beaten(e))||{x,y:y-300,side:'E'},enemy:true,R,D:78});dodgeTick();return{ok:!u.path.length,moved:u.path.length>0};});
 await ok('a shell on a man: he gets out of the blast, to the spot fewest guns can see',()=>{const u=players.find(p=>p.team==='A'&&alive(p));u.path=[];u.lastOrder=-99;const R=50,x=u.x+12,y=u.y;
