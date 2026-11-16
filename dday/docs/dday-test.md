@@ -602,3 +602,50 @@ Bryan, after Version 172: "No finger dragging. I am clicking. I don't want the f
 
 Bryan, after Version 173: "I'm trying to throw smoke and it says too far" (his picture: the smoke was in the hands of a man off the screen behind the bar). Version 174: the tap goes to whoever in the squad has the tool and can reach the spot, the nearest first; smoke walks up to throw like a grenade (26 m from where he stands, 62 m moving up); the orange covers every man who has it, with an arrow at the edge of the screen toward him when he's off it; and when nobody can reach, it says how far ("Too far · 90 m (62 m at most)") and keeps the tool in hand.
 
+## Drafts after Version 174: men who leave their spots, the camera, cover for four
+Bryan, after Version 174: "1) The troops run out and away from where I put them too often. Sometimes they throw themselves into an open line of fire. 2) is there a way we can make the view point of the player easier. Like follows the map. I have two solutions. Maybe a fixed camera view for each section (at least in D-Day and other big maps) or make it third person view from being the squad, or the leader of the squad. 3) Cover should be able to always cover 4 men. Will that be hard or unrealistic? Or at least have two covers close by fit enough for two men each. Or should we make squads smaller? Let's brainstorm and draft". Nothing in the game is changed yet.
+
+### 1. Men leaving where they were put
+Measured with `tools/drafts/leave-test.js [beach|village] [secs] [seed] [port] [base|smart|hold]`. The squad you play is put in cover a little way up the beach and given no more orders for two minutes while the fight goes on. Every time one of its men sets off on his own, the test logs what sent him, how far he went, and whether any gun that can reach his new spot has an open shot at it. Five fights for each rule set (seeds 2 to 6), averaged:
+
+| per 2 minutes, the squad you play | moves on their own | into a gun's open line | to a spot more guns can see | damage taken |
+|---|---|---|---|---|
+| today | 48 | 40 | 17 | 311 |
+| smart (below) | 31 | 8 | 4 | 199 |
+| hold (below) | 25 | 10 | 5 | 201 |
+
+Why it happens today:
+- Shells cause 27 of the 48 moves, and every one of them ends in the open. Every enemy shell, mortar round and rifle grenade is dodged (layers.js's `dodgeTick`) by anyone within 6.8 m of where it lands, even outside its blast (4.2 to 6.4 m). The man goes to a spot 8 m from it, straight away from it, with no thought of cover. On the beach the shells come every few seconds, aimed at our men.
+- Running for cover when shot at, or after 2 s in the open, causes 16 moves, 10 of them into the open. combat.js's `playerThink` and `dashToCover` only count guns within 38 m. The riflemen reach about 43 m and the machine guns about 64 m (the hill's 70 m), so a man runs to a spot covered from the man shooting at him that is in plain sight of a machine gun further off. That's "throw themselves into an open line of fire".
+- A medic going to a downed man and a replacement joining make 2 or 3 more.
+- In the village it hardly happens: 3 short moves in two minutes, all into cover.
+
+The two drafts are patched into the test, not the game:
+- smart: a shell is dodged only from inside its blast, to the spot out of the blast that the fewest guns can see (cover spots within 14 m first). The run for cover and the shift to cover count every gun that can reach, and go only where none of them has an open shot, or at least fewer than where he stands.
+- hold: the same dodge, and no run or shift at all. They stay where you put them unless a shell is about to land on them.
+
+Both cut moves into the open by about four fifths and damage taken by about a third, and staying put cost no more than moving smartly. The fights vary a lot (damage today ranged from 104 to 536), so these are averages, not a promise. My suggestion: the smart rules for everyone, and, if Bryan wants it, a HOLD stance per squad on its bar (stay put, only out of a blast). Also found: a move's ghosts turn red for guns that are out of range (combat.js's `makeAssign` counts every known gun with a line, at any distance), so a safe spot can show red.
+
+### 2. The camera
+`docs/drafts/dday-camera-draft.jpg` (`tools/drafts/dday-camera-draft.js [OUT] [PORT]`, sheet by `dday-brainstorm-compose.py`): the beach map on a phone held upright at three moments: on the sand; the way up, where the route turns north-west; on top, where it turns east to the barracks. Each moment is shown from four cameras:
+- A, today: behind the man furthest ahead, always facing north. A drag stops it following. Where the route turns, the way ahead runs off the side of the screen: on top, the machine gun and the barracks are off to the right.
+- B, a set view for each section: framed by hand, gliding to the next one when the squad gets there. You see the most, but your men are small, and every big map needs its views set by hand.
+- C, turns with the route: today's distance, a little higher (22° instead of 17°), turned to face along the route so the way ahead is always up the screen. It turns by itself as the route turns; drag, pinch and twist still work.
+- D, over the leader's shoulder: low behind one man, like Full Spectrum Warrior. Close and dramatic, but the nearest men hide what's ahead and you see little to the sides. D-Day has no squad leader yet; the picture uses the man at the back. Version 161's take-one-man-over view is this with his gun in your hands.
+
+My suggestion: C as the camera, and B as a look on demand (for example, a tap on the objective pill swings up to the section's set view for a few seconds). Found on the way: at today's 17° a turned camera ends up behind the hill's shoulders (the rock between it and the men fades to a grey wash), which the higher pitch fixes on this map. A smoke cloud between the camera and the men greys out the closest views.
+
+### 3. Cover for four
+Measured with `tools/drafts/dday-cover-draft.js [OUT] [PORT] [pics]` on the beach after 20 s ashore (the guns the squad knows about are the ones it has seen firing). Pictures: `docs/drafts/dday-cover-draft.jpg`.
+- Of the 73 pieces from the water to the bunkers, 31 take one man behind them on the bunkers' far side (all 13 hedgehogs, 12 of the 15 rocks, a drum). 11 take two (mostly the crates), 8 take three, 10 take four or more (sandbag lines up at the bunkers, the two biggest shell holes), and 13 none.
+- The guns along the bluff fire from a wide arc, so behind most pieces some gun still has a line. Only 2 pieces have four spots out of every gun's line.
+- Four men sent to any of the hedgehogs: 0 of 4 in cover (the game's own move preview).
+- Two hedgehogs 3 m apart, two men each: only 3 of 26 places put two men out of every line, because of the crossfire. Letting a group move use cover up to 9 m from the tap instead of 4.5 m changes almost nothing: there's nothing out there.
+- The village is fine: 40 pieces (walls, houses, hedges) take four or more along one side, its 259 trees one each, the logs two or three.
+
+The draft: six more shell holes for four along the way up, staggered left and right 12 to 20 m apart, plus one rule change: a man down in a shell hole is covered from every side (from anyone outside it), not only by its far rim. With both, the 13 shell holes take four men out of every gun's line at 10 places and three at the other 3 (2 such places on the whole beach today). From the middle of the sand the nearest place for four is 3 to 9 m away (5 to 16 m today), and from the water's edge 15 to 28 m (20 to 35 m). The hole rule alone, with no new holes, makes 5 of today's 7 shell holes take four. Without the rule, only 3 of the 13 holes took four out of every line (the new one in the picture kept two).
+
+On Bryan's questions:
+- Four men behind one small piece isn't realistic: a squad spreads over several bits of cover, and the hedgehogs gave almost nothing at Omaha. Four men stopping where four fit is realistic: shell holes, wrecks, sandbag lines, walls.
+- It isn't hard: it's map layout plus one rule.
+- Smaller squads: I'd keep four. Each man has a role, the village fits four everywhere, and three men wouldn't fix the crossfire on the sand.
