@@ -341,7 +341,7 @@ function ddProps(sc,objsL){
     const tf=add(new T.SphereGeometry(1,10,6),bkM(bk,3),x-w*.12,g0+hh+4.2,y-d*.1);tf.scale.set(w*.34,2.6,d*.34);
     for(let k=0;k<5;k++){const b=add(bagG,bkM(bk,2),x-w/2+6+k*8.5,g0+hh+6.4,y+d/2+1);b.scale.set(4.4,2.2,3);}
     add(new T.CylinderGeometry(1.1,1.1,7,7),bkM(bk,1),x+w*.3,g0+hh+7,y-d*.25);
-    m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};m.userData.walls=BK[bk]||null;return m;};
+    m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};m.userData.top=g0+hh+8;m.userData.walls=BK[bk]||null;return m;};
   DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,120,76,25,'hv')];
   for(const m of DD.roofs)m.castShadow=true;
   // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
@@ -434,6 +434,13 @@ function ddRockets(rdt){
   for(;i<R.pool.length;i++)R.pool[i].visible=false;
   for(const p of R.puffs){if(p.t>=p.life){if(p.m.visible)p.m.visible=false;continue;}p.t+=rdt;const q=Math.min(1,p.t/p.life);p.m.scale.setScalar(p.s*(.55+q*1.5));p.m.position.y+=p.vy*rdt;p.m.material.opacity=.7*(1-q)*(1-q);}
 }
+// does a bunker's roof (and its walls) stand between the camera and man p? The line from the camera to his chest crosses the roof's footprint below
+// its top (Liang-Barsky on the footprint, then the line's height where it goes in and comes out)
+function ddRoofHides(m,p){
+  const b=m.userData.b,C=camera.position,x0=C.x,y0=C.z,dx=p.x-x0,dy=p.y-y0;let t0=0,t1=1;
+  for(const[q,r]of[[-dx,x0-b.x0],[dx,b.x1-x0],[-dy,y0-b.y0],[dy,b.y1-y0]]){if(q===0){if(r<0)return false;continue;}const t=r/q;if(q<0){if(t>t1)return false;if(t>t0)t0=t;}else{if(t<t0)return false;if(t<t1)t1=t;}}
+  const ph=gndH(p.x,p.y)+14,h=t=>C.y+(ph-C.y)*t;return Math.min(h(t0),h(t1))<(m.userData.top||0);
+}
 function ddFrame(rdt,now){
   if(!DD)return;
   ddRockets(rdt);
@@ -441,7 +448,9 @@ function ddFrame(rdt,now){
   if(DD.foam){DD.foam.position.z=702+Math.sin(now*.7)*5;DD.foam.material.opacity=.55+.3*Math.sin(now*.7+1.2);DD.foam.material.map.offset.x=now*.004;}
   if(Math.abs(DD.day-DD.dayShown)>.004){DD.dayShown+=clamp(DD.day-DD.dayShown,-rdt*.05,rdt*.05);ddSky(DD.dayShown);}
   if(DD.dome)DD.dome.position.set(camera.position.x,0,camera.position.z);
-  for(const m of DD.roofs||[]){const b=m.userData.b,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1);m.material.opacity+=((inside?.18:1)-m.material.opacity)*Math.min(1,rdt*8);m.material.depthWrite=m.material.opacity>.95;const w=m.userData.walls;if(w)for(const q of w)if(q&&q!==m.material){q.opacity=m.material.opacity;q.depthWrite=m.material.depthWrite;}}   // (a bunker with one of ours inside goes clear, walls and roof: Bryan, "the wall goes transparent when they get in there")
+  // (Version 175: also while it stands between the camera and a man of the squad you play: the camera that turns with the route looks past bunkers from the side; ddRoofHides)
+  const sq=DD.roofs&&DD.roofs.length?players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat):[];
+  for(const m of DD.roofs||[]){const b=m.userData.b,inside=players.some(p=>alive(p)&&p.x>b.x0&&p.x<b.x1&&p.y>b.y0&&p.y<b.y1)||sq.some(p=>ddRoofHides(m,p));m.material.opacity+=((inside?.18:1)-m.material.opacity)*Math.min(1,rdt*8);m.material.depthWrite=m.material.opacity>.95;const w=m.userData.walls;if(w)for(const q of w)if(q&&q!==m.material){q.opacity=m.material.opacity;q.depthWrite=m.material.depthWrite;}}   // (a bunker with one of ours inside goes clear, walls and roof: Bryan, "the wall goes transparent when they get in there")
   const dt=Math.min(.05,rdt)*(typeof timeScale==='function'&&state==='play'?timeScale():1);
   for(const g of DD.gibs){if(!g.on)continue;g.t+=dt;const p=g.m.position;
     if(g.v){g.v[1]-=260*dt;p.x+=g.v[0]*dt;p.y+=g.v[1]*dt;p.z+=g.v[2]*dt;g.m.rotation.x+=g.w[0]*dt;g.m.rotation.y+=g.w[1]*dt;g.m.rotation.z+=g.w[2]*dt;

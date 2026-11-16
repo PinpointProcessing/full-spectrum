@@ -656,3 +656,10 @@ On Bryan's questions:
 - Four men behind one small piece isn't realistic: a squad spreads over several bits of cover, and the hedgehogs gave almost nothing at Omaha. Four men stopping where four fit is realistic: shell holes, wrecks, sandbag lines, walls.
 - It isn't hard: it's map layout plus one rule.
 - Smaller squads: I'd keep four. Each man has a role, the village fits four everywhere, and three men wouldn't fix the crossfire on the sand.
+
+## Version 175: the camera turns with the route; the other troops take the bunkers you pass
+Bryan, on the camera samples: "C looks best, the only thing is the second machine gun nest on the first hill is completely ignored. I guess the AI can take it over if the player misses it".
+- The camera is C: on the beach map it follows your squad from the moment it lands and turns to look along the way up, so the way ahead is up the screen: north up the sand, north-west up the draw, east-north-east on the top toward the barracks, and east along the road once their base is open. It's a little higher than before (22° against 17°). Twist it and it keeps your angle for 6 seconds, then eases back; pick a squad and it comes back at once. A drag of the map still lets go of the squad. The village and the counterattack keep the camera facing north.
+- A bunker's roof and walls go see-through when they hide one of your men from the camera, not only when one of your men is inside.
+- The bunkers off the way up: once your squads have gone past the upper bunker (into the draw) or the hill bunker (higher up the draw) and it's still manned, five of the other troops go for it ("The other troops go for the hill bunker."), cover to cover, grenades when they're close, and take it ("The hill bunker is yours."). More go if they're cut down. In tests both bunkers fell 20 to 45 seconds after the squads went past. You can still take them yourself.
+

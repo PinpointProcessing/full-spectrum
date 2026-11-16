@@ -18,9 +18,10 @@ await ev(()=>{const m=players.filter(p=>p.team===dd.active&&alive(p));const cx=m
   // put the squad 14 m south of it, nobody in the wire
   m.forEach((u,i)=>{u.x=WIRE.x+WIRE.w/2-30+i*20;u.y=WIRE.y+140;u.path=[];});RUN(.2);});
 await ok('a tap on the wire is a plain tap: the wire stays',()=>{const[sx,sy]=toS(WIRE.x+WIRE.w/2,WIRE.y+4);tap(sx,sy);RUN(.1);const r={ok:!WIRE.gone&&!players.some(p=>p.throwGo||p.rpgAim),gone:!!WIRE.gone};preview=null;return r;});
-await ok('a grenade from the Grenade tool, tapped onto the wire, breaks it',async()=>{ddToolUse('nade');const u=dd.toolU;if(!u)return{ok:false,why:'no thrower'};const n0=u.grenade;
+// (since Version 174 the throw goes to whichever man with one is nearest the spot, not always the one it was handed to: the squad's grenades are counted)
+await ok('a grenade from the Grenade tool, tapped onto the wire, breaks it',async()=>{ddToolUse('nade');const u=dd.toolU;if(!u)return{ok:false,why:'no thrower'};const sq=()=>players.filter(p=>p.team===dd.active).reduce((a,p)=>a+(p.gl?0:p.grenade||0),0),n0=sq();
   const[sx,sy]=toS(WIRE.x+WIRE.w/2,WIRE.y+4);tap(sx,sy);for(let i=0;i<20&&!WIRE.gone;i++)RUN(.5);
-  const blocked=!isFree(WIRE.x+WIRE.w/2,WIRE.y+4,3);return{ok:!!WIRE.gone&&u.grenade===n0-1&&!blocked,thrower:u.name,gone:!!WIRE.gone,grenades:[n0,u.grenade],walkable:!blocked};});
+  const blocked=!isFree(WIRE.x+WIRE.w/2,WIRE.y+4,3);return{ok:!!WIRE.gone&&sq()===n0-1&&!blocked,handed:u.name,gone:!!WIRE.gone,grenades:[n0,sq()],walkable:!blocked};});
 await ok('a rocket breaks another stretch',()=>{const o=(dd.wires||[]).filter(q=>q.y===340&&!q.gone).sort((a,b)=>Math.abs(a.x-WIRE.x)-Math.abs(b.x-WIRE.x))[1];const u=players.find(p=>p.team===dd.active&&alive(p)&&p.spec==='rpg'&&p.specN>0)||players.find(p=>alive(p)&&p.spec==='rpg'&&p.specN>0);
   if(!o||!u)return{ok:false,why:'no wire or bazooka'};u.x=o.x+o.w/2;u.y=o.y+160;u.path=[];const r=orderThrow(u,o.x+o.w/2,o.y+4,'rpg');for(let i=0;i<20&&!o.gone;i++)RUN(.5);return{ok:!!o.gone,ordered:r,gone:!!o.gone};});
 await ok('a blast 8 m off leaves it standing',()=>{const o=(dd.wires||[]).filter(q=>q.y===340&&!q.gone)[0];const hp=o.hp;explode(o.x+o.w/2,o.y+4+80,players.find(p=>alive(p)),false,58,95);return{ok:!o.gone&&o.hp===hp,hp:[hp,o.hp]};});

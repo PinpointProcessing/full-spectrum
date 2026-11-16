@@ -12,7 +12,7 @@
    - Out past the map's edge the screen darkens; ten seconds out and the man is lost.
    Hooks: combat.js (ddPick, ddDamage, ddTick), mission.js (ddBlast, ddObjUI, drawDDay), input.js (ddSelected, ddBusy),
    hud.js (ddHint, ddFinish), state.js (leaveDDayNow). */
-const DD_CAM={zoom:8.5,pitch:.29,shift:.09,look:30,boat:7};   // the camera: close behind the squad being played, low enough for the horizon (Bryan: "like a third person for the full squad, think Full Spectrum Warrior"; "semi-fixed to the team")
+const DD_CAM={zoom:8.5,pitch:.29,shift:.09,look:30,boat:7,route:.38};   // (route: the pitch on the beach map since Version 175, where the camera turns with the route: a little higher, so it sees over the hill's shoulders as it turns)   // the camera: close behind the squad being played, low enough for the horizon (Bryan: "like a third person for the full squad, think Full Spectrum Warrior"; "semi-fixed to the team")
 const DD_POOL=50,DD_REVIVE=8,DD_BLEED=20,DD_CRIT=10,DD_FIG=1.3,DD_US='#7f7d4e',DD_GER='#56646e';   // (DD_FIG: the men drawn bigger here, so they read from further up)
 const DD_ROLES={
   medic:{ab:'MEDIC',n:'Medic',cls:'medic',weapon:'rifle',spec:'medkit',specN:3},
@@ -94,7 +94,7 @@ function enterDDay(){
   mission.t0=simT;sel=[];cardGroup=[];
   VB={x0:DDX,z0:-720,x1:DDX+DDW,z1:1700};   // (z1 out at sea for the ride in; ddAshore brings it back)
   FIT.w=DDW+40;FIT.h=1560;fitDist();
-  MAXZ=11;camShift=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:B.x+DDX,z:640};clampCam();updateCamera();
+  MAXZ=11;camShift=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom,DD_CAM.route);camT={x:B.x+DDX,z:640};clampCam();updateCamera();
   document.body.classList.add('dd');ddSky(0);DD.dayShown=0;
   // the boats: the squads' own, and the first wave of the others either side
   // (since Version 132 a longer ride under fire, seven boats abreast, one of them lost on the way: Bryan, "There should be multiple boats landing")
@@ -134,7 +134,7 @@ const ddBusy=()=>!!dd&&(!dd.land.done||!!dd.seq);   // (dd.seq: the sequence bef
    to the squad being played as they come off the boat, and otherwise never moves by itself. On the ride in it's inside the
    boat, just behind the last man's head, looking over the others at the beach (Bryan: "it should be behind the last units
    head inside"); as they land it swings up and out to the usual view. */
-function ddTilt(z){const z0=zoom;zoom=z;const t=Math.max(0,basePitch()-DD_CAM.pitch);zoom=z0;return t;}
+function ddTilt(z,p){const z0=zoom;zoom=z;const t=Math.max(0,basePitch()-(p??DD_CAM.pitch));zoom=z0;return t;}
 // the ride's look-around: a finger (or the mouse held) dragged sideways on the map turns the view, up to about 60 degrees either way
 function ddLookBind(){
   if(ddLookBind.done)return;ddLookBind.done=1;const last={};
@@ -257,7 +257,8 @@ function ddAshore(){
   select(players.filter(p=>p.team==='A'&&alive(p)));dd.active='A';
   dd.graceT=simT+8;for(const p of players){p.dmgIn0=p.dmgIn;p.dmgIn=(p.dmgIn||1)*.55;}   // (the run up the sand from the ramp: hurt, not wiped out, before the player has had a say)
   const m=players.filter(p=>p.team==='A'&&p.landDest),cx=m.length?m.reduce((a,u)=>a+u.landDest.x,0)/m.length:camT.x,cy=m.length?m.reduce((a,u)=>a+u.landDest.y,0)/m.length:640;
-  VB.z1=820;if(typeof glide!=='undefined'&&glide)glide.vx=glide.vz=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:cx,z:cy-DD_CAM.look+40};clampCam();updateCamera();hud();   // (ddCam swings the view out of the boat to here)
+  VB.z1=820;if(typeof glide!=='undefined'&&glide)glide.vx=glide.vz=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom,DD_CAM.route);camT={x:cx,z:cy-DD_CAM.look+40};clampCam();updateCamera();hud();   // (ddCam swings the view out of the boat to here)
+  dd.track={team:dd.active};   // (Version 175: it follows the squad from the landing on and turns with the way up, ddTurn; before, it stayed put until a squad was picked)
 }
 /* ---------- who shoots whom (combat.js's pickTarget) ---------- */
 function ddPick(u){
@@ -328,7 +329,7 @@ function ddGoSquad(t){
   // to the man of that squad who's furthest ahead (Bryan: "Can the camera pan to the unit farthest ahead"): up the beach and the draw that's north; on the top, east toward their base
   const ahead=u=>u.y<-440?3000+u.x:-u.y,f=m.filter(u=>!u.inBoat&&!u.joining),L=(f.length?f:m).reduce((a,u)=>ahead(u)>ahead(a)?u:a),cx=L.x,cy=L.y;
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:cx-Math.sin(yaw)*DD_CAM.look,z:cy-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.7};
-  dd.track={team:t};
+  dd.track={team:t};ddTurnFree();
 }
 // Since Version 156 the camera stays with whoever was picked (Bryan: "when a player's name is selected in the squad menu, can the camera go to them
 // and track them. The camera should go to the squad or player selected and then track that team or unit until the player moves the camera"):
@@ -343,14 +344,45 @@ function ddTrackAt(){
 function ddGoMan(u){
   if(!dd||!dd.land.done||!u)return;
   camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:u.x-Math.sin(yaw)*DD_CAM.look,z:u.y-Math.cos(yaw)*DD_CAM.look,zoom},t:0,dur:.6};
-  dd.track={team:u.team,id:u.id};
+  dd.track={team:u.team,id:u.id};ddTurnFree();
 }
 function ddTrack(rdt){
   if(!dd.track||camPan||(typeof ptr!=='undefined'&&ptr)||(typeof pinch!=='undefined'&&pinch))return;
   const u=ddTrackAt();if(!u)return;
+  ddTurn(u,rdt);
   const tx=u.x-Math.sin(yaw)*DD_CAM.look,tz=u.y-Math.cos(yaw)*DD_CAM.look,k=Math.min(1,rdt*(dd.track.id?3.2:1.6));   // (a squad's lead man changes: eased slower)
   if(hyp(tx-camT.x,tz-camT.z)<1.5)return;
   camT.x+=(tx-camT.x)*k;camT.z+=(tz-camT.z)*k;clampCam();
+}
+// Since Version 175 it turns as it follows (Bryan, on the camera samples: "C looks best"): on the beach map the view faces along the squads' route
+// (DD_ROUTE, and once their base is open the road east to it, ddbase.js's DB.east), so the way ahead is up the screen and the camera swings round
+// on the bends; a little higher than before (DD_CAM.route). It faces the route DD_TURN.look further on from the point of it nearest the man it
+// follows, eased (DD_TURN.rate a second). A turn of yours (a twist, an orbit, Q/E) is kept for DD_TURN.hold seconds, then it eases back. The
+// village and the counterattack keep facing north (their fights don't run along a line)
+const DD_TURN={look:200,rate:1.3,hold:6};
+function ddTurnRoute(){
+  if(!dd||dd.vil||dd.counter||dd.seq)return null;
+  const R=DD_ROUTE.map(([x,y])=>({x:x+DDX,y}));
+  if(dd.base&&dd.base.open&&typeof DB!=='undefined')for(const[x,y]of DB.east)R.push({x,y});
+  return R;
+}
+function ddRouteWay(x,y){   // which way the route runs past (x,y): from the point on it nearest him to the point DD_TURN.look further on
+  const R=ddTurnRoute();if(!R||R.length<2)return null;
+  const cum=[0];for(let i=1;i<R.length;i++)cum.push(cum[i-1]+hyp(R[i].x-R[i-1].x,R[i].y-R[i-1].y));
+  let best=1e9,s=0;
+  for(let i=1;i<R.length;i++){const a=R[i-1],b=R[i],L=cum[i]-cum[i-1]||1,t=clamp(((x-a.x)*(b.x-a.x)+(y-a.y)*(b.y-a.y))/(L*L),0,1),d=hyp(x-a.x-(b.x-a.x)*t,y-a.y-(b.y-a.y)*t);if(d<best){best=d;s=cum[i-1]+t*L;}}
+  const end=cum[cum.length-1],at=q=>{q=clamp(q,0,end);let i=1;while(i<R.length-1&&cum[i]<q)i++;const a=R[i-1],b=R[i],t=(q-cum[i-1])/(cum[i]-cum[i-1]||1);return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};};
+  const s0=Math.min(s,end-DD_TURN.look*.5),p=at(s0),q=at(s0+DD_TURN.look),dx=q.x-p.x,dy=q.y-p.y,l=hyp(dx,dy)||1;
+  return{x:dx/l,y:dy/l};
+}
+function ddTurnFree(){const C=dd&&dd.cam;if(C){C.heldT=0;C.yaw=yaw;}}   // (a squad or a man picked: the camera turns with the route again at once, whatever you'd turned it to)
+function ddTurn(u,rdt){
+  const w=ddRouteWay(u.x,u.y);if(!w)return;
+  const C=dd.cam||(dd.cam={k:1,p:null,q:null}),now=performance.now();
+  if(C.yaw!=null&&Math.abs(yaw-C.yaw)>1e-4)C.heldT=now;   // (turned by hand since the last frame: kept a while)
+  if(C.heldT&&now-C.heldT<DD_TURN.hold*1000){C.yaw=yaw;return;}
+  let d=Math.atan2(-w.x,-w.y)-yaw;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;
+  yaw+=d*Math.min(1,rdt*DD_TURN.rate);C.yaw=yaw;
 }
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
 function ddSelected(){
@@ -414,6 +446,7 @@ function ddLine(){   // how far up they may go: behind the squads, and no furthe
 function ddRouteX(y){const R=DD_ROUTE;if(y>=R[0][1])return R[0][0]+DDX;for(let i=1;i<R.length;i++){const[a,b]=R[i-1],[c,d]=R[i];if(y>=d){const t=(a===c&&b===d)?0:(b-y)/(b-d);return a+(c-a)*t+DDX;}}return R[R.length-1][0]+DDX;}
 function ddNpcThink(u,line){
   if(u.dead||u.inBoat||u.path.length||simT<u.hopT)return;
+  if(u.raid&&ddRaidThink(u))return;   // (one of those sent for a bunker the squads went past: below)
   if(dd.base&&dd.base.open&&u.y<-430){ddNpcEast(u);return;}   // (on the top, once the barracks is ours: east to their base, ddbase.js)
   if(u.y<=line+24){u.hopT=simT+3;return;}
   if(u.eng&&!u.dug&&u.y>360&&u.y<690&&u.sup>.3&&(dd.npcForts||0)<7){   // an engineer among them, under fire on the sand: a barricade, and the others use it
@@ -435,6 +468,46 @@ function ddNpcThink(u,line){
   let p=findPath(u.x,u.y,tgt.x,tgt.y);
   if(!(p&&p.length)){const ty=Math.max(line+10,u.y-80),q=openSpot(ddRouteX(ty),ty,[]);if(q)p=findPath(u.x,u.y,q.x,q.y);}   // (nothing reachable there: straight up the route)
   if(p&&p.length){u.path=p;u.hopT=simT+2.5+Math.random()*(off?2.5:5);}else u.hopT=simT+2;
+}
+/* ---------- the other troops take a bunker the squads went past (Version 175) ----------
+   Bryan, on the camera that turns with the route: "the second machine gun nest on the first hill is completely ignored. I guess the AI can take it
+   over if the player misses it". The upper bunker and the hill bunker stand off to the right of the way up and were never on it. Once the squads
+   have gone past one (dd.front above `past`) and it's still manned, DD_RAID_N of the other troops go for it, the nearest first: cover to cover
+   toward the nearest of its men (spots none of its guns has an open shot at first), a grenade each once they're close enough to throw, and into
+   it once it's quiet, which makes it yours (ddZones), as if the squads had taken it. When they're down to two, more go, at most every 20 s.
+   The squads can still take it themselves */
+const DD_RAID=[{k:'nest',past:140,n:'the upper bunker'},{k:'hill',past:-10,n:'the hill bunker'}],DD_RAID_N=5;
+function ddRaids(){
+  if(dd.vil||dd.counter||!dd.land.done)return;
+  const R=dd.raid||(dd.raid={});
+  for(const D of DD_RAID){
+    const S=R[D.k]||(R[D.k]={on:false,next:0}),party=dd.npcs.filter(u=>!u.dead&&u.raid===D.k);
+    if(dd.held&&dd.held[D.k]){S.on=false;S.done=true;for(const u of party){u.raid=null;u.hopT=0;}continue;}
+    if(!S.on){if(S.done||dd.front>D.past||!enemies.some(e=>e.tag===D.k&&!beaten(e)))continue;S.on=true;S.t0=simT;banner(`The other troops go for ${D.n}.`,2400);}
+    if(party.length>2||simT<S.next)continue;
+    const Z=DD_ZONES.find(z=>z.k===D.k),c={x:(Z.r[0]+Z.r[2])/2+DDX,y:(Z.r[1]+Z.r[3])/2};
+    const free=dd.npcs.filter(u=>!u.dead&&!u.inBoat&&!u.raid&&!u.joining&&!u.carriedBy&&!u.downed&&u.y<720).sort((a,b)=>hyp(a.x-c.x,a.y-c.y)-hyp(b.x-c.x,b.y-c.y));
+    for(const u of free.slice(0,DD_RAID_N-party.length)){u.raid=D.k;u.grenade=Math.max(u.grenade||0,1);u.path=[];u.hopT=0;}
+    S.next=simT+20;
+  }
+}
+function ddRaidThink(u){
+  const k=u.raid,Z=DD_ZONES.find(z=>z.k===k);if(!Z||dd.held&&dd.held[k]){u.raid=null;return false;}
+  if(u.sup>.9){u.hopT=simT+1.2;return true;}
+  const foes=enemies.filter(e=>e.tag===k&&!beaten(e)),[x0,y0,x1,y1]=Z.r;
+  if(!foes.length){   // quiet: into it
+    const s=openSpot((x0+x1)/2+DDX,(y0+y1)/2,dd.allies.filter(o=>o!==u).map(destOf)),p=s&&findPath(u.x,u.y,s.x,s.y);if(p&&p.length)u.path=p;u.hopT=simT+3;return true;}
+  const f=foes.reduce((a,e)=>hyp(e.x-u.x,e.y-u.y)<hyp(a.x-u.x,a.y-u.y)?e:a),d=hyp(f.x-u.x,f.y-u.y);
+  if(u.grenade>0&&d<=nadeRange(u)-8&&throwFrom(u,f.x,f.y,'nade')&&throwNade(u,f.x,f.y)){u.hopT=simT+1.6;return true;}
+  // closer: a cover spot nearer the man he's going for, one their guns have no open shot at first, not a long dash
+  let best=null,bs=1e9;
+  for(const c of coverPts){const dc=hyp(c.x-f.x,c.y-f.y);if(dc>d-20||dc<30)continue;const st=hyp(c.x-u.x,c.y-u.y);if(st>170)continue;
+    if(dd.allies.some(o=>o!==u&&hyp(destOf(o).x-c.x,destOf(o).y-c.y)<14))continue;
+    const open=foes.filter(e=>hyp(e.x-c.x,e.y-c.y)<=ddFireR(e)&&los(e.x,e.y,c.x,c.y)&&coverAt(c.x,c.y,e.x,e.y)===0).length;
+    const sc=open*90+st*.6+dc*.5;if(sc<bs){bs=sc;best=c;}}
+  const t=best||(()=>{const a=Math.atan2(f.y-u.y,f.x-u.x);return openSpot(u.x+Math.cos(a)*80,u.y+Math.sin(a)*80,[]);})();
+  const p=t&&findPath(u.x,u.y,t.x,t.y);if(p&&p.length){u.path=p;u.hopT=simT+1.5+Math.random()*2;}else u.hopT=simT+2;
+  return true;
 }
 function ddWaves(){
   const live=dd.npcs.filter(u=>!u.dead).length;
@@ -750,7 +823,7 @@ function ddTick(dt){
   dd.idle[dd.active]=0;const other=dd.active==='A'?'B':'A';
   ddHot();
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}else ddSquadAI(other);if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}   // (Version 168: with Lead one squad on, the other backs you up, ddctl.js)
-  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();ddHelpers();ddTidy();updateObjUI();}
+  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();ddRaids();ddHelpers();ddTidy();updateObjUI();}
   // the battle next door: tracers and shell bursts off to both sides, splashes out at sea
   if((dd.ambT-=dt)<=0){dd.ambT=.12+Math.random()*.2;const side=Math.random()<.5?-1:1,x=side<0?-80-Math.random()*700:DDB.x1+80+Math.random()*700,y=-300+Math.random()*900;
     tracers.push({x1:x,y1:y,x2:x+(Math.random()-.5)*200,y2:y+(Math.random()<.5?260:-260)*(.5+Math.random()),t:0,col:Math.random()<.5?'255,231,163':'255,140,100'});
@@ -866,7 +939,7 @@ function ddHint(){
   if(dd.counter)return dcHint();
   if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
-  if(dd.front>330)return`The camera stays where you put it; picking a squad takes it there. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
+  if(dd.front>330)return`The camera follows your squad and turns with the way up; drag the map to look round, pick a squad to bring it back. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
   if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
   if(dd.base&&dd.base.open)return ddBaseHint();
   return'The base. Take the barracks: clear their men from round it and put two of yours at its door for four seconds. Nobody comes out of it while yours are at the door.';
