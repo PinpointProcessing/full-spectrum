@@ -11,7 +11,7 @@
    - FOLLOW: cover 10-15 m behind yours and a little to one side ("behind" as seen from where you're going: the objective, else the enemy you
      know of, else north), moved up when yours has moved on;
    - HOLD: it stays where it is (in cover near there), pinning down whatever yours is shooting, else the nearest machine gun it can see.
-   The counterattack starts both on HOLD. Lose the squad you lead (everyone down) and you take over the other (ddcLeadCheck).
+   Both start on FOLLOW, the counterattack too (Version 169, Bryan: "Follow by default"). Lose the squad you lead (everyone down) and you take over the other (ddcLeadCheck).
    Draft 2, the target first (DDC.ring): a tap on an enemy has your squad open fire as before and brings up a ring of what you can do to him
    (Suppress, Grenade, Rifle grenade, Bazooka, each saying who would do it and how far; greyed if nobody can), on a tank and on the wire the
    same (the wire's has MOVE HERE too); the game at quarter speed while it's up (state.js's timeScale asks ddcSlow), gone after 4.5 s or a tap
@@ -31,7 +31,7 @@ let ddcR=null;
 function ddcSlow(){return ddcOn()&&(!!ddcR&&performance.now()-ddcR.t0<4600||!!dd.drag);}
 
 /* ---------- Draft 1: the other squad backs you up ---------- */
-function ddcMode(t){const S=dd.sup||(dd.sup=dd.counter?{A:'hold',B:'hold'}:{A:'follow',B:'follow'});return S[t]||'follow';}
+function ddcMode(t){const S=dd.sup||(dd.sup={A:'follow',B:'follow'});return S[t]||'follow';}   // (FOLLOW to start everywhere, the counterattack too: Bryan, after Version 168, "Follow by default")
 const ddcBusy=u=>!!(u.medGo||u.throwGo||u.rpgAim||u.carry||u.carryGo||u.helpGo||u.raise||u.onGun||u.dcGun||u.build||u.fp||u.joining)||simT-(u.lastOrder??-99)<4;   // (on a job, or given an order of yours a moment ago)
 // where a squad may be sent: the beach's strip (off it a man dies of it after 10 s: ddplay.js's ddTick), the village's ground, else the camera's bounds
 function ddcBound(x,y){

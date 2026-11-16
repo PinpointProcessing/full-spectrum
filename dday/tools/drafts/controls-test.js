@@ -81,7 +81,7 @@ await ev(()=>{RUN(4);const m=MID(LED());CENTER(m.x,m.y+40,2.6);hud();drawOverlay
  await ok('drag: the Bazooka onto a target',(mid)=>{if(!mid)return{ok:true,skipped:'no Bazooka or no target on screen'};const u=LED().find(p=>p.rpgAim||p.throwGo&&p.throwGo.kind==='rpg');return{ok:mid.ok?!!u||rockets.length>0:/far/i.test(mid.why),mid,by:u&&u.name};},mid);}
 // --- the counterattack: both squads hold
 await ev(()=>{ddRoster.stage=1;startCounter();});await page.waitForTimeout(400);
-await ok('counter: both squads start on HOLD, the swap works',()=>{RUN(8);const a0=dd.active;const h=ddcMode('A')==='hold'&&ddcMode('B')==='hold';$('#ddSwap .ddc-swap').click();RUN(2);return{ok:h&&dd.active!==a0&&!$('#ddSwap').hidden,hold:h,from:a0,to:dd.active};});
+await ok('counter: both squads start on FOLLOW, the swap works',()=>{RUN(8);const a0=dd.active;const h=ddcMode('A')==='follow'&&ddcMode('B')==='follow';$('#ddSwap .ddc-swap').click();RUN(2);return{ok:h&&dd.active!==a0&&!$('#ddSwap').hidden,follow:h,from:a0,to:dd.active};});
 // --- the village: the tank's ring, the follow in place of the old one
 await ev(()=>{startVillage({skip:true});});await page.waitForTimeout(400);
 await ok('village: the other squad follows yours',()=>{RUN(4);const l0=MID(LED()),s0=MID(SUP());MOVE(LED(),l0.x,l0.y-220);RUN(10);const m=MID(LED());MOVE(LED(),m.x,m.y-200);RUN(16);const s1=MID(SUP()),l1=MID(LED());
