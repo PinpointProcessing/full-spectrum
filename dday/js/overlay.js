@@ -273,6 +273,7 @@ function drawOverlay(rdt,now){
   for(const c of callouts){if(offFloor(c))continue;const[sx,sy]=toS(c.x,c.y,30),k=c.t/(c.dur||1.7);ox.globalAlpha=(c.small?.85:1)*(1-Math.max(0,k-.6)/.4);label(c.text,sx,sy-k*16,c.col,c.small?9:11,c.small?600:700);ox.globalAlpha=1;}
   drawBubbles();
   if(DDM&&!dd.seq){ddShooters(now);ddObjDraw(now);}   // who's shooting your men, and the objective (ddhud.js)
+  if(DDM&&typeof ddcFrame==='function')ddcFrame(now);   // (Version 168's test controls, on top: ddctl.js)
   if(ptr&&ptr.kind==='lasso'&&ptr.loop.length>1){   // lasso loop, closed back to its start
     ox.beginPath();ox.moveTo(...ptr.loop[0]);for(const p of ptr.loop)ox.lineTo(...p);ox.closePath();
     ox.fillStyle='rgba(94,200,255,.1)';ox.fill();ox.strokeStyle='rgba(94,200,255,.85)';ox.lineWidth=1.5;ox.setLineDash([5,4]);ox.stroke();ox.setLineDash([]);

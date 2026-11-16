@@ -560,7 +560,7 @@ function vgTick(dt){
     if(typeof addZones==='function')addZones([{k:'med',x:620,y:262},{k:'sup',x:780,y:268}]);
     bigText('The village','complete');
     banner('Take the barricade, square, church and town hall.',4500);}
-  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();vgFollow();}
+  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}else vgFollow();}   // (Version 168: ddctl.js)
   if((dd.npcT-=dt)<=0){dd.npcT=.5;vgNpcs();vgEnemyPush();vgReplace();vgZones();ddHelpers();ddTidy();updateObjUI();}
   // won: everything taken, their reinforcements in and beaten, the tank out; the last of them give up
   if(V.ph==='village'&&V.r2&&!dd.won&&!endAt){

@@ -574,3 +574,13 @@ Drawn over the real game on a phone (`tools/drafts/dday-controls-draft.js` sets 
 
 Not drawn: groups 3 (calmer battles: pause that says you can give orders, the beach in stretches with breathers, fewer troops near your squad) and 4 (the first two minutes taught one step at a time).
 
+
+## Version 168: both drafts, playable
+Bryan, on the drafts: "Can you link both drafts so I can test it". Both are in the game, each with a switch on the start card under the chapter buttons ("Test controls · Version 168"), both on to start and remembered. Untick one and that part plays as Version 167 did, so the two can be tried apart or together.
+- Lead one squad: no team tabs. Bottom right, over the squad's bar, the swap button (the other squad's name and its men's health; tap to lead it) and FOLLOW / HOLD for the squad you aren't leading. Following, it keeps about 12 m behind yours and a little to one side, in cover, shoots at what yours shoots at and uses its own grenades and rockets; holding, it stays where it is and pins down what yours is shooting (or the nearest machine gun it can see). Its label on the map says which. The counterattack starts both on HOLD. Lose everyone in the squad you lead and you take over the other.
+- Tap an enemy for actions: a tap on an enemy still opens fire, and a ring comes up on him: Suppress, Grenade, Rifle grenade, Bazooka, each saying who would do it and how far, greyed with the reason when it can't be done. A tank tapped gives the same with the Bazooka first; the wire gives the explosives and MOVE HERE. The game runs at quarter speed while the ring is up; a tap anywhere else puts it away, or it goes by itself after a few seconds.
+- Throwing: with the same switch, the grenade, rifle grenade, smoke, Bazooka and medic kit buttons are dragged from the bar onto the map. While dragging you see who will throw, the arc and where it lands, red if it can't be done; let go to throw, slide back onto the bar to cancel. The kit is dropped on a hurt man. A plain tap on them says to drag.
+
+What changes in play with Lead one squad on: the squad you aren't leading no longer climbs the beach by itself. It goes where you go.
+
+For Bryan to judge: whether leading one squad with the other following is calmer than switching tabs; FOLLOW or HOLD as the start; the ring's size and where it sits (above the enemy, or in a row on a phone on its side); dragging versus tapping for grenades; the quarter speed while the ring is up or something is being dragged.

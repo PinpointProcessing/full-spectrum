@@ -267,7 +267,7 @@ function dcTick(dt){
   const C=dd.dc;C.t+=dt;
   ddDeadTick();dd.pool=ddmReserveFit().length;
   dcGunsTick(dt);ddHot();ddTankTick(dt);
-  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();}
+  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}}   // (Version 168: ddctl.js)
   if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();}
   const left=n=>enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length+dd.tanks.filter(K=>K.w===n&&K.hp>0).length;
   if(C.ph==='intro'){if(C.t>4.2&&!C.back){C.back=1;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.square.x,z:DCA.square.y-60+DD_CAM.look,zoom:DD_CAM.zoom},t:0,dur:1.6};}

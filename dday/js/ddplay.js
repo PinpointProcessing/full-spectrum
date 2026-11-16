@@ -111,7 +111,7 @@ function leaveDDayNow(){
   if(MAPID!=='dd')return;const out=STASH.out;
   for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;PRPG.aim=dd.rpgA;
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
-  document.body.classList.remove('dd');{const q=$('#sq');if(q)q.hidden=true;}{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
+  document.body.classList.remove('dd','ddlead');{const q=$('#sq');if(q)q.hidden=true;const w=$('#ddSwap');if(w)w.hidden=true;}if(typeof ddcClose==='function')ddcClose();{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
   groundH=null;MAXZ=6;camShift=0;zoom=Math.min(zoom,6);useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';LEVEL=3;
   units=[...out.units];players=[];enemies=units.filter(u=>u.side==='E');civs=[];
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();dd=null;disposeDD();
@@ -124,7 +124,7 @@ function startDDay(){
 }
 // the start card's second button: there once D-Day is won
 function ddCtrBtnShow(){const c=$('#ddCtrBtn');if(!c)return;let R=null;try{R=typeof ddmRead==='function'?ddmRead():null;}catch(e){}c.hidden=!(R&&R.stage>=1);const v=$('#ddVilBtn');if(v)v.hidden=!(R&&R.stage>=2);}   // (and the third: there once the base is held)
-function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
+function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();if(typeof ddcBind==='function')ddcBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
   ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}
   const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}
 const ddBusy=()=>!!dd&&(!dd.land.done||!!dd.seq);   // (dd.seq: the sequence before Chapter 3, ddvillage.js)
@@ -730,7 +730,7 @@ function ddTick(dt){
   // the squad that isn't being played, the other troops, the boats, the shells, the barracks
   dd.idle[dd.active]=0;const other=dd.active==='A'?'B':'A';
   ddHot();
-  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;ddSquadAI(other);if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}
+  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}else ddSquadAI(other);if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}   // (Version 168: with Lead one squad on, the other backs you up, ddctl.js)
   if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();ddHelpers();ddTidy();updateObjUI();}
   // the battle next door: tracers and shell bursts off to both sides, splashes out at sea
   if((dd.ambT-=dt)<=0){dd.ambT=.12+Math.random()*.2;const side=Math.random()<.5?-1:1,x=side<0?-80-Math.random()*700:DDB.x1+80+Math.random()*700,y=-300+Math.random()*900;
@@ -785,7 +785,7 @@ function ddToolKeep(){
 // own; a grenade, a rifle grenade or a rocket landing on it breaks that stretch (ddBlast: its hp 40, about 3 m from the blast does it)
 // A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
-function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;
+function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;if(typeof ddcTap==='function'){const r=ddcTap(wx,wy,sx,sy);if(r!=null)return r;}   // (Version 168: an enemy, a tank or the wire tapped brings up its ring of actions, ddctl.js)
   if(!sel.length)return false;
   // the tank under the finger: the squad's own answer to armour, a rocket (a grenade if that's all there is and he's near enough). Bryan: "our
   // units use explosives only for heavily armored vehicles when targeted? Like a rocket?"
@@ -819,14 +819,14 @@ function ddBar(){
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
     if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={rgl:'Tap where to fire it',nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
-  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}   // (Version 163: the Control button, fpB, off the bar for now: Bryan, "remove the control button for now")
+  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools&&!dd.drag){B.dataset.h=tools;B.innerHTML=tools;}   // (Version 163: the Control button, fpB, off the bar for now: Bryan, "remove the control button for now")
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
   box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
     if(ev.target.closest('.sq-aim')){ddToolEnd();}
     else if(t&&t.dataset.k==='fp'){ddToolEnd();fpEnter();return;}
-    else if(t&&!t.disabled)ddToolUse(t.dataset.k);
+    else if(t&&!t.disabled){if(typeof ddcRing==='function'&&ddcRing()&&ddcDraggable(t.dataset.k)){if(!ev.detail)banner('Drag it onto the map to use it.',1600);}else ddToolUse(t.dataset.k);}   // (Version 168: dragged onto the map instead, ddctl.js)
     else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){ddToolEnd();u.card.el.click();if(sel.length===1&&sel[0]===u)ddGoMan(u);else ddGoSquad(u.team);}}
     ddBar();});
 }
