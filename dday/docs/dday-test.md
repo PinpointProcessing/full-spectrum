@@ -594,3 +594,5 @@ Bryan, after Version 169:
 3. "When all troops are dead, speed up the deaths to zero and regenerate all reinforcements." When nobody of either squad is standing, the downed die straight away and every replacement comes in at once, with one banner saying where from, and a squad is picked for you. With nobody left in reserve the battle ends at once instead of after the bleed-out.
 4. "Why is there a large red area when I land on the beach? Can the controlled areas just turn blue." The red was the bunkers' machine guns' fields of fire (added in Version 167). They're gone. Ground you control is blue: the beach's places as before, and now the village's four places once taken.
 
+Bryan, after Version 170: "The circle is no good, it should be filled in with orange. Lighter than the placement, but dark enough to see." Version 171: while you drag a tool, the ground your squad's men can reach with it from where they stand is filled light orange (one shape, its outside edge drawn, lighter than the spot where it lands); the dashed ring for how far the thrower can reach after moving up and his label stay.
+

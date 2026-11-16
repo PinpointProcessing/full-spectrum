@@ -273,30 +273,42 @@ function ddcDragUp(ev){
   hud();
 }
 // a circle on the ground, cut where it runs behind the camera (gPath draws nothing once any of it is; the Bazooka reaches 90 m): ddhud.js's ddDepth
-function ddcRingPath(x,y,r){
+function ddcRingPath(x,y,r,add){   // (add: onto the path already begun, so several circles fill as one shape)
   const n=48,lim=Math.max(2,camera.near*3),P=[],D=[],C=[];
   for(let i=0;i<n;i++){const a=i/n*TAU,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;P.push([px,py]);D.push(ddDepth(px,py));}
   for(let i=0;i<n;i++){const j=(i+1)%n,ia=D[i]>=lim,ib=D[j]>=lim;if(ia)C.push(P[i]);if(ia!==ib){const t=(lim-D[i])/(D[j]-D[i]);C.push([P[i][0]+(P[j][0]-P[i][0])*t,P[i][1]+(P[j][1]-P[i][1])*t]);}}
-  ox.beginPath();let k=0;for(const c of C){toSBack=false;const q=toS(c[0],c[1],1);if(toSBack)continue;if(k++)ox.lineTo(q[0],q[1]);else ox.moveTo(q[0],q[1]);}
+  if(!add)ox.beginPath();let k=0;for(const c of C){toSBack=false;const q=toS(c[0],c[1],1);if(toSBack)continue;if(k++)ox.lineTo(q[0],q[1]);else ox.moveTo(q[0],q[1]);}
   if(k>2)ox.closePath();return k>2;
 }
-// how far each man of yours who could use what's being dragged can use it (Version 170, Bryan: "There should be a circle around the players to show the
-// distance the tool can be used"): the ring is how far he throws or fires it from where he stands, the dashed one how far once he's moved up for it,
-// a rocket's small red one too close; the man who'd do it brighter, with his name and reach. The medic kit: the hurt and the downed ringed green
-const ddcRGB=h=>{const n=parseInt(h.slice(1),16);return`${n>>16&255},${n>>8&255},${n&255}`;};
+// how far the men of yours who could use what's being dragged can use it (Version 170, Bryan: "There should be a circle around the players to show the
+// distance the tool can be used"; since Version 171 filled orange): the area any of them reaches from where he stands, the dashed ring how far the man
+// who'd do it reaches once he's moved up for it, a rocket's small red ring too close, one label. The medic kit: the hurt and the downed ringed green
 function ddcReach(k,chosen,now){
   const T=DD_TOOLS.find(t=>t.k===k);if(!T)return;
   if(k==='medkit'){const a=(.55+.35*Math.sin(now/170)).toFixed(2);for(const t of players)if(!t.dead&&!t.npc&&!t.inBoat&&(t.downed||t.hp<100)){gPath(t.x,t.y,18);ox.strokeStyle=`rgba(95,224,142,${a})`;ox.lineWidth=2.5;ox.stroke();}return;}
-  const kind=DDC_DRAG[k],rgb=ddcRGB(T.col),L=ddToolFree(T),C=chosen&&L.includes(chosen)?chosen:L[0];if(!C)return;
-  for(const u of L){if(u===C)continue;const{R}=throwReach(u,kind);if(ddcRingPath(u.x,u.y,R)){ox.fillStyle=`rgba(${rgb},.04)`;ox.fill();ox.strokeStyle=`rgba(${rgb},.45)`;ox.lineWidth=1.4;ox.stroke();}}   // (the others who have one: faint)
-  const{R,minD}=throwReach(C,kind),walk=kind==='nade'?NADE_WALK:ACT_R;   // the man who'd do it: from here, once moved up (dashed), too close (a rocket's red)
-  if(ddcRingPath(C.x,C.y,R+walk)){ox.save();ox.setLineDash([6,7]);ox.strokeStyle=`rgba(${rgb},.6)`;ox.lineWidth=1.8;ox.stroke();ox.restore();}
-  if(ddcRingPath(C.x,C.y,R)){ox.fillStyle=`rgba(${rgb},.12)`;ox.fill();ox.strokeStyle=`rgba(${rgb},.95)`;ox.lineWidth=2.6;ox.stroke();}
+  const kind=DDC_DRAG[k],L=ddToolFree(T),C=chosen&&L.includes(chosen)?chosen:L[0];if(!C)return;
+  // (Version 171, Bryan: "The circle is no good, it should be filled in with orange. Lighter than the placement, but dark enough to see"): where any of them
+  // can throw or fire it from where he stands, one orange area (overlaps don't darken it), lighter than where it lands (.26 in ddcDragDraw)
+  const U=L.map(u=>({x:u.x,y:u.y,r:throwReach(u,kind).R}));
+  ox.beginPath();let any=false;for(const c of U)if(ddcRingPath(c.x,c.y,c.r,true))any=true;
+  if(any){ox.fillStyle='rgba(255,150,50,.19)';ox.fill('nonzero');ox.strokeStyle='rgba(255,160,60,.9)';ox.lineWidth=2;ddcUnionEdge(U);}
+  const{R,minD}=throwReach(C,kind),walk=kind==='nade'?NADE_WALK:ACT_R;   // the man who'd do it: once moved up (dashed), too close (a rocket's red)
+  if(ddcRingPath(C.x,C.y,R+walk)){ox.save();ox.setLineDash([6,7]);ox.strokeStyle='rgba(255,160,60,.6)';ox.lineWidth=1.6;ox.stroke();ox.restore();}
   if(minD>0&&ddcRingPath(C.x,C.y,minD)){ox.strokeStyle='rgba(255,90,72,.8)';ox.lineWidth=1.5;ox.stroke();}
   // one label: at the ring's far edge when that's on screen, else over his head
   const t=`${C.name} · ${Math.round(R/10)} m · ${Math.round((R+walk)/10)} m moving up`,B=ddBox();toSBack=false;let[lx,ly]=toS(C.x,C.y-R,0);
   if(toSBack||lx<B.l||lx>B.r||ly<B.top+10||ly>B.bot-10){toSBack=false;[lx,ly]=toS(C.x,C.y,40);}
-  if(!toSBack)ddcPill(t,lx,ly-10,`rgb(${rgb})`);
+  if(!toSBack)ddcPill(t,lx,ly-10,'#ffb347');
+}
+// the outside edge of several circles on the ground, the arcs inside the others left out (stroked in the current style)
+function ddcUnionEdge(U){
+  const lim=Math.max(2,camera.near*3);ox.beginPath();
+  for(let i=0;i<U.length;i++){const a=U[i];let pen=false;
+    for(let s=0;s<=64;s++){const t=s/64*TAU,x=a.x+Math.cos(t)*a.r,y=a.y+Math.sin(t)*a.r;
+      if(U.some((b,j)=>j!==i&&hyp(x-b.x,y-b.y)<b.r-1)||ddDepth(x,y)<lim){pen=false;continue;}
+      toSBack=false;const q=toS(x,y,1);if(toSBack){pen=false;continue;}
+      if(pen)ox.lineTo(q[0],q[1]);else{ox.moveTo(q[0],q[1]);pen=true;}}}
+  ox.stroke();
 }
 // a pill kept inside the screen (overlay.js's pill is centred where it's put)
 function ddcPill(text,x,y,col){ox.font=`700 10px ${HUDFONT}`;const w=ox.measureText(text).width+10;pill(text,clamp(x,w/2+6,cw-w/2-6),clamp(y,12,ch-12),col);}
