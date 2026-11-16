@@ -635,6 +635,13 @@ Both cut moves into the open by about four fifths and damage taken by about a th
 
 My suggestion: C as the camera, and B as a look on demand (for example, a tap on the objective pill swings up to the section's set view for a few seconds). Found on the way: at today's 17° a turned camera ends up behind the hill's shoulders (the rock between it and the men fades to a grey wash), which the higher pitch fixes on this map. A smoke cloud between the camera and the men greys out the closest views.
 
+### Camera samples in motion
+Bryan, on the drafts: "Can you show me some samples for the new camera ideas?" Films of one advance up the beach map, every frame of the game drawn by all four cameras, so the four films show the very same moments. On a page: https://claude.ai/artifact/BzeGd1HQa8wuFZ11rX85qX (the four side by side first, then each with its notes); the files are in `docs/drafts/camera-samples/` (`cam-grid.mp4`, `cam-A.mp4` to `cam-D.mp4`, about 30 s each, and the page). Made with `tools/drafts/dday-camera-video.js [OUT] [PORT] [FPS] [DPR] [STRETCHES]` (the frames; the stretches can be filmed in parallel, about 3.5 s a frame for the four cameras on one browser) and `dday-camera-video.py OUT FPS DIR...` (the films, the four-up film, the posters).
+- Three stretches, cut together: the sand to the wire; the way up, where the route turns north-west; the top, where it turns east to the barracks.
+- The squad runs the route by itself with no orders, so the films show the cameras and not the men's own moves. Nobody is hurt, nobody runs for cover or dodges, and smoke is cleared. Bravo follows as it does in the game.
+- A eases after the man furthest ahead as `ddTrack` does. B holds a view per section (the sand, the bluff, the draw, the top) and glides 1.6 s to the next when the squad's middle gets there. C turns toward the route about 18 m ahead of the lead man, eased, and follows like A. D rides 8 m behind and 3.6 m above the man at the back, turned like C.
+- Seen in the films: close to D's camera, the selection rings under the men are drawn huge. A real D would need smaller rings.
+
 ### 3. Cover for four
 Measured with `tools/drafts/dday-cover-draft.js [OUT] [PORT] [pics]` on the beach after 20 s ashore (the guns the squad knows about are the ones it has seen firing). Pictures: `docs/drafts/dday-cover-draft.jpg`.
 - Of the 73 pieces from the water to the bunkers, 31 take one man behind them on the bunkers' far side (all 13 hedgehogs, 12 of the 15 rocks, a drum). 11 take two (mostly the crates), 8 take three, 10 take four or more (sandbag lines up at the bunkers, the two biggest shell holes), and 13 none.
