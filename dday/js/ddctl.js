@@ -71,9 +71,11 @@ function ddcSupport(t){
   let fx=0,fy=-1;const O=typeof ddObjective==='function'?ddObjective():null;
   if(O&&O.x!=null&&hyp(O.x-L.x,O.y-L.y)>40){const d=hyp(O.x-L.x,O.y-L.y);fx=(O.x-L.x)/d;fy=(O.y-L.y)/d;}
   else{const th=enemies.filter(e=>!beaten(e)&&(e.seen||e.vis)&&hyp(e.x-L.x,e.y-L.y)<600);if(th.length){const c=ddcMid(th),d=hyp(c.x-L.x,c.y-L.y)||1;fx=(c.x-L.x)/d;fy=(c.y-L.y)/d;}}
-  const side=t==='B'?1:-1,[tx,ty]=ddcBound(L.x-fx*120-fy*side*45,L.y-fy*120+fx*side*45);
-  if(hyp(M.x-tx,M.y-ty)<70){A[t]={x:L.x,y:L.y,px:M.x,py:M.y,t:simT};return;}   // (already about there)
-  const as=makeAssign(free,tx,ty);if(!as.length){A[t]={x:L.x,y:L.y,px:M.x,py:M.y,t:simT};return;}
+  const side=t==='B'?1:-1;let tx=0,ty=0,as=[];
+  for(const[back,off]of[[120,45],[85,25],[50,0]]){[tx,ty]=ddcBound(L.x-fx*back-fy*side*off,L.y-fy*back+fx*side*off);   // (nowhere to stand there: a little nearer yours)
+    if(hyp(M.x-tx,M.y-ty)<70){A[t]={x:L.x,y:L.y,px:M.x,py:M.y,t:simT};return;}   // (already about there)
+    as=makeAssign(free,tx,ty);if(as.length)break;}
+  if(!as.length){A[t]={x:L.x,y:L.y,px:M.x,py:M.y,t:simT};return;}
   for(const q of as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});
   A[t]={x:L.x,y:L.y,px:tx,py:ty,t:simT};
 }
@@ -248,18 +250,27 @@ function ddcDragMove(ev){
   const[wx,wy]=toW(sx,sy);toSBack=false;const[bx,by]=toS(wx,wy);if(toSBack||hyp(bx-sx,by-sy)>6){D.pt=null;D.ok=false;return;}   // (not on the ground: the sky)
   D.pt={x:wx,y:wy,sx,sy};ddcDragEval(D);
 }
+// who of the squad you play could use tool T: up, has one, not on another throw, a kit or a build. Pinned men count (Version 172): they throw from where
+// they stand, as orderThrow lets them; on the beach under fire nearly everyone is pinned, and leaving them out showed no circles and threw nothing
+function ddcCarriers(T){return ddSquad().filter(u=>alive(u)&&T.n(u)>0&&u.card&&!u.throwGo&&!u.rpgAim&&!u.build&&!u.medGo);}
+const ddcWalk=(u,kind)=>pinnedNow(u)?0:kind==='nade'?NADE_WALK:ACT_R;   // (pinned, he won't leave his spot for it)
 function ddcDragEval(D){
   const T=DD_TOOLS.find(t=>t.k===D.k);D.u=null;D.ok=false;D.why='';if(!T||!D.pt)return;
-  const P=D.pt,L=ddToolFree(T),near=(x,y)=>L.slice().sort((a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y))[0];
-  if(D.k==='medkit'){const t=unitAtScreen(P.sx,P.sy,false),man=t&&t.side==='P'&&!t.npc&&!t.dead&&(t.downed||t.hp<100)?t:null;D.man=man;D.u=man?near(man.x,man.y):L[0]||null;
-    D.ok=!!(man&&D.u);D.why=!L.length?'Nobody free with one':!man?'Drop it on a hurt man':'';return;}
-  const kind=DDC_DRAG[D.k],u=near(P.x,P.y);D.u=u||null;if(!u){D.why='Nobody free with one';return;}
-  const{R,minD}=throwReach(u,kind),d=hyp(P.x-u.x,P.y-u.y),walk=kind==='nade'?NADE_WALK:ACT_R;
-  D.d=d;D.R=R;D.walk=d>R||d<minD;D.ok=d<=R+walk;D.why=d>R+walk?'Too far':'';   // (a rocket too close: he backs off first, combat.js's fireSpot)
+  const P=D.pt,L=ddcCarriers(T),by=(x,y)=>(a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y);
+  if(D.k==='medkit'){const t=unitAtScreen(P.sx,P.sy,false),man=t&&t.side==='P'&&!t.npc&&!t.dead&&(t.downed||t.hp<100)?t:null;D.man=man;
+    const F=L.filter(u=>!pinnedNow(u));D.u=man?(F.length?F:L).sort(by(man.x,man.y))[0]||null:L[0]||null;
+    D.ok=!!(man&&D.u);D.why=!L.length?'Nobody has one':!man?'Drop it on a hurt man':'';return;}
+  const kind=DDC_DRAG[D.k];if(!L.length){D.why='Nobody has one';return;}
+  // the man who'd do it: the nearest who can from where he is or by moving up, a man who isn't pinned first; else the nearest (to say why not)
+  const fits=u=>{const{R,minD}=throwReach(u,kind),d=hyp(P.x-u.x,P.y-u.y),w=ddcWalk(u,kind);return d<=R+w&&(w>0||d>=minD);};
+  const u=L.filter(q=>!pinnedNow(q)&&fits(q)).sort(by(P.x,P.y))[0]||L.filter(fits).sort(by(P.x,P.y))[0]||L.slice().sort(by(P.x,P.y))[0];D.u=u;
+  const{R,minD}=throwReach(u,kind),d=hyp(P.x-u.x,P.y-u.y),walk=ddcWalk(u,kind),pin=pinnedNow(u);
+  D.d=d;D.R=R;D.walk=d>R||d<minD;D.ok=fits(u);D.why=D.ok?'':pin?(d<minD?'Pinned · too close':'Pinned · too far from here'):'Too far';   // (a rocket too close: he backs off first, combat.js's fireSpot)
   if(!D.ok)return;   // in reach: is there somewhere to throw it from? (asked again once the finger has moved 2 m and 0.3 s have gone by)
   const now=performance.now(),c=D.sc;
   if(!c||c.u!==u||hyp(c.x-P.x,c.y-P.y)>20&&now-c.t>300){let s=null;try{s=fireSpot(u,P.x,P.y,R,minD,kind);}catch(e){s={here:true};}D.sc={u,x:P.x,y:P.y,t:now,s};}
-  const s=D.sc.s;if(!s){D.ok=false;D.why=kind==='rpg'?'No spot to fire from':'No spot to throw from';}else D.walk=!s.here;
+  const s=D.sc.s;if(!s){D.ok=false;D.why=kind==='rpg'?'No spot to fire from':'No spot to throw from';}
+  else if(!s.here&&pin){D.ok=false;D.why='Pinned · no throw from here';}else D.walk=!s.here;
 }
 function ddcDragUp(ev){
   const D=dd&&dd.drag;if(!D){ddcDragOff();return;}if(ev.pointerId!==D.id)return;ev.stopPropagation();ddcDragOff();dd.drag=null;if(D.btn)D.btn.classList.remove('ddc-press');
@@ -286,17 +297,17 @@ function ddcRingPath(x,y,r,add){   // (add: onto the path already begun, so seve
 function ddcReach(k,chosen,now){
   const T=DD_TOOLS.find(t=>t.k===k);if(!T)return;
   if(k==='medkit'){const a=(.55+.35*Math.sin(now/170)).toFixed(2);for(const t of players)if(!t.dead&&!t.npc&&!t.inBoat&&(t.downed||t.hp<100)){gPath(t.x,t.y,18);ox.strokeStyle=`rgba(95,224,142,${a})`;ox.lineWidth=2.5;ox.stroke();}return;}
-  const kind=DDC_DRAG[k],L=ddToolFree(T),C=chosen&&L.includes(chosen)?chosen:L[0];if(!C)return;
+  const kind=DDC_DRAG[k],L=ddcCarriers(T),C=chosen&&L.includes(chosen)?chosen:L.find(u=>!pinnedNow(u))||L[0];if(!C)return;
   // (Version 171, Bryan: "The circle is no good, it should be filled in with orange. Lighter than the placement, but dark enough to see"): where any of them
   // can throw or fire it from where he stands, one orange area (overlaps don't darken it), lighter than where it lands (.26 in ddcDragDraw)
   const U=L.map(u=>({x:u.x,y:u.y,r:throwReach(u,kind).R}));
   ox.beginPath();let any=false;for(const c of U)if(ddcRingPath(c.x,c.y,c.r,true))any=true;
-  if(any){ox.fillStyle='rgba(255,150,50,.19)';ox.fill('nonzero');ox.strokeStyle='rgba(255,160,60,.9)';ox.lineWidth=2;ddcUnionEdge(U);}
-  const{R,minD}=throwReach(C,kind),walk=kind==='nade'?NADE_WALK:ACT_R;   // the man who'd do it: once moved up (dashed), too close (a rocket's red)
-  if(ddcRingPath(C.x,C.y,R+walk)){ox.save();ox.setLineDash([6,7]);ox.strokeStyle='rgba(255,160,60,.6)';ox.lineWidth=1.6;ox.stroke();ox.restore();}
+  if(any){ox.fillStyle='rgba(255,140,30,.24)';ox.fill('nonzero');ox.strokeStyle='rgba(255,150,40,.95)';ox.lineWidth=2.6;ddcUnionEdge(U);}
+  const{R,minD}=throwReach(C,kind),walk=ddcWalk(C,kind);   // the man who'd do it: once moved up (dashed; none while he's pinned), too close (a rocket's red)
+  if(walk&&ddcRingPath(C.x,C.y,R+walk)){ox.save();ox.setLineDash([6,7]);ox.strokeStyle='rgba(255,160,60,.6)';ox.lineWidth=1.6;ox.stroke();ox.restore();}
   if(minD>0&&ddcRingPath(C.x,C.y,minD)){ox.strokeStyle='rgba(255,90,72,.8)';ox.lineWidth=1.5;ox.stroke();}
   // one label: at the ring's far edge when that's on screen, else over his head
-  const t=`${C.name} · ${Math.round(R/10)} m · ${Math.round((R+walk)/10)} m moving up`,B=ddBox();toSBack=false;let[lx,ly]=toS(C.x,C.y-R,0);
+  const t=`${C.name} · ${Math.round(R/10)} m${walk?` · ${Math.round((R+walk)/10)} m moving up`:' · pinned'}`,B=ddBox();toSBack=false;let[lx,ly]=toS(C.x,C.y-R,0);
   if(toSBack||lx<B.l||lx>B.r||ly<B.top+10||ly>B.bot-10){toSBack=false;[lx,ly]=toS(C.x,C.y,40);}
   if(!toSBack)ddcPill(t,lx,ly-10,'#ffb347');
 }
@@ -322,7 +333,7 @@ function ddcDragDraw(){
   const kind=DDC_DRAG[D.k],blast=kind==='smoke'?SMOKE.r:kind==='rpg'?(PRPG.blast||55):u.gl?68:58,ok=D.ok,col=!ok?'255,80,64':kind==='smoke'?'215,222,228':'255,170,70';
   toSBack=false;const[ax,ay]=toS(u.x,u.y,18),[bx,by]=toS(P.x,P.y,0),[mx,my]=toS((u.x+P.x)/2,(u.y+P.y)/2,kind==='rpg'?18:hyp(P.x-u.x,P.y-u.y)*.32+20);
   if(!toSBack){ox.save();ox.setLineDash([2,7]);ox.lineCap='round';ox.strokeStyle=ok?'rgba(255,236,200,.95)':'rgba(255,150,140,.95)';ox.lineWidth=3;ox.beginPath();ox.moveTo(ax,ay);ox.quadraticCurveTo(2*mx-(ax+bx)/2,2*my-(ay+by)/2,bx,by);ox.stroke();ox.restore();}
-  gPath(P.x,P.y,blast);ox.fillStyle=`rgba(${col},.26)`;ox.fill();ox.strokeStyle=`rgba(${col},.95)`;ox.lineWidth=2.2;ox.stroke();
+  gPath(P.x,P.y,blast);ox.fillStyle=`rgba(${col},.38)`;ox.fill();ox.strokeStyle=`rgba(${col},.95)`;ox.lineWidth=2.2;ox.stroke();
   const m=Math.round(D.d/10),verb=kind==='rpg'?'fires':kind==='smoke'?'throws smoke':'throws';
   ddcPill(ok?`${u.name} ${verb} · ${m} m${D.walk?kind==='rpg'&&D.d<PRPG.min?' · backs off first':' · moves up first':''}`:`${D.why.toUpperCase()} · ${m} m`,P.sx,P.sy-62,ok?'#ffb347':'#ff6a55');
   ddcPill(ok?'LET GO TO THROW · BACK TO THE BAR TO CANCEL':'LET GO HERE AND NOTHING IS THROWN',P.sx,P.sy-44,'#dfe5ea');
@@ -332,7 +343,8 @@ function ddcDragDraw(){
 function ddcFrame(now){
   ddcHud();
   if(!ddcOn()){if(ddcR)ddcClose();return;}
-  ddcLabel();if(DDC.ring&&!dd.fp){ddcLines();ddcRingFrame();ddcDragDraw();const S=dd.ddcShow,pn=performance.now();if(S&&!dd.drag&&pn-S.t<2500)ddcReach(S.k,null,pn);}   // (now is the game's clock in seconds; these are real milliseconds)
+  ddcLabel();if(DDC.ring&&!dd.fp){ddcLines();ddcRingFrame();ddcDragDraw();const S=dd.ddcShow,pn=performance.now();if(S&&!dd.drag&&pn-S.t<4000)ddcReach(S.k,null,pn);}   // (now is the game's clock in seconds; these are real milliseconds)
+  if(dd.toolK&&DDC_DRAG[dd.toolK]&&!dd.drag)ddcReach(dd.toolK,dd.toolU,performance.now());   // (the old way: a tool in hand, Version 172)
   if(!dd.ddcSaid&&(DDC.lead||DDC.ring)){dd.ddcSaid=simT+3;}   // a word on the test controls, a few seconds in
   else if(dd.ddcSaid>0&&simT>dd.ddcSaid){dd.ddcSaid=-1;banner(DDC.lead&&DDC.ring?'Test controls: ⇄ swaps squads. Tap an enemy for actions; drag a grenade onto the map.':DDC.lead?'Test controls: ⇄ swaps squads; the other follows you.':'Test controls: tap an enemy for actions; drag a grenade onto the map.',4200);}
 }

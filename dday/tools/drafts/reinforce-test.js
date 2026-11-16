@@ -42,7 +42,7 @@ await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(2);hud();drawOver
    const men=ddToolFree(DD_TOOLS.find(t=>t.k==='nade')).length;return{ok:!!dd.drag&&men>0&&n>=men+1,circles:n,men};});   // (one ring each, the man who'd throw it two: from here and moving up)
  await page.mouse.move(a[0],a[1]);await page.mouse.up();}
 {const a=await ev(()=>{const b=document.querySelector('#sq .sq-tool[data-k="rpg"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});await page.mouse.click(a[0],a[1]);
- await ok('after a tap on the Bazooka: its circles drawn, gone after 2.5 s',()=>{let n=0;const r0=ddcRingPath;window.ddcRingPath=function(){n++;return r0.apply(this,arguments);};drawOverlay(.03,simT);const now=n;dd.ddcShow.t-=3000;n=0;drawOverlay(.03,simT);window.ddcRingPath=r0;return{ok:now>0&&n===0&&dd.ddcShow.k==='rpg',now,later:n};});}
+ await ok('after a tap on the Bazooka: its circles drawn, gone after 4 s',()=>{let n=0;const r0=ddcRingPath;window.ddcRingPath=function(){n++;return r0.apply(this,arguments);};drawOverlay(.03,simT);const now=n;dd.ddcShow.t-=5000;n=0;drawOverlay(.03,simT);window.ddcRingPath=r0;return{ok:now>0&&n===0&&dd.ddcShow.k==='rpg',now,later:n};});}
 // --- the village: the rally point before the last
 await ev(()=>{startVillage({skip:true});});await page.waitForTimeout(400);
 await ok('village: from the rally point before the last',()=>{RUN(1);const R0=dd.vg.rally;dd.vg.rally=[{x:VG.road,y:300,n:'the edge of the woods'},{x:VG.road,y:20,n:'the hedgerow'},{x:700,y:-280,n:'the barricade'}];

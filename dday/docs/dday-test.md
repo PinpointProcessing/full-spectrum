@@ -596,3 +596,5 @@ Bryan, after Version 169:
 
 Bryan, after Version 170: "The circle is no good, it should be filled in with orange. Lighter than the placement, but dark enough to see." Version 171: while you drag a tool, the ground your squad's men can reach with it from where they stand is filled light orange (one shape, its outside edge drawn, lighter than the spot where it lands); the dashed ring for how far the thrower can reach after moving up and his label stay.
 
+Bryan, after Version 171: "I don't see the range circle..." The reach only counted men who weren't pinned, and on the beach under fire nearly everyone is, so nothing showed (and dragging a grenade said "Nobody free with one"). Version 172: pinned men count; a pinned man can only throw from where he stands, so he gets no "moving up" ring. The orange is a little stronger. With the old tool controls (Tap an enemy for actions off), a tool in hand shows its reach too.
+
