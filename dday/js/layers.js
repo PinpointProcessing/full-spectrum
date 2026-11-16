@@ -158,6 +158,7 @@ function enemyNade(e){
 function dodgeTick(){
   for(const n of nades){
     if(!n.enemy||n.dodged)continue;n.dodged=true;
+    if(MAPID==='dd'&&typeof ddDodge==='function'){ddDodge(n);continue;}   // (D-Day since Version 176: only from inside the blast, toward cover: ddplay.js)
     for(const p of players){
       if(!alive(p)||p.offMap||hyp(p.x-n.x1,p.y-n.y1)>ENADE.r+8||simT-p.lastOrder<1)continue;
       const a=Math.atan2(p.y-n.y1,p.x-n.x1);let s=null;

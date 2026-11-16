@@ -187,6 +187,7 @@ function coverAt(tx,ty,sx,sy){
     if(rectDist(sx,sy,o)<15)continue;
     if(segHitsRect(sx,sy,tx,ty,o,3)){const v=o.cover||(o.full?2:1);if(v>best)best=v;}   // o.cover overrides (the open watchtower platform is half cover)
   }
+  if(MAPID==='dd'&&best<2&&typeof ddHoleCover==='function')best=Math.max(best,ddHoleCover(tx,ty,sx,sy));   // (D-Day: a man down in a shell hole, from every side: ddplay.js)
   return best;
 }
 function isFree(x,y,pad=7.5){if(x<10||y<TOP+10||x>EAST_X-10||y>H-10)return false;for(const o of objs)if(!o.door&&rectDist(x,y,o)<(o.kind==='jeep'&&pad<10?Math.min(pad,4):pad))return false;return true;}   // a parked jeep doesn't seal a gap: you can squeeze past it

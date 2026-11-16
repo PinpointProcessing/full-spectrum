@@ -663,3 +663,11 @@ Bryan, on the camera samples: "C looks best, the only thing is the second machin
 - A bunker's roof and walls go see-through when they hide one of your men from the camera, not only when one of your men is inside.
 - The bunkers off the way up: once your squads have gone past the upper bunker (into the draw) or the hill bunker (higher up the draw) and it's still manned, five of the other troops go for it ("The other troops go for the hill bunker."), cover to cover, grenades when they're close, and take it ("The hill bunker is yours."). More go if they're cut down. In tests both bunkers fell 20 to 45 seconds after the squads went past. You can still take them yourself.
 
+## Version 176: shell holes for four, and the smarter dodge and run for cover
+Bryan, after the brainstorm: "Do you think we should add the cover that takes four? And we should add the smarter cover".
+- Six more shell holes on the beach, each big enough for four, staggered either side of the way up. A man down in a shell hole is covered from every side now, not only by the rim on the far side. Four men sent to any of the new holes all end up in cover.
+- A man only dodges a shell that would actually hit him (before, anyone within about 7 m ran, hit or not), and he dodges toward the spot the fewest guns can see, cover first.
+- Running for cover when shot at, or after a couple of seconds in the open, now counts every gun that can reach him (it ignored guns further than 38 m, so men ran into the machine guns' fire), and never goes somewhere more guns can see him than where he is.
+- Measured on the beach (the squad put in cover, then two minutes of fighting with no orders, ten fights): they move on their own 40 times (48 to 50 before), into a gun's open line about 3 times (40 before), and they take about the same damage as before. Most of the moves left are men getting out of a shell's blast.
+- Tried and left out: going back to the spot once the shell has landed (the guns shell where the men are, so it walked them into the next shell: twice the moves and more damage); men in a shell hole staying put through shells that land outside it (half the moves, but about a third more damage). That one is a switch if you'd rather have it.
+

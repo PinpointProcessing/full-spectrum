@@ -17,7 +17,8 @@ await ev(([SEED,VAR])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRos
   // the log: every function that can give one of ours a path by himself, wrapped; whoever's way's end changed inside it is put down to it
   // how many guns that can reach a spot have an open shot at it
   window.OPENN=(x,y)=>{let n=0;for(const e of enemies){if(beaten(e)||e.side!=='E'||!e.alerted||e.dormant||e.mon)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y))continue;if(coverAt(x,y,e.x,e.y)===0)n++;}return n;};
-  if(VAR!=='base'){
+  if(VAR==='ride')DD_HOLE_RIDE=true;   // (Version 176: men in a shell hole ride out shells landing outside it; off in the game)
+  if(VAR==='smart'||VAR==='hold'){
     // the shell dodge: only from inside its blast, to the spot out of it the fewest guns have an open shot at (cover points within 14 m first)
     window.dodgeTick=function(){for(const n of nades){if(!n.enemy||n.dodged)continue;n.dodged=true;const R=n.R||ENADE.r;
       for(const p of players){if(!alive(p)||p.offMap||p.inBoat||hyp(p.x-n.x1,p.y-n.y1)>R+6||simT-p.lastOrder<1)continue;
@@ -53,10 +54,11 @@ const r=await ev(([MAP,SECS,VAR])=>{
   const as=makeAssign(L,m.x,m.y-(MAP==='beach'?80:120));if(as.length)commit(as);for(let i=0;i<300;i++)RUN1();   // (10 s to get there)
   MOVES.length=0;for(const u of players)u._ld=undefined;const start=simT;
   let hit=0,downs=0;const dm0=damage;window.damage=function(t,d){const h0=t&&t.hp;const r=dm0.apply(this,arguments);if(t&&t.side==='P'&&t.team===dd.active&&!t.npc&&typeof h0==='number')hit+=Math.max(0,h0-Math.max(0,t.hp));return r;};
-  const wasDown=new Map();
-  for(let i=0;i<SECS*30;i++){RUN1();if(i%3===0){TICKCHK();for(const u of players){if(u.team!==dd.active)continue;const d=!!(u.downed||u.dead);if(d&&!wasDown.get(u))downs++;wasDown.set(u,d);}}}
+  const wasDown=new Map(),spot=new Map(L.map(u=>[u,destOf(u)]));let away=0,far=0,samples=0;   // (where each was put: how far from it they are, sampled every second)   // (where each was sent: the end of his move if he's still on his way)
+  for(let i=0;i<SECS*30;i++){RUN1();if(i%3===0){TICKCHK();for(const u of players){if(u.team!==dd.active)continue;const d=!!(u.downed||u.dead);if(d&&!wasDown.get(u))downs++;wasDown.set(u,d);}}
+    if(i%30===0)for(const u of L){if(!alive(u))continue;const s0=spot.get(u),d=hyp(u.x-s0.x,u.y-s0.y)/10;away+=d;if(d>4)far++;samples++;}}
   const P=MOVES.filter(m=>m.played),O=MOVES.filter(m=>!m.played),by=L=>{const o={};for(const m of L){const k=m.cause;o[k]=o[k]||{n:0,toOpen:0,metres:0};o[k].n++;if(m.toOpen)o[k].toOpen++;o[k].metres+=m.m;}return o;};
   const worse=P.filter(m=>m.openTo>m.openFrom).length,dead=units.filter(u=>u.corpse&&u.team===dd.active&&u.deadT>=start).length;
-  return{map:MAP,secs:SECS,variant:VAR,played:{moves:P.length,toOpen:P.filter(m=>m.toOpen).length,worse,hpLost:Math.round(hit),downs,dead,byCause:by(P)},other:{moves:O.length,byCause:by(O)},
+  return{map:MAP,secs:SECS,variant:VAR,played:{moves:P.length,toOpen:P.filter(m=>m.toOpen).length,worse,hpLost:Math.round(hit),downs,dead,awayM:+(away/Math.max(1,samples)).toFixed(1),farPct:Math.round(100*far/Math.max(1,samples)),byCause:by(P)},other:{moves:O.length,byCause:by(O)},
     down:players.filter(p=>p.downed).length,lost:dd.lost,sample:P.slice(0,10)};},[MAP,SECS,VAR]);
 console.log(JSON.stringify(r,null,1));console.log('errors',errors.length,errors.slice(0,3));await b.close();srv.close();})();

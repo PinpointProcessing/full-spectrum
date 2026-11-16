@@ -28,7 +28,10 @@ const DD_TOP={x0:770,x1:986,y0:40,y1:170},ddTop=(dx,y)=>dx>=DD_TOP.x0&&dx<=DD_TO
 const DD_TOP2={x0:640,x1:900,y0:-436,y1:-336},ddTop2=(dx,y)=>dx>=DD_TOP2.x0&&dx<=DD_TOP2.x1&&y>=DD_TOP2.y0&&y<DD_TOP2.y1;
 const ddRock=(dx,y)=>ddLedge(dx,y)||ddTop(dx,y)||ddTop2(dx,y)?0:ddIn(DD_FACE,dx,y)?1:ddIn(DD_RWALL,dx,y)?2:ddIn(DD_RRIGHT,dx,y)?3:0;
 const ddRamp=y=>18+clamp((300-y)/620,0,1)*132;   // the draw's floor: 1.8 m at the gate to 15 m at the top
-const DD_HOLES=[{x:380,y:520,r:34,c:2,n:'deep'},{x:640,y:560,r:30,c:1},{x:820,y:470,r:20,c:1},{x:250,y:400,r:18,c:1},{x:545,y:392,r:18,c:1},{x:130,y:600,r:20,c:1},{x:900,y:640,r:22,c:1}];
+const DD_HOLES=[{x:380,y:520,r:34,c:2,n:'deep'},{x:640,y:560,r:30,c:1},{x:820,y:470,r:20,c:1},{x:250,y:400,r:18,c:1},{x:545,y:392,r:18,c:1},{x:130,y:600,r:20,c:1},{x:900,y:640,r:22,c:1},
+  // Version 176 (Bryan: "Cover should be able to always cover 4 men"; the draft after Version 174, docs/drafts/dday-cover-draft.jpg): six more, each a
+  // shelter for four, staggered either side of the way up 12-20 m apart (only the two biggest above took four before)
+  {x:240,y:622,r:30,c:1},{x:560,y:606,r:30,c:1},{x:470,y:540,r:30,c:1},{x:720,y:522,r:28,c:1},{x:360,y:432,r:28,c:1},{x:600,y:452,r:28,c:1}];
 function ddRawH(dx,y){
   if(dx>=DD_LEDGE.x0&&dx<=DD_LEDGE.x1&&y>=DD_LEDGE.y0&&y<318)return ddPathH(dx);   // the path, and its lip down to the sand
   if(ddTop(dx,y))return 96;

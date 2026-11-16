@@ -6,6 +6,7 @@
 //   pairs: a second hedgehog 3 m beside each one on the sand (two pieces, two men each)
 //   holes: six more shell holes the size of the one by the wreck along the way up the sand, each a shelter for four
 // node dday-cover-draft.js [OUT] [PORT] [pics] -> the numbers; with pics, OUT/cov-*.png (dday-cover-compose.py makes the sheet)
+// Since Version 176 the holes and the shell-hole rule are in the game (dday.js's DD_HOLES, ddplay.js's ddHoleCover): 'today' here is that game.
 const {chromium}=require('playwright');const fs=require('fs');const {serve,S}=require('./harness.js');
 const OUT=process.argv[2]||'.',PO=+process.argv[3]||0,PICS=process.argv[4]==='pics',W=390,H=760;
 const THREE_SRC=fs.readFileSync(S+'/deps/node_modules/three/build/three.min.js');
@@ -25,7 +26,7 @@ const beach=async holes=>{
     Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(31);window.requestAnimationFrame=()=>0;
     window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){update(1/30);panTick(1/30);ddFrame(1/30,simT);}};
     damage=()=>undefined;
-    for(const[x,y,r]of holes)DD_HOLES.push({x,y,r,c:1,draft:1});},holes);
+    for(const[x,y,r]of holes)if(!DD_HOLES.some(h=>h.x===x&&h.y===y))DD_HOLES.push({x,y,r,c:1,draft:1});},holes);   // (since Version 176 they're in the game: nothing added twice)
   await page.click('#ddBtn');await page.waitForTimeout(400);
   await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(4);RUN(20);   // (a while on the beach: the guns the squad knows about are the ones it would know)
     const KIND={ddhog:'hedgehog',ddrim:'shell hole',ddwreck:'wreck',ddbould:'boulder',ddcrate:'crate',dddrum:'drum',sandbag:'sandbags'};

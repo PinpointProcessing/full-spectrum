@@ -469,6 +469,43 @@ function ddNpcThink(u,line){
   if(!(p&&p.length)){const ty=Math.max(line+10,u.y-80),q=openSpot(ddRouteX(ty),ty,[]);if(q)p=findPath(u.x,u.y,q.x,q.y);}   // (nothing reachable there: straight up the route)
   if(p&&p.length){u.path=p;u.hopT=simT+2.5+Math.random()*(off?2.5:5);}else u.hopT=simT+2;
 }
+/* ---------- cover for four, and the smarter dodge and run for cover (Version 176) ----------
+   Bryan, after the brainstorm (docs/dday-test.md, "Drafts after Version 174"): "Do you think we should add the cover that takes four? And we
+   should add the smarter cover". On the beach only two places took four men out of every gun's line: dday.js's DD_HOLES has six more shell
+   holes for four, and a man down in a shell hole (within its radius) is covered from anyone outside it (beyond its radius and 1 m), not only by
+   the rim on its far side (ddHoleCover, from map.js's coverAt). The beach map's holes only; the village and the counterattack have their own. */
+function ddHoleCover(tx,ty,sx,sy){
+  if(DD_MODE!=='beach')return 0;let v=0;
+  for(const h of DD_HOLES){const hx=h.x+DDX;if(hyp(tx-hx,ty-h.y)<h.r&&hyp(sx-hx,sy-h.y)>h.r+10&&(h.c||1)>v)v=h.c||1;}
+  return v;
+}
+// the shell hole (x,y) is down in, or null (the beach map's). With DD_HOLE_RIDE on (off for now), a man in one takes a third of a blast that goes off
+// outside it, and rides out a shell coming down outside it instead of running from it (ddDodge): the hole is what shields him
+function ddHoleOf(x,y){if(DD_MODE!=='beach')return null;for(const h of DD_HOLES)if(hyp(x-h.x-DDX,y-h.y)<h.r)return h;return null;}
+function ddHoleBlast(v,x,y){if(!DD_HOLE_RIDE)return 1;const h=v.side==='P'&&ddHoleOf(v.x,v.y);return h&&ddHoleOf(x,y)!==h?DD_HOLE_BLAST:1;}
+const DD_HOLE_BLAST=.33;let DD_HOLE_RIDE=false;   // (off: measured over ten fights each, riding shells out halved the moving, 40 -> 24 moves, but the squad took a third more damage, 270 -> 356; a let, so tools/drafts/leave-test.js 'ride' turns it on)
+// how many of their guns that can reach (x,y) and see it have an open shot at it (nothing in the way that counts as cover)
+function ddOpenN(x,y){let n=0;for(const e of enemies){if(beaten(e)||e.side!=='E'||e.mon||e.dormant||!e.alerted)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y))continue;if(coverAt(x,y,e.x,e.y)===0)n++;}return n;}
+// an enemy shell or grenade (layers.js's dodgeTick hands D-Day's over): dodged only by a man inside its blast (it was anyone within 6.8 m of where
+// it lands, blast or not, so men left cover for shells that would have missed them), to the spot out of the blast that the fewest of their guns have
+// an open shot at: cover within 14 m first, else just clear of it (the old way, straight away from it); a man given an order in the last second stays
+// (Measured with tools/drafts/leave-test.js on the beach, two minutes with no orders, five fights: moves into an open line of fire 40 -> 2 with this,
+// the shell holes and the run for cover counting every gun that can reach, combat.js's playerThink and dashToCover. Tried and dropped: going back to
+// his spot once the shell had landed; the guns shell where the men are, so it walked them back into the next shell: twice the moves, more hurt)
+function ddDodge(n){
+  const R=n.R||ENADE.r;
+  for(const p of players){
+    if(!alive(p)||p.offMap||p.inBoat||p.fp||hyp(p.x-n.x1,p.y-n.y1)>R+6||simT-p.lastOrder<1)continue;
+    if(DD_HOLE_RIDE){const h=ddHoleOf(p.x,p.y);if(h&&ddHoleOf(n.x1,n.y1)!==h)continue;}   // (down in a shell hole and it lands outside: he rides it out, ddHoleBlast)
+    const others=players.filter(o=>o!==p&&!o.dead).map(destOf),K=[];
+    for(const c of coverPts){const d=hyp(c.x-p.x,c.y-p.y);if(d>140||hyp(c.x-n.x1,c.y-n.y1)<R+14)continue;if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<SPACE_COVER))continue;K.push({x:c.x,y:c.y,d});}
+    const a=Math.atan2(p.y-n.y1,p.x-n.x1);
+    for(const da of[0,.7,-.7,1.4,-1.4]){const x=n.x1+Math.cos(a+da)*(R+16),y=n.y1+Math.sin(a+da)*(R+16);if(isFree(x,y,8))K.push({x,y,d:hyp(x-p.x,y-p.y)});}
+    let best=null,bs=1e9;for(const c of K){const sc=ddOpenN(c.x,c.y)*60+c.d;if(sc<bs){bs=sc;best=c;}}
+    const path=best&&findPath(p.x,p.y,best.x,best.y);
+    if(path){p.path=path;p.gaitForce=null;callout(p,'Move!',C.warn);}
+  }
+}
 /* ---------- the other troops take a bunker the squads went past (Version 175) ----------
    Bryan, on the camera that turns with the route: "the second machine gun nest on the first hill is completely ignored. I guess the AI can take it
    over if the player misses it". The upper bunker and the hill bunker stand off to the right of the way up and were never on it. Once the squads

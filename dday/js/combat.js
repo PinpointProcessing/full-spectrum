@@ -684,7 +684,7 @@ function explode(x,y,by,quiet,R=58,D=95){   // (R, D: the blast's reach and its 
     if(v.dead||v.seat==='driver'||v.side==='C')continue;const d=hyp(v.x-x,v.y-y);if(d>R)continue;   // (nobody harms the scientists or the men still locked up: office.js)   // the driver is shielded; riders and the gunner sit in the open
     if(!los(x,y,v.x,v.y)||hideAt(v.x,v.y)!==hideAt(x,y))continue;   // the tunnel shelters whoever's inside
     v.sup=Math.min(1.2,v.sup+0.8);
-    if(!v.downed)damage(v,D*(1-d/(R+4)),by);
+    if(!v.downed)damage(v,D*(1-d/(R+4))*(MAPID==='dd'&&typeof ddHoleBlast==='function'?ddHoleBlast(v,x,y):1),by);   // (D-Day: down in a shell hole, a blast outside it does a third: ddplay.js)
     if(v.side==='E'&&!v.surr)v.alerted=true;
   }
   const theirs=!!by&&by.side==='E';   // an enemy grenade (layers.js): no ambush for the squad, and the base doesn't count its own
@@ -1041,8 +1041,10 @@ function dashToCover(p,sh){
     cand.push({c,d,bonus:(heavy?15:0)+(all?25:0)});
   }
   cand.sort((a,b)=>(a.d-a.bonus)-(b.d-b.bonus));
-  let best=null,bs=1e9;
-  for(const k of cand.slice(0,8)){   // the nearest few by the way there (a spot just behind a wall can be a long way round)
+  let best=null,bs=1e9,tried=0;const dd0=MAPID==='dd'&&typeof ddOpenN==='function',open0=dd0?ddOpenN(p.x,p.y):0;
+  for(const k of cand){if(tried>=8)break;   // the nearest few by the way there (a spot just behind a wall can be a long way round)
+    if(dd0){const oc=ddOpenN(k.c.x,k.c.y);if(oc>0&&oc>=open0)continue;}   // (D-Day since Version 176: never to a spot as many guns have an open shot at as where he is: covered from the man shooting, it could be open to a machine gun further off)
+    tried++;
     const path=findPath(p.x,p.y,k.c.x,k.c.y);if(!path||!path.length)continue;
     const L=routeLen(p,path);if(L>DASH.r*1.3)continue;
     const sc=L-k.bonus;if(sc<bs){bs=sc;best={path,c:k.c};}
@@ -1059,7 +1061,7 @@ function playerThink(p){
   if(sh.length&&sh.some(e=>{const L=fireLine(e,p);return!!L&&coverAt(p.x,p.y,L.fx,L.fy)===0;})&&dashToCover(p,sh))return;
   if(p.sup>0.65){p.exposeT=0;return;}   // (pinned, and not shot at in the open: he keeps his head down where he is)
   if(simT-p.lastOrder<4)return;
-  const vis=enemies.filter(e=>!e.dead&&!e.dormant&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
+  const vis=enemies.filter(e=>!e.dead&&!e.dormant&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=(MAPID==='dd'&&typeof ddFireR==='function'?ddFireR(e):380)&&los(p.x,p.y,e.x,e.y));   // (D-Day since Version 176: every gun that can reach him, the machine guns to 64 m; 38 m let a man shift into a far gun's line)
   const exposed=vis.some(e=>coverAt(p.x,p.y,e.x,e.y)===0);
   p.exposeT=exposed?p.exposeT+.4:0;
   if(p.exposeT<2)return;
