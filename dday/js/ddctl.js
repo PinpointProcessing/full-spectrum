@@ -17,7 +17,9 @@
    same (the wire's has MOVE HERE too); the game at quarter speed while it's up (state.js's timeScale asks ddcSlow), gone after 4.5 s or a tap
    anywhere else (ddcTap from ddplay.js's ddTap, ddcRingFrame from the overlay). The bar's grenade, rifle grenade, smoke, Bazooka and medic
    kit are dragged onto the map instead of held in hand: who, the arc and where it lands show while you drag, red if it can't be done; let go to
-   throw, back over the bar to cancel (ddcDrag*). Nothing is held, so no dead taps after a throw. Thin lines from your men to the man they're
+   throw, back over the bar to cancel (ddcDrag*). Nothing is held, so no dead taps after a throw. Since Version 170 a circle round each man who carries it
+   from the moment it's pressed (and for 2.5 s after a plain tap on it): how far he can use it from where he stands, dashed how far once he's moved up
+   (ddcReach; Bryan: "There should be a circle around the players to show the distance the tool can be used"). Thin lines from your men to the man they're
    shooting and an eye over any of them who can't see him, while his ring is up and for 4 s after the order (ddcLines). */
 const DDC=(()=>{const o={lead:true,ring:true};try{const s=JSON.parse(localStorage.getItem('warehouseYard.ddctl.v1')||'null');if(s&&typeof s==='object'){if(typeof s.lead==='boolean')o.lead=s.lead;if(typeof s.ring==='boolean')o.ring=s.ring;}}catch(e){}return o;})();
 function ddcSave(){try{localStorage.setItem('warehouseYard.ddctl.v1',JSON.stringify(DDC));}catch(e){}}
@@ -262,7 +264,7 @@ function ddcDragEval(D){
 function ddcDragUp(ev){
   const D=dd&&dd.drag;if(!D){ddcDragOff();return;}if(ev.pointerId!==D.id)return;ev.stopPropagation();ddcDragOff();dd.drag=null;if(D.btn)D.btn.classList.remove('ddc-press');
   if(ev.type==='pointercancel')return;
-  if(!D.moved){banner(D.k==='medkit'?'Drag the kit onto a hurt man.':'Drag it onto the map to use it.',1600);return;}
+  if(!D.moved){dd.ddcShow={k:D.k,t:performance.now()};banner(D.k==='medkit'?'Drag the kit onto a hurt man.':'Drag it onto the map to use it.',1600);return;}   // (and its circles shown a moment)
   if(!D.pt)return;   // (let go over the bar: put away)
   if(!D.ok){dd.tapW={x:D.pt.x,y:D.pt.y,t:performance.now()};if(D.why)ddNote(D.why);return;}
   const u=D.u;
@@ -270,28 +272,55 @@ function ddcDragUp(ev){
   else if(orderThrow(u,D.pt.x,D.pt.y,DDC_DRAG[D.k])){u.lastOrder=simT;u.hotT=simT+6;}
   hud();
 }
+// a circle on the ground, cut where it runs behind the camera (gPath draws nothing once any of it is; the Bazooka reaches 90 m): ddhud.js's ddDepth
+function ddcRingPath(x,y,r){
+  const n=48,lim=Math.max(2,camera.near*3),P=[],D=[],C=[];
+  for(let i=0;i<n;i++){const a=i/n*TAU,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;P.push([px,py]);D.push(ddDepth(px,py));}
+  for(let i=0;i<n;i++){const j=(i+1)%n,ia=D[i]>=lim,ib=D[j]>=lim;if(ia)C.push(P[i]);if(ia!==ib){const t=(lim-D[i])/(D[j]-D[i]);C.push([P[i][0]+(P[j][0]-P[i][0])*t,P[i][1]+(P[j][1]-P[i][1])*t]);}}
+  ox.beginPath();let k=0;for(const c of C){toSBack=false;const q=toS(c[0],c[1],1);if(toSBack)continue;if(k++)ox.lineTo(q[0],q[1]);else ox.moveTo(q[0],q[1]);}
+  if(k>2)ox.closePath();return k>2;
+}
+// how far each man of yours who could use what's being dragged can use it (Version 170, Bryan: "There should be a circle around the players to show the
+// distance the tool can be used"): the ring is how far he throws or fires it from where he stands, the dashed one how far once he's moved up for it,
+// a rocket's small red one too close; the man who'd do it brighter, with his name and reach. The medic kit: the hurt and the downed ringed green
+const ddcRGB=h=>{const n=parseInt(h.slice(1),16);return`${n>>16&255},${n>>8&255},${n&255}`;};
+function ddcReach(k,chosen,now){
+  const T=DD_TOOLS.find(t=>t.k===k);if(!T)return;
+  if(k==='medkit'){const a=(.55+.35*Math.sin(now/170)).toFixed(2);for(const t of players)if(!t.dead&&!t.npc&&!t.inBoat&&(t.downed||t.hp<100)){gPath(t.x,t.y,18);ox.strokeStyle=`rgba(95,224,142,${a})`;ox.lineWidth=2.5;ox.stroke();}return;}
+  const kind=DDC_DRAG[k],rgb=ddcRGB(T.col),L=ddToolFree(T),C=chosen&&L.includes(chosen)?chosen:L[0];if(!C)return;
+  for(const u of L){if(u===C)continue;const{R}=throwReach(u,kind);if(ddcRingPath(u.x,u.y,R)){ox.fillStyle=`rgba(${rgb},.04)`;ox.fill();ox.strokeStyle=`rgba(${rgb},.45)`;ox.lineWidth=1.4;ox.stroke();}}   // (the others who have one: faint)
+  const{R,minD}=throwReach(C,kind),walk=kind==='nade'?NADE_WALK:ACT_R;   // the man who'd do it: from here, once moved up (dashed), too close (a rocket's red)
+  if(ddcRingPath(C.x,C.y,R+walk)){ox.save();ox.setLineDash([6,7]);ox.strokeStyle=`rgba(${rgb},.6)`;ox.lineWidth=1.8;ox.stroke();ox.restore();}
+  if(ddcRingPath(C.x,C.y,R)){ox.fillStyle=`rgba(${rgb},.12)`;ox.fill();ox.strokeStyle=`rgba(${rgb},.95)`;ox.lineWidth=2.6;ox.stroke();}
+  if(minD>0&&ddcRingPath(C.x,C.y,minD)){ox.strokeStyle='rgba(255,90,72,.8)';ox.lineWidth=1.5;ox.stroke();}
+  // one label: at the ring's far edge when that's on screen, else over his head
+  const t=`${C.name} · ${Math.round(R/10)} m · ${Math.round((R+walk)/10)} m moving up`,B=ddBox();toSBack=false;let[lx,ly]=toS(C.x,C.y-R,0);
+  if(toSBack||lx<B.l||lx>B.r||ly<B.top+10||ly>B.bot-10){toSBack=false;[lx,ly]=toS(C.x,C.y,40);}
+  if(!toSBack)ddcPill(t,lx,ly-10,`rgb(${rgb})`);
+}
+// a pill kept inside the screen (overlay.js's pill is centred where it's put)
+function ddcPill(text,x,y,col){ox.font=`700 10px ${HUDFONT}`;const w=ox.measureText(text).width+10;pill(text,clamp(x,w/2+6,cw-w/2-6),clamp(y,12,ch-12),col);}
 // what's being dragged: who, his reach, the arc, where it lands, and what letting go does
 function ddcDragDraw(){
-  const D=dd&&dd.drag;if(!D||!D.pt)return;const u=D.u,P=D.pt;
+  const D=dd&&dd.drag;if(!D)return;ddcReach(D.k,D.u,performance.now());if(!D.pt)return;const u=D.u,P=D.pt;
   if(D.k==='medkit'){if(D.man){gPath(D.man.x,D.man.y,16);ox.strokeStyle=D.ok?'#5fe08e':'#ff5a48';ox.lineWidth=3;ox.stroke();}
-    pill(D.ok?`${u.name} treats ${D.man.name}`:D.why,P.sx,P.sy-58,D.ok?'#5fe08e':'#ff6a55');pill(D.ok?'LET GO TO TREAT · BACK TO THE BAR TO CANCEL':'LET GO HERE AND NOTHING HAPPENS',P.sx,P.sy-40,'#dfe5ea');if(u)u.hotT=simT+.3;return;}
-  if(!u){pill(D.why||'Nobody free with one',P.sx,P.sy-50,'#ff6a55');return;}
+    ddcPill(D.ok?`${u.name} treats ${D.man.name}`:D.why,P.sx,P.sy-58,D.ok?'#5fe08e':'#ff6a55');ddcPill(D.ok?'LET GO TO TREAT · BACK TO THE BAR TO CANCEL':'LET GO HERE AND NOTHING HAPPENS',P.sx,P.sy-40,'#dfe5ea');if(u)u.hotT=simT+.3;return;}
+  if(!u){ddcPill(D.why||'Nobody free with one',P.sx,P.sy-50,'#ff6a55');return;}
   u.hotT=simT+.3;   // (his orange outline: ddplay.js's ddHot)
   const kind=DDC_DRAG[D.k],blast=kind==='smoke'?SMOKE.r:kind==='rpg'?(PRPG.blast||55):u.gl?68:58,ok=D.ok,col=!ok?'255,80,64':kind==='smoke'?'215,222,228':'255,170,70';
-  gPath(u.x,u.y,D.R);ox.save();ox.setLineDash([6,6]);ox.strokeStyle=`rgba(${col},.5)`;ox.lineWidth=1.5;ox.stroke();ox.restore();
   toSBack=false;const[ax,ay]=toS(u.x,u.y,18),[bx,by]=toS(P.x,P.y,0),[mx,my]=toS((u.x+P.x)/2,(u.y+P.y)/2,kind==='rpg'?18:hyp(P.x-u.x,P.y-u.y)*.32+20);
   if(!toSBack){ox.save();ox.setLineDash([2,7]);ox.lineCap='round';ox.strokeStyle=ok?'rgba(255,236,200,.95)':'rgba(255,150,140,.95)';ox.lineWidth=3;ox.beginPath();ox.moveTo(ax,ay);ox.quadraticCurveTo(2*mx-(ax+bx)/2,2*my-(ay+by)/2,bx,by);ox.stroke();ox.restore();}
   gPath(P.x,P.y,blast);ox.fillStyle=`rgba(${col},.26)`;ox.fill();ox.strokeStyle=`rgba(${col},.95)`;ox.lineWidth=2.2;ox.stroke();
   const m=Math.round(D.d/10),verb=kind==='rpg'?'fires':kind==='smoke'?'throws smoke':'throws';
-  pill(ok?`${u.name} ${verb} · ${m} m${D.walk?kind==='rpg'&&D.d<PRPG.min?' · backs off first':' · moves up first':''}`:`${D.why.toUpperCase()} · ${m} m`,P.sx,P.sy-62,ok?'#ffb347':'#ff6a55');
-  pill(ok?'LET GO TO THROW · BACK TO THE BAR TO CANCEL':'LET GO HERE AND NOTHING IS THROWN',P.sx,P.sy-44,'#dfe5ea');
+  ddcPill(ok?`${u.name} ${verb} · ${m} m${D.walk?kind==='rpg'&&D.d<PRPG.min?' · backs off first':' · moves up first':''}`:`${D.why.toUpperCase()} · ${m} m`,P.sx,P.sy-62,ok?'#ffb347':'#ff6a55');
+  ddcPill(ok?'LET GO TO THROW · BACK TO THE BAR TO CANCEL':'LET GO HERE AND NOTHING IS THROWN',P.sx,P.sy-44,'#dfe5ea');
 }
 
 /* ---------- each frame (from the overlay), the start card's switches, the first word ---------- */
 function ddcFrame(now){
   ddcHud();
   if(!ddcOn()){if(ddcR)ddcClose();return;}
-  ddcLabel();if(DDC.ring&&!dd.fp){ddcLines();ddcRingFrame();ddcDragDraw();}
+  ddcLabel();if(DDC.ring&&!dd.fp){ddcLines();ddcRingFrame();ddcDragDraw();const S=dd.ddcShow,pn=performance.now();if(S&&!dd.drag&&pn-S.t<2500)ddcReach(S.k,null,pn);}   // (now is the game's clock in seconds; these are real milliseconds)
   if(!dd.ddcSaid&&(DDC.lead||DDC.ring)){dd.ddcSaid=simT+3;}   // a word on the test controls, a few seconds in
   else if(dd.ddcSaid>0&&simT>dd.ddcSaid){dd.ddcSaid=-1;banner(DDC.lead&&DDC.ring?'Test controls: ⇄ swaps squads. Tap an enemy for actions; drag a grenade onto the map.':DDC.lead?'Test controls: ⇄ swaps squads; the other follows you.':'Test controls: tap an enemy for actions; drag a grenade onto the map.',4200);}
 }

@@ -259,13 +259,13 @@ function dcReplace(){
   for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}
     dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;const rm=ddmTakeReserve();dd.pool=ddmReserveFit().length;if(!rm)continue;
     const sp=openSpot(DCA.door.x,DCA.door.y,players.filter(p=>!p.dead).map(destOf))||DCA.door,u=ddNewMan(q.team,q.id,rm.role,sp.x,sp.y,rm);u.inBoat=false;u.seen=true;players.push(u);players.sort((a,b)=>a.id<b.id?-1:1);buildCards();
-    banner(`${u.name} joins ${teamName(q.team)} from the barracks.`,2600);}
+    if(ddRushing())ddRushSay('come out of the barracks');else banner(`${u.name} joins ${teamName(q.team)} from the barracks.`,2600);ddReselect(q.team);}
 }
 
 /* ---------- the fight's clock ---------- */
 function dcTick(dt){
   const C=dd.dc;C.t+=dt;
-  ddDeadTick();dd.pool=ddmReserveFit().length;
+  ddAllDown();ddDeadTick();dd.pool=ddmReserveFit().length;
   dcGunsTick(dt);ddHot();ddTankTick(dt);
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}}   // (Version 168: ddctl.js)
   if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();}

@@ -449,19 +449,34 @@ function ddWaves(){
     // he comes out of the held place nearest his squad, on foot; with nothing held past the beach, a boat as before
     const up=mates.filter(p=>!p.inBoat&&!p.joining),M=up.length?up:mates,mx=M.length?M.reduce((a,p)=>a+p.x,0)/M.length:DDX+500,my=M.length?M.reduce((a,p)=>a+p.y,0)/M.length:600,from=ddSpawnAt(mx,my);   // (where the men of his squad who are ashore are)
     if(from){const sp=openSpot(from.x,from.y,players.filter(p=>p!==u&&!p.dead).map(destOf))||from;u.x=sp.x;u.y=sp.y;u.inBoat=false;u.ang=Math.atan2(mx-sp.x,my-sp.y);u.seen=true;buildCards();
-      banner(`${u.name} joins ${teamName(q.team)} from ${from.n}.`,2600);continue;}
+      if(ddRushing())ddRushSay(`come up from ${from.n}`);else banner(`${u.name} joins ${teamName(q.team)} from ${from.n}.`,2600);ddReselect(q.team);continue;}
     ddBoat(lx+(Math.random()-.5)*60,[u,...ddCrew(3)]);buildCards();
-    banner(`${u.name} lands by boat for ${teamName(q.team)}.`,2600);}
+    if(ddRushing())ddRushSay('land by boat');else banner(`${u.name} lands by boat for ${teamName(q.team)}.`,2600);ddReselect(q.team);}
 }
-// where a replacement comes from: the held place (not the beach) nearest his squad, if it's nearer them than the waterline is
+// where a replacement comes from (Version 170, Bryan: "The previously controlled area should produce the reinforcements, not the most recent"): the place
+// taken before the one taken last, the barracks last of all; the beach (a boat) while that's the beach. Until Version 170: the held place nearest his squad
 const DD_SPAWN={left:[352,236],pill:[668,236],nest:[906,236],hill:[880,120],draw:[530,60],heavy:[120,-380],art:[770,-390]};
-function ddSpawnAt(mx,my){
-  const H=dd.held||{},L=[];
-  for(const k in DD_SPAWN)if(H[k]){const Z=DD_ZONES.find(z=>z.k===k);L.push({x:DD_SPAWN[k][0]+DDX,y:DD_SPAWN[k][1],n:Z.n.toLowerCase()});}
-  if(dd.blown.barracks)L.push({x:DD_SPOT.door.x+DDX,y:DD_SPOT.door.y+14,n:'the barracks'});
-  let best=null,bd=Math.max(60,760-my);   // (the boat lands him about there)
-  for(const p of L){const d=hyp(p.x-mx,p.y-my);if(d<bd){bd=d;best=p;}}
-  return best;
+function ddSpawnAt(){
+  const O=(dd.heldOrder||[]).filter(k=>k==='beach'||DD_SPAWN[k]);if(dd.blown.barracks)O.push('barracks');
+  const k=O.length>=2?O[O.length-2]:null;if(!k||k==='beach')return null;
+  if(k==='barracks')return{x:DD_SPOT.door.x+DDX,y:DD_SPOT.door.y+14,n:'the barracks'};
+  const Z=DD_ZONES.find(z=>z.k===k);return{x:DD_SPAWN[k][0]+DDX,y:DD_SPAWN[k][1],n:Z.n.toLowerCase()};
+}
+// nobody of either squad on his feet (Version 170, Bryan: "When all troops are dead, speed up the deaths to zero and regenerate all reinforcements"): the downed
+// die at once (nobody's left to get them up) and every replacement due comes now, together, with one banner (each chapter's tick, before ddDeadTick)
+function ddAllDown(){
+  if(!dd||dd.won||dd.over||endAt||state!=='play'||!dd.land||!dd.land.done||dd.seq||!players.length&&!dd.queue.length||players.some(alive))return;   // (a replacement on his way, in a boat too, is on his feet)
+  for(const p of players)if(p.downed&&!p.dead){if(p.carriedBy)putDown(p.carriedBy);Object.assign(p,{dead:true,downed:false,critical:false,hp:0,path:[]});callout(p,'KIA',C.bad);dd.rush=simT;}
+  for(const q of dd.queue)if(q.at>simT){q.at=simT;dd.rush=simT;}
+}
+const ddRushing=()=>simT-(dd.rush??-99)<3;
+function ddRushSay(how){if(dd.rushSaid===dd.rush)return;dd.rushSaid=dd.rush;banner(`Everyone was down. The reserves ${how}.`,3200);}
+// a replacement in with nobody of yours picked (they were all lost): his squad, or the one you were leading if it has men again; while the reserves all come
+// at once, each of them added to the squad picked as he comes
+function ddReselect(team){
+  const t=players.some(p=>p.team===dd.active&&alive(p))?dd.active:team;
+  if(!sel.some(alive)){selectTeam(t);if(typeof ddGoSquad==='function')ddGoSquad(t);return;}   // (the camera to where they come up)
+  if(ddRushing()&&sel.every(u=>u.team===t)&&players.some(p=>p.team===t&&alive(p)&&!sel.includes(p)))selectTeam(t);
 }
 function ddJoin(u){   // a replacement on his way up to his squad
   if(u.inBoat||!alive(u))return;
@@ -587,7 +602,7 @@ function ddZones(){
     if(Z.k==='base'){if(dd.won)H.base=true;continue;}
     if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e)))continue;
     if(!dd.allies.some(u=>!u.inBoat&&u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1))continue;
-    H[Z.k]=true;if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);
+    H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were taken in: ddSpawnAt)
     for(const m of(Z.bk&&DD&&DD.bk&&DD.bk[Z.bk])||[])if(m&&m.color){m.color.lerp(new T.Color(0x5fa4ff),.42);if(m.emissive)m.emissive.setHex(0x12305a);}
   }
   // the barracks: ours once nobody of theirs is left near it and two of ours have stood at its door for four seconds
@@ -626,12 +641,16 @@ function ddNote(text){const p=dd&&dd.tapW;if(!p||performance.now()-p.t>900)retur
 
 function ddDrawZones(){
   const H=dd.held;if(!H)return;
-  for(const Z of DD_ZONES){if(!H[Z.k])continue;const[x0,y0,x1,y1]=Z.r,P=[];let bad=false;
-    const add=(x,y)=>{toSBack=false;const q=toS(x+DDX,y,1.5);if(toSBack)bad=true;P.push(q);};
-    for(let x=x0;x<x1;x+=24)add(x,y0);for(let y=y0;y<y1;y+=24)add(x1,y);for(let x=x1;x>x0;x-=24)add(x,y1);for(let y=y1;y>y0;y-=24)add(x0,y);
-    if(bad||!P.some(q=>q[0]>-200&&q[0]<cw+200&&q[1]>-200&&q[1]<ch+200))continue;
-    ox.beginPath();ox.moveTo(P[0][0],P[0][1]);for(const q of P)ox.lineTo(q[0],q[1]);ox.closePath();
-    ox.fillStyle=Z.k==='beach'?'rgba(96,165,255,.055)':'rgba(96,165,255,.12)';ox.fill();ox.strokeStyle='rgba(130,190,255,.7)';ox.lineWidth=Z.k==='beach'?1.5:2.2;ox.stroke();}
+  for(const Z of DD_ZONES){if(!H[Z.k])continue;const[x0,y0,x1,y1]=Z.r;ddBlueRect(x0+DDX,y0,x1+DDX,y1,Z.k!=='beach');}
+}
+// ground that's ours: a light blue wash and a blue border (the beach's places here, the village's in ddvillage.js's vgDraw; Version 170, Bryan: "Can the
+// controlled areas just turn blue", with the red fields of fire gone)
+function ddBlueRect(x0,y0,x1,y1,strong){
+  const P=[];let bad=false;const add=(x,y)=>{toSBack=false;const q=toS(x,y,1.5);if(toSBack)bad=true;P.push(q);};
+  for(let x=x0;x<x1;x+=24)add(x,y0);for(let y=y0;y<y1;y+=24)add(x1,y);for(let x=x1;x>x0;x-=24)add(x,y1);for(let y=y1;y>y0;y-=24)add(x0,y);
+  if(bad||!P.some(q=>q[0]>-200&&q[0]<cw+200&&q[1]>-200&&q[1]<ch+200))return;
+  ox.beginPath();ox.moveTo(P[0][0],P[0][1]);for(const q of P)ox.lineTo(q[0],q[1]);ox.closePath();
+  ox.fillStyle=strong?'rgba(96,165,255,.12)':'rgba(96,165,255,.055)';ox.fill();ox.strokeStyle='rgba(130,190,255,.7)';ox.lineWidth=strong?2.2:1.5;ox.stroke();
 }
 /* ---------- the medics, by themselves (Bryan: "Can medics heal automatically when they are not being shot out, or not pinned down") ----------
    A squad's medic who isn't pinned and hasn't been shot at for 3 s: goes to a man of his squad who's down (he's got up the usual way
@@ -716,7 +735,7 @@ function ddTick(dt){
   ddCounter(dt);if(typeof ddBaseTick==='function')ddBaseTick(dt);
   if(!dd.land.done)ddRideFx(dt);
   else if(dd.graceT&&simT>dd.graceT){dd.graceT=0;for(const p of players)if(p.dmgIn0!=null){p.dmgIn=p.dmgIn0;p.dmgIn0=null;}}   // (the other boats' men fight on from the moment their ramps drop: nothing waits for the squads)
-  ddDeadTick();
+  ddAllDown();ddDeadTick();
   for(const p of players)if(p.joining)ddJoin(p);
   // how far they've got (the day goes by with it), and the edge of the map
   const up=players.filter(alive);

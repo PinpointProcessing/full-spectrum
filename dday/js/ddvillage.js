@@ -533,10 +533,16 @@ const vgRally=p=>{(dd.vg.rally||(dd.vg.rally=[])).push(p);};
 function vgReplace(){
   for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}
     dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;let rm=ddmTakeReserve();dd.pool=ddmReserveFit().length;const fox=!rm&&dd.vg.ph==='village'&&(dd.vg.foxR||0)>0;if(!rm&&!fox)continue;if(fox)dd.vg.foxR--;
-    const mates=players.filter(p=>p.team===q.team&&alive(p)),mx=mates.length?mates.reduce((a,p)=>a+p.x,0)/mates.length:VG.road,my=mates.length?mates.reduce((a,p)=>a+p.y,0)/mates.length:VG.start.y;
-    const R=[{x:VG.road,y:874,n:'the track'},...(dd.vg.rally||[]).filter(p=>!enemies.some(e=>!beaten(e)&&hyp(e.x-p.x,e.y-p.y)<260))];let b=R[0];for(const p of R)if(hyp(p.x-mx,p.y-my)<hyp(b.x-mx,b.y-my))b=p;
+    const b=vgFrom();
     const sp=openSpot(b.x,b.y,players.filter(p=>!p.dead).map(destOf))||b,u=ddNewMan(q.team,q.id,rm?rm.role:ddPickRole(q.team),sp.x,sp.y,rm||undefined);Object.assign(u,{inBoat:false,seen:true,joining:true});
-    players.push(u);players.sort((a,c)=>a.id<c.id?-1:1);buildCards();banner(fox?`${u.name} from Fox Company joins ${teamName(q.team)}.`:`${u.name} joins ${teamName(q.team)} from ${b.n}.`,2600);}
+    players.push(u);players.sort((a,c)=>a.id<c.id?-1:1);buildCards();if(ddRushing())ddRushSay(`come up from ${b.n}`);else banner(fox?`${u.name} from Fox Company joins ${teamName(q.team)}.`:`${u.name} joins ${teamName(q.team)} from ${b.n}.`,2600);ddReselect(q.team);}
+}
+// where he comes up (Version 170, Bryan: "The previously controlled area should produce the reinforcements, not the most recent"): the rally point before the
+// last one gained (the track, the edge of the woods, the hedgerow, the barricade), or the nearest behind it with no enemy within 26 m (until Version 170: the one nearest his squad)
+function vgFrom(){
+  const all=[{x:VG.road,y:874,n:'the track'},...(dd.vg.rally||[])],safe=p=>!enemies.some(e=>!beaten(e)&&hyp(e.x-p.x,e.y-p.y)<260);
+  for(let i=Math.max(0,all.length-2);i>0;i--)if(safe(all[i]))return all[i];
+  return all[0];
 }
 function vgGiveUp(e){
   Object.assign(e,{surr:true,path:[],alerted:false,aware:0,wary:false,call:null,hunt:null,huntT0:0,lkp:null,flanking:false,bodyGo:null});
@@ -546,7 +552,7 @@ function vgGiveUp(e){
 /* ---------- the fight's clock ---------- */
 function vgTick(dt){
   const V=dd.vg;V.t+=dt;
-  ddDeadTick();dd.pool=ddmReserveFit().length+(V.ph==='village'?(V.foxR||0):0);   // (in the village, Fox Company can spare a few men once the reserve's gone)
+  ddAllDown();ddDeadTick();dd.pool=ddmReserveFit().length+(V.ph==='village'?(V.foxR||0):0);   // (in the village, Fox Company can spare a few men once the reserve's gone)
   for(const p of players)if(p.joining)ddJoin(p);
   ddHot();ddTankTick(dt);stationTick(dt);vgTrucks(dt);vgMortars();vgWaves();vgBazooka();vgTankThink();
   const up=players.filter(p=>alive(p)&&!p.joining);
@@ -582,7 +588,7 @@ function vgDraw(){
   const up=tag=>enemies.filter(e=>e.tag===tag&&!beaten(e));
   // (Version 167: the machine guns show their fields of fire on the ground and the objective pill says where to go, ddhud.js: what's left here is short)
   for(const e of enemies)if(e.weapon==='sniper'&&!beaten(e)&&e.seen)lab(e.x,e.y,(e.elev||0)+30,'SNIPER','#ff8a6a');
-  if(V.ph==='village')for(const z of VG.zones){const h=V.held[z.k];lab(z.lx,z.ly,h?36:44,h?`${z.n} · OURS`:z.n,h?'#8fd0ff':'#ffcf4a',9);}
+  if(V.ph==='village')for(const z of VG.zones){const h=V.held[z.k];if(h)ddBlueRect(z.x0,z.y0,z.x1,z.y1,true);lab(z.lx,z.ly,h?36:44,h?`${z.n} · OURS`:z.n,h?'#8fd0ff':'#ffcf4a',9);}   // (ours: blue on the ground too, Version 170)
   for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
   for(const p of players)if(p.joining&&alive(p)){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
 }

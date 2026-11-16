@@ -4,7 +4,7 @@
    DD_SAY keeps a few callouts; overlay.js draws the rest). This file:
    - ddCover(u): how covered a man of the squad you play is from the enemies who could shoot him, as a shield over his head
      (green full cover, yellow half, red in the open);
-   - ddDanger(): the field of fire of every enemy machine gun you know about, red on the ground, cut off where something stops it;
+   - ddDanger(): the field of fire of every enemy machine gun you know about, red on the ground, cut off where something stops it (off since Version 170, DD_FIELDS);
    - ddShooters(): an arrow at the screen's edge toward whoever is shooting your men (a ring on him when he's on screen);
    - ddObjective()/ddObjDraw(): one objective always in view, a pill at the top ("Take the square · 80 m") and an arrow at the
      edge toward it (a marker over it when it's on screen). Replaces the place names and the top-centre lines. */
@@ -54,8 +54,12 @@ function ddWedge(e,g,R){
 }
 const _dv=new T.Vector3();
 const ddDepth=(x,y)=>-_dv.set(x,gndH(x,y)+1,y).applyMatrix4(camera.matrixWorldInverse).z;   // (how far in front of the camera; below 0 behind it)
+// Version 170 (Bryan, after Version 169: "Why is there a large red area when I land on the beach? Can the controlled areas just turn blue"): the machine guns'
+// red fields of fire are off; the ground that's ours is blue (ddplay.js's ddBlueRect). The cover shield over each man and the red ring on whoever's shooting stay
+const DD_FIELDS=false;
 function ddDanger(now){
-  const W=[];ddWedgeN=0;ddCoverN=0;const lim=Math.max(2,camera.near*3);
+  ddWedgeN=0;ddCoverN=0;if(!DD_FIELDS)return;   // (the counts the cover shields keep to are still reset every frame)
+  const W=[];const lim=Math.max(2,camera.near*3);
   for(const e of enemies){
     if(!e.gunner||!e.onGun||beaten(e)||e.side!=='E'||!(e.seen||e.vis))continue;
     // the field [gun, ray ends...] clipped against a plane just in front of the camera (whatever part of it is behind is cut off, the
