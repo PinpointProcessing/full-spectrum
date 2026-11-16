@@ -234,7 +234,7 @@ const DDC_KIND={nade:'nade',rgl:'nade',smoke:'smoke',rpg:'rpg',medkit:'medkit'};
 // who of the squad you play could use tool T: up, has one, not on another throw, a kit or a build, pinned or not (Version 172: on the beach under fire
 // nearly everyone is pinned, and a pinned man still throws from where he stands, as combat.js's orderThrow lets him)
 function ddcCarriers(T){return ddSquad().filter(u=>alive(u)&&T.n(u)>0&&u.card&&!u.throwGo&&!u.rpgAim&&!u.build&&!u.medGo);}
-const ddcWalk=(u,kind)=>pinnedNow(u)?0:kind==='nade'?NADE_WALK:ACT_R;   // (pinned, he won't leave his spot for it)
+const ddcWalk=(u,kind)=>pinnedNow(u)?0:kind==='rpg'?ACT_R:NADE_WALK;   // (pinned, he won't leave his spot for it; a frag, a rifle grenade and, since Version 174, smoke walk up to 36 m, combat.js's fireSpot)
 // a circle on the ground, cut where it runs behind the camera (gPath draws nothing once any of it is; the Bazooka reaches 90 m): ddhud.js's ddDepth
 function ddcRingPath(x,y,r,add){   // (add: onto the path already begun)
   const n=48,lim=Math.max(2,camera.near*3),P=[],D=[],C=[];
@@ -254,22 +254,40 @@ function ddcUnionEdge(U){
       if(pen)ox.lineTo(q[0],q[1]);else{ox.moveTo(q[0],q[1]);pen=true;}}}
   ox.stroke();
 }
-// how far the man holding the tool can use it (Version 170, Bryan: "There should be a circle around the players to show the distance the tool can be used";
-// Version 171: "filled in with orange. Lighter than the placement, but dark enough to see"): from where he stands, filled orange; how far once he's moved up
-// for it, dashed (not while he's pinned); a rocket's too close, a small red ring; his name and the distances. The medic kit: the hurt and the downed ringed green
+// how far the squad you play can use the tool in hand (Version 170, Bryan: "There should be a circle around the players to show the distance the tool can be used";
+// Version 171: "filled in with orange. Lighter than the placement, but dark enough to see"): where any man who has one reaches from where he stands, filled
+// orange as one shape; how far once he's moved up for it, dashed (not a pinned man: he throws from where he stands); a rocket's too close, a small red ring;
+// one label with the names and distances, by the man nearest the middle of the screen, or an arrow at the screen's edge toward him when he's off it
+// (Version 174: whoever of them can, throws, ddcThrower). The medic kit: the hurt and the downed ringed green
 function ddcReach(k,u,now){
   const T=DD_TOOLS.find(t=>t.k===k);if(!T)return;
   if(k==='medkit'){const a=(.55+.35*Math.sin(now/170)).toFixed(2);for(const t of players)if(!t.dead&&!t.npc&&!t.inBoat&&(t.downed||t.hp<100)){gPath(t.x,t.y,18);ox.strokeStyle=`rgba(95,224,142,${a})`;ox.lineWidth=2.5;ox.stroke();}return;}
-  const kind=DDC_KIND[k];if(!u||!alive(u)||!(T.n(u)>0))return;
-  const{R,minD}=throwReach(u,kind),walk=ddcWalk(u,kind);
-  if(ddcRingPath(u.x,u.y,R)){ox.fillStyle='rgba(255,140,30,.2)';ox.fill();}
-  ox.strokeStyle='rgba(255,150,40,.95)';ox.lineWidth=2.6;ddcUnionEdge([{x:u.x,y:u.y,r:R}]);
-  if(walk){ox.save();ox.setLineDash([6,7]);ox.strokeStyle='rgba(255,160,60,.6)';ox.lineWidth=1.6;ddcUnionEdge([{x:u.x,y:u.y,r:R+walk}]);ox.restore();}
-  if(minD>0){ox.strokeStyle='rgba(255,90,72,.8)';ox.lineWidth=1.5;ddcUnionEdge([{x:u.x,y:u.y,r:minD}]);}
-  // the label: at the ring's far edge when that's on screen, else over his head
-  const t=`${u.name} · ${Math.round(R/10)} m${walk?` · ${Math.round((R+walk)/10)} m moving up`:' · pinned'}`,B=ddBox();toSBack=false;let[lx,ly]=toS(u.x,u.y-R,0);
-  if(toSBack||lx<B.l||lx>B.r||ly<B.top+10||ly>B.bot-10){toSBack=false;[lx,ly]=toS(u.x,u.y,40);}
-  if(!toSBack)ddcPill(t,lx,ly-10,'#ffb347');
+  const kind=DDC_KIND[k],L=ddcCarriers(T);if(u&&alive(u)&&T.n(u)>0&&!L.includes(u))L.push(u);if(!L.length)return;
+  const U=L.map(q=>({x:q.x,y:q.y,r:throwReach(q,kind).R})),Wk=L.filter(q=>ddcWalk(q,kind)>0).map(q=>({x:q.x,y:q.y,r:throwReach(q,kind).R+ddcWalk(q,kind)}));
+  ox.beginPath();let any=false;for(const c of U)if(ddcRingPath(c.x,c.y,c.r,true))any=true;
+  if(any){ox.fillStyle='rgba(255,140,30,.2)';ox.fill('nonzero');}
+  ox.strokeStyle='rgba(255,150,40,.95)';ox.lineWidth=2.6;ddcUnionEdge(U);
+  if(Wk.length){ox.save();ox.setLineDash([6,7]);ox.strokeStyle='rgba(255,160,60,.6)';ox.lineWidth=1.6;ddcUnionEdge(Wk);ox.restore();}
+  for(const q of L){const{minD}=throwReach(q,kind);if(minD>0){ox.strokeStyle='rgba(255,90,72,.8)';ox.lineWidth=1.5;ddcUnionEdge([{x:q.x,y:q.y,r:minD}]);}}
+  // the label, by the man nearest the middle of the screen: at his ring's far edge, else over his head, else an arrow at the edge toward him
+  const B=ddBox(),mid=toW((B.l+B.r)/2,(B.top+B.bot)/2),C=L.slice().sort((a,b)=>hyp(a.x-mid[0],a.y-mid[1])-hyp(b.x-mid[0],b.y-mid[1]))[0];
+  const{R}=throwReach(C,kind),walk=Wk.length?Math.max(...L.map(q=>ddcWalk(q,kind))):0,nm=L.length>3?`${L.length} men`:L.map(q=>q.name).join(', ');
+  const t=`${nm} · ${Math.round(R/10)} m${walk?` · ${Math.round((R+walk)/10)} m moving up`:' · pinned'}`,on=(x,y)=>x>=B.l&&x<=B.r&&y>=B.top+10&&y<=B.bot-10;
+  toSBack=false;let[lx,ly]=toS(C.x,C.y-R,0);
+  if(toSBack||!on(lx,ly)){toSBack=false;[lx,ly]=toS(C.x,C.y,40);if(toSBack||!on(lx,ly)){const w=ddWhere(C.x,C.y,10);if(!w.on)ddEdgeArrow(w.dx,w.dy,'#ffb347',C.name,12);return;}}
+  ddcPill(t,lx,ly-10,'#ffb347');
+}
+// the tap with a tool in hand (input.js's aiming modes): it goes to whoever of the squad you play can use it there, the nearest who isn't pinned first
+// (Version 174, Bryan, after Version 173: "I'm trying to throw smoke and it says too far": it had been handed to a man across the map). Nobody can:
+// how far, at the finger and over the nearest of them, and it stays in hand (false). The man to use, or null to leave it to the one it was handed to
+function ddcThrower(u,tx,ty,kind){
+  if(!dd||!dd.toolK)return null;const T=DD_TOOLS.find(t=>t.k===dd.toolK);if(!T||!DDC_KIND[T.k]||T.k==='medkit')return null;
+  const L=ddcCarriers(T);if(u&&alive(u)&&T.n(u)>0&&!L.includes(u))L.push(u);if(!L.length)return null;
+  const fits=q=>{const{R,minD}=throwReach(q,kind),d=hyp(tx-q.x,ty-q.y),w=ddcWalk(q,kind);return d<=R+w&&(w>0||d>=minD);},by=(a,b)=>hyp(a.x-tx,a.y-ty)-hyp(b.x-tx,b.y-ty);
+  const v=L.filter(q=>!pinnedNow(q)&&fits(q)).sort(by)[0]||L.filter(fits).sort(by)[0];
+  if(v){dd.toolU=v;return v;}
+  const n=L.slice().sort(by)[0],{R}=throwReach(n,kind),far=Math.round((R+ddcWalk(n,kind))/10);
+  dd.tapW={x:tx,y:ty,t:performance.now()};ddNote(`Too far · ${Math.round(hyp(tx-n.x,ty-n.y)/10)} m (${far} m at most)`);bubble(n,'Too far',C.warn);return false;
 }
 // a pill kept inside the screen (overlay.js's pill is centred where it's put)
 function ddcPill(text,x,y,col){ox.font=`700 10px ${HUDFONT}`;const w=ox.measureText(text).width+10;pill(text,clamp(x,w/2+6,cw-w/2-6),clamp(y,12,ch-12),col);}

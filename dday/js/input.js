@@ -284,8 +284,9 @@ function tap(sx,sy){
     if(orderBuild(u,wx,wy,mode==='build'?'barricade':'wall')){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   if(mode==='grenade'||mode==='smoke'||mode==='rpg'){   // Bryan: tap where; if he can't throw or fire from where he is, he moves to where he can
-    const u=sel[0];if(!u){mode=null;return;}
+    let u=sel[0];if(!u){mode=null;return;}
     const en=enemyAtScreen(sx,sy),t=en&&en.vis?{x:en.x,y:en.y}:{x:wx,y:wy};if(!en&&!inMap){banner('Tap a spot on the map.',1400);return;}
+    if(MAPID==='dd'&&typeof ddcThrower==='function'){const v=ddcThrower(u,t.x,t.y,mode==='grenade'?'nade':mode);if(v===false)return;if(v)u=v;}   // (D-Day: whoever of the squad can, from there: ddctl.js)
     if(orderThrow(u,t.x,t.y,mode==='grenade'?'nade':mode)){mode=null;preview=null;fireOrderAt=performance.now();}return;
   }
   // the jeep: with soldiers on foot selected, they board it; otherwise tapping it selects its crew

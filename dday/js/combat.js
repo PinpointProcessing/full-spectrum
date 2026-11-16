@@ -622,7 +622,7 @@ function fireSpot(u,tx,ty,range,minD=0,kind='nade',o){
   const D=hyp(tx-u.x,ty-u.y);if(D<=range&&D>=minD&&throwFrom(u,tx,ty,kind))return{here:true};
   const th=threats(),safe=c=>caught(u)?isCovered(c,th):!watched(c.x,c.y),extra=[];
   for(const r of[range*.5,range*.8,range*.95])for(let k=0;k<16;k++){const a=k/16*TAU;extra.push({x:tx+Math.cos(a)*r,y:ty+Math.sin(a)*r});}
-  if(kind==='nade')return walkSpot(u,tx,ty,range,ok,safe,extra,o?120:NADE_WALK);   // a frag or an M203: up to 36 m (Bryan, after v105, kept it so; a second look on arrival, 12 m)
+  if(kind==='nade'||kind==='smoke'&&MAPID==='dd')return walkSpot(u,tx,ty,range,ok,safe,extra,o?120:NADE_WALK);   // a frag or an M203: up to 36 m (Bryan, after v105, kept it so; a second look on arrival, 12 m); on D-Day smoke too (Version 174)
   return circleSpot(u,ok,safe,extra,o);
 }
 /* a frag's spot (Bryan, after v105: "Frags used to walk up to 36 m to a safe spot"): a safe one within a walk of maxWalk (and

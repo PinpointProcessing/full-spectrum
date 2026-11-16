@@ -31,7 +31,7 @@ await touch('touchStart',btn[0],btn[1]);await touch('touchEnd',0,0);
 await ok('a finger tap on the grenade: in hand, its reach orange though he is pinned',()=>{const c=CNT();return{ok:dd.toolK==='nade'&&!!dd.toolU&&pinnedNow(dd.toolU)&&c.rings>0&&c.orangeFills>0,inHand:dd.toolK,who:dd.toolU&&dd.toolU.name,...c};});
 const near=await ev(()=>{const u=dd.toolU;window.TU=u;dd.track=null;camPan=null;zoom=2.4;camT.x=u.x;camT.z=u.y-40;updateCamera();render(.001,simT);for(const q of players)if(q.team===dd.active)q.sup=1;hud();drawOverlay(.03,simT);toSBack=false;return toS(u.x+30,u.y-110,0);});   // (11 m from him: within his reach from where he stands)
 await touch('touchStart',near[0],near[1]);await touch('touchEnd',0,0);
-await ok('a finger tap on the map: the pinned man throws from where he stands',()=>{drawOverlay(.03,simT);const thrown=nades.some(n=>n.by===TU)||!!TU.throwGo;return{ok:thrown&&!dd.toolK,thrown,inHand:dd.toolK};});
+await ok('a finger tap on the map: a pinned man throws from where he stands (whoever of them is nearest, Version 174)',()=>{drawOverlay(.03,simT);const L=players.filter(p=>p.team===dd.active);const by=nades.find(n=>n.by&&n.by.side==='P'&&L.includes(n.by));const thrown=!!by||L.some(q=>q.throwGo);return{ok:thrown&&!dd.toolK,thrown,by:by&&by.by.name,armed:TU.name,inHand:dd.toolK};});
 // the Bazooka: its reach while in hand
 const rb=await ev(()=>{RUN(.5);hud();drawOverlay(.03,simT);const b=document.querySelector('#sq .sq-tool[data-k="rpg"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});
 await touch('touchStart',rb[0],rb[1]);await touch('touchEnd',0,0);

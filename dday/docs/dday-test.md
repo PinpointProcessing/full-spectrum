@@ -600,3 +600,5 @@ Bryan, after Version 171: "I don't see the range circle..." The reach only count
 
 Bryan, after Version 172: "No finger dragging. I am clicking. I don't want the finger drag I want to click rpg and click where I shoot it." Version 173: dragging is gone. Tap (or click) a tool in the bar to take it in hand, then tap where to use it, as before Version 168. While it's in hand, the ground the man holding it can reach is filled orange, with his name and range; tapping the tool again puts it away. The ring of actions on a tapped enemy stays.
 
+Bryan, after Version 173: "I'm trying to throw smoke and it says too far" (his picture: the smoke was in the hands of a man off the screen behind the bar). Version 174: the tap goes to whoever in the squad has the tool and can reach the spot, the nearest first; smoke walks up to throw like a grenade (26 m from where he stands, 62 m moving up); the orange covers every man who has it, with an arrow at the edge of the screen toward him when he's off it; and when nobody can reach, it says how far ("Too far · 90 m (62 m at most)") and keeps the tool in hand.
+
