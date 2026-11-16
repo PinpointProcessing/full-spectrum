@@ -598,3 +598,5 @@ Bryan, after Version 170: "The circle is no good, it should be filled in with or
 
 Bryan, after Version 171: "I don't see the range circle..." The reach only counted men who weren't pinned, and on the beach under fire nearly everyone is, so nothing showed (and dragging a grenade said "Nobody free with one"). Version 172: pinned men count; a pinned man can only throw from where he stands, so he gets no "moving up" ring. The orange is a little stronger. With the old tool controls (Tap an enemy for actions off), a tool in hand shows its reach too.
 
+Bryan, after Version 172: "No finger dragging. I am clicking. I don't want the finger drag I want to click rpg and click where I shoot it." Version 173: dragging is gone. Tap (or click) a tool in the bar to take it in hand, then tap where to use it, as before Version 168. While it's in hand, the ground the man holding it can reach is filled orange, with his name and range; tapping the tool again puts it away. The ring of actions on a tapped enemy stays.
+

@@ -616,7 +616,7 @@ function ddZones(){
 // targeted for a heal or revive"): from the order until it lands or it's done
 function ddDrawTargets(now){
   const disc=(x,y,r,fill,line)=>{gPath(x,y,r);if(toSBack)return;ox.fillStyle=fill;ox.fill();ox.strokeStyle=line;ox.lineWidth=2;ox.stroke();},pu=.5+.5*Math.sin(now*6);
-  const OR=`rgba(255,138,30,${(.26+pu*.1).toFixed(3)})`,ORL='rgba(255,170,70,.95)',GR='rgba(150,158,166,.4)',GRL='rgba(215,222,228,.9)',GN=`rgba(20,120,60,${(.34+pu*.1).toFixed(3)})`,GNL='rgba(60,200,110,.95)';
+  const OR=`rgba(255,138,30,${(.34+pu*.1).toFixed(3)})`,ORL='rgba(255,170,70,.95)',GR='rgba(150,158,166,.4)',GRL='rgba(215,222,228,.9)',GN=`rgba(20,120,60,${(.34+pu*.1).toFixed(3)})`,GNL='rgba(60,200,110,.95)';
   const mine=players.filter(p=>alive(p)&&p.team===dd.active),RL='rgba(255,70,50,.95)',near=(x,y,R)=>mine.some(p=>hyp(p.x-x,p.y-y)<R+15);   // (Version 167: the squad you play, and anyone else's frag or rocket that would land on it: friendly fire is on)
   for(const u of players){if(!alive(u))continue;const g=u.throwGo,own=u.team===dd.active;
     if(g){const R=g.kind==='rpg'?PRPG.blast||55:58;if(own){if(g.kind==='smoke')disc(g.x,g.y,58,GR,GRL);else disc(g.x,g.y,R,OR,ORL);}else if(g.kind!=='smoke'&&near(g.x,g.y,R))disc(g.x,g.y,R,OR,RL);}
@@ -838,14 +838,14 @@ function ddBar(){
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
     if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={rgl:'Tap where to fire it',nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
-  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools&&!dd.drag){B.dataset.h=tools;B.innerHTML=tools;}   // (Version 163: the Control button, fpB, off the bar for now: Bryan, "remove the control button for now")
+  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}if(B.dataset.h!==tools){B.dataset.h=tools;B.innerHTML=tools;}   // (Version 163: the Control button, fpB, off the bar for now: Bryan, "remove the control button for now")
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
   box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
     if(ev.target.closest('.sq-aim')){ddToolEnd();}
     else if(t&&t.dataset.k==='fp'){ddToolEnd();fpEnter();return;}
-    else if(t&&!t.disabled){if(typeof ddcRing==='function'&&ddcRing()&&ddcDraggable(t.dataset.k)){if(!ev.detail)banner('Drag it onto the map to use it.',1600);}else ddToolUse(t.dataset.k);}   // (Version 168: dragged onto the map instead, ddctl.js)
+    else if(t&&!t.disabled)ddToolUse(t.dataset.k);   // (in hand, then a tap on the map: Version 173 dropped Versions 168-172's dragging, Bryan: "I am clicking")
     else if(mn){const u=players.find(p=>p.id===mn.dataset.id);if(u&&u.card){ddToolEnd();u.card.el.click();if(sel.length===1&&sel[0]===u)ddGoMan(u);else ddGoSquad(u.team);}}
     ddBar();});
 }

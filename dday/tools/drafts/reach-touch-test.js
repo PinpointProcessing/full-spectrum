@@ -1,6 +1,6 @@
-// Version 172: the reach circles the way they're really played (Bryan, after Version 171: "I don't see the range circle..."): on the beach under fire,
-// men pinned as they really are (no test hacks keeping them free), on a phone with touch (hasTouch: the drag from the bar's grenade button made with
-// touch events through CDP, one finger), and with the old controls (a tool tapped into hand). node reach-touch-test.js [W H PORT]
+// Versions 172-173: the reach the way it's really played (Bryan, after Version 171: "I don't see the range circle..."; after 172: "I want to click rpg
+// and click where I shoot it"): on the beach under fire, men pinned as they really are, with finger taps through CDP touch events: the grenade tapped into
+// hand, then the map; the Bazooka; the action ring switched off. node reach-touch-test.js [W H PORT]
 const {chromium}=require('playwright');const fs=require('fs');const {serve,S}=require('./harness.js');
 const W=+process.argv[2]||390,H=+process.argv[3]||760,PO=+process.argv[4]||0;
 const THREE_SRC=fs.readFileSync(S+'/deps/node_modules/three/build/three.min.js');
@@ -25,22 +25,18 @@ await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(6);const L=player
 await ok('on the beach under fire: men pinned (as they really are)',()=>{const L=players.filter(p=>p.team===dd.active&&alive(p));for(let i=0;i<20&&!L.some(pinnedNow);i++)RUN(.5);
   const pin=L.filter(pinnedNow).length;if(!pin)for(const u of L)u.sup=1;return{ok:true,pinnedByFire:pin,squad:L.length,grenades:L.filter(u=>(u.grenade||0)>0&&!u.gl).length};});
 await ok('every grenade man pinned: still a carrier, not "nobody free"',()=>{const L=players.filter(p=>p.team===dd.active&&alive(p));for(const u of L)u.sup=1;const T=DD_TOOLS.find(t=>t.k==='nade');return{ok:ddcCarriers(T).length>0&&ddToolFree(T).length===0,carriers:ddcCarriers(T).length,free:ddToolFree(T).length};});
-// a real touch drag from the grenade button, everyone pinned
+// a finger tap on the grenade button, then a finger tap on the map, everyone pinned (Version 173: no dragging)
 const btn=await ev(()=>{const L=players.filter(p=>p.team===dd.active&&alive(p));for(const u of L)u.sup=1;hud();drawOverlay(.03,simT);const b=document.querySelector('#sq .sq-tool[data-k="nade"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});
-const near=await ev(()=>{const u=players.filter(p=>p.team===dd.active&&alive(p)&&(p.grenade||0)>0&&!p.gl)[0];window.TU=u;   // (11 m from a grenade man: within his reach from where he stands)
-  dd.track=null;camPan=null;zoom=2.4;camT.x=u.x;camT.z=u.y-40;updateCamera();render(.001,simT);for(const q of players)if(q.team===dd.active)q.sup=1;hud();drawOverlay(.03,simT);toSBack=false;return toS(u.x+30,u.y-110,0);});
-const btn2=await ev(()=>{const b=document.querySelector('#sq .sq-tool[data-k="nade"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});btn[0]=btn2[0];btn[1]=btn2[1];
-console.log('drag from',btn.map(Math.round),'to',near.map(Math.round));
-await touch('touchStart',btn[0],btn[1]);
-for(let i=1;i<=10;i++){await touch('touchMove',btn[0]+(near[0]-btn[0])*i/10,btn[1]+(near[1]-btn[1])*i/10);await ev(()=>{const L=players.filter(p=>p.team===dd.active&&alive(p));for(const u of L)u.sup=1;});}
-await ok('touch drag, everyone pinned: the drag is on and the orange area drawn',()=>{const c=CNT();const D=dd.drag;return{ok:!!D&&!!D.pt&&D.ok&&c.rings>0&&c.orangeFills>0,drag:!!D,ok_:D&&D.ok,why:D&&D.why,who:D&&D.u&&D.u.name,...c};});
-await touch('touchEnd',0,0);
-await ok('let go: the pinned man throws from where he stands',()=>{const u=players.filter(p=>p.team===dd.active&&alive(p));const thrown=nades.some(n=>n.by&&n.by.side==='P'&&n.by.team===dd.active)||u.some(q=>q.throwGo);return{ok:!dd.drag&&thrown,thrown,banner:$('#banner').textContent};});
-// a plain tap on the Bazooka: its circles shown a moment
-const rb=await ev(()=>{const b=document.querySelector('#sq .sq-tool[data-k="rpg"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});
+await touch('touchStart',btn[0],btn[1]);await touch('touchEnd',0,0);
+await ok('a finger tap on the grenade: in hand, its reach orange though he is pinned',()=>{const c=CNT();return{ok:dd.toolK==='nade'&&!!dd.toolU&&pinnedNow(dd.toolU)&&c.rings>0&&c.orangeFills>0,inHand:dd.toolK,who:dd.toolU&&dd.toolU.name,...c};});
+const near=await ev(()=>{const u=dd.toolU;window.TU=u;dd.track=null;camPan=null;zoom=2.4;camT.x=u.x;camT.z=u.y-40;updateCamera();render(.001,simT);for(const q of players)if(q.team===dd.active)q.sup=1;hud();drawOverlay(.03,simT);toSBack=false;return toS(u.x+30,u.y-110,0);});   // (11 m from him: within his reach from where he stands)
+await touch('touchStart',near[0],near[1]);await touch('touchEnd',0,0);
+await ok('a finger tap on the map: the pinned man throws from where he stands',()=>{drawOverlay(.03,simT);const thrown=nades.some(n=>n.by===TU)||!!TU.throwGo;return{ok:thrown&&!dd.toolK,thrown,inHand:dd.toolK};});
+// the Bazooka: its reach while in hand
+const rb=await ev(()=>{RUN(.5);hud();drawOverlay(.03,simT);const b=document.querySelector('#sq .sq-tool[data-k="rpg"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});
 await touch('touchStart',rb[0],rb[1]);await touch('touchEnd',0,0);
-await ok('a tap on the Bazooka with a finger: its reach shown, the word to drag it',()=>{const c=CNT();return{ok:c.rings>0&&/Drag/.test($('#banner').textContent)&&!dd.toolK,...c,banner:$('#banner').textContent};});
-// the old controls: a tool tapped into hand shows its reach while it's in hand
-await ok('the old controls: a grenade in hand shows the orange reach',()=>{DDC.ring=false;dd.ddcShow=null;const L=players.filter(p=>p.team===dd.active&&alive(p));for(const u of L){u.sup=0;u.throwGo=null;}
+await ok('a finger tap on the Bazooka: in hand, its reach orange',()=>{const c=CNT();const k=dd.toolK;ddToolEnd();return{ok:k==='rpg'&&c.rings>0&&c.orangeFills>0,inHand:k,...c};});
+// with Tap an enemy for actions off, the same
+await ok('with the action ring off: a grenade in hand shows its reach the same',()=>{DDC.ring=false;const L=players.filter(p=>p.team===dd.active&&alive(p));for(const u of L){u.sup=0;u.throwGo=null;}
   ddToolUse('nade');const k=dd.toolK;const c=CNT();ddToolEnd();DDC.ring=true;return{ok:k==='nade'&&c.rings>0&&c.orangeFills>0,inHand:k,...c};});
 console.log(fails?`${fails} FAILED`:'all passed','errors',errors.length,errors.slice(0,4));await b.close();srv.close();})();

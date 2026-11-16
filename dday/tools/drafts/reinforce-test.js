@@ -33,16 +33,16 @@ await ok('everyone down: dead at once, every replacement at once, one banner, a 
   const up=players.filter(alive).length,rush=BAN.filter(s=>/Everyone was down/.test(s)).length,joins=BAN.filter(s=>/ joins /.test(s)).length;
   return{ok:up>=Math.min(N,pool0)&&t<3&&rush===1&&joins===0&&sel.length>0&&sel.every(alive),took:+t.toFixed(2),up,pool:pool0,banners:BAN.slice(0,3),sel:sel.length};});
 await ok('everyone down with nobody left in reserve: the battle is lost at once',()=>{dd.pool=0;dd.queue.length=0;DOWN(players.filter(p=>!p.dead));let t=0;while(t<5&&!endAt){RUN(.25);t+=.25;}const r={ok:!!endAt&&dd.over&&t<2,took:t};dd.over=false;endAt=0;return r;});
-// the range circles while a tool is dragged
+// the reach while a tool is in hand (Version 173: clicked into hand, no dragging)
 await ev(()=>{startDDay();});await page.waitForTimeout(400);
 await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(2);hud();drawOverlay(.03,simT);});
-{const a=await ev(()=>{const b=document.querySelector('#sq .sq-tool[data-k="nade"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});
- await page.mouse.move(a[0],a[1]);await page.mouse.down();await page.mouse.move(a[0],a[1]-30);await page.mouse.move(a[0],a[1]-60);
- await ok('dragging a grenade: a circle round each man who has one, from the press',()=>{let n=0;const r0=ddcRingPath;window.ddcRingPath=function(){n++;return r0.apply(this,arguments);};drawOverlay(.03,simT);window.ddcRingPath=r0;
-   const men=ddToolFree(DD_TOOLS.find(t=>t.k==='nade')).length;return{ok:!!dd.drag&&men>0&&n>=men+1,circles:n,men};});   // (one ring each, the man who'd throw it two: from here and moving up)
- await page.mouse.move(a[0],a[1]);await page.mouse.up();}
+{const a=await ev(()=>{const b=document.querySelector('#sq .sq-tool[data-k="nade"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});await page.mouse.click(a[0],a[1]);
+ await ok('a grenade clicked into hand: the reach of the man holding it drawn',()=>{let n=0;const r0=ddcRingPath;window.ddcRingPath=function(){n++;return r0.apply(this,arguments);};drawOverlay(.03,simT);window.ddcRingPath=r0;
+   return{ok:dd.toolK==='nade'&&!!dd.toolU&&n>=1,circles:n,who:dd.toolU&&dd.toolU.name};});
+ await page.mouse.click(a[0],a[1]);
+ await ok('clicked again: put away, nothing drawn',()=>{let n=0;const r0=ddcRingPath;window.ddcRingPath=function(){n++;return r0.apply(this,arguments);};drawOverlay(.03,simT);window.ddcRingPath=r0;return{ok:!dd.toolK&&n===0,circles:n};});}
 {const a=await ev(()=>{const b=document.querySelector('#sq .sq-tool[data-k="rpg"]');const r=b.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];});await page.mouse.click(a[0],a[1]);
- await ok('after a tap on the Bazooka: its circles drawn, gone after 4 s',()=>{let n=0;const r0=ddcRingPath;window.ddcRingPath=function(){n++;return r0.apply(this,arguments);};drawOverlay(.03,simT);const now=n;dd.ddcShow.t-=5000;n=0;drawOverlay(.03,simT);window.ddcRingPath=r0;return{ok:now>0&&n===0&&dd.ddcShow.k==='rpg',now,later:n};});}
+ await ok('the Bazooka clicked into hand: its reach drawn though most of it runs past the camera',()=>{let n=0,f=0;const r0=ddcRingPath,f0=ox.fill.bind(ox);window.ddcRingPath=function(){const k=r0.apply(this,arguments);if(k)n++;return k;};ox.fill=function(){if(/255,\s*140,\s*30/.test(String(ox.fillStyle)))f++;return f0.apply(ox,arguments);};drawOverlay(.03,simT);window.ddcRingPath=r0;ox.fill=f0;ddToolEnd();return{ok:n>=1&&f>=1,drawn:n,filled:f};});}
 // --- the village: the rally point before the last
 await ev(()=>{startVillage({skip:true});});await page.waitForTimeout(400);
 await ok('village: from the rally point before the last',()=>{RUN(1);const R0=dd.vg.rally;dd.vg.rally=[{x:VG.road,y:300,n:'the edge of the woods'},{x:VG.road,y:20,n:'the hedgerow'},{x:700,y:-280,n:'the barricade'}];

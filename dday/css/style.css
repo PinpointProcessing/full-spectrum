@@ -527,8 +527,6 @@ body:not(.dd) #ddRing,body.ddm #ddRing,body.ddseq #ddRing{display:none!important
 .ddc-act>span{display:flex;flex-direction:column;align-items:center;font-size:10px;font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.15}
 .ddc-act i{font-style:normal;font-weight:500;font-size:9.5px;letter-spacing:.02em;color:#cfd6dc;margin-top:2px}
 .ddc-act.off{opacity:.5;border-style:dashed}
-.sq-tool.ddc-press{background:var(--c,#cfd6dc);color:#0b0f13}.sq-tool.ddc-press b{color:#0b0f13}
-body.dd #sq .sq-tool{touch-action:none}
 .ddctl{margin:14px 0 4px;padding:10px 12px 8px;border:1px solid rgba(255,255,255,.18);border-radius:10px;text-align:left}
 .ddctl legend{padding:0 6px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#aab4bb}
 .ddctl label{display:flex;gap:9px;align-items:flex-start;margin:6px 0;font-size:13.5px;line-height:1.35;cursor:pointer}

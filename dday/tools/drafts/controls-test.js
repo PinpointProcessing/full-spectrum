@@ -2,8 +2,8 @@
 // Checks: the start card's switches (on by default, kept); Lead one squad: no tabs, the swap button and FOLLOW / HOLD, the other squad
 // following behind yours and holding when told, a swap that leaves the squad let go where it is, the lead passing to the other squad when
 // yours is all down; Tap an enemy for actions: the ring on an enemy (fire order, slow motion, Suppress, Grenade), on the wire (MOVE HERE),
-// on a tank (Bazooka first), closed by a tap elsewhere (which does nothing more) and by itself after 4.5 s; dragging a grenade, the medic kit
-// and the Bazooka from the bar onto the map with real mouse events (thrown, used, fired), cancelled over the bar, a plain tap saying to drag;
+// on a tank (Bazooka first), closed by a tap elsewhere (which does nothing more) and by itself after 4.5 s; a grenade, the medic kit and the
+// Bazooka clicked into hand (the reach orange) and clicked onto the map (thrown, used, fired), the same tool again putting it away;
 // the counterattack starting both squads on HOLD; both switches off giving back Version 167's controls; no page errors.
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 const W=+process.argv[2]||390,H=+process.argv[3]||760,PO=+process.argv[4]||0;
@@ -60,25 +60,25 @@ await ok('ring: gone by itself after 4.5 s, full speed again',()=>{const e=TGT,p
 await ok('ring: the wire, with MOVE HERE',()=>{const o=(dd.wires||[]).find(q=>!q.gone);if(!o)return{ok:true,skipped:'no wire'};CENTER(o.x+o.w/2,o.y+120,3);const p=SCR(o.x+o.w/2,o.y+o.h/2,0);tap(p[0],p[1]);drawOverlay(.03,simT);
   const ks=[...document.querySelectorAll('#ddRing .ddc-act')].map(b=>b.dataset.k);const mv=document.querySelector('#ddRing .ddc-act[data-k="move"]');if(mv)mv.click();const paths=LED().filter(u=>u.path.length).length;
   return{ok:ks.includes('move')&&paths>0&&!ddcR,items:ks,moving:paths};});
-// dragging from the bar (real mouse events)
+// tools (Version 173: no dragging): a click on one in the bar takes it in hand, its reach filled orange; a click on the map uses it (real mouse clicks)
 const toolRect=k=>ev(k=>{const b=document.querySelector(`#sq .sq-tool[data-k="${k}"]`);if(!b||b.disabled)return null;const r=b.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};},k);
-const drag=async(k,to,end)=>{const a=await toolRect(k);if(!a)return null;await page.mouse.move(a.x,a.y);await page.mouse.down();for(let i=1;i<=8;i++)await page.mouse.move(a.x+(to[0]-a.x)*i/8,a.y+(to[1]-a.y)*i/8);
-  const mid=await ev(()=>{drawOverlay(.03,simT);const D=dd.drag;return D&&{ok:D.ok,u:D.u&&D.u.name,why:D.why,pt:!!D.pt,slow:timeScale()};});if(end)await end();await page.mouse.up();return mid;};
-await ev(()=>{RUN(4);const m=MID(LED());CENTER(m.x,m.y+40,2.6);hud();drawOverlay(.03,simT);});
-{const spot=await ev(()=>{const m=MID(LED());window.SPOT={x:m.x+10,y:m.y-100};const p=SCR(SPOT.x,SPOT.y,0);window.N0=LED().reduce((a,u)=>a+(u.grenade||0),0);window.ND0=nades.length;return p;});
- const mid=await drag('nade',spot);
- await ok('drag: a grenade onto the map is thrown',(mid)=>{const go=LED().some(u=>u.throwGo)||nades.length>ND0||LED().reduce((a,u)=>a+(u.grenade||0),0)<N0;return{ok:!!mid&&mid.ok&&mid.pt&&mid.slow===.25&&go&&!dd.drag&&!dd.toolK&&timeScale()===1,mid,go};},mid);}
-{const spot=await ev(()=>{RUN(3);for(const u of LED())u.throwGo=null;window.N0=LED().reduce((a,u)=>a+(u.grenade||0),0);window.ND0=nades.length;const m=MID(LED());return SCR(m.x,m.y-100,0);});
- const bar=await ev(()=>{const r=$('#sq').getBoundingClientRect();return[r.left+r.width/2,r.top+r.height*.6];});
- const mid=await drag('nade',spot,async()=>{for(let i=1;i<=6;i++)await page.mouse.move(spot[0]+(bar[0]-spot[0])*i/6,spot[1]+(bar[1]-spot[1])*i/6);});
- await ok('drag: back over the bar and let go, nothing thrown',(mid)=>{const go=LED().some(u=>u.throwGo)||nades.length>ND0||LED().reduce((a,u)=>a+(u.grenade||0),0)<N0;return{ok:!!mid&&!go&&!dd.drag,go};},mid);}
-{const a=await toolRect('nade');if(a){await page.mouse.click(a.x,a.y);await ok('drag: a plain tap on a tool says to drag it',()=>({ok:/Drag/.test($('#banner').textContent)&&!dd.toolK&&!mode,banner:$('#banner').textContent}));}}
-{const t=await ev(()=>{const u=LED().find(p=>!(p.spec==='medkit'&&p.specN>0))||LED()[0];u.hp=55;window.HURT=u;CENTER(u.x,u.y+60,2.6);hud();drawOverlay(.03,simT);return SCR(u.x,u.y,12);});
- const mid=await drag('medkit',t);
- await ok('drag: the medic kit onto a hurt man',(mid)=>{if(!mid)return{ok:true,skipped:'no medic kit in this squad'};const m=LED().find(u=>u.medGo&&u.medGo.t===HURT);return{ok:mid.ok&&!!m,mid,medic:m&&m.name};},mid);}
-{const t=await ev(()=>{RUN(.5);const m=MID(LED());const e=enemies.filter(e=>!beaten(e)&&!e.dead).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y)).find(e=>hyp(e.x-m.x,e.y-m.y)>140);if(!e)return null;window.RT=e;CENTER((e.x+m.x)/2,(e.y+m.y)/2+40,1.6);hud();drawOverlay(.03,simT);return SCR(e.x,e.y,6);});
- const mid=t&&await drag('rpg',t);
- await ok('drag: the Bazooka onto a target',(mid)=>{if(!mid)return{ok:true,skipped:'no Bazooka or no target on screen'};const u=LED().find(p=>p.rpgAim||p.throwGo&&p.throwGo.kind==='rpg');return{ok:mid.ok?!!u||rockets.length>0:/far/i.test(mid.why),mid,by:u&&u.name};},mid);}
+await ev(()=>{RUN(4);const m=MID(LED());CENTER(m.x,m.y+40,2.6);hud();drawOverlay(.03,simT);window.ORANGE=()=>{let f=0;const f0=ox.fill.bind(ox);ox.fill=function(){if(/255,\s*140,\s*30,\s*0?\.2\)/.test(String(ox.fillStyle)))f++;return f0.apply(ox,arguments);};drawOverlay(.03,simT);ox.fill=f0;return f;};});
+{const a=await toolRect('nade');await page.mouse.click(a.x,a.y);
+ await ok('click: the grenade in hand, the reach of the man holding it orange, the game slowed',()=>({ok:dd.toolK==='nade'&&mode==='grenade'&&!!dd.toolU&&ORANGE()>0&&timeScale()===.25,inHand:dd.toolK,who:dd.toolU&&dd.toolU.name,mode}));
+ const spot=await ev(()=>{const u=dd.toolU;window.N0=LED().reduce((a,q)=>a+(q.grenade||0),0);window.ND0=nades.length;return SCR(u.x+10,u.y-100,0);});
+ await page.mouse.click(spot[0],spot[1]);
+ await ok('click: on the map, he throws it and it is put away',()=>{drawOverlay(.03,simT);const go=LED().some(u=>u.throwGo)||nades.length>ND0||LED().reduce((a,u)=>a+(u.grenade||0),0)<N0;return{ok:go&&!dd.toolK&&!mode,go,inHand:dd.toolK};});}
+{const a=await toolRect('nade');await ev(()=>{RUN(3);for(const u of LED())u.throwGo=null;hud();drawOverlay(.03,simT);});if(a){await page.mouse.click(a.x,a.y);await page.mouse.click(a.x,a.y);
+ await ok('click: the same tool again puts it away, nothing thrown',()=>({ok:!dd.toolK&&!mode,inHand:dd.toolK}));}}
+{const a=await toolRect('medkit');const t=await ev(()=>{const u=LED().find(p=>!(p.spec==='medkit'&&p.specN>0))||LED()[0];u.hp=55;window.HURT=u;CENTER(u.x,u.y+60,2.6);hud();drawOverlay(.03,simT);return SCR(u.x,u.y,12);});
+ if(a){await page.mouse.click(a.x,a.y);const inHand=await ev(()=>dd.toolK);await page.mouse.click(t[0],t[1]);
+  await ok('click: the medic kit, then a hurt man',(inHand)=>{const m=LED().find(u=>u.medGo&&u.medGo.t===HURT);return{ok:inHand==='medkit'&&!!m,inHand,medic:m&&m.name};},inHand);}
+ else console.log('skip: no medic kit in this squad');}
+{const t=await ev(()=>{RUN(.5);const m=MID(LED());const e=enemies.filter(e=>!beaten(e)&&!e.dead).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y)).find(e=>hyp(e.x-m.x,e.y-m.y)>140);if(!e)return null;window.RT=e;e.vis=true;CENTER((e.x+m.x)/2,(e.y+m.y)/2+40,1.6);hud();drawOverlay(.03,simT);return SCR(e.x,e.y,6);});
+ const a=await toolRect('rpg');
+ if(t&&a){await page.mouse.click(a.x,a.y);const r=await ev(()=>({k:dd.toolK,f:ORANGE()}));await page.mouse.click(t[0],t[1]);
+  await ok('click: the Bazooka (its 90 m reach orange too), then a target',(r)=>{const u=LED().find(p=>p.rpgAim||p.throwGo&&p.throwGo.kind==='rpg');return{ok:r.k==='rpg'&&r.f>0&&(!!u||rockets.length>0),inHand:r.k,orange:r.f,by:u&&u.name};},r);}
+ else console.log('skip: no Bazooka or no target on screen');}
 // --- the counterattack: both squads hold
 await ev(()=>{ddRoster.stage=1;startCounter();});await page.waitForTimeout(400);
 await ok('counter: both squads start on FOLLOW, the swap works',()=>{RUN(8);const a0=dd.active;const h=ddcMode('A')==='follow'&&ddcMode('B')==='follow';$('#ddSwap .ddc-swap').click();RUN(2);return{ok:h&&dd.active!==a0&&!$('#ddSwap').hidden,follow:h,from:a0,to:dd.active};});
