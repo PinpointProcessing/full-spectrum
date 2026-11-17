@@ -56,7 +56,7 @@ await ev(([MODE,VAR,SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');
   // where yours is going (its men's ends of path); a new order when that moves by 3 m
   const goingTo=lead=>midOf(lead.map(destOf));
   const V={};
-  V.today=t=>ddcSupport(t);
+  V.today=t=>{const f0=dd.supS&&dd.supS[t]&&dd.supS[t].fl;ddcSupport(t);const f1=dd.supS&&dd.supS[t]&&dd.supS[t].fl;if(f1&&f1!==f0){FLANKS[t]++;if(f1.smoke)SMOKES[t]++;}};   // (the game's own: since Version 180 side by side and the pincer; its pincers counted)
   const shadowP=(t,P)=>{const{free,lead,S,s}=P;const D=goingTo(lead),f=fwdAt(D.x,D.y),rx=-f.y,ry=f.x,B=midOf(free.map(destOf));
     const fresh=(!S.D||hyp(D.x-S.D.x,D.y-S.D.y)>30)&&lead.some(u=>simT-(u.lastOrder??-99)<1.5),want={x:D.x-f.x*55+rx*s*30,y:D.y-f.y*55+ry*s*30};
     if(!fresh&&(simT-S.t<3||hyp(B.x-want.x,B.y-want.y)<70))return;   // (off where it should be by 7 m: it catches up, every 3 s at most)
@@ -76,7 +76,7 @@ await ev(([MODE,VAR,SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');
   // he's down, yours shoots someone else, or after 25 s
   const openBy=(x,y,skip)=>{let n=0;for(const e of enemies){if(e===skip||beaten(e)||e.side!=='E'||e.mon||e.dormant||!e.alerted)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y))continue;if(coverAt(x,y,e.x,e.y)===0)n++;}return n;};
   const wayOK=(x0,y0,path,skip)=>{let bad=0,L=0,px=x0,py=y0;for(const q of path){const d=hyp(q.x-px,q.y-py),n=Math.max(1,Math.round(d/40));for(let k=1;k<=n;k++){const x=px+(q.x-px)*k/n,y=py+(q.y-py)*k/n;if(openBy(x,y,skip)>0&&++bad>1)return-1;}L+=d;px=q.x;py=q.y;}return L;};
-  window.FLANKS={A:0,B:0};
+  window.FLANKS={A:0,B:0};window.SMOKES={A:0,B:0};
   V.safe=t=>{const P=prelude(t);if(!P)return;const{free,lead,F,S,s,m}=P;
     const Am=midOf(lead);
     if(S.fl){const g=S.fl;   // swung round already: stay there while it's worth it
@@ -160,7 +160,7 @@ if(MODE==='sim'){
     const kills=t=>players.filter(p=>p.team===t).reduce((a,u)=>a+((u.stats&&u.stats.kills)||0),0);
     return{secs:Math.round(simT-NUM.t0),gap:+(NUM.gap/Math.max(1,NUM.n)).toFixed(1),gapMax:Math.round(NUM.gapMax),farPct:Math.round(100*NUM.far/Math.max(1,NUM.n)),aheadPct:Math.round(100*NUM.ahead/Math.max(1,NUM.n)),
       killsA:kills('A'),killsB:kills('B'),dmgA:Math.round(DMG.A),dmgB:Math.round(DMG.B),downsA:NUM.downs.A,downsB:NUM.downs.B,deadA:players.filter(p=>p.team==='A'&&p.dead).length,deadB:players.filter(p=>p.team==='B'&&p.dead).length,
-      progress:Math.round(NUM.maxS/10),wireT:NUM.wireT==null?null:Math.round(NUM.wireT),foesDown:enemies.filter(e=>beaten(e)).length,sentB:SENT.B,moves:BOT.moves,flanksB:FLANKS.B};},[SECS]);
+      progress:Math.round(NUM.maxS/10),wireT:NUM.wireT==null?null:Math.round(NUM.wireT),foesDown:enemies.filter(e=>beaten(e)).length,sentB:SENT.B,moves:BOT.moves,flanksB:FLANKS.B,smokesB:SMOKES.B};},[SECS]);
   console.log(JSON.stringify({variant:VAR,seed:SEED,...r}));console.log('errors',errors.length,errors.slice(0,3));await b.close();srv.close();return;}
 // the film: a camera that keeps both squads on the screen, turned with the route, the other squad's men ringed in orange and their way drawn
 await ev(([VAR])=>{

@@ -18,7 +18,7 @@ await ev(([SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');localStor
   window.SQ=t=>players.filter(p=>p.team===t&&alive(p)&&!p.inBoat);
   window.MID=L=>({x:L.reduce((a,u)=>a+u.x,0)/L.length,y:L.reduce((a,u)=>a+u.y,0)/L.length});
   window.DMID=L=>MID(L.map(destOf));
-  window.CLEAR=()=>{for(const e of enemies)if(!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.shellT={heavy:1e12,cannon:1e12,art:1e12};if(dd.ctr==null)dd.ctr={on:true,sq:4,t:1e12};};
+  window.CLEAR=()=>{for(const e of enemies)if(!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.shellT={heavy:1e12,cannon:1e12,art:1e12};dd.ctr={on:true,sq:4,t:1e12};};   // (and the counterattack kept back)
   window.PUT=(t,x,y)=>{const L=SQ(t);L.forEach((u,k)=>Object.assign(u,{x:x+(k-1.5)*14,y,path:[],inBoat:false,afloat:false,joining:false,throwGo:null,medGo:null,ret:null,dash:null,sup:0,lastOrder:-99,focus:null,supT:null}));const as=makeAssign(L,x,y);for(const a of as){const e=a.path&&a.path.length?a.path[a.path.length-1]:null;if(e){a.u.x=e.x;a.u.y=e.y;}a.u.path=[];}};
   window.MOVE=(t,x,y)=>{const as=makeAssign(SQ(t),x,y);if(as.length)commit(as);return as.length;};
   window.FOE=(x,y,ang)=>{const e=ddFoe('t',x-DDX,y,{ang:ang??Math.PI/2});enemies.push(e);Object.assign(e,{seen:true,vis:true,alerted:true,hp:1e6,nade:0});return e;};   // (hard to kill: the squads would drop him in a second and the test would see them already done)
@@ -57,21 +57,41 @@ const pincer=await ev(()=>{CLEAR();RESET();
       if(isFree(fx,fy)&&isFree(ax,ay)&&isFree(bx,by)&&coverAt(fx,fy,ax,ay)>0&&los(ax,ay,fx,fy)){c=o;dir=[dx,dy,k];break;}}if(c)break;}
   if(!c)return null;const cx=c.x+c.w/2,cy=c.y+c.h/2,[dx,dy,k]=dir;window.PZ={cx,cy,dx,dy,k};return{at:[Math.round(cx),Math.round(cy)],dir};});
 console.log('  the crate:',JSON.stringify(pincer));
-await ok('the man Alpha is shooting dug in behind a crate, nobody else about: Bravo goes round his side (FLANKING), where the crate doesn\'t cover him',()=>{const{cx,cy,dx,dy,k}=PZ;
-  const F=FOE(cx+dx*k,cy+dy*k,Math.atan2(-dy,-dx));Object.assign(F,{nade:0});window.F1=F;const ax=cx-dx*170,ay=cy-dy*170;
-  const place=(t,x,y)=>SQ(t).forEach((u,i)=>Object.assign(u,{x:x+(-dy)*(i-1.5)*16,y:y+dx*(i-1.5)*16,path:[],lastOrder:-99,focus:null,supT:null,sup:0,grenade:0}));
-  place('A',ax,ay);place('B',ax-dy*100,ay+dx*100);for(const u of SQ('A'))u.focus=F;dd.track=null;
-  RUN(1.2);const S=dd.supS.B,B=DMID(SQ('B'));window.SPOT=S.fl&&S.fl.to;const clean=SQ('B').filter(u=>{const e=destOf(u);return los(e.x,e.y,F.x,F.y)&&coverAt(F.x,F.y,e.x,e.y)===0;}).length;
-  return{ok:S.act==='flank'&&!!S.fl&&coverAt(F.x,F.y,S.fl.to.x,S.fl.to.y)===0&&clean>=2,act:S.act,cleanShots:clean,to:[Math.round(B.x),Math.round(B.y)]};});
-await ok('the same with a second gun watching that ground: no pincer, Bravo stays beside Alpha',()=>{const{cx,cy,dx,dy}=PZ,ax=cx-dx*170,ay=cy-dy*170,spot=SPOT;if(!spot)return{ok:false,why:'no pincer spot from the step before'};
-  const place=(t,x,y)=>SQ(t).forEach((u,i)=>Object.assign(u,{x:x+(-dy)*(i-1.5)*16,y:y+dx*(i-1.5)*16,path:[],lastOrder:-99,supT:null,sup:0}));
-  place('A',ax,ay);place('B',ax-dy*100,ay+dx*100);RESET();for(const u of SQ('A'))u.focus=F1;
-  const gx=spot.x+dx*200,gy=spot.y+dy*200,G=FOE(gx,gy,Math.atan2(spot.y-gy,spot.x-gx));window.G2=G;
-  RUN(1.2);const S=dd.supS.B,B=DMID(SQ('B')),A=MID(SQ('A'));return{ok:S.act!=='flank'&&!S.fl&&hyp(B.x-A.x,B.y-A.y)<180,act:S.act,apart:Math.round(hyp(B.x-A.x,B.y-A.y)/10),gunSeesSpot:ddOpenN(spot.x,spot.y,F1)};});
-await ok('and a man of Bravo\'s with a grenade in reach throws one at him',()=>{const{dx,dy}=PZ,B=SQ('B');const bx=F1.x-dx*120-dy*60,by=F1.y-dy*120+dx*60;B.forEach((u,i)=>Object.assign(u,{x:bx+(-dy)*(i-1.5)*14,y:by+dx*(i-1.5)*14,grenade:1,nadeT:-99,path:[],lastOrder:-99,sup:0}));const d0=Math.min(...B.map(u=>hyp(u.x-F1.x,u.y-F1.y)));
-  dd.supS.B.nadeT=-99;RUN(1.2);const thrown=B.filter(u=>u.throwGo||(u.grenade||0)===0||simT-(u.nadeT??-99)<3).length;return{ok:thrown>=1,thrown,nearest:Math.round(d0/10)};});
+await ev(()=>{window.BAN=[];const b0=banner;banner=function(t){BAN.push(t);return b0.apply(this,arguments);};});
+const SETUP=`const{cx,cy,dx,dy,k}=PZ;const ax=cx-dx*170,ay=cy-dy*170;
+  dd.ctr={on:true,sq:4,t:1e12};for(const e of enemies)if(e!==window.F1&&!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}   // (nobody else of theirs about: the counterattack kept back)
+  for(const n of dd.npcs||[])if(!n.dead)Object.assign(n,{x:DDX+500+(Math.random()-.5)*200,y:640,path:[]});   // (the other troops back on the beach, out of the way)
+  if(window.F1){Object.assign(F1,{x:cx+dx*k,y:cy+dy*k,path:[]});window.HOOK=()=>{F1.x=cx+dx*k;F1.y=cy+dy*k;F1.path=[];};}   // (he stays behind his cover: the game moves a man who's been flanked)
+  const place=(t,x,y)=>SQ(t).forEach((u,i)=>Object.assign(u,{x:x+(-dy)*(i-1.5)*16,y:y+dx*(i-1.5)*16,path:[],lastOrder:-99,focus:null,supT:null,sup:0,grenade:0,throwGo:null}));
+  place('A',ax,ay);place('B',ax-dy*100,ay+dx*100);RESET();dd.track=null;`;
+await ok('the man Alpha is shooting dug in behind cover, nobody else about: Bravo flanks him; its gunner stays and pins him down, the others go to cover where he has none',(SETUP)=>{
+  const{cx,cy,dx,dy,k}=PZ;const F=FOE(cx+dx*k,cy+dy*k,Math.atan2(-dy,-dx));window.F1=F;eval(SETUP);for(const u of SQ('A'))u.focus=F;BAN.length=0;
+  RUN(1.2);const S=dd.supS.B,g=S.fl;if(!g)return{ok:false,act:S.act,why:'no pincer'};
+  const gun=g.gun&&players.find(p=>p.id===g.gun),goers=g.ids.map(id=>players.find(p=>p.id===id));
+  const clean=goers.filter(u=>{const e=destOf(u);return los(e.x,e.y,F.x,F.y)&&coverAt(F.x,F.y,e.x,e.y)===0;}).length;
+  return{ok:S.act==='flank'&&goers.length>=2&&clean>=2&&(!gun||(gun.supT&&hyp(gun.supT.x-F.x,gun.supT.y-F.y)<60&&!gun.path.length))&&BAN.some(t=>/flanks/.test(t)),act:S.act,going:goers.length,cleanShots:clean,gunnerPinning:!!(gun&&gun.supT),banner:BAN.filter(t=>/flank/.test(t))};},SETUP);
+// the picture: the arrow and the man marked, for a look
+await ev(()=>{const g=dd.supS.B.fl,F=F1,A=MID(SQ('A'));camPan=null;dd.track=null;zoom=3.2;yaw=0;tilt=ddTilt(zoom,DD_CAM.route);camT.x=(F.x+A.x)/2;camT.z=(F.y+A.y)/2+40;clampCam();updateCamera();RUN(.4);render(.03,simT);drawOverlay(.03,simT);hud();});
+await page.waitForTimeout(300);await ev(()=>{render(.03,simT);drawOverlay(.03,simT);});await page.screenshot({path:(process.env.OUT||'.')+'/squads-pincer.png'});
+await ok('once they\'re in place, all of Bravo shoots him',()=>{RUN(10);const S=dd.supS.B,g=S.fl;if(!g)return{ok:false,why:'pincer over early',act:S.act};const on=SQ('B').filter(u=>u.focus===F1).length;return{ok:!!g.there&&on>=2,there:!!g.there,onHim:on};});
+await ok('he goes down: Bravo holds its cover there (no walk back across the ground it flanked over) until Alpha moves on, then comes up beside it',()=>{
+  const B0=MID(SQ('B'));window.HOOK=null;F1.hp=0;F1.dead=true;RUN(3);const S=dd.supS.B,B1=MID(SQ('B')),held=!S.fl&&!!S.stay&&hyp(B1.x-B0.x,B1.y-B0.y)<80;
+  const{cx,cy,dx,dy}=PZ,A=SQ('A'),tx=MID(A).x-dy*220,ty=MID(A).y+dx*220,as=makeAssign(A,tx,ty);for(const q of as)Object.assign(q.u,{path:q.path,lastOrder:simT});RUN(5);
+  const D=DMID(A),Bd=DMID(SQ('B'));return{ok:held&&!S.stay&&as.length>0&&hyp(Bd.x-D.x,Bd.y-D.y)<220,held,stayAfter:!!S.stay,movedWhileHeld:Math.round(hyp(B1.x-B0.x,B1.y-B0.y)/10),apartAfter:Math.round(hyp(Bd.x-D.x,Bd.y-D.y)/10)};});
+await ok('a flanker goes down: the pincer is called off and Bravo goes to ground where it is (holds until Alpha moves on)',(SETUP)=>{const{cx,cy,dx,dy,k}=PZ;window.F1=FOE(cx+dx*k,cy+dy*k,Math.atan2(-dy,-dx));const F=F1;eval(SETUP);for(const u of SQ('A'))u.focus=F;BAN.length=0;RUN(1.2);const g=dd.supS.B.fl;if(!g)return{ok:false,why:'no pincer to call off'};
+  const u=players.find(p=>p.id===g.ids[0]);Object.assign(u,{downed:true,hp:0});RUN(1.2);const S=dd.supS.B,r={ok:!S.fl&&!!S.stay&&BAN.some(t=>/goes to ground/.test(t)),stay:!!S.stay,act:S.act,banner:BAN.slice(-1)};Object.assign(u,{downed:false,critical:false,hp:90});return r;},SETUP);
+await ok('the ground round his side watched by four more guns with nothing to stop them: no pincer, Bravo stays beside Alpha',(SETUP)=>{const F=F1,{dx,dy}=PZ;eval(SETUP);
+  const Gs=[];for(const[a,r]of[[1.0,200],[-1.0,200],[1.6,260],[-1.6,260]]){const b=Math.atan2(-dy,-dx)+a,x=F.x+Math.cos(b)*r,y=F.y+Math.sin(b)*r;if(isFree(x,y))Gs.push(FOE(x,y,Math.atan2(F.y-y,F.x-x)));}
+  window.GS=Gs;for(const u of SQ('A'))u.focus=F;RUN(2.4);const S=dd.supS.B,A=MID(SQ('A')),B=DMID(SQ('B'));
+  return{ok:!S.fl&&S.act!=='flank'&&hyp(B.x-A.x,B.y-A.y)<200,act:S.act,guns:Gs.length,apart:Math.round(hyp(B.x-A.x,B.y-A.y)/10)};},SETUP);
+await ok('the same ground watched by four of theirs who haven\'t noticed anyone yet: no pincer (they would see the squad go round); with them gone there is one',(SETUP)=>{const F=F1;eval(SETUP);for(const g of window.GS||[]){g.hp=0;g.dead=true;}
+  const{dx,dy}=PZ,Gs=[];for(const[a,r]of[[1.0,200],[-1.0,200],[1.6,260],[-1.6,260]]){const b=Math.atan2(-dy,-dx)+a,x=F.x+Math.cos(b)*r,y=F.y+Math.sin(b)*r;if(isFree(x,y)){const g=FOE(x,y,Math.atan2(F.y-y,F.x-x));Object.assign(g,{alerted:false,seen:false,vis:false});Gs.push(g);}}
+  for(const u of SQ('A'))u.focus=F;const free=SQ('B').filter(u=>!ddcBusy(u)&&!pinnedNow(u)),planWith=!!ddcPincerPlan('B',free,SQ('A'),F),unaware=Gs.filter(g=>!g.alerted).length;
+  for(const g of Gs){g.hp=0;g.dead=true;}const planWithout=!!ddcPincerPlan('B',free,SQ('A'),F);return{ok:!planWith&&planWithout&&unaware>=3,unaware,planWith,planWithout};},SETUP);
+await ok('and a man of Bravo\'s with a grenade in reach throws one at the dug-in man',(SETUP)=>{eval(SETUP);for(const g of window.GS||[]){g.hp=0;g.dead=true;}for(const u of SQ('A'))u.focus=F1;const{dx,dy}=PZ,B=SQ('B');const bx=F1.x-dx*120-dy*60,by=F1.y-dy*120+dx*60;B.forEach((u,i)=>Object.assign(u,{x:bx+(-dy)*(i-1.5)*14,y:by+dx*(i-1.5)*14,grenade:1,nadeT:-99,path:[],lastOrder:-99,sup:0}));const d0=Math.min(...B.map(u=>hyp(u.x-F1.x,u.y-F1.y)));
+  dd.supS.B={nadeT:-99,flT:simT};RUN(1.2);const thrown=B.filter(u=>u.throwGo||(u.grenade||0)===0||simT-(u.nadeT??-99)<3).length;return{ok:thrown>=1,thrown,nearest:Math.round(d0/10)};},SETUP);   // (flT: no pincer this moment, the throw's the test)
 // swapping squads with the tab: the one let go stays put until yours moves on
-await ev(()=>{for(const e of[window.G2,window.F1])if(e){e.hp=0;e.dead=true;}CLEAR();const R=DD_ROUTE;PUT('A',R[1][0]+DDX,R[1][1]);PUT('B',R[1][0]+DDX+100,R[1][1]+10);RESET();RUN(2);});
+await ev(()=>{window.HOOK=null;for(const e of[window.F1,...(window.GS||[])])if(e){e.hp=0;e.dead=true;}CLEAR();const R=DD_ROUTE;PUT('A',R[1][0]+DDX,R[1][1]);PUT('B',R[1][0]+DDX+100,R[1][1]+10);RESET();RUN(2);});
 const tab=async t=>{const r=await ev(t=>{const q=document.querySelector(`.tab[data-team="${t}"]`).getBoundingClientRect();return[q.left+q.width/2,q.top+12];},t);await page.mouse.click(r[0],r[1]);};
 await tab('B');
 await ok('a click on the BRAVO tab: you play Bravo, and Alpha\'s tab now carries the switch',()=>{RUN(.5);const ca=document.querySelector('.tab[data-team="A"] .ddchip'),cb=document.querySelector('.tab[data-team="B"] .ddchip');

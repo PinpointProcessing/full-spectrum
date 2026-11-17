@@ -47,9 +47,8 @@ function ddcBound(x,y){
      other side if nothing fits there), and catches up when it's 7 m off that (every 3 s at most). If yours is being shot at on its way, it
      first pins down whoever's shooting at yours (COVERING), and moves up once yours is there or after 6 s;
    - the man yours is shooting dug in behind cover from yours: a grenade at him from one of its men in reach (every 8 s at most), and the
-     pincer when it's safe (FLANKING): round to a spot at his side where his cover doesn't help him, that no other gun of theirs has an open
-     shot at (ddplay.js's ddOpenN leaving him out), by a way with no more than one 4 m stretch open to any of them (ddcWayOK), no more than
-     38 m to walk, with none of its men down and most of them free; back beside yours once he's down, yours shoots someone else, or after 25 s.
+     pincer (FLANKING): in Version 180 only to ground no other gun could see, which on the beach never came up; since Version 181 under fire
+     too, to cover on his side, with the gunner pinning him down and smoke on an exposed way (ddcPincerPlan, below).
    Tried first in tools/drafts/dday-follow-draft.js (variants line and safe). */
 const DDC_SIDE=100,DDC_CATCH=70;
 function ddcS(t){const S=dd.supS||(dd.supS={});return S[t]||(S[t]={});}
@@ -61,34 +60,81 @@ function ddcFwd(D){   // the way they're going, from where yours is going
 }
 function ddcSend(free,cands){for(const[x,y]of cands){const[tx,ty]=ddcBound(x,y),as=makeAssign(free,tx,ty);if(as.length){for(const q of as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});return{x:tx,y:ty};}}return null;}
 function ddcPin(free,T){if(!T)return 0;let n=0;for(const u of free)if(!u.path.length&&hyp(u.x-T.x,u.y-T.y)<=wRange(u)&&fireLine(u,T)){if(!u.supT||hyp(u.supT.x-T.x,u.supT.y-T.y)>40)Object.assign(u,{supT:{x:T.x,y:T.y},noLine:0});n++;}return n;}
-function ddcWayOK(x0,y0,path,skip){   // the way's length, or -1 if more than one 4 m stretch of it is open to a gun of theirs (leaving out skip)
-  let bad=0,L=0,px=x0,py=y0;
-  for(const q of path){const d=hyp(q.x-px,q.y-py),n=Math.max(1,Math.round(d/40));for(let k=1;k<=n;k++){const x=px+(q.x-px)*k/n,y=py+(q.y-py)*k/n;if(ddOpenN(x,y,skip)>0&&++bad>1)return -1;}L+=d;px=q.x;py=q.y;}
-  return L;
+// Version 181 (Bryan, after Version 180: "Pincer move can happen under fire only when the ai thinks it's safe-ish. And there is cover available.
+// Make up your own mind on how this can be made effective. I want the player to see the teams working together while they are controlling it"):
+// the pincer's target is the man yours is shooting while he's dug in behind cover from yours, or a machine gun shooting at yours that is. The
+// squad goes to cover spots on his side (the map's cover points, coverPts, 12 to 30 m from him and 35 to 90 degrees round from yours) from
+// which he has no cover and no other gun of theirs has an open shot (ddcOpenAll, below, leaving him out), its own side first and spots with
+// cover from him too first. The way there (the squad's usual route, which keeps out of known guns' sight where it can) may be open to their
+// other guns for 16 m all told (DDC_PINCER.expose, 4 m at a time, gun by gun), or up to 40 m when one of the squad has smoke: he throws it on
+// the most exposed stretch and the others go behind it. Its machine gunner stays where he is and pins the man down while the others go (fire
+// and movement); once they're in place all of them shoot him. Called off if one of them goes down (the rest go to ground where they are);
+// once he's down they hold that cover until yours moves on; over too once yours shoots someone else while he isn't shooting at yours, or after
+// 25 s. Not with a man of its own down, or fewer than two over half health to go. Every gun of theirs counts, noticed or not; he counts too
+// on the way unless the gunner stays on him or he's kept down; no other man of theirs within 20 m of a place, no tank near it. On the
+// screen (ddcCoopDraw): an arrow on the ground from them to the spot while they go, the man ringed and marked PINCER, lines from both squads
+// to him once they're in place; one banner as it starts
+const DDC_PINCER={near:120,far:300,arcLo:.6,arcHi:1.57,walk:450,expose:4,smoke:10,every:2,again:20,max:25,reach:520,clear:200,hp:50,supp:.4,tank:500};
+// (safe-ish, as measured in the village, 18 fights a version: counting only their alerted guns, the squad swung round toward men who hadn't
+// noticed it yet, early in the woods and at the field's guns, and its men went down there: so every gun of theirs that could shoot counts,
+// noticed or not, no other man of theirs within 20 m of a spot, no tank near it, and only men over half health go)
+function ddcOpenAll(x,y,skip){   // their guns with an open shot at (x,y), alerted or not, leaving out skip
+  let n=0;for(const e of enemies){if(e===skip||beaten(e)||e.side!=='E'||e.mon||e.dormant)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y))continue;if(coverAt(x,y,e.x,e.y)===0)n++;}return n;}
+function ddcSpotOK(x,y,T){   // a pincer place: a clean shot at him, no other gun with an open shot, nobody else of theirs close, no tank near
+  const P=DDC_PINCER;
+  if(!los(x,y,T.x,T.y)||coverAt(T.x,T.y,x,y)>0||ddcOpenAll(x,y,T)>0)return false;
+  if(enemies.some(e=>e!==T&&!beaten(e)&&e.side==='E'&&!e.mon&&!e.dormant&&hyp(e.x-x,e.y-y)<P.clear))return false;
+  return !(typeof ddTanksUp==='function'&&ddTanksUp().some(K=>!K.hold&&hyp(K.x-x,K.y-y)<P.tank&&los(K.x,K.y,x,y)));
 }
-// the squad's places at a pincer spot: a short line across his way, 4 m apart, each with a clean shot at him that his cover doesn't stop and out
-// of every other gun's sight (the usual group move tucks men behind whatever hides them best, which here hid him from them too); a man to each
-// place, nearest first, by a way the nav grid finds
-function ddcFlankPlaces(free,x,y,F){
-  const dx=F.x-x,dy=F.y-y,d=hyp(dx,dy)||1,px=-dy/d,py=dx/d,bx=-dx/d,by=-dy/d,P=[];
-  for(const k of[0,1,-1,2,-2,3,-3]){if(P.length>=free.length)break;
-    for(const back of[0,20,40]){const qx=x+px*k*40+bx*back,qy=y+py*k*40+by*back;
-      if(isFree(qx,qy)&&los(qx,qy,F.x,F.y)&&coverAt(F.x,F.y,qx,qy)===0&&ddOpenN(qx,qy,F)===0&&!P.some(o=>hyp(o.x-qx,o.y-qy)<30)){P.push({x:qx,y:qy});break;}}}
-  const left=free.slice(),as=[];
-  for(const q of P){left.sort((a,b)=>hyp(a.x-q.x,a.y-q.y)-hyp(b.x-q.x,b.y-q.y));for(let i=0;i<left.length;i++){const p=findPath(left[i].x,left[i].y,q.x,q.y);if(p&&p.length){as.push({u:left[i],path:p});left.splice(i,1);break;}}}
-  return as;
+function ddcExposure(x0,y0,path,skip){   // the 4 m stretches of a way open to a gun of theirs (noticed or not, leaving out skip), counted gun by gun; its length; where the worst gun sees it
+  let n=0,L=0,px=x0,py=y0;const by=new Map();
+  for(const q of path){const d=hyp(q.x-px,q.y-py),k=Math.max(1,Math.round(d/40));
+    for(let i=1;i<=k;i++){const x=px+(q.x-px)*i/k,y=py+(q.y-py)*i/k;
+      for(const e of enemies){if(e===skip||beaten(e)||e.side!=='E'||e.mon||e.dormant)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y)||coverAt(x,y,e.x,e.y)>0)continue;
+        n++;const b=by.get(e)||{n:0,x:0,y:0};b.n++;b.x+=x;b.y+=y;by.set(e,b);}}
+    L+=d;px=q.x;py=q.y;}
+  let w=null;for(const b of by.values())if(!w||b.n>w.n)w=b;
+  return{open:n,len:L,smokeAt:w?{x:w.x/w.n,y:w.y/w.n}:null};
 }
-function ddcFlankSpot(t,free,lead,F){   // a safe spot round F's side and the squad's places there ({x,y,as}), or null
-  const Am=ddcMid(lead),Bm=ddcMid(free),a0=Math.atan2(Am.y-F.y,Am.x-F.x),s=t==='B'?1:-1;let tries=0;
-  for(const sd of[s,-s])for(const da of[1.1,.8,1.4,.6])for(const r of[220,170,280,130]){
-    if(tries>=4)return null;
-    const x=F.x+Math.cos(a0+sd*da)*r,y=F.y+Math.sin(a0+sd*da)*r,[bx,by]=ddcBound(x,y);
-    if(hyp(bx-x,by-y)>1||!isFree(x,y)||!los(x,y,F.x,F.y)||coverAt(F.x,F.y,x,y)>0||ddOpenN(x,y,F)>0)continue;   // (from there his cover doesn't help him, and no other gun sees it)
-    tries++;const p=findPath(Bm.x,Bm.y,x,y);if(!p||!p.length)continue;const L=ddcWayOK(Bm.x,Bm.y,p,F);if(L<0||L>380)continue;
-    const as=ddcFlankPlaces(free,x,y,F);if(as.length<Math.min(3,free.length))continue;
-    return{x,y,as};
+function ddcPincerPlan(t,free,lead,T){   // {to, spots, gun, smoke, goers} or null
+  const P=DDC_PINCER,Am=ddcMid(lead),a0=Math.atan2(Am.y-T.y,Am.x-T.x),s=t==='B'?1:-1;
+  const gun=free.find(u=>(u.weapon==='hmg'||u.ddRole==='gunner')&&hyp(u.x-T.x,u.y-T.y)<=wRange(u)&&fireLine(u,T))||null;   // (he stays and pins him down)
+  const go=free.filter(u=>u!==gun&&u.hp>=P.hp);if(go.length<2)return null;   // (only men over half health go)
+  const Gm=ddcMid(go),cand=[];
+  for(const c of coverPts){const d=hyp(c.x-T.x,c.y-T.y);if(d<P.near||d>P.far)continue;
+    let da=Math.atan2(c.y-T.y,c.x-T.x)-a0;while(da>Math.PI)da-=TAU;while(da<-Math.PI)da+=TAU;const ad=Math.abs(da);if(ad<P.arcLo||ad>P.arcHi)continue;
+    const[bx,by]=ddcBound(c.x,c.y);if(hyp(bx-c.x,by-c.y)>1)continue;
+    if(!ddcSpotOK(c.x,c.y,T))continue;
+    cand.push({x:c.x,y:c.y,sd:da>0?1:-1,v:coverAt(c.x,c.y,T.x,T.y)*1.5+((da>0?1:-1)===s?.6:0)-hyp(c.x-Gm.x,c.y-Gm.y)/250});}
+  if(cand.length<2)return null;
+  cand.sort((a,b)=>b.v-a.v);
+  for(const best of cand.slice(0,3)){
+    const spots=[best];for(const c of cand){if(spots.length>=go.length)break;if(c!==best&&c.sd===best.sd&&hyp(c.x-best.x,c.y-best.y)<110&&spots.every(q=>hyp(q.x-c.x,q.y-c.y)>=15))spots.push(c);}
+    if(spots.length<go.length){   // (places beside the best one, across his way: each with a clean shot at him and no other gun's open shot)
+      const ux=T.x-best.x,uy=T.y-best.y,ul=hyp(ux,uy)||1,px=-uy/ul,py=ux/ul;
+      for(const[a,b]of[[30,0],[-30,0],[60,0],[-60,0],[30,-25],[-30,-25],[0,-30]]){if(spots.length>=go.length)break;const x=best.x+px*a-ux/ul*-b,y=best.y+py*a-uy/ul*-b;
+        if(isFree(x,y)&&ddcSpotOK(x,y,T)&&spots.every(q=>hyp(q.x-x,q.y-y)>=15))spots.push({x,y,sd:best.sd});}}
+    if(spots.length<2)continue;
+    const p=findPath(Gm.x,Gm.y,best.x,best.y);if(!p||!p.length)continue;
+    const ex=ddcExposure(Gm.x,Gm.y,p,gun||(T.sup||0)>P.supp?T:null);if(ex.len>P.walk)continue;   // (he counts too unless our gunner stays on him or he's kept down)
+    let smoke=null;
+    if(ex.open>P.expose){if(ex.open>P.smoke||!ex.smokeAt)continue;const sm=go.find(u=>u.spec==='smoke'&&u.specN>0&&!u.throwGo);if(!sm)continue;smoke={u:sm,x:ex.smokeAt.x,y:ex.smokeAt.y};}
+    return{to:best,spots,gun,smoke,go,exposure:ex.open};
   }
   return null;
+}
+function ddcPincerGo(t,S,T,plan,lead){   // the men to their spots, the gunner on him, the smoke if any; the banner
+  const left=plan.go.filter(u=>!plan.smoke||u!==plan.smoke.u),ids=[],spare=[];
+  for(const q of plan.spots){if(!left.length){spare.push(q);continue;}left.sort((a,b)=>hyp(a.x-q.x,a.y-q.y)-hyp(b.x-q.x,b.y-q.y));let sent=false;
+    for(let i=0;i<left.length;i++){const p=findPath(left[i].x,left[i].y,q.x,q.y);if(p&&p.length){Object.assign(left[i],{path:p,gaitForce:null,exposeT:0,supT:null});ids.push(left[i].id);left.splice(i,1);sent=true;break;}}
+    if(!sent)spare.push(q);}
+  if(ids.length<1)return false;
+  if(plan.gun)Object.assign(plan.gun,{supT:{x:T.x,y:T.y},noLine:0,path:[]});
+  if(plan.smoke)orderThrow(plan.smoke.u,plan.smoke.x,plan.smoke.y,'smoke');
+  for(const u of left)if(!u.path.length&&hyp(u.x-T.x,u.y-T.y)<=wRange(u)&&fireLine(u,T))Object.assign(u,{supT:{x:T.x,y:T.y},noLine:0});   // (anyone without a spot helps the gunner)
+  Object.assign(S,{fl:{T,t:simT,to:{x:plan.to.x,y:plan.to.y},ids,gun:plan.gun&&plan.gun.id,spare,smoke:!!plan.smoke,there:0,D0:ddcMid(lead.map(destOf))},wait:null,stay:false,act:'flank',sentT:simT});
+  banner(`${ddcName(t)} ${plan.smoke?'pops smoke and ':''}flanks ${T.gunner||T.onGun?'the machine gun':'him'}.`,2200);
+  return true;
 }
 function ddcSupport(t){
   const m=players.filter(p=>p.team===t&&alive(p)&&!p.inBoat&&!p.joining);if(!m.length)return;
@@ -110,9 +156,22 @@ function ddcSupport(t){
   const Am=ddcMid(lead),dug=!!F&&(F.seen||F.vis)&&coverAt(F.x,F.y,Am.x,Am.y)>0;
   // the man yours is shooting, dug in: a grenade at him, and the pincer if it's safe
   if(dug&&simT-(S.nadeT??-99)>8){const g=free.find(u=>(u.grenade||0)>0&&!u.path.length&&simT-(u.nadeT??-99)>5&&hyp(u.x-F.x,u.y-F.y)<nadeRange(u)&&!dd.allies.some(q=>hyp(q.x-F.x,q.y-F.y)<75));if(g&&orderThrow(g,F.x,F.y,'nade'))S.nadeT=simT;}
-  if(S.fl){const g=S.fl;if(!beaten(g.F)&&lead.some(u=>u.focus===g.F)&&simT-g.t<25){S.act='flank';return;}S.fl=null;S.t=-99;S.stay=false;}   // (done: back beside yours)
-  if(dug&&!players.some(p=>p.team===t&&p.downed&&!p.dead)&&free.length>=Math.min(3,m.length)&&simT-(S.flT??-99)>2){S.flT=simT;
-    const spot=ddcFlankSpot(t,free,lead,F);if(spot){for(const q of spot.as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});Object.assign(S,{fl:{F,t:simT,to:{x:spot.x,y:spot.y}},wait:null,stay:false,act:'flank'});return;}}
+  // the pincer under way: called off if one of them goes down; over once he's down, yours has let him be, or it's taken too long
+  if(S.fl){const g=S.fl,T=g.T,goers=g.ids.map(id=>players.find(p=>p.id===id)).filter(Boolean);
+    const hold=()=>{const D=ddcMid(lead.map(destOf));Object.assign(S,{fl:null,t:-99,stay:!(g.D0&&hyp(D.x-g.D0.x,D.y-g.D0.y)>100),D});};   // (in cover where they are until yours moves on, no walk back across the ground they flanked over; unless yours already has)
+    if(goers.some(u=>u.downed||u.dead)){hold();S.failT={T,t:simT};banner(`${ddcName(t)} takes a hit and goes to ground.`,1800);}
+    else if(beaten(T))hold();
+    else if(simT-g.t>DDC_PINCER.max||(!lead.some(u=>u.focus===T)&&!lead.some(u=>shootersOf(u).includes(T)))){S.fl=null;S.t=-99;S.stay=false;}
+    else{S.act='flank';
+      if(!g.there&&(goers.filter(u=>!u.path.length).length>=Math.max(1,goers.length-1)||simT-g.t>12))g.there=simT;   // (in place: all but one there, or long enough)
+      if(g.there){for(const u of m)if(!u.path.length&&hyp(u.x-T.x,u.y-T.y)<=wRange(u)&&fireLine(u,T)){u.focus=T;u.supT=null;}}   // (in place: everyone on him)
+      else{const gu=g.gun&&players.find(p=>p.id===g.gun);if(gu&&alive(gu)&&!gu.path.length&&(!gu.supT||hyp(gu.supT.x-T.x,gu.supT.y-T.y)>40))Object.assign(gu,{supT:{x:T.x,y:T.y},noLine:0});}
+      for(const u of free)if(!g.ids.includes(u.id)&&u.id!==g.gun&&!u.path.length&&!u.throwGo&&g.spare.length){const q=g.spare.shift(),p=findPath(u.x,u.y,q.x,q.y);if(p&&p.length){u.path=p;g.ids.push(u.id);}}   // (the man who threw the smoke goes once it's out)
+      return;}}
+  // a new pincer: the man yours is shooting dug in, or a machine gun dug in and shooting at yours
+  const T=(dug?F:null)||lead.flatMap(u=>shootersOf(u)).filter(e=>(e.gunner||e.onGun)&&(e.seen||e.vis)&&coverAt(e.x,e.y,Am.x,Am.y)>0).sort((a,b)=>hyp(a.x-Am.x,a.y-Am.y)-hyp(b.x-Am.x,b.y-Am.y))[0]||null;
+  if(T&&simT-(S.flT??-99)>DDC_PINCER.every&&!players.some(p=>p.team===t&&p.downed&&!p.dead)&&!(S.failT&&S.failT.T===T&&simT-S.failT.t<DDC_PINCER.again)){S.flT=simT;
+    const M=ddcMid(free);if(hyp(M.x-T.x,M.y-T.y)<DDC_PINCER.reach){const plan=ddcPincerPlan(t,free,lead,T);if(plan&&ddcPincerGo(t,S,T,plan,lead))return;}}
   // side by side; covering yours first while it's being shot at on its way
   const D=ddcMid(lead.map(destOf)),f=ddcFwd(D),rx=-f.y,ry=f.x,s=t==='B'?1:-1,want={x:D.x+rx*s*DDC_SIDE,y:D.y+ry*s*DDC_SIDE},B=ddcMid(free.map(destOf));
   const fresh=lead.some(u=>simT-(u.lastOrder??-99)<1.5)&&(!S.D||hyp(D.x-S.D.x,D.y-S.D.y)>30);
@@ -121,7 +180,7 @@ function ddcSupport(t){
     if(lead.some(u=>u.path.length&&simT-(u.lastOrder??-99)<8)&&simT-S.wait.t<6){S.act='cover';const sh=lead.flatMap(u=>shootersOf(u)).sort((a,b)=>hyp(a.x-Am.x,a.y-Am.y)-hyp(b.x-Am.x,b.y-Am.y));ddcPin(free,sh[0]||F);return;}
     S.wait=null;S.t=-99;}   // (yours is there, or long enough: up beside it now)
   else if(!fresh&&(S.stay||simT-(S.t??-99)<3||hyp(B.x-want.x,B.y-want.y)<DDC_CATCH||free.some(u=>u.path.length)))return;
-  S.t=simT;
+  S.t=simT;S.sentT=simT;
   S.to=ddcSend(free,[[0,DDC_SIDE],[0,80],[-12,120],[12,70],[-20,135],[0,-DDC_SIDE],[0,-80]].map(([fw,of])=>[D.x+f.x*fw+rx*s*of,D.y+f.y*fw+ry*s*of]))||S.to;
 }
 // everyone you play down and the other squad has men up: you play that one now
@@ -157,6 +216,32 @@ function ddcHud(){
   }
 }
 // over the other squad: who they are and what they're doing
+// Version 181: the squads working together, on the screen (ddcFrame, each frame): the pincer's arrow while they go, its man ringed and marked
+// PINCER, lines from both squads to him once they're in place; while it covers yours, thin lines from its men to the man they pin down; for a
+// moment after it's sent beside yours, faint rings where its men are going (the other squad's routes aren't drawn otherwise)
+function ddcCoopDraw(){
+  if(!ddcLead())return;const o=ddcOther(),S=dd.supS&&dd.supS[o];if(!S)return;const col=ddcCol(o),mine=ddcCol(dd.active);
+  const P=(x,y,h)=>{toSBack=false;const p=toS(x,y,h||0);return toSBack?null:p;},pulse=.5+.5*Math.sin(performance.now()/160);
+  ox.save();ox.lineCap='round';ox.lineJoin='round';
+  if(S.fl&&S.fl.T&&!beaten(S.fl.T)){const g=S.fl,T=g.T,goers=g.ids.map(id=>players.find(p=>p.id===id)).filter(u=>u&&alive(u));
+    if(!g.there&&goers.length){   // the arrow: a bend from where they are to the spot, its head toward him
+      const a=ddcMid(goers),b=g.to,mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dx=b.x-a.x,dy=b.y-a.y,L=hyp(dx,dy)||1,side=((T.x-a.x)*dy-(T.y-a.y)*dx)>0?-1:1,cx=mx-dy/L*L*.22*side,cy=my+dx/L*L*.22*side,pts=[];
+      for(let i=0;i<=16;i++){const k=i/16,x=(1-k)*(1-k)*a.x+2*(1-k)*k*cx+k*k*b.x,y=(1-k)*(1-k)*a.y+2*(1-k)*k*cy+k*k*b.y,q=P(x,y,2);if(q)pts.push(q);}
+      if(pts.length>2){for(const[w,c]of[[7,'rgba(8,11,14,.55)'],[3.5,col]]){ox.lineWidth=w;ox.strokeStyle=c;ox.setLineDash(w>5?[]:[10,7]);ox.beginPath();pts.forEach((q,i)=>i?ox.lineTo(q[0],q[1]):ox.moveTo(q[0],q[1]));ox.stroke();}
+        ox.setLineDash([]);const e=pts[pts.length-1],f=pts[pts.length-3],an=Math.atan2(e[1]-f[1],e[0]-f[0]);ox.fillStyle=col;ox.strokeStyle='rgba(8,11,14,.6)';ox.lineWidth=2;ox.beginPath();
+        ox.moveTo(e[0]+Math.cos(an)*9,e[1]+Math.sin(an)*9);ox.lineTo(e[0]+Math.cos(an+2.4)*11,e[1]+Math.sin(an+2.4)*11);ox.lineTo(e[0]+Math.cos(an-2.4)*11,e[1]+Math.sin(an-2.4)*11);ox.closePath();ox.stroke();ox.fill();}}
+    const q=P(T.x,T.y,10),qh=P(T.x,T.y,24);if(q){ox.lineWidth=2.5;ox.strokeStyle=col;ox.globalAlpha=.55+.45*pulse;ox.beginPath();ox.arc(q[0],q[1],13+3*pulse,0,TAU);ox.stroke();ox.globalAlpha=1;if(qh)ddcPill('PINCER',qh[0],qh[1]-32,col);}   // (the tag above his health bar and PINNED: overlay.js puts them 6 and 14 px over his head)
+    if(g.there&&q){const A=players.filter(p=>p.team===dd.active&&alive(p)),B=goers;   // both squads on him
+      for(const[L,c]of[[A,mine],[B,col]]){if(!L.length)continue;const m=ddcMid(L),r=P(m.x,m.y,14);if(!r)continue;ox.lineWidth=2;ox.strokeStyle=c;ox.globalAlpha=.75;ox.setLineDash([6,5]);ox.beginPath();ox.moveTo(r[0],r[1]);ox.lineTo(q[0],q[1]);ox.stroke();}
+      ox.setLineDash([]);ox.globalAlpha=1;}}
+  if(S.act==='cover'){ox.lineWidth=1.6;ox.strokeStyle=col;ox.globalAlpha=.7;ox.setLineDash([5,5]);   // pinning down whoever shoots at yours
+    for(const u of players.filter(p=>p.team===o&&alive(p)&&p.supT)){const a=P(u.x,u.y,14),b=P(u.supT.x,u.supT.y,10);if(a&&b){ox.beginPath();ox.moveTo(a[0],a[1]);ox.lineTo(b[0],b[1]);ox.stroke();}}
+    ox.setLineDash([]);ox.globalAlpha=1;}
+  if(S.sentT!=null&&simT-S.sentT<2.5){const k=1-(simT-S.sentT)/2.5;ox.lineWidth=2;ox.strokeStyle=col;ox.globalAlpha=.6*k;   // where they're going
+    for(const u of players.filter(p=>p.team===o&&alive(p)&&p.path.length)){const e=u.path[u.path.length-1],r=P(e.x,e.y,1);if(r){ox.beginPath();ox.arc(r[0],r[1],9,0,TAU);ox.stroke();}}
+    ox.globalAlpha=1;}
+  ox.restore();
+}
 function ddcLabel(){
   if(!ddcLead())return;const o=ddcOther(),m=players.filter(p=>p.team===o&&alive(p)&&!p.inBoat);if(!m.length)return;
   const c=ddcMid(m);toSBack=false;const[x,y]=toS(c.x,c.y,34);if(toSBack)return;const B=ddBox();
@@ -335,7 +420,7 @@ function ddcPill(text,x,y,col){ox.font=`700 10px ${HUDFONT}`;const w=ox.measureT
 function ddcFrame(now){
   ddcHud();
   if(!ddcOn()){if(ddcR)ddcClose();return;}
-  ddcLabel();if(DDC.ring&&!dd.fp){ddcLines();ddcRingFrame();}
+  ddcLabel();ddcCoopDraw();if(DDC.ring&&!dd.fp){ddcLines();ddcRingFrame();}
   if(dd.toolK&&DDC_KIND[dd.toolK]&&!dd.fp)ddcReach(dd.toolK,dd.toolU,performance.now());   // (a tool in hand: its reach; real milliseconds, now is the game's clock)
   if(!dd.ddcSaid){dd.ddcSaid=simT+3;}   // a word on the squads, a few seconds in
   else if(dd.ddcSaid>0&&simT>dd.ddcSaid){dd.ddcSaid=-1;banner(`${ddcName(ddcOther())} fights beside you. FOLLOW or HOLD on its tab.`,4200);}
