@@ -92,6 +92,17 @@ const ddmHurt=()=>[...['A','B'].flatMap(t=>ddRoster.squads[t].map((m,i)=>m&&m.hu
 function ddmTreat(m){const R=ddRoster;if(!m||!m.hurt)return false;if((R.treat||0)>0)R.treat--;else if(R.medals>0)R.medals--;else{banner('No medals left to pay for treatment.',2400);return false;}
   m.hurt=0;banner(`${m.name} is patched up: fit for the next chapter.`,2400);return true;}
 const ddmTreatCost=()=>(ddRoster.treat||0)>0?'FREE':'★ 1';
+// Version 178 (Bryan: "let's make all levels accessible like we did for the horror game version"): a chapter started from the start card before
+// it's been reached gets the roster moved on to it, as if the chapters before were won: the empty squad slots filled with new men at the level
+// a player would have by then (2 for the counterattack, 3 for the village), the stage, battles, medals and the recruits' level with them, so
+// the report, the barracks and the next chapter follow as usual. A roster already that far is left as it is. chap: 2 or 3; true if it moved on
+function ddmReady(chap){
+  if(!ddRoster)ddRoster=ddmRead();const R=ddRoster,need=chap-1;
+  if((R.stage||0)>=need)return false;
+  R.stage=need;R.battles=Math.max(R.battles||0,need);R.medals=Math.max(R.medals||0,need);R.minLevel=Math.max(R.minLevel||1,chap);
+  for(const t of['A','B'])DD_CORE[t].forEach((r,i)=>{if(!R.squads[t][i])R.squads[t][i]=ddmNewMan(r,chap,false);});
+  ddmRecruits();ddmSave();return true;
+}
 
 /* ---------- the end of a battle won: who's left, what they did ---------- */
 // where the line-up stands and what the base view looks at, on the beach's map or the counterattack's (ddcounter.js)

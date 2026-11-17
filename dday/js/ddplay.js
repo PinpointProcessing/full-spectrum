@@ -122,8 +122,8 @@ function startDDay(){
   enterDDay();state='play';endAt=0;
   bigText('Chapter 1: D\u2011Day','chapter');setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},8400);hud();
 }
-// the start card's second button: there once D-Day is won
-function ddCtrBtnShow(){const c=$('#ddCtrBtn');if(!c)return;let R=null;try{R=typeof ddmRead==='function'?ddmRead():null;}catch(e){}c.hidden=!(R&&R.stage>=1);const v=$('#ddVilBtn');if(v)v.hidden=!(R&&R.stage>=2);}   // (and the third: there once the base is held)
+// the start card's chapter buttons
+function ddCtrBtnShow(){for(const id of['#ddCtrBtn','#ddVilBtn']){const b=$(id);if(b)b.hidden=false;}}   // (every chapter open from the start since Version 178, like the horror game's levels: one not reached yet gets squads made for it, ddmeta.js's ddmReady)
 function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();if(typeof ddcBind==='function')ddcBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
   ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}
   const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}

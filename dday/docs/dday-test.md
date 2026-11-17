@@ -674,3 +674,11 @@ Bryan, after the brainstorm: "Do you think we should add the cover that takes fo
 ## Version 177: a move order brings the camera back to the squad
 Bryan, after Version 176: "The view never automatically changed". The camera did turn, but only while it was following your squad, and dragging the map (to look round) stopped it following until you picked a squad again. On a phone that's almost at once, so it never followed or turned after that. Now any move you give your squad brings the camera back to it, and it turns with the way up again (north-west up the draw, east on the top; on the sand the way is north, so it hardly turns there). Dragging still lets you look round until your next move. The counterattack is unchanged: there you hold the base and the camera stays where you put it.
 
+## Version 178: every chapter open from the start
+Bryan, after Version 177: "let's make all levels accessible like we did for the horror game version." The start card has all three chapters from the start: Chapter 1 · Land at Normandy, Chapter 2 · Hold the base and Chapter 3 · Take the village.
+- Starting a chapter you haven't reached yet gives you squads for it, as if you'd won the chapters before: every empty place in the two squads gets a new man at the level you'd have by then (level 2 for the counterattack, level 3 for the village), the recruits in the barracks are at that level too, and you have a medal for each chapter before it. The men you already have are kept.
+- If you've already got that far, nothing changes: you play it with your own men.
+- The reserve is left as it was. For a new player that's empty (as it usually is after Chapter 1), so in the counterattack nobody comes out of the barracks to replace a man you lose unless you've put men in the reserve.
+- Chapter 3 still starts with the setting-out talk on the parade square (Skip as before).
+- Winning a chapter you jumped to carries on as usual: the report, the base, the barracks, then the next chapter.
+

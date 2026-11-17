@@ -250,6 +250,7 @@ function startVillage(o){
   o=o||{};
   if(!ddRoster)ddRoster=ddmRead();
   if(o.retry&&startVillage.snap){ddRoster=JSON.parse(startVillage.snap);ddmSave();}   // (a loss is a retry: the roster as it was when they left the barracks)
+  if(!o.retry&&typeof ddmReady==='function')ddmReady(3);   // (from the start card before it's reached: squads made for it, ddmeta.js, Version 178)
   if(!ddmFit().length){banner('Nobody fit: treat the wounded or add reserves.',3200);return;}
   if(!o.retry)startVillage.snap=JSON.stringify(ddRoster);
   if(o.retry||o.skip){vgBattle();return;}

@@ -117,6 +117,7 @@ function dcBuild(G,sc,M,add){
 function startCounter(retry){
   if(!ddRoster)ddRoster=ddmRead();
   if(retry&&startCounter.snap){ddRoster=JSON.parse(startCounter.snap);ddmSave();}   // (a loss is a retry: the roster as it was when they left the barracks)
+  if(!retry&&typeof ddmReady==='function')ddmReady(2);   // (from the start card before it's reached: squads made for it, ddmeta.js, Version 178)
   if(!ddmFit().length){banner('Nobody fit: treat the wounded or add reserves.',3200);return;}
   startCounter.snap=JSON.stringify(ddRoster);
   reset();DD_MODE='counter';$('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
