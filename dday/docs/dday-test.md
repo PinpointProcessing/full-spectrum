@@ -682,3 +682,23 @@ Bryan, after Version 177: "let's make all levels accessible like we did for the 
 - Chapter 3 still starts with the setting-out talk on the parade square (Skip as before).
 - Winning a chapter you jumped to carries on as usual: the report, the base, the barracks, then the next chapter.
 
+## Drafts after Version 178: the camera on the top, and the squad you aren't playing
+Bryan, after Version 177: "1) The camera angles should follow the road better. At the top of the hill it's facing forward instead of down the road where the tank is when you are at the top. I like how it tracks the teams but it's focusing on the first bunker on the top of the hill rather than the incoming tank. 2) I like how I originally selected the squads, but I want Bravo to follow by default, closer and more aggressive. Almost like I am using a 16 person team when using Alpha - but not quite. I would also like the option to hold Bravo back. Same with Bravo. Let's experiment with ideas give me some drafts on how we can do it."
+
+The page with the films: https://claude.ai/artifact/7sMqQpJhFKLKFBK7oK7kNS (`docs/drafts/hill-follow/`).
+
+The camera on the top, four cameras filming the same moments as the tank comes down the road:
+- A, today: the way up ends at the barracks, so on the top the camera faces the barracks. The tank comes from the right and stays off the screen (only its arrow at the edge) all the way from 51 m to 31 m.
+- B, down the road: on the top the camera faces along the road east, where their base is and the counterattack comes from. The game already does this, but only once the barracks is taken. The tank drives straight at you, up the screen.
+- C, turn to the tank: as B, and whenever a tank comes within 90 m it turns to face it. Here it looks much like B, since this tank comes down the road; it also covers tanks that come from anywhere else.
+- D, frame both: as C, and it pulls back to keep your men and the tank on the screen together. You see everything, but your men get small.
+- My pick: C.
+
+The squad you aren't playing. The control: the team tabs as before Version 168, and the tab of the squad you aren't playing gets a small FOLLOW / HOLD switch (FOLLOW to start). Five ways for it to follow, each filmed in the same fight with a bot playing Alpha, and measured in four fights each with real fire:
+- Today's FOLLOW (about 12 m behind, moves once yours has gone 6 m): 20 m apart on average, over 20 m apart 43% of the time. Bravo gets hurt least.
+- 1, close behind (goes the moment you send yours, to cover 5 m behind where yours is going): 13 m apart, over 20 m 15% of the time. Bravo takes about half as much damage again as today and has 5 men knocked down a fight against 3.
+- 2, side by side (goes the moment you send yours, to cover level with it about 8 m to one side): 12 m apart, the closest, over 20 m 11% of the time; the bot got furthest up the beach with it (129 m against 97 m). Bravo is hurt about as much as with 1.
+- 3, leapfrog (Bravo pins down what yours is shooting while yours moves, then moves up past it): 20 m apart on average, since it's ahead of Alpha or behind it in turns. Bravo killed the most (6 a fight against 5 today) and lost no more men than today.
+- 4, pincer (close behind until yours shoots at a man, then Bravo works round to one side of him): 18 m apart, and Bravo often ends up alone on open sand.
+- My pick: 2, side by side, taken in turns: while Alpha runs, Bravo pins down whatever Alpha is shooting, and once Alpha is in cover, Bravo moves up beside it, a little further out (10 to 12 m) so one shell can't catch both squads (leapfrog's covering fire with side by side's closeness; not filmed as such). The tabs and the switch would replace Lead one squad and its swap button.
+

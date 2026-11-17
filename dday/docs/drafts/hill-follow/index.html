@@ -1,0 +1,221 @@
+<title>Hilltop and Follow Drafts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column of phone-shaped films on a phone, two or three across on a wide screen; the game's HUD type and gold, the squads' own colours */
+:root{
+  --bg:#eef0f2;--panel:#ffffff;--ink:#14191e;--dim:#56616b;--line:#d5dade;--gold:#b98a00;--goldbg:#ffcf4a;--pick:#1f8a4c;--film:#0b0f13;
+  --alpha:#5ec8ff;--bravo:#ffb547;--hud:#161c22;--hud2:#0e1216;--hudink:#e9edf0;--huddim:#9aa6b0;
+  --hud-font:"Chakra Petch","Rajdhani",ui-sans-serif,system-ui,sans-serif;--body:"Barlow",ui-sans-serif,system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1216;--panel:#161c22;--ink:#e9edf0;--dim:#9aa6b0;--line:#26303a;--gold:#ffcf4a;--goldbg:#ffcf4a;--pick:#5be37a;--film:#05070a;--hud:#1c242c;--hud2:#121820;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1216;--panel:#161c22;--ink:#e9edf0;--dim:#9aa6b0;--line:#26303a;--gold:#ffcf4a;--goldbg:#ffcf4a;--pick:#5be37a;--film:#05070a;--hud:#1c242c;--hud2:#121820;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body)}
+.wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:30px}
+h1,h2,h3{font-family:var(--hud-font);margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.1}
+h2{font-size:24px}
+h3{font-size:19px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+p{margin:0;max-width:65ch}
+section{display:flex;flex-direction:column;gap:16px}
+.lede{display:flex;flex-direction:column;gap:10px;color:var(--dim)}
+.lede strong,.intro strong{color:var(--ink);font-weight:600}
+.intro{display:flex;flex-direction:column;gap:10px;color:var(--dim)}
+.eyebrow{font:700 12px/1 var(--hud-font);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.tag{font:700 12px/1 var(--hud-font);letter-spacing:.08em;color:#0b0f13;background:var(--goldbg);border-radius:7px;padding:5px 8px}
+.pick{font:700 11px/1 var(--hud-font);letter-spacing:.1em;text-transform:uppercase;color:var(--pick);border:1.5px solid var(--pick);border-radius:999px;padding:4px 9px}
+.film{display:block;width:100%;height:auto;background:var(--film);border-radius:10px;aspect-ratio:390/760;max-width:100%}
+.all{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+.all .film{aspect-ratio:788/1528;max-width:520px}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-width:520px;font:600 13px/1.3 var(--hud-font)}
+.legend span{display:flex;gap:8px;align-items:center;color:var(--dim)}
+.legend b{color:var(--ink)}
+.controls{display:flex;flex-wrap:wrap;gap:10px}
+button{font:700 14px/1 var(--hud-font);letter-spacing:.05em;color:var(--ink);background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;cursor:pointer}
+button:hover{border-color:var(--gold)}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.cams{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+@media (min-width:760px){.cams{grid-template-columns:repeat(2,minmax(0,1fr))}.all{grid-template-columns:minmax(0,520px) minmax(0,1fr)}.all .film{order:-1}}
+@media (min-width:1000px){.cams.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cam{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.cam .film{max-width:420px}
+.cam p{color:var(--dim)}
+.pros{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;margin:0;font-size:15px}
+.pros dt{font:700 12px/1.6 var(--hud-font);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.pros dd{margin:0}
+.sheet{display:block;width:100%;max-width:980px;height:auto;border-radius:10px;background:var(--film)}
+/* the control, drawn as the game draws it (a dark HUD panel whatever the page's theme) */
+.mock{display:flex;flex-wrap:wrap;gap:20px;align-items:center;background:var(--hud2);border-radius:14px;padding:18px;max-width:640px}
+.tabs{display:flex;flex-direction:column;gap:8px}
+.gtab{display:flex;flex-direction:column;align-items:center;gap:5px;width:112px;padding:8px 6px;border-radius:10px;border:1.5px solid color-mix(in srgb,var(--tc) 40%,#2a333c);background:var(--hud)}
+.gtab .tabbtn{display:grid;place-items:center;gap:4px;width:100%;padding:4px 0;border:0;border-radius:7px;background:transparent;color:var(--tc);font:700 13px/1 var(--hud-font);letter-spacing:.12em;cursor:pointer}
+.gtab .pips{display:flex;gap:3px}.gtab .pips i{width:6px;height:6px;border-radius:50%;background:#5fe08e}
+.gtab.on{background:var(--tc);border-color:var(--tc);box-shadow:0 0 0 2px color-mix(in srgb,var(--tc) 45%,transparent)}
+.gtab.on .tabbtn{color:#0b0f13}.gtab.on .pips i{box-shadow:0 0 0 1px #0b0f13}
+.chip{font:800 10px/1 var(--hud-font);letter-spacing:.08em;color:#0b0f13;background:var(--tc);border-radius:5px;padding:5px 7px;border:0;cursor:pointer}
+.chip.hold{background:var(--hudink)}
+.chip[hidden]{display:none}
+.mockside{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 220px;color:var(--hudink)}
+.mockside b{font:700 14px/1.3 var(--hud-font);letter-spacing:.04em}
+.mockside span{color:var(--huddim);font-size:15px}
+.tablewrap{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px;min-width:640px;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font:700 12px/1.3 var(--hud-font);letter-spacing:.06em;text-transform:uppercase;color:var(--dim);vertical-align:bottom;white-space:normal;min-width:7ch}
+th:first-child,td:first-child{text-align:left}
+tbody tr.best td:first-child{font-weight:600}
+.note{color:var(--dim);font-size:15px}
+.next{border-top:1px solid var(--line);padding-top:20px;display:flex;flex-direction:column;gap:8px}
+.next p{color:var(--dim)}
+@media (prefers-reduced-motion:reduce){.film{animation:none}}
+</style>
+
+<div class="wrap">
+  <header class="lede">
+    <span class="eyebrow">D-Day · after Version 178</span>
+    <h1>The hilltop camera, and a squad that keeps up</h1>
+    <p><strong>Two drafts, both filmed in the real game on a phone held upright.</strong> First, four cameras on the top of the hill at the moment the tank comes down the road. Then the squad you aren't playing: five ways it could follow yours, each filmed in the same fight, with the same moves for Alpha.</p>
+  </header>
+
+  <section aria-labelledby="top-h">
+    <h2 id="top-h">1 · The camera on the top</h2>
+    <div class="intro">
+      <p>Alpha comes up onto the top and walks to the barracks' door. That's when the tank and the counterattack's infantry come out of their base and down the road from the east. Nobody gets hurt in these films, so you only see what the cameras do. Bravo follows behind.</p>
+    </div>
+    <div class="all">
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <h3>All four at once</h3>
+        <p class="note">Watch from the moment the tank's arrow appears at the right edge of A.</p>
+        <div class="legend">
+          <span><b>A</b> Today</span><span><b>B</b> Down the road</span>
+          <span><b>C</b> Turn to the tank</span><span><b>D</b> Frame both</span>
+        </div>
+        <div class="controls"><button id="syncTop" type="button">Play these films from the start</button></div>
+      </div>
+      <video id="topGrid" class="film top" src="top-grid.mp4" poster="top-grid.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="All four hilltop cameras at once"></video>
+    </div>
+    <div class="cams">
+      <article class="cam">
+        <h3><span class="tag">A</span> Today</h3>
+        <video class="film top" src="top-A.mp4" poster="top-A.jpg" muted loop playsinline controls preload="metadata" aria-label="Camera A, today"></video>
+        <p>Follows the man furthest ahead and faces along the way up. The way up ends at the barracks, so on the top it faces the barracks, and the tank comes in from the right, off the screen (only its arrow at the edge shows).</p>
+        <dl class="pros"><dt>Good</dt><dd>Nothing new to learn.</dd><dt>Not so good</dt><dd>What you saw: the barracks fills the view while the tank comes from the side.</dd></dl>
+      </article>
+      <article class="cam">
+        <h3><span class="tag">B</span> Down the road</h3>
+        <video class="film top" src="top-B.mp4" poster="top-B.jpg" muted loop playsinline controls preload="metadata" aria-label="Camera B, down the road"></video>
+        <p>On the top, the way ahead is the road east, to their base, the way the counterattack comes. The game already turns this way, but only once the barracks is taken. Here it turns as soon as you're on the top.</p>
+        <dl class="pros"><dt>Good</dt><dd>The tank drives straight at you, up the screen. Whatever comes down the road is in view.</dd><dt>Not so good</dt><dd>The barracks you're taking is at the side of the screen, not ahead.</dd></dl>
+      </article>
+      <article class="cam">
+        <h3><span class="tag">C</span> Turn to the tank</h3>
+        <video class="film top" src="top-C.mp4" poster="top-C.jpg" muted loop playsinline controls preload="metadata" aria-label="Camera C, turn to the tank"></video>
+        <p>As B, and whenever a tank comes within 90 m of your men the camera turns to face it and slides a little toward it (8 m at most), so the tank is up the screen wherever it is. Once it's knocked out, back to the road.</p>
+        <dl class="pros"><dt>Good</dt><dd>The tank stays in view on every map, wherever it comes from.</dd><dt>Not so good</dt><dd>Here it's much like B, because this tank comes down the road. While a tank is about, the camera keeps looking at it rather than where you're going.</dd></dl>
+      </article>
+      <article class="cam">
+        <h3><span class="tag">D</span> Frame both</h3>
+        <video class="film top" src="top-D.mp4" poster="top-D.jpg" muted loop playsinline controls preload="metadata" aria-label="Camera D, frame both"></video>
+        <p>As C, and it also pulls back as far as it needs to keep your men and the tank on the screen together, then closes in again as the tank comes near.</p>
+        <dl class="pros"><dt>Good</dt><dd>You see the whole fight: your men, the tank and the men coming with it.</dd><dt>Not so good</dt><dd>Your men are small while the tank is far off, and the view keeps zooming.</dd></dl>
+      </article>
+    </div>
+    <h3>Three moments side by side</h3>
+    <img class="sheet" src="top-sheet.jpg" alt="The four cameras (A to D, across) at three moments (down): on the top before the tank, the tank driving in, and the tank close" loading="lazy">
+    <p class="note"><strong>My pick: C.</strong> On the top it faces down the road like B, and when a tank comes it turns to it. Here that gives the same view as B; on the other maps the tank stays in view wherever it drives. D shows the most, but on a phone your men get too small.</p>
+  </section>
+
+  <section aria-labelledby="fol-h">
+    <h2 id="fol-h">2 · The squad you aren't playing</h2>
+    <div class="intro">
+      <p><strong>The control.</strong> The team tabs come back as they were before Version 168: tap ALPHA or BRAVO to play that squad. The tab of the squad you aren't playing gets a small switch: FOLLOW, the default, or HOLD. Tap it to change. On HOLD the squad stays in cover where it is and pins down whatever yours is shooting. Playing Bravo, it's Alpha's tab that has the switch. Try it here:</p>
+    </div>
+    <div class="mock" aria-label="A working model of the team tabs">
+      <div class="tabs">
+        <div class="gtab on" id="tabA" style="--tc:var(--alpha)"><button type="button" class="tabbtn" id="tabBtnA" aria-pressed="true"><span>ALPHA</span><span class="pips"><i></i><i></i><i></i><i></i></span></button><button type="button" class="chip" id="chipA" hidden>FOLLOW</button></div>
+        <div class="gtab" id="tabB" style="--tc:var(--bravo)"><button type="button" class="tabbtn" id="tabBtnB" aria-pressed="false"><span>BRAVO</span><span class="pips"><i></i><i></i><i></i><i></i></span></button><button type="button" class="chip" id="chipB">FOLLOW</button></div>
+      </div>
+      <div class="mockside">
+        <b id="mockSay">You're playing Alpha. Bravo follows.</b>
+        <span>Tap a tab to play that squad. Tap FOLLOW or HOLD on the other tab to switch it.</span>
+      </div>
+    </div>
+    <div class="intro">
+      <p><strong>How it follows.</strong> Five ways, each filmed in the same fight from the landing: a bot plays Alpha (every 7 seconds, once it's arrived, a move 15 m further up the beach, and it fires on the nearest enemy it can see). Only Bravo's way of following differs. Bravo's way is drawn as an orange dashed line with a ring where each man is going (the game doesn't draw it). The camera keeps both squads on the screen. Nobody gets hurt in the films; the numbers below come from fights where they do.</p>
+      <p>In every version Bravo still sees to its own wounded first, uses its kit by itself (rockets at tanks and guns, grenades, smoke when pinned), and shoots whoever Alpha is shooting if it can see him.</p>
+    </div>
+    <div class="controls"><button id="syncFol" type="button">Play these films from the start</button></div>
+    <div class="cams three">
+      <article class="cam">
+        <h3><span class="tag">Today</span> Follow</h3>
+        <video class="film fol" src="follow-today.mp4" poster="follow-today.jpg" muted loop playsinline controls preload="metadata" aria-label="Today's follow"></video>
+        <p>The game's FOLLOW now: Bravo goes to cover about 12 m behind Alpha, and only moves up once Alpha has gone 6 m from where it was.</p>
+        <dl class="pros"><dt>Good</dt><dd>Bravo stays out of Alpha's way and out of the worst of the fire.</dd><dt>Not so good</dt><dd>It's always late and far back: two squads, not one team.</dd></dl>
+      </article>
+      <article class="cam">
+        <h3><span class="tag">1</span> Close behind</h3>
+        <video class="film fol" src="follow-shadow.mp4" poster="follow-shadow.jpg" muted loop playsinline controls preload="metadata" aria-label="Option 1, close behind"></video>
+        <p>The moment you send Alpha somewhere, Bravo goes too: to cover about 5 m behind where Alpha is going and 3 m to one side. If it ends up more than 7 m from that, it catches up.</p>
+        <dl class="pros"><dt>Good</dt><dd>One tap moves eight men. Bravo is right there to help Alpha's wounded.</dd><dt>Not so good</dt><dd>Bunched up: a shell or a machine gun can catch both squads.</dd></dl>
+      </article>
+      <article class="cam">
+        <h3><span class="tag">2</span> Side by side</h3>
+        <video class="film fol" src="follow-line.mp4" poster="follow-line.jpg" muted loop playsinline controls preload="metadata" aria-label="Option 2, side by side"></video>
+        <p>The moment you send Alpha, Bravo goes to cover level with where Alpha is going, about 8 m to one side (the other side if there's nothing there). Both squads are in the front line.</p>
+        <dl class="pros"><dt>Good</dt><dd>The most like one big team: twice the guns at the front, spread out.</dd><dt>Not so good</dt><dd>Bravo takes as much fire as Alpha. It needs cover beside yours, and on the narrow draw there isn't always room.</dd></dl>
+      </article>
+      <article class="cam">
+        <h3><span class="tag">3</span> Leapfrog</h3>
+        <video class="film fol" src="follow-leap.mp4" poster="follow-leap.jpg" muted loop playsinline controls preload="metadata" aria-label="Option 3, leapfrog"></video>
+        <p>While Alpha moves, Bravo stays and pins down what Alpha is shooting, or the nearest gun that can see Alpha. When Alpha stops, Bravo moves up past it to cover up to 10 m further on. Then Alpha goes past Bravo, and so on.</p>
+        <dl class="pros"><dt>Good</dt><dd>Real fire and movement: one squad always covers the one moving. Bravo kills the most and loses no more men than today.</dd><dt>Not so good</dt><dd>On average Bravo is as far from Alpha as today, and it moves ahead of where you put Alpha by itself.</dd></dl>
+      </article>
+      <article class="cam">
+        <h3><span class="tag">4</span> Pincer</h3>
+        <video class="film fol" src="follow-flank.mp4" poster="follow-flank.jpg" muted loop playsinline controls preload="metadata" aria-label="Option 4, pincer"></video>
+        <p>Close behind, as in 1, until Alpha opens fire on a man. Then Bravo works round to cover off to one side of him, about 60 degrees round from Alpha at the same range, and throws a grenade at him once he's in reach.</p>
+        <dl class="pros"><dt>Good</dt><dd>The man Alpha is shooting can't hide from both squads.</dd><dt>Not so good</dt><dd>Bravo goes off on its own, and on the beach the side it works round to is often open sand under another gun.</dd></dl>
+      </article>
+    </div>
+    <h3>The numbers</h3>
+    <p class="note">Four fights of two and a half minutes each, from the landing, with real fire. A bot plays Alpha as in the films. The results swing a lot from one fight to the next, so take them as a rough guide.</p>
+    <div class="tablewrap"><!--TABLE--><table>
+<thead><tr><th scope="col">Bravo’s way</th><th scope="col">Apart (m)</th><th scope="col">Over 20 m apart</th><th scope="col">Bravo in front</th><th scope="col">Bravo’s kills</th><th scope="col">Damage taken · Alpha</th><th scope="col">Damage taken · Bravo</th><th scope="col">Men downed · Alpha</th><th scope="col">Men downed · Bravo</th><th scope="col">Furthest up the beach (m)</th><th scope="col">Fights</th></tr></thead>
+<tbody>
+<tr><td>Today · follow</td><td>19.6</td><td>43%</td><td>8%</td><td>5.0</td><td>1147</td><td>640</td><td>6.5</td><td>2.8</td><td>97</td><td>4</td></tr>
+<tr><td>1 · Close behind</td><td>13.0</td><td>15%</td><td>30%</td><td>5.5</td><td>1214</td><td>1019</td><td>6.2</td><td>5.0</td><td>100</td><td>4</td></tr>
+<tr><td>2 · Side by side</td><td>12.0</td><td>11%</td><td>20%</td><td>1.8</td><td>1102</td><td>965</td><td>6.5</td><td>5.2</td><td>129</td><td>4</td></tr>
+<tr><td>3 · Leapfrog</td><td>20.3</td><td>41%</td><td>25%</td><td>6.0</td><td>1250</td><td>1007</td><td>6.5</td><td>2.8</td><td>132</td><td>4</td></tr>
+<tr><td>4 · Pincer</td><td>18.4</td><td>40%</td><td>32%</td><td>4.2</td><td>1196</td><td>933</td><td>6.0</td><td>2.8</td><td>125</td><td>4</td></tr>
+</tbody>
+</table><!--/TABLE--></div>
+    <p class="note"><strong>My pick: 2, side by side, taken in turns.</strong> Side by side keeps Bravo closest (12 m from Alpha on average, against 20 m today) and one tap moves both squads. The catch: with the two squads that close together, Bravo had about twice as many men knocked down (5 a fight against under 3), most likely because one shell or one machine gun can catch both squads at once. It also shot less while it kept moving with Alpha. Leapfrog kept Bravo's losses as low as today's and had it kill the most, because it stands and shoots while Alpha moves. So I'd build side by side in turns: while Alpha runs, Bravo pins down whatever Alpha is shooting; once Alpha is in cover, Bravo moves up beside it, a little further out than here (10 to 12 m), so one shell can't catch both.</p>
+  </section>
+
+  <footer class="next">
+    <h2>Next</h2>
+    <p>Pick a camera and a way to follow, or a mix of them. I'll build them with the team tabs and the FOLLOW / HOLD switch on the other squad's tab. The tabs replace Lead one squad and its swap button, so that switch would come off the start card.</p>
+  </footer>
+</div>
+
+<script>
+// "Play these films from the start": every film in that section back to 0:00 together
+(function(){
+  const sync=(btn,cls)=>{const b=document.getElementById(btn);if(!b)return;b.addEventListener('click',()=>{for(const v of document.querySelectorAll('video.'+cls)){try{v.currentTime=0;}catch(e){}const p=v.play();if(p&&p.catch)p.catch(()=>{});}});};
+  sync('syncTop','top');sync('syncFol','fol');
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)for(const v of document.querySelectorAll('video')){v.removeAttribute('autoplay');v.pause();}
+  // the tabs' model: tap a tab to play that squad; the other squad's tab carries FOLLOW / HOLD
+  const mode={A:'FOLLOW',B:'FOLLOW'};let active='A';const say=document.getElementById('mockSay');
+  const name=t=>t==='A'?'Alpha':'Bravo';
+  function draw(){
+    for(const t of['A','B']){const on=t===active,box=document.getElementById('tab'+t),btn=document.getElementById('tabBtn'+t),c=document.getElementById('chip'+t);
+      box.classList.toggle('on',on);btn.setAttribute('aria-pressed',on?'true':'false');c.hidden=on;c.textContent=mode[t];c.classList.toggle('hold',mode[t]==='HOLD');
+      c.setAttribute('aria-label',`${name(t)}: ${mode[t]==='HOLD'?'holding, tap to follow':'following, tap to hold'}`);}
+    const o=active==='A'?'B':'A';say.textContent=`You're playing ${name(active)}. ${name(o)} ${mode[o]==='HOLD'?'holds where it is':'follows'}.`;}
+  for(const t of['A','B']){document.getElementById('tabBtn'+t).addEventListener('click',()=>{active=t;draw();});
+    document.getElementById('chip'+t).addEventListener('click',()=>{mode[t]=mode[t]==='FOLLOW'?'HOLD':'FOLLOW';draw();});}
+  draw();
+})();
+</script>
