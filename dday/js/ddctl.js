@@ -72,7 +72,7 @@ function ddcPin(free,T){if(!T)return 0;let n=0;for(const u of free)if(!u.path.le
 // once he's down they hold that cover until yours moves on; over too once yours shoots someone else while he isn't shooting at yours, or after
 // 25 s. Not with a man of its own down, or fewer than two over half health to go. Every gun of theirs counts, noticed or not; he counts too
 // on the way unless the gunner stays on him or he's kept down; no other man of theirs within 20 m of a place, no tank near it. On the
-// screen (ddcCoopDraw): an arrow on the ground from them to the spot while they go, the man ringed and marked PINCER, lines from both squads
+// screen (ddcCoopDraw): an arrow on the ground from them to the spot while they go, the man ringed and marked FLANKED, lines from both squads
 // to him once they're in place; one banner as it starts
 const DDC_PINCER={near:120,far:300,arcLo:.6,arcHi:1.57,walk:450,expose:4,smoke:10,every:2,again:20,max:25,reach:520,clear:200,hp:50,supp:.4,tank:500};
 // (safe-ish, as measured in the village, 18 fights a version: counting only their alerted guns, the squad swung round toward men who hadn't
@@ -217,7 +217,7 @@ function ddcHud(){
 }
 // over the other squad: who they are and what they're doing
 // Version 181: the squads working together, on the screen (ddcFrame, each frame): the pincer's arrow while they go, its man ringed and marked
-// PINCER, lines from both squads to him once they're in place; while it covers yours, thin lines from its men to the man they pin down; for a
+// FLANKED (PINCER in Version 181; Bryan: "flank everywhere because I didn't know what pincer meant"), lines from both squads to him once they're in place; while it covers yours, thin lines from its men to the man they pin down; for a
 // moment after it's sent beside yours, faint rings where its men are going (the other squad's routes aren't drawn otherwise)
 function ddcCoopDraw(){
   if(!ddcLead())return;const o=ddcOther(),S=dd.supS&&dd.supS[o];if(!S)return;const col=ddcCol(o),mine=ddcCol(dd.active);
@@ -230,7 +230,7 @@ function ddcCoopDraw(){
       if(pts.length>2){for(const[w,c]of[[7,'rgba(8,11,14,.55)'],[3.5,col]]){ox.lineWidth=w;ox.strokeStyle=c;ox.setLineDash(w>5?[]:[10,7]);ox.beginPath();pts.forEach((q,i)=>i?ox.lineTo(q[0],q[1]):ox.moveTo(q[0],q[1]));ox.stroke();}
         ox.setLineDash([]);const e=pts[pts.length-1],f=pts[pts.length-3],an=Math.atan2(e[1]-f[1],e[0]-f[0]);ox.fillStyle=col;ox.strokeStyle='rgba(8,11,14,.6)';ox.lineWidth=2;ox.beginPath();
         ox.moveTo(e[0]+Math.cos(an)*9,e[1]+Math.sin(an)*9);ox.lineTo(e[0]+Math.cos(an+2.4)*11,e[1]+Math.sin(an+2.4)*11);ox.lineTo(e[0]+Math.cos(an-2.4)*11,e[1]+Math.sin(an-2.4)*11);ox.closePath();ox.stroke();ox.fill();}}
-    const q=P(T.x,T.y,10),qh=P(T.x,T.y,24);if(q){ox.lineWidth=2.5;ox.strokeStyle=col;ox.globalAlpha=.55+.45*pulse;ox.beginPath();ox.arc(q[0],q[1],13+3*pulse,0,TAU);ox.stroke();ox.globalAlpha=1;if(qh)ddcPill('PINCER',qh[0],qh[1]-32,col);}   // (the tag above his health bar and PINNED: overlay.js puts them 6 and 14 px over his head)
+    const q=P(T.x,T.y,10),qh=P(T.x,T.y,24);if(q){ox.lineWidth=2.5;ox.strokeStyle=col;ox.globalAlpha=.55+.45*pulse;ox.beginPath();ox.arc(q[0],q[1],13+3*pulse,0,TAU);ox.stroke();ox.globalAlpha=1;if(qh)ddcPill('FLANKED',qh[0],qh[1]-32,col);}   // (the tag above his health bar and PINNED: overlay.js puts them 6 and 14 px over his head)
     if(g.there&&q){const A=players.filter(p=>p.team===dd.active&&alive(p)),B=goers;   // both squads on him
       for(const[L,c]of[[A,mine],[B,col]]){if(!L.length)continue;const m=ddcMid(L),r=P(m.x,m.y,14);if(!r)continue;ox.lineWidth=2;ox.strokeStyle=c;ox.globalAlpha=.75;ox.setLineDash([6,5]);ox.beginPath();ox.moveTo(r[0],r[1]);ox.lineTo(q[0],q[1]);ox.stroke();}
       ox.setLineDash([]);ox.globalAlpha=1;}}
