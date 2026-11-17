@@ -4,14 +4,11 @@
    dday-controls-draft-1.png and -2.png): "Can you link both drafts so I can test it". Each can be switched off on the start card (DDC, kept in
    localStorage 'warehouseYard.ddctl.v1'), which brings the Version 167 controls back.
 
-   Draft 1, lead one squad and the other backs you up (DDC.lead): the team tabs go (body.ddlead); a swap button and FOLLOW / HOLD for the
-   other squad sit over the squad's bar, bottom right (#ddSwap, ddcHud). The other squad (ddcSupport, once a second, in place of ddplay.js's
-   ddSquadAI on the beach and ddvillage.js's vgFollow in the village; in the counterattack too): its own wounded first, its kit as the
-   village's follow used it (ddfp.js's fpTools), the man your squad is shooting as its target, and
-   - FOLLOW: cover 10-15 m behind yours and a little to one side ("behind" as seen from where you're going: the objective, else the enemy you
-     know of, else north), moved up when yours has moved on;
-   - HOLD: it stays where it is (in cover near there), pinning down whatever yours is shooting, else the nearest machine gun it can see.
-   Both start on FOLLOW, the counterattack too (Version 169, Bryan: "Follow by default"). Lose the squad you lead (everyone down) and you take over the other (ddcLeadCheck).
+   Draft 1, lead one squad and the other backs you up (DDC.lead, Versions 168 to 179): the team tabs went and a swap button with FOLLOW / HOLD
+   sat over the squad's bar. Since Version 180 (Bryan: "I like how I originally selected the squads, but I want Bravo to follow by default,
+   closer and more aggressive"; then "Let's make the squads work together actively") the start card's switch is gone and it's always on:
+   the team tabs are back, the other squad's tab carries FOLLOW / HOLD (ddcHud, ddcChip, ddcToggle), and the other squad fights beside yours
+   (ddcSupport, below). Lose everyone in the squad you play and you play the other (ddcLeadCheck).
    Draft 2, the target first (DDC.ring): a tap on an enemy has your squad open fire as before and brings up a ring of what you can do to him
    (Suppress, Grenade, Rifle grenade, Bazooka, each saying who would do it and how far; greyed if nobody can), on a tank and on the wire the
    same (the wire's has MOVE HERE too); the game at quarter speed while it's up (state.js's timeScale asks ddcSlow), gone after 4.5 s or a tap
@@ -19,7 +16,7 @@
    any of them who can't see him, while his ring is up and for 4 s after the order (ddcLines). Versions 168 to 172 had the bar's tools dragged onto the
    map; since Version 173 (Bryan: "No finger dragging. I am clicking") a tool is tapped into hand and the map tapped, as before, and while it's in hand
    the ground the man holding it can reach is filled orange (ddcReach, below). */
-const DDC=(()=>{const o={lead:true,ring:true};try{const s=JSON.parse(localStorage.getItem('warehouseYard.ddctl.v1')||'null');if(s&&typeof s==='object'){if(typeof s.lead==='boolean')o.lead=s.lead;if(typeof s.ring==='boolean')o.ring=s.ring;}}catch(e){}return o;})();
+const DDC=(()=>{const o={lead:true,ring:true};try{const s=JSON.parse(localStorage.getItem('warehouseYard.ddctl.v1')||'null');if(s&&typeof s==='object'){if(typeof s.ring==='boolean')o.ring=s.ring;}}catch(e){}return o;})();   // (lead: since Version 180 always, the start card's switch gone; ring: Tap an enemy for actions)
 function ddcSave(){try{localStorage.setItem('warehouseYard.ddctl.v1',JSON.stringify(DDC));}catch(e){}}
 const ddcOn=()=>MAPID==='dd'&&!!dd&&state==='play'&&!!dd.land&&dd.land.done&&!dd.seq;
 const ddcLead=()=>ddcOn()&&DDC.lead&&!dd.fp;
@@ -30,7 +27,7 @@ function ddcMid(L){return{x:L.reduce((a,u)=>a+u.x,0)/L.length,y:L.reduce((a,u)=>
 let ddcR=null;
 function ddcSlow(){return ddcOn()&&!!ddcR&&performance.now()-ddcR.t0<4600;}
 
-/* ---------- Draft 1: the other squad backs you up ---------- */
+/* ---------- the squad you aren't playing ---------- */
 function ddcMode(t){const S=dd.sup||(dd.sup={A:'follow',B:'follow'});return S[t]||'follow';}   // (FOLLOW to start everywhere, the counterattack too: Bryan, after Version 168, "Follow by default")
 const ddcBusy=u=>!!(u.medGo||u.throwGo||u.rpgAim||u.carry||u.carryGo||u.helpGo||u.raise||u.onGun||u.dcGun||u.build||u.fp||u.joining)||simT-(u.lastOrder??-99)<4;   // (on a job, or given an order of yours a moment ago)
 // where a squad may be sent: the beach's strip (off it a man dies of it after 10 s: ddplay.js's ddTick), the village's ground, else the camera's bounds
@@ -40,90 +37,132 @@ function ddcBound(x,y){
   if(!dd.counter)return[clamp(x,DDX+16,Y<-440?1780:DDX+DDW-16),Y];
   return[clamp(x,VB.x0+20,VB.x1-20),Y];
 }
+/* Version 180 (Bryan, on the follow drafts, docs/drafts/hill-follow/: side by side, then "let the ai/npc determine if a pincer move is a good
+   move at the moment. Let's make the squads work together actively"): once a second (from ddplay.js's ddTick, ddvillage.js's vgTick and
+   ddcounter.js's dcTick) for the squad you aren't playing, either way round:
+   - its own wounded first, its kit (ddfp.js's fpTools), and the man yours is shooting taken up by any of its men who can see him;
+   - HOLD: it stays where it is and pins him down, else the nearest machine gun it can see;
+   - FOLLOW, side by side: when you send yours somewhere it goes to cover level with where yours is going, about 10 m to one side (Bravo on
+     Alpha's right, Alpha on Bravo's left, as seen from where they're going: the route on the beach, else the objective, else the enemy; the
+     other side if nothing fits there), and catches up when it's 7 m off that (every 3 s at most). If yours is being shot at on its way, it
+     first pins down whoever's shooting at yours (COVERING), and moves up once yours is there or after 6 s;
+   - the man yours is shooting dug in behind cover from yours: a grenade at him from one of its men in reach (every 8 s at most), and the
+     pincer when it's safe (FLANKING): round to a spot at his side where his cover doesn't help him, that no other gun of theirs has an open
+     shot at (ddplay.js's ddOpenN leaving him out), by a way with no more than one 4 m stretch open to any of them (ddcWayOK), no more than
+     38 m to walk, with none of its men down and most of them free; back beside yours once he's down, yours shoots someone else, or after 25 s.
+   Tried first in tools/drafts/dday-follow-draft.js (variants line and safe). */
+const DDC_SIDE=100,DDC_CATCH=70;
+function ddcS(t){const S=dd.supS||(dd.supS={});return S[t]||(S[t]={});}
+function ddcFwd(D){   // the way they're going, from where yours is going
+  const w=typeof ddRouteWay==='function'?ddRouteWay(D.x,D.y):null;if(w)return w;
+  const O=typeof ddObjective==='function'?ddObjective():null;if(O&&O.x!=null&&hyp(O.x-D.x,O.y-D.y)>40){const d=hyp(O.x-D.x,O.y-D.y);return{x:(O.x-D.x)/d,y:(O.y-D.y)/d};}
+  const th=enemies.filter(e=>!beaten(e)&&(e.seen||e.vis)&&hyp(e.x-D.x,e.y-D.y)<600);if(th.length){const c=ddcMid(th),d=hyp(c.x-D.x,c.y-D.y)||1;return{x:(c.x-D.x)/d,y:(c.y-D.y)/d};}
+  return{x:0,y:-1};
+}
+function ddcSend(free,cands){for(const[x,y]of cands){const[tx,ty]=ddcBound(x,y),as=makeAssign(free,tx,ty);if(as.length){for(const q of as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});return{x:tx,y:ty};}}return null;}
+function ddcPin(free,T){if(!T)return 0;let n=0;for(const u of free)if(!u.path.length&&hyp(u.x-T.x,u.y-T.y)<=wRange(u)&&fireLine(u,T)){if(!u.supT||hyp(u.supT.x-T.x,u.supT.y-T.y)>40)Object.assign(u,{supT:{x:T.x,y:T.y},noLine:0});n++;}return n;}
+function ddcWayOK(x0,y0,path,skip){   // the way's length, or -1 if more than one 4 m stretch of it is open to a gun of theirs (leaving out skip)
+  let bad=0,L=0,px=x0,py=y0;
+  for(const q of path){const d=hyp(q.x-px,q.y-py),n=Math.max(1,Math.round(d/40));for(let k=1;k<=n;k++){const x=px+(q.x-px)*k/n,y=py+(q.y-py)*k/n;if(ddOpenN(x,y,skip)>0&&++bad>1)return -1;}L+=d;px=q.x;py=q.y;}
+  return L;
+}
+// the squad's places at a pincer spot: a short line across his way, 4 m apart, each with a clean shot at him that his cover doesn't stop and out
+// of every other gun's sight (the usual group move tucks men behind whatever hides them best, which here hid him from them too); a man to each
+// place, nearest first, by a way the nav grid finds
+function ddcFlankPlaces(free,x,y,F){
+  const dx=F.x-x,dy=F.y-y,d=hyp(dx,dy)||1,px=-dy/d,py=dx/d,bx=-dx/d,by=-dy/d,P=[];
+  for(const k of[0,1,-1,2,-2,3,-3]){if(P.length>=free.length)break;
+    for(const back of[0,20,40]){const qx=x+px*k*40+bx*back,qy=y+py*k*40+by*back;
+      if(isFree(qx,qy)&&los(qx,qy,F.x,F.y)&&coverAt(F.x,F.y,qx,qy)===0&&ddOpenN(qx,qy,F)===0&&!P.some(o=>hyp(o.x-qx,o.y-qy)<30)){P.push({x:qx,y:qy});break;}}}
+  const left=free.slice(),as=[];
+  for(const q of P){left.sort((a,b)=>hyp(a.x-q.x,a.y-q.y)-hyp(b.x-q.x,b.y-q.y));for(let i=0;i<left.length;i++){const p=findPath(left[i].x,left[i].y,q.x,q.y);if(p&&p.length){as.push({u:left[i],path:p});left.splice(i,1);break;}}}
+  return as;
+}
+function ddcFlankSpot(t,free,lead,F){   // a safe spot round F's side and the squad's places there ({x,y,as}), or null
+  const Am=ddcMid(lead),Bm=ddcMid(free),a0=Math.atan2(Am.y-F.y,Am.x-F.x),s=t==='B'?1:-1;let tries=0;
+  for(const sd of[s,-s])for(const da of[1.1,.8,1.4,.6])for(const r of[220,170,280,130]){
+    if(tries>=4)return null;
+    const x=F.x+Math.cos(a0+sd*da)*r,y=F.y+Math.sin(a0+sd*da)*r,[bx,by]=ddcBound(x,y);
+    if(hyp(bx-x,by-y)>1||!isFree(x,y)||!los(x,y,F.x,F.y)||coverAt(F.x,F.y,x,y)>0||ddOpenN(x,y,F)>0)continue;   // (from there his cover doesn't help him, and no other gun sees it)
+    tries++;const p=findPath(Bm.x,Bm.y,x,y);if(!p||!p.length)continue;const L=ddcWayOK(Bm.x,Bm.y,p,F);if(L<0||L>380)continue;
+    const as=ddcFlankPlaces(free,x,y,F);if(as.length<Math.min(3,free.length))continue;
+    return{x,y,as};
+  }
+  return null;
+}
 function ddcSupport(t){
   const m=players.filter(p=>p.team===t&&alive(p)&&!p.inBoat&&!p.joining);if(!m.length)return;
-  const A=dd.supA||(dd.supA={});
-  if(dd.supLast!==dd.active){dd.supLast=dd.active;   // (just swapped: the squad you've let go stays put until yours moves on)
-    const L0=players.filter(p=>p.team!==t&&alive(p)&&!p.inBoat);if(L0.length){const c=ddcMid(L0),M0=ddcMid(m);A[t]={x:c.x,y:c.y,px:M0.x,py:M0.y,t:simT};}}
-  // their own wounded first (as ddplay.js's ddSquadAI does)
+  const S=ddcS(t),lead=players.filter(p=>p.team!==t&&alive(p)&&!p.inBoat&&!p.joining);
+  if(dd.supLast!==dd.active){dd.supLast=dd.active;Object.assign(S,{fl:null,wait:null,stay:true,D:lead.length?ddcMid(lead.map(destOf)):null});}   // (just swapped: the squad you've let go stays put until yours moves on)
+  // their own wounded first
   for(const d of players.filter(p=>p.team===t&&p.downed&&!p.dead&&!p.carriedBy)){
-    const free=m.filter(u=>!u.path.length&&!u.medGo&&!pinnedNow(u)&&!u.onGun).sort((a,b)=>hyp(a.x-d.x,a.y-d.y)-hyp(b.x-d.x,b.y-d.y));if(!free.length)break;
-    if(d.critical){const k=free.find(hasKit);if(k&&!m.some(u=>u.medGo&&u.medGo.t===d))orderMedkit(k,d);continue;}
-    if(helperOf(d))continue;const h=free[0];if(hyp(h.x-d.x,h.y-d.y)>22){const p=goBeside(h,d);if(p&&p.length){h.path=p;h.gaitForce=null;}}
+    const fr=m.filter(u=>!u.path.length&&!u.medGo&&!pinnedNow(u)&&!u.onGun).sort((a,b)=>hyp(a.x-d.x,a.y-d.y)-hyp(b.x-d.x,b.y-d.y));if(!fr.length)break;
+    if(d.critical){const k=fr.find(hasKit);if(k&&!m.some(u=>u.medGo&&u.medGo.t===d))orderMedkit(k,d);continue;}
+    if(helperOf(d))continue;const h=fr[0];if(hyp(h.x-d.x,h.y-d.y)>22){const p=goBeside(h,d);if(p&&p.length){h.path=p;h.gaitForce=null;}}
   }
   if(typeof fpTools==='function')fpTools(m,m[0]);   // its kit: a rocket at a tank, a grenade where they're bunched or dug in, smoke when pinned (ddfp.js)
-  const lead=players.filter(p=>p.team!==t&&alive(p)&&!p.inBoat&&!p.joining),mode=ddcMode(t),free=m.filter(u=>!ddcBusy(u)&&!pinnedNow(u));
-  // the man your squad is shooting is theirs too, for those who can see him
-  const F=lead.map(u=>u.focus).find(e=>e&&!beaten(e));
+  const mode=ddcMode(t),free=m.filter(u=>!ddcBusy(u)&&!pinnedNow(u));
+  const F=lead.map(u=>u.focus).find(e=>e&&!beaten(e));   // the man yours is shooting is theirs too, for those who can see him
   if(F)for(const u of free)if(u.focus!==F&&hyp(u.x-F.x,u.y-F.y)<=wRange(u)&&fireLine(u,F))u.focus=F;
-  if(mode==='hold'){   // holding: they pin it down (or the nearest machine gun they can see)
-    const T=F||enemies.filter(e=>e.gunner&&!beaten(e)&&(e.seen||e.vis)).sort((a,b)=>hyp(a.x-m[0].x,a.y-m[0].y)-hyp(b.x-m[0].x,b.y-m[0].y))[0];
-    if(T)for(const u of free)if(!u.supT&&!u.path.length&&hyp(u.x-T.x,u.y-T.y)<=wRange(u)&&fireLine(u,T))Object.assign(u,{supT:{x:T.x,y:T.y},noLine:0});
-    return;
-  }
-  if(!lead.length||!free.length||free.some(u=>u.path.length))return;   // (on their way already)
-  const L=ddcMid(lead),M=ddcMid(free),a=A[t];
-  if(a&&simT-a.t<3)return;
-  if(a&&hyp(L.x-a.x,L.y-a.y)<60&&hyp(M.x-a.px,M.y-a.py)<90)return;   // (yours hasn't moved on, and they're about where they were sent)
-  // behind yours as seen from where you're going: the objective, else the enemy you know of, else north; and a little to one side
-  let fx=0,fy=-1;const O=typeof ddObjective==='function'?ddObjective():null;
-  if(O&&O.x!=null&&hyp(O.x-L.x,O.y-L.y)>40){const d=hyp(O.x-L.x,O.y-L.y);fx=(O.x-L.x)/d;fy=(O.y-L.y)/d;}
-  else{const th=enemies.filter(e=>!beaten(e)&&(e.seen||e.vis)&&hyp(e.x-L.x,e.y-L.y)<600);if(th.length){const c=ddcMid(th),d=hyp(c.x-L.x,c.y-L.y)||1;fx=(c.x-L.x)/d;fy=(c.y-L.y)/d;}}
-  const side=t==='B'?1:-1;let tx=0,ty=0,as=[];
-  for(const[back,off]of[[120,45],[85,25],[50,0]]){[tx,ty]=ddcBound(L.x-fx*back-fy*side*off,L.y-fy*back+fx*side*off);   // (nowhere to stand there: a little nearer yours)
-    if(hyp(M.x-tx,M.y-ty)<70){A[t]={x:L.x,y:L.y,px:M.x,py:M.y,t:simT};return;}   // (already about there)
-    as=makeAssign(free,tx,ty);if(as.length)break;}
-  if(!as.length){A[t]={x:L.x,y:L.y,px:M.x,py:M.y,t:simT};return;}
-  for(const q of as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});
-  A[t]={x:L.x,y:L.y,px:tx,py:ty,t:simT};
+  S.act=mode;
+  if(mode==='hold'){S.fl=null;S.wait=null;ddcPin(free,F||enemies.filter(e=>e.gunner&&!beaten(e)&&(e.seen||e.vis)).sort((a,b)=>hyp(a.x-m[0].x,a.y-m[0].y)-hyp(b.x-m[0].x,b.y-m[0].y))[0]);return;}
+  if(!lead.length||!free.length)return;
+  const Am=ddcMid(lead),dug=!!F&&(F.seen||F.vis)&&coverAt(F.x,F.y,Am.x,Am.y)>0;
+  // the man yours is shooting, dug in: a grenade at him, and the pincer if it's safe
+  if(dug&&simT-(S.nadeT??-99)>8){const g=free.find(u=>(u.grenade||0)>0&&!u.path.length&&simT-(u.nadeT??-99)>5&&hyp(u.x-F.x,u.y-F.y)<nadeRange(u)&&!dd.allies.some(q=>hyp(q.x-F.x,q.y-F.y)<75));if(g&&orderThrow(g,F.x,F.y,'nade'))S.nadeT=simT;}
+  if(S.fl){const g=S.fl;if(!beaten(g.F)&&lead.some(u=>u.focus===g.F)&&simT-g.t<25){S.act='flank';return;}S.fl=null;S.t=-99;S.stay=false;}   // (done: back beside yours)
+  if(dug&&!players.some(p=>p.team===t&&p.downed&&!p.dead)&&free.length>=Math.min(3,m.length)&&simT-(S.flT??-99)>2){S.flT=simT;
+    const spot=ddcFlankSpot(t,free,lead,F);if(spot){for(const q of spot.as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});Object.assign(S,{fl:{F,t:simT,to:{x:spot.x,y:spot.y}},wait:null,stay:false,act:'flank'});return;}}
+  // side by side; covering yours first while it's being shot at on its way
+  const D=ddcMid(lead.map(destOf)),f=ddcFwd(D),rx=-f.y,ry=f.x,s=t==='B'?1:-1,want={x:D.x+rx*s*DDC_SIDE,y:D.y+ry*s*DDC_SIDE},B=ddcMid(free.map(destOf));
+  const fresh=lead.some(u=>simT-(u.lastOrder??-99)<1.5)&&(!S.D||hyp(D.x-S.D.x,D.y-S.D.y)>30);
+  if(fresh){S.D=D;S.stay=false;S.wait=lead.some(u=>u.path.length&&shootersOf(u).length)?{t:simT}:null;}
+  if(S.wait){
+    if(lead.some(u=>u.path.length&&simT-(u.lastOrder??-99)<8)&&simT-S.wait.t<6){S.act='cover';const sh=lead.flatMap(u=>shootersOf(u)).sort((a,b)=>hyp(a.x-Am.x,a.y-Am.y)-hyp(b.x-Am.x,b.y-Am.y));ddcPin(free,sh[0]||F);return;}
+    S.wait=null;S.t=-99;}   // (yours is there, or long enough: up beside it now)
+  else if(!fresh&&(S.stay||simT-(S.t??-99)<3||hyp(B.x-want.x,B.y-want.y)<DDC_CATCH||free.some(u=>u.path.length)))return;
+  S.t=simT;
+  S.to=ddcSend(free,[[0,DDC_SIDE],[0,80],[-12,120],[12,70],[-20,135],[0,-DDC_SIDE],[0,-80]].map(([fw,of])=>[D.x+f.x*fw+rx*s*of,D.y+f.y*fw+ry*s*of]))||S.to;
 }
-// everyone you lead is down and the other squad has men up: you lead that one now
+// everyone you play down and the other squad has men up: you play that one now
 function ddcLeadCheck(){
   if(!ddcLead())return;const a=dd.active,o=ddcOther();
   if(players.some(p=>p.team===a&&alive(p))||!players.some(p=>p.team===o&&alive(p)&&!p.inBoat))return;
-  selectTeam(o);banner(`${ddcName(a)} is down. You lead ${ddcName(o)}.`,2600);
+  selectTeam(o);banner(`${ddcName(a)} is down. You play ${ddcName(o)} now.`,2600);
 }
-// FOLLOW / HOLD for the other squad over the swap button, bottom right over the squad's bar
-let ddcSw=null;
-function ddcSwapEl(){
-  if(ddcSw)return ddcSw;const st=$('#stage');if(!st)return null;
-  const d=document.createElement('div');d.id='ddSwap';d.hidden=true;
-  d.innerHTML='<div class="ddc-seg"><button type="button" data-m="follow">FOLLOW</button><button type="button" data-m="hold">HOLD</button></div>'+
-    '<button type="button" class="ddc-swap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/></svg><span><b></b><small>TAP TO LEAD</small><i class="ddc-pips"></i></span></button>';
-  st.appendChild(d);
-  d.addEventListener('click',ev=>{
-    const b=ev.target.closest('button');if(!b||!ddcLead()||ddBusy())return;const o=ddcOther();
-    if(b.classList.contains('ddc-swap')){
-      if(!players.some(p=>p.team===o&&alive(p)&&!p.inBoat)){banner(`${ddcName(o)} has nobody up.`,1500);return;}
-      ddcClose();ddToolEnd();preview=null;mode=null;selectTeam(o);}
-    else if(b.dataset.m&&ddcMode(o)!==b.dataset.m){
-      dd.sup[o]=b.dataset.m;if(dd.supA)dd.supA[o]=null;
-      if(b.dataset.m==='hold'){   // they settle into cover where they are
-        const m=players.filter(p=>p.team===o&&alive(p)&&!p.inBoat&&!ddcBusy(p));
-        if(m.length){const c=ddcMid(m),as=makeAssign(m,c.x,c.y);for(const q of as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0});}}
-      banner(b.dataset.m==='hold'?`${ddcName(o)} holds here.`:`${ddcName(o)} follows you.`,1600);}
-    ddcHud();hud();});
-  return ddcSw=d;
+// Version 180: the team tabs as they were before Version 168 (Bryan: "I like how I originally selected the squads"); the other squad's tab
+// carries a small FOLLOW / HOLD switch (.ddchip): a tap on it switches, a tap on the rest of the tab plays that squad (hud.js's tabSelect)
+function ddcToggle(o){
+  if(!ddcLead()||ddBusy())return;const md=ddcMode(o)==='hold'?'follow':'hold';dd.sup[o]=md;Object.assign(ddcS(o),{fl:null,wait:null,stay:false,D:null,t:-99});
+  if(md==='hold'){   // they settle into cover where they are
+    const m=players.filter(p=>p.team===o&&alive(p)&&!p.inBoat&&!ddcBusy(p));
+    if(m.length){const c=ddcMid(m),as=makeAssign(m,c.x,c.y);for(const q of as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0});}}
+  banner(md==='hold'?`${ddcName(o)} holds here.`:`${ddcName(o)} follows you.`,1600);ddcHud();hud();
+}
+function ddcChip(tab,t){
+  let c=tab.querySelector('.ddchip');if(c)return c;
+  c=document.createElement('span');c.className='ddchip';c.setAttribute('role','button');c.tabIndex=0;tab.appendChild(c);
+  const go=ev=>{ev.stopPropagation();ev.preventDefault();ddcToggle(t);};   // (not the tab's own tap: that plays the squad)
+  c.addEventListener('click',go);c.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' ')go(ev);});
+  return c;
 }
 function ddcHud(){
-  document.body.classList.toggle('ddlead',MAPID==='dd'&&!!dd&&DDC.lead);
-  const d=ddcSwapEl();if(!d)return;const on=ddcLead()&&!dd.fp&&!!sel.length;
-  if(d.hidden===on){d.hidden=!on;d._new=on;}if(!on)return;
-  const o=ddcOther(),mode=ddcMode(o),men=players.filter(p=>p.team===o),pip=u=>u.dead?'#4a5056':u.downed?'#ff5a48':u.hp>=70?'#5fe08e':u.hp>=35?'#ffcf4a':'#ff9a4a';
-  const key=o+mode+men.map(pip).join('');
-  if(d.dataset.k!==key){d.dataset.k=key;d.style.setProperty('--c',ddcCol(o));d.querySelector('.ddc-swap b').textContent=ddcName(o).toUpperCase();
-    d.querySelector('.ddc-swap').setAttribute('aria-label',`Lead ${ddcName(o)}`);
-    for(const b of d.querySelectorAll('.ddc-seg button'))b.classList.toggle('on',b.dataset.m===mode);
-    d.querySelector('.ddc-pips').innerHTML=men.map(u=>`<u style="--p:${pip(u)}"></u>`).join('');}
-  const now=performance.now();if(now-(d._t||0)<250&&!d._new)return;d._t=now;d._new=false;   // (where the bar's top is, looked up four times a second)
-  const sq=$('#sq'),st=$('#stage');if(sq&&st&&!sq.hidden){const r=sq.getBoundingClientRect(),s=st.getBoundingClientRect();const b=Math.round(s.bottom-r.top+8)+'px';if(d.style.bottom!==b)d.style.bottom=b;}
+  const on=ddcLead();
+  for(const tab of document.querySelectorAll('.tab[data-team]')){const t=tab.dataset.team;if(t!=='A'&&t!=='B')continue;
+    let c=tab.querySelector('.ddchip');
+    if(!on||t===dd.active){if(c&&!c.hidden)c.hidden=true;continue;}
+    c=ddcChip(tab,t);if(c.hidden)c.hidden=false;
+    const md=ddcMode(t),txt=md==='hold'?'HOLD':'FOLLOW';
+    if(c.textContent!==txt){c.textContent=txt;c.classList.toggle('hold',md==='hold');c.setAttribute('aria-label',`${ddcName(t)}: ${md==='hold'?'holding, tap to follow':'following, tap to hold'}`);}
+  }
 }
 // over the other squad: who they are and what they're doing
 function ddcLabel(){
   if(!ddcLead())return;const o=ddcOther(),m=players.filter(p=>p.team===o&&alive(p)&&!p.inBoat);if(!m.length)return;
   const c=ddcMid(m);toSBack=false;const[x,y]=toS(c.x,c.y,34);if(toSBack)return;const B=ddBox();
-  if(x<B.l||x>B.r||y<B.top||y>B.bot)return;   // (off the screen: the swap button says where they stand)
-  pill(`${ddcName(o).toUpperCase()} · ${ddcMode(o)==='hold'?'HOLDING':'FOLLOWING'}`,clamp(x,70,cw-70),y,ddcCol(o));
+  if(x<B.l||x>B.r||y<B.top||y>B.bot)return;
+  const a=(dd.supS&&dd.supS[o]&&dd.supS[o].act)||ddcMode(o);
+  pill(`${ddcName(o).toUpperCase()} · ${a==='hold'?'HOLDING':a==='cover'?'COVERING':a==='flank'?'FLANKING':'FOLLOWING'}`,clamp(x,70,cw-70),y,ddcCol(o));
 }
 
 /* ---------- Draft 2: the target first ---------- */
@@ -298,11 +337,10 @@ function ddcFrame(now){
   if(!ddcOn()){if(ddcR)ddcClose();return;}
   ddcLabel();if(DDC.ring&&!dd.fp){ddcLines();ddcRingFrame();}
   if(dd.toolK&&DDC_KIND[dd.toolK]&&!dd.fp)ddcReach(dd.toolK,dd.toolU,performance.now());   // (a tool in hand: its reach; real milliseconds, now is the game's clock)
-  if(!dd.ddcSaid&&(DDC.lead||DDC.ring)){dd.ddcSaid=simT+3;}   // a word on the test controls, a few seconds in
-  else if(dd.ddcSaid>0&&simT>dd.ddcSaid){dd.ddcSaid=-1;banner(DDC.lead&&DDC.ring?'Test controls: ⇄ swaps squads. Tap an enemy for actions.':DDC.lead?'Test controls: ⇄ swaps squads; the other follows you.':'Test controls: tap an enemy for actions.',4200);}
+  if(!dd.ddcSaid){dd.ddcSaid=simT+3;}   // a word on the squads, a few seconds in
+  else if(dd.ddcSaid>0&&simT>dd.ddcSaid){dd.ddcSaid=-1;banner(`${ddcName(ddcOther())} fights beside you. FOLLOW or HOLD on its tab.`,4200);}
 }
 function ddcBind(){
-  const a=$('#ddCtlLead'),b=$('#ddCtlRing');
-  if(a){a.checked=DDC.lead;a.addEventListener('change',()=>{DDC.lead=a.checked;ddcSave();});}
+  const b=$('#ddCtlRing');
   if(b){b.checked=DDC.ring;b.addEventListener('change',()=>{DDC.ring=b.checked;ddcSave();});}
 }

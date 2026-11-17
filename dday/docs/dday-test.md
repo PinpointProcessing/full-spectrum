@@ -714,3 +714,15 @@ Bryan, after a picture of what the pincer means (`docs/drafts/hill-follow/pincer
 - Yes. The game already knows which spots the enemy guns can see (the dodge and the run for cover use it), so the squad you aren't playing can stay beside yours and swing round the man yours is shooting only when: he's behind cover from yours (otherwise there's no need), there's a spot round his side where his cover doesn't help him, no other German gun can see that spot, the way there stays out of their fire (a few metres in the open at most), it's no more than 38 m away, and none of the squad is down and most aren't pinned. Otherwise it stays beside yours. The same works for Alpha when you play Bravo.
 - Tested in the same four beach fights: it never swung. Every time, another gun covered the ground round the man's side, so on the beach it fought like plain side by side. Set up on the top with one man behind a crate and nobody else about, it swung round him; with a second gun watching that ground, it stayed beside Alpha. So it would mostly show up on the top and in the village, where there's more cover and the guns don't all watch each other's sides. The village isn't tested with it yet.
 
+## Version 180: the team tabs are back, and the other squad fights beside yours
+Bryan: "Yeah let the ai/npc determine if a pincer move is a good move at the moment. Let's make the squads work together actively".
+- The team tabs are back, as they were before the swap button: tap ALPHA or BRAVO to play that squad. The tab of the squad you aren't playing has a small switch: FOLLOW (to start) or HOLD. Tap the switch to change it; tap the rest of the tab to play that squad. The start card's Lead one squad switch is gone.
+- On FOLLOW the other squad fights beside yours, either way round:
+  - When you send yours somewhere, it goes to cover beside where yours is going, about 10 m to one side (Bravo on Alpha's right, Alpha on Bravo's left), at the same time, and catches up if it's left behind.
+  - If yours is being shot at as it goes, the other squad first pins down whoever is shooting at yours, then moves up beside yours once it's there.
+  - When the man you're shooting is dug in behind cover, one of its men throws a grenade at him if he's in reach, and it goes round to his side (a pincer) when it judges that safe: a spot where his cover doesn't help him, that no other German gun can see, with a way there that stays out of their fire, not too far, and nobody in the squad down. Otherwise it stays beside yours.
+  - Over the other squad it says what it's doing: FOLLOWING, COVERING, FLANKING or HOLDING.
+- On HOLD it settles into cover where it is and pins down whatever yours is shooting.
+- After you switch squads, the one you let go stays where it is until you move.
+- On the beach you'll rarely see the pincer: the bunkers' crossfire covers the ground round any man's side, so there's almost never a safe spot. On the top and in the village there's more cover.
+

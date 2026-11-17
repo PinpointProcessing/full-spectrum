@@ -1,4 +1,5 @@
-// Version 168, the two test controls (js/ddctl.js): node controls-test.js [W H PORT]
+// Version 168, the two test controls (js/ddctl.js); since Version 180 the team tabs with the FOLLOW / HOLD switch on the other squad's tab in
+// place of Lead one squad's swap button (its start card switch gone): node controls-test.js [W H PORT]
 // Checks: the start card's switches (on by default, kept); Lead one squad: no tabs, the swap button and FOLLOW / HOLD, the other squad
 // following behind yours and holding when told, a swap that leaves the squad let go where it is, the lead passing to the other squad when
 // yours is all down; Tap an enemy for actions: the ring on an enemy (fire order, slow motion, Suppress, Grenade), on the wire (MOVE HERE),
@@ -11,7 +12,7 @@ const W=+process.argv[2]||390,H=+process.argv[3]||760,PO=+process.argv[4]||0;
 const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=0`);await page.setViewportSize({width:W,height:H});
 const ev=(f,a)=>page.evaluate(f,a);let fails=0;
 const ok=async(l,f,a)=>{let r;try{r=await ev(f,a);}catch(e){r={ok:false,err:String(e).slice(0,300)};}if(!r||r.ok===false){fails++;console.log('FAIL',l,JSON.stringify(r));}else console.log('ok',l,JSON.stringify(r));return r;};
-await ok('start card: both switches there and on',()=>{localStorage.removeItem('warehouseYard.ddctl.v1');const a=$('#ddCtlLead'),c=$('#ddCtlRing');return{ok:!!a&&!!c&&a.checked&&c.checked&&DDC.lead&&DDC.ring};});
+await ok('start card: Tap an enemy for actions there and on, no Lead one squad switch (always on)',()=>{localStorage.removeItem('warehouseYard.ddctl.v1');const a=$('#ddCtlLead'),c=$('#ddCtlRing');return{ok:!a&&!!c&&c.checked&&DDC.lead&&DDC.ring};});
 await ok('start card: a switch is kept',()=>{const a=$('#ddCtlRing');a.click();const s1=localStorage.getItem('warehouseYard.ddctl.v1');a.click();const s2=localStorage.getItem('warehouseYard.ddctl.v1');return{ok:/"ring":false/.test(s1)&&/"ring":true/.test(s2)&&DDC.ring,s1,s2};});
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=2;R.battles=2;R.minLevel=3;['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,3,false)));ddmSave&&ddmSave(R);
   Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(11);window.requestAnimationFrame=()=>0;
@@ -27,19 +28,21 @@ await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRea
 // --- the beach
 await page.click('#ddBtn');await page.waitForTimeout(400);
 await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(2);});
-await ok('lead: no tabs, the swap button shows the other squad',()=>{RUN(.2);const sw=$('#ddSwap'),o=dd.active==='A'?'BRAVO':'ALPHA';return{ok:document.body.classList.contains('ddlead')&&getComputedStyle(document.querySelector('.panel')).display==='none'&&!!sw&&!sw.hidden&&sw.querySelector('.ddc-swap b').textContent===o&&sw.querySelector('.ddc-seg .on').dataset.m==='follow',active:dd.active,name:sw&&sw.querySelector('.ddc-swap b').textContent};});
-await ok('lead: the swap button sits over the bar, on screen',()=>{const r=$('#ddSwap').getBoundingClientRect(),q=$('#sq').getBoundingClientRect();return{ok:r.bottom<=q.top+1&&r.right<=innerWidth&&r.top>0,swap:[Math.round(r.left),Math.round(r.top),Math.round(r.right),Math.round(r.bottom)],barTop:Math.round(q.top)};});
-await ok('follow: the other squad comes up behind yours',()=>{const L=LED(),S=SUP(),l0=MID(L),s0=MID(S);const n=MOVE(L,l0.x,l0.y-230);RUN(14);const l1=MID(LED()),s1=MID(SUP());
-  const strip=SUP().every(u=>u.x>DDX-6&&u.x<DDX+DDW+6);return{ok:n>0&&hyp(s1.x-s0.x,s1.y-s0.y)>50&&hyp(s1.x-l1.x,s1.y-l1.y)<260&&s1.y>l1.y-20&&strip,lead:[Math.round(l1.x),Math.round(l1.y)],sup:[Math.round(s1.x),Math.round(s1.y)],moved:Math.round(hyp(s1.x-s0.x,s1.y-s0.y))};});
-await ok('hold: told to hold, they stay where they are',()=>{$('#ddSwap .ddc-seg button[data-m="hold"]').click();const o=dd.active==='A'?'B':'A';RUN(3);const s0=MID(SUP()),L=LED(),l0=MID(L);const tp=TP(L,240,-40);RUN(10);const s1=MID(SUP()),l1=MID(LED());
-  return{ok:ddcMode(o)==='hold'&&$('#ddSwap .ddc-seg .on').dataset.m==='hold'&&hyp(s1.x-s0.x,s1.y-s0.y)<60&&hyp(l1.x-l0.x,l1.y-l0.y)>60,leadMoved:Math.round(hyp(l1.x-l0.x,l1.y-l0.y)),supMoved:Math.round(hyp(s1.x-s0.x,s1.y-s0.y))};});
+await ok('tabs: the team tabs show, the other squad\'s tab carries FOLLOW',()=>{RUN(.2);const o=dd.active==='A'?'B':'A',c=document.querySelector(`.tab[data-team="${o}"] .ddchip`),own=document.querySelector(`.tab[data-team="${dd.active}"] .ddchip`);
+  return{ok:getComputedStyle(document.querySelector('.panel')).display!=='none'&&!!c&&!c.hidden&&c.textContent==='FOLLOW'&&(!own||own.hidden)&&!document.body.classList.contains('ddlead'),active:dd.active,chip:c&&c.textContent};});
+await ok('tabs: the switch sits on the tab, on screen, over the bar',()=>{const o=dd.active==='A'?'B':'A',c=document.querySelector(`.tab[data-team="${o}"] .ddchip`).getBoundingClientRect(),t=document.querySelector(`.tab[data-team="${o}"]`).getBoundingClientRect(),q=$('#sq').getBoundingClientRect();
+  return{ok:c.left>=t.left-1&&c.right<=t.right+1&&c.top>=t.top-1&&c.bottom<=t.bottom+1&&t.bottom<=q.top+1&&c.width>20,chip:[Math.round(c.left),Math.round(c.top),Math.round(c.width),Math.round(c.height)],tab:[Math.round(t.left),Math.round(t.top),Math.round(t.right),Math.round(t.bottom)],barTop:Math.round(q.top)};});
+await ok('follow: the other squad comes up beside yours',()=>{const L=LED(),S=SUP(),l0=MID(L),s0=MID(S);const n=MOVE(L,l0.x,l0.y-230);RUN(14);const l1=MID(LED()),s1=MID(SUP());
+  const strip=SUP().every(u=>u.x>DDX-6&&u.x<DDX+DDW+6);return{ok:n>0&&hyp(s1.x-s0.x,s1.y-s0.y)>50&&hyp(s1.x-l1.x,s1.y-l1.y)<260&&Math.abs(s1.y-l1.y)<140&&strip,lead:[Math.round(l1.x),Math.round(l1.y)],sup:[Math.round(s1.x),Math.round(s1.y)],moved:Math.round(hyp(s1.x-s0.x,s1.y-s0.y))};});
+await ok('hold: told to hold, they stay where they are',()=>{const o=dd.active==='A'?'B':'A';document.querySelector(`.tab[data-team="${o}"] .ddchip`).click();RUN(3);const s0=MID(SUP()),L=LED(),l0=MID(L);const tp=TP(L,240,-40);RUN(10);const s1=MID(SUP()),l1=MID(LED());
+  return{ok:ddcMode(o)==='hold'&&document.querySelector(`.tab[data-team="${o}"] .ddchip`).textContent==='HOLD'&&dd.active!==o&&hyp(s1.x-s0.x,s1.y-s0.y)<60&&hyp(l1.x-l0.x,l1.y-l0.y)>60,leadMoved:Math.round(hyp(l1.x-l0.x,l1.y-l0.y)),supMoved:Math.round(hyp(s1.x-s0.x,s1.y-s0.y))};});
 await ok('hold: they pin down what yours is shooting',()=>{const o=dd.active==='A'?'B':'A',S=SUP(),e=enemies.find(e=>!beaten(e)&&!e.dead&&e.gunner&&e.onGun)||enemies.find(e=>!beaten(e)&&!e.dead);let spot=null;   // (the other squad put where it can see a gun, the gun made your squad's target)
   for(let d=150;d<400&&!spot;d+=30)for(let a=0;a<12&&!spot;a++){const x=e.x+Math.cos(a/12*TAU)*d,y=e.y+Math.sin(a/12*TAU)*d;if(!isFree(x,y,7))continue;const u=S[0],ox=u.x,oy=u.y;u.x=x;u.y=y;const k=hyp(x-e.x,y-e.y)<=wRange(u)&&!!fireLine(u,e);u.x=ox;u.y=oy;if(k)spot={x,y};}
   if(!spot)return{ok:false,why:'no spot with a line to '+e.tag};const P=S.map(u=>[u.x,u.y]);S.forEach((u,i)=>{u.x=spot.x+i*8;u.y=spot.y;u.path=[];u.supT=null;u.lastOrder=-99;});
   for(const u of LED())u.focus=e;ddcSupport(o);const n=S.filter(u=>u.supT&&hyp(u.supT.x-e.x,u.supT.y-e.y)<1).length;S.forEach((u,i)=>{u.x=P[i][0];u.y=P[i][1];u.supT=null;});return{ok:ddcMode(o)==='hold'&&n>0,suppressing:n,of:S.length,tag:e.tag};});
-await ok('follow again: back after yours',()=>{$('#ddSwap .ddc-seg button[data-m="follow"]').click();const s0=MID(SUP()),d0=hyp(s0.x-MID(LED()).x,s0.y-MID(LED()).y);RUN(16);const s1=MID(SUP()),l1=MID(LED());return{ok:hyp(s1.x-l1.x,s1.y-l1.y)<260&&(d0<200||hyp(s1.x-s0.x,s1.y-s0.y)>60),before:Math.round(d0),dist:Math.round(hyp(s1.x-l1.x,s1.y-l1.y)),moved:Math.round(hyp(s1.x-s0.x,s1.y-s0.y))};});
-await ok('swap: you lead the other squad, the one let go stays put',()=>{const a0=dd.active;RUN(4);$('#ddSwap .ddc-swap').click();const a1=dd.active;MA=0;RUN(4);const nm=$('#ddSwap .ddc-swap b').textContent;
-  return{ok:a1!==a0&&sel.every(u=>u.team===a1)&&nm===(a0==='A'?'ALPHA':'BRAVO')&&MA===0&&dd.track&&dd.track.team===a1,from:a0,to:a1,followMovesAfterSwap:MA};});
+await ok('follow again: back beside yours',()=>{document.querySelector(`.tab[data-team="${dd.active==='A'?'B':'A'}"] .ddchip`).click();const s0=MID(SUP()),d0=hyp(s0.x-MID(LED()).x,s0.y-MID(LED()).y);RUN(16);const s1=MID(SUP()),l1=MID(LED());return{ok:hyp(s1.x-l1.x,s1.y-l1.y)<260&&(d0<200||hyp(s1.x-s0.x,s1.y-s0.y)>60),before:Math.round(d0),dist:Math.round(hyp(s1.x-l1.x,s1.y-l1.y)),moved:Math.round(hyp(s1.x-s0.x,s1.y-s0.y))};});
+await ok('swap: a tap on the other tab plays that squad, the one let go stays put and gets the switch',()=>{const a0=dd.active;RUN(4);document.querySelector(`.tab[data-team="${a0==='A'?'B':'A'}"]`).click();const a1=dd.active;MA=0;RUN(4);const c=document.querySelector(`.tab[data-team="${a0}"] .ddchip`),nm=c&&!c.hidden?c.textContent:null;
+  return{ok:a1!==a0&&sel.every(u=>u.team===a1)&&nm==='FOLLOW'&&MA===0&&dd.track&&dd.track.team===a1,from:a0,to:a1,followMovesAfterSwap:MA};});
 await ok('lead passes on when your squad is all down',()=>{const a0=dd.active,L=LED();for(const p of L){p.downed=true;p.hp=1;p.bleed=60;}RUN(1.5);const a1=dd.active;for(const p of L){p.downed=false;p.hp=100;p.critical=false;}selectTeam(a0);RUN(.2);return{ok:a1!==a0,from:a0,to:a1,banner:$('#banner').textContent};});
 // the ring
 const ENEMY=()=>ev(()=>{const e=enemies.filter(e=>!e.dead&&!beaten(e)&&!e.surr).sort((a,b)=>(LED().some(u=>fireLine(u,b))?1:0)-(LED().some(u=>fireLine(u,a))?1:0)||hyp(a.x-MID(LED()).x,a.y-MID(LED()).y)-hyp(b.x-MID(LED()).x,b.y-MID(LED()).y))[0];
@@ -81,7 +84,7 @@ await ev(()=>{RUN(4);const m=MID(LED());CENTER(m.x,m.y+40,2.6);hud();drawOverlay
  else console.log('skip: no Bazooka or no target on screen');}
 // --- the counterattack: both squads hold
 await ev(()=>{ddRoster.stage=1;startCounter();});await page.waitForTimeout(400);
-await ok('counter: both squads start on FOLLOW, the swap works',()=>{RUN(8);const a0=dd.active;const h=ddcMode('A')==='follow'&&ddcMode('B')==='follow';$('#ddSwap .ddc-swap').click();RUN(2);return{ok:h&&dd.active!==a0&&!$('#ddSwap').hidden,follow:h,from:a0,to:dd.active};});
+await ok('counter: both squads start on FOLLOW, the other tab plays the other squad',()=>{RUN(8);const a0=dd.active;const h=ddcMode('A')==='follow'&&ddcMode('B')==='follow';document.querySelector(`.tab[data-team="${a0==='A'?'B':'A'}"]`).click();RUN(2);const c=document.querySelector(`.tab[data-team="${a0}"] .ddchip`);return{ok:h&&dd.active!==a0&&!!c&&!c.hidden,follow:h,from:a0,to:dd.active};});
 // --- the village: the tank's ring, the follow in place of the old one
 await ev(()=>{startVillage({skip:true});});await page.waitForTimeout(400);
 await ok('village: the other squad follows yours',()=>{RUN(4);const l0=MID(LED()),s0=MID(SUP());MOVE(LED(),l0.x,l0.y-220);RUN(10);const m=MID(LED());MOVE(LED(),m.x,m.y-200);RUN(16);const s1=MID(SUP()),l1=MID(LED());
@@ -89,10 +92,10 @@ await ok('village: the other squad follows yours',()=>{RUN(4);const l0=MID(LED()
 await ok('village: a tank tapped shows the Bazooka first',()=>{let K=ddTanksUp()[0];if(!K){if(typeof vgTank==='function')try{vgTank();}catch(e){}K=ddTanksUp()[0];}if(!K)return{ok:true,skipped:'no tank yet'};
   const k0={x:K.x,y:K.y,hold:K.hold};const m=MID(LED());K.x=m.x;K.y=m.y-260;CENTER(K.x,K.y+150,2.4);const p=SCR(K.x,K.y,16);tap(p[0],p[1]);drawOverlay(.03,simT);const ks=[...document.querySelectorAll('#ddRing .ddc-act')].map(b=>b.dataset.k);ddcClose();K.x=k0.x;K.y=k0.y;
   const rpg=players.some(u=>u.team===dd.active&&u.spec==='rpg'&&u.specN>0);return{ok:ks.length>0&&(!rpg||ks[0]==='rpg'),items:ks};});
-// --- both switches off: Version 167's controls
-await ok('switches off: tabs back, no swap, a tap on an enemy just fires, a tool tap takes it in hand',()=>{DDC.lead=false;DDC.ring=false;RUN(.2);drawOverlay(.03,simT);
-  const tabs=getComputedStyle(document.querySelector('.panel')).display!=='none',sw=$('#ddSwap').hidden;const e=enemies.filter(e=>!beaten(e)&&!e.dead).sort((a,b)=>hyp(a.x-MID(LED()).x,a.y-MID(LED()).y)-hyp(b.x-MID(LED()).x,b.y-MID(LED()).y))[0];
+// --- Tap an enemy for actions off: Version 167's tap
+await ok('Tap an enemy for actions off: a tap on an enemy just fires, a tool tap takes it in hand, the tabs as they are',()=>{DDC.ring=false;RUN(.2);drawOverlay(.03,simT);
+  const tabs=getComputedStyle(document.querySelector('.panel')).display!=='none',sw=!document.querySelector('#ddSwap:not([hidden])');const e=enemies.filter(e=>!beaten(e)&&!e.dead).sort((a,b)=>hyp(a.x-MID(LED()).x,a.y-MID(LED()).y)-hyp(b.x-MID(LED()).x,b.y-MID(LED()).y))[0];
   e.vis=true;const m=MID(LED());CENTER((e.x+m.x)/2,(e.y+m.y)/2+60,2.4);const p=SCR(e.x+(e.lx||0),e.y+(e.ly||0),8+(e.elev||0));tap(p[0],p[1]);const ring=!!ddcR;
   hud();drawOverlay(.03,simT);const t=document.querySelector('#sq .sq-tool:not([disabled])');let held=null;if(t){t.click();held=dd.toolK;ddToolEnd();}
-  DDC.lead=true;DDC.ring=true;return{ok:tabs&&sw&&!ring&&(!t||!!held),tabs,swapHidden:sw,ring,held};});
+  DDC.ring=true;return{ok:tabs&&sw&&!ring&&(!t||!!held),tabs,noSwap:sw,ring,held};});
 console.log(fails?`${fails} FAILED`:'all passed','errors',errors.length,errors.slice(0,4));await b.close();srv.close();})();

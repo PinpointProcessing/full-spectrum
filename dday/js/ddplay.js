@@ -509,7 +509,7 @@ function ddHoleOf(x,y){if(DD_MODE!=='beach')return null;for(const h of DD_HOLES)
 function ddHoleBlast(v,x,y){if(!DD_HOLE_RIDE)return 1;const h=v.side==='P'&&ddHoleOf(v.x,v.y);return h&&ddHoleOf(x,y)!==h?DD_HOLE_BLAST:1;}
 const DD_HOLE_BLAST=.33;let DD_HOLE_RIDE=false;   // (off: measured over ten fights each, riding shells out halved the moving, 40 -> 24 moves, but the squad took a third more damage, 270 -> 356; a let, so tools/drafts/leave-test.js 'ride' turns it on)
 // how many of their guns that can reach (x,y) and see it have an open shot at it (nothing in the way that counts as cover)
-function ddOpenN(x,y){let n=0;for(const e of enemies){if(beaten(e)||e.side!=='E'||e.mon||e.dormant||!e.alerted)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y))continue;if(coverAt(x,y,e.x,e.y)===0)n++;}return n;}
+function ddOpenN(x,y,skip){let n=0;for(const e of enemies){if(e===skip||beaten(e)||e.side!=='E'||e.mon||e.dormant||!e.alerted)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y))continue;if(coverAt(x,y,e.x,e.y)===0)n++;}return n;}
 // an enemy shell or grenade (layers.js's dodgeTick hands D-Day's over): dodged only by a man inside its blast (it was anyone within 6.8 m of where
 // it lands, blast or not, so men left cover for shells that would have missed them), to the spot out of the blast that the fewest of their guns have
 // an open shot at: cover within 14 m first, else just clear of it (the old way, straight away from it); a man given an order in the last second stays
