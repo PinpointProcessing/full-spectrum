@@ -702,3 +702,10 @@ The squad you aren't playing. The control: the team tabs as before Version 168, 
 - 4, pincer (close behind until yours shoots at a man, then Bravo works round to one side of him): 18 m apart, and Bravo often ends up alone on open sand.
 - My pick: 2, side by side, taken in turns: while Alpha runs, Bravo pins down whatever Alpha is shooting, and once Alpha is in cover, Bravo moves up beside it, a little further out (10 to 12 m) so one shell can't catch both squads (leapfrog's covering fire with side by side's closeness; not filmed as such). The tabs and the switch would replace Lead one squad and its swap button.
 
+## Version 179: on the top the camera faces down the road, and it turns to a tank
+Bryan, on the hilltop camera drafts: "Let's do C".
+- On the top of the hill the camera now faces down the road east, where their base is and the counterattack comes from, as soon as you're up there (before, only once the barracks was taken).
+- When a tank comes within 90 m of your squad, the camera turns to face it and slides a little toward it, so the tank is up the screen and your men are still in view. Once it's knocked out, the camera goes back to the way ahead (in the village, back to facing north).
+- A tank still waiting to join the fight doesn't turn it, nor does one further off than 90 m.
+- Twisting the camera yourself still holds your angle for 6 seconds, and dragging the map still lets go of the squad until your next move.
+

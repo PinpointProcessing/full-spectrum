@@ -22,14 +22,18 @@ await page.click('#ddBtn');await page.waitForTimeout(400);
 await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(3);for(const e of enemies)e.sup=1;});
 const drag=async(dx,dy)=>{const x0=195,y0=330;await page.mouse.move(x0,y0);await page.mouse.down();for(let k=1;k<=8;k++)await page.mouse.move(x0+dx*k/8,y0+dy*k/8);await page.mouse.up();await ev(()=>{if(typeof glide!=='undefined'&&glide){glide.vx=glide.vz=0;}});};
 // a move order the way a player gives one: a tap where to go, then a tap on the marker of the move
-const move=async(fx,fy)=>{const p=await ev(([fx,fy])=>{const m=MID();return SCR(m.x+fx,m.y+fy);},[fx,fy]);if(!p)return false;
+// (Version 179: the spot is the nearest to the one asked for that's free ground and on the screen, under the top row and over the squad's bar: after
+// the drag, 12 m north of the squad could be off the screen's edge or on blocked ground, and the tap did nothing, on Version 178 as well)
+const move=async(fx,fy)=>{const p=await ev(([fx,fy])=>{const m=MID(),c=[];for(let r=0;r<=90;r+=15)for(let a=0;a<6.28;a+=r?.5:7){const x=m.x+fx+Math.cos(a)*r,y=m.y+fy+Math.sin(a)*r,q=SCR(x,y);
+    if(q&&isFree(x,y)&&q[0]>30&&q[0]<cw-30&&q[1]>150&&q[1]<ch-230&&!(typeof ddcEnemyAt==='function'&&ddcEnemyAt(q[0],q[1]))&&!players.some(u=>{if(!alive(u))return false;toSBack=false;const z=toS(u.x,u.y,14);return!toSBack&&hyp(z[0]-q[0],z[1]-q[1])<34;}))return q;}return null;},[fx,fy]);if(!p)return false;   // (nor on one of ours: a tap on a man picks him)   // (and not by an enemy on the screen: a tap there is a fire order and opens the ring of actions, ddctl.js)
+  await ev(()=>{if(typeof ddcClose==='function')ddcClose();if(dd)dd.fireAt=0;});
   await page.mouse.click(p[0],p[1]);await page.waitForTimeout(80);const q=await ev(()=>preview?SCR(preview.x,preview.y):null);if(!q)return 'no preview';
   await ev(()=>{CLK+=1.5;});await page.mouse.click(q[0],q[1]);return await ev(()=>!preview);};
 await ok('after landing it follows the squad',()=>({ok:!!dd.track&&dd.track.team===dd.active,track:dd.track}));
 await drag(-140,90);
 await ok('a drag of the map lets go of the squad',()=>({ok:!dd.track,track:dd.track}));
 await ok('the view stays where it was dragged meanwhile',()=>{const c0={x:camT.x,z:camT.z};RUN(3);return{ok:hyp(camT.x-c0.x,camT.z-c0.z)<2,moved:Math.round(hyp(camT.x-c0.x,camT.z-c0.z))};});
-const m1=await move(0,-120);
+let m1=null;for(const[fx,fy]of[[0,-120],[50,-100],[-50,-100],[0,-80]]){m1=await move(fx,fy);if(m1===true)break;await ev(()=>{preview=null;});}console.log('  the first move:',m1);   // (a spot that gives no move: the next one)
 await ok('a move order (tap, then tap the marker): the camera follows the squad again',()=>({ok:!!dd.track&&dd.track.team===dd.active,track:dd.track}),null);
 await ok('and glides back to it',()=>{RUN(4);const u=ddTrackAt(),tx=u.x-Math.sin(yaw)*DD_CAM.look,tz=u.y-Math.cos(yaw)*DD_CAM.look;return{ok:hyp(camT.x-tx,camT.z-tz)<40,off:Math.round(hyp(camT.x-tx,camT.z-tz))};});
 // up the draw: dragged away, then a move up it, and the view turns north-west with the route

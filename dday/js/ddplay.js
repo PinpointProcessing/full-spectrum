@@ -350,12 +350,14 @@ function ddTrack(rdt){
   if(!dd.track||camPan||(typeof ptr!=='undefined'&&ptr)||(typeof pinch!=='undefined'&&pinch))return;
   const u=ddTrackAt();if(!u)return;
   ddTurn(u,rdt);
-  const tx=u.x-Math.sin(yaw)*DD_CAM.look,tz=u.y-Math.cos(yaw)*DD_CAM.look,k=Math.min(1,rdt*(dd.track.id?3.2:1.6));   // (a squad's lead man changes: eased slower)
+  const K=ddTankNear(u);let ox=0,oz=0;if(K){const d=hyp(K.x-u.x,K.y-u.y)||1,f=Math.min(.2,80/d);ox=(K.x-u.x)*f;oz=(K.y-u.y)*f;}   // (a tank coming: the view slides toward it, 8 m at most, so your men stay above the squad's bar)
+  const tx=u.x-Math.sin(yaw)*DD_CAM.look+ox,tz=u.y-Math.cos(yaw)*DD_CAM.look+oz,k=Math.min(1,rdt*(dd.track.id?3.2:1.6));   // (a squad's lead man changes: eased slower)
   if(hyp(tx-camT.x,tz-camT.z)<1.5)return;
   camT.x+=(tx-camT.x)*k;camT.z+=(tz-camT.z)*k;clampCam();
 }
 // Since Version 175 it turns as it follows (Bryan, on the camera samples: "C looks best"): on the beach map the view faces along the squads' route
-// (DD_ROUTE, and once their base is open the road east to it, ddbase.js's DB.east), so the way ahead is up the screen and the camera swings round
+// (DD_ROUTE, then the road east to their base, ddbase.js's DB.east: since Version 179 from the start, not once their base is open, so on the top
+// it faces down the road the counterattack comes along rather than at the barracks), so the way ahead is up the screen and the camera swings round
 // on the bends; a little higher than before (DD_CAM.route). It faces the route DD_TURN.look further on from the point of it nearest the man it
 // follows, eased (DD_TURN.rate a second). A turn of yours (a twist, an orbit, Q/E) is kept for DD_TURN.hold seconds, then it eases back. The
 // village and the counterattack keep facing north (their fights don't run along a line)
@@ -363,9 +365,15 @@ const DD_TURN={look:200,rate:1.3,hold:6};
 function ddTurnRoute(){
   if(!dd||dd.vil||dd.counter||dd.seq)return null;
   const R=DD_ROUTE.map(([x,y])=>({x:x+DDX,y}));
-  if(dd.base&&dd.base.open&&typeof DB!=='undefined')for(const[x,y]of DB.east)R.push({x,y});
+  if(typeof DB!=='undefined')for(const[x,y]of DB.east)R.push({x,y});   // (the road on from the top, Version 179)
   return R;
 }
+// Version 179 (Bryan, on the hilltop camera drafts: "Let's do C"; he'd said "it's focusing on the first bunker on the top of the hill rather than
+// the incoming tank"): a tank coming within DD_TANKCAM of the man the camera follows (alive, not one still waiting, dd.tanks' hold) turns the
+// camera to face it from him, on every map where it follows your squad, and slides the view toward it (ddTrack); once it's knocked out or
+// further off, back to the route, or on a map with no route (the village, the counterattack) back to facing north if it was the tank that turned it
+const DD_TANKCAM=900;
+function ddTankNear(u){let best=null,bd=DD_TANKCAM;for(const K of ddTanksUp()){if(K.hold)continue;const d=hyp(K.x-u.x,K.y-u.y);if(d<bd){bd=d;best=K;}}return best;}
 function ddRouteWay(x,y){   // which way the route runs past (x,y): from the point on it nearest him to the point DD_TURN.look further on
   const R=ddTurnRoute();if(!R||R.length<2)return null;
   const cum=[0];for(let i=1;i<R.length;i++)cum.push(cum[i-1]+hyp(R[i].x-R[i-1].x,R[i].y-R[i-1].y));
@@ -388,12 +396,17 @@ function ddFollowAgain(as){
   dd.track={team:dd.active};ddTurnFree();
 }   // (a squad or a man picked: the camera turns with the route again at once, whatever you'd turned it to)
 function ddTurn(u,rdt){
-  const w=ddRouteWay(u.x,u.y);if(!w)return;
   const C=dd.cam||(dd.cam={k:1,p:null,q:null}),now=performance.now();
-  if(C.yaw!=null&&Math.abs(yaw-C.yaw)>1e-4)C.heldT=now;   // (turned by hand since the last frame: kept a while)
+  if(C.yaw!=null&&Math.abs(yaw-C.yaw)>1e-4){C.heldT=now;C.tk=false;}   // (turned by hand since the last frame: kept a while, and a turn of the camera's own to a tank forgotten)
   if(C.heldT&&now-C.heldT<DD_TURN.hold*1000){C.yaw=yaw;return;}
-  let d=Math.atan2(-w.x,-w.y)-yaw;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;
+  const K=ddTankNear(u),w=K?null:ddRouteWay(u.x,u.y);let want=null;
+  if(K){want=Math.atan2(-(K.x-u.x),-(K.y-u.y));C.tk=true;}   // (a tank coming: face it)
+  else if(w)want=Math.atan2(-w.x,-w.y);
+  else if(C.tk)want=0;   // (no route on this map: back to north once the tank's gone, if the tank turned it)
+  if(want==null){C.yaw=yaw;return;}
+  let d=want-yaw;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;
   yaw+=d*Math.min(1,rdt*DD_TURN.rate);C.yaw=yaw;
+  if(!K&&!w&&Math.abs(d)<.02)C.tk=false;
 }
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
 function ddSelected(){
@@ -987,7 +1000,7 @@ function ddHint(){
   if(dd.counter)return dcHint();
   if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
-  if(dd.front>330)return`The camera follows your squad and turns with the way up; drag the map to look round, pick a squad to bring it back. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
+  if(dd.front>330)return`The camera follows your squad, turns with the way up and faces a tank that comes near; drag the map to look round, and your next move brings it back. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
   if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
   if(dd.base&&dd.base.open)return ddBaseHint();
   return'The base. Take the barracks: clear their men from round it and put two of yours at its door for four seconds. Nobody comes out of it while yours are at the door.';
