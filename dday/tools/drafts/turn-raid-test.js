@@ -18,7 +18,8 @@ await ev(([SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');localStor
   window.BAN=[];const b0=banner;banner=function(t){BAN.push(t);return b0.apply(this,arguments);};
   window.WRAP=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a;};
   window.WANT=u=>{const w=ddRouteWay(u.x,u.y);return w?Math.atan2(-w.x,-w.y):null;};
-  window.PUT=(t,x,y)=>{const L=players.filter(p=>p.team===t&&alive(p));L.forEach((u,k)=>{Object.assign(u,{x:x+(k-1.5)*14,y,path:[],inBoat:false,afloat:false,joining:false,throwGo:null,medGo:null,ret:null});});const as=makeAssign(L,x,y);for(const a of as){const e=a.path&&a.path.length?a.path[a.path.length-1]:null;if(e){a.u.x=e.x;a.u.y=e.y;}a.u.path=[];}};},[SEED]);
+  window.PUT=(t,x,y)=>{const L=players.filter(p=>p.team===t&&alive(p)&&!p.inBoat&&!p.joining);   // (not a man still in a boat or walking up to join: moved, the boat put him back on the sand when it unloaded him, and he dragged the squad's middle back down the beach)
+  L.forEach((u,k)=>{Object.assign(u,{x:x+(k-1.5)*14,y,path:[],inBoat:false,afloat:false,joining:false,throwGo:null,medGo:null,ret:null});});const as=makeAssign(L,x,y);for(const a of as){const e=a.path&&a.path.length?a.path[a.path.length-1]:null;if(e){a.u.x=e.x;a.u.y=e.y;}a.u.path=[];}};},[SEED]);
 await page.click('#ddBtn');await page.waitForTimeout(400);
 await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(3);});
 // --- the camera

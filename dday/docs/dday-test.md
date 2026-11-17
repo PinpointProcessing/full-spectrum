@@ -751,3 +751,10 @@ Bryan, with a picture: "See when I'm on the road near the first bunker, the came
 - Why: Version 183 kept the camera facing the way your squad walked to get there, which by the left bunker was north, into the cliff, with the pillbox to take next off to the right.
 - Now: once your squad has stopped at the end of the beach, the camera turns to the bunker you're told to take next (the left bunker or the pillbox), as long as it's within about 60 m and not back down the beach. While they're walking it still faces where you sent them. Up the draw and on the top nothing changes.
 - Before and after at your spot: `docs/drafts/left-bunker-camera.jpg`.
+
+## Version 185: the camera faces the first hill until you're up on it
+Bryan: "Camera still turns into the second hill before I even reach the top of the first. This needs to be fixed."
+- Why: the camera turned with the way up about 20 m ahead of your squad, and at the top of the ramp the way bends north-west into the draw, so all the way up the ramp it already faced the high ground up the draw, with the first hill (the step about 9 m up on the right, the hill bunker on its edge) off the right of the screen.
+- Now: from the wire until the man the camera follows is up on the first hill, the camera faces the first hill. It turns up the draw as he climbs the last few metres onto it, smoothly and only once, and stays that way unless the squad goes back down by the beach. A tank coming near, a move you give off the way, and the bunker to take next at the end of the beach still come first, as before.
+- While you climb the ramp, the MG nest up the draw is off to the left; its arrow at the screen's edge shows where.
+- Before and after, the same climb: `docs/drafts/first-hill-camera.jpg`.

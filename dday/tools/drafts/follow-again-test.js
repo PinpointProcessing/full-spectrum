@@ -14,10 +14,11 @@ await ev(([SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');localStor
   window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){update(1/30);panTick(1/30);ddFrame(1/30,simT);CLK+=1/30;}updateCamera();};
   const d0=damage;damage=(t,d,s)=>t.side==='P'&&!t.npc?undefined:d0(t,d,s);
   window.WRAP=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a;};
-  window.SQ=()=>players.filter(p=>p.team===dd.active&&alive(p)&&!p.joining);
+  window.SQ=()=>players.filter(p=>p.team===dd.active&&alive(p)&&!p.joining&&!p.inBoat);
   window.MID=()=>{const L=SQ();return{x:L.reduce((a,u)=>a+u.x,0)/L.length,y:L.reduce((a,u)=>a+u.y,0)/L.length};};
   window.SCR=(x,y)=>{updateCamera();toSBack=false;const p=toS(x,y,0);return toSBack?null:p;};
-  window.PUT=(t,x,y)=>{const L=players.filter(p=>p.team===t&&alive(p));L.forEach((u,k)=>{Object.assign(u,{x:x+(k-1.5)*14,y,path:[],inBoat:false,afloat:false,joining:false});});const as=makeAssign(L,x,y);for(const a of as){const e=a.path&&a.path.length?a.path[a.path.length-1]:null;if(e){a.u.x=e.x;a.u.y=e.y;}a.u.path=[];}};},[SEED]);
+  window.PUT=(t,x,y)=>{const L=players.filter(p=>p.team===t&&alive(p)&&!p.inBoat&&!p.joining);   // (not a man still in a boat or walking up to join: moved, the boat put him back on the sand when it unloaded him, and he dragged the squad's middle back down the beach)
+  L.forEach((u,k)=>{Object.assign(u,{x:x+(k-1.5)*14,y,path:[],inBoat:false,afloat:false,joining:false});});const as=makeAssign(L,x,y);for(const a of as){const e=a.path&&a.path.length?a.path[a.path.length-1]:null;if(e){a.u.x=e.x;a.u.y=e.y;}a.u.path=[];}};},[SEED]);
 await page.click('#ddBtn');await page.waitForTimeout(400);
 await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(3);for(const e of enemies)e.sup=1;});
 const drag=async(dx,dy)=>{const x0=195,y0=330;await page.mouse.move(x0,y0);await page.mouse.down();for(let k=1;k<=8;k++)await page.mouse.move(x0+dx*k/8,y0+dy*k/8);await page.mouse.up();await ev(()=>{if(typeof glide!=='undefined'&&glide){glide.vx=glide.vz=0;}});};
@@ -37,11 +38,11 @@ let m1=null;for(const[fx,fy]of[[0,-120],[50,-100],[-50,-100],[0,-80]]){m1=await 
 await ok('a move order (tap, then tap the marker): the camera follows the squad again',()=>({ok:!!dd.track&&dd.track.team===dd.active,track:dd.track}),null);
 await ok('and glides back to it',()=>{RUN(4);const u=ddTrackAt(),tx=u.x-Math.sin(yaw)*DD_CAM.look,tz=u.y-Math.cos(yaw)*DD_CAM.look;return{ok:hyp(camT.x-tx,camT.z-tz)<40,off:Math.round(hyp(camT.x-tx,camT.z-tz))};});
 // up the draw: dragged away, then a move up it, and the view turns north-west with the route
-await ev(()=>{const R=DD_ROUTE;PUT('A',R[6][0]+DDX,R[6][1]);PUT('B',R[5][0]+DDX,R[5][1]);dd.front=Math.min(dd.front,-20);ddGoSquad('A');RUN(3);});
+await ev(()=>{const R=DD_ROUTE;PUT('A',R[7][0]+DDX,R[7][1]);PUT('B',R[6][0]+DDX,R[6][1]);dd.front=Math.min(dd.front,-20);ddGoSquad('A');RUN(3);});   // (Version 185: well up the draw, past the first hill's top; just past it, as before, men that had drifted back down the ramp made the camera face the first hill, as it should there)
 await drag(120,-60);
 await ok('up the draw, dragged: let go',()=>({ok:!dd.track}));
-const turnTo=await ev(()=>{const R=DD_ROUTE;yaw=0;updateCamera();window.Y0=yaw;return{fx:R[7][0]+DDX-MID().x,fy:R[7][1]-MID().y};});   // (the view put back facing north, as the old camera had it)
-let mv=null;for(const k of[.6,.4,.8,.25]){mv=await move(turnTo.fx*k,turnTo.fy*k);if(mv===true)break;await ev(()=>{preview=null;});}   // (a spot that can't be reached gives no move: the next one along)
+const turnTo=await ev(()=>{const R=DD_ROUTE;yaw=0;updateCamera();window.Y0=yaw;return{fx:R[8][0]+DDX-MID().x,fy:R[8][1]-MID().y};});   // (the view put back facing north, as the old camera had it)
+let mv=null;for(const k of[.6,.4,.8,.25,1,.15]){mv=await move(turnTo.fx*k,turnTo.fy*k);if(mv===true)break;await ev(()=>{preview=null;});}   // (a spot that can't be reached gives no move: the next one along)
 console.log('  the move up the draw:',mv);
 await ok('a move up the draw: following again, and the view turns along the route (north-west)',()=>{RUN(5);const t=ddTrackAt();if(!t)return{ok:false,why:'not following',track:dd.track};const w=ddRouteWay(t.x,t.y),want=Math.atan2(-w.x,-w.y);return{ok:!!dd.track&&Math.abs(WRAP(yaw-want))<.25&&want>.4&&Math.abs(Y0)<.01,yaw:+yaw.toFixed(2),want:+want.toFixed(2),before:+Y0.toFixed(2)};});
 // the counterattack: you hold a base; a move doesn't make the camera follow
