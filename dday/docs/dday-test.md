@@ -709,3 +709,8 @@ Bryan, on the hilltop camera drafts: "Let's do C".
 - A tank still waiting to join the fight doesn't turn it, nor does one further off than 90 m.
 - Twisting the camera yourself still holds your angle for 6 seconds, and dragging the map still lets go of the squad until your next move.
 
+### The pincer only when it's safe
+Bryan, after a picture of what the pincer means (`docs/drafts/hill-follow/pincer-explained.png`): "Pincer is interesting. Can bravo/alpha do it if it would be safe?"
+- Yes. The game already knows which spots the enemy guns can see (the dodge and the run for cover use it), so the squad you aren't playing can stay beside yours and swing round the man yours is shooting only when: he's behind cover from yours (otherwise there's no need), there's a spot round his side where his cover doesn't help him, no other German gun can see that spot, the way there stays out of their fire (a few metres in the open at most), it's no more than 38 m away, and none of the squad is down and most aren't pinned. Otherwise it stays beside yours. The same works for Alpha when you play Bravo.
+- Tested in the same four beach fights: it never swung. Every time, another gun covered the ground round the man's side, so on the beach it fought like plain side by side. Set up on the top with one man behind a crate and nobody else about, it swung round him; with a second gun watching that ground, it stayed beside Alpha. So it would mostly show up on the top and in the village, where there's more cover and the guns don't all watch each other's sides. The village isn't tested with it yet.
+

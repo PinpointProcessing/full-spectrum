@@ -1,13 +1,13 @@
 # The follow drafts' films and numbers for the page (docs/drafts/hill-follow/):
-# python3 dday-follow-compose.py FILMS_DIR SIMS_DIR PAGE_DIR
+# python3 dday-follow-compose.py FILMS_DIR SIMS_DIR PAGE_DIR [--table]   (--table: the numbers only, the films left as they are)
 #   FILMS_DIR/<variant>/00001.jpg ... (dday-follow-draft.js film) -> PAGE_DIR/follow-<variant>.mp4 and a poster .jpg
 #   SIMS_DIR/<variant>-<seed>.log (dday-follow-draft.js sim) -> the table, written into the page between <!--TABLE--> markers
 #   (the page keeps a copy of the table it was given: run it again with new logs and the table is replaced)
 import sys, os, json, glob, subprocess, re
 FILMS, SIMS, PAGE = sys.argv[1], sys.argv[2], sys.argv[3]
-VARS = [('today', 'Today · follow'), ('shadow', '1 · Close behind'), ('line', '2 · Side by side'), ('leap', '3 · Leapfrog'), ('flank', '4 · Pincer')]
+VARS = [('today', 'Today · follow'), ('shadow', '1 · Close behind'), ('line', '2 · Side by side'), ('leap', '3 · Leapfrog'), ('flank', '4 · Pincer'), ('safe', '5 · Side by side + safe pincer')]
 enc = ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '27', '-preset', 'slow', '-movflags', '+faststart']
-for v, _ in VARS:
+for v, _ in ([] if '--table' in sys.argv else VARS):
     d = os.path.join(FILMS, v)
     if not os.path.isdir(d) or not os.path.exists(os.path.join(d, 'info.json')):
         print('no film for', v); continue

@@ -9,6 +9,8 @@
 //          past it, to cover up to 10 m further on and to one side; then yours goes past it, and so on
 //   flank  pincer: close behind (as shadow) until yours opens fire on a man; then it works round to cover off to one side of him, about 60
 //          degrees round from yours at the same range, and throws a grenade at him once it's in reach
+//   safe   side by side, and the pincer only where it's safe: a spot round the man yours is shooting (while he's behind cover from yours) that no
+//          other gun of theirs has an open shot at, by a way that stays out of their fire, within 38 m (Bryan, on the pincer)
 // Every variant: its own wounded first, its kit (ddfp.js's fpTools: rockets at tanks and guns, grenades on the bunched and dug in, smoke when
 // pinned), and the man yours is shooting taken up by any of its men who can see him; HOLD (the tab's chip) stays where it is and pins him down.
 // Alpha is played by a bot: every 7 s, once it's got where it was going, a move 15 m further along the route (a group move, as a tap and a tap on
@@ -61,11 +63,35 @@ await ev(([MODE,VAR,SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');
     S.D=D;S.t=simT;if(free.some(u=>u.path.length)&&!fresh)return;
     S.to=send(t,free,[[55,30],[40,48],[75,18],[30,62],[95,0]].map(([bk,of])=>[D.x-f.x*bk+rx*s*of,D.y-f.y*bk+ry*s*of]))||S.to;};
   V.shadow=t=>{const P=prelude(t);if(P)shadowP(t,P);};
-  V.line=t=>{const P=prelude(t);if(!P)return;const{free,lead,S,s}=P;const D=goingTo(lead),f=fwdAt(D.x,D.y),rx=-f.y,ry=f.x,B=midOf(free.map(destOf));
+  const lineP=(t,P)=>{const{free,lead,S,s}=P;const D=goingTo(lead),f=fwdAt(D.x,D.y),rx=-f.y,ry=f.x,B=midOf(free.map(destOf));
     const fresh=(!S.D||hyp(D.x-S.D.x,D.y-S.D.y)>30)&&lead.some(u=>simT-(u.lastOrder??-99)<1.5),want={x:D.x+rx*s*85,y:D.y+ry*s*85};
     if(!fresh&&(simT-S.t<3||hyp(B.x-want.x,B.y-want.y)<70))return;   // (off where it should be by 7 m: it catches up, every 3 s at most)
     S.D=D;S.t=simT;if(free.some(u=>u.path.length)&&!fresh)return;
     S.to=send(t,free,[[0,85],[0,70],[-12,100],[12,60],[-20,115],[0,-85],[0,-70]].map(([fw,of])=>[D.x+f.x*fw+rx*s*of,D.y+f.y*fw+ry*s*of]))||S.to;};
+  V.line=t=>{const P=prelude(t);if(P)lineP(t,P);};
+  // safe: side by side, and the pincer only where it's safe (Bryan, on the pincer: "Can bravo/alpha do it if it would be safe?"): when the man
+  // yours is shooting is behind cover from yours, it swings round to his side only to a spot no other gun of theirs has an open shot at (the
+  // count the game's dodge uses, ddplay.js's ddOpenN, leaving him out), by a way where at most one stretch of 4 m is open to any of them, no
+  // further than 38 m to walk, with no man of its own down and most of it free to move; otherwise it stays beside yours. Back beside yours once
+  // he's down, yours shoots someone else, or after 25 s
+  const openBy=(x,y,skip)=>{let n=0;for(const e of enemies){if(e===skip||beaten(e)||e.side!=='E'||e.mon||e.dormant||!e.alerted)continue;if(hyp(e.x-x,e.y-y)>ddFireR(e)||!los(e.x,e.y,x,y))continue;if(coverAt(x,y,e.x,e.y)===0)n++;}return n;};
+  const wayOK=(x0,y0,path,skip)=>{let bad=0,L=0,px=x0,py=y0;for(const q of path){const d=hyp(q.x-px,q.y-py),n=Math.max(1,Math.round(d/40));for(let k=1;k<=n;k++){const x=px+(q.x-px)*k/n,y=py+(q.y-py)*k/n;if(openBy(x,y,skip)>0&&++bad>1)return-1;}L+=d;px=q.x;py=q.y;}return L;};
+  window.FLANKS={A:0,B:0};
+  V.safe=t=>{const P=prelude(t);if(!P)return;const{free,lead,F,S,s,m}=P;
+    const Am=midOf(lead);
+    if(S.fl){const g=S.fl;   // swung round already: stay there while it's worth it
+      if(!beaten(g.F)&&lead.some(u=>u.focus===g.F)&&simT-g.t<25){const th=free.find(u=>(u.grenade||0)>0&&!u.path.length&&simT-(u.nadeT??-99)>5&&hyp(u.x-g.F.x,u.y-g.F.y)<nadeRange(u)&&!dd.allies.some(q=>hyp(q.x-g.F.x,q.y-g.F.y)<75));if(th)orderThrow(th,g.F.x,g.F.y,'nade');return;}
+      S.fl=null;S.D=null;}   // (back beside yours: the next tick sends it)
+    const down=players.some(p=>p.team===t&&p.downed&&!p.dead);
+    if(F&&(F.seen||F.vis)&&!down&&free.length>=Math.min(3,m.length)&&coverAt(F.x,F.y,Am.x,Am.y)>0&&simT-(S.flT||-99)>2){S.flT=simT;
+      const Bm=midOf(free),a0=Math.atan2(Am.y-F.y,Am.x-F.x);let tries=0,go=null;
+      for(const sd of[s,-s]){for(const da of[1.1,.8,1.4,.6])for(const r of[220,170,280,130]){if(go||tries>=4)break;
+        const x=F.x+Math.cos(a0+sd*da)*r,y=F.y+Math.sin(a0+sd*da)*r;
+        if(!isFree(x,y)||!los(x,y,F.x,F.y)||coverAt(F.x,F.y,x,y)>0||openBy(x,y,F)>0)continue;   // (from there he has no cover, and no other gun sees it)
+        tries++;const p=findPath(Bm.x,Bm.y,x,y);if(!p||!p.length)continue;const L=wayOK(Bm.x,Bm.y,p,F);if(L<0||L>380)continue;go={x,y};}
+        if(go)break;}
+      if(go){const to=send(t,free,[[go.x,go.y]]);if(to){S.fl={F,t:simT,to};FLANKS[t]++;return;}}}
+    lineP(t,P);};
   V.leap=t=>{const P=prelude(t);if(!P)return;const{free,lead,F,S,s}=P;const Am=midOf(lead);
     // yours on its way somewhere you sent it (a move of yours in the last 8 s, not a man ducking a shell): cover it
     const ord=Math.max(...lead.map(u=>u.lastOrder??-99));
@@ -81,7 +107,7 @@ await ev(([MODE,VAR,SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');
     const Am=midOf(lead),B=midOf(free.map(destOf));if(S.F===F&&S.to&&hyp(B.x-S.to.x,B.y-S.to.y)<60)return;if(S.F===F&&simT-S.t<4)return;
     const a0=Math.atan2(Am.y-F.y,Am.x-F.x),d=clamp(hyp(Am.x-F.x,Am.y-F.y),150,300);S.F=F;S.t=simT;
     S.to=send(t,free,[[1.1,1],[.8,1],[1.1,.8],[1.4,1],[.6,.9],[-1.1,1]].map(([da,k])=>[F.x+Math.cos(a0+s*da)*d*k,F.y+Math.sin(a0+s*da)*d*k]))||S.to;};
-  const sq0=ddSquadAI;window.ddSquadAI=t=>{if(t===dd.active)return sq0(t);return V[VAR](t);};
+  const sq0=ddSquadAI;window.ddSquadAI=t=>{if(t===dd.active)return sq0(t);return V[VAR](t);};window.V=V;window.ST=ST;
   // the player: Alpha, a bot that moves on along the route and fires on what it sees
   window.BOT={next:0,moves:0};
   window.BOTTICK=()=>{const A=players.filter(p=>p.team==='A'&&alive(p)&&!p.inBoat&&!p.joining);if(!A.length)return;
@@ -103,12 +129,38 @@ await ev(([MODE])=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(2);
     if(!A.length||!B.length)return;const ma={x:A.reduce((a,u)=>a+u.x,0)/A.length,y:A.reduce((a,u)=>a+u.y,0)/A.length},mb={x:B.reduce((a,u)=>a+u.x,0)/B.length,y:B.reduce((a,u)=>a+u.y,0)/B.length};
     const g=hyp(ma.x-mb.x,ma.y-mb.y)/10;NUM.n++;NUM.gap+=g;NUM.gapMax=Math.max(NUM.gapMax,g);if(g>20)NUM.far++;
     const sa=PROG(ma.x,ma.y),sb=PROG(mb.x,mb.y);if(sb>sa+20)NUM.ahead++;NUM.maxS=Math.max(NUM.maxS,sa,sb);if(NUM.wireT==null&&Math.max(sa,sb)>=330)NUM.wireT=simT-NUM.t0;};},[MODE]);
+if(MODE==='probe'){   // the safe pincer on its own: one man of theirs behind cover on the top, nobody else about; then a second gun that sees the flank
+  const r=await ev(()=>{const res={};
+    for(const e of enemies)if(!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.ctr={on:true,sq:4,t:1e12};dd.shellT={heavy:1e12,cannon:1e12,art:1e12};
+    const A=players.filter(u=>u.team==='A'&&alive(u)),B=players.filter(u=>u.team==='B'&&alive(u));
+    // a piece of half cover on the top (a crate or a drum): the man behind it on one side, Alpha 15 m off on the other, Bravo 9.5 m beside Alpha
+    let c=null,dir=null;
+    for(const o of objs.filter(o=>o.cover>=1&&!o.full&&o.y<-470&&o.y>-740&&o.x>DDX+100&&o.x<DDX+1050&&o.w<40&&o.h<40)){const cx=o.x+o.w/2,cy=o.y+o.h/2;
+      for(const[dx,dy]of[[0,-1],[0,1],[1,0],[-1,0]])for(const k of[18,22,26]){const fx=cx+dx*k,fy=cy+dy*k,ax=cx-dx*170,ay=cy-dy*170,bx=ax-dy*95,by=ay+dx*95;   // (cover counts within 1.5 m of him: right behind it)
+        if(isFree(fx,fy)&&isFree(ax,ay)&&isFree(bx,by)&&coverAt(fx,fy,ax,ay)>0&&los(ax,ay,fx,fy)){c=o;dir=[dx,dy,k];break;}}if(c)break;}
+    if(!c)return{ok:false,why:'no cover piece found'};
+    const cx=c.x+c.w/2,cy=c.y+c.h/2,[dx,dy,kk]=dir,F=ddFoe('probe',cx+dx*kk-DDX,cy+dy*kk,{ang:Math.atan2(-dy,-dx)});enemies.push(F);Object.assign(F,{seen:true,vis:true,alerted:true,cool:1e9});
+    const place=(L,x,y,px,py)=>L.forEach((u,k)=>Object.assign(u,{x:x+px*(k-1.5)*16,y:y+py*(k-1.5)*16,path:[],inBoat:false,joining:false,lastOrder:-99,sup:0,focus:null}));
+    const ax=cx-dx*170,ay=cy-dy*170;window.PB=()=>place(B,ax-dy*95,ay+dx*95,-dy,dx);place(A,ax,ay,-dy,dx);PB();for(const u of A)u.focus=F;
+    const Am={x:A.reduce((a,u)=>a+u.x,0)/A.length,y:A.reduce((a,u)=>a+u.y,0)/A.length};
+    res.cover={kind:c.kind,at:[Math.round(cx),Math.round(cy)],side:dir,fromAlpha:coverAt(F.x,F.y,Am.x,Am.y)};
+    FLANKS.B=0;for(const k in ST)delete ST[k];V.safe('B');
+    const ends=B.map(destOf),mid={x:ends.reduce((a,q)=>a+q.x,0)/4,y:ends.reduce((a,q)=>a+q.y,0)/4};
+    res.alone={flanked:FLANKS.B,to:[Math.round(mid.x),Math.round(mid.y)],hisCoverFromThere:coverAt(F.x,F.y,mid.x,mid.y),otherGunsSee:0};
+    // a second gun off to the side the squad would swing to, with that ground in view
+    PB();for(const k in ST)delete ST[k];FLANKS.B=0;
+    // a second gun with a clear view of the ground round the man's side: 20 m beyond the spot Bravo picked, looking at it
+    const gx=mid.x+(mid.x-F.x)*.0+dx*200,gy=mid.y+dy*200,G=ddFoe('probe2',gx-DDX,gy,{ang:Math.atan2(mid.y-gy,mid.x-gx)});enemies.push(G);Object.assign(G,{seen:true,vis:true,alerted:true,cool:1e9});
+    V.safe('B');const ends2=B.map(destOf),mid2={x:ends2.reduce((a,q)=>a+q.x,0)/4,y:ends2.reduce((a,q)=>a+q.y,0)/4};
+    res.watched={flanked:FLANKS.B,to:[Math.round(mid2.x),Math.round(mid2.y)],besideAlpha:Math.round(hyp(mid2.x-Am.x,mid2.y-Am.y)/10),gunSeesOldSpot:los(G.x,G.y,mid.x,mid.y)&&coverAt(mid.x,mid.y,G.x,G.y)===0};
+    res.ok=res.cover.fromAlpha>0&&res.alone.flanked===1&&res.alone.hisCoverFromThere===0&&res.watched.flanked===0;return res;});
+  console.log(JSON.stringify(r));console.log('errors',errors.length,errors.slice(0,3));await b.close();srv.close();return;}
 if(MODE==='sim'){
   const r=await ev(([SECS])=>{for(let t=0;t<SECS*2;t++){RUN(.5);BOTTICK();SAMPLE();if(endAt||dd.over)break;}
     const kills=t=>players.filter(p=>p.team===t).reduce((a,u)=>a+((u.stats&&u.stats.kills)||0),0);
     return{secs:Math.round(simT-NUM.t0),gap:+(NUM.gap/Math.max(1,NUM.n)).toFixed(1),gapMax:Math.round(NUM.gapMax),farPct:Math.round(100*NUM.far/Math.max(1,NUM.n)),aheadPct:Math.round(100*NUM.ahead/Math.max(1,NUM.n)),
       killsA:kills('A'),killsB:kills('B'),dmgA:Math.round(DMG.A),dmgB:Math.round(DMG.B),downsA:NUM.downs.A,downsB:NUM.downs.B,deadA:players.filter(p=>p.team==='A'&&p.dead).length,deadB:players.filter(p=>p.team==='B'&&p.dead).length,
-      progress:Math.round(NUM.maxS/10),wireT:NUM.wireT==null?null:Math.round(NUM.wireT),foesDown:enemies.filter(e=>beaten(e)).length,sentB:SENT.B,moves:BOT.moves};},[SECS]);
+      progress:Math.round(NUM.maxS/10),wireT:NUM.wireT==null?null:Math.round(NUM.wireT),foesDown:enemies.filter(e=>beaten(e)).length,sentB:SENT.B,moves:BOT.moves,flanksB:FLANKS.B};},[SECS]);
   console.log(JSON.stringify({variant:VAR,seed:SEED,...r}));console.log('errors',errors.length,errors.slice(0,3));await b.close();srv.close();return;}
 // the film: a camera that keeps both squads on the screen, turned with the route, the other squad's men ringed in orange and their way drawn
 await ev(([VAR])=>{
@@ -119,7 +171,7 @@ await ev(([VAR])=>{
     .tab .ddchip{font:800 9px/1 var(--font-hud);letter-spacing:.08em;color:#0b0f13;background:var(--tc);border-radius:5px;padding:3px 5px;margin-top:2px}
     .tab .ddchip.hold{background:#e8edf0}`;
   document.head.appendChild(st);const t=document.createElement('div');t.className='camtag';t.innerHTML='<b></b><i></i>';document.body.appendChild(t);
-  const NAME={today:['TODAY · FOLLOW','12 m behind, moves once yours has gone 6 m'],shadow:['1 · CLOSE BEHIND','moves when yours does, 5 m behind'],line:['2 · SIDE BY SIDE','moves when yours does, level with it, 8 m aside'],leap:['3 · LEAPFROG','covers while yours moves, then goes past it'],flank:['4 · PINCER','close behind; works round the man yours is shooting']}[VAR];
+  const NAME={today:['TODAY · FOLLOW','12 m behind, moves once yours has gone 6 m'],shadow:['1 · CLOSE BEHIND','moves when yours does, 5 m behind'],line:['2 · SIDE BY SIDE','moves when yours does, level with it, 8 m aside'],leap:['3 · LEAPFROG','covers while yours moves, then goes past it'],flank:['4 · PINCER','close behind; works round the man yours is shooting'],safe:['5 · SIDE BY SIDE + SAFE PINCER','beside yours; round the man yours shoots only where no other gun sees']}[VAR];
   t.children[0].textContent=NAME[0];t.children[1].textContent=NAME[1];
   // the tab's chip (a draft of the control): FOLLOW or HOLD on the squad you aren't playing
   const tb=document.querySelector('.tab[data-team="B"]');if(tb&&!tb.querySelector('.ddchip')){const c=document.createElement('span');c.className='ddchip';c.textContent='FOLLOW';tb.appendChild(c);}
