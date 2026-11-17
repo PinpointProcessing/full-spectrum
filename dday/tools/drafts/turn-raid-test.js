@@ -33,6 +33,7 @@ await ok('on the top, the route turning east to the barracks: it faces east-nort
 await ok('a bunker roof between the camera and one of your men goes clear, one that isn\'t stays',()=>{
   const hv=DD.roofs.find(m=>m.userData.b.x0===230&&m.userData.b.y0===-440),far=DD.roofs.find(m=>m.userData.b.x0===1026&&m.userData.b.y0===250);if(!hv||!far)return{ok:false,why:'roofs?'};
   const L=players.filter(p=>p.team==='A'&&alive(p));L.forEach((u,k)=>{Object.assign(u,{x:270+k*14,y:-468,path:[]});});
+  players.filter(p=>p.team==='B'&&alive(p)).forEach((u,k)=>{Object.assign(u,{x:600+k*14,y:-520,path:[]});});   // (Bravo out of the way: since Version 180 it stands beside Alpha, here by that bunker, and one of ours inside a bunker keeps its roof clear)
   dd.track=null;camPan=null;yaw=0;zoom=DD_CAM.zoom;tilt=ddTilt(zoom,DD_CAM.route);camT.x=290;camT.z=-468;clampCam();updateCamera();for(let i=0;i<20;i++){ddFrame(1/30,simT);}
   const hid=L.filter(u=>ddRoofHides(hv,u)).length,r={ok:hid>0&&hv.material.opacity<.5&&far.material.opacity>.95,hid,hv:+hv.material.opacity.toFixed(2),far:+far.material.opacity.toFixed(2)};
   yaw=Math.PI;updateCamera();for(let i=0;i<30;i++){ddFrame(1/30,simT);}r.backAfterTurn=+hv.material.opacity.toFixed(2);r.ok=r.ok&&r.backAfterTurn>.9;return r;});

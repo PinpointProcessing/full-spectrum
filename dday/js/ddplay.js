@@ -361,7 +361,7 @@ function ddTrack(rdt){
 // on the bends; a little higher than before (DD_CAM.route). It faces the route DD_TURN.look further on from the point of it nearest the man it
 // follows, eased (DD_TURN.rate a second). A turn of yours (a twist, an orbit, Q/E) is kept for DD_TURN.hold seconds, then it eases back. The
 // village and the counterattack keep facing north (their fights don't run along a line)
-const DD_TURN={look:200,rate:1.3,hold:6};
+const DD_TURN={look:200,rate:1.3,hold:6,off:100,near:60,back:2.1};
 function ddTurnRoute(){
   if(!dd||dd.vil||dd.counter||dd.seq)return null;
   const R=DD_ROUTE.map(([x,y])=>({x:x+DDX,y}));
@@ -374,16 +374,21 @@ function ddTurnRoute(){
 // further off, back to the route, or on a map with no route (the village, the counterattack) back to facing north if it was the tank that turned it
 const DD_TANKCAM=900;
 function ddTankNear(u){let best=null,bd=DD_TANKCAM;for(const K of ddTanksUp()){if(K.hold)continue;const d=hyp(K.x-u.x,K.y-u.y);if(d<bd){bd=d;best=K;}}return best;}
-function ddRouteWay(x,y){   // which way the route runs past (x,y): from the point on it nearest him to the point DD_TURN.look further on
+function ddRouteNear(x,y){   // the route, its running lengths, and the point of it nearest (x,y): how far along (s) and how far off (d); null with no route
   const R=ddTurnRoute();if(!R||R.length<2)return null;
   const cum=[0];for(let i=1;i<R.length;i++)cum.push(cum[i-1]+hyp(R[i].x-R[i-1].x,R[i].y-R[i-1].y));
   let best=1e9,s=0;
   for(let i=1;i<R.length;i++){const a=R[i-1],b=R[i],L=cum[i]-cum[i-1]||1,t=clamp(((x-a.x)*(b.x-a.x)+(y-a.y)*(b.y-a.y))/(L*L),0,1),d=hyp(x-a.x-(b.x-a.x)*t,y-a.y-(b.y-a.y)*t);if(d<best){best=d;s=cum[i-1]+t*L;}}
+  return{R,cum,s,d:best};
+}
+function ddRouteOff(x,y){const N=ddRouteNear(x,y);return N?N.d:0;}   // how far (x,y) is off the way up (0 on a map without one)
+function ddRouteWay(x,y){   // which way the route runs past (x,y): from the point on it nearest him to the point DD_TURN.look further on
+  const N=ddRouteNear(x,y);if(!N)return null;const{R,cum,s}=N;
   const end=cum[cum.length-1],at=q=>{q=clamp(q,0,end);let i=1;while(i<R.length-1&&cum[i]<q)i++;const a=R[i-1],b=R[i],t=(q-cum[i-1])/(cum[i]-cum[i-1]||1);return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};};
   const s0=Math.min(s,end-DD_TURN.look*.5),p=at(s0),q=at(s0+DD_TURN.look),dx=q.x-p.x,dy=q.y-p.y,l=hyp(dx,dy)||1;
   return{x:dx/l,y:dy/l};
 }
-function ddTurnFree(){const C=dd&&dd.cam;if(C){C.heldT=0;C.yaw=yaw;}}
+function ddTurnFree(){const C=dd&&dd.cam;if(C){C.heldT=0;C.yaw=yaw;C.go=null;C.offA=null;}}   // (and where you'd sent them forgotten: the way up again)
 // Version 177 (Bryan, after Version 176: "The view never automatically changed"): a drag of the map let go of the squad (Version 156) and only
 // picking a squad took it up again, so after the first look round on a phone the camera neither followed nor turned. Now any move you give the
 // squad you play (combat.js's commit: a group move, one man, a route drawn, a double tap) takes it up again: the camera glides back to the squad
@@ -391,22 +396,26 @@ function ddTurnFree(){const C=dd&&dd.cam;if(C){C.heldT=0;C.yaw=yaw;}}
 // a man walking up to join, or first person
 function ddFollowAgain(as){
   if(!dd||dd.counter||dd.fp||dd.seq||!dd.land||!dd.land.done)return;
-  if(!as||!as.some(a=>a&&a.u&&a.u.team===dd.active&&!a.u.npc&&!a.u.joining))return;
-  if(dd.track&&dd.track.team===dd.active)return;
-  dd.track={team:dd.active};ddTurnFree();
+  const mine=(as||[]).filter(a=>a&&a.u&&a.u.team===dd.active&&!a.u.npc&&!a.u.joining);if(!mine.length)return;
+  if(!(dd.track&&dd.track.team===dd.active)){dd.track={team:dd.active};ddTurnFree();}
+  const C=dd.cam||(dd.cam={k:1,p:null,q:null}),E=mine.map(a=>a.path&&a.path.length?a.path[a.path.length-1]:a.u),mid=L=>({x:L.reduce((n,q)=>n+q.x,0)/L.length,y:L.reduce((n,q)=>n+q.y,0)/L.length});
+  const G=mid(E),M=mid(mine.map(a=>a.u)),dx=G.x-M.x,dy=G.y-M.y,a=Math.atan2(-dx,-dy);let da=a-yaw;while(da>Math.PI)da-=TAU;while(da<-Math.PI)da+=TAU;
+  C.go={x:G.x,y:G.y,a:hyp(dx,dy)>DD_TURN.near&&Math.abs(da)<DD_TURN.back?a:null};C.offA=null;   // (where you've sent them, and the way from where they were: ddTurn faces it when it's off the way up, Version 183; a move back the way they came, or a step, has no way)
 }   // (a squad or a man picked: the camera turns with the route again at once, whatever you'd turned it to)
 function ddTurn(u,rdt){
   const C=dd.cam||(dd.cam={k:1,p:null,q:null}),now=performance.now();
   if(C.yaw!=null&&Math.abs(yaw-C.yaw)>1e-4){C.heldT=now;C.tk=false;}   // (turned by hand since the last frame: kept a while, and a turn of the camera's own to a tank forgotten)
   if(C.heldT&&now-C.heldT<DD_TURN.hold*1000){C.yaw=yaw;return;}
-  const K=ddTankNear(u),w=K?null:ddRouteWay(u.x,u.y);let want=null;
+  const K=ddTankNear(u),G=K?null:C.go,off=!!G&&ddRouteOff(G.x,G.y)>DD_TURN.off,w=K||off?null:ddRouteWay(u.x,u.y);let want=null;
   if(K){want=Math.atan2(-(K.x-u.x),-(K.y-u.y));C.tk=true;}   // (a tank coming: face it)
-  else if(w)want=Math.atan2(-w.x,-w.y);
+  else if(off){   // (sent off the way up, onto the first hill or to a bunker off to the side: face the way you sent them, from where they were to where they're going, and keep facing it once they're there, until your next move; a move back the way they came, behind the camera when you gave it, or just a step, leaves it facing as it was)
+    if(C.offA==null)C.offA=G.a!=null?G.a:yaw;want=C.offA;}
+  else if(w){C.offA=null;want=Math.atan2(-w.x,-w.y);}
   else if(C.tk)want=0;   // (no route on this map: back to north once the tank's gone, if the tank turned it)
   if(want==null){C.yaw=yaw;return;}
   let d=want-yaw;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;
   yaw+=d*Math.min(1,rdt*DD_TURN.rate);C.yaw=yaw;
-  if(!K&&!w&&Math.abs(d)<.02)C.tk=false;
+  if(!K&&!w&&!off&&Math.abs(d)<.02)C.tk=false;
 }
 /* ---------- picking a squad (input.js's select): one is played, the other runs itself ---------- */
 function ddSelected(){
@@ -1000,7 +1009,7 @@ function ddHint(){
   if(dd.counter)return dcHint();
   if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
-  if(dd.front>330)return`The camera follows your squad, turns with the way up and faces a tank that comes near; drag the map to look round, and your next move brings it back. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
+  if(dd.front>330)return`The camera follows your squad, turns with the way up (or toward where you send them off it) and faces a tank that comes near; drag the map to look round, and your next move brings it back. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
   if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
   if(dd.base&&dd.base.open)return ddBaseHint();
   return'The base. Take the barracks: clear their men from round it and put two of yours at its door for four seconds. Nobody comes out of it while yours are at the door.';

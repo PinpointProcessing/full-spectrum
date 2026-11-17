@@ -739,3 +739,9 @@ Bryan: "Pincer move can happen under fire only when the ai thinks it's safe-ish.
 ## Version 182: flank everywhere
 Bryan: "I like flank everywhere because I didn't know what pincer meant."
 - The German the other squad goes round is now tagged FLANKED (it said PINCER). The label over the other squad still says FLANKING and the banner still says "Bravo flanks him.", so it's one word everywhere on screen.
+
+## Version 183: the camera looks where you send your squad
+Bryan: "The camera doesn't follow the first hill when you reach the end of the beach, it turns to the second hill. Can you double check and see for yourself"
+- What I saw: the camera only ever turned along the set way up the draw, on the left. At the end of the beach that left the pillbox and the first hill off the right edge of a phone screen, with the view facing the rock at the draw's mouth; and when the squad was sent up onto the first hill, the camera kept looking up the draw instead of at them.
+- Now: when you send your squad somewhere off the way up (the pillbox, the first hill, a bunker to the side), the camera turns to face the way you sent them and stays facing it once they're there, until your next move. Moving them along the way up turns it with the way up as before. A move back the way you came doesn't spin the camera round. A tank coming near still comes first, and picking a squad brings back the way-up view.
+- Before and after, in pictures: `docs/drafts/end-of-beach-camera.jpg`.
