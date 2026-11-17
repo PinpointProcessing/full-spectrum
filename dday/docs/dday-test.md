@@ -758,3 +758,9 @@ Bryan: "Camera still turns into the second hill before I even reach the top of t
 - Now: from the wire until the man the camera follows is up on the first hill, the camera faces the first hill. It turns up the draw as he climbs the last few metres onto it, smoothly and only once, and stays that way unless the squad goes back down by the beach. A tank coming near, a move you give off the way, and the bunker to take next at the end of the beach still come first, as before.
 - While you climb the ramp, the MG nest up the draw is off to the left; its arrow at the screen's edge shows where.
 - Before and after, the same climb: `docs/drafts/first-hill-camera.jpg`.
+
+## Version 186: at the top of the first hill the camera swings left
+Bryan: "At the top of the first hill the camera should swing left."
+- Why: Version 185 turned up the way only gradually, finishing about 6 m past where the ramp levels out, so standing at the top of the ramp it still mostly faced the first hill, on the right.
+- Now: it faces the first hill until the man the camera follows gets to the top of the ramp, then swings left up the way, about 90 degrees, most of it within 2 seconds. It does this even if you sent them to the far side of that hilltop: while they walk there it faces where they're going, and once they're there it swings left. On the plateau with the hill bunker it still faces where you sent them.
+- Before and after, standing at the top of the ramp: `docs/drafts/top-swing.jpg`.

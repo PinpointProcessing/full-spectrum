@@ -5,8 +5,9 @@
 // keeps facing the way they went, and on the way up it turns with the way up. Checks: walking up the sand; Bryan's picture (the left bunker held,
 // sent up the beach to the road by it: facing north on the way, then it turns right to the pillbox); sent to the pillbox; there; sent onto the
 // first hill's top and on it; back into the draw; a move back the way they came doesn't spin it; picking the squad again; a tank still first; the
-// village keeps facing north; and (Version 185, "Camera still turns into the second hill before I even reach the top of the first") the bunkers
-// taken, from the end of the beach up onto the first hill it faces the first hill, then the way up. node camera-follow-test.js [SEED] [PORT]
+// village keeps facing north; (Version 185, "Camera still turns into the second hill before I even reach the top of the first") the bunkers
+// taken, from the end of the beach up the ramp it faces the first hill; and (Version 186, "At the top of the first hill the camera should swing
+// left") at the top of the ramp it swings left, up the way, even where you'd sent them off it on that hilltop. node camera-follow-test.js [SEED] [PORT]
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 const SEED=+process.argv[2]||1,PO=+process.argv[3]||0;
 (async()=>{const port=9810+PO,srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
@@ -54,14 +55,22 @@ await ok('sent back down toward the beach, off the way up: it doesn\'t spin roun
   return{ok:Math.abs(WRAP(yaw-y0))<.25&&G.a==null,yaw:+yaw.toFixed(2),before:+y0.toFixed(2)};});
 await ok('picking the squad again forgets where they were sent: it faces what it would with no move given (the next bunker, the first hill or the way up)',()=>{WALK(60);ddGoSquad('A');RUN(5);const u=ddTrackAt(),W=ddTurnWant(u);
   return{ok:!dd.cam.go&&!!W&&Math.abs(WRAP(yaw-W.a))<.35,yaw:+yaw.toFixed(2),want:W?+W.a.toFixed(2):null};});
-await ok('Version 185, the bunkers taken: walking up from the end of the beach the camera faces the first hill, not up the draw, until they\'re up on it; on its top it turns up the way',()=>{
+await ok('Versions 185 and 186, the bunkers taken: from the end of the beach up the ramp the camera faces the first hill, not up the draw; at the top of the ramp it swings left, up the way, and stays so on up',()=>{
   for(const e of enemies)if((e.tag==='left'||e.tag==='pill')&&!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.held.left=true;dd.held.pill=true;
-  PUT('A',745,300);PUT('B',860,320);ddGoSquad('A');RUN(4);let u=ddTrackAt(),M=MID(SQ('A'));const F=DD_FIRST,atEnd={yaw:yaw,first:TO(M,F),way:WANT(u)};   // (the squad's middle: about where Version 185 measures the way to the hill from, the men round the man it follows)
-  MOVE('A',765,130);RUN(3);u=ddTrackAt();M=MID(SQ('A'));const onRamp={yaw:yaw,first:TO(M,F),way:WANT(u),y:Math.round(M.y)};
+  PUT('A',745,300);PUT('B',860,320);ddGoSquad('A');RUN(4);let u=ddTrackAt(),M=MID(SQ('A'));const F=DD_FIRST,atEnd={yaw:yaw,first:TO(M,F),way:WANT(u)};   // (the squad's middle: about where it measures the way to the hill from, the men round the man it follows)
+  MOVE('A',765,190);RUN(3);u=ddTrackAt();M=MID(SQ('A'));const onRamp={yaw:yaw,first:Math.max(F.maxR,TO(M,F)),way:WANT(u),y:Math.round(u.y)};
+  MOVE('A',800,70);WALK(60);RUN(3);u=ddTrackAt();M=MID(SQ('A'));const atTop={yaw:yaw,first:Math.max(F.maxR,TO(M,F)),way:WANT(u),y:Math.round(u.y),h:Math.round(groundH(u.x,u.y))};
   MOVE('A',735,-30);WALK(60);RUN(4);u=ddTrackAt();const top={yaw:yaw,way:WANT(u),y:Math.round(u.y),h:Math.round(groundH(u.x,u.y))};
   const r=v=>+v.toFixed(2);
-  return{ok:Math.abs(WRAP(atEnd.yaw-atEnd.first))<.2&&WRAP(atEnd.way-atEnd.yaw)>.4&&Math.abs(WRAP(onRamp.yaw-onRamp.first))<.35&&WRAP(onRamp.way-onRamp.yaw)>.4&&Math.abs(WRAP(top.yaw-top.way))<.2&&top.way>.3,
-    atEnd:{yaw:r(atEnd.yaw),firstHill:r(atEnd.first),wayUp:r(atEnd.way)},onRamp:{yaw:r(onRamp.yaw),firstHill:r(onRamp.first),wayUp:r(onRamp.way),y:onRamp.y},onTop:{yaw:r(top.yaw),wayUp:r(top.way),y:top.y,ground:top.h}};});
+  return{ok:Math.abs(WRAP(atEnd.yaw-atEnd.first))<.2&&WRAP(atEnd.way-atEnd.yaw)>.4&&onRamp.y>F.top&&Math.abs(WRAP(onRamp.yaw-onRamp.first))<.35&&WRAP(onRamp.way-onRamp.yaw)>.4
+      &&atTop.y<=F.top&&Math.abs(WRAP(atTop.yaw-atTop.way))<.2&&WRAP(atTop.yaw-atTop.first)>1&&Math.abs(WRAP(top.yaw-top.way))<.2&&top.way>.3,
+    atEnd:{yaw:r(atEnd.yaw),firstHill:r(atEnd.first),wayUp:r(atEnd.way)},onRamp:{yaw:r(onRamp.yaw),firstHill:r(onRamp.first),wayUp:r(onRamp.way),y:onRamp.y},
+    atTop:{yaw:r(atTop.yaw),firstHill:r(atTop.first),wayUp:r(atTop.way),y:atTop.y,ground:atTop.h},onTop:{yaw:r(top.yaw),wayUp:r(top.way),y:top.y,ground:top.h}};});
+await ok('Version 186: sent from the end of the beach to the far side of the ramp\'s top, off the way up: on the way it faces where they\'re going; once they\'re there it swings left, up the way',()=>{
+  PUT('A',745,300);ddGoSquad('A');RUN(3);MOVE('A',880,60);const G=dd.cam.go,off=Math.round(ddRouteOff(G.x,G.y));RUN(2.5);const onTheWay=yaw;
+  WALK(80);RUN(3);const u=ddTrackAt(),w=WANT(u);
+  return{ok:off>DD_TURN.off&&G.a!=null&&Math.abs(WRAP(onTheWay-G.a))<.3&&u.y<=DD_FIRST.top&&Math.abs(WRAP(yaw-w))<.2&&WRAP(yaw-G.a)>.8&&!dd.cam.go,
+    offTheWay:off,sent:+G.a.toFixed(2),onTheWay:+onTheWay.toFixed(2),yaw:+yaw.toFixed(2),wayUp:+w.toFixed(2),lead:[Math.round(u.x),Math.round(u.y)]};});
 await ok('sent off the way again with a tank coming: the tank still comes first',()=>{MOVE('A',1078,105);RUN(2);const u=ddTrackAt(),K=(ddTankSpawn({x:u.x+500,y:u.y-300,ang:Math.PI,way:[]}),dd.tanks[dd.tanks.length-1]);K.fireT=1e12;RUN(5);
   const v=ddTrackAt(),to=TO(v,K);const r={ok:Math.abs(WRAP(yaw-to))<.2,yaw:+yaw.toFixed(2),tank:+to.toFixed(2)};K.hp=0;return r;});
 await ev(()=>{startVillage({skip:true});});await page.waitForTimeout(300);
