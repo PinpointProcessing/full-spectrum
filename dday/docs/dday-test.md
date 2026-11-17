@@ -745,3 +745,9 @@ Bryan: "The camera doesn't follow the first hill when you reach the end of the b
 - What I saw: the camera only ever turned along the set way up the draw, on the left. At the end of the beach that left the pillbox and the first hill off the right edge of a phone screen, with the view facing the rock at the draw's mouth; and when the squad was sent up onto the first hill, the camera kept looking up the draw instead of at them.
 - Now: when you send your squad somewhere off the way up (the pillbox, the first hill, a bunker to the side), the camera turns to face the way you sent them and stays facing it once they're there, until your next move. Moving them along the way up turns it with the way up as before. A move back the way you came doesn't spin the camera round. A tank coming near still comes first, and picking a squad brings back the way-up view.
 - Before and after, in pictures: `docs/drafts/end-of-beach-camera.jpg`.
+
+## Version 184: at the end of the beach the camera turns to the next bunker
+Bryan, with a picture: "See when I'm on the road near the first bunker, the camera doesn't turn right."
+- Why: Version 183 kept the camera facing the way your squad walked to get there, which by the left bunker was north, into the cliff, with the pillbox to take next off to the right.
+- Now: once your squad has stopped at the end of the beach, the camera turns to the bunker you're told to take next (the left bunker or the pillbox), as long as it's within about 60 m and not back down the beach. While they're walking it still faces where you sent them. Up the draw and on the top nothing changes.
+- Before and after at your spot: `docs/drafts/left-bunker-camera.jpg`.
