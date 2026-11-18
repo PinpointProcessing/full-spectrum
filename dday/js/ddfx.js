@@ -17,7 +17,7 @@
    rockets' trails (dday.js's ddRockets hands its puffs here). */
 const DDFX={
   cap:{soft:[240,400,560],glow:[100,160,220],streak:[28,44,64],clod:[30,64,100],ring:[6,10,14]},   // the most alive at once, by tier (0 cheapest .. 2)
-  haze:[2,5,8],              // patches of battle smoke drifting low over the field, by tier
+  haze:[0,3,6],              // patches of battle smoke drifting low over the field, by tier
   wind:[-7,2.4],             // smoke's drift over the battle (x, y units a second; the light's far columns lean the same way)
   fireFlame:[7,11,16],fireSmoke:[1.5,2.4,3.2],   // a burning wreck's flames and puffs of black smoke a second, by tier
   muzzle:[.35,.7,1],         // the chance a shot leaves a puff at the muzzle, by tier
@@ -79,14 +79,14 @@ const DDF_VS=`attribute vec4 iA,iB,iC;uniform float uFN,uFF;varying vec2 vU,vQ;v
 // soft: smoke, dust, spray and haze, in the picture's own colours (like the light's smoke columns: no tone curve), lit as little balls from the sun's side
 const DDF_SOFT_FS=`uniform sampler2D tN;uniform vec3 uSun,uSunC,uAmb,uHor;uniform vec4 uMen[8];uniform float uMenN,uMenK;
   varying vec2 vU,vQ;varying vec4 vB;varying vec3 vS;varying float vD,vF;
-  void main(){float r2=dot(vQ,vQ);if(r2>1.)discard;float sh=vS.y,d=1.-r2,a;
+  void main(){float sh=vS.y;vec2 Q=sh>2.5?vQ*vec2(1.,1.8):vQ;float r2=dot(Q,Q);if(r2>1.)discard;float d=1.-r2,a;   // (haze: a low bank, wider than it's tall)
     vec2 t=vU*(sh>2.5?.16:.3)+vec2(vS.x*3.7,vS.x*1.9);float n=texture2D(tN,t).g*.62+texture2D(tN,t*2.3+.37).b*.38;
     if(sh<.5)a=smoothstep(.03,.4,d*.95-(1.-n)*.52);                    // smoke: billows eat the edge
     else if(sh<1.5)a=smoothstep(.02,.32,d-(1.-n)*.58)*(.5+.5*d);      // dust and dirt: grainier, thinner at the rim
     else if(sh<2.5)a=smoothstep(.0,.28,d-(1.-n)*.5);                  // spray
     else a=d*d*(.4+.6*n);                                             // haze: soft all through
     if(a<.004)discard;
-    vec3 N=normalize(vec3(vQ,sqrt(d)+.2));float l=clamp(dot(N,uSun),0.,1.);
+    vec3 N=normalize(vec3(Q,sqrt(d)+.2));float l=clamp(dot(N,uSun),0.,1.);
     vec3 c=vB.rgb*mix(vec3(1.),uAmb+uSunC*l,vS.z)*(.82+.36*n);c=mix(c,uHor,vF);
     float k=1.;for(int i=0;i<8;i++){if(float(i)>=uMenN)break;vec4 m=uMen[i];if(vD<m.z){float e=distance(gl_FragCoord.xy,m.xy);k=min(k,mix(uMenK,1.,smoothstep(m.w*.45,m.w*1.3,e)));}}
     gl_FragColor=vec4(c,a*vB.a*k*(1.-vF*.4));}`;
@@ -212,14 +212,14 @@ function ddFxHaze(dt){
   const m=players.filter(p=>p.team===(dd&&dd.active)&&alive(p)&&!p.inBoat);
   for(let k=0;k<6;k++){const a=R()*TAU,d=rad*(.25+R()*.75),x=camT.x+Math.cos(a)*d,y=camT.z+Math.sin(a)*d*.8;
     if(m.some(p=>hyp(p.x-x,p.y-y)<110))continue;if(DD_MODE==='beach'&&y>760)continue;
-    const s=240+R()*170,c=DD_MODE==='beach'&&y>300?[.8,.76,.68]:[.7,.69,.66];
-    ddFxAdd(S,DDFX.cap.soft[t],x,ddH(x,y)+s*.3,y,(R()-.5)*3,0,(R()-.5)*3,24+R()*16,s*.85,s*1.15,c[0],c[1],c[2],c[0],c[1],c[2],.1+R()*.05,3,0,0,.85,.35,7);return;}
+    const s=300+R()*200,c=DD_MODE==='beach'&&y>300?[.6,.57,.52]:[.58,.58,.56];
+    ddFxAdd(S,DDFX.cap.soft[t],x,ddH(x,y)+s*.17,y,(R()-.5)*3,0,(R()-.5)*3,24+R()*16,s*.85,s*1.15,c[0],c[1],c[2],c[0],c[1],c[2],.2+R()*.08,3,0,0,.85,.45,7);return;}
 }
 
 /* ---------- shots: a puff at the muzzle, a kick of dirt where a round lands, chips off cover, dust from running feet ---------- */
 function ddFxShots(dt){
   const t=ddFxTier(),S=DDF.soft,L=DDFX.cap.soft[t]*.7,R=fxR,seen=DDF.seen,v=DDF.v;
-  for(const f of flashes){if(seen.has(f))continue;seen.add(f);if(R()>DDFX.muzzle[t])continue;
+  for(const f of flashes){if(!f.u||seen.has(f))continue;seen.add(f);if(R()>DDFX.muzzle[t])continue;
     const at=f.u&&typeof muzzleAt==='function'?muzzleAt(f.u,v):null,x=at?at.x:f.x,h=at?at.y:ddH(f.x,f.y)+12,y=at?at.z:f.y,mg=f.u&&f.u.gunner;
     ddFxAdd(S,L,x,h,y,(R()-.5)*6,5+R()*4,(R()-.5)*6,mg?1.4:.9,mg?5:3.4,mg?18:12,.86,.85,.83,.7,.7,.69,mg?.42:.34,0,.8,2,.6,.6,.04);}
   let kick=0;
@@ -241,6 +241,33 @@ function ddFxShots(dt){
     else if(was>30&&q.v<10&&!u.downed){DDF.budget--;const c=ddFxDirt(u.x,u.y,DDF.col,false),g=ddH(u.x,u.y);
       for(let k=0;k<3;k++){const a=R()*TAU;ddFxAdd(S,L,u.x+Math.cos(a)*5,g+3,u.y+Math.sin(a)*5,Math.cos(a)*24,8+R()*8,Math.sin(a)*24,.9+R()*.4,4,13,c[0],c[1],c[2],c[0],c[1],c[2],.38,1,3,0,.4,1,.03);}}
   }
+}
+/* ---------- the big guns: a tank's or a gun's shot, a tank on the move ---------- */
+// a heavy gun's shot (a flash with no man behind it: a tank, the guns on the bluffs, the counterattack's guns): a ring of smoke blown out round the
+// muzzle and on along the shot, the ground's dust lifted under it. dir: the shot's way, or null (then all round)
+function ddFxCannon(x,h,y,dir){
+  const t=ddFxTier(),S=DDF.soft,G=DDF.glow,L=DDFX.cap.soft[t],R=fxR,few=[.5,.78,1][t],c=ddFxDirt(x,y,DDF.col,false),g=ddH(x,y);
+  const dx=dir==null?0:Math.cos(dir),dy=dir==null?0:Math.sin(dir);
+  ddFxAdd(G,DDFX.cap.glow[t],x+dx*6,h,y+dy*6,0,0,0,.09,26,40,1,.9,.7,1,.6,.3,.9,1,0,0,0,0,0);
+  for(let i=0;i<3;i++)ddFxAdd(G,DDFX.cap.glow[t],x+dx*(6+i*7),h,y+dy*(6+i*7),dx*60,4,dy*60,.18+i*.04,12-i*2,20-i*3,1,.75,.4,.8,.25,.05,.7,0,6,0,0,0,0);
+  const n=Math.round(10*few);
+  for(let i=0;i<n;i++){const a=i/n*TAU,s=40+R()*30,fw=dir==null?0:70+R()*90;
+    ddFxAdd(S,L,x+dx*4,h,y+dy*4,Math.cos(a)*s*(dir==null?1:.55)+dx*fw,Math.sin(a*1.7)*s*.35+6,Math.sin(a)*s*(dir==null?1:.55)+dy*fw,2.2+R()*1.6,7+R()*4,26+R()*14,.8,.79,.76,.66,.65,.63,.6,0,2.4,3,1,.8,.03);}
+  if(h-g<40)for(let i=0;i<Math.round(5*few);i++){const a=R()*TAU,s=60+R()*50;ddFxAdd(S,L,x+Math.cos(a)*6,g+4,y+Math.sin(a)*6,Math.cos(a)*s+dx*40,3,Math.sin(a)*s+dy*40,1.2+R()*.6,8,24,c[0],c[1],c[2],c[0],c[1],c[2],.42,1,3.4,0,.4,.6,.02);}
+}
+function ddFxBigGuns(dt){
+  const seen=DDF.seen,tanks=dd&&dd.tanks||[];
+  for(const f of flashes){if(f.u||seen.has(f))continue;seen.add(f);let h=ddH(f.x,f.y)+16,dir=null;
+    for(const K of tanks){if(hyp(K.x+Math.cos(K.ta)*58-f.x,K.y+Math.sin(K.ta)*58-f.y)<3){h=ddH(K.x,K.y)+28;dir=K.ta;break;}}
+    if(dir==null&&rockets.some(r=>hyp(r.x-f.x,r.y-f.y)<3))continue;   // (a rocket's launch: ddRockets puffs that one)
+    ddFxCannon(f.x,h,f.y,dir);}
+  // a tank on the move: dust from its tracks, a little oily smoke from its back deck
+  if(dt<=0)return;const t=ddFxTier(),S=DDF.soft,L=DDFX.cap.soft[t]*.75,R=fxR;
+  for(const K of tanks){if(K.hp<=0)continue;let q=DDF.run.get(K);if(!q){DDF.run.set(K,q={x:K.x,y:K.y,t:0,v:0});continue;}
+    const sp=hyp(K.x-q.x,K.y-q.y)/dt;q.x=K.x;q.y=K.y;q.v=q.v*.8+sp*.2;if(q.v<6||(q.t-=dt)>0)continue;q.t=[.3,.18,.12][t];
+    const ca=Math.cos(K.ang),sa=Math.sin(K.ang),c=ddFxDirt(K.x,K.y,DDF.col,false);
+    for(const sd of[-17,17]){const x=K.x-ca*30-sa*sd,y=K.y-sa*30+ca*sd;ddFxAdd(S,L,x,ddH(x,y)+5,y,-ca*8+(R()-.5)*6,5+R()*5,-sa*8+(R()-.5)*6,1.4+R()*.6,8,24+R()*8,c[0],c[1],c[2],c[0],c[1],c[2],.4,1,1.2,0,.6,.9,.1);}
+    if(R()<.5){const x=K.x-ca*22,y=K.y-sa*22;ddFxAdd(S,L,x,ddH(x,y)+24,y,(R()-.5)*4,12,(R()-.5)*4,1.6,4,14,.25,.24,.23,.5,.49,.47,.4,0,.8,2,1,.7,.1);}}
 }
 // a puff for the rockets' trails, back-blasts and a hit gun's smoke (dday.js's ddRockets and ddcounter.js call DD.rk.puff, which comes here): col a hex
 function ddFxPuff(x,h,y,s,life,col,vy,j1=.5,j2=.5,j3=.5){
@@ -265,7 +292,7 @@ function ddFxBooms(){
 function ddFxFrame(rdt,now,dt){
   if(!DDF||!DD||DDF.sc!==DD.scene)return;
   const bl=DD.lights&&DD.lights.boomL,lb=booms[booms.length-1];if(bl&&lb){const q=clamp(lb.t/.3,0,1);bl.intensity=2.4*(1-q)*(1-q);bl.distance=240;}   // (scene.js lights the latest blast at 7 for .6 s: under the daylight curve that burned a bright disc into the ground; a quick flash now)
-  ddFxBooms();ddFxFires(dt);ddFxHaze(dt);ddFxShots(dt);
+  ddFxBooms();ddFxFires(dt);ddFxHaze(dt);ddFxShots(dt);ddFxBigGuns(dt);
   ddFxStep(DDF.soft,dt);ddFxStep(DDF.glow,dt);ddFxStep(DDF.rings,dt);ddFxStepClods(dt);
   ddFxDraw();
 }
