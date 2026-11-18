@@ -17,15 +17,17 @@ const DDS_MAX=24,DDS_BUSY=14,DDS_FAR=30;   // voices of ours at once; past BUSY 
 // each gun: its near and far takes, how loud at the muzzle, its pitch range (a little different every round), and how many bursts
 // of it further off than about 25 m may sound at once (a beach with forty rifles going is a wall of noise otherwise; the near
 // ones always sound)
+// (carry, Version 188 pass 3: how far it carries, ddsPlace's distance scale: the bunkers' guns are the beach's threat and were
+// lost under everything 80 m off; a bolt rifle's crack carries further than a submachine gun's)
 const DDS_GUN={
-  m1:{near:'us',far:'usfar',vol:.45,r:[.98,1.07],cap:4},
-  spring:{near:'us',far:'usfar',vol:.75,r:[.9,.95],cap:2},
-  bar:{near:'bar',far:'usfar',vol:.48,r:[.96,1.04],cap:3},
-  kar:{near:'kar',far:'karfar',vol:.5,r:[.95,1.05],cap:4},
-  ksnip:{near:'kar',far:'karfar',vol:.72,r:[.88,.93],cap:2},
-  mp40:{near:'smg',far:'smgfar',vol:.48,r:[.96,1.05],cap:2},
-  trench:{near:'trench',far:'usfar',vol:.65,r:[.96,1.03],cap:2},
-  mg:{near:'thud',far:'thud',vol:.9,r:[.97,1.03],cap:4}};
+  m1:{near:'us',far:'usfar',vol:.5,r:[.98,1.07],cap:4,carry:1.2},
+  spring:{near:'us',far:'usfar',vol:.75,r:[.9,.95],cap:2,carry:1.5},
+  bar:{near:'bar',far:'usfar',vol:.48,r:[.96,1.04],cap:3,carry:1.4},
+  kar:{near:'kar',far:'karfar',vol:.6,r:[.95,1.05],cap:4,carry:1.6},
+  ksnip:{near:'kar',far:'karfar',vol:.72,r:[.88,.93],cap:2,carry:1.6},
+  mp40:{near:'smg',far:'smgfar',vol:.48,r:[.96,1.05],cap:2,carry:1},
+  trench:{near:'trench',far:'usfar',vol:.65,r:[.96,1.03],cap:2,carry:1.1},
+  mg:{near:'thud',far:'thud',vol:.9,r:[.97,1.03],cap:4,carry:2.2}};
 const ddsR=(a,b)=>a+Math.random()*(b-a);
 
 /* ---------- loading (from audioInit) ---------- */
@@ -56,9 +58,9 @@ function ddsCrackBuf(v){
 /* ---------- where a sound is: distance, pan, echo ---------- */
 // the listener: the man you're playing in first person, else the middle of the view, a few metres up (the squad is right there)
 const DDS_P={d:0,g:1,lp:19000,send:.1,pan:0,dl:0};
-function ddsPlace(x,y){
+function ddsPlace(x,y,carry=1){
   const F=typeof dd!=='undefined'&&dd&&dd.fp&&dd.fp.u,lx=F?F.x:camT.x,ly=F?F.y:camT.z,dx=(x-lx)/10,dy=(y-ly)/10,h=F?1.7:7,P=DDS_P;
-  P.d=Math.sqrt(dx*dx+dy*dy+h*h);P.g=1/(1+Math.pow(P.d/18,1.7));P.lp=clamp(19000*Math.exp(-P.d/50),1300,19000);P.send=.1+.32*clamp(P.d/100,0,1);
+  P.d=Math.sqrt(dx*dx+dy*dy+h*h);P.g=1/(1+Math.pow(P.d/(18*carry),1.7));P.lp=clamp(19000*Math.exp(-P.d/50),1300,19000);P.send=.1+.32*clamp(P.d/100,0,1);
   P.dl=P.d>12?Math.min(.3,P.d/343):0;   // (sound's speed: a flash 60 m off is heard a sixth of a second later)
   P.pan=0;if(typeof camera!=='undefined'&&camera){const e=camera.matrixWorld.elements,cx=x-camera.position.x,cz=y-camera.position.z,l=Math.sqrt(cx*cx+cz*cz)||1;P.pan=clamp((cx*e[0]+cz*e[2])/l*1.1,-.8,.8);}
   return P;
@@ -66,10 +68,10 @@ function ddsPlace(x,y){
 // a voice of ours: gain -> distance low-pass -> pan -> the mix, with a send to the echo that grows with distance, and (echo, Version
 // 188 pass 2) one to the slap back off the bluffs or the walls (ddsEcho). Counted by when it ends (AC time), so a crowded fight
 // drops the faintest new sounds rather than the nearest
-function ddsOut(x,y,vol,dur,force,echo){
+function ddsOut(x,y,vol,dur,force,echo,carry){
   if(!AC||!sndOn)return null;
   const now=AC.currentTime,L=DSFX.live;for(let i=L.length-1;i>=0;i--)if(L[i]<now)L.splice(i,1);
-  const P=ddsPlace(x,y),g0=vol*P.g;
+  const P=ddsPlace(x,y,carry),g0=vol*P.g;
   if(g0<.004||!force&&(L.length>=DDS_MAX||L.length>=DDS_BUSY&&g0<.12))return null;
   const g=AC.createGain(),lp=AC.createBiquadFilter();g.gain.value=g0;lp.type='lowpass';lp.frequency.value=P.lp;lp.Q.value=.4;g.connect(lp);
   let out=lp,p=null;if(AC.createStereoPanner){p=AC.createStereoPanner();p.pan.value=P.pan;lp.connect(p);out=p;}
@@ -133,8 +135,8 @@ function ddsPattern(u,gun){
 }
 function ddsBurst(u,gun,G,offs,ts){
   const last=offs[offs.length-1]/ts,P=ddsPlace(u.x,u.y),now=AC.currentTime,C=DSFX.cat[gun]||(DSFX.cat[gun]=[]);for(let i=C.length-1;i>=0;i--)if(C[i]<now)C.splice(i,1);
-  if(P.g<.3&&C.length>=G.cap)return;
-  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.7:1),last+1.7,false,gun==='mg'?.35:.8);if(!o)return;C.push(o.t0+last+.6);   // (the other troops a little under your own squads)
+  if(P.d>25&&C.length>=G.cap)return;
+  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.7:1),last+1.7,false,gun==='mg'?.35:.8,G.carry);if(!o)return;C.push(o.t0+last+.6);   // (the other troops a little under your own squads)
   const far=o.d>DDS_FAR,kind=far?G.far:G.near;
   for(let i=0;i<offs.length;i++){
     const at=o.t0+offs[i]/ts,r=ddsR(G.r[0],G.r[1]);
@@ -189,7 +191,7 @@ function ddsBoom(x,y,size){
   // spot again at once (a blast both pushed to booms and played) is the same blast: once is enough
   let sec=false;for(let i=DSFX.blasts.length-1;i>=0;i--){const b=DSFX.blasts[i];if(now-b.t>.6){DSFX.blasts.splice(i,1);continue;}if(b.x===x&&b.y===y&&now-b.t<.1)return;if(Math.abs(b.x-x)<60&&Math.abs(b.y-y)<60)sec=true;}
   DSFX.blasts.push({x,y,t:now});
-  const o=ddsOut(x,y,1,4.5,true,.7);if(!o)return;const t=o.t0,far=o.d>80;
+  const o=ddsOut(x,y,1,4.5,true,.7,kind==='art'||kind==='big'||kind==='sea'?1.6:1.3);if(!o)return;const t=o.t0,far=o.d>80;   // (a blast carries further than a shot)
   const v=sec?.45:1,boom=samples.boom&&samples.boom.length?samples.boom[(Math.random()*samples.boom.length)|0]:null;
   if(kind==='sea'){   // a shell into the sea: a deep thump under the water, the column of it going up, the spray falling back
     ddsSrc(o,ddsPick('xsea'),t,ddsR(.86,1.02)*(size<.8?1.1:1),v*1.4);ddsSrc(o,ddsPick('xfar'),t,ddsR(.75,.85),v*.7);
@@ -218,7 +220,7 @@ function ddsGrains(o,t,len,n,f,a){for(let k=0;k<n;k++){const at=t+Math.pow(Math.
 // a gun firing: a tank's (where a tank is), else a field gun or the coast guns: the cannon recording with a crack in front
 function ddsCannon(x,y){
   if(!AC||!sndOn)return;const tk=typeof dd!=='undefined'&&dd&&(dd.tanks||[]).some(K=>K.x===x&&K.y===y);
-  const o=ddsOut(x,y,1,3.6,true,.7);if(!o)return;
+  const o=ddsOut(x,y,1,3.6,true,.7,1.6);if(!o)return;
   ddsSrc(o,ddsPick('xgun'),o.t0,tk?ddsR(1,1.08):ddsR(.82,.9),tk?.95:1);ddsSrc(o,ddsPick('us'),o.t0,tk?.46:.4,tk?.55:.4);toneHit(o.g,o.t0,.45,'sine',tk?85:70,40,.2,.005);
 }
 // a mortar bomb leaving its tube: a hollow thoonk where it was fired from
@@ -287,6 +289,20 @@ const DDS_FLESH={t:0};
 function ddsFleshOK(x,y){
   if(!AC)return false;const now=AC.currentTime,fp=typeof dd!=='undefined'&&dd&&dd.fp&&dd.fp.u;
   if(now<DDS_FLESH.t||ddsPlace(x,y).d>(fp?60:30))return false;DDS_FLESH.t=now+.16;return true;
+}
+
+// people (Version 188 pass 3): on D-Day a recorded cry, scream, grunt or body falling (audio.js's playSample, for sfxPain, sfxScream,
+// sfxGrunt and the rest) goes through the same distance as the guns (ddsPlace: the other game's screen-wide falloff had a man
+// screaming 60 m off as loud as one beside you), none past 45 m, and only so many at once and so often (DDS_PPL: how many, the
+// least gap in seconds between starts): a beach where forty men are hit a minute was a constant chorus of screams as loud as all its
+// gunfire. One right by you (within about 8 m) is always heard
+const DDS_PPL={scream:[1,5,.6],fear:[1,5,.6],yelp:[2,.8,.75],grunt:[2,.4,.85],grunt_down:[1,.8,.85],bodyfall:[2,.2,.85],flesh:[3,.12,.85]};   // (at once, gap, level)
+function ddsSample(kind,list,x,y,vol,rate){
+  const R=DDS_PPL[kind];if(!R)return null;   // (not a person: audio.js plays it its own way)
+  if(!AC||!sndOn)return true;const now=AC.currentTime,C=DSFX.cat['p_'+kind]||(DSFX.cat['p_'+kind]=[]);for(let i=C.length-1;i>=0;i--)if(C[i]<now)C.splice(i,1);
+  const P=ddsPlace(x,y),near=P.g>.6;if(P.d>45||!near&&(C.length>=R[0]||now<(C.last||0)+R[1]))return true;
+  const buf=list[(Math.random()*list.length)|0],dur=buf.duration/rate,o=ddsOut(x,y,vol*R[2],dur+.2,near);if(!o)return true;
+  C.push(o.t0+dur*.8);C.last=now;ddsSrc(o,buf,o.t0,rate,1);return true;
 }
 
 /* ---------- every frame ---------- */

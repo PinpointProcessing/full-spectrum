@@ -94,6 +94,7 @@ function voice(x,y,vol,dur){
 }
 function playSample(kind,x,y,vol,rate=1){
   const list=samples[kind];if(!list||!list.length)return false;
+  if(MAPID==='dd'&&x!=null&&typeof ddsSample==='function'){const r=ddsSample(kind,list,x,y,vol,rate);if(r!=null)return r;}   // (Version 188, D-Day: people's cries by the guns' distance, a few at once: ddsfx.js)
   const buf=list[Math.floor(Math.random()*list.length)],out=voice(x,y,vol,buf.duration/rate);if(!out)return true;
   const s=AC.createBufferSource();s.buffer=buf;s.playbackRate.value=rate;s.connect(out);s.start();return true;
 }
