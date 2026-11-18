@@ -85,7 +85,7 @@ function postRender(sc,cam){
     B.tSrc.value=POST.c2.texture;B.dir.value.set(0,1/ch2);pass(M.blur,POST.c1);
   }
   const F=M.final.uniforms;F.tScene.value=POST.rt.texture;F.tB1.value=POST.b1.texture;F.tB2.value=wide?POST.c1.texture:POST.b1.texture;F.bloom2.value=wide?.65:0;
-  {const day=MAPID==='dd',G=day&&typeof DDL_GRADE!=='undefined'?DDL_GRADE:null;F.dday.value=G?1:0;F.sat.value=G?G.sat:day?1.2:1.08;F.cold.value=G?G.cold:day?.12:.55;F.vig.value=G?G.vig:day?0:.42;F.grain.value=G?G.grain:day?.012:.03;F.warm.value=G?G.warm:0;F.con.value=G?G.con:.22;F.black.value=G?G.black:0;F.bloom1.value=day?.35:1;M.bright.uniforms.thr.value=day?.86:.54;}   // (D-Day: daylight; its own grade since Version 188, ddlight.js's DDL_GRADE)
+  {const day=MAPID==='dd',G=day&&typeof DDL_GRADE!=='undefined'&&typeof DD!=='undefined'&&DD&&sc===DD.scene?DDL_GRADE:null;F.dday.value=G?1:0;F.sat.value=G?G.sat:day?1.2:1.08;F.cold.value=G?G.cold:day?.12:.55;F.vig.value=G?G.vig:day?0:.42;F.grain.value=G?G.grain:day?.012:.03;F.warm.value=G?G.warm:0;F.con.value=G?G.con:.22;F.black.value=G?G.black:0;F.bloom1.value=day?.35:1;M.bright.uniforms.thr.value=day?.86:.54;}   // (D-Day: daylight; its own grade on the battle's picture since Version 188, ddlight.js's DDL_GRADE; the barracks room keeps the old daylight values)
   F.time.value=reduced?0:performance.now()/1000;F.res.value.set(POST.w,POST.h);
   pass(M.final,null);
 }
