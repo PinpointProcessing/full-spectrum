@@ -46,10 +46,13 @@ function ddaEngine(o){
   for(let i=0;i<n;i++){const t=i/sr;d[i]+=ex[i]*o.ex*(1.2+Math.cos(TAU*o.fire*t))+(o.whine?Math.sin(TAU*o.whine*t+Math.sin(TAU*2/o.len*t)*1.5)*o.wg:0);}
   return ddaMk(ddaNorm(ddaWrap(d,x=>{ddaHP(x,32,sr);ddaLP(x,o.cut,sr);}),.9));
 }
+// each engine built twice, ticking over and working hard, with the same body, so its ring stays where it is as the revs change
+// (a single loop played slower would sink the whole engine into rumble a phone can't play); ddaEng crossfades the two
 const DDA_ENG={
   diesel:{len:1.5,fire:180,pat:[1,.86,.95,.8,.92,.84],jit:.05,rough:.25,nT:.0016,nz:.75,body:[[92,.014,1],[286,.006,.5],[610,.003,.22]],exCut:520,ex:.9,whine:1350,wg:.05,cut:5200},   // the landing craft's Gray Marine 6-71: a two-stroke six, its Roots blower whining
-  tank:{len:1,fire:240,pat:[1,.9,.97,.86,.95,.9,.98,.87,.93,.92,.96,.88],jit:.03,rough:.16,nT:.0011,nz:.3,body:[[118,.016,1],[356,.006,.4],[760,.003,.14]],exCut:330,ex:1.1,whine:820,wg:.03,cut:4200},   // a Panzer IV's Maybach V12 (petrol)
+  tank:{len:1,fire:220,pat:[1,.9,.97,.86,.95,.9,.98,.87,.93,.92,.96,.88],jit:.03,rough:.16,nT:.0011,nz:.3,body:[[118,.016,1],[356,.006,.4],[760,.003,.14]],exCut:330,ex:1.1,whine:820,wg:.03,cut:4200},   // a Panzer IV's Maybach V12 (petrol)
   truck:{len:1,fire:120,pat:[1,.88,.95,.83,.97,.9],jit:.04,rough:.22,nT:.0012,nz:.35,body:[[78,.02,1],[240,.008,.45],[520,.004,.18]],exCut:420,ex:.8,whine:650,wg:.02,cut:4600}};   // an Opel Blitz's straight six
+const ddaIdle=(o,fire,whine)=>ddaEngine({...o,fire,whine,wg:o.wg*.6,rough:o.rough*1.4,jit:o.jit*1.5});   // (ticking over: slower, lumpier, the whine lower)
 // a tank's tracks at its road speed: both sides' links clacking on the sprockets, the road wheels' rumble, and now and then a squeal
 function ddaTracks(){
   const sr=DDA.sr,len=2,n=sr*len,d=new Float32Array(n);
@@ -66,6 +69,12 @@ function ddaAir(){
   for(let k=0;k<ff;k++){const st=Math.floor((k/ff+(ddaR()-.5)*.0006)*sr),a=.6+ddaR()*.6;for(let i=0;i<sr*.004;i++)d[(st+i)%n]+=a*ddaN()*Math.exp(-i/(sr*.0009));}
   const z=ddaWrap(ddaWhite(n),x=>ddaLP(x,2500,sr));for(let i=0;i<n;i++)d[i]+=z[i]*.9;
   return ddaMk(ddaNorm(d,.9));
+}
+// leaves in the wind: thousands of tiny brushes and ticks (not a plain hiss), louder and brighter in a gust (ddaWind)
+function ddaLeaves(){
+  const sr=DDA.sr,len=4,n=sr*len,d=new Float32Array(n);
+  for(let k=0;k<len*260;k++){const st=Math.floor(ddaR()*n),a=Math.exp(ddaN()*1.2)*.25,L=Math.floor(sr*(.004+ddaR()*.03)),at=Math.floor(sr*.002);for(let i=0;i<L;i++)d[(st+i)%n]+=a*ddaN()*Math.min(1,i/at)*Math.exp(-i/(L*.35));}
+  return ddaMk(ddaNorm(ddaWrap(d,x=>{ddaHP(x,1400,sr);ddaHP(x,1400,sr);ddaLP(x,7000,sr);}),.9));
 }
 // a fire: the low roar of it, crackles, and the odd snap of wood or a round cooking off
 function ddaFire(){
@@ -143,13 +152,14 @@ function ddaFarIR(){
   return b;
 }
 // what's built, a few a frame (the first frames of a chapter shouldn't stall), in the order it's wanted
-const DDA_BUILD=[['noise',()=>ddaMk(ddaWhite(Math.floor(DDA.sr*6.7)))],['diesel',()=>ddaEngine(DDA_ENG.diesel)],['slap',ddaSlap],['slap2',ddaSlap],
+const DDA_BUILD=[['noise',()=>ddaMk(ddaWhite(Math.floor(DDA.sr*6.7)))],['diesel',()=>ddaEngine(DDA_ENG.diesel)],['dieselI',()=>ddaIdle(DDA_ENG.diesel,104,800)],['slap',ddaSlap],['slap2',ddaSlap],
   ['mg1',()=>ddaBurst(21.5,7,1)],['mg2',()=>ddaBurst(22,12,1.05)],['mg3',()=>ddaBurst(20.5,19,.95)],['br1',()=>ddaBurst(9,6,.9)],['br2',()=>ddaBurst(8.6,11,.85)],
   ['rf1',()=>ddaRifle(1)],['rf2',()=>ddaRifle(1.15)],['rf3',()=>ddaRifle(1.3)],
   ['art1',()=>ddaBoom({len:4,hits:[0],f0:50,ts:.25,tb:.14,cut:220,mid:380,tr:.9,rl:.3})],['art2',()=>ddaBoom({len:4.5,hits:[0],f0:44,ts:.3,tb:.17,cut:200,mid:330,tr:1.1,rl:.32})],
   ['art3',()=>ddaBoom({len:5,hits:[0,.7],f0:56,ts:.22,tb:.12,cut:240,mid:420,tr:1,rl:.3})],
   ['nav1',()=>ddaBoom({len:6.5,hits:[0,.27,.62],f0:38,ts:.45,tb:.25,cut:170,mid:280,tr:1.6,rl:.38})],['nav2',()=>ddaBoom({len:6.5,hits:[0,.18,.41,.7],f0:34,ts:.5,tb:.28,cut:160,mid:260,tr:1.8,rl:.4})],
-  ['shell',ddaShell],['air',ddaAir],['tank',()=>ddaEngine(DDA_ENG.tank)],['tracks',ddaTracks],['truck',()=>ddaEngine(DDA_ENG.truck)],['fire',ddaFire]];
+  ['shell',ddaShell],['air',ddaAir],['tank',()=>ddaEngine(DDA_ENG.tank)],['tankI',()=>ddaIdle(DDA_ENG.tank,96,410)],['tracks',ddaTracks],['truck',()=>ddaEngine(DDA_ENG.truck)],['truckI',()=>ddaIdle(DDA_ENG.truck,60,330)],
+  ['fire',ddaFire],['leaves',ddaLeaves]];
 
 /* ---------- the graph ---------- */
 function ddAmbBuild(){
@@ -176,6 +186,8 @@ function ddaVoiceSet(id,buf,lvl,pan,cut,rate,t){
   else if(v.s){if(!v.off)v.off=t;else if(t-v.off>2.5){try{v.s.stop();}catch(e){}v.s.disconnect();v.s=null;v.buf=null;}}
   v.g.gain.setTargetAtTime(lvl,t,.2);if(v.p.pan)v.p.pan.setTargetAtTime(clamp(pan,-1,1),t,.15);v.lp.frequency.setTargetAtTime(cut,t,.2);if(v.s)v.s.playbackRate.setTargetAtTime(rate,t,.5);
 }
+// an engine: its ticking-over and its working loops crossfaded by load x (0 idling .. 1 working hard), each nudged in pitch with it
+function ddaEng(id,B,k,lvl,x,pan,cut,rj,t){x=clamp(x,0,1);ddaVoiceSet(id+'i',B[k+'I'],lvl*Math.cos(x*1.571),pan,cut,(1+x*.3)*rj,t);ddaVoiceSet(id+'r',B[k],lvl*Math.sin(x*1.571),pan,cut,(.8+x*.2)*rj,t);}
 // a one-shot: a buffer through its own level, a darkening low-pass and a pan, into the far bus (or another)
 function ddaPlay(buf,at,vol,pan,cut,rate=1,dest){
   const A=ddA;if(!buf||A.n>=DDA.maxEv)return null;
@@ -222,17 +234,17 @@ function ddAmbStop(t){
 function ddaWind(t,dt,S){
   const A=ddA,nb=A.b.noise;if(!nb)return;
   if(!A.wind){const W=A.wind={src:null},g=()=>{const q=AC.createGain();q.gain.value=0;return q;};
-    W.lo=ddaMkF('lowpass',150,.6);W.b1=ddaMkF('bandpass',420,.8);W.b2=ddaMkF('bandpass',500,.8);W.wh=ddaMkF('bandpass',2300,10);W.lf=ddaMkF('highpass',3400,.5);
-    W.glo=g();W.gb1=g();W.gb2=g();W.gwh=g();W.glf=g();
-    ddaChain(W.lo,W.glo,ddaPanner(-.2),A.bus);ddaChain(W.b1,W.gb1,ddaPanner(-.6),A.bus);ddaChain(W.b2,W.gb2,ddaPanner(.6),A.bus);ddaChain(W.wh,W.gwh,ddaPanner(.25),A.bus);ddaChain(W.lf,W.glf,ddaPanner(-.1),A.bus);}
-  if(!A.wind.src){const W=A.wind,s1=ddaLoopSrc(nb,0),s2=ddaLoopSrc(nb,3.3);s1.connect(W.lo);s1.connect(W.b1);s1.connect(W.lf);s2.connect(W.b2);s2.connect(W.wh);W.src=[s1,s2];}
+    W.lo=ddaMkF('lowpass',150,.6);W.b1=ddaMkF('bandpass',420,.8);W.b2=ddaMkF('bandpass',500,.8);W.wh=ddaMkF('bandpass',2300,10);
+    W.glo=g();W.gb1=g();W.gb2=g();W.gwh=g();
+    ddaChain(W.lo,W.glo,ddaPanner(-.2),A.bus);ddaChain(W.b1,W.gb1,ddaPanner(-.6),A.bus);ddaChain(W.b2,W.gb2,ddaPanner(.6),A.bus);ddaChain(W.wh,W.gwh,ddaPanner(.25),A.bus);}
+  if(!A.wind.src){const W=A.wind,s1=ddaLoopSrc(nb,0),s2=ddaLoopSrc(nb,3.3);s1.connect(W.lo);s1.connect(W.b1);s2.connect(W.b2);s2.connect(W.wh);W.src=[s1,s2];}
   // the gusts: a slow wander, and every so often a gust that builds over a couple of seconds and dies away
   if(t>=A.gT){A.gT=t+5+ddaR()*12;A.gv=.55+ddaR()*.45;}
   A.gv=Math.max(0,A.gv-dt*.12);const tgt=.25+A.gv*.75+Math.sin(t*.37)*.08+Math.sin(t*.13+1)*.1;A.gust+=(tgt-A.gust)*Math.min(1,dt*.7);
   const W=A.wind,k=S.wind*DDA.lv.wind,gu=clamp(A.gust,0,1.2);
   W.glo.gain.setTargetAtTime(k*(.9+.6*gu),t,.3);W.gb1.gain.setTargetAtTime(k*(.25+.9*gu*gu),t,.3);W.gb2.gain.setTargetAtTime(k*(.22+.8*gu*gu),t,.4);
   W.b1.frequency.setTargetAtTime(300+520*gu,t,.4);W.b2.frequency.setTargetAtTime(360+600*gu,t,.5);
-  W.gwh.gain.setTargetAtTime(k*.25*Math.max(0,gu-.6)*2.5,t,.5);W.glf.gain.setTargetAtTime(k*S.leaves*(.12+.5*gu*gu),t,.25);
+  W.gwh.gain.setTargetAtTime(k*.25*Math.max(0,gu-.6)*2.5,t,.5);ddaVoiceSet('leaves',A.b.leaves,k*S.leaves*(.35+1.2*gu*gu),Math.sin(t*.21)*.4,2800+4500*Math.min(1,gu),.9+.2*Math.min(1,gu),t);   // (the trees and hedgerows)
 }
 
 /* ---------- the sea ---------- */
@@ -262,9 +274,9 @@ function ddaSurf(t,S){
 function ddaBoatVoices(t,live){
   const A=ddA,L=DDA.lv,b=dd.boats&&dd.boats.find(q=>q.own),ride=!!b&&!dd.land.done;
   if(b&&b.st!=='gone'&&b.st!=='sunk'){   // our boat: we're in it on the ride, then it backs off the beach
-    const idle=b.st==='ramp'||b.st==='out'||b.st==='wait',rev=b.st==='in'?1+Math.sin(simT*1.7+b.x)*.03:b.st==='back'?.92:idle?.56:.8,pl=place(b.x,b.y+25);
-    ddaVoiceSet('diesel',A.b.diesel,live?(ride?L.diesel*(idle?.75:1):L.diesel*pl.g*.9):0,ride?0:pl.p,ride?3200:3200*(1-pl.far*.7),rev,t);}
-  else ddaVoiceSet('diesel',null,0,0,3000,1,t);
+    const idle=b.st==='ramp'||b.st==='out'||b.st==='wait',x=b.st==='in'?1:b.st==='back'?.85:idle?0:.6,pl=place(b.x,b.y+25);
+    ddaEng('dsl',A.b,'diesel',live?(ride?L.diesel*(idle?.8:1):L.diesel*pl.g*.9):0,x,ride?0:pl.p,ride?3200:3200*(1-pl.far*.7),1+(b.st==='in'?Math.sin(simT*1.7+b.x)*.025:0),t);}   // (the revs dip and rise as she rides the swell)
+  else ddaEng('dsl',A.b,'diesel',0,0,0,3000,1,t);
   const others=ride?dd.boats.filter(q=>!q.own&&q.st==='in').length:0;   // the rest of the wave either side
   for(const[id,pn,r]of[['ch1',-.75,.93],['ch2',.75,1.07]])ddaVoiceSet(id,A.b.diesel,live&&others?L.chorus*Math.min(1,others/3):0,pn,1400,r*(.97+Math.sin(t*.7+pn)*.03),t);
   // open water round the boat, louder as the bow digs in
@@ -287,16 +299,16 @@ function ddaHull(t,live){
 function ddaTanks(t,live){
   const A=ddA,L=DDA.lv,up=(dd.tanks||[]).filter(K=>K.hp>0).sort((a,b)=>hyp(a.x-camT.x,a.y-camT.z)-hyp(b.x-camT.x,b.y-camT.z));
   for(let i=0;i<3;i++){const K=up[i],e='tk'+i,r='tr'+i;
-    if(!K||!live){ddaVoiceSet(e,null,0,0,3000,1,t);ddaVoiceSet(r,null,0,0,3000,1,t);continue;}
+    if(!K||!live){ddaEng(e,A.b,'tank',0,0,0,3000,1,t);ddaVoiceSet(r,null,0,0,3000,1,t);continue;}
     const sp=K.ddaX!=null?hyp(K.x-K.ddaX,K.y-K.ddaY)/Math.max(.001,t-K.ddaT):0;K.ddaX=K.x;K.ddaY=K.y;K.ddaT=t;
     const mv=K.ddaV=(K.ddaV||0)+(clamp(sp/20,0,1.4)-(K.ddaV||0))*.15,pl=place(K.x,K.y),cut=4200*(1-pl.far*.75),g=pl.g*clamp(1.4-hyp(K.x-camT.x,K.y-camT.z)/700,0,1);   // (heard to about 100 m)
-    ddaVoiceSet(e,A.b.tank,L.tank*g*(.65+.35*Math.min(1,mv)),pl.p,cut,.42+.36*Math.min(1,mv),t);
+    ddaEng(e,A.b,'tank',L.tank*g*(.7+.3*Math.min(1,mv)),mv,pl.p,cut,1,t);
     ddaVoiceSet(r,A.b.tracks,L.track*g*Math.min(1,mv),pl.p,cut*1.2,.6+.4*Math.min(1.4,mv),t);}
 }
 function ddaTrucks(t,live){
   const A=ddA,T=dd.vg&&dd.vg.trucks||[],on=T.filter(K=>K.hp>0&&K.ph!=='parked').sort((a,b)=>hyp(a.x-camT.x,a.y-camT.z)-hyp(b.x-camT.x,b.y-camT.z));
-  for(let i=0;i<2;i++){const K=on[i],id='tc'+i;if(!K||!live){ddaVoiceSet(id,null,0,0,3000,1,t);continue;}
-    const pl=place(K.x,K.y),go=K.ph==='drive',g=pl.g*clamp(1.4-hyp(K.x-camT.x,K.y-camT.z)/600,0,1);ddaVoiceSet(id,A.b.truck,DDA.lv.truck*g*(go?1:.6),pl.p,4400*(1-pl.far*.75),go?.95:.5,t);}
+  for(let i=0;i<2;i++){const K=on[i],id='tc'+i;if(!K||!live){ddaEng(id,A.b,'truck',0,0,0,3000,1,t);continue;}
+    const pl=place(K.x,K.y),go=K.ph==='drive',g=pl.g*clamp(1.4-hyp(K.x-camT.x,K.y-camT.z)/600,0,1);ddaEng(id,A.b,'truck',DDA.lv.truck*g*(go?1:.7),go?.9:0,pl.p,4400*(1-pl.far*.75),1,t);}
 }
 // the nearest fire crackling (a burning wreck, a boat gone up, a tank knocked out)
 function ddaFires(t){
