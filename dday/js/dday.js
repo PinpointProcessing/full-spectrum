@@ -264,6 +264,7 @@ function buildDDay(){
     const bl=new T.PointLight(0xffa050,0,300,1.6);sc.add(bl);
     DD.lights={hemi,moon:sun,lampPool:pool,muzzle:mz,boomL:bl};
     ddGibPool(sc);
+    for(const f of['ddLightBuild','ddSeaBuild','ddFxBuild','ddGroundBuild'])if(typeof window[f]==='function')window[f](sc);   // (Version 188: each of the looks' own build: ddlight.js, ddsea.js, ddfx.js, ddground.js; every chapter, the lights made)
   }finally{scene=keep;}
 }
 // poured concrete: the marks of the boards it was cast against, rain streaks, stains and a few cracks
@@ -466,6 +467,10 @@ function ddFrame(rdt,now){
     const fl=Math.max(0,1-q.t/.07);q.f.scale.setScalar(.01+q.k*2.3*fl);q.f.rotation.z=q.t*40;
     for(const b of q.bits){b.v[1]-=220*dt;b.m.position.x+=b.v[0]*dt;b.m.position.y+=b.v[1]*dt;b.m.position.z+=b.v[2]*dt;b.m.lookAt(q.g.position.x+b.m.position.x+b.v[0],q.g.position.y+b.m.position.y+b.v[1],q.g.position.z+b.m.position.z+b.v[2]);b.m.material.opacity=1-k;}}
   if(typeof ddLookFrame==='function')ddLookFrame(dt,now);
+  if(typeof ddLightFrame==='function')ddLightFrame(rdt,now);   // (Version 188: the light and sky, ddlight.js)
+  if(typeof ddSeaFrame==='function')ddSeaFrame(rdt,now,dt);   // (Version 188: the sea and the shore, ddsea.js)
+  if(typeof ddFxFrame==='function')ddFxFrame(rdt,now,dt);   // (Version 188: blasts, smoke, dust and fire, ddfx.js)
+  if(typeof ddGroundFrame==='function')ddGroundFrame(rdt,now,dt);   // (Version 188: the ground's dressing, ddground.js)
   if(DD_MODE==='village'&&typeof vgFrame==='function')vgFrame(rdt,now);   // (the canopy opens over our men, ddvillage.js)
   if(typeof ddCam==='function')ddCam(rdt);   // (ddplay.js: the camera keeps with the squad)
 }
