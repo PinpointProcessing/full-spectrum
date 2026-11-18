@@ -21,40 +21,61 @@ function ddInst(G,geo,mat,L,shadow){
 }
 function ddDress(G,sc,M){
   const r=rng(606),X1=DDB.x1,pick=a=>a[(r()*a.length)|0];
-  const tufts=[],bush=[],trunk=[],crown=[],crown2=[],stone=[],peb=[],stake=[],junk=[],helm=[];
-  // grass and gorse: thick on the tops and the base, thin in the draw
+  const tufts=[],bush=[],trunk=[],crown=[],crown2=[],stone=[],peb=[],stake=[],mine=[],can=[],pack=[],plank=[],helm=[],clod=[];
+  // grass and gorse: thick on the tops and the base, thin in the draw (Version 188: tufts of blades, dark at the root and in deeper greens, so
+  // they read as grass and not as pale specks)
   for(let i=0;i<5200;i++){const x=r()*X1,y=-756+r()*1070,k=ddGroundAt(x,y);if(k==='sand'||k==='sea'||k==='rock')continue;if(k==='dirt'&&r()<.75)continue;
-    tufts.push({x,y,h:ddH(x,y)+1.6,ry:r()*6,sx:.8+r()*.9,sy:.7+r()*1.1,c:pick([0x6f9a3a,0x86ac44,0x5c8a34,0xa4b052,0x7aa040])});}
+    tufts.push({x,y,h:ddH(x,y)-.2,ry:r()*6,sx:.8+r()*.9,sy:.7+r()*1.1,c:pick([0x648a3c,0x749444,0x587e36,0x88904a,0x709042,0x989462])});}
   for(let i=0;i<900;i++){const x=r()*X1,y=-756+r()*1070;if(ddGroundAt(x,y)!=='top')continue;
-    bush.push({x,y,h:ddH(x,y)+2.6,ry:r()*6,sx:3.4+r()*4.5,sy:2.6+r()*2.8,c:pick([0x4f7d2e,0x5f8f36,0x466e2c,0x7c9a3c,0x94a03a])});}
+    bush.push({x,y,h:ddH(x,y)+2.2,ry:r()*6,sx:3.4+r()*4.5,sy:2.6+r()*2.8,c:pick([0x5c8a3a,0x6a9842,0x507c36,0x7a9446,0x8a9a48])});}
   // trees: on the tops well back from their edges, and a hedgerow along the back of the base
   const tree=(x,y,s)=>{const h=ddH(x,y);trunk.push({x,y,h:h+7*s,sx:s,ry:r()*6});crown.push({x:x+(r()-.5)*3,y:y+(r()-.5)*3,h:h+19*s,sx:s*(1+r()*.25),sy:s*(.85+r()*.25),ry:r()*6,c:pick([0x4c7a2e,0x5a8a34,0x3f6a2a,0x6a9438])});crown2.push({x:x+(r()-.5)*9*s,y:y+(r()-.5)*9*s,h:h+14*s+r()*4,sx:s*.72,ry:r()*6,c:pick([0x55842f,0x487430,0x6c963a])});};
   for(let i=0,n=0;i<700&&n<70;i++){const x=r()*X1,y=-440+r()*740;if(ddGroundAt(x,y)!=='top')continue;let ok=true;for(const[ox,oy]of[[26,0],[-26,0],[0,26],[0,-26]])if(ddGroundAt(x+ox,y+oy)!=='top')ok=false;if(!ok)continue;tree(x,y,.9+r()*.7);n++;}
   for(let x=10;x<X1;x+=24+r()*20)tree(x,-752+r()*10,1+r()*.6);
   // stones: tumbled down the faces and at their feet; shingle under the wall
   for(let i=0;i<2600&&stone.length<230;i++){const x=r()*X1,y=-460+r()*800,k=ddGroundAt(x,y);if(k!=='rock')continue;
-    stone.push({x,y,h:ddH(x,y)-.5,ry:r()*6,rx:r()*2,sx:2+r()*r()*6,sy:1.4+r()*3,c:pick([0x8a7c64,0x7a6e5a,0x96886e,0x6c6252])});}
-  for(let i=0;i<340;i++){const x=r()*X1,y=322+r()*r()*40;if(ddGroundAt(x,y)!=='sand')continue;peb.push({x,y,h:ddH(x,y)+.5,ry:r()*6,sx:1+r()*2.4,sy:.7+r(),c:pick([0x9a948a,0x847e74,0xb4ada0,0x6f6a62])});}
-  // the surf's obstacles: stakes leaning seaward, some with a mine on top; and what an army drops on a beach
-  for(let x=14;x<X1;x+=17+r()*16){const y=716+r()*46;stake.push({x,y,h:ddH(x,y)+6,rx:.34+r()*.2,ry:(r()-.5)*.5,sx:1,sy:.8+r()*.5});}
-  for(let i=0;i<150;i++){const x=r()*X1,y=350+r()*340;if(ddGroundAt(x,y)!=='sand')continue;
-    if(r()<.45)junk.push({x,y,h:ddH(x,y)+1.6,ry:r()*6,sx:.7+r()*.7,c:pick([0x6b6f48,0x7c6a48,0x565c44])});else helm.push({x,y,h:ddH(x,y)+.9,ry:r()*6,rz:(r()-.5)*1.2,sx:1,c:pick([0x5d6a42,0x4f5a3c])});}
-  const lam=(c)=>new T.MeshLambertMaterial({color:c});
-  const tg=new T.ConeGeometry(.8,3.4,3);tg.translate(0,.6,0);
-  ddInst(G,tg,lam(0xffffff),tufts,false);
-  ddInst(G,new T.IcosahedronGeometry(1,0),lam(0xffffff),bush,true);
+    stone.push({x,y,h:ddH(x,y)-.5,ry:r()*6,rx:r()*2,sx:2+r()*r()*6,sy:1.4+r()*3,c:pick([0xa89a80,0x988a74,0xb4a68a,0x8a7e6c])});}
+  for(let i=0;i<340;i++){const x=r()*X1,y=322+r()*r()*40;if(ddGroundAt(x,y)!=='sand')continue;peb.push({x,y,h:ddH(x,y)+.5,ry:r()*6,sx:1+r()*2.4,sy:.7+r(),c:pick([0xaaa498,0x96908a,0xc4beb2,0x88837a])});}
+  // the surf's obstacles: stakes leaning seaward, some with a mine on top (Version 188: the mines drawn, Teller mines wired to the tops); and
+  // what an army drops on a beach: ammunition boxes, packs, helmets, and the timbers of wrecked boats along the water's edge
+  for(let x=14;x<X1;x+=17+r()*16){const y=716+r()*46,rx=.34+r()*.2,ry=(r()-.5)*.5,sy=.8+r()*.5,h=ddH(x,y)+6;stake.push({x,y,h,rx,ry,sx:1,sy});
+    if(r()<.45){const L=7.6*sy,sz=L*Math.sin(rx),sh=L*Math.cos(rx);mine.push({x,y:y+sz,h:h+sh,rx,ry,sx:1});}}
+  for(let i=0;i<150;i++){const x=r()*X1,y=350+r()*340;if(ddGroundAt(x,y)!=='sand')continue;const k=r();
+    if(k<.3)can.push({x,y,h:ddH(x,y)+1.3,ry:r()*6,rz:(r()-.5)*.3,sx:.8+r()*.4,c:pick([0x5e6644,0x6a6848,0x535a3e])});
+    else if(k<.55)pack.push({x,y,h:ddH(x,y)+1,ry:r()*6,rz:(r()-.5)*.4,sx:.9+r()*.3,c:pick([0x6a6a4a,0x5e6446,0x74704e])});
+    else helm.push({x,y,h:ddH(x,y)+.9,ry:r()*6,rz:(r()-.5)*1.2,sx:1,c:pick([0x5d6a42,0x4f5a3c])});}
+  for(let i=0;i<70;i++){const x=r()*X1,y=640+r()*70;if(ddGroundAt(x,y)!=='sand')continue;plank.push({x,y,h:ddH(x,y)+.5,ry:r()*6,rz:(r()-.5)*.1,sx:.6+r()*1.2,sy:1,sz:.7+r()*.6,c:pick([0x7a6a52,0x685a46,0x8a7a5e,0x5e5c56])});}
+  // the clods round each shell hole: the sand and the earth under it thrown out in lumps
+  for(const hh of DD_HOLES)for(let k=0;k<26;k++){const a=r()*TAU,d=hh.r*(1+r()*r()*.9)+3,x=hh.x+DDX+Math.cos(a)*d,y=hh.y+Math.sin(a)*d;clod.push({x,y,h:ddH(x,y)+.2,ry:r()*6,rx:r()*3,sx:.7+r()*1.4,sy:.5+r()*.6,c:pick([0x7a6a4c,0x8a7656,0x645440,0xb8a47c,0x9a8664])});}
+  const lam=(c)=>new T.MeshLambertMaterial({color:c}),lamV=o=>new T.MeshLambertMaterial(Object.assign({color:0xffffff,vertexColors:true},o));
+  // the shapes, each with its shading baked in (darker underneath) and its corners pulled about a little
+  const tg=new T.BufferGeometry();{const P=[],C=[];for(let k=0;k<6;k++){const a=k*1.05+r()*.5,l=k?.7+r()*.5:.1,hh=k?2.4+r()*1.4:3.6,ca=Math.cos(a),sa=Math.sin(a),w=.32;
+      P.push(-sa*w,0,ca*w, sa*w,0,-ca*w, ca*l*1.4,hh,sa*l*1.4);C.push(.42,.42,.42,.42,.42,.42,1.15,1.15,1.15);}
+    tg.setAttribute('position',new T.Float32BufferAttribute(P,3));tg.setAttribute('color',new T.Float32BufferAttribute(C,3));tg.computeVertexNormals();}
+  ddgInst(G,tg,lamV({side:T.DoubleSide}),tufts,false);
+  ddgInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(1,0),.22,4),.5,1.12),lamV(),bush,true);
   ddInst(G,new T.CylinderGeometry(1.1,1.7,14,6),lam(0x5a4630),trunk,true);
-  ddInst(G,new T.IcosahedronGeometry(9,0),lam(0xffffff),crown,true);
-  ddInst(G,new T.IcosahedronGeometry(8,0),lam(0xffffff),crown2,true);
-  ddInst(G,new T.DodecahedronGeometry(1,0),M(0xffffff,1),stone,true);
-  ddInst(G,new T.DodecahedronGeometry(1,0),M(0xffffff,1),peb,false);
+  ddInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(9,0),1.6,6),.5,1.12),lamV(),crown,true);
+  ddInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(8,0),1.4,7),.55,1.12),lamV(),crown2,true);
+  const stG=ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.18,8),.6,1.1);
+  ddgInst(G,stG,new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),stone,true);
+  ddgInst(G,stG,new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),peb,false);
+  ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.25,9),.55,1.05),new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),clod,false);
   ddInst(G,new T.CylinderGeometry(.9,1.1,15,5),lam(0x4d3c2a),stake,true);
-  ddInst(G,new T.BoxGeometry(5,3.2,3.4),lam(0xffffff),junk,true);
+  {const mg=new T.CylinderGeometry(1.7,1.7,1,10);mg.translate(0,.5,0);ddInst(G,mg,new T.MeshStandardMaterial({color:0x4e5240,roughness:.7,metalness:.4}),mine,true);}
+  ddgInst(G,ddgMerge([{g:new T.BoxGeometry(5,2.8,2.4),c:0xffffff},{g:new T.BoxGeometry(5.2,.5,2.6),p:[0,1.5,0],c:0xb8b8b0},{g:new T.BoxGeometry(2,.6,.5),p:[0,2,0],c:0x606060}],true),new T.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:.3,vertexColors:true}),can,true);
+  {const pg=ddgBagGeo();pg.scale(5,4.6,6.4);ddgInst(G,ddgShade(pg,.6,1.08),lamV(),pack,true);}
+  ddgInst(G,ddgShade(new T.BoxGeometry(14,1,2.4),.7,1.05),lamV(),plank,true);
   ddInst(G,new T.SphereGeometry(1.5,7,5,0,TAU,0,Math.PI*.55),lam(0xffffff),helm,false);
-  // a lip of thrown sand round each shell hole
+  // the lips of thrown sand round each shell hole (Version 188: a churned, uneven bank, dark and scorched on the inside, the colour of the
+  // sand where it meets it, all of them one mesh; it was a pale ring like a life belt)
   const one=(geo,mat,x,h,y,ry,rx,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,h,y);m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=true;m.receiveShadow=true;G.add(m);return m;};
-  const lip=M(0xc7ac74,1);
-  for(const hh of DD_HOLES){const x=hh.x+DDX,m=one(new T.TorusGeometry(hh.r+5,3.4,5,16),lip,x,ddH(x,hh.y+hh.r+8)-.6,hh.y,0,Math.PI/2);m.scale.set(1,1,.7);m.castShadow=false;}
+  {const P=[],C=[],I=[];for(const hh of DD_HOLES){const cx=hh.x+DDX,cy=hh.y,R=hh.r,S=40,rows=[[R*.8,.15,.5],[R*.95,1.3,.6],[R+2.5,2.6,.8],[R+5.5,1.3,.92],[R+9.5,-.4,1]],base=P.length/3,sa=r()*TAU,ph1=r()*6,ph2=r()*6;
+      for(let i=0;i<S;i++){const a=i/S*TAU,n=1+.32*Math.sin(a*3+ph1)+.22*Math.sin(a*7+ph2)+(r()-.5)*.35,burn=Math.max(0,Math.cos(a-sa))**2;
+        for(const[rr,hgt,col]of rows){const rad=rr+(hgt>1?(r()-.5)*2.2:0),x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad,k=col*(1-burn*.4*(1-col*.5))*(.9+r()*.18);P.push(x,ddH(x,y)+hgt*n+(hgt>1?(r()-.5)*.9:0),y);C.push(k,k*.97,k*.92);}}
+      for(let i=0;i<S;i++){const i2=(i+1)%S;for(let j=0;j<rows.length-1;j++){const a=base+i*rows.length+j,b=base+i2*rows.length+j;I.push(a,b,a+1,b,b+1,a+1);}}}
+    const lg=new T.BufferGeometry();lg.setAttribute('position',new T.Float32BufferAttribute(P,3));lg.setAttribute('color',new T.Float32BufferAttribute(C,3));lg.setIndex(I);lg.computeVertexNormals();
+    const lm=one(lg,new T.MeshStandardMaterial({color:new T.Color(0xbca474).convertSRGBToLinear(),roughness:1,vertexColors:true}),0,0,0);lm.castShadow=false;}
   // mine signs by the wire and the gates
   const signT=canvasTex(96,64,(q,w,h)=>{q.fillStyle='#e9e2c8';q.fillRect(0,0,w,h);q.strokeStyle='#1c1a16';q.lineWidth=5;q.strokeRect(3,3,w-6,h-6);q.fillStyle='#1c1a16';q.font='bold 19px sans-serif';q.textAlign='center';q.fillText('ACHTUNG',w/2,27);q.fillStyle='#a3231a';q.font='bold 22px sans-serif';q.fillText('MINEN',w/2,52);});
   for(const[dx,y,ry]of[[150,478,.1],[40,340,-.2],[450,336,.15],[590,340,-.1]]){const x=dx+DDX,h=ddH(x,y);one(new T.BoxGeometry(.9,13,.9),lam(0x4d3c2a),x,h+6.5,y);const p=one(new T.BoxGeometry(11,7.4,.7),new T.MeshLambertMaterial({map:signT}),x,h+11,y+.7,ry);p.castShadow=false;}
