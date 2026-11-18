@@ -184,7 +184,8 @@ function sfxCrash(x,y){   // chain-link gate and its steel frame going down
   noiseHit(out,t,.25,'lowpass',1200,0,1,.002,200);noiseHit(out,t,.9,'bandpass',2600,4,.35,.005);noiseHit(out,t+.18,.6,'bandpass',1700,5,.25,.01);
   for(let k=0;k<6;k++)noiseHit(out,t+.05+Math.random()*.5,.04,'highpass',3000,0,.15);
 }
-function sfxClang(x,y){const out=voice(x,y,.6,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.05,'highpass',2500,0,.6);noiseHit(out,t,.7,'bandpass',420,12,.6,.002);noiseHit(out,t,.5,'bandpass',1130,14,.3,.002);}
+function sfxClang(x,y){if(MAPID==='dd'&&typeof ddsRamp==='function'){ddsRamp(x,y);return;}   // (Version 188, D-Day: a landing craft's ramp going down, ddsfx.js)
+  const out=voice(x,y,.6,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.05,'highpass',2500,0,.6);noiseHit(out,t,.7,'bandpass',420,12,.6,.002);noiseHit(out,t,.5,'bandpass',1130,14,.3,.002);}
 function sfxThunder(){   // a crack, then a long roll that comes and goes (recorded; synthesised if it isn't loaded)
   if(samples.thunder&&samples.thunder.length){setTimeout(()=>playSample('thunder',null,null,.75,varied(.9,1.02)),300+Math.random()*1500);return;}
   const out=voice(null,null,.7,6);if(!out)return;const t=AC.currentTime+.3+Math.random()*1.5;
@@ -232,7 +233,7 @@ function sfxRicochet(x,y,helmet){
 }
 function sfxImpact(x,y,mat){if(MAPID==='dd'&&typeof ddsImpact==='function'){ddsImpact(x,y,mat);return;}   // (Version 188, D-Day: sand puffs, concrete chips, wood, the ricochet off steel: ddsfx.js)
   const m=mat||matAt(x,y);if(MAPID==='dd'&&m==='metal'){sfxRicochet(x,y);if(typeof ddSpark==='function')ddSpark(x,gndH(x,y)+7+Math.random()*6,y,.9);return;}playSample('hit_'+m,x,y,.55,varied());}
-function sfxFlesh(x,y){playSample('flesh',x,y,.45,varied(.85,1));}
+function sfxFlesh(x,y){if(MAPID==='dd'&&typeof ddsFleshOK==='function'&&!ddsFleshOK(x,y))return;playSample('flesh',x,y,.45,varied(.85,1));}   // (Version 188, D-Day: only the hits near you, a few a second: ddsfx.js)
 function sfxGrunt(u,big){if(u&&!u.dog)playSample(big?'grunt_down':'grunt',u.x,u.y,big?.8:.6,varied(u.side==='E'?.86:.96,u.side==='E'?.96:1.06));}
 // pain and fear (Bryan: they should be screaming, not a voice saying "ow, my leg"): recorded yells (HaelDB, CC0), never a voice line.
 // A hit: a short cry, a scream once he's badly hurt; going down or dying: a scream; giving up: "No!" or a scream

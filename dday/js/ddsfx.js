@@ -63,19 +63,34 @@ function ddsPlace(x,y){
   P.pan=0;if(typeof camera!=='undefined'&&camera){const e=camera.matrixWorld.elements,cx=x-camera.position.x,cz=y-camera.position.z,l=Math.sqrt(cx*cx+cz*cz)||1;P.pan=clamp((cx*e[0]+cz*e[2])/l*1.1,-.8,.8);}
   return P;
 }
-// a voice of ours: gain -> distance low-pass -> pan -> the mix, with a send to the echo that grows with distance. Counted by
-// when it ends (AC time), so a crowded fight drops the faintest new sounds rather than the nearest
-function ddsOut(x,y,vol,dur,force){
+// a voice of ours: gain -> distance low-pass -> pan -> the mix, with a send to the echo that grows with distance, and (echo, Version
+// 188 pass 2) one to the slap back off the bluffs or the walls (ddsEcho). Counted by when it ends (AC time), so a crowded fight
+// drops the faintest new sounds rather than the nearest
+function ddsOut(x,y,vol,dur,force,echo){
   if(!AC||!sndOn)return null;
   const now=AC.currentTime,L=DSFX.live;for(let i=L.length-1;i>=0;i--)if(L[i]<now)L.splice(i,1);
   const P=ddsPlace(x,y),g0=vol*P.g;
   if(g0<.004||!force&&(L.length>=DDS_MAX||L.length>=DDS_BUSY&&g0<.12))return null;
   const g=AC.createGain(),lp=AC.createBiquadFilter();g.gain.value=g0;lp.type='lowpass';lp.frequency.value=P.lp;lp.Q.value=.4;g.connect(lp);
-  let out=lp;if(AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=P.pan;lp.connect(p);out=p;}
+  let out=lp,p=null;if(AC.createStereoPanner){p=AC.createStereoPanner();p.pan.value=P.pan;lp.connect(p);out=p;}
   out.connect(sndMuffle);const s=AC.createGain();s.gain.value=P.send;out.connect(s);s.connect(sndVerb);
-  const t0=now+P.dl;L.push(t0+dur);setTimeout(()=>{g.disconnect();s.disconnect();},(P.dl+dur+.4)*1000);
+  let e=null;if(echo){e=AC.createGain();e.gain.value=echo*(.55+.45*clamp(P.d/60,0,1));out.connect(e);e.connect(ddsEcho());}
+  const t0=now+P.dl;L.push(t0+dur);setTimeout(()=>{for(const n of[g,lp,p,s,e])if(n)n.disconnect();},(P.dl+dur+.4)*1000);
   return{g,t0,d:P.d,k:P.g};
 }
+// the slap back (Version 188 pass 2): a shot or a blast comes back off the bluffs behind the beach, the base's buildings or the
+// village's walls a moment later, duller, from the other side: two taps, the first a third of a second on, the second later and
+// fainter, low-passed and with nothing under 160 Hz (so it doesn't boom). Shared by every voice, made once per audio context;
+// how far off the walls are goes with the chapter (DDS_ECHO)
+const DDS_ECHO={beach:[.42,.79],counter:[.27,.52],village:[.19,.36]};
+function ddsEcho(){
+  const E=DSFX.echo;if(E&&E.ctx===AC)return E.in;
+  const i=AC.createGain(),hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=160;i.connect(hp);
+  const taps=[[1700,.4,-.4],[1100,.22,.45]].map(([f,a,pn])=>{const d=AC.createDelay(1.5),lo=AC.createBiquadFilter(),g=AC.createGain();lo.type='lowpass';lo.frequency.value=f;g.gain.value=a;hp.connect(d);d.connect(lo);lo.connect(g);
+    let o=g;if(AC.createStereoPanner){const P=AC.createStereoPanner();P.pan.value=pn;g.connect(P);o=P;}o.connect(sndMuffle);const sv=AC.createGain();sv.gain.value=.3;o.connect(sv);sv.connect(sndVerb);return d;});
+  DSFX.echo={ctx:AC,in:i,taps,mode:null};ddsEchoMode();return i;
+}
+function ddsEchoMode(){const E=DSFX.echo,m=typeof DD_MODE!=='undefined'&&DDS_ECHO[DD_MODE]?DD_MODE:'beach';if(!E||E.ctx!==AC||E.mode===m)return;E.mode=m;E.taps.forEach((d,k)=>{d.delayTime.value=DDS_ECHO[m][k]*ddsR(.95,1.05);});}
 // a recorded take into a voice at a time, at a speed, at a level (hp: high-passed there, to take out a sub-bass a phone can't play
 // and the mix's compressor would only duck everything else for)
 function ddsSrc(o,buf,at,rate,vol,hp){
@@ -119,7 +134,7 @@ function ddsPattern(u,gun){
 function ddsBurst(u,gun,G,offs,ts){
   const last=offs[offs.length-1]/ts,P=ddsPlace(u.x,u.y),now=AC.currentTime,C=DSFX.cat[gun]||(DSFX.cat[gun]=[]);for(let i=C.length-1;i>=0;i--)if(C[i]<now)C.splice(i,1);
   if(P.g<.3&&C.length>=G.cap)return;
-  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.7:1),last+1.7,false);if(!o)return;C.push(o.t0+last+.6);   // (the other troops a little under your own squads)   // (the other troops a little under your own squads)
+  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.7:1),last+1.7,false,gun==='mg'?.35:.8);if(!o)return;C.push(o.t0+last+.6);   // (the other troops a little under your own squads)
   const far=o.d>DDS_FAR,kind=far?G.far:G.near;
   for(let i=0;i<offs.length;i++){
     const at=o.t0+offs[i]/ts,r=ddsR(G.r[0],G.r[1]);
@@ -170,27 +185,32 @@ function ddsNadeKind(n){
 function ddsBoom(x,y,size){
   if(!AC||!sndOn)return;
   const now=AC.currentTime,kind=ddsKind(x,y,size);
-  // a blast right after another in the same spot (a bunker going up in several bursts) is a smaller one inside it
-  let sec=false;for(let i=DSFX.blasts.length-1;i>=0;i--){const b=DSFX.blasts[i];if(now-b.t>.6){DSFX.blasts.splice(i,1);continue;}if(Math.abs(b.x-x)<60&&Math.abs(b.y-y)<60)sec=true;}
+  // a blast right after another in the same spot (a bunker going up in several bursts) is a smaller one inside it; the very same
+  // spot again at once (a blast both pushed to booms and played) is the same blast: once is enough
+  let sec=false;for(let i=DSFX.blasts.length-1;i>=0;i--){const b=DSFX.blasts[i];if(now-b.t>.6){DSFX.blasts.splice(i,1);continue;}if(b.x===x&&b.y===y&&now-b.t<.1)return;if(Math.abs(b.x-x)<60&&Math.abs(b.y-y)<60)sec=true;}
   DSFX.blasts.push({x,y,t:now});
-  const o=ddsOut(x,y,1,4.5,true);if(!o)return;const t=o.t0,far=o.d>80;
+  const o=ddsOut(x,y,1,4.5,true,.7);if(!o)return;const t=o.t0,far=o.d>80;
   const v=sec?.45:1,boom=samples.boom&&samples.boom.length?samples.boom[(Math.random()*samples.boom.length)|0]:null;
   if(kind==='sea'){   // a shell into the sea: a deep thump under the water, the column of it going up, the spray falling back
-    ddsSrc(o,ddsPick('xsea'),t,ddsR(.86,1.02)*(size<.8?1.1:1),v*.95);ddsSrc(o,ddsPick('xfar'),t,ddsR(.75,.85),v*.8);
-    toneHit(o.g,t,.45,'sine',80,42,.35*v,.006);ddsGrains(o,t+.35,1.4,9,3200,.05*v);return;}
-  if(far){ddsSrc(o,ddsPick('xfar'),t,ddsR(.88,1.08),v*1.3);if(kind==='art'||kind==='big')toneHit(o.g,t,.7,'sine',62,40,.2*v,.02);return;}
-  const crack=(rt,a)=>ddsSrc(o,ddsPick('us'),t,rt*ddsR(.95,1.05),a*v);
+    ddsSrc(o,ddsPick('xsea'),t,ddsR(.86,1.02)*(size<.8?1.1:1),v*1.4);ddsSrc(o,ddsPick('xfar'),t,ddsR(.75,.85),v*.7);
+    toneHit(o.g,t,.45,'sine',80,42,.25*v,.006);ddsGrains(o,t+.35,1.4,9,3200,.05*v);return;}
+  if(far){ddsSrc(o,ddsPick('xfar'),t,ddsR(.88,1.08)*(kind==='frag'||kind==='lob'||kind==='rgl'?1.12:1),v*(kind==='art'||kind==='big'?1.25:1));return;}   // (far off: a dull boom rolling in; Version 188 pass 1: the far takes carry on a phone now)
+  const crack=(rt,a)=>ddsSrc(o,ddsPick('us'),t,rt*ddsR(.95,1.05),a*v),xm=ddsPick('xmid');
+  // Version 188 pass 1: each kind its own recording (sounds/guns: xbig, xmid, xfrag, made to carry on a phone's speaker) under a
+  // crack (a rifle report an octave down) and a short sub-bass knock for headphones, then earth falling back
   switch(kind){
-    case'art':case'big':   // a shell or a bunker going up: the big boom, a sub-bass knock, earth and sand coming down for a while
-      ddsSrc(o,ddsPick('xbig'),t,ddsR(.8,.93),v);if(boom&&!sec)ddsSrc(o,boom,t,ddsR(.75,.85),.55,60);crack(.42,.5);
-      toneHit(o.g,t,.75,'sine',85,42,.4*v,.006);ddsGrains(o,t+.25,1.8,14,2400,.07*v);break;
+    case'art':case'big':   // a shell or a bunker going up: the big boom, earth and sand coming down for a while
+      ddsSrc(o,ddsPick('xbig'),t,kind==='big'?ddsR(.84,.92):ddsR(.88,.98),v);crack(.42,.45);
+      toneHit(o.g,t,.6,'sine',80,40,.25*v,.006);ddsGrains(o,t+.25,1.8,14,2400,.07*v);break;
     case'tank':   // a tank's shell: a sharp crack and a heavy bang
-      ddsSrc(o,(DSFX.buf.xbig||[])[1],t,ddsR(1,1.1),v*.9);crack(.45,.65);toneHit(o.g,t,.45,'sine',95,45,.35*v,.004);ddsGrains(o,t+.2,1,8,2600,.05*v);break;
+      ddsSrc(o,xm,t,ddsR(.95,1.05),v*.95);crack(.47,.6);toneHit(o.g,t,.4,'sine',95,45,.25*v,.004);ddsGrains(o,t+.2,1,8,2600,.05*v);break;
     case'mortar':   // a mortar bomb: a hard crump, lighter than a shell
-      ddsSrc(o,(DSFX.buf.xbig||[])[0],t,ddsR(1.15,1.28),v*.85);crack(.5,.55);toneHit(o.g,t,.4,'sine',100,46,.3*v,.004);ddsGrains(o,t+.2,1.1,10,2800,.055*v);break;
-    default:   // a grenade, a rifle grenade, a bazooka rocket: a sharp crack, a short bang, sand pattering down
-      if(boom)ddsSrc(o,boom,t,ddsR(.98,1.1)*(kind==='frag'||kind==='lob'?1.06:1),v*.95,90);else ddsSrc(o,(DSFX.buf.xbig||[])[1],t,1.3,v*.7);
-      crack(kind==='rocket'?.5:.56,.55);toneHit(o.g,t,.3,'sine',110,50,.25*v,.003);ddsGrains(o,t+.15,.8,7,3000,.045*v);
+      ddsSrc(o,xm,t,ddsR(1.08,1.2),v*.85);crack(.5,.5);toneHit(o.g,t,.35,'sine',100,46,.22*v,.004);ddsGrains(o,t+.2,1.1,10,2800,.055*v);break;
+    case'rocket':   // a bazooka rocket: a sharp crack and a short bang
+      ddsSrc(o,xm,t,ddsR(1.15,1.28),v*.8);crack(.52,.55);ddsGrains(o,t+.15,.8,7,3000,.045*v);break;
+    default:{   // a grenade or a rifle grenade: a sharp crack, a short bang, sand pattering down
+      const fr=ddsPick('xfrag')||boom;if(fr)ddsSrc(o,fr,t,ddsR(.96,1.08)*(kind==='rgl'?.94:1),v*.9,fr===boom?90:0);
+      crack(.56,.5);toneHit(o.g,t,.25,'sine',110,50,.2*v,.003);ddsGrains(o,t+.15,.8,7,3000,.045*v);}
   }
 }
 // sand, earth or spray falling back: little filtered ticks scattered over a while
@@ -198,27 +218,30 @@ function ddsGrains(o,t,len,n,f,a){for(let k=0;k<n;k++){const at=t+Math.pow(Math.
 // a gun firing: a tank's (where a tank is), else a field gun or the coast guns: the cannon recording with a crack in front
 function ddsCannon(x,y){
   if(!AC||!sndOn)return;const tk=typeof dd!=='undefined'&&dd&&(dd.tanks||[]).some(K=>K.x===x&&K.y===y);
-  const o=ddsOut(x,y,1,3.6,true);if(!o)return;
-  ddsSrc(o,ddsPick('xgun'),o.t0,tk?ddsR(1,1.08):ddsR(.82,.9),tk?.95:1);ddsSrc(o,ddsPick('us'),o.t0,tk?.46:.4,tk?.55:.4);toneHit(o.g,o.t0,.5,'sine',tk?85:70,40,.3,.005);
+  const o=ddsOut(x,y,1,3.6,true,.7);if(!o)return;
+  ddsSrc(o,ddsPick('xgun'),o.t0,tk?ddsR(1,1.08):ddsR(.82,.9),tk?.95:1);ddsSrc(o,ddsPick('us'),o.t0,tk?.46:.4,tk?.55:.4);toneHit(o.g,o.t0,.45,'sine',tk?85:70,40,.2,.005);
 }
 // a mortar bomb leaving its tube: a hollow thoonk where it was fired from
 function ddsTube(x,y){const o=ddsOut(x,y,.6,.6,false);if(!o)return;toneHit(o.g,o.t0,.14,'sine',190,80,.5,.003);noiseHit(o.g,o.t0,.1,'bandpass',520,1.4,.4,.002);noiseHit(o.g,o.t0,.02,'highpass',2500,0,.15,.001);}
 
 /* ---------- incoming ---------- */
-// a shell's whistle down: a falling tone with the spin's warble in it and the rush of air round it, swelling as it comes and cut
-// off as it lands; the mortars' shorter and lower. Only the ones landing near you (none past 50 m), louder the nearer; two at most at once
+// a shell's whistle down (Version 188 pass 2): a falling tone with the spin's warble in it and a faint overtone, the air tearing
+// round it (a rushing noise that brightens and swells as it comes), all of it rising to the landing and cut off there; the
+// mortars' shorter, lower and breathier. Only the ones landing near you (none past 50 m), louder the nearer; two at most at once
 function ddsWhistle(n){
   const ts=Math.max(.25,timeScale()||1),rem=(n.dur-n.t)/ts,mort=n.ddsK==='mortar',L=Math.min(rem,mort?1:1.55);if(L<.35)return;
   const P=ddsPlace(n.x1,n.y1),v=(mort?.16:.24)*clamp(1-(P.d-12)/40,0,1);if(v<.02)return;   // (only the ones coming down near you: 50 m off, none)
   const now=AC.currentTime;for(let i=DSFX.wh.length-1;i>=0;i--)if(DSFX.wh[i].end<now)DSFX.wh.splice(i,1);if(DSFX.wh.length>=2||now<DSFX.whT)return;DSFX.whT=now+.4;
-  const g=AC.createGain(),t0=now,t1=now+L;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v*.35,t0+L*.45);g.gain.exponentialRampToValueAtTime(v,t1-.04);g.gain.linearRampToValueAtTime(.0001,t1);
+  const g=AC.createGain(),t0=now,t1=now+L;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v*.3,t0+L*.5);g.gain.exponentialRampToValueAtTime(v,t1-.05);g.gain.linearRampToValueAtTime(.0001,t1);
   let out=g;if(AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=P.pan*.7;g.connect(p);out=p;}out.connect(sndMuffle);const s=AC.createGain();s.gain.value=.25;out.connect(s);s.connect(sndVerb);
-  const f0=mort?ddsR(900,1000):ddsR(1250,1500),f1=mort?ddsR(520,600):ddsR(360,460);
-  const o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(f1,t1);
-  const lfo=AC.createOscillator(),ld=AC.createGain();lfo.frequency.value=ddsR(6,9);ld.gain.value=f0*.012;lfo.connect(ld);ld.connect(o.frequency);
-  const og=AC.createGain();og.gain.value=.55;o.connect(og);og.connect(g);
-  const ns=loopNoise(),bf=AC.createBiquadFilter(),ng=AC.createGain();bf.type='bandpass';bf.Q.value=3;bf.frequency.setValueAtTime(f0*1.3,t0);bf.frequency.exponentialRampToValueAtTime(f1*1.6,t1);ng.gain.value=mort?.9:.6;ns.connect(bf);bf.connect(ng);ng.connect(g);
-  for(const x of[o,lfo])x.start(t0),x.stop(t1+.05);ns.start(t0,Math.random()*1.5);ns.stop(t1+.05);
+  const f0=mort?ddsR(900,1000):ddsR(1250,1500),f1=mort?ddsR(520,600):ddsR(360,460),nodes=[];
+  const osc=(type,mul,amp)=>{const o=AC.createOscillator();o.type=type;o.frequency.setValueAtTime(f0*mul,t0);o.frequency.exponentialRampToValueAtTime(f1*mul,t1);const og=AC.createGain();og.gain.value=amp;o.connect(og);og.connect(g);nodes.push(o);return o;};
+  const o1=osc('sine',1,mort?.3:.5),o2=osc('sine',2.01,mort?.03:.06);
+  const lfo=AC.createOscillator(),ld=AC.createGain();lfo.frequency.value=ddsR(6,9);ld.gain.value=f0*.012;lfo.connect(ld);ld.connect(o1.frequency);nodes.push(lfo);
+  // the air: a band round the tone, and a broad rush under it that opens up as it nears
+  const ns=loopNoise(),bf=AC.createBiquadFilter(),ng=AC.createGain();bf.type='bandpass';bf.Q.value=3;bf.frequency.setValueAtTime(f0*1.3,t0);bf.frequency.exponentialRampToValueAtTime(f1*1.6,t1);ng.gain.value=mort?.9:.5;ns.connect(bf);bf.connect(ng);ng.connect(g);
+  const rf=AC.createBiquadFilter(),rg=AC.createGain();rf.type='lowpass';rf.Q.value=.7;rf.frequency.setValueAtTime(500,t0);rf.frequency.exponentialRampToValueAtTime(mort?1800:2600,t1);rg.gain.setValueAtTime(.05,t0);rg.gain.exponentialRampToValueAtTime(mort?.55:.4,t1);ns.connect(rf);rf.connect(rg);rg.connect(g);
+  for(const x of nodes)x.start(t0),x.stop(t1+.05);ns.start(t0,Math.random()*1.5);ns.stop(t1+.05);
   const w={n,g,end:t1};DSFX.wh.push(w);setTimeout(()=>{g.disconnect();s.disconnect();},(L+.4)*1000);
 }
 // a round that just missed one of the squad you're playing, near you: its crack going past
@@ -238,15 +261,37 @@ function ddsImpact(x,y,mat){
   if(m==='metal'){sfxRicochet(x,y);if(typeof ddSpark==='function')ddSpark(x,gndH(x,y)+7+Math.random()*6,y,.9);return;}   // (Bryan liked the ricochet: kept)
   const now=AC.currentTime;if(now<DSFX.hitT||ddsPlace(x,y).d>28)return;DSFX.hitT=now+.11;   // (a few a second, and only near you: far off they're lost anyway)
   const o=ddsOut(x,y,.5,.4,false);if(!o)return;const t=o.t0;
-  if(m==='stone'){noiseHit(o.g,t,.014,'highpass',3200,0,.55,.0005);noiseHit(o.g,t,.09,'bandpass',ddsR(1100,1600),1.6,.28,.002);ddsGrains(o,t+.03,.25,3,2600,.06);}   // a chip off the concrete and its grit
-  else if(m==='wood'){if(samples.hit_wood&&samples.hit_wood.length)ddsSrc(o,samples.hit_wood[(Math.random()*samples.hit_wood.length)|0],t,varied(),.9);}
+  if(m==='stone'){noiseHit(o.g,t,.012,'highpass',3200,0,.32,.0005);noiseHit(o.g,t,.08,'bandpass',ddsR(900,1400),1.8,.42,.002);noiseHit(o.g,t,.05,'lowpass',520,0,.3,.002);ddsGrains(o,t+.03,.25,3,2600,.06);}   // a chip off the concrete (its crack, the knock of the block, Version 188 pass 1: less hiss) and its grit
+  else if(m==='wood'){if(samples.hit_wood&&samples.hit_wood.length)ddsSrc(o,samples.hit_wood[(Math.random()*samples.hit_wood.length)|0],t,varied(),.4);}
   else{const s=samples.hit_ground;if(s&&s.length)ddsSrc(o,s[(Math.random()*s.length)|0],t,ddsR(.55,.7),.35);   // into sand or earth: a soft puff and a little hiss of grit
     noiseHit(o.g,t,.07,'lowpass',ddsR(650,950),0,.55,.002);noiseHit(o.g,t,.04,'bandpass',ddsR(2400,3200),1.2,.1,.002);}
 }
 
+/* ---------- the landing craft's ramp, a man hit ---------- */
+// a landing craft's ramp going down (Version 188 pass 2; ddplay.js calls sfxClang as it starts to fall, 0.7 s to the water): the
+// latch let go, the hinges and chains as it drops, then the steel plate slamming into the shallows (a recorded metal slam a good
+// deal lower, a deep knock under it) and the water thrown up
+function ddsRamp(x,y){
+  if(!AC||!sndOn)return;const o=ddsOut(x,y,.9,2.8,true,.5);if(!o)return;const t=o.t0,S=samples,pk=k=>S[k]&&S[k].length?S[k][(Math.random()*S[k].length)|0]:null;
+  noiseHit(o.g,t,.025,'highpass',2600,0,.3,.0008);noiseHit(o.g,t,.12,'bandpass',ddsR(700,900),3,.25,.001);
+  for(let k=0;k<8;k++)noiseHit(o.g,t+.05+k*.07+Math.random()*.025,.035,'bandpass',ddsR(1700,3200),3,.05+Math.random()*.05,.001);   // (chains running out)
+  const s=t+.7,sl=pk('slam'),sm=pk('smash');
+  if(sl)ddsSrc(o,sl,s,ddsR(.55,.62),1.1);else noiseHit(o.g,s,.3,'bandpass',ddsR(380,460),3,.6,.002);
+  if(sm)ddsSrc(o,sm,s+.03,ddsR(.62,.7),.35);
+  noiseHit(o.g,s,.45,'lowpass',300,0,.8,.003,90);toneHit(o.g,s,.5,'sine',70,38,.35,.004);
+  ddsSrc(o,ddsPick('xsea'),s+.02,ddsR(1.3,1.45),.45);ddsGrains(o,s+.25,1,8,3400,.04);
+}
+// a round striking a man (combat.js's resolveShot, ddfp.js's hits): in a beach fight forty men are hit a minute, so (Version 188
+// pass 2) only the ones near you are heard, at most about six a second; in first person, those within 60 m (your own hits)
+const DDS_FLESH={t:0};
+function ddsFleshOK(x,y){
+  if(!AC)return false;const now=AC.currentTime,fp=typeof dd!=='undefined'&&dd&&dd.fp&&dd.fp.u;
+  if(now<DDS_FLESH.t||ddsPlace(x,y).d>(fp?60:30))return false;DDS_FLESH.t=now+.16;return true;
+}
+
 /* ---------- every frame ---------- */
 function ddSfxFrame(t,live){
-  const F=++DSFX.frame;
+  const F=++DSFX.frame;if(F%60===0)ddsEchoMode();
   if(live){
     // shells and grenades on their way: what each is (for its blast), the mortars' tubes, the incoming whistle
     for(let i=0;i<nades.length;i++){const n=nades[i];n.ddsF=F;
