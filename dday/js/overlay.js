@@ -153,7 +153,7 @@ function drawOverlay(rdt,now){
 
   // tracers, flashes, sparks, blasts
   ox.globalCompositeOperation='lighter';
-  for(const t of tracers){
+  for(const t of tracers){if(DDM&&typeof ddFxTracing==='function'&&ddFxTracing())break;   // (D-Day: tracers fly in 3D since Version 188, ddfx.js)
     toSBack=false;const k=1-t.t/.12,[x1,y1]=toS(t.x1,t.y1,12),[x2,y2]=toS(t.x2,t.y2,10),s=Math.max(0,t.t/.12-.35);if(toSBack)continue;
     ox.strokeStyle=`rgba(${t.col},${(t.q?.45:.9)*k})`;ox.lineWidth=t.q?1.2:1.8;ox.beginPath();ox.moveTo(x1+(x2-x1)*s,y1+(y2-y1)*s);ox.lineTo(x2,y2);ox.stroke();   // (silenced: fainter. A comment had swallowed the drawing, so no tracers showed at all)
   }
