@@ -142,26 +142,29 @@ function vgBuild(G,sc,M,add){
   for(const o of DD.objs){const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=H(cx,cy);
     if(o.kind==='vghouse'){const lk=o.look,ht=o.ht;o.meshes=[];const P=m=>{o.meshes.push(m);return m;};
       if(lk==='tower'){   // the church tower: solid to the belfry, four corner piers round the open belfry (the sniper is up there), then the spire
-        const sm=M(0xbcb29a,.95);P(add(new T.BoxGeometry(o.w,58,o.h),sm,cx,g0+29,cy));
+        const sm=M(0xbcb29a,.95);P(add(ddgBoxUV(o.w,58,o.h,24,[.5,.02]),ddgMat('stone'),cx,g0+29,cy));
         for(const[dx,dz]of[[-1,-1],[1,-1],[-1,1],[1,1]])P(add(new T.BoxGeometry(8,18,8),sm,cx+dx*(o.w/2-4),g0+67,cy+dz*(o.h/2-4)));
         P(add(new T.BoxGeometry(o.w,2,o.h),M(0x6a5a44,.9),cx,g0+59,cy));
-        P(add(new T.BoxGeometry(o.w+2,22,o.h+2),sm,cx,g0+87,cy));P(add(new T.BoxGeometry(o.w+5,3,o.h+5),M(0x9a907a,.95),cx,g0+99,cy));
+        P(add(ddgBoxUV(o.w+2,22,o.h+2,24,[.5,.02]),ddgMat('stone'),cx,g0+87,cy));P(add(new T.BoxGeometry(o.w+5,3,o.h+5),M(0x9a907a,.95),cx,g0+99,cy));
         const sp=P(add(new T.ConeGeometry(o.w*.62,62,4),M(0x4a5056,.8),cx,g0+131,cy));sp.rotation.y=Math.PI/4;
         P(add(new T.BoxGeometry(.8,10,.8),M(0x2a2a2a,.5,.6),cx,g0+167,cy));P(add(new T.BoxGeometry(6,.8,.8),M(0x2a2a2a,.5,.6),cx,g0+169,cy));
         const clock=P(add(new T.CylinderGeometry(6,6,1,16),M(0xe8e2d0,.6),cx,g0+87,o.y+o.h+1.6,0,Math.PI/2));clock.castShadow=false;continue;}
-      const stone=M(lk==='barn'?0x7a5a3a:lk==='hall'?0xd2c8b0:pick(stoneC),.95),rm=M(lk==='nave'?0x50565c:lk==='barn'?0x6a4a34:pick(roofC),.85);
-      P(add(new T.BoxGeometry(o.w,ht,o.h),stone,cx,g0+ht/2,cy));
-      if(lk==='hall'){P(add(new T.BoxGeometry(o.w+6,4,o.h+6),M(0x8a826e,.9),cx,g0+ht+2,cy));const m=roofOn(o,g0,ht+4,rm,.3);P(m);
+      // (Version 188: Norman limestone in courses, roofs of slate or of tiles with their courses and ridges, laid over the old roof's shape)
+      const sc0=lk==='barn'?0x7a5a3a:lk==='hall'?0xd2c8b0:pick(stoneC),stone=M(sc0,.95),rc0=lk==='nave'?0x50565c:lk==='barn'?0x6a4a34:pick(roofC),slate=(rc0>>16)<0x70;
+      const wk=lk==='barn'?'boards':(lk==='h'||lk==='farm')&&r()<.4?'plaster':'stone',wt=wk==='stone'?28:32,wallM=ddgMat(wk),rm=ddgMatRep(wk,wt),roofT=lk==='barn'||!slate?ddgMat('tiles'):ddgMat('slate');   // (some houses limewashed; the gable ends the wall's own stone, not a cream triangle)
+      P(add(ddgBoxUV(o.w,ht,o.h,wt,[.5,.02]),wallM,cx,g0+ht/2,cy));
+      const slopes=(base,pitch)=>{const along=o.w>=o.h,span=(along?o.h:o.w)+8,len=(along?o.w:o.h)+8;return P(add(ddgRoof(span,len+1,span*(pitch||.42)),roofT,cx,g0+base,cy,along?0:Math.PI/2));};
+      if(lk==='hall'){P(add(new T.BoxGeometry(o.w+6,4,o.h+6),M(0x8a826e,.9),cx,g0+ht+2,cy));const m=roofOn(o,g0,ht+4,rm,.3);P(m);slopes(ht+4,.3);
         P(add(new T.BoxGeometry(30,4,10),M(0xa8a090,.9),cx,g0+2,o.y+o.h+5));P(add(new T.BoxGeometry(14,22,1.4),dark,cx,g0+11,o.y+o.h+.7));
         const ck=P(add(new T.CylinderGeometry(5,5,1,16),M(0xe8e2d0,.6),cx,g0+ht-8,o.y+o.h+.9,0,Math.PI/2));ck.castShadow=false;
         o.meshes.push(...winRow(o,g0,ht,'s',6,ht*.32,7,13,0),...winRow(o,g0,ht,'s',6,ht*.68,7,11,0));continue;}
-      if(lk==='nave'){P(roofOn(o,g0,ht,rm,.7));for(let k=0;k<4;k++){const x=o.x+14+k*(o.w-28)/3;for(const y of[o.y-.7,o.y+o.h+.7])P(add(new T.BoxGeometry(6,22,1.2),glass,x,g0+ht*.55,y));}
+      if(lk==='nave'){P(roofOn(o,g0,ht,rm,.7));slopes(ht,.7);for(let k=0;k<4;k++){const x=o.x+14+k*(o.w-28)/3;for(const y of[o.y-.7,o.y+o.h+.7])P(add(new T.BoxGeometry(6,22,1.2),glass,x,g0+ht*.55,y));}
         P(add(new T.BoxGeometry(1.2,26,14),dark,o.x-.7,g0+13,cy));continue;}
-      if(lk==='barn'){P(roofOn(o,g0,ht,rm,.5));P(add(new T.BoxGeometry(1.4,30,34),dark,o.x-.7,g0+15,cy));for(let y=o.y+6;y<o.y+o.h;y+=10)P(add(new T.BoxGeometry(o.w+.6,.6,.6),M(0x5a4028,.95),cx,g0+ht*.5,y));continue;}
+      if(lk==='barn'){P(roofOn(o,g0,ht,rm,.5));slopes(ht,.5);P(add(new T.BoxGeometry(1.4,30,34),dark,o.x-.7,g0+15,cy));for(let y=o.y+6;y<o.y+o.h;y+=10)P(add(new T.BoxGeometry(o.w+.6,.6,.6),M(0x5a4028,.95),cx,g0+ht*.5,y));continue;}
       if(lk==='g'){P(add(new T.BoxGeometry(o.w+4,3,o.h+4),M(0x6a6660,.9),cx,g0+ht+1.5,cy));P(add(new T.BoxGeometry(40,30,1.4),M(0x3a3c3a,.8),cx,g0+15,o.y+o.h+.7));
         o.meshes.push(...winRow(o,g0,ht,'s',4,ht*.78,7,9,0));continue;}
       // a house: two storeys, shutters, a door on the street side, a chimney
-      P(roofOn(o,g0,ht,rm));const sh=pick(shutC);
+      P(roofOn(o,g0,ht,rm));slopes(ht);const sh=pick(shutC);
       for(const f of['s','n'])o.meshes.push(...winRow(o,g0,ht,f,Math.max(2,Math.round(o.w/30)),ht*.3,6,10,sh),...winRow(o,g0,ht,f,Math.max(2,Math.round(o.w/30)),ht*.72,6,10,sh));
       for(const f of['e','w'])o.meshes.push(...winRow(o,g0,ht,f,Math.max(1,Math.round(o.h/34)),ht*.72,6,10,sh));
       const doorF=Math.abs(cx-VG.road)<160?(cx<VG.road?'e':'w'):'s';
@@ -171,7 +174,7 @@ function vgBuild(G,sc,M,add){
     else if(o.kind==='vghut'){o.meshes=[add(new T.BoxGeometry(o.w,o.ht,o.h),M(0x6a5236,.95),cx,g0+o.ht/2,cy)];o.meshes.push(roofOn(o,g0,o.ht,M(0x4a3a2a,.9),.5),add(new T.BoxGeometry(12,18,1.2),dark,cx+10,g0+9,o.y+o.h+.6));}
     else if(o.kind==='vghedge'){o.meshes=[add(new T.BoxGeometry(o.w,7,o.h+6),earth,cx,g0+3.5,cy)];
       for(let x=o.x+6;x<o.x+o.w-2;x+=11){const m=add(new T.DodecahedronGeometry(8.5,0),hedgeM[(r()*3)|0],x,H(x,cy)+12+r()*3,cy+(r()-.5)*3,r()*6);m.scale.set(1.15,1.05+r()*.55,1);o.meshes.push(m);}}
-    else if(o.kind==='vgwall'||o.kind==='vgruin'){const hh=o.ht,m=add(new T.BoxGeometry(o.w,hh,o.h),M(o.kind==='vgruin'?0xa89e88:0xb2a88e,.98),cx,g0+hh/2,cy);o.meshes=[m];
+    else if(o.kind==='vgwall'||o.kind==='vgruin'){const hh=o.ht,m=add(ddgBoxUV(o.w,hh,o.h,28),ddgMat('stone'),cx,g0+hh/2,cy);o.meshes=[m];   // (Version 188: the walls in the houses' stone)
       if(o.kind==='vgwall')o.meshes.push(add(new T.BoxGeometry(o.w+1.5,1.6,o.h+1.5),M(0x8f8672,.95),cx,g0+hh+.8,cy));
       else for(let k=0;k<3;k++){const along=o.w>o.h,t=r(),x=along?o.x+t*o.w:cx,y=along?cy:o.y+t*o.h;o.meshes.push(add(new T.BoxGeometry(along?8:o.w,6+r()*7,along?o.h:8),M(0xa89e88,.98),x,g0+hh+2,y));}}
     else if(o.kind==='vglog'){o.meshes=[];const along=o.w>=o.h,len=along?o.w:o.h,n=o.w*o.h>300?3:2;
@@ -208,12 +211,13 @@ function vgBuild(G,sc,M,add){
   for(let i=0;i<900;i++){const x=VG.x0+r()*(VG.x1-VG.x0),y=vgEdge(x)+r()*(900-vgEdge(x));if(vgTrackD(x,y)<32)continue;
     (r()<.7?fern:brush).push({x,y,h:H(x,y)+1.2,ry:r()*6,sx:1.4+r()*1.6,sy:1+r()*1.2,c:pick([0x4f7a30,0x5d8a36,0x6a8a3a,0x46682c])});}
   for(let i=0;i<1400;i++){const x=424+r()*230,y=64+r()*196;wheat.push({x,y,h:H(x,y)+1,ry:r()*6,sx:.9+r()*.4,sy:1+r()*.5,c:pick([0xd8c070,0xc8ae5c,0xe0c87a])});}
-  for(let i=0;i<2200;i++){const x=VG.x0+r()*(VG.x1-VG.x0),y=-280+r()*600;if(y>vgEdge(x)-4||(x>420&&x<656&&y>62&&y<262)||Math.abs(x-VG.road)<26)continue;tuft.push({x,y,h:H(x,y)+1.2,ry:r()*6,sx:.8+r()*.8,sy:.7+r()*1.1,c:pick([0x6f9a3a,0x86ac44,0x5c8a34,0x7aa040])});}
-  inst(new T.CylinderGeometry(1.3,2,14,6),lam(0x4e3e2c),trunk,true);
-  const cA=inst(new T.IcosahedronGeometry(11,0),lam(0xffffff),crown,true),cB=inst(new T.IcosahedronGeometry(8.5,0),lam(0xffffff),crown2,true);
+  for(let i=0;i<2200;i++){const x=VG.x0+r()*(VG.x1-VG.x0),y=-280+r()*600;if(y>vgEdge(x)-4||(x>420&&x<656&&y>62&&y<262)||Math.abs(x-VG.road)<26)continue;tuft.push({x,y,h:H(x,y)-.2,ry:r()*6,sx:.8+r()*.8,sy:.7+r()*1.1,c:pick([0x5e8a38,0x6c9240,0x527c32,0x7a9044,0x8a9050])});}
+  const lamV=()=>new T.MeshLambertMaterial({color:0xffffff,vertexColors:true});   // (Version 188: trunks and crowns shaded darker underneath, each crown's corners pulled about)
+  inst(ddgShade(new T.CylinderGeometry(1.3,2,14,6),.45,1.05),new T.MeshLambertMaterial({color:0x5a4836,vertexColors:true}),trunk,true);
+  const cA=inst(ddgShade(ddgJitter(new T.IcosahedronGeometry(11,0),1.8,21),.5,1.12),lamV(),crown,true),cB=inst(ddgShade(ddgJitter(new T.IcosahedronGeometry(8.5,0),1.4,22),.55,1.12),lamV(),crown2,true);
   const fg=new T.ConeGeometry(1.6,3.6,4);fg.translate(0,.8,0);inst(fg,lam(0xffffff),fern,false);inst(new T.IcosahedronGeometry(2.4,0),lam(0xffffff),brush,false);
   const wg=new T.ConeGeometry(.6,7,3);wg.translate(0,2.6,0);inst(wg,lam(0xffffff),wheat,false);
-  const tg=new T.ConeGeometry(.8,3.4,3);tg.translate(0,.6,0);inst(tg,lam(0xffffff),tuft,false);
+  inst(ddgTuftGeo(808),new T.MeshLambertMaterial({color:0xffffff,vertexColors:true,side:T.DoubleSide}),tuft,false);   // (Version 188: tufts of blades, not pale cones)
   DD.vgCanopy={sets:[[cA,crown],[cB,crown2]],k:crown.map(()=>1),k2:crown2.map(()=>1),t:0};
 }
 // the enemy's machine-gun positions (their gunners stand at these; the tripods are drawn here)

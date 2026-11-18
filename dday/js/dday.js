@@ -166,39 +166,72 @@ function paintDDGround(g){
     const vn=(px,py)=>{const x0=Math.floor(px),y0=Math.floor(py),tx=px-x0,ty=py-y0,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),v=(i,j)=>gv[((j%gN+gN)%gN)*gN+((i%gN+gN)%gN)];return(v(x0,y0)*(1-sx)+v(x0+1,y0)*sx)*(1-sy)+(v(x0,y0+1)*(1-sx)+v(x0+1,y0+1)*sx)*sy;};
     const fbm=(px,py)=>vn(px,py)*.55+vn(px*2.3+7,py*2.3+3)*.3+vn(px*5.1+1,py*5.1+9)*.15;
     const mix=(A,B,k)=>[A[0]+(B[0]-A[0])*k,A[1]+(B[1]-A[1])*k,A[2]+(B[2]-A[2])*k];
-    const SAND=[212,184,128],SANDW=[150,128,92],BED=[112,132,120],ROCK=[168,152,124],ROCKD=[128,112,90],GRASS=[108,138,66],GRASS2=[84,118,56],DIRT=[166,138,94],DRY=[162,154,94];
+    // (Version 188: a fuller palette. The sand: paler and drier up the beach, bands of darker sand along the shore, a dark wet band
+    // with a lighter sheen where the last wave ran up; the rock in beds of grey and ochre limestone with dark seams and lit ledges)
+    const SAND=[204,180,130],SAND2=[184,160,114],DRYS=[214,198,156],SANDW=[126,110,84],SHEEN=[158,148,124],BED=[104,124,114],ROCK=[168,150,118],ROCKD=[110,96,76],ROCKL=[192,180,152],GRASS=[98,132,60],GRASS2=[72,106,46],DIRT=[156,128,88],DRY=[156,150,88];
     for(let j=0;j<SH;j++)for(let i=0;i<SW;i++){
       const dx=i*2+1,y=DDB.y0+j*2+1,wx=dx+DDX,h=ddH(wx,y),hx=(ddH(wx+4,y)-ddH(wx-4,y))/8,hy=(ddH(wx,y+4)-ddH(wx,y-4))/8,sl=Math.hypot(hx,hy);
       const n1=fbm(dx*.02,y*.02),n2=fbm(dx*.07+40,y*.07+11);let c;
-      if(y>316&&!ddRock(dx,y)){const wet=clamp((y-640)/70,0,1);c=mix(mix(SAND,[196,166,112],n1),SANDW,wet*.85);if(y>706)c=mix(c,BED,clamp((y-706)/50,0,1));
-        const rip=Math.sin((y+Math.sin(dx*.02)*12)*.55+n1*5);c=mix(c,[c[0]*.9,c[1]*.9,c[2]*.9],rip>.6?.5:0);}   // ripples in the sand
-      else{const steep=clamp((sl-.28)/.35,0,1),top=h>40?1:0;
+      if(y>316&&!ddRock(dx,y)){const band=fbm(dx*.004+3,y*.034+9),up=clamp((430-y)/110,0,1),wet=clamp((y-636)/60,0,1);
+        c=mix(SAND,SAND2,clamp(band*1.9-.55,0,1));c=mix(c,DRYS,up*.55*(.6+n1*.6));c=mix(c,SAND2,clamp(n2*2.2-1.3,0,1)*.5);
+        c=mix(c,SANDW,wet*.9);c=mix(c,SHEEN,Math.exp(-(((y-694)/8)**2))*.45);if(y>706)c=mix(c,BED,clamp((y-706)/50,0,1));
+        const rip=Math.sin((y+Math.sin(dx*.02)*12)*.55+n1*5);c=mix(c,[c[0]*.93,c[1]*.93,c[2]*.92],clamp(rip,0,1)*.6);}   // ripples in the sand
+      else{const steep=clamp((sl-.28)/.35,0,1);
         let g2=mix(GRASS,GRASS2,clamp(n1*1.6-.3,0,1));g2=mix(g2,DRY,clamp(n2*2-1.1,0,1)*.7);
         const flat=ddRock(dx,y)?g2:(y<-320?mix(g2,DIRT,clamp(n2*1.8-.55,0,1)*.6):mix(DIRT,g2,clamp(n1*2.2-.75,0,1)*.8));
-        const band=.5+.5*Math.sin(h*.42+n1*4),rk=mix(ROCKD,ROCK,band*.7+n2*.3);
+        const band=.5+.5*Math.sin(h*.42+n1*4);let rk=mix(ROCKD,ROCK,band*.15+n2*.55+.15);rk=mix(rk,ROCKL,clamp(n1*2-1.1,0,1)*.5);   // (the beds themselves are drawn by ddground.js's shader, sharp at any distance: in this picture they blurred into streaks down the faces)
         c=mix(flat,rk,steep);}
-      const lit=clamp(.9+(-hx*.4-hy*.55)*.9,.62,1.25);                    // the sun from the south-west, a little
-      const hol=(ddH(wx-10,y)+ddH(wx+10,y)+ddH(wx,y-10)+ddH(wx,y+10))/4-h,ao=clamp(1-hol*.03,.74,1.06);
+      const lit=clamp(.92+(-hy*.55)*.9,.66,1.22);                    // the light from the south, a little (Version 188: from the south only: an east-west term turned dark where the picture is mirrored at the play area's edges, a seam down every slope; the sun itself does the rest)
+      const hol=(ddH(wx-10,y)+ddH(wx+10,y)+ddH(wx,y-10)+ddH(wx,y+10))/4-h,ao=clamp(1-hol*.03,.72,1.06);
       const k=(j*SW+i)*4,f=lit*ao*(.94+n2*.12);D[k]=clamp(c[0]*f,0,255);D[k+1]=clamp(c[1]*f,0,255);D[k+2]=clamp(c[2]*f,0,255);D[k+3]=255;}
     s2.putImageData(img,0,0);x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(sc2,0,DDB.y0,W0,DDB.y1-DDB.y0);}
-  // rock faces: strata lines and cracks where it's steep; clumps of gorse and grass on the tops
-  for(let i=0;i<1500;i++){const px=r()*W0,py=-460+r()*780;if(!ddRock(px,py))continue;const wx=px+DDX,sl=Math.hypot(ddH(wx+5,py)-ddH(wx-5,py),ddH(wx,py+5)-ddH(wx,py-5))/10;
-    if(sl>.3){const l=10+r()*34;x.strokeStyle=`rgba(${r()<.6?'52,44,34':'214,200,170'},${.16+r()*.26})`;x.lineWidth=.7+r()*1.8;x.beginPath();x.moveTo(px,py);x.lineTo(px+l,py+(r()-.5)*8);x.stroke();}
-    else if(r()<.5){x.fillStyle=`rgba(${r()<.5?'58,96,40':'150,160,70'},${.3+r()*.4})`;x.beginPath();x.ellipse(px,py,4+r()*10,3+r()*7,r()*3,0,7);x.fill();}}
-  // speckle everywhere: stones in the sand, tufts in the grass
-  for(let i=0;i<26000;i++){const px=r()*W0,py=-760+r()*1660,s=.6+r()*1.6;x.fillStyle=py>316?`rgba(${r()<.5?'120,96,60':'250,236,200'},${.12+r()*.25})`:`rgba(${r()<.5?'52,84,34':'190,196,110'},${.1+r()*.22})`;x.fillRect(px,py,s,s);}
-  // shingle under the wall, tide lines, the worn way up the draw
+  // rock faces: cracks running down them and ledges catching the light where it's steep; clumps of gorse and grass on the tops;
+  // and along the top of every face the turf hanging over its edge (Version 188)
+  const slAt=(px,py)=>{const wx=px+DDX;return Math.hypot(ddH(wx+5,py)-ddH(wx-5,py),ddH(wx,py+5)-ddH(wx,py-5))/10;};
+  for(let i=0;i<2400;i++){const px=r()*W0,py=-460+r()*780;if(!ddRock(px,py))continue;const wx=px+DDX,sl=slAt(px,py);
+    if(sl>.3){const gx=ddH(wx+5,py)-ddH(wx-5,py),gy=ddH(wx,py+5)-ddH(wx,py-5),gl=Math.hypot(gx,gy)||1,ux=-gx/gl,uy=-gy/gl;   // downhill
+      if(r()<.3){let qx=px,qy=py;x.strokeStyle=`rgba(44,38,30,${.14+r()*.18})`;x.lineWidth=.4+r()*.6;x.beginPath();x.moveTo(qx,qy);for(let k=0;k<3;k++){qx+=ux*(1.5+r()*3)+(r()-.5)*2.5;qy+=uy*(1.5+r()*3)+(r()-.5)*2.5;x.lineTo(qx,qy);}x.stroke();}
+      else{const l=8+r()*26;x.strokeStyle=`rgba(${r()<.5?'48,40,30':'222,212,186'},${.14+r()*.22})`;x.lineWidth=.6+r()*1.4;x.beginPath();x.moveTo(px,py);x.lineTo(px-uy*l,py+ux*l);x.stroke();}}
+    else if(r()<.5){x.fillStyle=`rgba(${r()<.5?'50,84,34':'128,142,62'},${.3+r()*.4})`;x.beginPath();x.ellipse(px,py,4+r()*10,3+r()*7,r()*3,0,7);x.fill();}}
+  for(let i=0;i<9000;i++){const px=r()*W0,py=-460+r()*780;if(!ddRock(px,py)||slAt(px,py)>.22)continue;const wx=px+DDX;
+    const gx=ddH(wx+9,py)-ddH(wx-9,py),gy=ddH(wx,py+9)-ddH(wx,py-9),gl=Math.hypot(gx,gy);if(gl<3)continue;const ux=-gx/gl,uy=-gy/gl;if(slAt(px+ux*9,py+uy*9)<.34)continue;   // the lip: flat here, steep just below
+    for(let k=0;k<3;k++){const ox=px+(r()-.5)*5,oy=py+(r()-.5)*5,l=3+r()*9;x.strokeStyle=`rgba(${r()<.6?'46,74,30':'96,118,50'},${.5+r()*.4})`;x.lineWidth=1+r()*1.6;x.beginPath();x.moveTo(ox,oy);x.lineTo(ox+ux*l+(r()-.5)*2,oy+uy*l+(r()-.5)*2);x.stroke();}
+    if(r()<.3){x.fillStyle='rgba(84,64,40,.35)';x.beginPath();x.ellipse(px+ux*4,py+uy*4,2+r()*3,1.5+r()*2,r()*3,0,7);x.fill();}}   // bare earth where it's crumbling
+  // speckle: grit and shell in the sand, tufts in the grass
+  for(let i=0;i<16000;i++){const px=r()*W0,py=-760+r()*1660,s=.6+r()*1.4;x.fillStyle=py>316?`rgba(${r()<.55?'96,80,56':'240,230,204'},${.1+r()*.2})`:`rgba(${r()<.6?'44,72,30':'160,170,90'},${.1+r()*.2})`;x.fillRect(px,py,s,s);}
+  // shingle under the wall, the tide's lines of weed and wrack, the worn way up the draw
   for(let i=0;i<5000;i++){const px=r()*W0,py=318+r()*r()*46,s=1+r()*2.4;x.fillStyle=`rgba(${r()<.5?'96,92,84':'150,146,136'},${.5+r()*.4})`;x.beginPath();x.arc(px,py,s,0,7);x.fill();}
-  for(const[yy,a]of[[690,.3],[655,.16],[612,.1]]){x.strokeStyle=`rgba(60,52,40,${a})`;x.lineWidth=3;x.beginPath();for(let px=0;px<=W0;px+=20)x.lineTo(px,yy+Math.sin(px*.03+yy)*5+Math.sin(px*.11)*2);x.stroke();}
+  for(const[yy,a]of[[690,.36],[655,.2],[612,.12]]){x.strokeStyle=`rgba(52,46,34,${a})`;x.lineWidth=2.4;x.beginPath();for(let px=0;px<=W0;px+=12)x.lineTo(px,yy+Math.sin(px*.03+yy)*5+Math.sin(px*.11)*2+(r()-.5)*1.4);x.stroke();
+    for(let k=0;k<160;k++){const px=r()*W0,py=yy+Math.sin(px*.03+yy)*5+(r()-.5)*7;x.fillStyle=`rgba(${r()<.6?'44,50,30':'88,70,46'},${a+.15})`;x.save();x.translate(px,py);x.rotate(r()*3);x.fillRect(-1-r()*3,-.5,2+r()*6,1+r()*.8);x.restore();}}
   x.strokeStyle='rgba(176,146,98,.55)';x.lineWidth=46;x.lineCap='round';x.lineJoin='round';x.beginPath();x.moveTo(505,300);x.lineTo(560,150);x.lineTo(520,10);x.lineTo(380,-150);x.lineTo(230,-300);x.lineTo(240,-400);x.lineTo(520,-520);x.lineTo(800,-600);x.stroke();
+  x.strokeStyle='rgba(120,96,64,.22)';x.lineWidth=18;x.beginPath();x.moveTo(505,300);x.lineTo(560,150);x.lineTo(520,10);x.lineTo(380,-150);x.lineTo(230,-300);x.lineTo(240,-400);x.lineTo(520,-520);x.lineTo(800,-600);x.stroke();   // (Version 188: the trodden middle of it)
   // the path along the cliff's foot: one worn track from the draw's mouth past both bunkers (Bryan: "The bunker on the left needs to be on the path")
   x.fillStyle='rgba(186,158,108,.5)';x.fillRect(598,214,402,84);
   x.strokeStyle='rgba(190,160,108,.8)';x.lineWidth=34;x.beginPath();x.moveTo(-10,236);x.lineTo(300,232);x.lineTo(520,240);x.lineTo(600,236);x.stroke();   // the road: on left from the path, behind the left bunker, to the map's edge
   x.strokeStyle='rgba(96,78,52,.45)';x.lineWidth=2.2;for(const oy of[-8,8]){x.beginPath();x.moveTo(-10,236+oy);x.lineTo(300,232+oy);x.lineTo(520,240+oy);x.lineTo(600,236+oy);x.stroke();}
   x.strokeStyle='rgba(190,160,108,.75)';x.lineWidth=30;x.beginPath();x.moveTo(520,286);x.lineTo(600,236);x.lineTo(1000,232);x.stroke();
   x.strokeStyle='rgba(96,78,52,.45)';x.lineWidth=2.2;for(const oy of[-7,7]){x.beginPath();x.moveTo(524,286+oy);x.lineTo(602,236+oy);x.lineTo(1000,232+oy);x.stroke();}
-  let gr; // the shell holes: scorched, dark at the bottom
-  for(const h of DD_HOLES){gr=x.createRadialGradient(h.x,h.y,2,h.x,h.y,h.r+10);gr.addColorStop(0,'rgba(40,34,26,.85)');gr.addColorStop(.7,'rgba(70,60,44,.5)');gr.addColorStop(1,'rgba(70,60,44,0)');x.fillStyle=gr;x.beginPath();x.arc(h.x,h.y,h.r+10,0,7);x.fill();}
+  // (Version 188) the beach that thousands crossed this morning: trodden trails up from the water, boot prints, the treads of a tank
+  // that came ashore, the wrack of the landing along the water's edge, and the smaller scorches where shells burst in the open
+  for(let t=0;t<46;t++){let px=20+r()*960,py=700+r()*40;const ty=330+r()*260,wob=r()*6;x.lineCap='round';
+    const pts=[];while(py>ty){pts.push([px,py]);py-=6;px+=Math.sin(py*.02+wob)*1.6+(r()-.5)*2.2;}
+    x.strokeStyle='rgba(118,98,66,.09)';x.lineWidth=5+r()*4;x.beginPath();pts.forEach(([a,b],k)=>k?x.lineTo(a,b):x.moveTo(a,b));x.stroke();
+    for(let k=0;k<pts.length;k++){const[a,b]=pts[k],s=k%2?1:-1;x.fillStyle=`rgba(96,80,56,${.14+r()*.12})`;x.beginPath();x.ellipse(a+s*1.6+(r()-.5),b+(r()-.5)*2,.8,1.4,0,0,7);x.fill();}}
+  {const tk=[[319,512],[326,560],[340,620],[352,690],[360,760]];for(const off of[-13,13]){const P=tk.map(([a,b])=>[a+off,b]);x.strokeStyle='rgba(96,80,56,.28)';x.lineWidth=8;x.beginPath();P.forEach(([a,b],k)=>k?x.lineTo(a,b):x.moveTo(a,b));x.stroke();
+    x.strokeStyle='rgba(70,58,40,.35)';x.lineWidth=1;for(let k=1;k<P.length;k++){const[a0,b0]=P[k-1],[a1,b1]=P[k],L=Math.hypot(a1-a0,b1-b0),ux=(a1-a0)/L,uy=(b1-b0)/L;for(let d=0;d<L;d+=2.6){const cx=a0+ux*d,cy=b0+uy*d;x.beginPath();x.moveTo(cx-uy*4,cy+ux*4);x.lineTo(cx+uy*4,cy-ux*4);x.stroke();}}}}
+  for(let i=0;i<420;i++){const px=r()*W0,py=672+r()*36+Math.sin(px*.05)*4;x.save();x.translate(px,py);x.rotate(r()*3.2);const k=r();
+    x.fillStyle=k<.4?`rgba(${70+r()*30},${54+r()*20},${36},${.5+r()*.3})`:k<.7?`rgba(52,56,44,${.45+r()*.3})`:`rgba(30,28,26,${.4+r()*.3})`;x.fillRect(-1-r()*4,-.6,2+r()*9,1+r()*1.6);x.restore();}   // planks, rope, kit, oil
+  for(let i=0;i<34;i++){const px=40+r()*920,py=380+r()*300;if(DD_HOLES.some(h=>Math.hypot(h.x-px,h.y-py)<h.r+26))continue;const R=5+r()*7;
+    const gq=x.createRadialGradient(px,py,0,px,py,R*1.7);gq.addColorStop(0,'rgba(58,48,36,.42)');gq.addColorStop(.55,'rgba(96,82,60,.2)');gq.addColorStop(1,'rgba(70,60,46,0)');x.fillStyle=gq;x.beginPath();x.arc(px,py,R*1.7,0,7);x.fill();
+    x.strokeStyle='rgba(84,70,52,.14)';x.lineWidth=2;for(let k=0;k<6;k++){const a=r()*TAU,l=R*(1.3+r()*1.4);x.beginPath();x.moveTo(px+Math.cos(a)*R*.5,py+Math.sin(a)*R*.5);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke();}}
+  // the shell holes (Version 188, proper craters: they were dark smudges): sand thrown out in rays and lumps, a churned rim, dark damp sand
+  // down the sides, scorched black on one side, and seep water in the bottom of the ones near the sea
+  for(const h of DD_HOLES){const R=h.r;
+    for(let k=0;k<18;k++){const a=r()*TAU,l=R*(1.2+r()*.9);x.strokeStyle=`rgba(${r()<.5?'112,94,66':'134,114,82'},${.08+r()*.1})`;x.lineWidth=3+r()*6;x.beginPath();x.moveTo(h.x+Math.cos(a)*R*.85,h.y+Math.sin(a)*R*.85);x.lineTo(h.x+Math.cos(a)*l,h.y+Math.sin(a)*l);x.stroke();}
+    let gr=x.createRadialGradient(h.x,h.y,1,h.x,h.y,R+6);gr.addColorStop(0,'rgba(44,38,30,.9)');gr.addColorStop(.42,'rgba(66,56,42,.82)');gr.addColorStop(.8,'rgba(104,88,64,.55)');gr.addColorStop(1,'rgba(104,88,64,0)');x.fillStyle=gr;x.beginPath();x.arc(h.x,h.y,R+6,0,7);x.fill();
+    const sa=r()*TAU;gr=x.createRadialGradient(h.x+Math.cos(sa)*R*.5,h.y+Math.sin(sa)*R*.5,1,h.x+Math.cos(sa)*R*.5,h.y+Math.sin(sa)*R*.5,R*.95);gr.addColorStop(0,'rgba(20,18,16,.55)');gr.addColorStop(1,'rgba(20,18,16,0)');x.fillStyle=gr;x.beginPath();x.arc(h.x+Math.cos(sa)*R*.5,h.y+Math.sin(sa)*R*.5,R*.95,0,7);x.fill();
+    if(h.y>540||h.c===2){x.fillStyle='rgba(58,70,72,.75)';x.beginPath();x.ellipse(h.x+(r()-.5)*4,h.y+(r()-.5)*3,R*.32,R*.24,r()*3,0,7);x.fill();x.fillStyle='rgba(150,166,166,.35)';x.beginPath();x.ellipse(h.x-R*.08,h.y-R*.06,R*.16,R*.08,0,0,7);x.fill();}
+    for(let k=0;k<70;k++){const a=r()*TAU,d=R*(.9+r()*r()*.6),s=.7+r()*1.8;x.fillStyle=r()<.4?`rgba(84,70,50,${.25+r()*.25})`:`rgba(220,202,160,${.25+r()*.3})`;x.beginPath();x.ellipse(h.x+Math.cos(a)*d,h.y+Math.sin(a)*d,s,s*.7,a,0,7);x.fill();}}
   // onto the map's canvas: the play area, and its mirror image in each edge and beyond
   g.setTransform(1,0,0,1,0,0);g.drawImage(c,DDX*DDS,0);
   g.save();g.translate(DDX*DDS,0);g.scale(-1,1);g.drawImage(c,0,0,DDX*DDS,c.height,0,0,DDX*DDS,c.height);g.restore();
@@ -275,14 +308,24 @@ function buildDDay(){
     for(const f of['ddLightBuild','ddSeaBuild','ddFxBuild','ddGroundBuild'])if(typeof window[f]==='function')window[f](sc);   // (Version 188: each of the looks' own build: ddlight.js, ddsea.js, ddfx.js, ddground.js; every chapter, the lights made)
   }finally{scene=keep;}
 }
-// poured concrete: the marks of the boards it was cast against, rain streaks, stains and a few cracks
-function ddConcTex(){const t=canvasTex(256,256,(q,w,h)=>{const r=rng(31);q.fillStyle='#c9c5b8';q.fillRect(0,0,w,h);
-    for(let y=0;y<h;y+=16){q.fillStyle=`rgba(${r()<.5?'70,66,58':'235,232,222'},${.05+r()*.1})`;q.fillRect(0,y,w,16);q.fillStyle='rgba(60,56,50,.35)';q.fillRect(0,y,w,1);}
-    for(let i=0;i<70;i++){const x=r()*w,l=20+r()*90;const g=q.createLinearGradient(0,0,0,l);g.addColorStop(0,`rgba(50,48,42,${.1+r()*.22})`);g.addColorStop(1,'rgba(50,48,42,0)');q.fillStyle=g;q.fillRect(x,r()*h*.5,2+r()*7,l);}
-    for(let i=0;i<26;i++){q.fillStyle=`rgba(${r()<.5?'86,98,60':'92,84,70'},${.1+r()*.16})`;q.beginPath();q.ellipse(r()*w,r()*h,8+r()*26,5+r()*16,r()*3,0,7);q.fill();}
-    q.strokeStyle='rgba(40,38,34,.5)';q.lineWidth=1;for(let i=0;i<7;i++){let x=r()*w,y=r()*h;q.beginPath();q.moveTo(x,y);for(let k=0;k<6;k++){x+=(r()-.5)*26;y+=6+r()*14;q.lineTo(x,y);}q.stroke();}
-    for(let i=0;i<900;i++){q.fillStyle=`rgba(${r()<.5?'40,38,34':'250,248,240'},${.05+r()*.12})`;q.fillRect(r()*w,r()*h,1.4,1.4);}});
-  t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2,1);return t;}
+// poured concrete: the marks of the boards it was cast against, rain streaks, stains and a few cracks. Version 188: twice the size, the
+// form ties' holes in rows, lichen and damp low down, soot, and pocked by bullets and shell splinters (chips of fresh grey, dark in the middle);
+// a height picture of the same (DD.concH) for the light to catch the boards and the chips
+function ddConcTex(){const H=document.createElement('canvas');H.width=H.height=512;const hq=H.getContext('2d');hq.fillStyle='#808080';hq.fillRect(0,0,512,512);
+  const t=canvasTex(512,512,(q,w,h)=>{const r=rng(31);q.fillStyle='#c4c0b2';q.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=24){const sh=r();q.fillStyle=`rgba(${sh<.5?'70,66,58':'235,232,222'},${.05+r()*.1})`;q.fillRect(0,y,w,24);q.fillStyle='rgba(60,56,50,.42)';q.fillRect(0,y,w,1.5);hq.fillStyle='#5a5a5a';hq.fillRect(0,y,w,2);
+      for(let x=r()*60;x<w;x+=50+r()*70){q.fillStyle='rgba(60,56,50,.18)';q.fillRect(x,y,1,24);}
+      for(let k=0;k<10;k++){q.fillStyle='rgba(120,116,104,.12)';q.fillRect(0,y+2+r()*20,w,1);}}
+    for(let y=36;y<h;y+=96)for(let x=24;x<w;x+=64){q.fillStyle='rgba(40,38,34,.55)';q.beginPath();q.arc(x+(r()-.5)*3,y,2.2,0,7);q.fill();hq.fillStyle='#3a3a3a';hq.beginPath();hq.arc(x,y,2.6,0,7);hq.fill();}   // the form ties
+    for(let i=0;i<120;i++){const x=r()*w,l=30+r()*170;const g=q.createLinearGradient(0,0,0,l);g.addColorStop(0,`rgba(50,48,42,${.1+r()*.22})`);g.addColorStop(1,'rgba(50,48,42,0)');q.fillStyle=g;q.fillRect(x,r()*h*.5,2+r()*9,l);}   // rain streaks
+    {const g=q.createLinearGradient(0,h*.62,0,h);g.addColorStop(0,'rgba(70,74,52,0)');g.addColorStop(1,'rgba(70,74,52,.42)');q.fillStyle=g;q.fillRect(0,h*.62,w,h*.38);}   // damp low down
+    for(let i=0;i<46;i++){q.fillStyle=`rgba(${r()<.5?'86,104,58':'104,96,70'},${.12+r()*.18})`;q.beginPath();q.ellipse(r()*w,h*.45+r()*h*.55,10+r()*34,6+r()*20,r()*3,0,7);q.fill();}   // lichen and moss
+    for(let i=0;i<8;i++){const x=r()*w,y=r()*h,g=q.createRadialGradient(x,y,2,x,y,30+r()*50);g.addColorStop(0,'rgba(24,22,20,.35)');g.addColorStop(1,'rgba(24,22,20,0)');q.fillStyle=g;q.fillRect(x-80,y-80,160,160);}   // soot
+    q.strokeStyle='rgba(40,38,34,.55)';q.lineWidth=1.2;for(let i=0;i<12;i++){let x=r()*w,y=r()*h;q.beginPath();q.moveTo(x,y);hq.strokeStyle='#404040';hq.lineWidth=2;hq.beginPath();hq.moveTo(x,y);for(let k=0;k<7;k++){x+=(r()-.5)*36;y+=8+r()*20;q.lineTo(x,y);hq.lineTo(x,y);}q.stroke();hq.stroke();}
+    for(let i=0;i<150;i++){const x=r()*w,y=r()*h,R=1.5+r()*r()*7;q.fillStyle=`rgba(226,224,214,${.4+r()*.3})`;q.beginPath();q.arc(x,y,R*1.5,0,7);q.fill();q.fillStyle='rgba(60,58,52,.7)';q.beginPath();q.arc(x,y,R*.6,0,7);q.fill();   // pocks
+      const g=hq.createRadialGradient(x,y,0,x,y,R*1.5);g.addColorStop(0,'#202020');g.addColorStop(1,'rgba(128,128,128,0)');hq.fillStyle=g;hq.beginPath();hq.arc(x,y,R*1.5,0,7);hq.fill();}
+    for(let i=0;i<2400;i++){q.fillStyle=`rgba(${r()<.5?'40,38,34':'250,248,240'},${.05+r()*.12})`;q.fillRect(r()*w,r()*h,1.4,1.4);}});
+  t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2,1);const ht=new T.CanvasTexture(H);ht.wrapS=ht.wrapT=T.RepeatWrapping;ht.repeat.set(2,1);DD.concH=ht;return t;}
 // everything standing on the land: built into one group, and copied (mirrored) either side for the battle next door
 function ddProps(sc,objsL){
   const G=new T.Group();DD.props=G;sc.add(G);
@@ -290,12 +333,14 @@ function ddProps(sc,objsL){
     conc=M(0xb4b0a4,.95),concD=M(0x8a877c,.95),bag=M(0xb8a372,1),steel=M(0x3a3632,.6,.7),rust=M(0x5a4030,.8,.4),wood=M(0x5d4a34,.95),rockM=new T.MeshStandardMaterial({color:0x857a68,roughness:1,flatShading:true}),olive=M(0x4d5540,.9),dark=M(0x26282a,.7,.5);
   const add=(geo,mat,x,y,z,ry,rx,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;if(rx)m.rotation.x=rx;if(rz)m.rotation.z=rz;m.castShadow=true;m.receiveShadow=true;G.add(m);return m;};
   const box=(o,h,mat,lift=0)=>{const g0=ddH(o.x+o.w/2,o.y+o.h/2);const m=add(new T.BoxGeometry(o.w,h,o.h),mat,o.x+o.w/2,g0+h/2+lift,o.y+o.h/2);(o.meshes=o.meshes||[]).push(m);return m;};
-  const bagG=new T.SphereGeometry(1,7,5),r=rng(66),BK=DD.bk={},concT=ddConcTex(),bkM=(k,v=0)=>{const L=BK[k]||(BK[k]=[]);return L[v]||(L[v]=v===2?new T.MeshStandardMaterial({color:0x7a6a48,roughness:1,transparent:true}):v===3?new T.MeshStandardMaterial({color:0x5f8a3a,roughness:1,transparent:true}):new T.MeshStandardMaterial({color:v?0x8f8b80:0xd0ccc0,map:concT,roughness:.95,transparent:true}));};
+  const bagG=new T.SphereGeometry(1,7,5),bagGeo=ddgBagGeo(),bagM=new T.MeshStandardMaterial({map:ddgTex('burlap'),roughness:1,vertexColors:true}),crateM=new T.MeshStandardMaterial({map:ddgTex('crate'),roughness:.88,vertexColors:true}),hogM=new T.MeshStandardMaterial({map:ddgTex('rust'),roughness:.8,metalness:.12}),wireM=new T.MeshStandardMaterial({vertexColors:true,roughness:.62,metalness:.45}),r=rng(66),BK=DD.bk={},concT=ddConcTex(),bkM=(k,v=0)=>{const L=BK[k]||(BK[k]=[]);return L[v]||(L[v]=v===2?new T.MeshStandardMaterial({color:0x7a6a48,roughness:1,transparent:true}):v===3?new T.MeshStandardMaterial({color:0xffffff,map:ddgTex('turf'),roughness:1,transparent:true}):new T.MeshStandardMaterial({color:v?0x8f8b80:0xd0ccc0,map:concT,bumpMap:DD.concH,bumpScale:.7,roughness:.95,transparent:true}));};
   for(const o of objsL){
     const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=ddH(cx,cy);
-    if(o.kind==='sandbag'){   // two courses of bags
-      const horiz=o.w>=o.h,n=Math.round((horiz?o.w:o.h)/8);o.meshes=[];
-      for(let c=0;c<2;c++)for(let k=0;k<n-c;k++){const t=(k+.5+c*.5)/n,x=horiz?o.x+t*o.w:cx,y=horiz?cy:o.y+t*o.h,m=add(bagG,bag,x,ddH(x,y)+2.4+c*3.6,y,horiz?0:Math.PI/2);m.scale.set(4.6,2.3,horiz?o.h*.5:o.w*.5);m.rotation.y+=(r()-.5)*.2;o.meshes.push(m);}
+    if(o.kind==='sandbag'){   // two courses of bags (Version 188: burlap sacks, fat in the middle and tied at the ends, each its own shade; one mesh a line)
+      const horiz=o.w>=o.h,n=Math.round((horiz?o.w:o.h)/8),dep=horiz?o.h:o.w,P=[];
+      for(let c=0;c<2;c++)for(let k=0;k<n-c;k++){const t=(k+.5+c*.5)/n,x=horiz?o.x+t*o.w:cx,y=horiz?cy:o.y+t*o.h,j=.94+r()*.12,tone=.8+r()*.26;
+        P.push({g:bagGeo,p:[x-cx,ddH(x,y)+2.3+c*3.7-g0,y-cy],r:[0,(horiz?0:Math.PI/2)+(r()-.5)*.24,(r()-.5)*.08],s:[8.9*j,9.6*j,dep*1.55*j],c:new T.Color(tone,tone*(.97+r()*.05),tone*(.92+r()*.1))});}
+      const m=add(ddgMerge(P,true),bagM,cx,g0,cy);o.meshes=[m];
     }else if(o.kind==='ddconc'){box(o,24,conc);const cap=add(new T.BoxGeometry(o.w+2,2.4,o.h+3),concD,cx,g0+25,cy);o.meshes.push(cap);}
     else if(o.kind==='ddpb'){   // a bunker's wall (their look redone for Version 131, Bryan: "the pillboxes look bad"): board-marked, stained concrete
       // thick at the foot, the front leaning back to a deep firing slit with a stepped throat, earth banked up the sides; each bunker's
@@ -318,15 +363,15 @@ function ddProps(sc,objsL){
       for(const hh of[4,10,16])o.meshes.push(add(new T.BoxGeometry(o.w,1.2,1.2),steel,cx,g0+hh,cy));
       for(let k=0;k<n;k++)o.meshes.push(add(new T.BoxGeometry(hyp(o.w/n,12),1,1),rust,o.x+(k+.5)*o.w/n,g0+10,cy,0,0,(k%2?1:-1)*Math.atan2(12,o.w/n)));
     }else if(o.kind==='ddbould'){const m=add(new T.DodecahedronGeometry(10,0),rockM,cx,g0+4,cy,r()*6);m.scale.set(1.05,.8+r()*.3,.9);(o.meshes=[]).push(m);}
-    else if(o.kind==='ddcrate'){box(o,13,wood);}
+    else if(o.kind==='ddcrate'){o.meshes=[add(ddgCrates(o.w,13,o.h,r),crateM,cx,g0,cy)];}   // (Version 188: a stack of ammunition boxes, not one plain block)
     else if(o.kind==='ddhog'){   // a steel hedgehog: three girders crossed
-      o.meshes=[];for(const[rx,rz]of[[.6,.6],[-.6,.6],[0,-1.0]])o.meshes.push(add(new T.BoxGeometry(2,22,2),rust,cx,g0+7,cy,r()*.4,rx,rz));
+      // (Version 188: angle-iron girders, chunky and rusted, riveted plates where they cross; one mesh)
+      const P=[];for(const[rx,rz]of[[.6,.6],[-.6,.6],[0,-1.0]]){const ry=r()*.4,a1=new T.BoxGeometry(3.6,23,1),a2=new T.BoxGeometry(1,23,3.6);a1.translate(0,0,1.3);a2.translate(1.3,0,0);P.push({g:a1,r:[rx,ry,rz]},{g:a2,r:[rx,ry,rz]});}
+      P.push({g:new T.BoxGeometry(5,5,1.2),r:[0,.3,0]},{g:new T.BoxGeometry(1.2,5,5),r:[0,.3,0]});
+      o.meshes=[add(ddgMerge(P,false),hogM,cx,g0+7,cy)];
     }else if(o.kind==='ddwire'){   // the fence: posts, three strands and a coil of barbed wire along the top
-      o.meshes=[];const wm=M(0x4a4640,.5,.7);
-      for(let x=o.x;x<o.x+o.w-1;x+=12.5){const p=add(new T.BoxGeometry(1.3,17,1.3),wood,x+.6,ddH(x,cy)+8.5,cy);o.meshes.push(p);}
-      for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(o.w,.35,.35),wm,cx,g0+hh,cy));
-      for(let x=o.x+3;x<o.x+o.w;x+=6)o.meshes.push(add(new T.TorusGeometry(2.6,.28,4,8),wm,x,ddH(x,cy)+17.5,cy,Math.PI/2+.4));
-      for(let x=o.x+4;x<o.x+o.w;x+=8)o.meshes.push(add(new T.TorusGeometry(2.2,.25,4,8),wm,x,ddH(x,cy+5)+2.2,cy+5,Math.PI/2-.3));
+      // (Version 188: one mesh a stretch: weathered posts and iron pickets, three strands, and concertina coiled along the top and the foot)
+      o.meshes=[add(ddgWire(o,r),wireM,cx,g0,cy)];
     }else if(o.kind==='fence'){   // coils of barbed wire on stakes
       o.meshes=[];const n=Math.round(o.w/7),wm=M(0x55504a,.5,.7);
       for(let k=0;k<n;k++){const x=o.x+k*7+3.5,t=add(new T.TorusGeometry(4,.3,4,9),wm,x,ddH(x,cy)+4.2,cy,Math.PI/2+.35);o.meshes.push(t);}
@@ -338,9 +383,13 @@ function ddProps(sc,objsL){
       o.meshes=[add(new T.BoxGeometry(o.w,9,o.h),steel,cx,g0+4.5,cy),add(new T.BoxGeometry(20,12,3),olive,cx,g0+13,cy+7)];
       const b=add(new T.CylinderGeometry(1.7,2.2,o.tag==='heavy'?64:o.tag==='art'?70:46,8),steel,cx,g0+(o.tag==='art'?24:15),cy+(o.tag==='heavy'?36:o.tag==='art'?30:27),0,Math.PI/2-(o.tag==='art'?.55:.07));o.meshes.push(b);o.barrel=b;
     }else if(o.kind==='ddbarr'){   // the barracks: a long hut, pitched roof, door and windows to the south
-      box(o,26,M(0xa89a78,.95));
-      const rs=new T.Shape();rs.moveTo(-o.h/2-5,0);rs.lineTo(o.h/2+5,0);rs.lineTo(0,17);rs.closePath();const roof=add(new T.ExtrudeGeometry(rs,{depth:o.w+12,bevelEnabled:false}),M(0x7a4a36,.9),o.x-6,g0+26,cy,Math.PI/2);o.meshes.push(roof);
-      o.meshes.push(add(new T.BoxGeometry(18,20,1.5),dark,cx,g0+10,o.y+o.h+.6));
+      // (Version 188: weatherboarded walls on a concrete footing, a tiled roof with its ridge, stovepipes, the door and windows framed)
+      o.meshes=[add(ddgBoxUV(o.w,26,o.h,32,[.5,.02]),ddgMat('boards'),cx,g0+13,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),concD,cx,g0+1.2,cy)];
+      const rs=new T.Shape();rs.moveTo(-o.h/2-5,0);rs.lineTo(o.h/2+5,0);rs.lineTo(0,17);rs.closePath();const roof=add(new T.ExtrudeGeometry(rs,{depth:o.w+12,bevelEnabled:false}),M(0x5a4a3a,.95),o.x-6,g0+26,cy,Math.PI/2);o.meshes.push(roof);
+      o.meshes.push(add(ddgRoof(o.h+10,o.w+14,17),ddgMat('tiles'),cx,g0+26,cy));
+      for(const fx of[.22,.7])o.meshes.push(add(new T.CylinderGeometry(1.1,1.1,9,7),dark,o.x+o.w*fx,g0+40,cy-o.h*.18));
+      o.meshes.push(add(new T.BoxGeometry(18,20,1.5),dark,cx,g0+10,o.y+o.h+.6),add(new T.BoxGeometry(22,2,2.4),wood,cx,g0+21,o.y+o.h+.9));
+      for(const dxw of[-80,-40,40,80])o.meshes.push(add(new T.BoxGeometry(15,10.5,.8),wood,cx+dxw,g0+15,o.y+o.h+.3),add(new T.BoxGeometry(15,1.2,2),wood,cx+dxw,g0+9.6,o.y+o.h+.9));
       for(const dxw of[-80,-40,40,80])o.meshes.push(add(new T.BoxGeometry(12,8,1.2),new T.MeshBasicMaterial({color:0xd9b46a}),cx+dxw,g0+15,o.y+o.h+.5));
     }
   }
@@ -368,12 +417,11 @@ function ddProps(sc,objsL){
     for(const m of c.children)if(!m.isInstancedMesh&&m.position.z<-330&&m.position.x>(s<0?1200:860))m.visible=false;}   // (no mirror image where their base stands, or of it: ddbase.js)
   if(typeof ddBaseBuild==='function')ddBaseBuild(sc);
 }
-// a landing craft: a steel box of a hull, a ramp at the bow (north, -z) that drops
+// a landing craft: a steel box of a hull, a ramp at the bow (north, -z) that drops (Version 188: its look is ddground.js's LCVP, one mesh and the ramp)
 function ddBoatMesh(parent,wreck){
-  const g=new T.Group(),hm=new T.MeshStandardMaterial({color:wreck?0x3a3d3c:0x69736f,roughness:.8,metalness:.3}),dm=new T.MeshStandardMaterial({color:0x4b5350,roughness:.9});
-  const B=(w,h,d,x,y,z,m)=>{const q=new T.Mesh(new T.BoxGeometry(w,h,d),m||hm);q.position.set(x,y,z);q.castShadow=true;q.receiveShadow=true;g.add(q);return q;};
-  B(34,3,104,0,1.5,0,dm);B(2.4,15,104,-17,9,0);B(2.4,15,104,17,9,0);B(34,15,2.4,0,9,52);B(30,9,18,0,13,42,dm);   // deck, sides, stern, the engine house
-  const ramp=new T.Group();ramp.position.set(0,3,-52);const rp=new T.Mesh(new T.BoxGeometry(33,2,16),hm);rp.position.set(0,8,0);rp.rotation.x=Math.PI/2;rp.castShadow=true;ramp.add(rp);g.add(ramp);g.userData.ramp=ramp;
+  const L=ddgLCVP(),g=new T.Group(),mat=wreck?L.mw:L.m;
+  const hull=new T.Mesh(L.hull,mat);hull.castShadow=true;hull.receiveShadow=true;g.add(hull);
+  const ramp=new T.Group();ramp.position.set(0,3,-52);const rp=new T.Mesh(L.ramp,mat);rp.castShadow=true;rp.receiveShadow=true;ramp.add(rp);g.add(ramp);g.userData.ramp=ramp;
   (parent||scene).add(g);return g;
 }
 // bits of men (ddplay.js's gore): a pool of small blocks thrown about, then lying where they land

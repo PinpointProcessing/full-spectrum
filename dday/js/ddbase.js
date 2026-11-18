@@ -70,8 +70,8 @@ function ddBaseBuild(sc){
     m.rotation.x=-Math.PI/2;m.position.set(X0+W/2,H+.35,Y0+D/2);m.receiveShadow=true;m.renderOrder=1;B.add(m);}
   const earth=M(0x6a5c40,1),wall=M(0x9a9482,.95),roofM=M(0x55584e,.9),cpM=M(0x8d9298,.9),dark=M(0x26282a,.7,.5),wood=M(0x5d4a34,.95),steel=M(0x3a3632,.6,.7),drum=M(0xa04a1c,.7,.3),wm=M(0x55504a,.5,.7);
   for(const o of DD.objs){if(!o.base)continue;const cx=o.x+o.w/2,cy=o.y+o.h/2;
-    if(o.kind==='ddbank'){o.meshes=[add(new T.BoxGeometry(o.w+4,9,o.h),earth,cx,H+4.5,cy),add(new T.BoxGeometry(o.w-4,3,o.h-2),M(0x7d8a4c,1),cx,H+10,cy)];}
-    else if(o.kind==='ddbld'){const cp=o.look==='cp',h=cp?40:30;o.meshes=[add(new T.BoxGeometry(o.w,h,o.h),cp?cpM:wall,cx,H+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,H+h+2,cy)];
+    if(o.kind==='ddbank'){o.meshes=[add(ddgBoxUV(o.w+4,9,o.h,24),ddgMat('earth'),cx,H+4.5,cy),add(ddgBoxUV(o.w-4,3,o.h-2,24),ddgMat('turf'),cx,H+10,cy)];}   // (Version 188: dug earth, turf along the top)
+    else if(o.kind==='ddbld'){const cp=o.look==='cp',h=cp?40:30;o.meshes=[add(ddgBoxUV(o.w,h,o.h,cp?24:32,[.5,.02]),ddgMat(cp?'stone':'boards'),cx,H+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,H+h+2,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),dark,cx,H+1.2,cy)];   // (Version 188: weatherboards, the post in stone)
       if(cp){o.meshes.push(add(new T.BoxGeometry(1.6,22,18),dark,o.x-.6,H+11,DB.road));for(const dz of[-28,28])o.meshes.push(add(new T.BoxGeometry(1.2,9,12),new T.MeshBasicMaterial({color:0xd9b46a}),o.x-.4,H+24,DB.road+dz));
         const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,H+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x9a1c1c,.8),cx+8.5,H+h+40,cy));}
       else if(o.look==='shed'){for(let k=0;k<3;k++)o.meshes.push(add(new T.BoxGeometry(o.w/3-8,22,1.4),dark,o.x+o.w*(k+.5)/3,H+11,o.y-.5));}
