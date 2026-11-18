@@ -23,7 +23,7 @@ const DDFX={
   muzzle:[.35,.7,1],         // the chance a shot leaves a puff at the muzzle, by tier
   dust:[.36,.24,.17],        // a running man kicks up a puff this often (seconds), by tier
   menK:.2,                   // smoke in front of one of the squad you play thins to this (on the screen, round each man)
-  amb:[.7,.7,.72],sunK:.55   // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
+  amb:[.72,.7,.68],sunK:.55   // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
 };
 // its own run of random numbers, so the effects leave the game's (Math.random) as it was: a seeded test plays out the same with them or without
 let _fxs=19440606;const fxR=()=>(_fxs=(_fxs*16807)%2147483647)/2147483647;
@@ -128,7 +128,7 @@ function ddFxBuild(sc){
     soft:ddFxStore(C.soft[2]),glow:ddFxStore(C.glow[2]),clods:ddFxStore(C.clod[2]),rings:ddFxStore(C.ring[2]),
     softM:ddFxInst(sc,C.soft[2],q,sm,4),glowM:ddFxInst(sc,C.glow[2],q,gm,5),streakM:ddFxInst(sc,C.streak[2],sq,km,6),ringM:ddFxInst(sc,C.ring[2],rq,rm,3),clod,
     seen:new WeakSet(),hit:new WeakSet(),run:new WeakMap(),nPrev:[],nPrevN:0,fwd:new T.Vector3(),v:new T.Vector3(),m4:new T.Matrix4(),e:new T.Euler(),bs:new T.Vector2(),
-    col:[0,0,0],budget:0,hazeT:0,trail:0};
+    col:[0,0,0],col2:[0,0,0],budget:0,hazeT:0,trail:0};
   DDF.sortCmp=(a,b)=>DDF.soft.dep[b]-DDF.soft.dep[a];
 }
 
@@ -153,6 +153,7 @@ function ddFxBlast(x,y,k,hot){
   const nf=Math.round((hot?9:4+2*k)*few);
   for(let i=0;i<nf;i++){const a=R()*TAU,s=(16+R()*34)*k;ddFxAdd(G,LG,x+Math.cos(a)*5*k,g+(6+R()*10)*k,y+Math.sin(a)*5*k,Math.cos(a)*s,(26+R()*44)*k,Math.sin(a)*s,
     (hot?.65:.26)+R()*.2,(9+R()*6)*k,(20+R()*12)*k*(hot?1.4:1),1,.72,.38,.7,.2,.05,.62,0,2.5,hot?30:12,0,0,0);}
+  for(let i=0;i<Math.round((hot?10:3+3*k)*few);i++){const a=R()*TAU,s=(60+R()*120)*k;ddFxAdd(G,LG,x,g+8*k,y,Math.cos(a)*s,(90+R()*160)*k,Math.sin(a)*s,.5+R()*.6,2.2,1.2,1,.8,.45,1,.35,.08,1,2,.4,-300,0,0,0);}   // sparks flung out
   // the plume: earth (or sand) flung up all at once at every speed, so it stands as a column for a moment, narrow and pale at the top, broad and dark at
   // the foot, then falls back as a curtain and lies as dust; and the heavier body of it thrown out low
   const sand=DD_MODE==='beach'&&y>300,np=Math.round((10+12*k)*few);
@@ -164,11 +165,11 @@ function ddFxBlast(x,y,k,hot){
     ddFxAdd(S,L,x+Math.cos(a)*5*k,g+6*k,y+Math.sin(a)*5*k,Math.cos(a)*out,up,Math.sin(a)*out,1.2+R()*.8,(10+R()*6)*k,(24+R()*12)*k,f[0],f[1],f[2],cr,cg,cb,.85,1,.9,-260,.2,.8,.02);}
   // its heart: a dark column of smoke and earth standing a moment
   const nc=Math.round((2+2*k)*few);
-  for(let i=0;i<nc;i++){const h=(10+i*16)*k;ddFxAdd(S,L,x+(R()-.5)*8*k,g+h,y+(R()-.5)*8*k,(R()-.5)*14,(60+R()*70)*k,(R()-.5)*14,1.1+R()*.7,(16+R()*8)*k,(38+R()*18)*k,f[0]*.7,f[1]*.68,f[2]*.66,.44,.42,.39,.8,0,1.4,-60,.3,.9,.03);}
+  for(let i=0;i<nc;i++){const h=(10+i*16)*k;ddFxAdd(S,L,x+(R()-.5)*8*k,g+h,y+(R()-.5)*8*k,(R()-.5)*14,(60+R()*70)*k,(R()-.5)*14,1.1+R()*.7,(16+R()*8)*k,(38+R()*18)*k,f[0]*.7,f[1]*.68,f[2]*.66,.45,.42,.38,.8,0,1.4,-60,.3,.9,.03);}
   // the smoke that's left, drifting off (black and oily from a wreck)
   const ns=Math.round((hot?8:2+4*k)*few);
-  for(let i=0;i<ns;i++){const a=R()*TAU,o=R()*16*k;const dk=hot?.12:sand?.42:.34;ddFxAdd(S,L,x+Math.cos(a)*o,g+(12+R()*24)*k,y+Math.sin(a)*o,Math.cos(a)*10,(5+R()*8)*k,Math.sin(a)*10,
-    (hot?8:5)+R()*2.5,(18+R()*10)*k,(46+R()*26)*k*(hot?1.3:1),dk,dk*.96,dk*.92,dk+.2,dk+.19,dk+.17,hot?.8:.72,0,.5,2.6,1,.85,.45);}
+  for(let i=0;i<ns;i++){const a=R()*TAU,o=R()*16*k;const dk=hot?.12:sand?.42:.36;ddFxAdd(S,L,x+Math.cos(a)*o,g+(12+R()*24)*k,y+Math.sin(a)*o,Math.cos(a)*10,(5+R()*8)*k,Math.sin(a)*10,
+    (hot?8:5)+R()*2.5,(18+R()*10)*k,(46+R()*26)*k*(hot?1.3:1),dk,dk*.96,dk*.92,dk+.2,dk+.18,dk+.15,hot?.8:.72,0,.5,2.6,1,.85,.45);}
   // the shock: dust racing out along the ground, and its ring
   const nr=Math.round((4+7*k)*few);
   for(let i=0;i<nr;i++){const a=i/nr*TAU+R()*.5,s=(130+R()*80)*k;ddFxAdd(S,L,x+Math.cos(a)*8*k,g+6,y+Math.sin(a)*8*k,Math.cos(a)*s,4+R()*8,Math.sin(a)*s,.9+R()*.7,(9+R()*5)*k,(28+R()*14)*k,Math.min(1,cr*1.1+.07),Math.min(1,cg*1.1+.07),Math.min(1,cb*1.1+.07),cr,cg,cb,.55,1,3.2,0,.4,.6,.02);}
@@ -189,9 +190,9 @@ function ddFxSpout(x,y,k){
 
 /* ---------- burning wrecks: flames at the foot and a column of black smoke, for a long while ---------- */
 function ddFxFires(dt){
-  if(dt<=0)return;const t=ddFxTier(),S=DDF.soft,G=DDF.glow,L=DDFX.cap.soft[t],LG=DDFX.cap.glow[t],R=fxR,cx=camT.x,cz=camT.z;
+  if(dt<=0)return;const t=ddFxTier(),S=DDF.soft,G=DDF.glow,L=DDFX.cap.soft[t],LG=DDFX.cap.glow[t],R=fxR,cx=camera.position.x,cz=camera.position.z;
   for(const f of tankFires){
-    const age=simT-f.t0;if(age<0||hyp(f.x-cx,f.y-cz)>1300)continue;
+    const age=simT-f.t0;if(age<0||hyp(f.x-cx,f.y-cz)>1900)continue;   // (from the camera, not the view's centre: in the boat the camera's far from it)
     const fk=age<45?1:Math.max(.35,1-(age-45)/120),sk=age<90?1:Math.max(.4,1-(age-90)/200);   // the flames die down after the first minute; the smoke thins later, never quite gone
     const big=Math.min(1.8,Math.max(.7,(f.r||10)/11)),g=ddH(f.x,f.y),base=g+(DD_MODE==='beach'&&ddFxWater(f.x,f.y)?4:8+5*big),rr=(f.r||10)*.7;
     f.fxF=(f.fxF||0)+dt*DDFX.fireFlame[t]*fk*big;
@@ -225,8 +226,9 @@ function ddFxShots(dt){
   let kick=0;
   for(const r of tracers){if(r.t<.085||DDF.hit.has(r))continue;DDF.hit.add(r);if(kick++>8)continue;
     const x=r.x2,y=r.y2;if(ddFxWater(x,y))continue;let flesh=false;for(const u of units)if(!u.dead&&hyp(u.x-x,u.y-y)<6){flesh=true;break;}if(flesh)continue;
-    const c=ddFxDirt(x,y,DDF.col,false),g=ddH(x,y);
-    for(let k=0;k<2;k++)ddFxAdd(S,L,x+(R()-.5)*3,g+2,y+(R()-.5)*3,(R()-.5)*16,30+R()*30,(R()-.5)*16,.55+R()*.35,2.2+R()*1.5,7+R()*4,c[0],c[1],c[2],c[0],c[1],c[2],.6,1,1.5,-90,.2,1,.01);}
+    const c=ddFxDirt(x,y,DDF.col,false),g=ddH(x,y),fr=ddFxDirt(x,y,DDF.col2,true);   // a spurt of the darker stuff under the top, then a light puff of it hanging
+    ddFxAdd(S,L,x,g+2,y,(R()-.5)*10,60+R()*50,(R()-.5)*10,.45+R()*.2,1.6,4.5,fr[0],fr[1],fr[2],c[0],c[1],c[2],.85,1,1,-260,.1,1,.01);
+    ddFxAdd(S,L,x+(R()-.5)*3,g+3,y+(R()-.5)*3,(R()-.5)*14,14+R()*14,(R()-.5)*14,.7+R()*.4,3,10+R()*4,Math.min(1,c[0]*1.08+.05),Math.min(1,c[1]*1.08+.05),Math.min(1,c[2]*1.08+.05),c[0],c[1],c[2],.5,1,2.2,-20,.3,.7,.01);}
   for(const s of sparks){if(seen.has(s))continue;seen.add(s);const g=ddH(s.x,s.y);
     for(let k=0;k<2;k++)ddFxAdd(S,L,s.x+(R()-.5)*3,g+5+R()*5,s.y+(R()-.5)*3,(R()-.5)*20,10+R()*20,(R()-.5)*20,.6+R()*.3,2,7,.66,.64,.6,.62,.6,.57,.5,1,1.5,-40,.2,1,.01);}
   // running: a puff at his heels now and then (the beach's sand most of all); a dive into cover throws up a little more
