@@ -145,7 +145,7 @@ function ddSmokeCols(sc){
 // cloud shadows: big soft patches drifting slowly over the ground (the land's sheet drawn a second time over itself, multiplying it a little darker where the
 // noise is thick; the men and the props are left as they are). Faded with the haze; not on the cheapest tier (POST.tier 0).
 function ddCloudShade(sc){
-  if(!DDL.shade)return;const L=[];sc.traverse(o=>{if(o.isMesh&&o.material&&o.material.map===DD.tex)L.push(o);});const P=DDL_MODE[DD_MODE]||DDL_MODE.beach;
+  if(!DDL.shade)return;const L=[],bo=DD.bo||[],P=DDL_MODE[DD_MODE]||DDL_MODE.beach;sc.traverse(o=>{if(o.isMesh&&o.material&&o.material.map===DD.tex&&!bo.includes(o))L.push(o);});   // (the battle's own sheet only: the mirror copies either side are too far off to be worth a second pass)
   const U={tC:{value:ddNoiseTex()},uT:{value:0},uK:{value:DDL.shade*(.5+P.cloud)},uW:{value:P.wind},uFN:{value:1000},uFF:{value:5000}};
   const mat=new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:T.MultiplyBlending,fog:false,
     vertexShader:'varying vec3 vW;varying float vD;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vec4 mv=viewMatrix*w;vD=-mv.z;gl_Position=projectionMatrix*mv;}',

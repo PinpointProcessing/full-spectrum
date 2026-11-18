@@ -216,7 +216,7 @@ function disposeDD(){
 // the sun's colour, its strength, where the sun stands (degrees round from east toward the south), how high (degrees)]. A bright overcast morning with a
 // real sun, a little golden (warm light against the sky's cooler fill in the shadows): from the right of the usual camera and a little behind it, so faces and the sides of things read and shadows fall away to the left; the sky's
 // light softer and a little bluer than before (it was nearly the sun's strength, and the shadows were faint); a golden afternoon by evening, the sun round to the south-west
-const DD_SKY=[[0,0xc4ced6,0x6f8db2,0xb0c4da,.48,0xffe8c8,1.42,18,31],[.5,0xccd8e2,0x5d86ba,0xb8cce0,.5,0xfff3e0,1.5,62,46],[1,0xdcc6aa,0x6c80a6,0xc8c0b8,.48,0xffd2a0,1.42,128,28]];
+const DD_SKY=[[0,0xc4ced6,0x6f8db2,0xb0c4da,.54,0xffe8c8,1.42,18,31],[.5,0xccd8e2,0x5d86ba,0xb8cce0,.56,0xfff3e0,1.5,62,46],[1,0xdcc6aa,0x6c80a6,0xc8c0b8,.54,0xffd2a0,1.42,128,28]];
 let _dsc=null;
 function ddSky(t){
   let a=DD_SKY[0],b=DD_SKY[DD_SKY.length-1];for(let i=0;i<DD_SKY.length-1;i++)if(t>=DD_SKY[i][0]&&t<=DD_SKY[i+1][0]){a=DD_SKY[i];b=DD_SKY[i+1];}
