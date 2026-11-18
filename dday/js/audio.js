@@ -318,7 +318,7 @@ function setLoop(id,level,x,y,rev=1){
 
 /* ---------- every frame ---------- */
 function audioFrame(){
-  if(!AC||!sndOn)return;
+  if(!AC||!sndOn){if(AC&&typeof ddAmbStop==='function')ddAmbStop();return;}   // (Version 188: D-Day's sound bed stops its loops while the sound is off, ddamb.js)
   const t=AC.currentTime,live=state==='play'&&!paused;
   if(live)footsteps();
   if(typeof chatTick==='function')chatTick();   // the squad's conversations (chatter.js)
@@ -328,7 +328,7 @@ function audioFrame(){
     const inside=MAPID==='in'||MAPID==='tun'||hqIndoors()||l4In();amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
     amb.wg.gain.setTargetAtTime(inside?0:.05+.04*Math.max(0,amb.gust),t,.8);amb.hum.gain.setTargetAtTime(inside?1:0,t,.8);
     const hunted=enemies.some(e=>!e.dead&&e.alerted),k=state==='play'?Math.max(contact?1:detection(),hunted?.6:0):0;   // the drone follows the danger
-    amb.dr.gain.setTargetAtTime(MAPID==='dd'?.0001:.0001+k*k*.085,t,.6);if(MAPID==='dd')amb.wg.gain.setTargetAtTime(0,t,.8);   // (D-Day: no drone under the fight, Bryan: "I don't like the hum"; since Version 188 its wind is ddamb.js's, in layers that gust)amb.df.frequency.setTargetAtTime(140+k*520,t,.8);
+    amb.dr.gain.setTargetAtTime(MAPID==='dd'?.0001:.0001+k*k*.085,t,.6);if(MAPID==='dd')amb.wg.gain.setTargetAtTime(0,t,.8);amb.df.frequency.setTargetAtTime(140+k*520,t,.8);   // (D-Day: no drone under the fight, Bryan: "I don't like the hum"; since Version 188 its wind is ddamb.js's, in layers that gust)
   }
   // explosions and launches, picked up as they appear (grenades, rockets, tank shells, fuel tanks, vehicles)
   let n=0;for(const b of booms)if(!b.snd&&b.t>=0){b.snd=1;if(n++<2)sfxBoom(b.x,b.y,b.size||1);}

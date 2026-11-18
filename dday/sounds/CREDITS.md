@@ -106,11 +106,14 @@ The slam also uses the game's own `boom-1.wav` (listed above).
 
 ## D-Day's sound bed (`amb/`, Version 188)
 
-Two files, both CC0 from opengameart.org; everything else in the bed (the wind, the waves' swell and fizz, the distant battle,
-the ships' guns and their shells going over, aircraft, the landing craft's diesel and the hull on the swell, tanks, tracks,
-trucks, fires) is synthesised by `js/ddamb.js` when D-Day starts.
+Four files, all CC0 from opengameart.org; everything else in the bed (the wind, the waves' swell, the ships' guns and their shells
+going over, aircraft, the landing craft's diesel and the hull on the swell, tanks, tracks, trucks, fires) is synthesised by
+`js/ddamb.js` when D-Day starts, and the constant crackle of the battle round about is mixed there from the guns' far recordings
+(`guns/usfar`, `guns/karfar`, `guns/smgfar`, above).
 
 | File | What | Source |
 | --- | --- | --- |
 | `amb/surf.mp3` | eight washes of breaking surf in a row (four from each pack), each levelled; `js/ddamb.js`'s `DDA.wash` says where each is | [Beach Ocean Waves](https://opengameart.org/content/beach-ocean-waves), jasinski (from freesound 18363, "alkaibeach"), CC0; [Water Waves](https://opengameart.org/content/water-waves), transitking (from freesound 11505), CC0 |
 | `amb/far.mp3` | a muffled far-off explosion, one of the distant artillery's voices | [Muffled Distant Explosion](https://opengameart.org/content/muffled-distant-explosion), NenadSimic, CC0 |
+| `amb/water.mp3` | 18 s of waves on a shore, made into a loop (0.2 s of its own end before it and of its start after it, so it goes round without a seam whatever the mp3 decoder does); the waves' lanes and the open sea round the landing craft are this filtered | [Sea and river wave sounds](https://opengameart.org/content/sea-and-river-wave-sounds), randommind ("VistulaShort", 2:30-2:49), CC0 |
+| `amb/birds.mp3` | 24.5 s of small birds in a copse, the low end taken off, made into a loop the same way; the woods, the field and the quiet spells, silent while guns are going | [Park ambiences](https://opengameart.org/content/park-ambiences), "park_ambience_birds" (2:20-2:46), CC0 |

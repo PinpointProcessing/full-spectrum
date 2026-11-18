@@ -55,15 +55,19 @@ function ddaEngine(o){
   for(let k=0;k<N;k++){const st=Math.floor((k*per+(ddaR()-.5)*per*o.jit)*sr),a=o.pat[k%o.pat.length]*(1-o.rough/2+ddaR()*o.rough);
     for(let i=0;i<L;i++){d[(st+i+n)%n]+=a*(sh[i]+ddaN()*Math.exp(-i/(sr*o.nT))*o.nz);}}
   const ex=ddaWrap(ddaWhite(n),x=>{ddaLP(x,o.exCut,sr);ddaLP(x,o.exCut,sr);});
-  for(let i=0;i<n;i++){const t=i/sr;d[i]+=ex[i]*o.ex*(1.2+Math.cos(TAU*o.fire*t))+(o.whine?Math.sin(TAU*o.whine*t+Math.sin(TAU*2/o.len*t)*1.5)*o.wg:0);}
+  // the whine (a blower, a gearbox) is air and teeth, not a pure note: a little of a wavering tone in a narrow band of noise (Version 188
+  // pass 4: a clean sine line read as a whistle over everything)
+  const wn=o.whine?ddaNorm(ddaWrap(ddaWhite(n),x=>{ddaBP(x,o.whine,9,sr);ddaBP(x,o.whine,9,sr);}),1.6):null;
+  for(let i=0;i<n;i++){const t=i/sr;d[i]+=ex[i]*o.ex*(1.2+Math.cos(TAU*o.fire*t))+(wn?(Math.sin(TAU*o.whine*t+Math.sin(TAU*2/o.len*t)*1.5)*.35+wn[i]*.65)*o.wg:0);}
   return ddaMk(ddaNorm(ddaWrap(d,x=>{ddaHP(x,32,sr);ddaLP(x,o.cut,sr);}),.9));
 }
 // each engine built twice, ticking over and working hard, with the same body, so its ring stays where it is as the revs change
-// (a single loop played slower would sink the whole engine into rumble a phone can't play); ddaEng crossfades the two
+// (a single loop played slower would sink the whole engine into rumble a phone can't play); ddaEng crossfades the two. Loops of 2.5-3 s
+// (Version 188 pass 4; they were 1-1.5 s, and the pattern of their uneven firing came round often enough to be heard as a wobble)
 const DDA_ENG={
-  diesel:{len:1.5,fire:180,pat:[1,.86,.95,.8,.92,.84],jit:.05,rough:.25,nT:.0016,nz:.75,body:[[92,.014,1],[286,.006,.5],[610,.003,.22]],exCut:520,ex:.9,whine:1350,wg:.05,cut:5200},   // the landing craft's Gray Marine 6-71: a two-stroke six, its Roots blower whining
-  tank:{len:1,fire:220,pat:[1,.9,.97,.86,.95,.9,.98,.87,.93,.92,.96,.88],jit:.03,rough:.16,nT:.0011,nz:.3,body:[[118,.016,1],[356,.006,.4],[760,.003,.14]],exCut:330,ex:1.1,whine:820,wg:.03,cut:4200},   // a Panzer IV's Maybach V12 (petrol)
-  truck:{len:1,fire:120,pat:[1,.88,.95,.83,.97,.9],jit:.04,rough:.22,nT:.0012,nz:.35,body:[[78,.02,1],[240,.008,.45],[520,.004,.18]],exCut:420,ex:.8,whine:650,wg:.02,cut:4600}};   // an Opel Blitz's straight six
+  diesel:{len:3,fire:180,pat:[1,.86,.95,.8,.92,.84],jit:.05,rough:.25,nT:.0016,nz:.75,body:[[92,.014,1],[286,.006,.5],[610,.003,.22]],exCut:520,ex:.9,whine:1350,wg:.035,cut:5200},   // the landing craft's Gray Marine 6-71: a two-stroke six, its Roots blower whining
+  tank:{len:2.5,fire:220,pat:[1,.9,.97,.86,.95,.9,.98,.87,.93,.92,.96,.88],jit:.03,rough:.16,nT:.0011,nz:.3,body:[[118,.016,1],[356,.006,.4],[760,.003,.14]],exCut:330,ex:1.1,whine:820,wg:.03,cut:4200},   // a Panzer IV's Maybach V12 (petrol)
+  truck:{len:2.5,fire:120,pat:[1,.88,.95,.83,.97,.9],jit:.04,rough:.22,nT:.0012,nz:.35,body:[[78,.02,1],[240,.008,.45],[520,.004,.18]],exCut:420,ex:.8,whine:650,wg:.02,cut:4600}};   // an Opel Blitz's straight six
 const ddaIdle=(o,fire,whine)=>ddaEngine({...o,fire,whine,wg:o.wg*.6,rough:o.rough*1.4,jit:o.jit*1.5});   // (ticking over: slower, lumpier, the whine lower)
 // a tank's tracks at its road speed: both sides' links clacking on the sprockets, the road wheels' rumble, and now and then a squeal
 function ddaTracks(){
@@ -230,7 +234,8 @@ function ddaVoiceSet(id,buf,lvl,pan,cut,rate,t){
   v.g.gain.setTargetAtTime(lvl,t,.2);if(v.p.pan)v.p.pan.setTargetAtTime(clamp(pan,-1,1),t,.15);v.lp.frequency.setTargetAtTime(cut,t,.2);if(v.s)v.s.playbackRate.setTargetAtTime(rate,t,.5);
 }
 // an engine: its ticking-over and its working loops crossfaded by load x (0 idling .. 1 working hard), each nudged in pitch with it
-function ddaEng(id,B,k,lvl,x,pan,cut,rj,t){x=clamp(x,0,1);ddaVoiceSet(id+'i',B[k+'I'],lvl*Math.cos(x*1.571),pan,cut,(1+x*.3)*rj,t);ddaVoiceSet(id+'r',B[k],lvl*Math.sin(x*1.571),pan,cut,(.8+x*.2)*rj,t);}
+function ddaEng(id,B,k,lvl,x,pan,cut,rj,t){x=clamp(x,0,1);rj*=1+.011*Math.sin(t*.83+id.length*1.7)+.006*Math.sin(t*2.13+id.charCodeAt(id.length-1));   // (the revs never quite steady)
+ddaVoiceSet(id+'i',B[k+'I'],lvl*Math.cos(x*1.571),pan,cut,(1+x*.3)*rj,t);ddaVoiceSet(id+'r',B[k],lvl*Math.sin(x*1.571),pan,cut,(.8+x*.2)*rj,t);}
 // a one-shot: a buffer through its own level, a darkening low-pass and a pan, into the far bus (or another)
 function ddaPlay(buf,at,vol,pan,cut,rate=1,dest){
   const A=ddA;if(!buf||A.n>=DDA.maxEv)return null;
@@ -256,7 +261,7 @@ function ddAmbFrame(t,live){
   const play=state==='play',dt=clamp(t-(A.lastT||t),0,.1);A.lastT=t;
   if(!play){ddAmbStop(t);return;}
   const S=ddAmbScene(),ts=live?timeScale():0;
-  if(A.dd!==dd){A.dd=dd;A.bt=0;A.I=S.I;A.ev={mg:1+ddaR()*2,rf:.5+ddaR()*2,art:2+ddaR()*3,nav:4+ddaR()*5,air:25+ddaR()*30};}   // (a new chapter: the battle's clock from the start)
+  if(A.dd!==dd){const ride=S.mode==='ride';A.dd=dd;A.bt=0;A.I=S.I;A.ev={mg:1+ddaR()*2,rf:.5+ddaR()*2,art:2+ddaR()*3,nav:ride?2.2:4+ddaR()*5,air:ride?7.5+ddaR()*2:25+ddaR()*30};}   // (a new chapter: the battle's clock from the start; on the ride in, a broadside straight away and fighters low overhead halfway in)
   if(!A.on){A.on=true;A.bus.gain.cancelScheduledValues(t);}A.offT=0;
   A.I+=(S.I-A.I)*Math.min(1,dt*.4);A.bt+=dt*ts;
   const udt=t-A.uT;if(udt>=.066){A.uT=t;   // (the levels and filters about 15 times a second: no need to automate them every frame)
@@ -412,7 +417,7 @@ function ddaBattle(bt,t,S){
   if(bt>=E.art){E.art=bt+(4.5+ddaR()*9)/(.3+.7*I);const w=ddaWhere(S,'art'),p=ddaPan(w.dx,w.dz)*.85,rec=A.farRec&&ddaR()<.3;
     ddaPlay(rec?A.farRec:B[['art1','art2','art3'][Math.floor(ddaR()*3)]],t+.03,L.art*(1.1-w.far*.6)*(rec?.8:1),p,1100-w.far*600,rec?.75+ddaR()*.2:.9+ddaR()*.2);
     if(ddaR()<.35*I){const at=t+.4+ddaR()*1.2;ddaPlay(B['art'+(1+Math.floor(ddaR()*3))],at,L.art*(1-w.far*.6)*.8,clamp(p+(ddaR()-.5)*.3,-1,1),1000-w.far*500,.85+ddaR()*.25);}}   // (often a second from the same battery)
-  if(S.naval&&bt>=E.nav){E.nav=bt+(14+ddaR()*20)/((.4+.6*I)*S.naval);ddaNaval(t,S);}
+  if(S.naval&&bt>=E.nav){E.nav=bt+(S.mode==='ride'?6+ddaR()*5:(14+ddaR()*20)/((.4+.6*I)*S.naval));ddaNaval(t,S);}   // (the ships' guns going all the way in)
   if(S.air&&bt>=E.air){E.air=bt+(60+ddaR()*80)/S.air;ddaPlane(t);}
 }
 // a battleship's broadside from the horizon; on D-Day its shells go over a few seconds later and land inland
