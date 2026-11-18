@@ -18,7 +18,11 @@
    - Version 188 pass 3: the battle as a constant sound under the separate posts (ddaRoar: a crackle of rifles and machine guns from
      every side, built from the guns' far recordings into two loops, ddaRoarGen); the waves' lanes made of a recording of real water
      (sounds/amb/water.mp3, CC0) instead of noise, so the wash bubbles and fizzes like water; birdsong in the woods, the field and the
-     quiet spells (sounds/amb/birds.mp3, CC0), gone quiet while guns are going (ddaBirds).
+     quiet spells (sounds/amb/birds.mp3, CC0), gone quiet while guns are going (ddaBirds). Pass 4-5: the engines' whine a band of
+     noise, their loops longer and their revs wandering; the ships' broadsides a recording of a ship's gun slowed down over the
+     synthesised boom (ddsfx.js's 'xgun'), far shells from the far-blast recordings ('xfar'); on the ride in a broadside straight
+     away and fighters overhead. Pass 6: everything heavy is built a few milliseconds a frame (ddaBuildStep, generators), so the bed
+     never stutters the picture as a chapter starts; while the sound is off its loops are stopped (audio.js's audioFrame).
    Placed from the camera (audio.js's place(), and the camera's right-hand side for the far-off things: ddaPan); slow-mo and pause muffle
    it with the rest and hold the battle's clock; it fades out on the report and the barracks (state 'ddmeta'), at the end, and when
    D-Day is left. Its own random numbers (ddaR), so the game's Math.random sequence is the same with sound as without. */
