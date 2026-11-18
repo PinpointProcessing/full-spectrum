@@ -26,7 +26,11 @@ const DDFX={
   amb:[.76,.71,.64],sunK:.55,  // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
   linger:[3,5,7],            // a shell's smoke left standing over where it fell, drifting off downwind for ten seconds or so (puffs, by tier)
   scorch:22,                 // a blast's scorch on the ground lasts this long (seconds), fading over its last third (Version 190: 40 drew the eye more than the men)
-  far:[0,6.5,4]              // the battle beyond yours (Version 188, pass 3): a shell bursting out on the beach's flanks or in the sea every so many seconds, by tier (0: none)
+  far:[0,6.5,4],             // the battle beyond yours (Version 188, pass 3): a shell bursting out on the beach's flanks or in the sea every so many seconds, by tier (0: none)
+  bluff:[0,4,4],             // Version 190: on a portrait screen after the landing, a burst on the bluff ahead every 3-5 s (by tier; 0 none): ddFxBluff
+  farClear:[450,200,90],     // ...never this far from our squads, our other troops, and a German (200 from them too left about 1 spot in 100 in a
+                             // portrait view while the bunkers are manned, 140 none in front of the camera; a burst 9 m off a gun on the bluff reads as a near miss)
+  bluffSmoke:[0,2,3]         // Version 190: slow low banks of smoke along the foot of the bluff beyond their line (by tier): ddFxBluffSmoke
 };
 // its own run of random numbers, so the effects leave the game's (Math.random) as it was: a seeded test plays out the same with them or without
 let _fxs=19440606;const fxR=()=>(_fxs=(_fxs*16807)%2147483647)/2147483647;
@@ -160,8 +164,9 @@ const ddFxWater=(x,y)=>DD_MODE==='beach'&&y>698&&ddH(x,y)<.4;   // (the sea: pas
 
 /* ---------- a blast ---------- */
 // k: how big (a hand grenade about .55, a rifle grenade .7, a shell 1, a wreck going up 1.4); hot: an oily fireball (a wreck, a fuel dump)
-function ddFxBlast(x,y,k,hot){
-  const t=ddFxTier(),S=DDF.soft,G=DDF.glow,L=DDFX.cap.soft[t],LG=DDFX.cap.glow[t],g=ddH(x,y),R=fxR,few=[.5,.78,1][t];
+// far: one for the look only, far off (ddFxBluff): fewer puffs, no more than most of the store, and no scorch, ring or clods, too far off to see
+function ddFxBlast(x,y,k,hot,far){
+  const t=ddFxTier(),S=DDF.soft,G=DDF.glow,L=DDFX.cap.soft[t]*(far?.85:1),LG=DDFX.cap.glow[t],g=ddH(x,y),R=fxR,few=[.5,.78,1][t]*(far?.65:1);
   if(ddFxWater(x,y)){ddFxSpout(x,y,k);return;}
   const c=ddFxDirt(x,y,DDF.col,false),cr=c[0],cg=c[1],cb=c[2],f=ddFxDirt(x,y,[0,0,0],true);
   // the flash and the fireball
@@ -197,6 +202,7 @@ function ddFxBlast(x,y,k,hot){
   // the shock: dust racing out along the ground, and its ring
   const nr=Math.round((4+7*k)*few);
   for(let i=0;i<nr;i++){const a=i/nr*TAU+R()*.5,s=(130+R()*80)*k;ddFxAdd(S,L,x+Math.cos(a)*8*k,g+6,y+Math.sin(a)*8*k,Math.cos(a)*s,4+R()*8,Math.sin(a)*s,.9+R()*.7,(9+R()*5)*k,(28+R()*14)*k,Math.min(1,cr*1.1+.07),Math.min(1,cg*1.1+.07),Math.min(1,cb*1.1+.07),cr,cg,cb,.55,1,3.2,0,.4,.6,.02);}
+  if(far)return;
   ddFxScorch(x,y,g,k,sand);
   ddFxAdd(DDF.rings,DDFX.cap.ring[t],x,g+2.5,y,0,0,0,.42,6*k,120*k,Math.min(1,cr*1.14+.08),Math.min(1,cg*1.14+.08),Math.min(1,cb*1.14+.08),cr,cg,cb,.8,0,0,0,0,0,0);
   // clods
@@ -237,7 +243,7 @@ function ddFxFires(dt){
 /* ---------- drifting battle smoke, low over the field ---------- */
 function ddFxHaze(dt){
   const t=ddFxTier(),S=DDF.soft,want=DDFX.haze[t];if(dt<=0||(dd&&dd.land&&!dd.land.done)||(dd&&dd.fp))return;
-  let n=0;for(let i=0;i<S.n;i++)if(S.shape[i]===3)n++;
+  let n=0;for(let i=0;i<S.n;i++)if(S.shape[i]===3&&S.fl[i]!==2)n++;   // (the bluff's banks, fl 2, are counted apart: ddFxBluffSmoke)
   if(n>=want||(DDF.hazeT-=dt)>0)return;DDF.hazeT=.4;
   const R=fxR,C=camera.position,dv=Math.hypot(C.x-camT.x,C.z-camT.z)+Math.abs(C.y-ddH(camT.x,camT.z)),rad=clamp(dv*.55,260,700);
   const m=players.filter(p=>alive(p)&&!p.inBoat);   // (both squads: a bank of smoke never lies down over either of them, pass 4)
@@ -318,12 +324,36 @@ function ddFxPuff(x,h,y,s,life,col,vy,j1=.5,j2=.5,j3=.5){
 // one you land on, x under 170 or over 1230, or the sea past the surf) and never within 450 of one of the squad; a column of water at sea, a burst
 // of sand on the land. The beach only (the ride in and the landing); the counterattack and the village have battles of their own
 function ddFxFar(dt){
-  const t=ddFxTier(),every=DDFX.far[t];if(!every||dt<=0||DD_MODE!=='beach'||(DDF.farT-=dt)>0)return;DDF.farT=every*(.55+fxR()*.9)*(dd&&dd.land&&!dd.land.done?.5:1);
+  const t=ddFxTier(),every=DDFX.far[t];if(!every||dt<=0||DD_MODE!=='beach')return;ddFxBluff(dt);ddFxBluffSmoke(dt);if((DDF.farT-=dt)>0)return;DDF.farT=every*(.55+fxR()*.9)*(dd&&dd.land&&!dd.land.done?.5:1);
   const C=camera.position,F=camera.getWorldDirection(DDF.v),ha=Math.atan2(F.z,F.x);
   for(let k=0;k<6;k++){const d=500+fxR()*1100,a=ha+(fxR()-.5)*1.1,x=C.x+Math.cos(a)*d,y=C.z+Math.sin(a)*d;
     const sea=y>820&&y<2400,side=(x<170||x>1230)&&x>-600&&x<2000&&y>300&&y<820,ride=dd&&dd.land&&!dd.land.done&&y>330&&y<720;if(!sea&&!side&&!ride)continue;   // (on the ride in, the beach ahead is shelled too: nobody of ours is on it yet)
     let near=false;for(const p of players)if(!p.dead&&hyp(p.x-x,p.y-y)<450){near=true;break;}if(near)continue;
     if(sea)ddFxSpout(x,y,.8+fxR()*.5);else ddFxBlast(x,y,.9+fxR()*.4,false);return;}
+}
+
+// Version 190: on a portrait phone the view ahead after the landing is narrow, and the far bursts above land off its sides, so the beach looked calm
+// and tidy. These land in the upper part of the screen itself (a spot under the screen, scene.js's toW), on the bluff beyond the wire (x 200-1200,
+// y under 300), every 3-5 s; looks only, the same keep-off as DDFX.farClear
+function ddFxBluff(dt){
+  const t=ddFxTier();if(!DDFX.bluff[t]||!dd||!dd.land||!dd.land.done||dd.fp||dd.counter||camera.aspect>=.8||(DDF.bluffT=(DDF.bluffT??2)-dt)>0)return;DDF.bluffT=DDFX.bluff[t]*(.75+fxR()*.5);
+  const cl=DDFX.farClear;
+  for(let k=0;k<24;k++){const w=toW(cw*(.08+.84*fxR()),ch*(.12+.38*fxR())),x=w[0],y=w[1];   // (from an eighth of the way down: a plume needs room above it)
+   if(x<200||x>1200||y>300)continue;
+    let near=false;for(const p of players)if(!p.dead&&hyp(p.x-x,p.y-y)<cl[0]){near=true;break;}
+    if(!near)for(const u of units)if(!u.dead&&hyp(u.x-x,u.y-y)<(u.side==='E'?cl[2]:cl[1])){near=true;break;}
+    if(near)continue;ddFxBlast(x,y,.75+fxR()*.35,false,true);return;}
+}
+// Version 190: two or three slow banks of battle smoke low along the foot of the bluff, beyond their line on the sand (y 90-130, within 220 either side
+// of where the view's middle meets it), never laid down within 140 of one of our men or in front of a German within 90 (one in front of it stays in
+// front: a bank is drawn at the depth of its middle); drawn as haze, marked fl 2
+function ddFxBluffSmoke(dt){
+  const t=ddFxTier(),want=DDFX.bluffSmoke[t],S=DDF.soft;if(!want||!dd||!dd.land||!dd.land.done||dd.fp||dd.counter||(DDF.bsT=(DDF.bsT??0)-dt)>0)return;DDF.bsT=1.5;
+  let n=0;for(let i=0;i<S.n;i++)if(S.shape[i]===3&&S.fl[i]===2)n++;if(n>=want)return;
+  const C=camera.position,F=camera.getWorldDirection(DDF.v),y=90+fxR()*40,x=clamp(C.x+(F.z<-.1?F.x/F.z*(y-C.z):0)+(fxR()-.5)*440,220,1180);
+  for(const p of players)if(!p.dead&&hyp(p.x-x,p.y-y)<140)return;for(const u of enemies)if(!u.dead&&u.y<y+20&&hyp(u.x-x,u.y-y)<90)return;
+  const s=240+fxR()*140,j=ddFxAdd(S,DDFX.cap.soft[t]*.8,x,ddH(x,y)+s*.12,y,(fxR()-.5)*2,0,(fxR()-.5)*1.5,30+fxR()*15,s*.85,s*1.2,.6,.57,.51,.62,.6,.55,.16+fxR()*.05,3,0,0,.6,.45,8);
+  if(j>=0)S.fl[j]=2;
 }
 
 /* ---------- each frame ---------- */
