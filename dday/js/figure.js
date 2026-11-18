@@ -81,7 +81,7 @@ function figKitKey(u,L){
 function figParts(key){
   const [k,w,flags,hatS,role]=key.split('|'),hat=+hatS,helm=flags.includes('h'),radio=flags.includes('r'),gl=flags.includes('g');
   const out=[],E=new T.Euler(),Q=new T.Quaternion(),V=new T.Vector3(),S=new T.Vector3(1,1,1);
-  // add(bone, geometry, colour, kind, x,y,z, [rx,ry,rz], [sx,sy,sz]); kind: 0 colour as given, 1 skin, 2 team colour (glows),
+  // add(bone, geometry, colour, kind, x,y,z, [rx,ry,rz], [sx,sy,sz]); kind: 0 colour as given, 1 skin, 2 team colour (glows), 9 team colour as paint,
   // 3 hair, 4 gun metal, 5 gun furniture, 7 lamp lens, 8 uniform (the colour multiplies the person's cloth colour)
   const add=(b,g,col,mid,x=0,y=0,z=0,rot,sc)=>{E.set(...(rot||[0,0,0]),'YZX');Q.setFromEuler(E);V.set(x,y,z);if(sc)S.set(...sc);else S.set(1,1,1);
     out.push({b:BI[b],g,c:FC(col),mid,m:new T.Matrix4().compose(V,Q,S)});};
@@ -153,7 +153,7 @@ function figParts(key){
   if(ddS){
     add('head',dome(1.68,14,5),COL.helm,0,0,1.38,0,null,[1.16,.9,1.16]);                    // the M1 helmet: a round, wide dome
     add('head',cyl(1.99,2.08,.16,16),COL.helm,0,0,1.4,0);                                     // ...its rim
-    add('head',rbox(.08,.36,.82,.04),W,2,-1.71,2.14,0,[0,0,-.64]);                          // the team's colour painted on the back
+    add('head',rbox(.08,.36,.82,.04),W,9,-1.71,2.14,0,[0,0,-.64]);                          // the team's colour painted on the back (kind 9: matte, no glow)
     for(const s of[-1,1])add('head',rbox(.14,1.2,.14,.04),WEB,0,.42,.82,s*1.1,[s*.12,0,0]); // the chinstrap
   }else if(sq){
     add('head',dome(1.68,12,5),COL.helm,0,-.05,1.38,0,null,[1.1,.95,1.08]);   // helmet
@@ -270,7 +270,7 @@ function figMaterial(L,side){
     s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nattribute float mid;\nvarying float vMid;').replace('#include <begin_vertex>','#include <begin_vertex>\nvMid=mid;');
     s.fragmentShader=s.fragmentShader
       .replace('#include <common>','#include <common>\nvarying float vMid;\nuniform vec3 uSkin,uHair,uCloth,uTeam,uRim,uLamp,uHitC;\nuniform float uGlow,uHit,uFill,uSkR,uHitR;')
-      .replace('#include <color_fragment>','#include <color_fragment>\n  if(abs(vMid-1.)<.5)diffuseColor.rgb=uSkin*vColor;else if(abs(vMid-2.)<.5)diffuseColor.rgb=uTeam*.6;else if(abs(vMid-3.)<.5)diffuseColor.rgb=uHair*vColor;else if(abs(vMid-8.)<.5)diffuseColor.rgb=uCloth*vColor;')
+      .replace('#include <color_fragment>','#include <color_fragment>\n  if(abs(vMid-1.)<.5)diffuseColor.rgb=uSkin*vColor;else if(abs(vMid-2.)<.5)diffuseColor.rgb=uTeam*.6;else if(abs(vMid-3.)<.5)diffuseColor.rgb=uHair*vColor;else if(abs(vMid-8.)<.5)diffuseColor.rgb=uCloth*vColor;else if(abs(vMid-9.)<.5)diffuseColor.rgb=uTeam*.3;')
       .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\n  if(abs(vMid-4.)<.5){roughnessFactor=.36;metalnessFactor=.65;}else if(abs(vMid-5.)<.5){roughnessFactor=.6;}else if(abs(vMid-1.)<.5){roughnessFactor=uSkR;}')
       .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  {float f=1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.);totalEmissiveRadiance+=uRim*(f*f*(3.-2.*f))+diffuseColor.rgb*uFill+uHitC*uHit*mix(1.,.25+.75*f*f,uHitR);}\n  if(abs(vMid-2.)<.5)totalEmissiveRadiance+=uTeam*uGlow;if(abs(vMid-7.)<.5)totalEmissiveRadiance+=uLamp;');
   };
