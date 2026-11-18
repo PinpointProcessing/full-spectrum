@@ -375,9 +375,13 @@ function ddProps(sc,objsL){
       o.meshes=[add(new T.BoxGeometry(o.w,9,o.h),steel,cx,g0+4.5,cy),add(new T.BoxGeometry(20,12,3),olive,cx,g0+13,cy+7)];
       const b=add(new T.CylinderGeometry(1.7,2.2,o.tag==='heavy'?64:o.tag==='art'?70:46,8),steel,cx,g0+(o.tag==='art'?24:15),cy+(o.tag==='heavy'?36:o.tag==='art'?30:27),0,Math.PI/2-(o.tag==='art'?.55:.07));o.meshes.push(b);o.barrel=b;
     }else if(o.kind==='ddbarr'){   // the barracks: a long hut, pitched roof, door and windows to the south
-      box(o,26,M(0xa89a78,.95));
-      const rs=new T.Shape();rs.moveTo(-o.h/2-5,0);rs.lineTo(o.h/2+5,0);rs.lineTo(0,17);rs.closePath();const roof=add(new T.ExtrudeGeometry(rs,{depth:o.w+12,bevelEnabled:false}),M(0x7a4a36,.9),o.x-6,g0+26,cy,Math.PI/2);o.meshes.push(roof);
-      o.meshes.push(add(new T.BoxGeometry(18,20,1.5),dark,cx,g0+10,o.y+o.h+.6));
+      // (Version 188: weatherboarded walls on a concrete footing, a tiled roof with its ridge, stovepipes, the door and windows framed)
+      o.meshes=[add(ddgBoxUV(o.w,26,o.h,32,[.5,.02]),ddgMat('boards'),cx,g0+13,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),concD,cx,g0+1.2,cy)];
+      const rs=new T.Shape();rs.moveTo(-o.h/2-5,0);rs.lineTo(o.h/2+5,0);rs.lineTo(0,17);rs.closePath();const roof=add(new T.ExtrudeGeometry(rs,{depth:o.w+12,bevelEnabled:false}),M(0x5a4a3a,.95),o.x-6,g0+26,cy,Math.PI/2);o.meshes.push(roof);
+      o.meshes.push(add(ddgRoof(o.h+10,o.w+14,17),ddgMat('tiles'),cx,g0+26,cy));
+      for(const fx of[.22,.7])o.meshes.push(add(new T.CylinderGeometry(1.1,1.1,9,7),dark,o.x+o.w*fx,g0+40,cy-o.h*.18));
+      o.meshes.push(add(new T.BoxGeometry(18,20,1.5),dark,cx,g0+10,o.y+o.h+.6),add(new T.BoxGeometry(22,2,2.4),wood,cx,g0+21,o.y+o.h+.9));
+      for(const dxw of[-80,-40,40,80])o.meshes.push(add(new T.BoxGeometry(15,10.5,.8),wood,cx+dxw,g0+15,o.y+o.h+.3),add(new T.BoxGeometry(15,1.2,2),wood,cx+dxw,g0+9.6,o.y+o.h+.9));
       for(const dxw of[-80,-40,40,80])o.meshes.push(add(new T.BoxGeometry(12,8,1.2),new T.MeshBasicMaterial({color:0xd9b46a}),cx+dxw,g0+15,o.y+o.h+.5));
     }
   }
@@ -405,12 +409,11 @@ function ddProps(sc,objsL){
     for(const m of c.children)if(!m.isInstancedMesh&&m.position.z<-330&&m.position.x>(s<0?1200:860))m.visible=false;}   // (no mirror image where their base stands, or of it: ddbase.js)
   if(typeof ddBaseBuild==='function')ddBaseBuild(sc);
 }
-// a landing craft: a steel box of a hull, a ramp at the bow (north, -z) that drops
+// a landing craft: a steel box of a hull, a ramp at the bow (north, -z) that drops (Version 188: its look is ddground.js's LCVP, one mesh and the ramp)
 function ddBoatMesh(parent,wreck){
-  const g=new T.Group(),hm=new T.MeshStandardMaterial({color:wreck?0x3a3d3c:0x69736f,roughness:.8,metalness:.3}),dm=new T.MeshStandardMaterial({color:0x4b5350,roughness:.9});
-  const B=(w,h,d,x,y,z,m)=>{const q=new T.Mesh(new T.BoxGeometry(w,h,d),m||hm);q.position.set(x,y,z);q.castShadow=true;q.receiveShadow=true;g.add(q);return q;};
-  B(34,3,104,0,1.5,0,dm);B(2.4,15,104,-17,9,0);B(2.4,15,104,17,9,0);B(34,15,2.4,0,9,52);B(30,9,18,0,13,42,dm);   // deck, sides, stern, the engine house
-  const ramp=new T.Group();ramp.position.set(0,3,-52);const rp=new T.Mesh(new T.BoxGeometry(33,2,16),hm);rp.position.set(0,8,0);rp.rotation.x=Math.PI/2;rp.castShadow=true;ramp.add(rp);g.add(ramp);g.userData.ramp=ramp;
+  const L=ddgLCVP(),g=new T.Group(),mat=wreck?L.mw:L.m;
+  const hull=new T.Mesh(L.hull,mat);hull.castShadow=true;hull.receiveShadow=true;g.add(hull);
+  const ramp=new T.Group();ramp.position.set(0,3,-52);const rp=new T.Mesh(L.ramp,mat);rp.castShadow=true;rp.receiveShadow=true;ramp.add(rp);g.add(ramp);g.userData.ramp=ramp;
   (parent||scene).add(g);return g;
 }
 // bits of men (ddplay.js's gore): a pool of small blocks thrown about, then lying where they land

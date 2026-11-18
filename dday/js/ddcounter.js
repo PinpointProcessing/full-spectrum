@@ -74,6 +74,17 @@ function dcPaint(g){
   for(let i=0;i<2400;i++){g.fillStyle=`rgba(${r()<.5?'70,64,48':'214,204,172'},${.05+r()*.1})`;g.fillRect(238+r()*924,DCA.wallY-6+r()*340,2+r()*5,2+r()*4);}
   g.fillStyle='#b6ad90';g.fillRect(620,590,160,110);g.strokeStyle='rgba(240,236,220,.6)';g.lineWidth=2;g.strokeRect(624,594,152,102);
   g.fillStyle='rgba(60,54,40,.45)';g.fillRect(240,DCA.wallY+12,400,10);g.fillRect(760,DCA.wallY+12,400,10);
+  // (Version 188) the yard's gravel and oil stains, wheel tracks off the road, the field churned by yesterday's shelling: craters with their
+  // thrown earth, scorched grass, a few trodden paths out to the nests
+  for(let i=0;i<3000;i++){g.fillStyle=`rgba(${r()<.5?'80,74,60':'200,194,170'},${.12+r()*.2})`;g.fillRect(238+r()*924,DCA.wallY-6+r()*340,1+r()*1.6,1+r()*1.6);}
+  for(let i=0;i<14;i++){const x=260+r()*880,y=DCA.wallY+10+r()*300,gr=g.createRadialGradient(x,y,1,x,y,8+r()*14);gr.addColorStop(0,'rgba(30,28,24,.5)');gr.addColorStop(1,'rgba(30,28,24,0)');g.fillStyle=gr;g.fillRect(x-24,y-24,48,48);}
+  for(const sd of[-1,1]){g.strokeStyle='rgba(84,72,50,.3)';g.lineWidth=7;g.beginPath();g.moveTo(DCA.road+sd*44,-300);g.bezierCurveTo(DCA.road+sd*60,0,DCA.road+sd*30,300,DCA.road+sd*14,560);g.stroke();}
+  for(const[x,y]of[[450,250],[950,250],[590,345],[330,470],[1070,470]]){g.strokeStyle='rgba(120,102,70,.35)';g.lineWidth=6;g.beginPath();g.moveTo(x,y+20);g.quadraticCurveTo((x+700)/2+(r()-.5)*60,(y+560)/2,700+(r()-.5)*100,DCA.wallY);g.stroke();}
+  for(let i=0;i<16;i++){const x=260+r()*880,y=-60+r()*340,R=7+r()*9;if(Math.abs(x-DCA.road)<40)continue;
+    for(let k=0;k<12;k++){const a=r()*TAU,l=R*(1.3+r());g.strokeStyle='rgba(92,76,50,.2)';g.lineWidth=2+r()*3;g.beginPath();g.moveTo(x+Math.cos(a)*R*.8,y+Math.sin(a)*R*.8);g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke();}
+    const gr=g.createRadialGradient(x,y,1,x,y,R+4);gr.addColorStop(0,'rgba(40,32,22,.85)');gr.addColorStop(.6,'rgba(84,68,44,.6)');gr.addColorStop(1,'rgba(84,68,44,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,R+4,0,7);g.fill();
+    for(let k=0;k<30;k++){const a=r()*TAU,d=R*(.9+r()*.6);g.fillStyle=r()<.5?'rgba(60,48,32,.5)':'rgba(140,120,84,.45)';g.fillRect(x+Math.cos(a)*d,y+Math.sin(a)*d,1.5+r()*2,1.5+r()*2);}}
+  for(let i=0;i<9000;i++){const x=r()*1400,y=DDB.y0+r()*(DCA.wallY-DDB.y0);g.fillStyle=`rgba(${r()<.6?'44,64,30':'170,176,104'},${.08+r()*.14})`;g.fillRect(x,y,1+r()*1.5,1+r()*2);}
 }
 function dcScenery(sc){
   const far=new T.Mesh(new T.PlaneGeometry(9000,5000),new T.MeshStandardMaterial({color:0x6f8a4b,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);
@@ -86,7 +97,7 @@ function dcBuild(G,sc,M,add){
     if(o.kind==='dcbank')o.meshes=[add(new T.BoxGeometry(o.w,9,o.h+4),earth,cx,g0+4.5,cy),add(new T.BoxGeometry(o.w-2,3,o.h-2),turf,cx,g0+10,cy)];
     else if(o.kind==='dcside'){o.meshes=[];if(o.ew){for(let x=o.x;x<=o.x+o.w;x+=25)o.meshes.push(add(new T.BoxGeometry(1,19,1),wood,x,g0+9.5,cy));for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(o.w,.35,.35),wm,cx,g0+hh,cy));}
       else{for(let y=o.y;y<=o.y+o.h;y+=25)o.meshes.push(add(new T.BoxGeometry(1,19,1),wood,cx,g0+9.5,y));for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(.35,.35,o.h),wm,cx,g0+hh,cy));}}
-    else if(o.kind==='dcbld'){const cp=o.look==='cp',h=cp?40:30;o.meshes=[add(new T.BoxGeometry(o.w,h,o.h),cp?cpM:wall,cx,g0+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,g0+h+2,cy)];
+    else if(o.kind==='dcbld'){const cp=o.look==='cp',h=cp?40:30;o.meshes=[add(ddgBoxUV(o.w,h,o.h,cp?24:32,[.5,.02]),ddgMat(cp?'stone':'boards'),cx,g0+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,g0+h+2,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),dark,cx,g0+1.2,cy)];   // (Version 188: weatherboards, the post in stone)
       if(cp){o.meshes.push(add(new T.BoxGeometry(1.6,22,18),dark,o.x-.6,g0+11,cy));const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,g0+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x2b4a8a,.8),cx+8.5,g0+h+40,cy));}
       else if(o.look==='shed'){for(let k=0;k<3;k++)o.meshes.push(add(new T.BoxGeometry(o.w/3-8,22,1.4),dark,o.x+o.w*(k+.5)/3,g0+11,o.y-.5));}
       else o.meshes.push(add(new T.BoxGeometry(14,18,1.4),dark,cx,g0+9,o.y-.5));}
@@ -105,10 +116,15 @@ function dcBuild(G,sc,M,add){
       for(const z of[-12,12]){const w=P(new T.CylinderGeometry(8,8,3,14),gm,0,8,z,0,Math.PI/2);w.castShadow=true;}P(new T.BoxGeometry(34,2.4,3),ol,-20,4,6);P(new T.BoxGeometry(34,2.4,3),ol,-20,4,-6);}
     G.add(g);DD.dcGuns[q.k]=g;}
   // trees: the tree line across the north, the orchard, a few along the road and round the farm
-  const tr=rng(77),tree=(x,y,s,m)=>{const g0=H(x,y);add(new T.CylinderGeometry(1.4*s,2*s,16*s,6),wood,x,g0+8*s,y);const c=add(new T.DodecahedronGeometry(13*s,0),m,x,g0+24*s,y,tr()*6);c.scale.y=1.2;add(new T.DodecahedronGeometry(9*s,0),m,x+5*s,g0+33*s,y-3*s,tr()*6);};
+  // (Version 188: instanced, a few draw calls for all of them where there were three a tree, each crown shaded darker underneath and its own shape)
+  const tr=rng(77),TK=[],C1=[],C2=[],tree=(x,y,s,m)=>{const g0=H(x,y),c=m===leaf?[0x3f6a34,0x456e36,0x3a6230]:[0x577a3a,0x5e8240,0x4e7034],pc=()=>c[(tr()*3)|0];TK.push({x,y,h:g0+8*s,sx:s,ry:tr()*6});
+    C1.push({x,y,h:g0+24*s,sx:13*s,sy:15.6*s,sz:13*s,ry:tr()*6,c:pc()});C2.push({x:x+5*s,y:y-3*s,h:g0+33*s,sx:9*s,ry:tr()*6,c:pc()});};
   for(let x=-200;x<1640;x+=30){if(Math.abs(x-DCA.road)<52)continue;for(let k=0;k<2;k++)tree(x+(tr()-.5)*20,DCA.treeY-30-k*46+(tr()-.5)*30,1.2+tr()*.7,tr()<.5?leaf:leaf2);}
   for(let i=0;i<6;i++)for(let j=0;j<3;j++)tree(800+i*56,-300+j*60,.7,leaf2);
   for(const[x,y]of[[300,-290],[470,-230],[250,-130],[1130,-120],[640,-560],[770,-610]])tree(x,y,1,leaf);
+  {const lv=new T.MeshLambertMaterial({vertexColors:true});
+    ddgInst(G,ddgShade(new T.CylinderGeometry(1.4,2,16,6),.5,1.05),new T.MeshLambertMaterial({color:0x5d4a34,vertexColors:true}),TK,true,350,false);
+    ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.16,11),.48,1.12),lv,C1,true,350,false);ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.16,12),.55,1.12),lv,C2,true,350,false);}
   // the ruined farm's fallen roof and chimney
   add(new T.BoxGeometry(60,3,40),M(0x7a4a36,.9),384,6,-226,.2).rotation.z=.18;add(new T.BoxGeometry(10,34,10),M(0x8a7f6e,.95),338,17,-250);
 }

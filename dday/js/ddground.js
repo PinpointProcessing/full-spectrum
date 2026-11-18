@@ -122,7 +122,7 @@ function ddgTex(k){
     for(let y=0;y<h;y+=2){q.fillStyle=`rgba(${r()<.5?'90,74,44':'228,212,170'},${.08+r()*.1})`;q.fillRect(0,y,w,1);}for(let x=0;x<w;x+=2){q.fillStyle=`rgba(90,74,44,${.05+r()*.08})`;q.fillRect(x,0,1,h);}
     for(let i=0;i<26;i++){q.fillStyle=`rgba(${r()<.6?'96,78,50':'70,60,44'},${.06+r()*.12})`;q.beginPath();q.ellipse(r()*w,r()*h,6+r()*20,4+r()*12,r()*3,0,7);q.fill();}
     let g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(60,48,30,.32)');g.addColorStop(.18,'rgba(60,48,30,0)');g.addColorStop(.82,'rgba(60,48,30,0)');g.addColorStop(1,'rgba(60,48,30,.4)');q.fillStyle=g;q.fillRect(0,0,w,h);
-    q.strokeStyle='rgba(84,66,40,.45)';q.lineWidth=1.4;q.setLineDash([3,2]);q.beginPath();q.moveTo(0,h*.5);q.lineTo(w,h*.5);q.stroke();q.setLineDash([]);});
+    q.strokeStyle='rgba(84,66,40,.45)';q.lineWidth=1.4;q.setLineDash([3,2]);q.beginPath();q.moveTo(w*.25,0);q.lineTo(w*.25,h);q.stroke();q.setLineDash([]);});
   else if(k==='rust')t=canvasTex(128,128,(q,w,h)=>{q.fillStyle='#5e4636';q.fillRect(0,0,w,h);   // steel left in the sea: rust blooms, streaks running down, scale flaking
     for(let i=0;i<70;i++){q.fillStyle=`rgba(${r()<.5?'150,94,54':'120,78,48'},${.25+r()*.35})`;q.beginPath();q.ellipse(r()*w,r()*h,2+r()*12,2+r()*8,r()*3,0,7);q.fill();}
     for(let i=0;i<40;i++){const x=r()*w;q.fillStyle=`rgba(${r()<.5?'170,90,40':'34,24,18'},${.12+r()*.2})`;q.fillRect(x,r()*h,1+r()*2,10+r()*40);}
@@ -139,12 +139,52 @@ function ddgTex(k){
     q.fillStyle='rgba(222,214,184,.7)';q.font='bold 13px monospace';q.fillText('Nr. 2318',190,40);
     q.strokeStyle='rgba(40,36,28,.9)';q.lineWidth=3;q.beginPath();q.moveTo(166,70);q.quadraticCurveTo(192,104,218,70);q.stroke();   // the rope handle's shadow
     q.fillStyle='#8a7650';q.fillRect(128,128,128,128);for(let i=0;i<300;i++){q.fillStyle=`rgba(${r()<.5?'60,50,32':'170,150,110'},.4)`;q.fillRect(128+r()*128,128+r()*128,2,2);}});
+  else if(k==='lcvp')t=canvasTex(512,512,(q,w,h)=>{   // the landing craft (an LCVP, a Higgins boat), its faces in eight rows of 64 points: 0 and 1 the hull's outside
+    // (the boat's number toward the bow, one each side), 2 the inside, 3-4 the deck, 5 the ramp's outside, 6 its inside, 7 the stern and plain colours
+    const row=(k,col)=>{q.fillStyle=col;q.fillRect(0,k*64,w,64);};
+    const grime=(y0,y1,n,a)=>{for(let i=0;i<n;i++){q.fillStyle=`rgba(${r()<.5?'30,34,32':'160,170,164'},${a*(.3+r()*.7)})`;q.fillRect(r()*w,y0+r()*(y1-y0),1+r()*3,1+r()*2);}};
+    for(const k of[0,1]){const y=k*64;row(k,'#6c7873');
+      q.fillStyle='rgba(30,40,38,.55)';q.fillRect(0,y+46,w,18);q.fillStyle='rgba(60,80,52,.35)';q.fillRect(0,y+52,w,12);   // the wet band and weed low down
+      q.fillStyle='rgba(30,34,32,.6)';for(let x=40;x<w;x+=118)q.fillRect(x,y,2,64);q.fillRect(0,y+24,w,1.5);q.fillStyle='rgba(200,206,200,.25)';q.fillRect(0,y+1,w,2);
+      for(let i=0;i<40;i++){const x=r()*w,g=q.createLinearGradient(0,y,0,y+64);g.addColorStop(0,'rgba(120,70,40,.4)');g.addColorStop(1,'rgba(120,70,40,0)');q.fillStyle=g;q.fillRect(x,y+r()*20,1+r()*2,20+r()*40);}   // rust run from the fittings
+      for(let i=0;i<30;i++){q.strokeStyle=`rgba(170,178,172,${.2+r()*.3})`;q.lineWidth=.8;q.beginPath();const x=r()*w,yy=y+8+r()*40;q.moveTo(x,yy);q.lineTo(x+8+r()*30,yy+(r()-.5)*6);q.stroke();}   // scrapes
+      grime(y,y+64,500,.3);
+      q.fillStyle='rgba(232,232,222,.9)';q.font='bold 22px sans-serif';q.textAlign='center';q.fillText('PA 26-12',k?96:w-96,y+34);}
+    {const y=128;row(2,'#84908a');for(let x=8;x<w;x+=46){q.fillStyle='rgba(40,48,44,.55)';q.fillRect(x,y,7,64);q.fillStyle='rgba(190,198,192,.25)';q.fillRect(x+7,y,1.5,64);}   // the inside: its frames, scuffed by boots and rifles
+      q.fillStyle='rgba(40,46,42,.5)';q.fillRect(0,y+40,w,24);grime(y,y+64,900,.35);}
+    {const y=192;q.fillStyle='#5e5446';q.fillRect(0,y,w,128);for(let x=0;x<w;x+=32){const t=(r()-.5)*16;q.fillStyle=`rgb(${92+t},${82+t},${68+t})`;q.fillRect(x+1,y,30,128);q.fillStyle='rgba(30,26,22,.8)';q.fillRect(x,y,1.5,128);}   // the deck's planks, wet and trodden
+      for(let i=0;i<14;i++){q.fillStyle=`rgba(40,46,48,${.2+r()*.25})`;q.beginPath();q.ellipse(r()*w,y+r()*128,10+r()*30,4+r()*10,0,0,7);q.fill();}grime(y,y+128,1500,.3);}
+    {const y=320;row(5,'#6c736f');for(let x=10;x<w;x+=24)for(let yy=y+6;yy<y+64;yy+=14){q.fillStyle='rgba(30,30,28,.6)';q.fillRect(x,yy,2,2);}   // the ramp's outside: plate, rivets, rust, bullet strikes
+      for(let i=0;i<30;i++){const g=q.createLinearGradient(0,y,0,y+64);g.addColorStop(0,'rgba(130,72,38,.5)');g.addColorStop(1,'rgba(130,72,38,0)');q.fillStyle=g;q.fillRect(r()*w,y,1+r()*3,30+r()*34);}
+      for(let i=0;i<40;i++){const x=r()*w,yy=y+r()*64;q.fillStyle='rgba(200,200,190,.5)';q.beginPath();q.arc(x,yy,2.2,0,7);q.fill();q.fillStyle='rgba(20,20,18,.8)';q.beginPath();q.arc(x,yy,1,0,7);q.fill();}grime(y,y+64,400,.3);}
+    {const y=384;row(6,'#7c847e');for(let yy=y+4;yy<y+64;yy+=9){q.fillStyle='rgba(40,44,40,.6)';q.fillRect(0,yy,w,3);q.fillStyle='rgba(190,196,190,.3)';q.fillRect(0,yy+3,w,1);}grime(y,y+64,600,.35);}   // its inside: cleats for the boots
+    {const y=448;q.fillStyle='#2e3432';q.fillRect(0,y,64,64);q.fillStyle='#5a6460';q.fillRect(64,y,64,64);q.fillStyle='#2a2c2e';q.fillRect(128,y,64,64);q.fillStyle='#64706a';q.fillRect(192,y,64,64);   // plain: the bottom, the gunwale, gun metal, a frame
+      q.fillStyle='#68746e';q.fillRect(256,y,256,64);q.fillStyle='rgba(30,34,32,.7)';q.fillRect(300,y+12,60,40);q.fillRect(392,y+10,90,6);q.fillRect(392,y+22,90,6);q.fillRect(392,y+34,90,6);grime(y,y+64,400,.3);}});   // the stern: a hatch, the engine's grille
+  else if(k==='boards')t=canvasTex(256,256,(q,w,h)=>{   // a hut's weatherboards, 8 to a tile of 32 units: paint gone dull, darker where the rain splashes, streaked under the eaves
+    for(let y=0;y<h;y+=32){const t=(r()-.5)*14;q.fillStyle=`rgb(${150+t},${140+t},${112+t})`;q.fillRect(0,y,w,32);q.fillStyle='rgba(40,34,26,.75)';q.fillRect(0,y+29,w,3);q.fillStyle='rgba(230,224,200,.3)';q.fillRect(0,y,w,2);
+      for(let i=0;i<10;i++){q.fillStyle=`rgba(${r()<.5?'90,80,60':'200,192,166'},${.08+r()*.12})`;q.fillRect(0,y+3+r()*24,w,1);}}
+    for(let x=r()*30;x<w;x+=40+r()*60){q.fillStyle='rgba(40,34,26,.35)';q.fillRect(x,0,1.5,h);}
+    for(let i=0;i<24;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h*.7);g.addColorStop(0,`rgba(50,44,34,${.12+r()*.2})`);g.addColorStop(1,'rgba(50,44,34,0)');q.fillStyle=g;q.fillRect(x,0,3+r()*8,h*.7);}
+    for(let i=0;i<1500;i++){q.fillStyle=`rgba(${r()<.5?'40,36,28':'240,236,220'},${.06+r()*.1})`;q.fillRect(r()*w,r()*h,1.5,1.5);}});
+  else if(k==='tiles'||k==='slate')t=canvasTex(256,256,(q,w,h)=>{const sl=k==='slate';   // a roof, a tile of 12 units: courses running along it, each tile its own shade, lichen and soot
+    q.fillStyle=sl?'#3e4448':'#6a3a26';q.fillRect(0,0,w,h);const R=sl?8:6,C=sl?10:8;
+    for(let j=0;j<R;j++){const y=j*h/R,off=(j%2)*w/C/2;for(let i=-1;i<=C;i++){const x=i*w/C+off,t=(r()-.5)*(sl?22:34);
+      q.fillStyle=sl?`rgb(${86+t},${94+t},${102+t})`:`rgb(${158+t},${84+t*.7},${54+t*.5})`;q.fillRect(x+1,y+1,w/C-2,h/R-2);
+      const g=q.createLinearGradient(0,y,0,y+h/R);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.35)');q.fillStyle=g;q.fillRect(x+1,y+1,w/C-2,h/R-2);
+      if(!sl){q.fillStyle='rgba(255,220,180,.12)';q.fillRect(x+w/C*.3,y+2,w/C*.3,h/R-4);}}}
+    for(let i=0;i<30;i++){q.fillStyle=`rgba(${r()<.6?'96,110,60':'40,36,32'},${.12+r()*.2})`;q.beginPath();q.ellipse(r()*w,r()*h,4+r()*18,3+r()*10,r()*3,0,7);q.fill();}});
+  else if(k==='stone')t=canvasTex(256,256,(q,w,h)=>{   // Norman stone, cream limestone in courses of rough blocks, a tile of 24 units: mortar, weather, a few darker stones
+    q.fillStyle='#8a8070';q.fillRect(0,0,w,h);let y=0;while(y<h){const ch=18+r()*16;let x=-r()*30;while(x<w){const cw=24+r()*40,t=(r()-.5)*26,dk=r()<.12?-30:0;
+      q.fillStyle=`rgb(${206+t+dk},${196+t+dk},${172+t+dk})`;q.fillRect(x+2,y+2,cw-3,ch-3);
+      const g=q.createLinearGradient(0,y,0,y+ch);g.addColorStop(0,'rgba(255,255,240,.15)');g.addColorStop(1,'rgba(60,50,40,.22)');q.fillStyle=g;q.fillRect(x+2,y+2,cw-3,ch-3);x+=cw;}y+=ch;}
+    for(let i=0;i<20;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,`rgba(60,56,46,${.1+r()*.15})`);g.addColorStop(1,'rgba(60,56,46,0)');q.fillStyle=g;q.fillRect(x,0,4+r()*10,h);}
+    for(let i=0;i<1600;i++){q.fillStyle=`rgba(${r()<.5?'70,64,52':'250,246,230'},${.06+r()*.12})`;q.fillRect(r()*w,r()*h,1.5,1.5);}});
   else if(k==='wire')t=null;
   return DDG_TEX[k]=t;
 }
 // a sandbag: a rounded, fat-middled pillow, flat underneath (a sphere pushed out toward a box). Unit size: 1 long, .5 high, .62 deep
 function ddgBagGeo(){
-  const g=new THREE.SphereGeometry(1,10,6),pa=g.attributes.position;
+  const g=new THREE.SphereGeometry(1,8,5).rotateZ(Math.PI/2),pa=g.attributes.position;   // (its poles at the ends, where a sack is tied: the picture darkens there)
   for(let i=0;i<pa.count;i++){let x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i);const f=v=>Math.sign(v)*Math.pow(Math.abs(v),.62);x=f(x);y=f(y);z=f(z);
     const end=1-.28*Math.pow(Math.abs(x),3);y*=end;z*=end;if(y<0)y*=.7;pa.setXYZ(i,x*.5,y*.25,z*.31);}
   g.computeVertexNormals();return g;
@@ -171,11 +211,48 @@ function ddgWire(o,r){
     if(k%2)P.push({g:new THREE.BoxGeometry(1.5,17.5,1.5),p:[px,gh(x)+8.5,0],r:[lz,r()*3,lean],c:0x8a7660});
     else{P.push({g:new THREE.BoxGeometry(.9,19,.35),p:[px,gh(x)+9,0],r:[lz,0,lean],c:0x6a625a},{g:new THREE.BoxGeometry(.35,19,.9),p:[px+.3,gh(x)+9,.3],r:[lz,0,lean],c:0x6a625a});}}
   for(const hh of[5,10,15])P.push({g:new THREE.BoxGeometry(o.w,.3,.3),p:[0,hh+(r()-.5)*.6,0],r:[0,0,(r()-.5)*.012],c:0x5a544c});
-  const coil=(y0,z0,R,pitch)=>{const pts=[];for(let x=o.x;x<=o.x+o.w;x+=pitch/9){const a=(x-o.x)/pitch*TAU,j=1+(r()-.5)*.25;pts.push(new THREE.Vector3(x-cx,gh(x)+y0+Math.sin(a)*R*j,z0+Math.cos(a)*R*j));}
-    P.push({g:new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),pts.length*2,.2,3,false),c:0x625a50});};
+  const coil=(y0,z0,R,pitch)=>{const pts=[];for(let x=o.x;x<=o.x+o.w;x+=pitch/7){const a=(x-o.x)/pitch*TAU,j=1+(r()-.5)*.25;pts.push(new THREE.Vector3(x-cx,gh(x)+y0+Math.sin(a)*R*j,z0+Math.cos(a)*R*j));}
+    P.push({g:new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.round(pts.length*1.4),.22,3,false),c:0x625a50});};
   coil(17.2,0,2.9,4.6);coil(2.6,5,2.5,4.2);
   return ddgMerge(P,true);
 }
+// a box whose faces each show a piece of an atlas (px nx py ny pz nz; [u0,v0,u1,v1], or a [u,v] point for a plain colour)
+function ddgAtlasBox(w,h,d,R){
+  const g=new THREE.BoxGeometry(w,h,d),uv=g.attributes.uv;
+  for(let i=0;i<uv.count;i++){const f=R[(i/4)|0];if(f.length===2)uv.setXY(i,f[0],f[1]);else uv.setXY(i,f[0]+uv.getX(i)*(f[2]-f[0]),f[1]+uv.getY(i)*(f[3]-f[1]));}return g;
+}
+// the landing craft's shapes, made once a chapter and shared by every boat (Version 188: an LCVP, a Higgins boat: painted plywood with its
+// number on the bow, frames inside, a planked deck, a steel ramp riveted outside and cleated inside, the gunwales capped, the coxswain's
+// house at the stern with a .30 calibre gun each side). The same sizes as the old steel box, so the men and the ride sit as before.
+function ddgLCVP(){
+  if(DD.lcvp)return DD.lcvp;
+  const V=k=>[0,1-(k+1)/8,1,1-k/8],OUTR=V(0),OUTL=V(1),IN=V(2),DECK=[0,1-5/8,1,1-3/8],ROUT=V(5),RIN=V(6),STERN=[.5,0,1,1/8],BOT=[.06,.06],CAP=[.19,.06],GUN=[.31,.06],FR=[.44,.06];
+  const P=[{g:ddgAtlasBox(34,3,104,[BOT,BOT,DECK,BOT,BOT,BOT]),p:[0,1.5,0]},
+    {g:ddgAtlasBox(2.4,15,104,[OUTR,IN,CAP,CAP,CAP,CAP]),p:[17,9,0]},{g:ddgAtlasBox(2.4,15,104,[IN,OUTL,CAP,CAP,CAP,CAP]),p:[-17,9,0]},
+    {g:ddgAtlasBox(34,15,2.4,[CAP,CAP,CAP,CAP,STERN,IN]),p:[0,9,52]},{g:ddgAtlasBox(30,9,18,[STERN,STERN,STERN,BOT,STERN,STERN]),p:[0,13,42]},
+    {g:ddgAtlasBox(3.4,1.4,105,[CAP,CAP,CAP,CAP,CAP,CAP]),p:[17,17.1,0]},{g:ddgAtlasBox(3.4,1.4,105,[CAP,CAP,CAP,CAP,CAP,CAP]),p:[-17,17.1,0]},
+    {g:ddgAtlasBox(4,16.4,7,[OUTR,IN,CAP,CAP,CAP,CAP]),p:[15.6,9.6,-48.8]},{g:ddgAtlasBox(4,16.4,7,[IN,OUTL,CAP,CAP,CAP,CAP]),p:[-15.6,9.6,-48.8]}];   // the bow's shoulders either side of the ramp
+  for(let z=-40;z<=28;z+=9.7)for(const sd of[-1,1])P.push({g:ddgAtlasBox(1.1,13.5,1.4,[FR,FR,FR,FR,FR,FR]),p:[sd*15.3,9.4,z]});   // the frames inside
+  for(const sd of[-1,1]){P.push({g:ddgAtlasBox(1.2,5,1.2,[GUN,GUN,GUN,GUN,GUN,GUN]),p:[sd*13,20,47]},{g:ddgAtlasBox(1.6,2,6.5,[GUN,GUN,GUN,GUN,GUN,GUN]),p:[sd*13,23,45.5]});
+    const b=new THREE.CylinderGeometry(.35,.35,9,6);b.rotateX(Math.PI/2);P.push({g:b,p:[sd*13,23.2,38],at:GUN});
+    const sh=ddgAtlasBox(5,4,.5,[CAP,CAP,CAP,CAP,CAP,CAP]);P.push({g:sh,p:[sd*13,24.5,41.5]});}   // the guns, their shields
+  const R=[{g:ddgAtlasBox(33,16,2,[CAP,CAP,CAP,CAP,RIN,ROUT]),p:[0,8,0]}];for(let y=2.5;y<15;y+=2.6)R.push({g:ddgAtlasBox(31,.8,1,[RIN,RIN,RIN,RIN,RIN,RIN]),p:[0,y,1.4]});
+  return DD.lcvp={hull:ddgMerge(P,false),ramp:ddgMerge(R,false),m:new THREE.MeshStandardMaterial({map:ddgTex('lcvp'),roughness:.82,metalness:.08}),mw:new THREE.MeshStandardMaterial({map:ddgTex('lcvp'),color:0x4a4644,roughness:.95,metalness:.05})};
+}
+// a box with its pictures at a steady size on every face (uvs in tiles of `tile` units), so one material serves every building
+function ddgBoxUV(w,h,d,tile,top){
+  const g=new THREE.BoxGeometry(w,h,d),uv=g.attributes.uv,S=[[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
+  for(let i=0;i<uv.count;i++){const f=(i/4)|0;if(top&&(f===2||f===3)){uv.setXY(i,top[0],top[1]);continue;}uv.setXY(i,uv.getX(i)*S[f][0]/tile,uv.getY(i)*S[f][1]/tile);}return g;
+}
+// a pitched roof's two slopes (the ridge along x, the eaves at 0, centred), for laying over a building's own roof shape: tiles or slates
+// with their courses along the roof, a tile of 12 units
+function ddgRoof(span,len,rise,th=1){
+  const half=span/2,sl=Math.hypot(half,rise),a=Math.atan2(rise,half),P=[];
+  for(const sd of[-1,1])P.push({g:ddgBoxUV(len,th,sl+1.5,12),p:[0,rise/2+th*.5*Math.cos(a),sd*(half/2+th*.5*Math.sin(a))],r:[sd*a,0,0]});
+  P.push({g:ddgBoxUV(len,1.6,2.2,12),p:[0,rise+.6,0]});   // the ridge
+  return ddgMerge(P,false);
+}
+function ddgMat(k,o){const key='mat_'+k;if(DD[key])return DD[key];return DD[key]=new THREE.MeshStandardMaterial(Object.assign({map:ddgTex(k),roughness:.92},o||{}));}
 function ddGroundBuild(sc){
   if(!DD)return;
   ddgLand(sc);
