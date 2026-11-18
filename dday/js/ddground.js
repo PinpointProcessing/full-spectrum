@@ -208,6 +208,13 @@ function ddgTex(k){
     q.fillStyle='rgba(250,248,236,.55)';q.fillRect(w*.3,h*.42,w*.22,h*.14);
     for(let i=0;i<40;i++){q.fillStyle=`rgba(${r()<.5?'130,70,36':'90,52,30'},${.2+r()*.35})`;q.beginPath();q.ellipse(r()*w,r()*h,1+r()*5,1+r()*3,0,0,7);q.fill();}
     for(let i=0;i<14;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(120,64,30,.35)');g.addColorStop(1,'rgba(120,64,30,0)');q.fillStyle=g;q.fillRect(x,h*.7,1+r()*2,h*.3);}});
+  else if(k==='earth')t=canvasTex(128,128,(q,w,h)=>{q.fillStyle='#6e5c40';q.fillRect(0,0,w,h);   // a bank of dug earth, a tile of 24 units: clods and stones in it, roots, the spade's cuts, darker and damp at its foot
+    for(let i=0;i<50;i++){q.fillStyle=`rgba(${r()<.5?'92,76,52':'52,42,30'},${.25+r()*.3})`;q.beginPath();q.ellipse(r()*w,r()*h,3+r()*10,2+r()*6,r()*3,0,7);q.fill();}
+    for(let i=0;i<70;i++){const x=r()*w,y=r()*h,R=.8+r()*2.4;q.fillStyle='rgba(40,32,24,.6)';q.beginPath();q.arc(x+.6,y+.6,R,0,7);q.fill();q.fillStyle=`rgba(${150+r()*40},${140+r()*30},${120+r()*20},.8)`;q.beginPath();q.arc(x,y,R*.8,0,7);q.fill();}
+    for(let i=0;i<12;i++){q.strokeStyle='rgba(40,30,20,.5)';q.lineWidth=.8;q.beginPath();let x=r()*w,y=r()*h*.4;q.moveTo(x,y);for(let k=0;k<5;k++){x+=(r()-.5)*8;y+=3+r()*5;q.lineTo(x,y);}q.stroke();}
+    for(let i=0;i<8;i++){q.fillStyle='rgba(120,100,70,.3)';q.fillRect(r()*w,r()*h,8+r()*16,1.5);}
+    {const g=q.createLinearGradient(0,h*.6,0,h);g.addColorStop(0,'rgba(30,24,16,0)');g.addColorStop(1,'rgba(30,24,16,.35)');q.fillStyle=g;q.fillRect(0,h*.6,w,h*.4);}
+    for(let i=0;i<900;i++){q.fillStyle=`rgba(${r()<.5?'34,28,20':'170,150,116'},${.12+r()*.2})`;q.fillRect(r()*w,r()*h,1,1);}});
   else if(k==='wire')t=null;
   return DDG_TEX[k]=t;
 }
