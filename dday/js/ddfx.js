@@ -17,15 +17,15 @@
    rockets' trails (dday.js's ddRockets hands its puffs here). */
 const DDFX={
   cap:{soft:[240,400,560],glow:[100,160,220],streak:[28,44,64],clod:[30,64,100],ring:[6,10,14],scorch:[10,18,26]},   // the most alive at once, by tier (0 cheapest .. 2)
-  haze:[0,3,6],              // patches of battle smoke drifting low over the field, by tier
+  haze:[0,1,4],              // patches of battle smoke drifting low over the field, by tier (Version 190: 3 at tier 1 hid men and crates)
   wind:[-7,2.4],             // smoke's drift over the battle (x, y units a second; the light's far columns lean the same way)
   fireFlame:[7,11,16],fireSmoke:[1.5,2.4,3.2],   // a burning wreck's flames and puffs of black smoke a second, by tier
   muzzle:[.35,.7,1],         // the chance a shot leaves a puff at the muzzle, by tier
   dust:[.36,.24,.17],        // a running man kicks up a puff this often (seconds), by tier
-  menK:.05,                  // smoke in front of one of the squad you play thins to this (on the screen, round each man; nearly clear, since a column is many puffs deep)
+  menK:.05,                  // smoke in front of one of our two squads thins to this (on the screen, round each man; nearly clear, since a column is many puffs deep; Version 190: both squads, not only the one you play)
   amb:[.76,.71,.64],sunK:.55,  // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
   linger:[3,5,7],            // a shell's smoke left standing over where it fell, drifting off downwind for ten seconds or so (puffs, by tier)
-  scorch:40,                 // a blast's scorch on the ground lasts this long (seconds), fading over its last third
+  scorch:22,                 // a blast's scorch on the ground lasts this long (seconds), fading over its last third (Version 190: 40 drew the eye more than the men)
   far:[0,6.5,4]              // the battle beyond yours (Version 188, pass 3): a shell bursting out on the beach's flanks or in the sea every so many seconds, by tier (0: none)
 };
 // its own run of random numbers, so the effects leave the game's (Math.random) as it was: a seeded test plays out the same with them or without
@@ -83,13 +83,14 @@ const DDF_VS=`attribute vec4 iA,iB,iC;uniform float uFN,uFF;varying vec2 vU,vQ;v
 const DDF_SOFT_FS=`uniform sampler2D tN;uniform vec3 uSun,uSunC,uAmb,uHor;uniform vec4 uMen[8];uniform float uMenN,uMenK;
   varying vec2 vU,vQ;varying vec4 vB;varying vec3 vS;varying float vD,vF;
   void main(){float sh=vS.y;vec2 Q=sh>2.5?vQ*vec2(1.,1.8):vQ;float r2=dot(Q,Q);if(r2>1.)discard;float d=1.-r2,a;   // (haze: a low bank, wider than it's tall)
-    vec2 t=vU*(sh>2.5?.16:.3)+vec2(vS.x*3.7,vS.x*1.9);float n=texture2D(tN,t).g*.62+texture2D(tN,t*2.3+.37).b*.38;
-    if(sh<.5)a=smoothstep(.03,.4,d*.95-(1.-n)*.52);                    // smoke: billows eat the edge
-    else if(sh<1.5)a=smoothstep(.02,.32,d-(1.-n)*.58)*(.5+.5*d);      // dust and dirt: grainier, thinner at the rim
+    vec2 t=vU*(sh>2.5?.16:sh>.5&&sh<1.5?.48:.3)+vec2(vS.x*3.7,vS.x*1.9);float n=texture2D(tN,t).g*.62+texture2D(tN,t*2.3+.37).b*.38;
+    if(sh<.5)a=smoothstep(.03,.4,d*.95-(1.-n)*.6);                     // smoke: billows eat the edge
+    else if(sh<1.5)a=smoothstep(.02,.32,d-(1.-n)*.75)*(.5+.5*d);      // dust and dirt: grainier, thinner at the rim (Version 190: eaten harder and finer, a plume read as a stack of balls)
     else if(sh<2.5)a=smoothstep(.0,.28,d-(1.-n)*.5);                  // spray
-    else a=d*d*(.4+.6*n);                                             // haze: soft all through
+    else a=d*d*(.25+.75*n)*.8;                                        // haze: soft all through, thinner in places
+    a*=smoothstep(8.,36.,vD);                                         // (Version 190: gone right in front of the camera, as on the ride in)
     if(a<.004)discard;
-    vec3 N=normalize(vec3(Q,sqrt(d)+.2));float l=clamp(dot(N,uSun),0.,1.);
+    vec3 N=normalize(vec3(Q,sqrt(d)+.8));float l=clamp(dot(N,uSun),0.,1.);   // (lit flatter than a ball: Version 190)
     vec3 c=vB.rgb*mix(vec3(1.),uAmb+uSunC*l,vS.z)*(.82+.36*n);c=mix(c,uHor,vF);
     float k=1.;for(int i=0;i<8;i++){if(float(i)>=uMenN)break;vec4 m=uMen[i];if(vD<m.z){float e=distance(gl_FragCoord.xy,m.xy);k=min(k,mix(uMenK,1.,smoothstep(m.w*.55,m.w*1.6,e)));}}
     gl_FragColor=vec4(c,a*vB.a*k*(1.-vF*.4));}`;
@@ -117,7 +118,7 @@ const DDF_SCORCH_VS=`attribute vec4 iA,iB,iC;varying vec2 vP;varying vec4 vB;var
   void main(){float c=cos(iC.x),s=sin(iC.x);vP=vec2(position.x*c-position.z*s,position.x*s+position.z*c);vB=iB;vS=iC.y;gl_Position=projectionMatrix*viewMatrix*vec4(iA.xyz+vec3(vP.x,0.,vP.y)*iA.w,1.);}`;
 const DDF_SCORCH_FS=`uniform sampler2D tN;varying vec2 vP;varying vec4 vB;varying float vS;
   void main(){float r=length(vP);if(r>1.)discard;float an=atan(vP.y,vP.x);vec2 t=vP*.42+vS*vec2(3.1,1.7);float n=texture2D(tN,t).g*.6+texture2D(tN,t*2.7+.3).b*.4;
-    float ray=pow(abs(cos(an*3.5+vS*9.)),6.)*.55+pow(abs(cos(an*5.+vS*5.)),10.)*.4;
+    float ray=(pow(abs(cos(an*3.5+vS*9.)),6.)*.55+pow(abs(cos(an*5.+vS*5.)),10.)*.4)*.5+.12;   // (Version 190: the rays half as strong, a rounder blotch)
     float a=smoothstep(.0,.35,(.62+ray*.5-r)*(.7+n*.8))*(.55+.45*smoothstep(.65,.0,r))*(.75+.5*n);
     if(a<.01)discard;gl_FragColor=vec4(vB.rgb*(.75+.5*n),a*vB.a);}`;
 function ddFxNoise(){
@@ -172,26 +173,27 @@ function ddFxBlast(x,y,k,hot){
   // the plume: earth (or sand) flung up all at once at every speed, so it stands as a column for a moment, narrow and pale at the top, broad and dark at
   // the foot, then falls back as a curtain and lies as dust; and the heavier body of it thrown out low
   const sand=DD_MODE==='beach'&&y>300,np=Math.round((10+12*k)*few);
-  for(let i=0;i<np;i++){const u=i/(np-1),a=R()*TAU,up=(60+u*330)*k*(.9+.2*R()),out=(5+(1-u)*34+R()*10)*k,m=.55+.45*u;
-    ddFxAdd(S,L,x+Math.cos(a)*3*k,g+5*k,y+Math.sin(a)*3*k,Math.cos(a)*out,up,Math.sin(a)*out,1.3+u*.9+R()*.4,(13-6*u+R()*4)*k,(32-12*u+R()*10)*k,
+  for(let i=0;i<np;i++){const u=i/(np-1),a=R()*TAU,up=(60+u*330)*k*(.9+.2*R()),out=(5+(1-u)*34+R()*10)*k,m=.55+.45*u,j=.6+.8*R();   // (j: sizes mixed, Version 190, so its outline is one ragged mass)
+    ddFxAdd(S,L,x+Math.cos(a)*3*k,g+5*k,y+Math.sin(a)*3*k,Math.cos(a)*out,up,Math.sin(a)*out,1.3+u*.9+R()*.4,(13-6*u+R()*4)*k*j,(32-12*u+R()*10)*k*j,
       f[0]+(cr-f[0])*m,f[1]+(cg-f[1])*m,f[2]+(cb-f[2])*m,cr*1.04,cg*1.04,cb*1.04,.9,1,.25,-300,.12,.75,.015);}
   const nb=Math.round((4+5*k)*few);
   for(let i=0;i<nb;i++){const a=R()*TAU,o=R(),up=(70+R()*90)*k,out=(30+o*70)*k;
     ddFxAdd(S,L,x+Math.cos(a)*5*k,g+6*k,y+Math.sin(a)*5*k,Math.cos(a)*out,up,Math.sin(a)*out,1.2+R()*.8,(10+R()*6)*k,(24+R()*12)*k,f[0],f[1],f[2],cr,cg,cb,.85,1,.9,-260,.2,.8,.02);}
   // its heart: a dark column of smoke and earth standing a moment
   const nc=Math.round((2+2*k)*few);
-  for(let i=0;i<nc;i++){const h=(10+i*16)*k;ddFxAdd(S,L,x+(R()-.5)*8*k,g+h,y+(R()-.5)*8*k,(R()-.5)*14,(60+R()*70)*k,(R()-.5)*14,1.1+R()*.7,(16+R()*8)*k,(38+R()*18)*k,f[0]*.7,f[1]*.68,f[2]*.66,.45,.42,.38,.8,0,1.4,-60,.3,.9,.03);}
+  for(let i=0;i<nc;i++){const h=(10+i*16)*k;ddFxAdd(S,L,x+(R()-.5)*8*k,g+h,y+(R()-.5)*8*k,(R()-.5)*14,(60+R()*70)*k,(R()-.5)*14,1.1+R()*.7,(16+R()*8)*k,(38+R()*18)*k,f[0]*.8+.06,f[1]*.78+.06,f[2]*.76+.06,.52,.49,.44,.7,0,1.4,-60,.3,.9,.03);}   // (Version 190: earth brown, not near black)
   // a shell's (and a wreck's) smoke left standing as a column over where it fell, darker at its foot, leaning off downwind for ten seconds or so; it
   // fades in as the earth comes down, and takes no more than most of the store, so the next blast always has room (Version 188, pass 3)
   // (by one of the squad you play it's half as many and thinner: a shell beside them mustn't stand a wall of smoke over them for ten seconds)
-  let close=false;if(k>=.9&&dd)for(const p of players)if(p.team===dd.active&&alive(p)&&hyp(p.x-x,p.y-y)<130){close=true;break;}
+  let close=false;if(k>=.9&&dd)for(const p of players)if(alive(p)&&!p.inBoat&&hyp(p.x-x,p.y-y)<130){close=true;break;}   // (Version 190: either squad)
   if(k>=.9){const nl=Math.round(DDFX.linger[t]*(hot?1.4:1)*Math.min(1.3,k)*(close?.5:1)),la=close?.55:1;
-    for(let i=0;i<nl;i++){const u=i/Math.max(1,nl-1),dk=hot?.1:.25+u*.1;ddFxAdd(S,L*.85,x+(R()-.5)*16*k,g+(14+u*52)*k,y+(R()-.5)*16*k,(R()-.5)*5,(8+u*14+R()*6)*k,(R()-.5)*5,
-      10+R()*5+u*3,(30+R()*10)*k,(80+u*44+R()*30)*k,dk,dk*.93,dk*.86,dk+.26,dk+.24,dk+.21,(.64-u*.18)*la,0,.5,.7,1+u*.5,.8,.8+u*.6);}}
+    for(let i=0;i<nl;i++){const u=i/Math.max(1,nl-1),dk=hot?.1:(sand?.44:.38)+u*.06,ta=hot?1:.6;   // (Version 190: earth-dust colours and thinner; it stood near black over the squad)
+      ddFxAdd(S,L*.85,x+(R()-.5)*16*k,g+(14+u*52)*k,y+(R()-.5)*16*k,(R()-.5)*5,(8+u*14+R()*6)*k,(R()-.5)*5,
+      10+R()*5+u*3,(30+R()*10)*k,(80+u*44+R()*30)*k,dk,dk*.93,dk*.84,dk+.2,dk+.18,dk+.15,(.64-u*.18)*la*ta,0,.5,.7,1+u*.5,.8,.8+u*.6);}}
   // the smoke that's left, drifting off (black and oily from a wreck; a brownish grey from earth and sand, not a cold grey)
   const ns=Math.round((hot?8:2+4*k)*few);
   for(let i=0;i<ns;i++){const a=R()*TAU,o=R()*16*k;const dk=hot?.12:sand?.42:.36;ddFxAdd(S,L,x+Math.cos(a)*o,g+(12+R()*24)*k,y+Math.sin(a)*o,Math.cos(a)*10,(5+R()*8)*k,Math.sin(a)*10,
-    (hot?8:5)+R()*2.5,(18+R()*10)*k,(46+R()*26)*k*(hot?1.3:1),dk,dk*.94,dk*.86,dk+.2,dk+.17,dk+.12,hot?.8:.72,0,.5,2.6,1,.85,.45);}
+    (hot?8:5)+R()*2.5,(18+R()*10)*k,(46+R()*26)*k*(hot?1.3:1),dk,dk*.94,dk*.86,dk+.2,dk+.17,dk+.12,hot?.8:.55,0,.5,2.6,1,.85,.45);}
   // the shock: dust racing out along the ground, and its ring
   const nr=Math.round((4+7*k)*few);
   for(let i=0;i<nr;i++){const a=i/nr*TAU+R()*.5,s=(130+R()*80)*k;ddFxAdd(S,L,x+Math.cos(a)*8*k,g+6,y+Math.sin(a)*8*k,Math.cos(a)*s,4+R()*8,Math.sin(a)*s,.9+R()*.7,(9+R()*5)*k,(28+R()*14)*k,Math.min(1,cr*1.1+.07),Math.min(1,cg*1.1+.07),Math.min(1,cb*1.1+.07),cr,cg,cb,.55,1,3.2,0,.4,.6,.02);}
@@ -205,7 +207,7 @@ function ddFxBlast(x,y,k,hot){
 // a scorch where it went off: the oldest goes when the store is full (a long fight keeps the newest)
 function ddFxScorch(x,y,g,k,sand){
   const Z=DDF.scorch,lim=Math.min(Z.cap,DDFX.cap.scorch[ddFxTier()]);if(Z.n>=lim){let o=0;for(let i=1;i<Z.n;i++)if(Z.age[i]/Z.life[i]>Z.age[o]/Z.life[o])o=i;ddFxKill(Z,o);}
-  const d=sand?[.2,.16,.11]:[.11,.09,.07];ddFxAdd(Z,lim,x,g+.6,y,0,0,0,DDFX.scorch*(.6+.4*Math.min(1,k)),(22+fxR()*8)*k,0,d[0],d[1],d[2],0,0,0,sand?.62:.72,0,0,0,0,0,.25);
+  const d=sand?[.33,.27,.19]:[.27,.22,.16];ddFxAdd(Z,lim,x,g+.6,y,0,0,0,DDFX.scorch*(.6+.4*Math.min(1,k)),(22+fxR()*8)*k*.75,0,d[0],d[1],d[2],0,0,0,sand?.4:.42,0,0,0,0,0,.25);   // (Version 190: burnt earth, smaller; near black it read as a hole)
 }
 // a shell in the sea: a column of white water thrown up and falling back, and mist
 function ddFxSpout(x,y,k){
@@ -240,9 +242,9 @@ function ddFxHaze(dt){
   const R=fxR,C=camera.position,dv=Math.hypot(C.x-camT.x,C.z-camT.z)+Math.abs(C.y-ddH(camT.x,camT.z)),rad=clamp(dv*.55,260,700);
   const m=players.filter(p=>alive(p)&&!p.inBoat);   // (both squads: a bank of smoke never lies down over either of them, pass 4)
   for(let k=0;k<6;k++){const a=R()*TAU,d=rad*(.25+R()*.75),x=camT.x+Math.cos(a)*d,y=camT.z+Math.sin(a)*d*.8;
-    if(m.some(p=>hyp(p.x-x,p.y-y)<140))continue;if(DD_MODE==='beach'&&y>760)continue;
+    if(m.some(p=>hyp(p.x-x,p.y-y)<140))continue;if(DD_MODE==='beach'&&y>300)continue;   // (Version 190: none on the sand between the water and the wire)
     const s=300+R()*200,c=DD_MODE==='beach'&&y>300?[.62,.58,.51]:[.6,.58,.53];   // (warm greys: a neutral grey read blue over the grass and sand)
-    ddFxAdd(S,DDFX.cap.soft[t],x,ddH(x,y)+s*.17,y,(R()-.5)*3,0,(R()-.5)*3,24+R()*16,s*.85,s*1.15,c[0],c[1],c[2],c[0],c[1],c[2],.2+R()*.08,3,0,0,.85,.45,7);return;}
+    ddFxAdd(S,DDFX.cap.soft[t],x,ddH(x,y)+s*.17,y,(R()-.5)*3,0,(R()-.5)*3,24+R()*16,s*.85,s*1.15,c[0],c[1],c[2],c[0],c[1],c[2],.15+R()*.06,3,0,0,.85,.45,7);return;}
 }
 
 /* ---------- shots: a puff at the muzzle, a kick of dirt where a round lands, chips off cover, dust from running feet ---------- */
@@ -307,7 +309,8 @@ function ddFxPuff(x,h,y,s,life,col,vy,j1=.5,j2=.5,j3=.5){
   const t=ddFxTier(),r=((col>>16)&255)/255,g=((col>>8)&255)/255,b=(col&255)/255,warm=r>.8&&b<.5;
   if(warm)return ddFxAdd(DDF.glow,DDFX.cap.glow[t],x,h,y,(fxR()-.5)*6,vy||2,(fxR()-.5)*6,life*.6,s*1.6,s*.6,r,g*.85,b*.6,r*.8,g*.3,b*.1,.8,0,1,0,0,0,0)>=0;
   const R=fxR,j=.75+R()*.5;   // (a trail's puffs start big enough to touch the last one, about 7 apart at a rocket's speed, so it's one rope of smoke, not beads)
-  return ddFxAdd(DDF.soft,DDFX.cap.soft[t]*.85,x+(R()-.5)*3,h+(R()-.5)*3,y+(R()-.5)*3,(R()-.5)*5,vy||3,(R()-.5)*5,life*(1.1+R()*.5),s*(tr?1.9:.9)*j,s*(tr?4:3.4)*j,r,g,b,Math.min(1,r*1.08+.06),Math.min(1,g*1.08+.06),Math.min(1,b*1.08+.06),tr?.55:.7,tr?0:3,.6,0,.6,.7,.05)>=0;
+  const q=tr?.78:1;   // (Version 190: a rocket's trail thinner, greyer, fainter and shorter-lived: it read as a white hose)
+  return ddFxAdd(DDF.soft,DDFX.cap.soft[t]*.85,x+(R()-.5)*3,h+(R()-.5)*3,y+(R()-.5)*3,(R()-.5)*5,vy||3,(R()-.5)*5,life*(1.1+R()*.5)*(tr?.6:1),s*(tr?1.15:.9)*j,s*(tr?2.4:3.4)*j,r*q,g*q,b*q,Math.min(1,r*q*1.08+.06),Math.min(1,g*q*1.08+.06),Math.min(1,b*q*1.08+.06),tr?.3:.7,tr?0:3,.6,0,.6,.7,.05)>=0;
 }
 
 /* ---------- the battle beyond yours: shells bursting out on the beach's flanks and in the sea ---------- */
@@ -337,9 +340,18 @@ function ddFxBooms(){
 function ddFxFrame(rdt,now,dt){
   if(!DDF||!DD||DDF.sc!==DD.scene)return;
   const bl=DD.lights&&DD.lights.boomL,lb=booms[booms.length-1];if(bl&&lb){const q=clamp(lb.t/.3,0,1);bl.intensity=2.4*(1-q)*(1-q);bl.distance=240;}   // (scene.js lights the latest blast at 7 for .6 s: under the daylight curve that burned a bright disc into the ground; a quick flash now)
-  ddFxBooms();ddFxFires(dt);ddFxHaze(dt);ddFxFar(dt);ddFxShots(dt);ddFxBigGuns(dt);
+  ddFxBooms();ddFxFires(dt);ddFxHaze(dt);ddFxFar(dt);ddFxShots(dt);ddFxBigGuns(dt);ddFxGibs(dt);
   ddFxStep(DDF.soft,dt);ddFxStep(DDF.glow,dt);ddFxStep(DDF.rings,dt);ddFxStep(DDF.scorch,dt);ddFxStepClods(dt);
   ddFxDraw();
+}
+// the bits of men (dday.js's ddGib) once they've landed: laid flat on a face, and from 8 s sunk into the ground a unit a second, so none is left
+// standing about like a box (dday.js hides them at 12 s). Version 190; looks only
+function ddFxGibs(dt){
+  if(dt<=0||!DD.gibs)return;
+  for(const g of DD.gibs){if(!g.on)continue;const r=g.m.rotation;
+    if(g.v){g.fl=0;continue;}
+    if(!g.fl){g.fl=1;r.x=Math.round(r.x/Math.PI)*Math.PI+(fxR()-.5)*.3;r.z=Math.round(r.z/Math.PI)*Math.PI+(fxR()-.5)*.3;g.m.position.y-=.5;}   // (dday.js stops them 1.2 up: a flat chunk sits on the ground)
+    if(g.t>8)g.m.position.y-=dt;}
 }
 function ddFxStepClods(dt){
   const K=DDF.clods;if(dt<=0)return;
@@ -355,9 +367,9 @@ function ddFxDraw(){
   const S0=DD.sky;if(S0){DDF.v.copy(S0.sun).transformDirection(cam.matrixWorldInverse);U.uSun.value.copy(DDF.v);U.uSunC.value.copy(S0.sunC).multiplyScalar(DDFX.sunK);U.uHor.value.copy(S0.hor);}
   const fog=DD.scene.fog;if(fog&&fog.isFog){U.uFN.value=fog.near;U.uFF.value=fog.far;}
   let nm=0;
-  if(dd&&!dd.fp)for(const p of players){if(nm>=8)break;if(p.team!==dd.active||!alive(p)||p.inBoat||(p.m&&!p.m.visible))continue;
+  if(dd&&!dd.fp)for(const p of players){if(nm>=8)break;if(!alive(p)||p.inBoat||(p.m&&!p.m.visible))continue;   // (Version 190: both squads: Bravo stood buried in smoke)
     const h=ddH(p.x,p.y),v=DDF.v.set(p.x,h+12,p.y);const dz=(v.x-cp.x)*F.x+(v.y-cp.y)*F.y+(v.z-cp.z)*F.z;if(dz<5)continue;v.project(cam);if(Math.abs(v.x)>1.2||Math.abs(v.y)>1.2)continue;
-    const sx=(v.x+1)/2*bw,sy=(v.y+1)/2*bh;v.set(p.x,h+30,p.y).project(cam);const r=Math.max(16,Math.hypot((v.x+1)/2*bw-sx,(v.y+1)/2*bh-sy)*1.25);
+    const sx=(v.x+1)/2*bw,sy=(v.y+1)/2*bh;v.set(p.x,h+30,p.y).project(cam);const r=Math.max(22,Math.hypot((v.x+1)/2*bw-sx,(v.y+1)/2*bh-sy)*1.75);
     U.uMen.value[nm++].set(sx,sy,dz-6,r);}
   U.uMenN.value=nm;
   // the soft ones, sorted

@@ -416,17 +416,18 @@ function ddBoatMesh(parent,wreck){
   const ramp=new T.Group();ramp.position.set(0,3,-52);const rp=new T.Mesh(L.ramp,mat);rp.castShadow=true;rp.receiveShadow=true;ramp.add(rp);g.add(ramp);g.userData.ramp=ramp;
   (parent||scene).add(g);return g;
 }
-// bits of men (ddplay.js's gore): a pool of small blocks thrown about, then lying where they land
+// bits of men (ddplay.js's gore): a pool of small blocks thrown about, then lying where they land. Version 190: flat chunks, not cubes, their colours
+// taken toward light as ddlight.js takes the rest (set after its sweep, they showed as bright red debug boxes), and they sink into the ground after 8 s
 function ddGibPool(sc){
-  DD.gibs=[];const geos=[new T.BoxGeometry(2.2,6,2.2),new T.BoxGeometry(2.6,2.6,2.6),new T.BoxGeometry(4.4,5,3),new T.SphereGeometry(1.1,5,4)];
-  for(let i=0;i<44;i++){const m=new T.Mesh(geos[i%geos.length],new T.MeshStandardMaterial({color:0x6a1410,roughness:.6}));m.visible=false;m.castShadow=true;sc.add(m);DD.gibs.push({m,on:false,v:[0,0,0],w:[0,0,0],t:0});}
+  DD.gibs=[];const geos=[new T.BoxGeometry(2.4,1.3,3.2),new T.BoxGeometry(2.8,1.2,2.4),new T.BoxGeometry(4,1.7,3),new T.SphereGeometry(1.2,5,4).scale(1,.5,1)];
+  for(let i=0;i<44;i++){const mt=new T.MeshStandardMaterial({color:0x6a1410,roughness:.85});mt.userData.ddKeep=true;const m=new T.Mesh(geos[i%geos.length],mt);m.visible=false;m.castShadow=true;sc.add(m);DD.gibs.push({m,on:false,v:[0,0,0],w:[0,0,0],t:0});}
 }
 function ddGib(x,y,n,cloth,pow=1){
   if(!DD)return;let k=0;
   for(const g of DD.gibs){if(k>=n)break;if(g.on&&g.t<14)continue;const a=Math.random()*TAU,s=(30+Math.random()*70)*pow;
     g.on=true;g.t=0;g.m.visible=true;g.m.position.set(x+(Math.random()-.5)*6,ddH(x,y)+8+Math.random()*8,y+(Math.random()-.5)*6);
     g.v=[Math.cos(a)*s,60+Math.random()*90*pow,Math.sin(a)*s];g.w=[Math.random()*9-4.5,Math.random()*9-4.5,Math.random()*9-4.5];
-    g.m.material.color.set(k%3===1&&cloth?cloth:k%4===3?0xb98a6e:0x6a1410);k++;}
+    const c=g.m.material.color.set(k%3===1&&cloth?cloth:k%4===3?0x9a7a62:0x5a1410);if(typeof ddLinCol==='function')ddLinCol(c);k++;}
 }
 // water thrown up: by a shell in the sea, by bullets round the boats (ddplay.js's ride in). Since Version 188 white columns of spray that rise, hang and
 // fall back, with a crown round the foot and a ring of foam left on the water (ddsea.js's ddSeaSplash); the old cone's pool (DD.spl) stays empty
