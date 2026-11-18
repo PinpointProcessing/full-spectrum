@@ -72,10 +72,7 @@ function ddDress(G,sc,M){
 /* ---------- beyond the map: sky, ships, balloons, the landings either side ---------- */
 function ddScenery(sc){
   const r=rng(1944),X1=DDB.x1;
-  // the sky: pale at the horizon (the haze's colour, which ddSky sets), bluer overhead, with cloud
-  const skyT=canvasTex(1024,512,(q,w,h)=>{const g=q.createLinearGradient(0,0,0,h/2);g.addColorStop(0,'#86a8d6');g.addColorStop(.55,'#b9cfe8');g.addColorStop(1,'#ffffff');q.fillStyle=g;q.fillRect(0,0,w,h/2);q.fillStyle='#fff';q.fillRect(0,h/2,w,h/2);
-    for(let i=0;i<70;i++){const cx=r()*w,cy=h*.2+r()*h*.27,n=6+r()*10;for(let k=0;k<n;k++){const x=cx+(r()-.5)*130,y=cy+(r()-.5)*16,rad=14+r()*30,gr=q.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(255,255,255,.5)');gr.addColorStop(1,'rgba(255,255,255,0)');q.fillStyle=gr;q.beginPath();q.ellipse(x,y,rad*1.9,rad*.6,0,0,7);q.fill();}}});
-  if(DD.dome){DD.dome.material.map=skyT;DD.dome.material.needsUpdate=true;}
+  // (the sky: ddlight.js's ddDome since Version 188)
   const one=(geo,mat,x,h,z,p)=>{const m=new T.Mesh(geo,mat);m.position.set(x,h,z);(p||sc).add(m);return m;};
   // ships out at sea, and barrage balloons over them
   const hull=new T.MeshLambertMaterial({color:0x56626c});

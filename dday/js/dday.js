@@ -212,19 +212,27 @@ function disposeDD(){
   if(DD.tex)DD.tex.dispose();DD=null;
 }
 // the time of day, 0 dawn .. 1 evening (it goes by as the squads climb: ddplay.js sets DD.day)
-const DD_SKY=[[.0,0xa8bccb,0xc2d2de,.5,0xfff0d8,.78],[.5,0xb4d2e8,0xd2e2f0,.54,0xfff6e4,.9],[1,0xe2a878,0xe6b48c,.46,0xffa860,.8]];   // [t, fog/sky, hemi sky, hemi k, sun colour, sun k]
+// Version 188: [t, the horizon's haze (the fog and the sky's foot, as shown on screen), the sky overhead (as shown), the soft light from the sky, its strength,
+// the sun's colour, its strength, where the sun stands (degrees round from east toward the south), how high (degrees)]. A bright overcast morning with a
+// real sun, a little golden (warm light against the sky's cooler fill in the shadows): from the right of the usual camera and a little behind it, so faces and the sides of things read and shadows fall away to the left; the sky's
+// light softer and a little bluer than before (it was nearly the sun's strength, and the shadows were faint); a golden afternoon by evening, the sun round to the south-west
+const DD_SKY=[[0,0xc4ced6,0x6f8db2,0xb0c4da,.54,0xffe8c8,1.42,18,31],[.5,0xccd8e2,0x5d86ba,0xb8cce0,.56,0xfff3e0,1.5,62,46],[1,0xdcc6aa,0x6c80a6,0xc8c0b8,.54,0xffd2a0,1.42,128,28]];
+let _dsc=null;
 function ddSky(t){
   let a=DD_SKY[0],b=DD_SKY[DD_SKY.length-1];for(let i=0;i<DD_SKY.length-1;i++)if(t>=DD_SKY[i][0]&&t<=DD_SKY[i+1][0]){a=DD_SKY[i];b=DD_SKY[i+1];}
-  const k=b[0]>a[0]?clamp((t-a[0])/(b[0]-a[0]),0,1):0,L=DD.lights,mix=(p,q)=>new T.Color(p).lerp(new T.Color(q),k);
-  const sky=mix(a[1],b[1]);DD.scene.background.copy(sky);DD.scene.fog.color.copy(sky);if(DD.dome)DD.dome.material.color.copy(sky);
-  L.hemi.color.copy(mix(a[2],b[2]));L.hemi.userData.base=a[3]+(b[3]-a[3])*k;L.moon.color.copy(mix(a[4],b[4]));L.moon.intensity=a[5]+(b[5]-a[5])*k;
-  if(DD.sea)DD.sea.material.color.copy(new T.Color(0x2f7890).lerp(new T.Color(0x7a6258),Math.max(0,t-.5)*2));
+  _dsc=_dsc||new T.Color();const k=b[0]>a[0]?clamp((t-a[0])/(b[0]-a[0]),0,1):0,L=DD.lights,mix=(o,i)=>o.setHex(a[i]).lerp(_dsc.setHex(b[i]),k),num=i=>a[i]+(b[i]-a[i])*k;
+  const S=DD.sky||(DD.sky={hor:new T.Color(),zen:new T.Color(),sunC:new T.Color(),sun:new T.Vector3(0,1,0),t:0});S.t=t;   // (DD.sky: what the sky is now, for the dome, the smoke and anything else that wants it)
+  mix(S.hor,1);mix(S.zen,2);DD.scene.background.copy(S.hor);if(DD.scene.fog)DD.scene.fog.color.copy(S.hor);
+  mix(L.hemi.color,3);L.hemi.userData.base=num(4);mix(L.moon.color,5);L.moon.intensity=num(6);S.sunC.copy(L.moon.color);
+  const az=num(7)*Math.PI/180,el=num(8)*Math.PI/180;S.sun.set(Math.cos(el)*Math.cos(az),Math.sin(el),Math.cos(el)*Math.sin(az));   // (ddlight.js's ddSunFrame puts the sun there)
+  if(DD.sea&&DD.sea.material&&DD.sea.material.color){DD.sea.material.color.setHex(0x2f7890).lerp(_dsc.setHex(0x7a6258),Math.max(0,t-.5)*2);if(typeof ddLinCol==='function')ddLinCol(DD.sea.material.color);}
+  if(typeof ddLightSky==='function')ddLightSky(S);
 }
 function buildDDay(){
   disposeDD();ddBuildH();
   const objsL=ddObjects();
   DD={objs:objsL,lamps:[],hq:[],scene:null,lights:null,canvas:null,tex:null,props:null,sea:null,gibs:[],boats:[],day:0,dayShown:-1};
-  const sc=new T.Scene();sc.background=new T.Color(0x8e9aa2);sc.fog=new T.FogExp2(0x8e9aa2,0.00034);DD.scene=sc;
+  const sc=new T.Scene();sc.background=new T.Color(0xc4ced6);sc.fog=new T.Fog(0xc4ced6,1200,5500);DD.scene=sc;   // (Version 188: a haze with a near end, kept past the battle by ddlight.js; it was thick enough to pale the battle itself)
   const fc=document.createElement('canvas');fc.width=Math.round((DDB.x1-DDB.x0)*DDS);fc.height=Math.round((DDB.y1-DDB.y0)*DDS);
   paintDDGround(fc.getContext('2d'));
   const tex=new T.CanvasTexture(fc);tex.encoding=T.sRGBEncoding;tex.anisotropy=4;DD.canvas=fc;DD.tex=tex;
@@ -254,9 +262,9 @@ function buildDDay(){
     if(DD_MODE==='counter'){for(const m of DD.bo)m.visible=false;dcScenery(sc);}else
     if(DD_MODE==='village'){for(const m of DD.bo)m.visible=false;vgScenery(sc);}else
     if(typeof ddScenery==='function')ddScenery(sc);   // (ddlook.js: sky, ships, balloons, the landings either side)
-    // the light: an overcast dawn (ddSky moves it on through the day)
-    const hemi=new T.HemisphereLight(0xc2d2de,0x8a7a5c,.5);hemi.userData.base=.5;sc.add(hemi);
-    const sun=new T.DirectionalLight(0xfff0d8,.82);sun.position.set(330,640,420);sun.target.position.set(700,0,100);
+    // the light: a bright overcast morning (ddSky moves it on through the day; ddlight.js's ddSunFrame aims the sun and fits its shadows to the view)
+    const hemi=new T.HemisphereLight(0xb8c6d4,0x8a7a5c,.6);hemi.userData.base=.6;sc.add(hemi);
+    const sun=new T.DirectionalLight(0xfff0dc,1.2);sun.position.set(330,640,420);sun.target.position.set(700,0,100);
     const phone=matchMedia('(pointer:coarse)').matches;sun.castShadow=true;sun.shadow.mapSize.set(phone?1024:2048,phone?1024:2048);
     Object.assign(sun.shadow.camera,{left:-640,right:640,top:640,bottom:-640,near:50,far:2000});sun.shadow.bias=-0.0012;sc.add(sun,sun.target);
     const pool=[];for(let k=0;k<LAMP_POOL;k++){const p=new T.PointLight(0xffffff,0,100,1.4);sc.add(p);pool.push(p);}

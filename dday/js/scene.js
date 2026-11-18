@@ -792,6 +792,7 @@ function lampLights(now){   // hand the pooled lights to the lamps nearest the v
 let shakeK=0;
 function shake(k){if(!reduced)shakeK=Math.min(1.2,Math.max(shakeK,k*(timeScale()<1?.4:1)));}   // blasts and machine guns nearby (muted in slow-mo)
 function render(rdt,now){
+  const ddTone=MAPID==='dd'&&typeof DDL_TONE!=='undefined'&&DDL_TONE.map!=null;if(ddTone){renderer.toneMapping=DDL_TONE.map;renderer.toneMappingExposure=DDL_TONE.exp;}   // (Version 188: D-Day's daylight has a tone curve and exposure of its own, ddlight.js; set for its frame only and put back after it, below)
   updateCamera();syncUnits(now);if(typeof crPoolsFrame==='function')crPoolsFrame();seeThrough(rdt);   // (monsters out of sight: their slots hidden, creatures.js)
   if(shakeK>.002){const a=shakeK*4;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a*.6;camera.position.z+=(Math.random()-.5)*a;camera.updateMatrixWorld();shakeK=Math.max(0,shakeK-rdt*3);}
   if(SKY&&SKY.parent===scene){SKY.position.copy(camera.position);SKY.material.color.setScalar(1+storm*2.2);}   // (the sky round the camera, the horizon at eye level; brighter in a flash)
@@ -806,5 +807,6 @@ function render(rdt,now){
   const b=booms[booms.length-1];if(b){boomL.position.set(b.x,18+gndH(b.x,b.y),b.y);boomL.intensity=7*(1-b.t/.6);}else boomL.intensity=0;
   if(MAPID==='dd'&&typeof ddFrame==='function')ddFrame(rdt,now);   // (D-Day: its sea, sky, boats, gibs and the day going by, dday.js)
   fxFrame();postRender(scene,camera);   // (post.js: bloom, the grade, vignette, grain; or straight to the screen)
+  if(ddTone){renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;}   // (back to the renderer's own for any other picture: the barracks, the boat screen)
   drawOverlay(rdt,now);
 }
