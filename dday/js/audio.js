@@ -132,7 +132,7 @@ function sfxShot(u,quiet){
 // ddsfx.js isn't there: a mounted gun's synthesised thud, everyone else a dull crack
 function sfxShotDD(u){
   if(!AC)return true;   // (no sound yet: nothing to play)
-  if(typeof ddsShot==='function')return ddsShot(u);
+  if(typeof ddsShot==='function'&&DSFX.buf.us&&DSFX.buf.kar)return ddsShot(u);   // (until the recordings are in, or opened from file://: the synthesised ones below)
   const now=AC.currentTime;
   if(u.gunner){if(now-(u.thudT||0)<.165)return true;u.thudT=now;const out=voice(u.x,u.y,1,.5);if(!out)return true;
     toneHit(out,now,.16,'sine',92,38,.95);noiseHit(out,now,.11,'lowpass',420,0,.9,.002,90);noiseHit(out,now,.03,'bandpass',1500,1,.35,.001);return true;}
@@ -146,14 +146,14 @@ function rumble(x,y,size){
   if(size>.9)for(let k=0;k<10;k++)noiseHit(out,t+.25+Math.random()*1.2,.05,'bandpass',1800+Math.random()*2500,2,.08+Math.random()*.1);
 }
 function sfxBoom(x,y,size=1){
-  if(MAPID==='dd'&&typeof ddsBoom==='function'){ddsBoom(x,y,size);rumble(x,y,size*.6);return;}   // (Version 188: D-Day's blasts by what made them, ddsfx.js; a lighter rumble under them)
+  if(MAPID==='dd'&&typeof ddsBoom==='function'&&DSFX.buf.xbig){ddsBoom(x,y,size);rumble(x,y,size*.6);return;}   // (Version 188: D-Day's blasts by what made them, ddsfx.js; a lighter rumble under them)
   rumble(x,y,size);
   if(playSample('boom',x,y,Math.min(1.3,.9*size),size>1.2?.82:.95+Math.random()*.1))return;
   const out=voice(x,y,Math.min(1.2,.8*size),1.8);if(!out)return;const t=AC.currentTime;
   noiseHit(out,t,.08,'highpass',2000,0,.7);noiseHit(out,t,1.2,'lowpass',1400,0,1,.005,60);toneHit(out,t,.6,'sine',70,28,.9,.008);
 }
 function sfxLaunch(x,y){if(playSample('launch',x,y,.75))return;const out=voice(x,y,.5,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.08,'lowpass',1500,0,.8);noiseHit(out,t,.9,'bandpass',700,1.2,.6,.05,250);}
-function sfxCannon(x,y){if(MAPID==='dd'&&typeof ddsCannon==='function'){ddsCannon(x,y);rumble(x,y,.8);return;}if(!playSample('boom',x,y,1.3,.7)){const out=voice(x,y,1,1.6);if(out){const t=AC.currentTime;noiseHit(out,t,1.2,'lowpass',900,0,.9,.004,60);}}rumble(x,y,1.3);}
+function sfxCannon(x,y){if(MAPID==='dd'&&typeof ddsCannon==='function'&&DSFX.buf.xgun){ddsCannon(x,y);rumble(x,y,.8);return;}if(!playSample('boom',x,y,1.3,.7)){const out=voice(x,y,1,1.6);if(out){const t=AC.currentTime;noiseHit(out,t,1.2,'lowpass',900,0,.9,.004,60);}}rumble(x,y,1.3);}
 function sliceBuf(buf,t,d){const sr=buf.sampleRate,a=Math.floor(t*sr),n=Math.max(1,Math.min(buf.length-a,Math.floor(d*sr))),o=AC.createBuffer(1,n,sr);o.getChannelData(0).set(buf.getChannelData(0).subarray(a,a+n));return o;}
 const varied=(lo=.94,hi=1.06)=>lo+Math.random()*(hi-lo);   // a little pitch and speed difference each time, so repeats don't sound canned
 function sfxBark(x,y){   // a big dog barking (recorded); synthesised if the recording isn't loaded
