@@ -280,15 +280,7 @@ function buildDDay(){
     for(const s of[-1,1]){const m=new T.Mesh(geo,gmat);m.rotation.x=-Math.PI/2;m.scale.x=-1;m.position.set(s<0?-gw/2:gw*1.5,0,(DDB.y0+DDB.y1)/2);m.receiveShadow=true;sc.add(m);(DD.bo=DD.bo||[]).push(m);}
     // far land behind the base, and the sea bed out to the horizon
     const far=new T.Mesh(new T.PlaneGeometry(9000,3000),new T.MeshStandardMaterial({color:0x6f9440,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,151,DDB.y0-1500);sc.add(far);DD.bo.push(far);
-    // the sea: grey-green, a slow swell in its normals, pale where it thins over the sand
-    const seaT=canvasTex(256,256,(q,w,h)=>{const r2=rng(5);q.fillStyle='#e4ecee';q.fillRect(0,0,w,h);for(let i=0;i<90;i++){const y=r2()*h,x=r2()*w,l=30+r2()*70;q.strokeStyle=r2()<.5?`rgba(255,255,255,${.4+r2()*.5})`:`rgba(120,150,164,${.35+r2()*.4})`;q.lineWidth=1+r2()*2.5;q.beginPath();for(let k=0;k<=8;k++){const px=x+l*k/8,py=y+Math.sin(k*.9+i)*2.4;for(const ox of[-w,0,w])for(const oy of[-h,0,h])k?0:q.moveTo(px+ox,py+oy);q.lineTo(px,py);}q.stroke();}});
-    seaT.wrapS=seaT.wrapT=T.RepeatWrapping;seaT.repeat.set(40,12);
-    {const bed=new T.Mesh(new T.PlaneGeometry(9000,2700),new T.MeshLambertMaterial({color:0x6f887c,fog:false}));bed.rotation.x=-Math.PI/2;bed.position.set(700,-20,880+1350);sc.add(bed);DD.bo.push(bed);}   // the sea bed beyond the land's sheet
-    const wm=new T.MeshLambertMaterial({color:0x2f7890,map:seaT,transparent:true,opacity:.84,fog:false});
-    const sea=new T.Mesh(new T.PlaneGeometry(9000,2800,60,20),wm);sea.rotation.x=-Math.PI/2;sea.position.set(700,.2,700+1400);sea.receiveShadow=true;sc.add(sea);DD.sea=sea;DD.bo.push(sea);
-    const foamT=canvasTex(256,32,(q,w,h)=>{const r=rng(7);q.clearRect(0,0,w,h);for(let i=0;i<500;i++){const a=r()*.5*(1-Math.abs(r()-.5)*2);q.fillStyle=`rgba(236,240,238,${a})`;q.beginPath();q.arc(r()*w,h*.5+(r()-.5)*h*.7,1+r()*3,0,7);q.fill();}});
-    foamT.wrapS=T.RepeatWrapping;foamT.repeat.set(26,1);
-    const foam=new T.Mesh(new T.PlaneGeometry(9000,26),new T.MeshBasicMaterial({map:foamT,transparent:true,opacity:.8,depthWrite:false}));foam.rotation.x=-Math.PI/2;foam.position.set(700,.5,702);sc.add(foam);DD.foam=foam;DD.bo.push(foam);
+    // the sea, its bed and its surf: ddsea.js's ddSeaBuild since Version 188 (one sheet of water: the swell, the breakers, the swash and the wet sand in its shader)
     // a sky to look at when the camera's tilted down: a big dome the colour of the haze
     const dome=new T.Mesh(new T.SphereGeometry(5200,24,12),new T.MeshBasicMaterial({color:0x8e9aa2,side:T.BackSide,fog:false,depthWrite:false}));dome.position.set(700,0,0);sc.add(dome);DD.dome=dome;
     ddProps(sc,objsL);
@@ -436,12 +428,9 @@ function ddGib(x,y,n,cloth,pow=1){
     g.v=[Math.cos(a)*s,60+Math.random()*90*pow,Math.sin(a)*s];g.w=[Math.random()*9-4.5,Math.random()*9-4.5,Math.random()*9-4.5];
     g.m.material.color.set(k%3===1&&cloth?cloth:k%4===3?0xb98a6e:0x6a1410);k++;}
 }
-// water thrown up: by a shell in the sea, by bullets round the boats (ddplay.js's ride in)
-function ddSplash(x,y,s=1){
-  if(!DD)return;const P=DD.spl||(DD.spl=[]);let q=P.find(o=>!o.on);
-  if(!q){if(P.length>=22)return;const m=new T.Mesh(new T.ConeGeometry(1,1,7,1,true),new T.MeshBasicMaterial({color:0xeef3f2,transparent:true,opacity:.8,depthWrite:false,side:T.DoubleSide,fog:false}));m.geometry.translate(0,.5,0);DD.scene.add(m);q={m,on:false};P.push(q);}
-  Object.assign(q,{on:true,t:0,s,x,y});q.m.visible=true;q.m.position.set(x,Math.max(.3,ddH(x,y)),y);
-}
+// water thrown up: by a shell in the sea, by bullets round the boats (ddplay.js's ride in). Since Version 188 white columns of spray that rise, hang and
+// fall back, with a crown round the foot and a ring of foam left on the water (ddsea.js's ddSeaSplash); the old cone's pool (DD.spl) stays empty
+function ddSplash(x,y,s=1){if(DD&&typeof ddSeaSplash==='function')ddSeaSplash(x,y,s);}
 // blood on the ground (Version 167, Bryan: "way to confusing and messy"): small and gone again in about half a minute. Flat
 // sprites lying on the slope from a pool of 48 (the oldest reused), not paint baked into the ground's picture for good
 function ddBlood(x,y,s=1){
@@ -504,8 +493,8 @@ function ddRoofHides(m,p){
 function ddFrame(rdt,now){
   if(!DD)return;
   ddRockets(rdt);
-  if(DD.sea&&DD.sea.material.map)DD.sea.material.map.offset.set(now*.004,now*.012);
-  if(DD.foam){DD.foam.position.z=702+Math.sin(now*.7)*5;DD.foam.material.opacity=.55+.3*Math.sin(now*.7+1.2);DD.foam.material.map.offset.x=now*.004;}
+  // (the sea moves in its own shader since Version 188: ddSeaFrame, below)
+  // (and so does the surf: ddsea.js's shore break)
   if(Math.abs(DD.day-DD.dayShown)>.004){DD.dayShown+=clamp(DD.day-DD.dayShown,-rdt*.05,rdt*.05);ddSky(DD.dayShown);}
   if(DD.dome)DD.dome.position.set(camera.position.x,0,camera.position.z);
   // (Version 175: also while it stands between the camera and a man of the squad you play: the camera that turns with the route looks past bunkers from the side; ddRoofHides)

@@ -6,8 +6,8 @@
      tops, hedgerow trees, stones on the rock faces and at their feet, stakes in the surf, lips round the shell holes,
      crates and helmets on the sand, mine signs, the base's trucks, tents and drums (their blocks are in ddObjects).
    - ddScenery (once, into the scene): a sky with clouds, ships on the horizon, barrage balloons, landing craft and men
-     going up the beaches either side (ddCrowd: one instanced figure, cheap), more lines of surf.
-   - ddLookFrame (from ddFrame): the crowd, the surf, the balloons. */
+     going up the beaches either side (ddCrowd: one instanced figure, cheap).
+   - ddLookFrame (from ddFrame): the crowd, the balloons. (The surf is ddsea.js's since Version 188.) */
 const ddHm=(x,y)=>ddH(x<0?-x:x>DDB.x1?2*DDB.x1-x:x,y);   // the ground's height anywhere, the mirrored sides too
 function ddGroundAt(x,y){   // 'sand' | 'rock' | 'top' (grass on the cliff tops) | 'grass' (the base) | 'dirt' (the draw)
   const dx=ddMx(x);if(y>316&&!ddRock(dx,y))return y>700?'sea':'sand';
@@ -109,8 +109,7 @@ function ddScenery(sc){
   // landing craft on the beaches either side, some coming in
   DD.sideBoats=[];
   for(const s of[-1,1])for(let k=0;k<4;k++){const m=ddBoatMesh(sc,k===3),x=s<0?-110-k*230-r()*60:X1+110+k*230+r()*60;m.position.set(x,1.2,806+(k%2)*8);if(k===3){m.rotation.set(.04,.5,.2);}else{m.userData.ramp.rotation.x=-1.75;DD.sideBoats.push({m,x,ph:r()*30});}}
-  // more lines of surf
-  DD.surf=[];if(DD.foam)for(const[z,ph]of[[730,2.1],[762,4.0]]){const f=DD.foam.clone();f.material=DD.foam.material.clone();f.material.map=DD.foam.material.map.clone();f.material.map.needsUpdate=true;f.position.z=z;sc.add(f);DD.surf.push({f,z,ph});}
+  DD.surf=[];   // (the surf: ddsea.js's shore break since Version 188)
   ddCrowd(sc);
 }
 // the men going up the beaches next door: one instanced body and head each, run on a little state of their own
@@ -126,7 +125,6 @@ function ddCrowdSpawn(q,r,any){
 }
 function ddLookFrame(dt,now){
   if(!DD)return;
-  for(const s of DD.surf||[]){s.f.position.z=s.z+Math.sin(now*.6+s.ph)*7;s.f.material.opacity=.3+.25*Math.sin(now*.6+s.ph+1);s.f.material.map.offset.x=now*.003+s.ph;}
   for(const g of DD.balloons||[])g.rotation.y+=Math.sin(now*.2+g.position.x)*.0006;
   for(const b of DD.sideBoats||[])b.m.position.y=1.2+Math.sin(now*1.5+b.ph)*.4;
   const C=DD.crowd;if(!C)return;const d=C.d;
