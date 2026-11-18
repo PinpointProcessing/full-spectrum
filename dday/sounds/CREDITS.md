@@ -16,6 +16,31 @@ states every recording there is CC0) and copied from there unchanged, renamed:
 Everything else (engines, outboard, rain, thunder, the low rumble added to explosions, the
 outdoor echo) is synthesised in `js/audio.js`.
 
+## D-Day's guns and blasts (Version 188)
+
+D-Day doesn't load the modern rifle, machine gun and shotgun clips above any more (only `boom-1`, `boom-2` and `launch`).
+Everything in `guns/` (one mp3 per kind, its takes in a row; `guns/manifest.json` says where each take is) was cut, and the blasts
+EQ'd and given harmonics a phone's speaker can play, by the guns unit's `build_guns2.py` (Version 188's work files, not in the repo).
+All CC0:
+
+| Kind | Heard as | Recording | Pack, author |
+| --- | --- | --- | --- |
+| `us`, `usfar` | the M1 Garand, the Springfield, the BAR's last round of a burst; an octave down, the crack inside a blast | Springfield M1917 (.30-06), near (B_24P) and mid distance (B_16P); Tikka T3 (.30-06), near (W_29P) and mid (W_24P) | [The Free Firearm Sound Library](https://opengameart.org/content/the-free-firearm-sound-library), Still North Media ("Prepared" set) |
+| `bar` | the BAR's rounds inside a burst | the same .30-06 takes, cut short | same library |
+| `kar`, `karfar` | the Germans' Kar98k | Mosin-Nagant, near (M_21P) and mid (M_26P); Arisaka, near (E_25P) and mid (E_18P) | same library |
+| `smg`, `smgfar` | an MP40 | Carl Gustav M45 short bursts, near (G_33P) and mid (G_22P) | same library |
+| `trench` | a trench gun | Winchester Model 12, near (K_22P) | same library |
+| `thud` | the bunkers' machine guns, about six beats a second (Bryan: "THUD THUD THUD") | .30-06 and 7.62x54 reports (B_24P, W_29P, M_21P) pitched down, the body brought up, a little sub-bass under it, the first crack laid back on top | same library |
+| `xbig` | a shell landing, a bunker or barracks going up | Chunky Explosion; cannon_hit_1 | [Chunky Explosion](https://opengameart.org/content/chunky-explosion), Joth; [Battle at sea](https://opengameart.org/content/battle-at-sea), Thimras |
+| `xmid` | a tank's shell, a mortar bomb, a bazooka rocket | cannon_hit_wall_no_splash, cannon_hit_1 (its second hit), cannon_hit_wall_1 (its second hit) | Battle at sea, Thimras |
+| `xfrag` | a grenade or a rifle grenade | `boom-1`, `boom-2` above | smokeem (see the first table) |
+| `xfar` | a blast far off | Explosion somewhere far; cannon_hit_1 with its top taken off | [Explosion somewhere far](https://opengameart.org/content/explosion-somewhere-far), pauliuw; Battle at sea, Thimras |
+| `xsea` | a shell into the sea | cannon_miss_1 | Battle at sea, Thimras |
+| `xgun` | a tank's gun or a field gun firing | cannon_fire_1 | Battle at sea, Thimras |
+
+The Garand's clip ping, the incoming shells' whistle, a round cracking past, the bolt worked on the Springfield, the slap back off
+the bluffs and walls, and the sand and grit falling after a blast are synthesised in `js/ddsfx.js`.
+
 ## Effects
 
 Everything in `sfx/` (one mp3 per kind, all its clips in a row; `sfx/manifest.json` says where each clip is) was cut from
