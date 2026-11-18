@@ -96,6 +96,18 @@ function ddaBurst(rate,nr,tone){
   ddaHP(d,70,sr);ddaLP(d,2200,sr);ddaLP(d,2600,sr);return ddaMk(ddaNorm(d,.9));
 }
 function ddaRifle(tone){const sr=DDA.sr,d=new Float32Array(Math.floor(sr*.4));ddaShot(d,0,sr,1,tone);ddaShot(d,Math.floor(sr*.004),sr,.25,tone*1.7);ddaHP(d,80,sr);ddaLP(d,2400,sr);ddaLP(d,3000,sr);return ddaMk(ddaNorm(d,.9));}
+// far-off guns from the game's own recordings (audio.js's samples, so they're the same guns as the fight on the screen, a kilometre
+// off): a burst mixed from its single shots, then what the air leaves of them (the crack gone: two low-passes). Built once they've loaded
+const ddaSm=ks=>{for(const k of ks)if(samples[k]&&samples[k].length)return samples[k];return null;};
+function ddaRecBurst(list,rate,nr,cut){
+  const sr=list[0].sampleRate,n=Math.floor(sr*(nr/rate+.7)),d=new Float32Array(n);
+  for(let k=0;k<nr;k++){const s=list[Math.floor(ddaR()*list.length)].getChannelData(0),i0=Math.max(0,Math.floor((k/rate+(ddaR()-.5)*.05/rate)*sr)),a=(.7+ddaR()*.3)*(k?1:1.1);for(let i=0;i<s.length&&i0+i<n;i++)d[i0+i]+=a*s[i];}
+  ddaLP(d,cut,sr);ddaLP(d,cut*1.25,sr);ddaHP(d,60,sr);return ddaMk(ddaNorm(d,.9),sr);
+}
+function ddaRecBuild(){
+  const A=ddA,mg=ddaSm(['mg42','mg']),rf=ddaSm(['k98','kar98','enemy']),m1=ddaSm(['m1','garand','shot']);if(A.rec||!mg||!rf||!m1)return;A.rec=true;
+  try{A.b.rmg1=ddaRecBurst(mg,21.5,8,1500);A.b.rmg2=ddaRecBurst(mg,22,15,1300);A.b.rmg3=ddaRecBurst(mg,20.5,22,1400);A.b.rbr=ddaRecBurst(m1,9,9,1200);A.rrf=[...rf,...m1];}catch(e){}
+}
 // a far-off big gun or shell: the thump, a crump a phone's speaker can still give, then the roll of its echoes coming back off the land,
 // each part set to its own peak before they're mixed. o.hits: when each gun of a salvo goes (s); f0 the thump's pitch; tb/ts how long
 // its low body and its thump last; cut its body's top, mid the crump's pitch, tr how long the roll lasts, rl how loud
@@ -141,15 +153,15 @@ const DDA_BUILD=[['noise',()=>ddaMk(ddaWhite(Math.floor(DDA.sr*6.7)))],['diesel'
 
 /* ---------- the graph ---------- */
 function ddAmbBuild(){
-  const A=ddA={on:false,b:{},bi:0,n:0,bt:0,dd:null,gust:0,gv:0,gT:0,I:.5,ev:{},v:{},wind:null,surf:null,sea:null,lastT:0,bob:0,slapT:0,offT:0};
+  const A=ddA={on:false,b:{},bi:0,n:0,bt:0,uT:0,dd:null,gust:0,gv:0,gT:0,I:.5,ev:{},v:{},wind:null,surf:null,sea:null,lastT:0,bob:0,slapT:0,offT:0};
   A.bus=AC.createGain();A.bus.gain.value=0;A.bus.connect(sndMuffle);
-  A.far=AC.createGain();const dry=AC.createGain();dry.gain.value=.5;A.far.connect(dry);dry.connect(A.bus);   // far-off things: a little dry, mostly echo
-  A.cv=AC.createConvolver();A.cv.buffer=ddaFarIR();const wet=AC.createGain();wet.gain.value=1;A.far.connect(A.cv);A.cv.connect(wet);wet.connect(A.bus);
+  A.far=AC.createGain();const dry=AC.createGain();dry.gain.value=.6;A.far.connect(dry);dry.connect(A.bus);   // far-off things: a little dry, mostly echo
+  A.cv=AC.createConvolver();A.cv.buffer=ddaFarIR();const wet=AC.createGain();wet.gain.value=.8;A.far.connect(A.cv);A.cv.connect(wet);wet.connect(A.bus);
   A.near=AC.createGain();A.near.connect(A.bus);const ns=AC.createGain();ns.gain.value=.25;A.near.connect(ns);ns.connect(A.cv);   // nearer things (aircraft overhead): mostly dry
   const L=(f,cb)=>fetch(f).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(cb).catch(()=>{});   // (recorded, CC0: sounds/CREDITS.md)
   L('sounds/amb/surf.mp3',buf=>{A.wash=DDA.wash.map(([t,d])=>sliceBuf(buf,t,d));});L('sounds/amb/far.mp3',buf=>{A.farRec=buf;});
 }
-function ddaBuildStep(){const A=ddA;for(let k=0;k<2&&A.bi<DDA_BUILD.length;k++){const[id,fn]=DDA_BUILD[A.bi++];try{A.b[id]=fn();}catch(e){}}}
+function ddaBuildStep(){const A=ddA;for(let k=0;k<2&&A.bi<DDA_BUILD.length;k++){const[id,fn]=DDA_BUILD[A.bi++];try{A.b[id]=fn();}catch(e){}}if(A.bi>=DDA_BUILD.length&&!A.rec&&(A.rt=(A.rt||0)+1)%30===0)ddaRecBuild();}
 function ddaPan(dx,dz){const e=camera.matrixWorld.elements,rx=e[0],rz=e[2],l=Math.hypot(rx,rz)||1,dl=Math.hypot(dx,dz)||1;return clamp((dx*rx+dz*rz)/(l*dl),-1,1);}   // (left or right of the view, from a world direction)
 const ddaMkF=(type,f,q)=>{const b=AC.createBiquadFilter();b.type=type;b.frequency.value=f;if(q!=null)b.Q.value=q;return b;};
 function ddaChain(...n){for(let i=0;i<n.length-1;i++)n[i].connect(n[i+1]);return n[n.length-1];}
@@ -159,7 +171,7 @@ function ddaKill(L){for(const s of L||[])try{s.stop();s.disconnect();}catch(e){}
 // a looping voice (an engine, the tracks, a fire): made when first wanted, its source stopped once it has been silent a while
 function ddaVoice(id,dest){const A=ddA;if(A.v[id])return A.v[id];const lp=ddaMkF('lowpass',4000,.5),g=AC.createGain();g.gain.value=0;const p=ddaPanner(0);ddaChain(lp,g,p,dest||A.bus);return A.v[id]={lp,g,p,s:null,buf:null,off:0};}
 function ddaVoiceSet(id,buf,lvl,pan,cut,rate,t){
-  const v=ddaVoice(id);
+  const v=ddaVoice(id);if(!v.s&&lvl<=.001)return;   // (silent and stopped: nothing to do)
   if(lvl>.001&&buf){v.off=0;if(!v.s||v.buf!==buf){if(v.s)try{v.s.stop(t+.3);}catch(e){}v.s=ddaLoopSrc(buf,ddaR()*buf.duration,rate);v.s.connect(v.lp);v.buf=buf;}}
   else if(v.s){if(!v.off)v.off=t;else if(t-v.off>2.5){try{v.s.stop();}catch(e){}v.s.disconnect();v.s=null;v.buf=null;}}
   v.g.gain.setTargetAtTime(lvl,t,.2);if(v.p.pan)v.p.pan.setTargetAtTime(clamp(pan,-1,1),t,.15);v.lp.frequency.setTargetAtTime(cut,t,.2);if(v.s)v.s.playbackRate.setTargetAtTime(rate,t,.5);
@@ -192,9 +204,9 @@ function ddAmbFrame(t,live){
   if(A.dd!==dd){A.dd=dd;A.bt=0;A.I=S.I;A.ev={mg:1+ddaR()*2,rf:.5+ddaR()*2,art:2+ddaR()*3,nav:4+ddaR()*5,air:25+ddaR()*30};}   // (a new chapter: the battle's clock from the start)
   if(!A.on){A.on=true;A.bus.gain.cancelScheduledValues(t);}A.offT=0;
   A.I+=(S.I-A.I)*Math.min(1,dt*.4);A.bt+=dt*ts;
-  A.bus.gain.setTargetAtTime(paused?.6:1,t,.8);
-  ddaWind(t,dt,S);ddaSurf(t,S);ddaBoats(t,dt,live);ddaTanks(t,live);ddaTrucks(t,live);ddaFires(t);
-  if(live)ddaBattle(A.bt,t,S);
+  const udt=t-A.uT;if(udt>=.066){A.uT=t;   // (the levels and filters about 15 times a second: no need to automate them every frame)
+    A.bus.gain.setTargetAtTime(paused?.6:1,t,.8);ddaWind(t,Math.min(udt,.2),S);ddaSurf(t,S);ddaBoatVoices(t,live);ddaTanks(t,live);ddaTrucks(t,live);ddaFires(t);}
+  ddaHull(t,live);if(live)ddaBattle(A.bt,t,S);
 }
 // off: everything fades, and a moment later the loops are stopped (the report and the barracks, the end, D-Day left)
 function ddAmbStop(t){
@@ -240,14 +252,14 @@ function ddaSurf(t,S){
     if(L.p.pan)L.p.pan.setTargetAtTime(ddaPan(L.side*240,DDA.shore-camT.z)*.8,t,.3);
     if(t<L.next-.1)continue;const T=Math.max(t,L.next),P=6.5+ddaR()*5,big=ddaR()<.3?1.25:1,cr=T+1.8+ddaR()*.6;L.next=T+P;
     L.g.gain.setTargetAtTime(.45*big,T,.8);L.g.gain.setTargetAtTime(1*big,cr,.07);L.g.gain.setTargetAtTime(.28,cr+.35,1.1);
-    L.lp.frequency.setTargetAtTime(1100,T,1);L.lp.frequency.setTargetAtTime(3800*big,cr,.06);L.lp.frequency.setTargetAtTime(650,cr+.5,1);
-    L.fz.gain.setTargetAtTime(0,T,.4);L.fz.gain.setTargetAtTime(.55*big,cr+.05,.08);L.fz.gain.setTargetAtTime(0,cr+.45,1.5);
+    L.lp.frequency.setTargetAtTime(1100,T,1);L.lp.frequency.setTargetAtTime(2700*big,cr,.06);L.lp.frequency.setTargetAtTime(650,cr+.5,1);
+    L.fz.gain.setTargetAtTime(0,T,.4);L.fz.gain.setTargetAtTime(.32*big,cr+.05,.08);L.fz.gain.setTargetAtTime(0,cr+.45,1.5);
     if(A.wash){const w=A.wash[Math.floor(ddaR()*A.wash.length)];ddaPlay(w,cr-.12,.6*big*near*DDA.lv.surf,L.p.pan?L.p.pan.value:L.side*.4,300+9000/(1+d/110),.88+ddaR()*.18,A.bus);}
   }
 }
 
 /* ---------- the ride in: the landing craft's diesel, the other boats', the hull on the swell, open water ---------- */
-function ddaBoats(t,dt,live){
+function ddaBoatVoices(t,live){
   const A=ddA,L=DDA.lv,b=dd.boats&&dd.boats.find(q=>q.own),ride=!!b&&!dd.land.done;
   if(b&&b.st!=='gone'&&b.st!=='sunk'){   // our boat: we're in it on the ride, then it backs off the beach
     const idle=b.st==='ramp'||b.st==='out'||b.st==='wait',rev=b.st==='in'?1+Math.sin(simT*1.7+b.x)*.03:b.st==='back'?.92:idle?.56:.8,pl=place(b.x,b.y+25);
@@ -261,6 +273,9 @@ function ddaBoats(t,dt,live){
   if(A.sea){const Q=A.sea,bob=ride&&b?Math.sin(simT*1.7+b.x):0;
     if(ride){Q.q=t;if(!Q.src){const s=ddaLoopSrc(nb,5.2);s.connect(Q.lp);s.connect(Q.hp);Q.src=[s];}}else if(Q.src&&t-Q.q>3)Q.src=ddaKill(Q.src);
     Q.g.gain.setTargetAtTime(ride?L.sea*(.7+.3*bob):0,t,.3);Q.gh.gain.setTargetAtTime(ride?L.sea*.25*(.5+.5*bob):0,t,.3);}
+}
+function ddaHull(t,live){
+  const A=ddA,L=DDA.lv,b=dd.boats&&dd.boats.find(q=>q.own),ride=!!b&&!dd.land.done;
   // the hull slapping down: as the bow drops through each swell (ddBoatPose's bob), and the chop in between
   if(ride&&live&&b.st==='in'&&A.b.slap){const bob=Math.sin(simT*1.7+b.x);
     if(A.bob>0&&bob<=0)ddaPlay(A.b.slap,t+.02,L.slap*(.8+ddaR()*.3),(ddaR()-.5)*.4,2400,.9+ddaR()*.2,A.bus);
@@ -298,15 +313,33 @@ function ddaWhere(S,k){
   if(S.mode==='counter')return r<.6?{dx:(ddaR()-.5)*1.6,dz:-1,far}:{dx:r<.8?-1:1,dz:(ddaR()-.5),far};   // up the road north, and either side
   const a=ddaR()*TAU;return{dx:Math.cos(a),dz:Math.sin(a)-.4,far};   // the village: all round, more of it ahead
 }
+// The fighting round about is a handful of far-off posts (ddaPosts), each a machine gun (an MG42's rip, a Browning's knock) or a
+// squad's rifles (an M1's quick shots, a bolt rifle's slow ones), each firing from the same place in its own rhythm, going quiet
+// for a while now and then and sometimes moving on; and all of it swelling and easing together (A.fl, a slow wander), so it comes in
+// flurries and lulls. Artillery, the ships' guns and aircraft on top.
+function ddaPosts(S){const P=[],n=S.mode==='seq'?3:7;for(let i=0;i<n;i++)P.push(ddaPost(S,i));return P;}
+function ddaPost(S,i){const w=ddaWhere(S,'mg');return{...w,kind:i%3===2?'rifle':ddaR()<.65?'mg42':'br',next:ddaR()*5,move:30+ddaR()*60};}
+function ddaShoot(P,t,I){
+  const A=ddA,B=A.b,L=DDA.lv,p=ddaPan(P.dx,P.dz)*.9,v=(1.15-P.far*.75)*(.7+.3*I);
+  if(P.kind==='rifle'){const m=1+Math.floor(ddaR()*3);
+    for(let j=0;j<m;j++){const pj=clamp(p+(ddaR()-.5)*.25,-1,1),semi=ddaR()<.6,rec=A.rrf&&ddaR()<.65,k=rec?A.rrf[Math.floor(ddaR()*A.rrf.length)]:B['rf'+(1+Math.floor(ddaR()*3))];let at=t+.03+ddaR()*.8;
+      for(let q=0,nq=semi?2+Math.floor(ddaR()*4):1+Math.floor(ddaR()*2);q<nq;q++){ddaPlay(k,at,L.rifle*v*(.6+ddaR()*.4)*(rec?.8:1),pj,rec?1700-P.far*900:2800-P.far*1700,(rec?.85:.95)+ddaR()*.12);at+=semi?.3+ddaR()*.5:1.3+ddaR()*1.2;}}
+    return 2+ddaR()*5;}
+  const mg42=P.kind==='mg42',rec=A.rec&&ddaR()<.6,k=mg42?(rec?'rmg':'mg')+(1+Math.floor(ddaR()*3)):rec?'rbr':ddaR()<.5?'br1':'br2',c=2600-P.far*1600,r=.95+ddaR()*.1;
+  ddaPlay(B[k],t+.03,L.mg*v,p,c,r);if(ddaR()<.4)ddaPlay(B[mg42?(rec?'rmg1':'mg1'):(rec?'rbr':'br1')],t+.7+ddaR()*.8,L.mg*v*.9,p,c,r);
+  return mg42?1.8+ddaR()*4.5:2.5+ddaR()*4;
+}
 function ddaBattle(bt,t,S){
-  const A=ddA,E=A.ev,B=A.b,I=Math.max(.06,A.I),L=DDA.lv;if(!B.rf3)return;
-  if(bt>=E.mg){E.mg=bt+(1+ddaR()*3)/I;const w=ddaWhere(S,'mg'),mg42=ddaR()<.68,k=mg42?['mg1','mg2','mg3'][Math.floor(ddaR()*3)]:ddaR()<.5?'br1':'br2',v=L.mg*(1.15-w.far*.75)*(.7+.3*I),p=ddaPan(w.dx,w.dz)*.9,c=2600-w.far*1600,r=.95+ddaR()*.1;
-    ddaPlay(B[k],t+.03,v,p,c,r);if(ddaR()<.45)ddaPlay(B[mg42?'mg1':'br1'],t+.6+ddaR()*.9,v*.9,p,c,r);}
-  if(bt>=E.rf){E.rf=bt+(1.4+ddaR()*3.5)/I;const w=ddaWhere(S,'rf'),m=1+Math.floor(ddaR()*3);
-    for(let j=0;j<m;j++){const p=clamp(ddaPan(w.dx,w.dz)*.9+(ddaR()-.5)*.3,-1,1),semi=ddaR()<.6,k=B['rf'+(1+Math.floor(ddaR()*3))];let at=t+.03+ddaR()*.8;
-      for(let q=0,nq=semi?2+Math.floor(ddaR()*4):1+Math.floor(ddaR()*2);q<nq;q++){ddaPlay(k,at,L.rifle*(1.15-w.far*.75)*(.6+ddaR()*.4),p,2800-w.far*1700,.95+ddaR()*.12);at+=semi?.3+ddaR()*.5:1.3+ddaR()*1.2;}}}
+  const A=ddA,E=A.ev,B=A.b,L=DDA.lv;if(!B.rf3)return;
+  if(!A.posts||A.postsFor!==A.dd){A.posts=ddaPosts(S);A.postsFor=A.dd;A.fl=1;A.flT=0;}
+  if(bt>=A.flT){A.flT=bt+8+ddaR()*14;A.flTo=.35+ddaR()*1.3;}A.fl+=((A.flTo||1)-A.fl)*.01;   // (flurries and lulls)
+  const I=Math.max(.05,A.I*A.fl);
+  for(const P of A.posts){
+    if(bt>=P.move){Object.assign(P,ddaPost(S,A.posts.indexOf(P)),{next:bt+2+ddaR()*6,move:bt+30+ddaR()*60});continue;}   // (it moves on, or another takes up)
+    if(bt<P.next)continue;P.next=bt+ddaShoot(P,t,I)/Math.max(.05,I*.55)*(ddaR()<.12?4:1);}   // (now and then a longer quiet)
   if(bt>=E.art){E.art=bt+(4.5+ddaR()*9)/(.3+.7*I);const w=ddaWhere(S,'art'),p=ddaPan(w.dx,w.dz)*.85,rec=A.farRec&&ddaR()<.3;
-    ddaPlay(rec?A.farRec:B[['art1','art2','art3'][Math.floor(ddaR()*3)]],t+.03,L.art*(1.1-w.far*.6)*(rec?.8:1),p,1100-w.far*600,rec?.75+ddaR()*.2:.9+ddaR()*.2);}
+    ddaPlay(rec?A.farRec:B[['art1','art2','art3'][Math.floor(ddaR()*3)]],t+.03,L.art*(1.1-w.far*.6)*(rec?.8:1),p,1100-w.far*600,rec?.75+ddaR()*.2:.9+ddaR()*.2);
+    if(ddaR()<.35*I){const at=t+.4+ddaR()*1.2;ddaPlay(B['art'+(1+Math.floor(ddaR()*3))],at,L.art*(1-w.far*.6)*.8,clamp(p+(ddaR()-.5)*.3,-1,1),1000-w.far*500,.85+ddaR()*.25);}}   // (often a second from the same battery)
   if(S.naval&&bt>=E.nav){E.nav=bt+(14+ddaR()*20)/((.4+.6*I)*S.naval);ddaNaval(t,S);}
   if(S.air&&bt>=E.air){E.air=bt+(60+ddaR()*80)/S.air;ddaPlane(t);}
 }
