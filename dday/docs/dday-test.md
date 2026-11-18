@@ -764,3 +764,9 @@ Bryan: "At the top of the first hill the camera should swing left."
 - Why: Version 185 turned up the way only gradually, finishing about 6 m past where the ramp levels out, so standing at the top of the ramp it still mostly faced the first hill, on the right.
 - Now: it faces the first hill until the man the camera follows gets to the top of the ramp, then swings left up the way, about 90 degrees, most of it within 2 seconds. It does this even if you sent them to the far side of that hilltop: while they walk there it faces where they're going, and once they're there it swings left. On the plateau with the hill bunker it still faces where you sent them.
 - Before and after, standing at the top of the ramp: `docs/drafts/top-swing.jpg`.
+
+## Version 187: the pillbox isn't a place to take, and the camera drifts left up the first hill
+Bryan: "1) the Pill box on the right side of the beach doesn't need to be a capture point. 2) walking up the first hill should gradually turn the camera left, so the player knows where to go before reaching the top. Basically, the camera should drift towards where the enemy troops are coming from."
+- The pillbox: no longer a place to take. No "Take the pillbox" objective, no blue ground or "The pillbox is yours.", and no replacements coming from it. At the end of the beach the only bunker to take is the left one. The pillbox's gunners are still there and still shoot, so knock them out or go past them.
+- The camera: from the wire it faces the first hill, then as your squad climbs the ramp it drifts steadily left, toward the way up the draw, where the enemy's men come down from their barracks. By the top it already faces up the draw, so there's no sudden swing any more. It only drifts back if the squad goes back down to the foot of the ramp.
+- Before and after, the same climb: `docs/drafts/drift-camera.jpg`.

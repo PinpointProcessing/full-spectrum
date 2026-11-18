@@ -174,8 +174,7 @@ function ddObjective(){
   if(b&&b.open&&Ly<=-300)return hold(b.holdT,b.holdN,b.holdFoes,'the command post',{x:DB.cp.door.x,y:DB.cp.door.y},240);
   if(Ly>=340){const W=(dd.wires||[]).filter(o=>o.y===340),lx=ours.reduce((a,u)=>a+u.x,0)/ours.length,G=W.filter(o=>o.gone&&Math.abs(o.x+o.w/2-lx)<150),o=near(G.length?G:W.filter(o=>!o.gone),o=>({x:o.x+o.w/2,y:344}));
     return o?{t:G.length?'Through the gap in the wire':'Grenade the wire, or climb it',x:o.x+o.w/2,y:344}:{t:'Get off the beach',x:ddRouteX(300),y:300};}
-  if(Ly>200){const H=dd.held||{},P={left:{x:DD_SPOT.leftMG.x+DDX,y:262,n:'the left bunker'},pill:{x:DD_SPOT.pill.x+DDX,y:262,n:'the pillbox'}},k=near(['left','pill'].filter(k=>!H[k]),k=>P[k]);
-    if(k)return{t:`Take ${P[k].n}`,x:P[k].x,y:P[k].y,cam:1};}   // (cam: the camera turns to it once your squad isn't on the move, ddplay.js's ddTurnObj, Version 184)
+  if(Ly>200&&!(dd.held||{}).left)return{t:'Take the left bunker',x:DD_SPOT.leftMG.x+DDX,y:262,cam:1};   // (cam: the camera turns to it once your squad isn't on the move, ddplay.js's ddTurnObj, Version 184; since Version 187 the left bunker only, Bryan: "the Pill box on the right side of the beach doesn't need to be a capture point")
   if(Ly>-300){const g=enemies.find(e=>e.tag==='draw'&&e.gunner&&known(e));
     if(g&&Ly>-160)return{t:'Knock out the MG nest',x:g.x,y:g.y,h:14,k:'danger'};
     const ty=Math.max(-340,Ly-120);return{t:'Up the draw to the top',x:ddRouteX(ty),y:ty,far:ddRouteLeft(Ly,-340)};}

@@ -1,10 +1,11 @@
 # the climb from the end of the beach onto the first hill and up the draw, first-hill-camera.js's pictures for two copies of the game, one row
-# each: python3 first-hill-camera.py BEFORE_DIR AFTER_DIR [OUT.jpg] (each holds up-300.png, up-240.png ... up-0.png)
+# each: python3 first-hill-camera.py BEFORE_DIR AFTER_DIR [OUT.jpg [BEFORE_NAME AFTER_NAME]] (each holds up-300.png, up-240.png ... up-0.png)
 import sys
 from PIL import Image, ImageDraw, ImageFont
 B,A=sys.argv[1],sys.argv[2];OUT=sys.argv[3] if len(sys.argv)>3 else 'first-hill-camera.jpg'
 cols=[('300','End of the beach'),('240','Foot of the ramp'),('180','On the ramp'),('120','Near the top'),('60','At the top'),('0','On the top')]
-rows=[(B,'Version 184','(before)'),(A,'Version 185','(now)')]
+NB,NA=(sys.argv[4],sys.argv[5]) if len(sys.argv)>5 else ('Version 184','Version 185')
+rows=[(B,NB,'(before)'),(A,NA,'(now)')]
 W,H=390,760;s=0.56;w,h=int(W*s),int(H*s);pad=34;lab=140;gap=10
 sheet=Image.new('RGB',(lab+w*len(cols)+gap*(len(cols)-1)+8,pad+(h+pad)*2),'#101418');d=ImageDraw.Draw(sheet)
 try:f=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',14);f2=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',17)

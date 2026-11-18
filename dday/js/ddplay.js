@@ -363,11 +363,12 @@ function ddTrack(rdt){
 // village and the counterattack keep facing north (their fights don't run along a line)
 const DD_TURN={look:200,rate:1.3,hold:6,off:100,near:60,back:2.1,obj:600,walkT:20};
 // Version 185: the first hill, the step of ground about 9 m up right of the draw with the hill bunker on its lip (x 800 to 1300, y 140 to -60):
-// from the wire (y 340) until the man the camera follows (a squad's: its man furthest up) is at the top of the ramp onto it (y 100, where the
-// ground levels out at 6 to 7 m), west of the plateau (xMax), the camera faces its middle (x,y) from his men round him (within near), never more
-// than maxR east of north. Version 186: there it swings left, up the way, and on the hilltop west of the plateau (y 100 to -60, end) it faces the way up even
-// where you'd sent them off it; once he's at the top, the way up until he's back down the ramp (y 200, back)
-const DD_FIRST={x:1000,y:60,y0:340,top:100,back:200,end:-60,xMax:960,maxR:-1,near:300};
+// from the wire (y 340) the camera faces its middle (x,y) from the men round the man it follows (within near; a squad's: its man furthest up),
+// never more than maxR east of north, west of the plateau (xMax). Version 187: as he climbs the ramp (from y 260, its foot, to y 100, its top,
+// where the ground levels out at 6 to 7 m) it drifts left from that to the way up, where their men come down from the barracks, going by the
+// furthest up he's been, so by the top it faces up the way. Version 186: on the hilltop west of the plateau (y 100 to -60, end) it faces the
+// way up even where you'd sent them off it; once he's been at the top, the way up until he's back down at the ramp's foot
+const DD_FIRST={x:1000,y:60,y0:340,from:260,top:100,end:-60,xMax:960,maxR:-1,near:300};
 function ddTurnRoute(){
   if(!dd||dd.vil||dd.counter||dd.seq)return null;
   const R=DD_ROUTE.map(([x,y])=>({x:x+DDX,y}));
@@ -428,16 +429,24 @@ function ddTurnObj(u){
 // way 6 m past where the ramp levels out (y 40), easing round as they climbed from y 110, so at the top it still mostly faced right, the first
 // hill. Now it faces the first hill until the man it follows is at the top of the ramp (y 100), then swings left up the way at once (eased
 // as any turn); and on that hilltop, west of the plateau, once they've stopped it faces up the way even where you'd sent them off it
+// Version 187 (Bryan, after Version 186: "walking up the first hill should gradually turn the camera left, so the player knows where to go
+// before reaching the top. Basically, the camera should drift towards where the enemy troops are coming from"): no swing at the top; from
+// the ramp's foot to its top it drifts steadily from the first hill round to the way up, up the draw, where their men come down from the
+// barracks (ddBarracks sends them down the way to the front), so by the top it already faces up the draw
 function ddTurnFirst(u,walking){   // u: the man the camera follows (a squad's: its man furthest up the way)
   const F=DD_FIRST,C=dd.cam;if(!ddTurnRoute())return null;
-  if(u.y<=F.top)C.firstUp=true;else if(u.y>F.back)C.firstUp=false;   // (him at the top: the way up from then on, until he's back down the ramp)
+  if(u.y<=F.top)C.firstUp=true;else if(u.y>F.from){C.firstUp=false;C.firstMin=null;}   // (back down at the ramp's foot: the first hill again)
   if(u.y>F.y0||u.x>F.xMax)return null;   // (not on the plateau itself: there it faces where you sent them, Version 183)
-  if(C.firstUp){if(u.y<F.end)return null;   // (on up the draw: as before)
-    const w=ddRouteWay(u.x,u.y);if(!w)return null;if(!walking){C.go=null;C.offA=null;}   // (Version 186, Bryan: "At the top of the first hill the camera should swing left": up the way, and where you'd sent them on the hilltop forgotten once they're there)
-    return Math.atan2(-w.x,-w.y);}
+  const w=ddRouteWay(u.x,u.y),b=w?Math.atan2(-w.x,-w.y):null;
+  if(C.firstUp){if(u.y<F.end||b==null)return null;   // (on up the draw: as before)
+    if(!walking){C.go=null;C.offA=null;}   // (Version 186, Bryan: "At the top of the first hill the camera should swing left": up the way, and where you'd sent them on the hilltop forgotten once they're there)
+    return b;}
   const m=dd.track&&dd.track.id?[u]:players.filter(p=>p.team===u.team&&alive(p)&&!p.inBoat&&!p.joining&&hyp(p.x-u.x,p.y-u.y)<F.near);   // (the way to it from his men round him: it doesn't swing as the lead changes, and a man left by the beach doesn't drag it back)
   const M={x:m.reduce((n,q)=>n+q.x,0)/m.length,y:m.reduce((n,q)=>n+q.y,0)/m.length};
-  return Math.max(F.maxR,Math.atan2(-(F.x-M.x),-(F.y-M.y)));   // (toward its middle, but never further round than F.maxR: from the ramp it's off to the east)
+  const a=Math.max(F.maxR,Math.atan2(-(F.x-M.x),-(F.y-M.y)));   // (toward its middle, but never further round than F.maxR: from the ramp it's off to the east)
+  C.firstMin=Math.min(C.firstMin??1e9,u.y);const k=clamp((F.from-C.firstMin)/(F.from-F.top),0,1);if(b==null||k<=0)return a;   // (Version 187: how far up the ramp he's got, the furthest yet, so it only ever drifts on as they climb)
+  let d=b-a;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;
+  return a+d*k;   // (Version 187, Bryan: "walking up the first hill should gradually turn the camera left, so the player knows where to go before reaching the top. Basically, the camera should drift towards where the enemy troops are coming from")
 }
 function ddTurnWant(u){   // {a: the way to face, tk: a tank's} or null to leave the camera as it is
   const C=dd.cam,K=ddTankNear(u),G=K?null:C.go;
@@ -643,7 +652,7 @@ function ddWaves(){
 }
 // where a replacement comes from (Version 170, Bryan: "The previously controlled area should produce the reinforcements, not the most recent"): the place
 // taken before the one taken last, the barracks last of all; the beach (a boat) while that's the beach. Until Version 170: the held place nearest his squad
-const DD_SPAWN={left:[352,236],pill:[668,236],nest:[906,236],hill:[880,120],draw:[530,60],heavy:[120,-380],art:[770,-390]};
+const DD_SPAWN={left:[352,236],nest:[906,236],hill:[880,120],draw:[530,60],heavy:[120,-380],art:[770,-390]};
 function ddSpawnAt(){
   const O=(dd.heldOrder||[]).filter(k=>k==='beach'||DD_SPAWN[k]);if(dd.blown.barracks)O.push('barracks');
   const k=O.length>=2?O[O.length-2]:null;if(!k||k==='beach')return null;
@@ -781,7 +790,7 @@ function ddTankWreck(K){
    it; it stays ours. Its ground gets a faint blue wash and a blue border (drawDDay), its bunker turns blue (DD.bk's materials). The
    base is the last: held with the barracks, which is the win (Bryan: "The player doesn't need to destroy the barracks, just control it") */
 const DD_ZONES=[
-  {k:'beach',n:'The beach',r:[0,348,1000,776],tags:[]},{k:'left',n:'The left bunker',r:[236,204,468,344],tags:['left'],bk:'p0'},{k:'pill',n:'The pillbox',r:[600,206,770,344],tags:['pill'],bk:'p1'},
+  {k:'beach',n:'The beach',r:[0,348,1000,776],tags:[]},{k:'left',n:'The left bunker',r:[236,204,468,344],tags:['left'],bk:'p0'},   // (the pillbox, r 600,206,770,344, isn't one since Version 187, Bryan: "the Pill box on the right side of the beach doesn't need to be a capture point": its guns are still there to knock out)
   {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},
   {k:'heavy',n:'The heavy gun',r:[14,-456,166,-344],tags:['heavy'],bk:'hv'},{k:'art',n:'The artillery',r:[640,-436,900,-336],tags:['art']},{k:'base',n:'The base',r:[200,-756,1000,-440],tags:['base','top','cannon','mortar','reinf']}];
 function ddZones(){
@@ -1054,7 +1063,7 @@ function ddHint(){
   if(dd.counter)return dcHint();
   if(!dd.land.done)return'Coming in under fire. They run for cover by themselves when the ramp drops; then they\'re yours.';
   const other=dd.active==='A'?'Bravo':'Alpha';
-  if(dd.front>330)return`The camera follows your squad, turns with the way up (toward where you send them off it, at the end of the beach to the bunker to take next, and from the wire to the first hill, swinging left up the way at the top of the ramp) and faces a tank that comes near; drag the map to look round, and your next move brings it back. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
+  if(dd.front>330)return`The camera follows your squad, turns with the way up (toward where you send them off it, at the end of the beach to the bunker to take next, and from the wire to the first hill, drifting left up the draw, where their men come down from, as you climb the ramp) and faces a tank that comes near; drag the map to look round, and your next move brings it back. Shell holes and steel obstacles are cover. A grenade or a rocket on the wire breaks it; climbing it cuts. The Bazooka reaches far but strays at long range. The two bunkers on the path along the cliff cover the beach: smoke blinds it, the Bazooka (the demolition man's card) breaks it. ${other} looks after itself; tap its tab to take it over.`;
   if(dd.front>-300)return'The path along the cliff runs from the first bunker up to the second. The only way to the top is the draw: boulders and sandbags are cover, the two nests on the right cover it.';
   if(dd.base&&dd.base.open)return ddBaseHint();
   return'The base. Take the barracks: clear their men from round it and put two of yours at its door for four seconds. Nobody comes out of it while yours are at the door.';
