@@ -72,9 +72,12 @@ function figKitKey(u,L){
   else if(L.k==='sq')w=u.weapon==='hmg'?'hmg':u.weapon==='sniper'?'sniper':u.weapon==='shotgun'?'shotgun':(u.weapon==='m4s'&&(u.sil??1)>0?'m4s':'m4');   // (the silencer on the muzzle: a silenced rifle, or the silencer item while it lasts)
   else if(L.k==='en')w=u.noGun?'none':u.weapon==='sniper'||(u.post&&/sniper/i.test(u.name||''))?'sniper':'ak';
   else if(L.k==='pri')w=u.weapon?(u.weapon==='sniper'?'sniper':'ak'):'none';
+  // D-Day (Version 190): 1944's guns in their hands, not the horror game's: the M1 Garand for a rifle, the BAR for the gunner, the Springfield's wood
+  // for the sharpshooter (the 'sniper' model on D-Day), the Kar98k for the Germans (the weapons themselves, and how they fire, are as they were)
+  if(typeof MAPID!=='undefined'&&MAPID==='dd'){if(w==='m4'||w==='m4s')w='m1';else if(w==='hmg')w='bar';else if(w==='ak')w='kar';}
   const helm=L.k==='en'&&(u.gunner||u.helm||(typeof alertStage==='function'&&alertStage()>=2));
   const role=L.k==='sq'?(u.id==='A1'?'lead':u.id==='B2'||u.spec==='med'?'med':u.id==='B1'?'mg':''):'';
-  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}${u.gl&&(w==='m4'||w==='m4s')?'g':''}${typeof MAPID!=='undefined'&&MAPID==='dd'?'S':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;   // (g: an M203 under the rifle, Level 4's find)
+  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}${u.gl&&(w==='m4'||w==='m4s'||w==='m1')?'g':''}${typeof MAPID!=='undefined'&&MAPID==='dd'?'S':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;   // (g: an M203 under the rifle, Level 4's find)
 }
 
 /* ---------- the parts ---------- */
@@ -189,12 +192,32 @@ function figParts(key){
     G(rbox(.9,.5,.42,.12),COL.metal,4,.75,.75,0);G(cyl(.2,.2,.8),COL.metal,4,3.35,-.15,.45,ALONG_X);G(cyl(.16,.16,.06),W,7,3.77,-.15,.45,ALONG_X);
     if(w==='m4s')G(cyl(.28,.28,2.1),COL.metal,4,5.9,.05,0,ALONG_X);           // the silencer
     if(gl){G(cyl(.34,.34,2.0,10),COL.metal,4,3.05,-.72,0,ALONG_X);G(rbox(.36,.62,.3,.08),COL.metal,4,1.75,-1.1,0,[0,0,-.2]);}   // an M203 under the handguard, its trigger
+  }else if(w==='m1'){   // D-Day: the M1 Garand: a one-piece walnut stock with its upper handguard, the receiver, the barrel and its front sight; with rifle grenades, the M7 launcher on the muzzle and a grenade on it
+    const wd=COL.wood;
+    G(rbox(2.4,1.0,.5,.2),wd,5,-2.15,-.3,0,[0,0,-.1]);G(rbox(1.0,.72,.48,.16),wd,5,-.55,-.22,0,[0,0,-.06]);G(rbox(1.9,.66,.5,.12),COL.metal,4,.6,.1,0);
+    G(rbox(2.7,.62,.52,.18),wd,5,2.55,-.12,0);G(rbox(1.9,.3,.42,.1),wd,5,2.7,.3,0);G(cyl(.13,.13,2.0,6),COL.metal,4,4.85,.12,0,ALONG_X);
+    G(rbox(.18,.42,.16,.04),COL.metal,4,5.7,.36,0);G(rbox(.32,.32,.32,.06),COL.metal,4,1.15,.52,0);G(rbox(.62,.3,.42,.08),COL.metal,4,.35,-.52,0);
+    G(rbox(.16,.7,.56,.04),COL.metal,4,3.85,-.02,0);
+    if(gl){G(cyl(.2,.2,1.3,8),COL.metal,4,6.3,.12,0,ALONG_X);G(cyl(.42,.3,1.0,8),COL.olive,5,7.2,.12,0,ALONG_X);}
+  }else if(w==='bar'){   // D-Day: the Browning Automatic Rifle: a wooden butt, a long squared receiver, the box magazine under it, the wooden fore-end, a heavy barrel with its gas tube, the flash hider and a folded bipod
+    const wd=COL.wood;
+    G(rbox(2.3,1.0,.55,.2),wd,5,-2.3,-.28,0,[0,0,-.08]);G(rbox(3.3,1.0,.62,.15),COL.metal,4,.6,0,0);G(rbox(.78,1.15,.5,.08),COL.metal,4,.85,-1.0,0);
+    G(rbox(.45,1.0,.46,.12),wd,5,-.55,-.8,0,[0,0,-.3]);G(rbox(1.7,.78,.62,.2),wd,5,3.0,-.1,0);G(cyl(.17,.17,3.0),COL.metal,4,5.0,.08,0,ALONG_X);
+    G(cyl(.11,.11,2.0,6),COL.metal,4,4.3,-.28,0,ALONG_X);G(cyl(.23,.2,.55,8),COL.metal,4,6.75,.08,0,ALONG_X);
+    for(const s of[-1,1])G(rbox(2.0,.14,.14,.04),COL.metal,4,4.7,-.42,s*.2,[0,s*.06,0]);
+  }else if(w==='kar'){   // D-Day: the Kar98k: a long wooden stock right up under the barrel, the bolt handle turned down, the bands, the front sight
+    const wd='#6a4428';
+    G(rbox(2.4,1.05,.5,.2),wd,5,-2.2,-.3,0,[0,0,-.1]);G(rbox(1.0,.72,.46,.16),wd,5,-.55,-.22,0,[0,0,-.06]);G(rbox(1.6,.62,.46,.1),COL.metal,4,.55,.08,0);
+    G(rbox(3.4,.6,.5,.18),wd,5,2.8,-.12,0);G(cyl(.12,.12,1.5,6),COL.metal,4,5.2,.1,0,ALONG_X);G(rbox(.16,.38,.14,.04),COL.metal,4,5.85,.3,0);
+    G(cyl(.07,.07,.62,5),COL.metal,4,.3,.1,.38,[Math.PI/2,0,0]);G(rbox(.24,.24,.24,.06),COL.metal,4,.3,.02,.7);G(rbox(.6,.3,.4,.08),COL.metal,4,.3,-.5,0);
+    for(const x of[2.2,4.2])G(rbox(.16,.7,.56,.04),COL.metal,4,x,-.08,0);
   }else if(w==='hmg'){
     G(rbox(3.6,1.25,.85,.2),COL.metal,4,.6,0,0);G(rbox(2.3,1.05,.6,.25),COL.black,5,-2.3,-.15,0);G(rbox(.45,1.05,.5,.12),COL.black,5,-.3,-.95,0,[0,0,-.35]);
     G(cyl(.21,.21,4.4),COL.metal,4,4.8,.1,0,ALONG_X);G(rbox(1.3,.28,.28,.08),COL.metal,4,3.1,.85,0);G(rbox(2.0,.2,.22,.06),COL.metal,4,4.4,-.35,0);
     G(rbox(1.3,1.25,.9,.15),COL.olive,5,.7,-.95,-.65);G(rbox(1.5,.35,.8,.1),COL.metal,4,.6,.78,0);
-  }else if(w==='sniper'){
-    G(rbox(3.0,.85,.55,.14),COL.metal,4,.5,0,0);G(rbox(2.7,1.15,.55,.25),en?COL.wood:COL.fde,5,-2.1,-.25,0);G(rbox(1.2,.35,.6,.12),en?COL.wood:COL.fde,5,-1.7,.45,0);
+  }else if(w==='sniper'){   // (on D-Day the wood the Springfield's is, ours too: flags 'S')
+    const sw=en||flags.includes('S')?COL.wood:COL.fde;
+    G(rbox(3.0,.85,.55,.14),COL.metal,4,.5,0,0);G(rbox(2.7,1.15,.55,.25),sw,5,-2.1,-.25,0);G(rbox(1.2,.35,.6,.12),sw,5,-1.7,.45,0);
     G(rbox(.42,1.0,.45,.12),COL.black,5,-.1,-.8,0,[0,0,-.35]);G(cyl(.16,.16,4.8),COL.metal,4,4.4,.05,0,ALONG_X);
     G(cyl(.32,.32,2.6,10),COL.dark,4,.6,.95,0,ALONG_X);G(cyl(.42,.36,.5,10),COL.dark,4,1.95,.95,0,ALONG_X);G(cyl(.36,.4,.4,10),COL.dark,4,-.75,.95,0,ALONG_X);
     G(rbox(.6,.9,.42,.1),COL.metal,4,.6,-.75,0);for(const s of[-1,1])G(rbox(.15,1.6,.15,.05),COL.metal,4,2.6,-.75,s*.25,[s*.25,0,.15]);
@@ -217,7 +240,7 @@ function figStahlhelm(){
 }
 // the grips (where his wrists go, in the gun's frame) and the back of the stock, per weapon
 const GRIP={m4:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},m4s:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},hmg:{R:[-.45,-.55,.25],L:[2.3,-.75,-.3],butt:-3.4},
-  sniper:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-3.4},shotgun:{R:[-.3,-.45,.22],L:[2.7,-.45,-.25],butt:-3.1},ak:{R:[-.3,-.5,.22],L:[2.4,-.5,-.25],butt:-3.1},none:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-2.9}};
+  sniper:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-3.4},shotgun:{R:[-.3,-.45,.22],L:[2.7,-.45,-.25],butt:-3.1},ak:{R:[-.3,-.5,.22],L:[2.4,-.5,-.25],butt:-3.1},m1:{R:[-.3,-.45,.22],L:[2.6,-.45,-.25],butt:-3.25},bar:{R:[-.45,-.55,.25],L:[2.5,-.6,-.3],butt:-3.4},kar:{R:[-.3,-.45,.22],L:[2.5,-.45,-.25],butt:-3.3},none:{R:[-.3,-.45,.22],L:[2.6,-.5,-.25],butt:-2.9}};
 // the D-Day test's build (Bryan, of the three drafts: "Let's go with stocky for now"): each bone's parts made thicker (a limb
 // runs along its bone's y), the head, hands and boots bigger; ddplay.js makes the whole man a little wider than tall on top
 const STOCKY={head:[1.5,1.5,1.5],neck:[1.3,1,1.3],arm:[1.45,1,1.45],fore:[1.45,1,1.45],hand:[1.55,1.4,1.55],thigh:[1.4,1,1.38],shin:[1.45,1,1.45],foot:[1.3,1.35,1.5],
@@ -575,7 +598,7 @@ function poseTorso(u,F,st,gait,P){
   if(st==='carry'){P.spineE[2]-=.12;if(armed){G.P.set(1.5,-.9,1.55);G.E[0]=.1;G.E[1]=.1;G.E[2]=-1.15;}else slung();return;}
   if(unarmed){slung();return;}
   if(aim){
-    const kick=Math.max(0,1-(simT-(u.shotT||-9))/.12)*(F.key.includes('|sniper|')?1.6:F.key.includes('|hmg|')?1.2:.8);
+    const kick=Math.max(0,1-(simT-(u.shotT||-9))/.12)*(F.key.includes('|sniper|')?1.6:F.key.includes('|hmg|')||F.key.includes('|bar|')?1.2:.8);
     P.hipsE[1]-=.3;P.chestE[1]=.05;P.headE[1]=.25;P.headE[2]-=.12+(crouch?.05:0);P.headE[0]+=.12;P.chestE[2]+=kick*.04;
     // pitch to whoever he's shooting at (the tower is high up)
     let pitch=0;const tg=u.target;if(tg&&!tg.dead){const dd=hyp(tg.x-u.x,tg.y-u.y)||1;pitch=clamp(Math.atan2(((tg.elev||0)+12)-((u.elev||0)+15),dd),-.6,.6);}
