@@ -357,3 +357,41 @@ function ddgFadeFrame(rdt){
     if(done){o.gFadeA=1;ddgFading.delete(o);}}
 }
 function ddGroundFrame(rdt,now,dt){ddgFadeFrame(rdt);}
+
+/* ---------- Version 190: the land beyond the battle ----------
+   The far planes (dday.js's 'far' behind the base, ddcounter.js's and ddvillage.js's 'far' and 'hill') were flat sheets of one green, nearly clear of
+   the haze since the light's fog moved out, so they read as a lime slab with trees standing on it. Now: Normandy's bocage from above (small fields in
+   muted greens and ochres, ploughed strips, dark hedgerows with trees along them; one picture, cached), fading into the horizon's haze the further
+   it lies from the camera (outside the play area, DDB, only), so far land melts into the sky whatever the fog does and land near the camera keeps its fields. */
+function ddgBocageTex(){
+  if(DDG_TEX.bocage)return DDG_TEX.bocage;
+  const S=512,c=document.createElement('canvas');c.width=c.height=S;const q=c.getContext('2d'),r=rng(1944);
+  const fields=['#5d7340','#6b7a45','#7a7448','#4f6538','#8a8150','#556b3a','#687845','#73703f'];
+  q.fillStyle='#5f7240';q.fillRect(0,0,S,S);
+  // a jittered grid of fields (wrapping, so the picture tiles); each field its own tone, some ploughed or striped
+  const N=6,P=[];for(let j=0;j<=N;j++){P[j]=[];for(let i=0;i<=N;i++){const e=i===0||i===N||j===0||j===N;P[j][i]=[i*S/N+(e?0:(r()-.5)*S/N*.5),j*S/N+(e?0:(r()-.5)*S/N*.5)];}}
+  for(let i=0;i<=N;i++){P[N][i]=[P[0][i][0],S];}for(let j=0;j<=N;j++){P[j][N]=[S,P[j][0][1]];}
+  const poly=(j,i)=>[P[j][i],P[j][i+1],P[j+1][i+1],P[j+1][i]];
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const pts=poly(j,i);q.fillStyle=fields[(r()*fields.length)|0];q.beginPath();pts.forEach((p,k)=>k?q.lineTo(p[0],p[1]):q.moveTo(p[0],p[1]));q.closePath();q.fill();
+    if(r()<.35){q.save();q.clip();q.strokeStyle=`rgba(${r()<.5?'60,52,36':'150,140,96'},.22)`;q.lineWidth=2;const a=r()*3.14,dx=Math.cos(a),dy=Math.sin(a);for(let k=-S;k<S;k+=6){q.beginPath();q.moveTo(pts[0][0]+dx*-S-dy*k,pts[0][1]+dy*-S+dx*k);q.lineTo(pts[0][0]+dx*S-dy*k,pts[0][1]+dy*S+dx*k);q.stroke();}q.restore();}
+    for(let k=0;k<40;k++){q.fillStyle=`rgba(${r()<.5?'30,40,20':'200,190,140'},${.04+r()*.05})`;const p=pts[0];q.fillRect(p[0]+r()*S/N,p[1]+r()*S/N,3+r()*8,2+r()*5);}}
+  // hedgerows along every field edge, a little wobbly, with trees in clumps along them
+  q.lineCap='round';
+  const hedge=(a,b)=>{q.strokeStyle='#2f3a24';q.lineWidth=3+r()*1.5;q.beginPath();q.moveTo(a[0],a[1]);const m=[(a[0]+b[0])/2+(r()-.5)*8,(a[1]+b[1])/2+(r()-.5)*8];q.quadraticCurveTo(m[0],m[1],b[0],b[1]);q.stroke();
+    const n=2+(r()*5|0);for(let k=0;k<n;k++){const t=r(),x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t,R=3+r()*4;q.fillStyle='#26301d';q.beginPath();q.arc(x+1.5,y+1.5,R,0,7);q.fill();q.fillStyle=r()<.5?'#3a4a2a':'#435330';q.beginPath();q.arc(x,y,R,0,7);q.fill();}};
+  for(let j=0;j<=N;j++)for(let i=0;i<N;i++)hedge(P[j][i],P[j][i+1]);
+  for(let j=0;j<N;j++)for(let i=0;i<=N;i++)hedge(P[j][i],P[j+1][i]);
+  // a few farm roofs
+  for(let k=0;k<5;k++){const x=r()*S,y=r()*S;q.fillStyle='#6e4a38';q.fillRect(x,y,7,4);q.fillStyle='#8a8478';q.fillRect(x+9,y+1,4,3);}
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return DDG_TEX.bocage=t;
+}
+// the material for a far plane w by d units: the bocage picture (one tile about 760 units) and the fade into the haze outside the play area
+function ddgFarMat(w,d,tint){
+  const t=ddgBocageTex().clone();t.needsUpdate=true;t.repeat.set(w/760,d/760);
+  const m=new THREE.MeshStandardMaterial({map:t,color:tint||0xffffff,roughness:1});
+  m.onBeforeCompile=s=>{s.uniforms.uBox={value:new THREE.Vector4(DDB.x0+700,(DDB.y0+DDB.y1)/2,700,(DDB.y1-DDB.y0)/2)};
+    s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vFarW;varying float vFarD;').replace('#include <project_vertex>','#include <project_vertex>\nvFarW=(modelMatrix*vec4(transformed,1.)).xyz;vFarD=-mvPosition.z;');
+    s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vFarW;varying float vFarD;uniform vec4 uBox;')
+      .replace('#include <fog_fragment>','#ifdef USE_FOG\n{vec2 q=max(abs(vFarW.xz-uBox.xy)-uBox.zw,0.);float dE=length(q);gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(350.,2600.,vFarD)*smoothstep(0.,220.,dE)*.8);}\n#endif\n#include <fog_fragment>');};
+  return m;
+}

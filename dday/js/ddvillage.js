@@ -121,8 +121,8 @@ function vgPaint(g){
   g.fillStyle='#a08e66';g.fillRect(680,-280,40,600);
 }
 function vgScenery(sc){
-  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),new T.MeshStandardMaterial({color:0x667d44,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);
-  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),new T.MeshStandardMaterial({color:0x58703f,roughness:1}));hill.rotation.x=-Math.PI/2+.05;hill.position.set(700,50,DDB.y0-900);sc.add(hill);
+  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),typeof ddgFarMat==='function'?ddgFarMat(9000,5000):new T.MeshStandardMaterial({color:0x667d44,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);   // (Version 190: bocage fading into the haze, ddground.js)
+  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),typeof ddgFarMat==='function'?ddgFarMat(9000,1800,0xe4e8dc):new T.MeshStandardMaterial({color:0x58703f,roughness:1}));hill.rotation.x=-Math.PI/2+.05;hill.position.set(700,50,DDB.y0-900);sc.add(hill);
 }
 
 /* ---------- the props: the village's buildings, the hedgerow, walls, logs, bales; the trees (instanced, see vgFrame) ---------- */

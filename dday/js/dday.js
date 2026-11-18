@@ -230,7 +230,7 @@ function paintDDGround(g){
     for(let k=0;k<18;k++){const a=r()*TAU,l=R*(1.2+r()*.9);x.strokeStyle=`rgba(${r()<.5?'112,94,66':'134,114,82'},${.08+r()*.1})`;x.lineWidth=3+r()*6;x.beginPath();x.moveTo(h.x+Math.cos(a)*R*.85,h.y+Math.sin(a)*R*.85);x.lineTo(h.x+Math.cos(a)*l,h.y+Math.sin(a)*l);x.stroke();}
     let gr=x.createRadialGradient(h.x,h.y,1,h.x,h.y,R+6);gr.addColorStop(0,'rgba(44,38,30,.9)');gr.addColorStop(.42,'rgba(66,56,42,.82)');gr.addColorStop(.8,'rgba(104,88,64,.55)');gr.addColorStop(1,'rgba(104,88,64,0)');x.fillStyle=gr;x.beginPath();x.arc(h.x,h.y,R+6,0,7);x.fill();
     const sa=r()*TAU;gr=x.createRadialGradient(h.x+Math.cos(sa)*R*.5,h.y+Math.sin(sa)*R*.5,1,h.x+Math.cos(sa)*R*.5,h.y+Math.sin(sa)*R*.5,R*.95);gr.addColorStop(0,'rgba(20,18,16,.55)');gr.addColorStop(1,'rgba(20,18,16,0)');x.fillStyle=gr;x.beginPath();x.arc(h.x+Math.cos(sa)*R*.5,h.y+Math.sin(sa)*R*.5,R*.95,0,7);x.fill();
-    if(h.y>540||h.c===2){x.fillStyle='rgba(58,70,72,.75)';x.beginPath();x.ellipse(h.x+(r()-.5)*4,h.y+(r()-.5)*3,R*.32,R*.24,r()*3,0,7);x.fill();x.fillStyle='rgba(150,166,166,.35)';x.beginPath();x.ellipse(h.x-R*.08,h.y-R*.06,R*.16,R*.08,0,0,7);x.fill();}
+    if(h.y>540||h.c===2){x.fillStyle='rgba(54,58,50,.62)';x.beginPath();x.ellipse(h.x+(r()-.5)*4,h.y+(r()-.5)*3,R*.32,R*.24,r()*3,0,7);x.fill();x.fillStyle='rgba(150,160,150,.12)';x.beginPath();x.ellipse(h.x-R*.08,h.y-R*.06,R*.16,R*.08,0,0,7);x.fill();}
     for(let k=0;k<70;k++){const a=r()*TAU,d=R*(.9+r()*r()*.6),s=.7+r()*1.8;x.fillStyle=r()<.4?`rgba(84,70,50,${.25+r()*.25})`:`rgba(220,202,160,${.25+r()*.3})`;x.beginPath();x.ellipse(h.x+Math.cos(a)*d,h.y+Math.sin(a)*d,s,s*.7,a,0,7);x.fill();}}
   // onto the map's canvas: the play area, and its mirror image in each edge and beyond
   g.setTransform(1,0,0,1,0,0);g.drawImage(c,DDX*DDS,0);
@@ -279,7 +279,7 @@ function buildDDay(){
     const land=new T.Mesh(geo,gmat);land.rotation.x=-Math.PI/2;land.position.set(gw/2,0,(DDB.y0+DDB.y1)/2);land.receiveShadow=true;sc.add(land);
     for(const s of[-1,1]){const m=new T.Mesh(geo,gmat);m.rotation.x=-Math.PI/2;m.scale.x=-1;m.position.set(s<0?-gw/2:gw*1.5,0,(DDB.y0+DDB.y1)/2);m.receiveShadow=true;sc.add(m);(DD.bo=DD.bo||[]).push(m);}
     // far land behind the base, and the sea bed out to the horizon
-    const far=new T.Mesh(new T.PlaneGeometry(9000,3000),new T.MeshStandardMaterial({color:0x6f9440,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,151,DDB.y0-1500);sc.add(far);DD.bo.push(far);
+    const far=new T.Mesh(new T.PlaneGeometry(9000,3000),typeof ddgFarMat==='function'?ddgFarMat(9000,3000):new T.MeshStandardMaterial({color:0x6f9440,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,151,DDB.y0-1500);sc.add(far);DD.bo.push(far);   // (Version 190: fields and hedgerows fading into the haze, ddground.js)
     // the sea, its bed and its surf: ddsea.js's ddSeaBuild since Version 188 (one sheet of water: the swell, the breakers, the swash and the wet sand in its shader)
     // a sky to look at when the camera's tilted down: a big dome the colour of the haze
     const dome=new T.Mesh(new T.SphereGeometry(5200,24,12),new T.MeshBasicMaterial({color:0x8e9aa2,side:T.BackSide,fog:false,depthWrite:false}));dome.position.set(700,0,0);sc.add(dome);DD.dome=dome;
@@ -354,7 +354,10 @@ function ddProps(sc,objsL){
       for(let k=0;k<=n;k++)o.meshes.push(add(new T.BoxGeometry(1.6,17,1.6),steel,o.x+k*o.w/n,g0+8.5,cy));
       for(const hh of[4,10,16])o.meshes.push(add(new T.BoxGeometry(o.w,1.2,1.2),steel,cx,g0+hh,cy));
       for(let k=0;k<n;k++)o.meshes.push(add(new T.BoxGeometry(hyp(o.w/n,12),1,1),rust,o.x+(k+.5)*o.w/n,g0+10,cy,0,0,(k%2?1:-1)*Math.atan2(12,o.w/n)));
-    }else if(o.kind==='ddbould'){const m=add(new T.DodecahedronGeometry(10,0),rockM,cx,g0+4,cy,r()*6);m.scale.set(1.05,.8+r()*.3,.9);(o.meshes=[]).push(m);}
+    }else if(o.kind==='ddbould'){   // (Version 190: not dice: one of three jittered, rounder stones, shaded darker at the foot, sunk a little; the same random draws as before)
+      const v=Math.abs((cx*7+cy*13)|0)%3,k='bouldG'+v,g=DD[k]||(DD[k]=typeof ddgJitter==='function'?ddgShade(ddgJitter(new T.IcosahedronGeometry(10,1),3.4,11+v),.6,1.1,.1,21+v):new T.DodecahedronGeometry(10,0));
+      const bm=DD.bouldM||(DD.bouldM=new T.MeshStandardMaterial({color:0x837868,roughness:1,flatShading:true,vertexColors:!!g.attributes.color}));
+      const m=add(g,bm,cx,g0+2.6,cy,r()*6);m.scale.set(1.08,.74+r()*.24,.94);(o.meshes=[]).push(m);}
     else if(o.kind==='ddcrate'){o.meshes=[add(ddgCrates(o.w,13,o.h,r),crateM,cx,g0,cy)];}   // (Version 188: a stack of ammunition boxes, not one plain block)
     else if(o.kind==='ddhog'){   // a steel hedgehog: three girders crossed
       // (Version 188: angle-iron girders, chunky and rusted, riveted plates where they cross; one mesh)
