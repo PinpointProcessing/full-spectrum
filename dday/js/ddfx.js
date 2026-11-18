@@ -184,8 +184,8 @@ function ddFxBlast(x,y,k,hot){
   // a shell's (and a wreck's) smoke left standing as a column over where it fell, darker at its foot, leaning off downwind for ten seconds or so; it
   // fades in as the earth comes down, and takes no more than most of the store, so the next blast always has room (Version 188, pass 3)
   if(k>=.9){const nl=Math.round(DDFX.linger[t]*(hot?1.4:1)*Math.min(1.3,k));
-    for(let i=0;i<nl;i++){const u=i/Math.max(1,nl-1),dk=hot?.1:.2+u*.1;ddFxAdd(S,L*.85,x+(R()-.5)*16*k,g+(14+u*52)*k,y+(R()-.5)*16*k,(R()-.5)*5,(8+u*14+R()*6)*k,(R()-.5)*5,
-      10+R()*5+u*3,(30+R()*10)*k,(80+u*44+R()*30)*k,dk,dk*.93,dk*.86,dk+.26,dk+.24,dk+.21,.72-u*.2,0,.5,.7,1+u*.5,.8,.8+u*.6);}}
+    for(let i=0;i<nl;i++){const u=i/Math.max(1,nl-1),dk=hot?.1:.25+u*.1;ddFxAdd(S,L*.85,x+(R()-.5)*16*k,g+(14+u*52)*k,y+(R()-.5)*16*k,(R()-.5)*5,(8+u*14+R()*6)*k,(R()-.5)*5,
+      10+R()*5+u*3,(30+R()*10)*k,(80+u*44+R()*30)*k,dk,dk*.93,dk*.86,dk+.26,dk+.24,dk+.21,.64-u*.18,0,.5,.7,1+u*.5,.8,.8+u*.6);}}
   // the smoke that's left, drifting off (black and oily from a wreck; a brownish grey from earth and sand, not a cold grey)
   const ns=Math.round((hot?8:2+4*k)*few);
   for(let i=0;i<ns;i++){const a=R()*TAU,o=R()*16*k;const dk=hot?.12:sand?.42:.36;ddFxAdd(S,L,x+Math.cos(a)*o,g+(12+R()*24)*k,y+Math.sin(a)*o,Math.cos(a)*10,(5+R()*8)*k,Math.sin(a)*10,
@@ -282,14 +282,14 @@ function ddFxCannon(x,h,y,dir){
   for(let i=0;i<3;i++)ddFxAdd(G,DDFX.cap.glow[t],x+dx*(6+i*7),h,y+dy*(6+i*7),dx*60,4,dy*60,.18+i*.04,12-i*2,20-i*3,1,.75,.4,.8,.25,.05,.7,0,6,0,0,0,0);
   const n=Math.round(10*few);
   for(let i=0;i<n;i++){const a=i/n*TAU,s=40+R()*30,fw=dir==null?0:70+R()*90;
-    ddFxAdd(S,L,x+dx*4,h,y+dy*4,Math.cos(a)*s*(dir==null?1:.55)+dx*fw,Math.sin(a*1.7)*s*.35+6,Math.sin(a)*s*(dir==null?1:.55)+dy*fw,2.2+R()*1.6,7+R()*4,26+R()*14,.8,.79,.76,.66,.65,.63,.6,0,2.4,3,1,.8,.03);}
+    ddFxAdd(S,L,x+dx*4,h,y+dy*4,Math.cos(a)*s*(dir==null?1:.55)+dx*fw,Math.sin(a*1.7)*s*.35+6,Math.sin(a)*s*(dir==null?1:.55)+dy*fw,2.2+R()*1.6,7+R()*4,26+R()*14,.8,.76,.7,.66,.63,.58,.6,0,2.4,3,1,.8,.03);}
   if(h-g<40)for(let i=0;i<Math.round(5*few);i++){const a=R()*TAU,s=60+R()*50;ddFxAdd(S,L,x+Math.cos(a)*6,g+4,y+Math.sin(a)*6,Math.cos(a)*s+dx*40,3,Math.sin(a)*s+dy*40,1.2+R()*.6,8,24,c[0],c[1],c[2],c[0],c[1],c[2],.42,1,3.4,0,.4,.6,.02);}
 }
 function ddFxBigGuns(dt){
   const seen=DDF.seen,tanks=dd&&dd.tanks||[];
   for(const f of flashes){if(f.u||seen.has(f))continue;seen.add(f);let h=ddH(f.x,f.y)+16,dir=null;
     for(const K of tanks){if(hyp(K.x+Math.cos(K.ta)*58-f.x,K.y+Math.sin(K.ta)*58-f.y)<3){h=ddH(K.x,K.y)+28;dir=K.ta;break;}}
-    if(dir==null&&rockets.some(r=>hyp(r.x-f.x,r.y-f.y)<3))continue;   // (a rocket's launch: ddRockets puffs that one)
+    if(dir==null&&rockets.some(r=>{const b=r.total?r.total-r.left:0;return hyp(r.x-r.dx*b-f.x,r.y-r.dy*b-f.y)<8;}))continue;   // (a bazooka's launch, where the rocket set off from: ddRockets puffs that one. Before pass 4 only a rocket still at the flash was caught, and it's 10 on by the first frame: a big gun's smoke ring went up round our own man)
     ddFxCannon(f.x,h,f.y,dir);}
   // a tank on the move: dust from its tracks, a little oily smoke from its back deck
   if(dt<=0)return;const t=ddFxTier(),S=DDF.soft,L=DDFX.cap.soft[t]*.75,R=fxR;
