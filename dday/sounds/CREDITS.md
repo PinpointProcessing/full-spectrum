@@ -78,3 +78,14 @@ little into distortion and given a room, so none is used as it was. All CC0, fro
 | [Alien Sounds](https://opengameart.org/content/alien-sounds-0) | EZduzziteh | a hiss under the snarls |
 
 The slam also uses the game's own `boom-1.wav` (listed above).
+
+## D-Day's sound bed (`amb/`, Version 188)
+
+Two files, both CC0 from opengameart.org; everything else in the bed (the wind, the waves' swell and fizz, the distant battle,
+the ships' guns and their shells going over, aircraft, the landing craft's diesel and the hull on the swell, tanks, tracks,
+trucks, fires) is synthesised by `js/ddamb.js` when D-Day starts.
+
+| File | What | Source |
+| --- | --- | --- |
+| `amb/surf.mp3` | eight washes of breaking surf in a row (four from each pack), each levelled; `js/ddamb.js`'s `DDA.wash` says where each is | [Beach Ocean Waves](https://opengameart.org/content/beach-ocean-waves), jasinski (from freesound 18363, "alkaibeach"), CC0; [Water Waves](https://opengameart.org/content/water-waves), transitking (from freesound 11505), CC0 |
+| `amb/far.mp3` | a muffled far-off explosion, one of the distant artillery's voices | [Muffled Distant Explosion](https://opengameart.org/content/muffled-distant-explosion), NenadSimic, CC0 |

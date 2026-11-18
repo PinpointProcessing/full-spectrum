@@ -325,7 +325,7 @@ function audioFrame(){
     const inside=MAPID==='in'||MAPID==='tun'||hqIndoors()||l4In();amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
     amb.wg.gain.setTargetAtTime(inside?0:.05+.04*Math.max(0,amb.gust),t,.8);amb.hum.gain.setTargetAtTime(inside?1:0,t,.8);
     const hunted=enemies.some(e=>!e.dead&&e.alerted),k=state==='play'?Math.max(contact?1:detection(),hunted?.6:0):0;   // the drone follows the danger
-    amb.dr.gain.setTargetAtTime(MAPID==='dd'?.0001:.0001+k*k*.085,t,.6);if(MAPID==='dd')amb.wg.gain.setTargetAtTime(.09+.05*Math.max(0,amb.gust),t,.8);   // (D-Day: no drone under the fight, Bryan: "I don't like the hum"; wind and surf instead)amb.df.frequency.setTargetAtTime(140+k*520,t,.8);
+    amb.dr.gain.setTargetAtTime(MAPID==='dd'?.0001:.0001+k*k*.085,t,.6);if(MAPID==='dd')amb.wg.gain.setTargetAtTime(0,t,.8);   // (D-Day: no drone under the fight, Bryan: "I don't like the hum"; since Version 188 its wind is ddamb.js's, in layers that gust)amb.df.frequency.setTargetAtTime(140+k*520,t,.8);
   }
   // explosions and launches, picked up as they appear (grenades, rockets, tank shells, fuel tanks, vehicles)
   let n=0;for(const b of booms)if(!b.snd&&b.t>=0){b.snd=1;if(n++<2)sfxBoom(b.x,b.y,b.size||1);}
@@ -341,8 +341,8 @@ function audioFrame(){
   else if(MAPID==='l2'&&typeof l2!=='undefined'&&L2&&(l2.land||l2.away!=null))setLoop('boat',live?.24:0,(l2.land?L2.landBoat:L2.boat).position.x,(l2.land?L2.landBoat:L2.boat).position.z,l2.land?1:1.4);   // Level 2's boat in and out
   else setLoop('boat',live&&landing?.26:0,DOCK.moor.x,DOCK.moor.y+100,landing&&landing.t>LAND_T*.7?1:1.5);
   if(MAPID==='dd'&&typeof dd!=='undefined'&&dd){if(typeof ddSfxFrame==='function')ddSfxFrame(t,live);if(typeof ddAmbFrame==='function')ddAmbFrame(t,live);}   // (Version 188: D-Day's weapon sounds, ddsfx.js, and its sound bed, ddamb.js)
-  if(MAPID==='dd'){const rb=typeof dd!=='undefined'&&dd&&!dd.land.done&&dd.boats.find(q=>q.own);setLoop('truck',live&&rb?.55:0,rb?rb.x:null,rb?rb.y:null,rb&&rb.st==='in'?1.25:.7);}   // (D-Day: the landing craft's diesel on the ride in)
-  else  {const tk=MAPID==='out'&&enemies.find(e=>e.veh&&!e.dead);setLoop('truck',live&&tk?(tk.path.length?.3:.1):0,tk?tk.x:null,tk?tk.y:null,tk&&tk.path.length?1.5:.8);}   // the gun truck: driving, or idling where it's parked
+  if(MAPID==='dd')setLoop('truck',0,null,null);   // (D-Day's engines, the landing craft's diesel among them, are ddamb.js's since Version 188)
+  else  {if(typeof ddAmbStop==='function')ddAmbStop(t);const tk=MAPID==='out'&&enemies.find(e=>e.veh&&!e.dead);setLoop('truck',live&&tk?(tk.path.length?.3:.1):0,tk?tk.x:null,tk?tk.y:null,tk&&tk.path.length?1.5:.8);}   // the gun truck: driving, or idling where it's parked
 }
 function bindAudio(){
   const wake=()=>audioInit();
