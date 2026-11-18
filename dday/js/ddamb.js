@@ -24,7 +24,7 @@
    D-Day is left. Its own random numbers (ddaR), so the game's Math.random sequence is the same with sound as without. */
 const DDA={sr:24000,shore:706,maxEv:24,loop:{water:18,birds:24.5},   // (the loops' lengths in sounds/amb/: ddaLoopCut)
   wash:[[.08,3.95],[4.18,2.45],[6.78,2.2],[9.13,3.46],[12.74,1.7],[14.59,3.2],[17.94,2.3],[20.39,1.97]],   // (where each recorded wash is in surf.mp3)
-  lv:{wind:.19,surf:.42,sea:.13,diesel:.19,chorus:.05,slap:.2,mg:.24,rifle:.18,art:.3,naval:.4,shell:.22,air:.42,tank:.5,track:.42,truck:.42,fire:.3,roar:.32,birds:.1,gun:.55}};
+  lv:{wind:.19,surf:.42,sea:.13,diesel:.19,chorus:.05,slap:.2,mg:.24,rifle:.18,art:.3,naval:.4,shell:.22,air:.42,tank:.5,track:.42,truck:.42,fire:.3,roar:.32,birds:.16,gun:.55}};
 let ddA=null;
 const ddaR=(()=>{let s=0x2545f491;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296;};})(),ddaN=()=>ddaR()*2-1;
 
@@ -263,7 +263,7 @@ function ddaPlay(buf,at,vol,pan,cut,rate=1,dest){
 function ddAmbScene(){
   const S={mode:'beach',I:.8,wind:.9,surf:0,leaves:0,naval:0,air:1,birds:0};
   if(dd.seq){Object.assign(S,{mode:'seq',I:.1,wind:.5,leaves:.3,naval:.15,air:.6,birds:1});}
-  else if(dd.vil){const V=dd.vg||{};Object.assign(S,{mode:'village',I:dd.won?.22:V.ph==='woods'?.38:V.ph==='field'?.52:V.r2?.85:.7,wind:.55,leaves:V.ph==='woods'?1:.45,naval:.25,birds:dd.won?.7:V.ph==='woods'?1:V.ph==='field'?.6:.2});}
+  else if(dd.vil){const V=dd.vg||{};Object.assign(S,{mode:'village',I:dd.won?.22:V.ph==='woods'?.38:V.ph==='field'?.52:V.r2?.85:.7,wind:V.ph==='woods'?.85:.65,leaves:V.ph==='woods'?1:.45,naval:.25,birds:dd.won?.7:V.ph==='woods'?1:V.ph==='field'?.6:.2});}
   else if(dd.counter){const ph=dd.dc?dd.dc.ph:'intro';Object.assign(S,{mode:'counter',I:dd.won?.22:/^w/.test(ph)?.8:ph==='lull'?.38:.28,wind:.7,leaves:.35,naval:.3,birds:dd.won?.5:/^w/.test(ph)?0:.35});}
   else{const z=camT.z,ride=!dd.land.done;Object.assign(S,{mode:ride?'ride':'beach',I:dd.won?.3:ride?1:z>300?.95:z>-300?.8:.65,wind:z>-300?.9:1,surf:1,naval:1});}
   return S;
