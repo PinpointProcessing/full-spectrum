@@ -92,6 +92,25 @@ function dsPuffTex(){
   for(let i=0;i<70;i++){const a=r()*TAU,d=10+r()*20;g.fillStyle=`rgba(255,255,255,${.2+r()*.4})`;g.beginPath();g.arc(96+Math.cos(a)*d,32+Math.sin(a)*d,.8+r()*2,0,TAU);g.fill();}
   const t=new T.CanvasTexture(c);t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;return DSEA_TX.p=t;
 }
+// the columns a shell throws up: four of them side by side (64 across each, 256 high, the top of the canvas the column's top): streaks of water rising
+// and leaning out, a ragged head of spray, a thick foot; white with the shape in alpha
+function dsColTex(){
+  if(DSEA_TX.c)return DSEA_TX.c;
+  const c=document.createElement('canvas');c.width=256;c.height=256;const g=c.getContext('2d'),r=rng(1944);g.lineCap='round';
+  for(let k=0;k<4;k++){const cx=32+k*64;
+    for(let i=0;i<34;i++){const x0=cx+(r()-.5)*26,top=22+r()*76+Math.abs(x0-cx)*1.6,x1=x0+(x0-cx)*(.3+r()*.4),gr=g.createLinearGradient(0,256,0,top);
+      gr.addColorStop(0,`rgba(255,255,255,${.5+r()*.4})`);gr.addColorStop(.7,`rgba(255,255,255,${.35+r()*.4})`);gr.addColorStop(1,'rgba(255,255,255,0)');
+      g.strokeStyle=gr;g.lineWidth=2.5+r()*7;g.beginPath();g.moveTo(x0,258);g.quadraticCurveTo(x0,top+(256-top)*.4,x1,top);g.stroke();}
+    for(let i=0;i<16;i++){const x=cx+(r()-.5)*30,y=24+r()*66+Math.abs(x-cx)*.9,rr=6+r()*8,gr=g.createRadialGradient(x,y,0,x,y,rr);
+      gr.addColorStop(0,`rgba(255,255,255,${.55+r()*.35})`);gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,rr,0,TAU);g.fill();}
+    const ft=g.createRadialGradient(cx,262,0,cx,262,34);ft.addColorStop(0,'rgba(255,255,255,.95)');ft.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=ft;g.fillRect(cx-32,200,64,56);
+    for(let i=0;i<60;i++){g.fillStyle=`rgba(255,255,255,${.3+r()*.5})`;g.beginPath();g.arc(cx+(r()-.5)*50,10+r()*90,.7+r()*1.8,0,TAU);g.fill();}}   // (drops flung off its head)
+  const mc=document.createElement('canvas');mc.width=mc.height=256;const m=mc.getContext('2d');   // (soft at the sides and the top, so no edge of its square ever shows: a mask, made apart and laid over it)
+  for(let k=0;k<4;k++){const gx=m.createLinearGradient(k*64,0,k*64+64,0);gx.addColorStop(0,'rgba(0,0,0,0)');gx.addColorStop(.2,'rgba(0,0,0,1)');gx.addColorStop(.8,'rgba(0,0,0,1)');gx.addColorStop(1,'rgba(0,0,0,0)');m.fillStyle=gx;m.fillRect(k*64,0,64,256);}
+  const gy=m.createLinearGradient(0,0,0,256);gy.addColorStop(0,'rgba(0,0,0,0)');gy.addColorStop(.09,'rgba(0,0,0,1)');gy.addColorStop(1,'rgba(0,0,0,1)');m.globalCompositeOperation='destination-in';m.fillStyle=gy;m.fillRect(0,0,256,256);
+  g.globalCompositeOperation='destination-in';g.drawImage(mc,0,0);g.globalCompositeOperation='source-over';
+  const t=new T.CanvasTexture(c);t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;return DSEA_TX.c=t;
+}
 // foam round what stands in the surf (the stakes in their rows, the hedgehogs nearest the water): a map of the band x -1400..2800, y 690..800, a point
 // every two units, white round each one, read by the water where it's there
 function ddSeaObMask(sc){
@@ -234,20 +253,24 @@ function ddSeaPuffs(sc,base){
   const N=DSEA.puffs,g=new T.InstancedBufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute([-1,-1,0,1,-1,0,1,1,0,-1,1,0],3));g.setIndex([0,1,2,0,2,3]);
   const at=()=>{const a=new T.InstancedBufferAttribute(new Float32Array(N*4),4);a.setUsage(T.DynamicDrawUsage);return a;},iP=at(),iC=at(),iV=at();
   g.setAttribute('iP',iP);g.setAttribute('iC',iC);g.setAttribute('iV',iV);g.instanceCount=0;
-  const U=Object.assign(T.UniformsUtils.merge([T.UniformsLib.fog]),{uLit:base.uLit,uFoam:base.uFoam,uSunD:base.uSunD,tP:{value:dsPuffTex()}});
+  const U=Object.assign(T.UniformsUtils.merge([T.UniformsLib.fog]),{uLit:base.uLit,uFoam:base.uFoam,uSunD:base.uSunD,tP:{value:dsPuffTex()},tC:{value:dsColTex()}});
   const mat=new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,fog:true,
     vertexShader:`attribute vec4 iP,iC,iV;varying vec2 vU;varying vec4 vC;varying float vS;
       #include <fog_pars_vertex>
       void main(){vec2 c=position.xy;float s=iP.w,r=iC.z;vec2 cr=vec2(c.x*cos(r)-c.y*sin(r),c.x*sin(r)+c.y*cos(r));vec4 mvPosition;
+        if(iC.y>1.5){float h=c.y*.5+.5;mvPosition=viewMatrix*vec4(iP.xyz+vec3(0.,h*iV.x,0.),1.);mvPosition.x+=c.x*s*(.7+.5*h);   // (a column: its foot on the water, iV.x high, wider at its head)
+          vU=vec2((c.x*.5+.5)*.25+floor(r/6.2832*3.999)*.25,h);vS=h;vC=iC;gl_Position=projectionMatrix*mvPosition;
+          #include <fog_vertex>
+          return;}
         if(iC.y>.5)mvPosition=viewMatrix*vec4(iP.xyz+vec3(cr.x,0.,cr.y)*s,1.);
         else{mvPosition=viewMatrix*vec4(iP.xyz,1.);vec2 vv=(viewMatrix*vec4(iV.xyz,0.)).xy;float L=length(vv)*iV.w;
           if(L>.15){vec2 d=normalize(vv);cr=d*c.y*(1.+L)+vec2(-d.y,d.x)*c.x;}mvPosition.xy+=cr*s;}
         vU=vec2((c.x*.5+.5)*.5+iC.y*.5,c.y*.5+.5);vS=cr.y*.5+.5;vC=iC;gl_Position=projectionMatrix*mvPosition;
         #include <fog_vertex>
       }`,
-    fragmentShader:`uniform vec3 uLit,uFoam;uniform sampler2D tP;varying vec2 vU;varying vec4 vC;varying float vS;
+    fragmentShader:`uniform vec3 uLit,uFoam;uniform sampler2D tP,tC;varying vec2 vU;varying vec4 vC;varying float vS;
       #include <fog_pars_fragment>
-      void main(){float a=texture2D(tP,vU).a*vC.x;if(a<.01)discard;
+      void main(){float a=(vC.y>1.5?texture2D(tC,vU).a*mix(.25,1.,smoothstep(0.,.1,vS)):texture2D(tP,vU).a)*vC.x;if(a<.01)discard;   // (a column's foot thinned where it meets the water)
         gl_FragColor=vec4(uFoam*uLit*mix(.74,1.,clamp(vS,0.,1.))*vC.w,a);
         ${DSEA_FRAG_END}
       }`});
@@ -256,24 +279,30 @@ function ddSeaPuffs(sc,base){
   return{m,g,iP,iC,iV,n:0,N,p:F(3),v:F(3),s:F(2),l:F(2),k:F(6)};   // (p position, v velocity, s size and its growth, l life and age, k: flat, spin, shade, how much it falls, how solid, how much it streaks)
 }
 // a puff: where, its velocity, size and how fast it grows, how long it lasts; o: flat (lying on the water), shade (1 white .. darker), fall (1: as spray
-// does), a (how solid), st (how much it's drawn out along its way)
+// does), a (how solid), st (how much it's drawn out along its way); pil: a column standing on the water instead (vx its full height: dsPillar)
 const DSEA_PO={};
 function dsPuff(x,y,z,vx,vy,vz,s,gr,life,o){
   const P=DD&&DD.seaP;if(!P)return;o=o||DSEA_PO;let i=P.n;if(i>=P.N){i=(dsRand()*P.N)|0;}else P.n++;   // (full: one at random makes way)
   P.p[i*3]=x;P.p[i*3+1]=y;P.p[i*3+2]=z;P.v[i*3]=vx;P.v[i*3+1]=vy;P.v[i*3+2]=vz;P.s[i*2]=s;P.s[i*2+1]=gr;P.l[i*2]=life;P.l[i*2+1]=0;
-  const k=P.k,j=i*6;k[j]=o.flat?1:0;k[j+1]=dsRand()*TAU;k[j+2]=o.shade??1;k[j+3]=o.fall??1;k[j+4]=o.a??.85;k[j+5]=o.st??0;
+  const k=P.k,j=i*6;k[j]=o.pil?2:o.flat?1:0;k[j+1]=dsRand()*TAU;k[j+2]=o.shade??1;k[j+3]=o.fall??1;k[j+4]=o.a??.85;k[j+5]=o.st??0;
 }
+// a column of water: shoots up to its height in the first third of its life, then its head falls back into it and it thins (dsPuffsTick); w its width
+const DSEA_PIL={pil:1,a:.97};
+function dsPillar(x,y,z,w,H,life,gr,shade){DSEA_PIL.shade=shade??1;dsPuff(x,y,z,H,0,0,w,gr,life,DSEA_PIL);}
 // water thrown up where a shell or a bullet hits the sea (dday.js's ddSplash hands it here): s about .35-.6 for a bullet, 1.5-2.6 for a shell
-const DSEA_SPL={col:{st:.012},drop:{st:.022,shade:1,a:.95},crown:{st:.007,shade:.9},mist:{fall:.05,shade:.88,a:.38},ring:{flat:1,a:.75},ring2:{flat:1,a:.55,shade:.95},spout:{st:.016,a:.9}};
+const DSEA_SPL={col:{st:.012,a:.95},drop:{st:.022,shade:1,a:.95},crown:{st:.007,shade:.9},mist:{fall:.05,shade:.88,a:.38},ring:{flat:1,a:.75},ring2:{flat:1,a:.55,shade:.95},spout:{st:.016,a:.9}};
 function ddSeaSplash(x,y,s=1){
   if(!DD||!DD.seaP)return;const R=dsRand,h=ddSeaY(x,y),O=DSEA_SPL;
   if(s>1){const k=Math.sqrt(s/2);
-    for(let i=0;i<14+s*5;i++){const a=R()*TAU,o=R()*3.5*s;O.col.shade=.88+R()*.12;dsPuff(x+Math.cos(a)*o,h+2,y+Math.sin(a)*o,(R()-.5)*18*s,(130+R()*100)*k,(R()-.5)*18*s,(1.8+R()*2.2)*s,3*s,1.6+R()*.8,O.col);}   // the column
+    dsPillar(x,h-2.5,y,(4+R()*1.4)*s,(34+R()*14)*s,2.7+R()*.5,1.4*s,1);dsPillar(x+(R()-.5)*4*s,h-2.5,y+(R()-.5)*4*s,(2.2+R())*s,(44+R()*18)*s,2.3+R()*.4,1.1*s,.96);   // the column: a thick one and a taller thin one in it
+    dsPillar(x+(R()-.5)*6*s,h-2.5,y+(R()-.5)*6*s,(6+R()*2)*s,(13+R()*7)*s,3+R()*.4,2.6*s,.9);   // and a low wide skirt round its foot
+    for(let i=0;i<10+s*4;i++){const a=R()*TAU,o=R()*3.5*s;O.col.shade=.88+R()*.12;dsPuff(x+Math.cos(a)*o,h+2,y+Math.sin(a)*o,(R()-.5)*18*s,(130+R()*100)*k,(R()-.5)*18*s,(1.8+R()*2.2)*s,3*s,1.6+R()*.8,O.col);}   // the column
     for(let i=0;i<12;i++){const a=R()*TAU,sp=30+R()*45;dsPuff(x,h+3+R()*20*s,y,Math.cos(a)*sp,(80+R()*90)*k,Math.sin(a)*sp,(.7+R()*.7)*Math.sqrt(s),0,1+R()*.6,O.drop);}   // drops flung out of it
     for(let i=0;i<9;i++){const a=i/9*TAU+R()*.4,sp=(40+R()*40)*k;dsPuff(x,h+3,y,Math.cos(a)*sp,30+R()*45,Math.sin(a)*sp,(3+R()*3)*s,5*s,1+R()*.6,O.crown);}   // the crown round its foot
     for(let i=0;i<2;i++)dsPuff(x+(R()-.5)*8*s,h+16*s+i*22*s,y+(R()-.5)*8*s,(R()-.5)*6,10+R()*8,(R()-.5)*6,9*s,8*s,2.6+R(),O.mist);   // mist hanging after it
     dsPuff(x,h+.4,y,0,0,0,6*s,15*s,4.5,O.ring);dsPuff(x,h+.3,y,0,0,0,4*s,8*s,3.2,O.ring2);}   // the rings of foam it leaves
-  else{for(let i=0;i<3;i++)dsPuff(x+(R()-.5)*2,h+1,y+(R()-.5)*2,(R()-.5)*6,60+R()*60,(R()-.5)*6,1+R(),1.5,.55+R()*.35,O.spout);
+  else{dsPillar(x,h-.5,y,(1.1+R()*.5)*(.6+s),(9+R()*8)*(.5+s),.65+R()*.25,.8,1);   // a bullet's spout
+    for(let i=0;i<2;i++)dsPuff(x+(R()-.5)*2,h+1,y+(R()-.5)*2,(R()-.5)*6,60+R()*60,(R()-.5)*6,1+R(),1.5,.55+R()*.35,O.spout);
     for(let i=0;i<3;i++){const a=R()*TAU;dsPuff(x,h+2,y,Math.cos(a)*25,40+R()*50,Math.sin(a)*25,.5+R()*.4,0,.5+R()*.3,O.drop);}
     dsPuff(x,h+.3,y,0,0,0,2.2,7,1.3,O.ring2);}
 }
@@ -282,9 +311,12 @@ function dsPuffsTick(dt){
   while(i<P.n){
     l[i*2+1]+=dt;const life=l[i*2],age=l[i*2+1],j=i*6;
     if(age>=life||(k[j]<.5&&v[i*3+1]<0&&p[i*3+1]<DSEA.level-2)){const e=--P.n;if(e!==i){for(let q=0;q<3;q++){p[i*3+q]=p[e*3+q];v[i*3+q]=v[e*3+q];}for(let q=0;q<6;q++)k[j+q]=k[e*6+q];s[i*2]=s[e*2];s[i*2+1]=s[e*2+1];l[i*2]=l[e*2];l[i*2+1]=l[e*2+1];}continue;}
+    const q=age/life;s[i*2]+=s[i*2+1]*dt;
+    if(k[j]>1.5){const H=v[i*3],ru=.3,h=q<ru?H*(1-Math.pow(1-q/ru,3)):H*(1-.62*Math.pow((q-ru)/(1-ru),1.4)),a=Math.min(1,age/.04)*(q<.5?1:Math.pow(1-(q-.5)/.5,1.2));
+      ap[i*4]=p[i*3];ap[i*4+1]=p[i*3+1];ap[i*4+2]=p[i*3+2];ap[i*4+3]=s[i*2];ac[i*4]=a*k[j+4];ac[i*4+1]=2;ac[i*4+2]=k[j+1];ac[i*4+3]=k[j+2];av[i*4]=h;av[i*4+1]=0;av[i*4+2]=0;av[i*4+3]=0;i++;continue;}
     if(k[j]<.5){const dr=Math.max(0,1-dt*1.6);v[i*3]*=dr;v[i*3+2]*=dr;v[i*3+1]-=150*k[j+3]*dt;}
-    p[i*3]+=v[i*3]*dt;p[i*3+1]+=v[i*3+1]*dt;p[i*3+2]+=v[i*3+2]*dt;s[i*2]+=s[i*2+1]*dt;
-    const q=age/life,a=Math.min(1,age/.08)*(q<.55?1:1-(q-.55)/.45);
+    p[i*3]+=v[i*3]*dt;p[i*3+1]+=v[i*3+1]*dt;p[i*3+2]+=v[i*3+2]*dt;
+    const a=Math.min(1,age/.08)*(q<.55?1:1-(q-.55)/.45);
     ap[i*4]=p[i*3];ap[i*4+1]=p[i*3+1];ap[i*4+2]=p[i*3+2];ap[i*4+3]=s[i*2];ac[i*4]=a*k[j+4];ac[i*4+1]=k[j];ac[i*4+2]=k[j+1];ac[i*4+3]=k[j+2];
     av[i*4]=v[i*3];av[i*4+1]=v[i*3+1];av[i*4+2]=v[i*3+2];av[i*4+3]=k[j+5];
     i++;}
