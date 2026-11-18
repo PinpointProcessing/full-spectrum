@@ -22,8 +22,8 @@ const DDFX={
   fireFlame:[7,11,16],fireSmoke:[1.5,2.4,3.2],   // a burning wreck's flames and puffs of black smoke a second, by tier
   muzzle:[.35,.7,1],         // the chance a shot leaves a puff at the muzzle, by tier
   dust:[.36,.24,.17],        // a running man kicks up a puff this often (seconds), by tier
-  menK:.2,                   // smoke in front of one of the squad you play thins to this (on the screen, round each man)
-  amb:[.72,.7,.68],sunK:.55,  // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
+  menK:.05,                  // smoke in front of one of the squad you play thins to this (on the screen, round each man; nearly clear, since a column is many puffs deep)
+  amb:[.76,.71,.64],sunK:.55,  // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
   linger:[3,5,7],            // a shell's smoke left standing over where it fell, drifting off downwind for ten seconds or so (puffs, by tier)
   scorch:40,                 // a blast's scorch on the ground lasts this long (seconds), fading over its last third
   far:[0,6.5,4]              // the battle beyond yours (Version 188, pass 3): a shell bursting out on the beach's flanks or in the sea every so many seconds, by tier (0: none)
@@ -91,7 +91,7 @@ const DDF_SOFT_FS=`uniform sampler2D tN;uniform vec3 uSun,uSunC,uAmb,uHor;unifor
     if(a<.004)discard;
     vec3 N=normalize(vec3(Q,sqrt(d)+.2));float l=clamp(dot(N,uSun),0.,1.);
     vec3 c=vB.rgb*mix(vec3(1.),uAmb+uSunC*l,vS.z)*(.82+.36*n);c=mix(c,uHor,vF);
-    float k=1.;for(int i=0;i<8;i++){if(float(i)>=uMenN)break;vec4 m=uMen[i];if(vD<m.z){float e=distance(gl_FragCoord.xy,m.xy);k=min(k,mix(uMenK,1.,smoothstep(m.w*.45,m.w*1.3,e)));}}
+    float k=1.;for(int i=0;i<8;i++){if(float(i)>=uMenN)break;vec4 m=uMen[i];if(vD<m.z){float e=distance(gl_FragCoord.xy,m.xy);k=min(k,mix(uMenK,1.,smoothstep(m.w*.55,m.w*1.6,e)));}}
     gl_FragColor=vec4(c,a*vB.a*k*(1.-vF*.4));}`;
 // glow: flames, flashes and embers, added to the picture (the bloom catches what's bright)
 const DDF_GLOW_FS=`uniform sampler2D tN;varying vec2 vU,vQ;varying vec4 vB;varying vec3 vS;varying float vD,vF;
@@ -183,9 +183,11 @@ function ddFxBlast(x,y,k,hot){
   for(let i=0;i<nc;i++){const h=(10+i*16)*k;ddFxAdd(S,L,x+(R()-.5)*8*k,g+h,y+(R()-.5)*8*k,(R()-.5)*14,(60+R()*70)*k,(R()-.5)*14,1.1+R()*.7,(16+R()*8)*k,(38+R()*18)*k,f[0]*.7,f[1]*.68,f[2]*.66,.45,.42,.38,.8,0,1.4,-60,.3,.9,.03);}
   // a shell's (and a wreck's) smoke left standing as a column over where it fell, darker at its foot, leaning off downwind for ten seconds or so; it
   // fades in as the earth comes down, and takes no more than most of the store, so the next blast always has room (Version 188, pass 3)
-  if(k>=.9){const nl=Math.round(DDFX.linger[t]*(hot?1.4:1)*Math.min(1.3,k));
+  // (by one of the squad you play it's half as many and thinner: a shell beside them mustn't stand a wall of smoke over them for ten seconds)
+  let close=false;if(k>=.9&&dd)for(const p of players)if(p.team===dd.active&&alive(p)&&hyp(p.x-x,p.y-y)<130){close=true;break;}
+  if(k>=.9){const nl=Math.round(DDFX.linger[t]*(hot?1.4:1)*Math.min(1.3,k)*(close?.5:1)),la=close?.55:1;
     for(let i=0;i<nl;i++){const u=i/Math.max(1,nl-1),dk=hot?.1:.25+u*.1;ddFxAdd(S,L*.85,x+(R()-.5)*16*k,g+(14+u*52)*k,y+(R()-.5)*16*k,(R()-.5)*5,(8+u*14+R()*6)*k,(R()-.5)*5,
-      10+R()*5+u*3,(30+R()*10)*k,(80+u*44+R()*30)*k,dk,dk*.93,dk*.86,dk+.26,dk+.24,dk+.21,.64-u*.18,0,.5,.7,1+u*.5,.8,.8+u*.6);}}
+      10+R()*5+u*3,(30+R()*10)*k,(80+u*44+R()*30)*k,dk,dk*.93,dk*.86,dk+.26,dk+.24,dk+.21,(.64-u*.18)*la,0,.5,.7,1+u*.5,.8,.8+u*.6);}}
   // the smoke that's left, drifting off (black and oily from a wreck; a brownish grey from earth and sand, not a cold grey)
   const ns=Math.round((hot?8:2+4*k)*few);
   for(let i=0;i<ns;i++){const a=R()*TAU,o=R()*16*k;const dk=hot?.12:sand?.42:.36;ddFxAdd(S,L,x+Math.cos(a)*o,g+(12+R()*24)*k,y+Math.sin(a)*o,Math.cos(a)*10,(5+R()*8)*k,Math.sin(a)*10,
@@ -236,10 +238,10 @@ function ddFxHaze(dt){
   let n=0;for(let i=0;i<S.n;i++)if(S.shape[i]===3)n++;
   if(n>=want||(DDF.hazeT-=dt)>0)return;DDF.hazeT=.4;
   const R=fxR,C=camera.position,dv=Math.hypot(C.x-camT.x,C.z-camT.z)+Math.abs(C.y-ddH(camT.x,camT.z)),rad=clamp(dv*.55,260,700);
-  const m=players.filter(p=>p.team===(dd&&dd.active)&&alive(p)&&!p.inBoat);
+  const m=players.filter(p=>alive(p)&&!p.inBoat);   // (both squads: a bank of smoke never lies down over either of them, pass 4)
   for(let k=0;k<6;k++){const a=R()*TAU,d=rad*(.25+R()*.75),x=camT.x+Math.cos(a)*d,y=camT.z+Math.sin(a)*d*.8;
-    if(m.some(p=>hyp(p.x-x,p.y-y)<110))continue;if(DD_MODE==='beach'&&y>760)continue;
-    const s=300+R()*200,c=DD_MODE==='beach'&&y>300?[.6,.57,.52]:[.58,.58,.56];
+    if(m.some(p=>hyp(p.x-x,p.y-y)<140))continue;if(DD_MODE==='beach'&&y>760)continue;
+    const s=300+R()*200,c=DD_MODE==='beach'&&y>300?[.62,.58,.51]:[.6,.58,.53];   // (warm greys: a neutral grey read blue over the grass and sand)
     ddFxAdd(S,DDFX.cap.soft[t],x,ddH(x,y)+s*.17,y,(R()-.5)*3,0,(R()-.5)*3,24+R()*16,s*.85,s*1.15,c[0],c[1],c[2],c[0],c[1],c[2],.2+R()*.08,3,0,0,.85,.45,7);return;}
 }
 
