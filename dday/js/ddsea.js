@@ -127,7 +127,7 @@ function ddSeaObMask(sc){
 /* ---------- the water ---------- */
 // colours as they should come out on screen (hex), taken to light before the tone curve (DDL_TONE.exp)
 const dsLin=(hex,out)=>{out=out||new T.Color();out.setHex(hex).convertSRGBToLinear();return out.multiplyScalar(1/((typeof DDL_TONE!=='undefined'&&DDL_TONE.exp)||1));};
-const DSEA_COL={shal:0x84d0b6,mid:0x2f8a7c,deep:0x285a50,foam:0xf3f5f1,wet:0x3b3024};
+const DSEA_COL={shal:0x84d0b6,mid:0x2f8a7c,deep:0x1f5c66,foam:0xf3f5f1,wet:0x3b3024};
 function dsCommonU(){
   return{uT:{value:0},uTb:{value:DSEA.Tb},uAmp:{value:DSEA.amp},uLv:{value:DSEA.level},uLit:{value:new T.Color(1,1,1)},uSunD:{value:new T.Vector3(0,1,0)},uSunC:{value:new T.Color(1,1,1)},
     uHor:{value:new T.Color()},uZen:{value:new T.Color()},uFoam:{value:dsLin(DSEA_COL.foam)},tF:{value:dsFoamTex()},uTier:{value:2}};
@@ -183,15 +183,16 @@ function ddSeaMesh(sc){
         float u=dsU(x,z),lace=texture2D(tF,vW.xz/34.+t*vec2(.004,.012)).r,blob=texture2D(tF,vW.xz/150.+t*vec2(-.003,.007)).g;
         float brk=(1.-smoothstep(778.,812.+14.*sin(x*.0061+2.),z))*smoothstep(698.,712.,z);
         float fa=brk*(exp(-u*8.)*1.3+.3*blob);
-        fa+=smoothstep(.72,1.,pow(.5+.5*cos(PI2*u),2.))*smoothstep(.5,.8,blob)*smoothstep(800.,860.,z)*.95;
-        fa+=smoothstep(.62,.9,blob*texture2D(tF,vW.xz/61.+t*vec2(.013,-.02)).g)*smoothstep(830.,900.,z)*.7;
+        float cd=distance(cameraPosition.xz,vW.xz),cf=1.-smoothstep(700.,2200.,cd);   // (whitecaps thin out with distance: far off their rows read as stripes)
+        fa+=smoothstep(.72,1.,pow(.5+.5*cos(PI2*u),2.))*smoothstep(.5,.8,blob)*smoothstep(800.,860.,z)*.95*cf;
+        fa+=smoothstep(.62,.9,blob*texture2D(tF,vW.xz/61.+t*vec2(.013,-.02)).g)*smoothstep(830.,900.,z)*.7*(.35+.65*cf);
         if(z<716.&&e>0.)fa+=(v<.32?exp(-e/4.)*1.2:exp(-e/2.)*.6)+.28*smoothstep(0.,.6,sw)*blob*2.;
         float top=exp(-pow((z-702.+Rc)/1.7,2.))*(v>.32?exp(-(v-.32)*uTb/2.2):0.);
         if(uTier>.5&&z>690.&&z<800.&&x>-1400.&&x<2800.)fa+=texture2D(tOb,vec2((x+1400.)/4200.,(z-690.)/110.)).r*(.35+.65*exp(-u*6.))*smoothstep(.2,1.,d);
         float fo=clamp((lace-(1.-fa))*2.6,0.,1.)*min(1.,fa*1.5)+clamp((lace-(1.-top))*2.,0.,1.)*top*.8;
         // put together, from the sand up: the wet sand, the water's body, the sky and the sun in it, the foam
         vec3 C=vec3(0.);float A=0.;
-        vec3 R=reflect(-V,n);R.y=abs(R.y);vec3 sky=mix(uHor,uZen,1.-exp(-R.y*4.2));float nv=max(dot(n,V),0.),Fr=(.04+.96*pow(1.-nv,5.))*.62;   // (less of the pale sky than the real thing: the water keeps its colour)
+        vec3 R=reflect(-V,n);R.y=abs(R.y);vec3 sky=mix(uHor,uZen,1.-exp(-R.y*6.5));float nv=max(dot(n,V),0.),Fr=(.04+.96*pow(1.-nv,5.))*.5;   // (less of the pale sky than the real thing, and bluer: the water keeps its colour out to the haze)
         float wa=wet*(1.-smoothstep(0.,.2,d));if(wa>0.){C=uWet*uLit*wa*.42+sky*Fr*wa*.5;A=wa*.42;}
         float ab=1.-exp(-d*.55);
         vec3 body=mix(uShal,uMid,smoothstep(.5,4.,d));body=mix(body,uDeep,smoothstep(4.,15.,d));
