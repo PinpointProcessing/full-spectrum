@@ -242,7 +242,7 @@ function paintDDGround(g){
 function disposeDD(){
   if(!DD||!DD.scene)return;
   DD.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){for(const m of[].concat(o.material)){if(m.map&&m.map!==DD.tex)m.map.dispose();m.dispose();}}});
-  if(DD.tex)DD.tex.dispose();DD=null;
+  if(DD.tex)DD.tex.dispose();if(DD.concH)DD.concH.dispose();DD=null;   // (Version 189: the bunkers' bump picture too)
 }
 // the time of day, 0 dawn .. 1 evening (it goes by as the squads climb: ddplay.js sets DD.day)
 // Version 188: [t, the horizon's haze (the fog and the sky's foot, as shown on screen), the sky overhead (as shown), the soft light from the sky, its strength,

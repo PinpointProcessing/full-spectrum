@@ -42,6 +42,9 @@ function ddToneChunk(){
 // A material whose colours are already light (decoded) says so with userData.ddKeep and is left alone.
 const DDL_SEEN=new WeakSet();let _lc=null;
 function ddLinCol(c){if(c){_lc=_lc||new T.Color();_lc.copy(c).convertSRGBToLinear();c.lerp(_lc,DDL.lin);}}
+// Version 189: a copy of a material that's already been through the sweep (scene.js's seeThrough, ddground.js's fade give a building its own materials
+// to fade): marked as seen, or the next sweep took its colour toward light a second time and roofs and trim went near-black for good
+function ddLinClone(m){const c=m.clone();DDL_SEEN.add(c);return c;}
 function ddLinMat(m){
   if(!m||DDL_SEEN.has(m))return;DDL_SEEN.add(m);
   if(!(m.isMeshStandardMaterial||m.isMeshLambertMaterial||m.isMeshPhongMaterial)||(m.userData&&(m.userData.U||m.userData.ddKeep)))return;
@@ -145,7 +148,7 @@ function ddSmokeCols(sc){
 // cloud shadows: big soft patches drifting slowly over the ground (the land's sheet drawn a second time over itself, multiplying it a little darker where the
 // noise is thick; the men and the props are left as they are). Faded with the haze; not on the cheapest tier (POST.tier 0).
 function ddCloudShade(sc){
-  if(!DDL.shade)return;const L=[],bo=DD.bo||[],P=DDL_MODE[DD_MODE]||DDL_MODE.beach;sc.traverse(o=>{if(o.isMesh&&o.material&&o.material.map===DD.tex&&!bo.includes(o))L.push(o);});   // (the battle's own sheet only: the mirror copies either side are too far off to be worth a second pass)
+  if(!DDL.shade)return;const L=[],bo=DD.bo||[],P=DDL_MODE[DD_MODE]||DDL_MODE.beach;sc.traverse(o=>{if(o.isMesh&&o.material&&(o.material.map===DD.tex||o.userData.ddLand)&&!bo.includes(o))L.push(o);});   // (the battle's own sheet only: the mirror copies either side are too far off to be worth a second pass)
   const U={tC:{value:ddNoiseTex()},uT:{value:0},uK:{value:DDL.shade*(.5+P.cloud)},uW:{value:P.wind},uFN:{value:1000},uFF:{value:5000}};
   const mat=new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:T.MultiplyBlending,fog:false,
     vertexShader:'varying vec3 vW;varying float vD;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vec4 mv=viewMatrix*w;vD=-mv.z;gl_Position=projectionMatrix*mv;}',

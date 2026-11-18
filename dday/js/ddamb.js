@@ -279,7 +279,8 @@ function ddAmbFrame(t,live){
   const play=state==='play',dt=clamp(t-(A.lastT||t),0,.1);A.lastT=t;
   if(!play){ddAmbStop(t);return;}
   const S=ddAmbScene(),ts=live?timeScale():0;
-  if(A.dd!==dd){const ride=S.mode==='ride';A.dd=dd;A.bt=0;A.I=S.I;A.ev={mg:1+ddaR()*2,rf:.5+ddaR()*2,art:2+ddaR()*3,nav:ride?2.2:4+ddaR()*5,air:ride?7.5+ddaR()*2:25+ddaR()*30};}   // (a new chapter: the battle's clock from the start; on the ride in, a broadside straight away and fighters low overhead halfway in)
+  if(A.dd!==dd){const ride=S.mode==='ride';A.dd=dd;A.bt=0;A.posts=null;A.I=S.I;A.ev={mg:1+ddaR()*2,rf:.5+ddaR()*2,art:2+ddaR()*3,nav:ride?2.2:4+ddaR()*5,air:ride?7.5+ddaR()*2:25+ddaR()*30};}   // (a new chapter, or the sound back on after a mute: the battle's clock from the start and the far posts made again on it (Version 189: they kept
+  // their old clock's times and stayed silent as long as the battle had run); on the ride in, a broadside straight away and fighters low overhead halfway in)
   if(!A.on){A.on=true;A.bus.gain.cancelScheduledValues(t);}A.offT=0;
   A.I+=(S.I-A.I)*Math.min(1,dt*.4);A.bt+=dt*ts;
   const udt=t-A.uT;if(udt>=.066){A.uT=t;   // (the levels and filters about 15 times a second: no need to automate them every frame)

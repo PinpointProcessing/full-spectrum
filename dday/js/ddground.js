@@ -315,7 +315,7 @@ function ddgCraters(G,holes,o){
         P.push(x,ddH(x,y)+hg*lift*(k===4||k===0?1:n)+(churn?(r()-.5)*.9*lift:0),y);ca.convertSRGBToLinear();C.push(ca.r,ca.g,ca.b);}}
     for(let i=0;i<S;i++){const i2=(i+1)%S;for(let j=0;j<rows.length-1;j++){const a=base+i*rows.length+j,b=base+i2*rows.length+j;I.push(a,b,a+1,b,b+1,a+1);}}}
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();
-  const m=new T.Mesh(g,new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}));m.material.userData.ddKeep=true;m.castShadow=true;m.receiveShadow=true;G.add(m);return m;
+  const m=new T.Mesh(g,new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}));m.material.userData.ddKeep=true;m.userData.ddLand=true;m.castShadow=true;m.receiveShadow=true;G.add(m);return m;   // (ddLand: ddlight.js's cloud shadows pass over the rims as over the land, Version 189)
 }
 // lumps thrown out of the holes: [{x,y,c}] the instances, c a colour (sRGB). Round the rims, sized by the hole
 function ddgClods(holes,r,n,spoil,earth){
@@ -350,7 +350,7 @@ function ddgFadeFrame(rdt){
       if(!o._gBox){_gB.makeEmpty();for(const m of o.meshes)_gB.expandByObject(m);o._gBox=_gB.clone();}const b=o._gBox;
       for(const p of players){if(p.dead||p.offMap||p.carriedBy||p.inBoat)continue;const py=ddH(p.x,p.y)+(p.downed?3:11);
         if(segHitsBox(c.x,c.y,c.z,p.x,py,p.y,b.min.x,b.min.y,b.min.z,b.max.x,b.max.y,b.max.z)){hit.add(o);break;}}}
-    for(const o of hit){if(!ddgFading.has(o)){ddgFading.add(o);for(const m of o.meshes)if(!m.userData.ownMat&&m.material){m.material=Array.isArray(m.material)?m.material.map(x=>x.clone()):m.material.clone();m.userData.ownMat=true;}}o.gFadeTo=.28;}
+    for(const o of hit){if(!ddgFading.has(o)){ddgFading.add(o);for(const m of o.meshes)if(!m.userData.ownMat&&m.material){const cl=typeof ddLinClone==='function'?ddLinClone:(x=>x.clone());m.material=Array.isArray(m.material)?m.material.map(cl):cl(m.material);m.userData.ownMat=true;}}o.gFadeTo=.28;}
     for(const o of ddgFading)if(!hit.has(o))o.gFadeTo=1;}
   for(const o of ddgFading){o.gFadeA=(o.gFadeA??1)+((o.gFadeTo??1)-(o.gFadeA??1))*Math.min(1,rdt*7);const done=o.gFadeTo===1&&o.gFadeA>.985;
     for(const m of o.meshes)for(const mt of Array.isArray(m.material)?m.material:[m.material]){if(!mt)continue;mt.opacity=done?1:o.gFadeA;mt.transparent=!done;mt.depthWrite=done||o.gFadeA>.9;}

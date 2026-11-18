@@ -336,7 +336,7 @@ function seeThrough(rdt){
       if(p.dead||p.offMap||p.carriedBy)continue;const ty=(p.downed?3:p.crawl?2:11)+(p.elev||0);
       for(const o of objs){if(!o.meshes||SEE_SKIP.has(o.kind)||objHeight(o)<SEE_H)continue;if(segHitsBox(c.x,c.y,c.z,p.x,ty,p.y,o.x,0,o.y,o.x+o.w,objHeight(o),o.y+o.h))hit.add(o);}
     }
-    for(const o of hit){if(!fadeObjs.has(o)){fadeObjs.add(o);for(const m of o.meshes)if(!m.userData.ownMat){m.material=Array.isArray(m.material)?m.material.map(x=>x.clone()):m.material.clone();m.userData.ownMat=true;}}o.fadeTo=.28;}   // (its own materials, so nothing else fades with it; the data center's block has one per face: a list. Its clone() used to throw, and the throw stopped the frame loop: Bryan's freeze at the watchtower, v108)
+    for(const o of hit){if(!fadeObjs.has(o)){fadeObjs.add(o);for(const m of o.meshes)if(!m.userData.ownMat){const cl=MAPID==='dd'&&typeof ddLinClone==='function'?ddLinClone:(x=>x.clone());m.material=Array.isArray(m.material)?m.material.map(cl):cl(m.material);m.userData.ownMat=true;}}o.fadeTo=.28;}   // (its own materials, so nothing else fades with it; the data center's block has one per face: a list. Its clone() used to throw, and the throw stopped the frame loop: Bryan's freeze at the watchtower, v108)
     for(const o of fadeObjs)if(!hit.has(o))o.fadeTo=1;
   }
   for(const o of fadeObjs){
