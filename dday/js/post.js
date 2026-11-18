@@ -36,12 +36,16 @@ function postInit(){
         float l=dot(c,vec3(.299,.587,.114));
         if(dday>.5){   // D-Day's daylight (Version 188): a true black (no lift), a filmic S-curve, shadows a little cooler and light a little warmer,
                        // and colour added where it's dull (vibrance): olive drab and sand richer, what's already strong left alone
+          float pk=max(c.r,max(c.g,c.b));if(pk>.82)c*=(.82+.18*(1.-exp(-(pk-.82)/.18)))/pk;   // the brightest channel rolled off with the others in step (Version 190:
+                                                                                             // the bloom on lit skin pushed red past white and the rest after it: skin burnt to yellow-white)
           c=max(c-vec3(black),0.)/(1.-black);l=dot(c,vec3(.2126,.7152,.0722));
           c=mix(c,c*vec3(.93,.98,1.07),(1.-smoothstep(.04,.5,l))*cold);
           c=mix(c,c*vec3(1.05,1.0,.92),smoothstep(.4,1.,l)*warm);
           float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b)),sv=(mx-mn)/max(mx,1e-3);
-          c=clamp(mix(vec3(l),c,1.+(sat-1.)*(1.-sv*.8)),0.,1.);
-          c=mix(c,c*c*(3.-2.*c),con);
+          vec3 hn=c/max(mx,1e-4);float sk=smoothstep(.2,.05,abs(hn.g-.66))*smoothstep(.8,.9,hn.r)*(1.-smoothstep(.55,.7,hn.b));   // skin's hue (red highest, green
+          c=clamp(mix(vec3(l),c,1.+(sat-1.)*(1.-sv*.8)*(1.-.85*sk)),0.,1.);                  // about two thirds of it, blue lower) left out of the vibrance (Version 190)
+          l=dot(c,vec3(.2126,.7152,.0722));c=max(c*(mix(l,l*l*(3.-2.*l),con)/max(l,1e-4)),0.);c/=max(1.,max(c.r,max(c.g,c.b)));   // the S-curve on the brightness alone, the colour kept (Version 190:
+                                                                                             // on each channel it took warm shadows to burnt orange, the skin worst)
         }else{
           c=mix(c,c*vec3(.88,1.0,1.08)+vec3(0.,.006,.012),(1.-smoothstep(0.,.42,l))*cold);   // cold shadows
           c=mix(c,c*vec3(1.08,1.0,.88),smoothstep(.3,1.,l)*.65)*1.05;                     // warm lights, a little brighter overall

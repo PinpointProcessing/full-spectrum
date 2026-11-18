@@ -81,17 +81,22 @@ function figKitKey(u,L){
 function figParts(key){
   const [k,w,flags,hatS,role]=key.split('|'),hat=+hatS,helm=flags.includes('h'),radio=flags.includes('r'),gl=flags.includes('g');
   const out=[],E=new T.Euler(),Q=new T.Quaternion(),V=new T.Vector3(),S=new T.Vector3(1,1,1);
-  // add(bone, geometry, colour, kind, x,y,z, [rx,ry,rz], [sx,sy,sz]); kind: 0 colour as given, 1 skin, 2 team colour (glows),
+  // add(bone, geometry, colour, kind, x,y,z, [rx,ry,rz], [sx,sy,sz]); kind: 0 colour as given, 1 skin, 2 team colour (glows), 9 team colour as paint,
   // 3 hair, 4 gun metal, 5 gun furniture, 7 lamp lens, 8 uniform (the colour multiplies the person's cloth colour)
   const add=(b,g,col,mid,x=0,y=0,z=0,rot,sc)=>{E.set(...(rot||[0,0,0]),'YZX');Q.setFromEuler(E);V.set(x,y,z);if(sc)S.set(...sc);else S.set(1,1,1);
     out.push({b:BI[b],g,c:FC(col),mid,m:new T.Matrix4().compose(V,Q,S)});};
   const sq=k==='sq',en=k==='en',civ=k==='pri'||k==='sci',sci=k==='sci',W='#ffffff',Wd='#c9c9c9';
+  // D-Day (the 'S' flag, Version 190): 1944 kit, not the horror game's: our men in M1 helmets with the team's colour painted on the back, the field jacket,
+  // webbing (suspenders, a cartridge belt), canvas leggings and bare hands, no plate carrier, strobe, night-vision mount or ear defenders; the Germans in
+  // the Stahlhelm with its flared skirt, Y-straps, cartridge pouches and the gas-mask canister, no armband or vest. The stocky build is kept (STOCKY).
+  const dd=flags.includes('S'),ddS=dd&&sq,ddE=dd&&en,WEB='#6e6748',JK='#e4e4e4';
   // legs
   for(const s of[-1,1]){const S_=s<0?'L':'R';
     if(sci){add('thigh'+S_,cyl(1.02,.84,4.2),COL.trouser,0,0,-2,0);add('shin'+S_,cyl(.82,.7,3.9),COL.trouser,0,0,-1.95,0);}
     else{add('thigh'+S_,cyl(1.14,.9,4.2),W,8,0,-2,0);add('shin'+S_,cyl(.9,.74,3.9),W,8,0,-1.95,0);}
     if(sq||en)add('thigh'+S_,rbox(.55,1.25,.95,.18),Wd,8,.05,-1.9,s*.95);   // cargo pocket
-    if(sq)add('shin'+S_,rbox(.8,1.2,1.15,.3),COL.pad,0,.62,-.12,0);           // knee pad
+    if(ddS)add('shin'+S_,cyl(.94,.84,1.75,8),'#958a66',0,0,-2.95,0);       // canvas leggings
+    else if(sq)add('shin'+S_,rbox(.8,1.2,1.15,.3),COL.pad,0,.62,-.12,0);      // knee pad
     if(sq&&s>0)add('thigh'+S_,rbox(.95,1.5,.55,.18),COL.web,0,.15,-1.3,1.05); // holster
     const shoe=sq?COL.boot:en?COL.eboot:sci?'#1d1d1f':COL.shoe;
     add('foot'+S_,rbox(civ?2.3:2.6,civ?.85:1.05,civ?1.1:1.25,.32),shoe,0,.5,-.38,0);
@@ -100,15 +105,22 @@ function figParts(key){
   // hips, belly, chest
   add('hips',rbox(2.4,1.9,3.2,.5),W,8,0,-.35,0);
   if(sci){add('hips',cyl(1.95,2.35,3.4,12,1),W,8,0,-1.5,0);}   // the lab coat's skirts
-  if(sq||en){add('hips',rbox(2.55,.6,3.35,.25),COL.web,0,0,.55,0);add('hips',rbox(.85,1.0,1.1,.25),sq?COL.pouch:COL.rig,0,-1.05,.25,0);}
+  if(sq||en){add('hips',rbox(2.55,.6,3.35,.25),ddS?WEB:COL.web,0,0,.55,0);add('hips',rbox(.85,1.0,1.1,.25),sq?COL.pouch:COL.rig,0,-1.05,.25,0);}
+  if(ddS)for(const z of[-1.2,-.55,.55,1.2])add('hips',rbox(.4,.62,.56,.1),WEB,0,1.38,.5,z);        // the cartridge belt's pockets
+  if(ddE){for(const z of[-1.35,-.95,-.55,.55,.95,1.35])add('hips',rbox(.42,.6,.38,.1),'#2c2620',0,1.38,.52,z);   // cartridge pouches either side of the buckle
+    add('hips',cyl(.44,.44,1.7,10),'#5d6555',0,-1.15,-.2,1.25,[0,0,.35]);}                         // the gas-mask canister
   add('spine',rbox(2.1,2.6,2.9,.6),W,8,0,1.2,0);
   add('chest',rbox(2.4,3.2,3.3,.75),W,8,0,1.3,0);
-  const vest=sq||(en&&helm);
+  const vest=!dd&&(sq||(en&&helm));
   if(vest){const vc=sq?COL.vest:COL.evest;
     add('spine',rbox(2.65,1.5,3.25,.45),vc,0,0,1.25,0);               // cummerbund
     add('chest',rbox(3.0,3.0,3.45,.55),vc,0,0,1.15,0);                // plate carrier
     for(const z of[-.95,0,.95])add('chest',rbox(.75,1.15,.82,.22),sq?COL.pouch:COL.rig,0,1.65,.25,z);   // magazine pouches
     add('chest',rbox(.9,1.3,.75,.25),sq?COL.pouch:COL.rig,0,-.2,.9,-1.95);   // radio pouch
+  }else if(dd&&(sq||en)){
+    add('spine',rbox(2.45,1.5,3.15,.45),JK,8,0,1.25,0);               // the field jacket, cut full (the stocky build)
+    add('chest',rbox(2.75,2.95,3.4,.6),JK,8,0,1.2,0);
+    for(const s of[-1,1])add('chest',rbox(.1,2.75,.32,.04),ddS?WEB:'#2c2620',0,1.42,1.2,s*(ddS?.75:.62),ddE?[s*.2,0,0]:null);   // suspenders; the German Y-straps
   }else if(en){
     add('chest',rbox(1.1,1.7,3.0,.3),COL.rig,0,1.25,.45,0);           // chest rig
     for(const z of[-.8,0,.8])add('chest',rbox(.6,1.0,.72,.18),COL.rig,0,1.85,.5,z);
@@ -120,28 +132,36 @@ function figParts(key){
     add('chest',rbox(.14,1.25,.3,.05),COL.tie,0,1.3,1.6,0);
     add('chest',rbox(.1,.55,.4,.03),'#e8e8e0',0,1.22,1.4,.95);        // ID badge
   }
-  if(sq||(en&&helm))for(const s of[-1,1])add('clav'+(s<0?'L':'R'),rbox(1.3,.95,1.5,.4),sq?COL.vest:COL.evest,0,0,-.05,s*.15);   // shoulder straps
+  if(dd&&(sq||en))for(const s of[-1,1])add('clav'+(s<0?'L':'R'),rbox(1.3,.95,1.5,.4),JK,8,0,-.05,s*.15);   // the jacket's shoulders
+  else if(sq||(en&&helm))for(const s of[-1,1])add('clav'+(s<0?'L':'R'),rbox(1.3,.95,1.5,.4),sq?COL.vest:COL.evest,0,0,-.05,s*.15);   // shoulder straps
   // the pack, or the radio
   if(sq){
     add('chest',rbox(1.7,3.1,2.7,.5),role==='mg'?COL.olive:COL.pack,0,-2.25,1.25,0);
     add('chest',rbox(1.8,.6,2.8,.25),COL.packD,0,-2.25,2.85,0);
-    add('chest',rbox(.14,.4,1.7,.06),W,2,-3.12,2.15,0);                // team stripe (glows)
+    if(!dd)add('chest',rbox(.14,.4,1.7,.06),W,2,-3.12,2.15,0);         // team stripe (glows)
     if(role==='med'){add('chest',rbox(.12,.9,.3,.03),'#c8302a',0,-3.12,1.2,0);add('chest',rbox(.12,.3,.9,.03),'#c8302a',0,-3.12,1.2,0);}   // a red cross
     if(role==='lead')add('chest',cyl(.07,.07,5.5,4),COL.dark,0,-2.6,5.0,-.9,[0,0,-.12]);   // the team leader's radio antenna
     if(role==='mg')add('chest',rbox(1.0,1.0,1.0,.2),COL.olive,0,-2.4,-.4,1.2);              // spare ammo
   }
   if(radio){add('chest',rbox(1.5,2.6,2.4,.35),COL.olive,0,-2.1,1.1,0);add('chest',cyl(.08,.08,6.5,4),COL.dark,0,-2.5,5.2,-.8,[0,0,-.1]);}
   // neck and head
-  add('neck',cyl(.8,.95,1.1),sq?COL.gaiter:en?COL.scarf:'#ffffff',sq||en?0:1,0,.35,0);
+  add('neck',cyl(.8,.95,1.1),ddS?'#ffffff':sq?COL.gaiter:en?COL.scarf:'#ffffff',(sq&&!dd)||en?0:1,0,.35,0);
   if(en)add('neck',cyl(1.15,1.3,.9),COL.scarf,0,0,-.1,0);
   add('head',rbox(2.25,2.4,2.05,.85),W,1,.15,1.05,0);
   for(const s of[-1,1])add('head',rbox(.18,.26,.5,.06),COL.dark,0,1.27,1.2,s*.45);   // eyes
-  if(!sq)for(const s of[-1,1])add('head',rbox(.5,.7,.25,.1),Wd,1,.05,1.0,s*1.05);   // ears
-  if(sq){
+  if(!sq||dd)for(const s of[-1,1])add('head',rbox(.5,.7,.25,.1),Wd,1,.05,1.0,s*1.05);   // ears
+  if(ddS){
+    add('head',dome(1.68,14,5),COL.helm,0,0,1.38,0,null,[1.16,.9,1.16]);                    // the M1 helmet: a round, wide dome
+    add('head',cyl(1.99,2.08,.16,16),COL.helm,0,0,1.4,0);                                     // ...its rim
+    add('head',rbox(.08,.36,.82,.04),W,9,-1.71,2.14,0,[0,0,-.64]);                          // the team's colour painted on the back (kind 9: matte, no glow)
+    for(const s of[-1,1])add('head',rbox(.14,1.2,.14,.04),WEB,0,.42,.82,s*1.1,[s*.12,0,0]); // the chinstrap
+  }else if(sq){
     add('head',dome(1.68,12,5),COL.helm,0,-.05,1.38,0,null,[1.1,.95,1.08]);   // helmet
     add('head',rbox(.55,.5,.75,.15),COL.dark,0,1.62,2.0,0);                  // night-vision mount
     add('head',rbox(.5,.42,.42,.12),W,2,-1.62,2.15,0);                         // IR strobe (glows)
     for(const s of[-1,1])add('head',cyl(.4,.4,.3,10),'#3a4236',0,0,.95,s*1.08,[Math.PI/2,0,0]);   // ear protection
+  }else if(ddE){
+    add('head',figStahlhelm(),'#4f554d',0,.05,1.48,0,[0,0,.16]);                             // the Stahlhelm, tipped back so its visor clears the eyes
   }else if(en){
     if(hat===3){add('head',dome(1.6,12,5),COL.ehelm,0,-.05,1.45,0,null,[1.08,.9,1.06]);}
     else if(hat===1){add('head',dome(1.42,10,5),COL.cap,0,-.05,1.7,0,null,[1.05,1.05,1.05]);}   // beanie
@@ -155,10 +175,10 @@ function figParts(key){
   for(const s of[-1,1]){const S_=s<0?'L':'R';
     add('arm'+S_,cyl(.8,.7,3.1),W,8,0,-1.5,0);
     if(sq)add('arm'+S_,rbox(.95,.8,.14,.05),W,2,0,-1.0,s*.78);                // team patch (glows)
-    if(en&&s<0)add('arm'+S_,cyl(.84,.84,.55),COL.red,0,0,-.95,0);             // red armband
+    if(en&&s<0&&!dd)add('arm'+S_,cyl(.84,.84,.55),COL.red,0,0,-.95,0);       // red armband
     add('fore'+S_,cyl(.7,.6,2.7),W,8,0,-1.35,0);
-    if(sq)add('fore'+S_,rbox(.85,.85,.9,.3),COL.pad,0,-.35,-.15,0);           // elbow pad
-    add('hand'+S_,rbox(.72,1.05,.62,.25),sq?COL.glove:'#ffffff',sq?0:1,0,-.5,0);
+    if(sq&&!dd)add('fore'+S_,rbox(.85,.85,.9,.3),COL.pad,0,-.35,-.15,0);     // elbow pad
+    add('hand'+S_,rbox(.72,1.05,.62,.25),sq&&!dd?COL.glove:'#ffffff',sq&&!dd?0:1,0,-.5,0);
   }
   // the weapon (the gun bone: receiver at 0, barrel along +x)
   const G=(g,c,mid,x,y,z,rot,sc)=>add('gun',g,c,mid,x,y,z,rot,sc);
@@ -188,6 +208,12 @@ function figParts(key){
     G(rbox(.2,.5,.2,.05),COL.metal,4,4.6,.3,0);G(rbox(.62,1.0,.45,.12),COL.metal,4,.95,-.95,0,[0,0,.15]);G(rbox(.62,.9,.45,.12),COL.metal,4,1.3,-1.75,0,[0,0,.45]);
   }
   return out;
+}
+// the German helmet (D-Day, Version 190): a lathe of its profile, from the skirt's edge up to the crown: the skirt flared out over the ears and neck, the
+// step where it meets the dome, the dome (made fresh each time: figGeometry disposes what it merges)
+function figStahlhelm(){
+  const P=[[1.98,-.42],[1.9,-.3],[1.76,-.12],[1.66,0],[1.62,.08],[1.68,.18],[1.7,.42],[1.64,.72],[1.48,1.02],[1.2,1.28],[.82,1.44],[.4,1.52],[.001,1.55]];
+  return new T.LatheGeometry(P.map(([r,y])=>new T.Vector2(r,y)),14);
 }
 // the grips (where his wrists go, in the gun's frame) and the back of the stock, per weapon
 const GRIP={m4:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},m4s:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},hmg:{R:[-.45,-.55,.25],L:[2.3,-.75,-.3],butt:-3.4},
@@ -234,17 +260,19 @@ function figGeometry(key){
 function figMaterial(L,side){
   const m=new T.MeshStandardMaterial({vertexColors:true,skinning:true,roughness:.8,metalness:.04});
   const c=h=>new T.Color(h).convertSRGBToLinear();
+  const dd=typeof MAPID!=='undefined'&&MAPID==='dd';   // (Version 190, D-Day's daylight: skin matte, not shiny (its sheen burnt white in the sun); a hit a short warm flash at the edges, not a white fill)
   const U={uSkin:{value:c(L.skin)},uHair:{value:c(L.hair)},uCloth:{value:c(L.cloth)},uTeam:{value:c(L.team)},uGlow:{value:side==='P'?1.6:0},
-    uRim:{value:c(side==='E'?'#5a3a32':side==='P'?'#3a5a80':'#4a4f55').multiplyScalar(side==='P'?.42:.32)},uFill:{value:side==='P'?.16:.12},uHit:{value:0},uLamp:{value:c('#dfeaff').multiplyScalar(2.2)}};
+    uRim:{value:c(side==='E'?'#5a3a32':side==='P'?'#3a5a80':'#4a4f55').multiplyScalar(side==='P'?.42:.32)},uFill:{value:side==='P'?.16:.12},uHit:{value:0},uLamp:{value:c('#dfeaff').multiplyScalar(2.2)},
+    uSkR:{value:dd?.86:.58},uHitC:{value:dd?new T.Color(1,.45,.3):new T.Color(1,1,1)},uHitR:{value:dd?1:0}};
   m.userData.U=U;
   m.onBeforeCompile=s=>{
     Object.assign(s.uniforms,U);
     s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nattribute float mid;\nvarying float vMid;').replace('#include <begin_vertex>','#include <begin_vertex>\nvMid=mid;');
     s.fragmentShader=s.fragmentShader
-      .replace('#include <common>','#include <common>\nvarying float vMid;\nuniform vec3 uSkin,uHair,uCloth,uTeam,uRim,uLamp;\nuniform float uGlow,uHit,uFill;')
-      .replace('#include <color_fragment>','#include <color_fragment>\n  if(abs(vMid-1.)<.5)diffuseColor.rgb=uSkin*vColor;else if(abs(vMid-2.)<.5)diffuseColor.rgb=uTeam*.6;else if(abs(vMid-3.)<.5)diffuseColor.rgb=uHair*vColor;else if(abs(vMid-8.)<.5)diffuseColor.rgb=uCloth*vColor;')
-      .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\n  if(abs(vMid-4.)<.5){roughnessFactor=.36;metalnessFactor=.65;}else if(abs(vMid-5.)<.5){roughnessFactor=.6;}else if(abs(vMid-1.)<.5){roughnessFactor=.58;}')
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  {float f=1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.);totalEmissiveRadiance+=uRim*(f*f*(3.-2.*f))+diffuseColor.rgb*uFill;}\n  if(abs(vMid-2.)<.5)totalEmissiveRadiance+=uTeam*uGlow;if(abs(vMid-7.)<.5)totalEmissiveRadiance+=uLamp;totalEmissiveRadiance+=vec3(uHit);');
+      .replace('#include <common>','#include <common>\nvarying float vMid;\nuniform vec3 uSkin,uHair,uCloth,uTeam,uRim,uLamp,uHitC;\nuniform float uGlow,uHit,uFill,uSkR,uHitR;')
+      .replace('#include <color_fragment>','#include <color_fragment>\n  if(abs(vMid-1.)<.5)diffuseColor.rgb=uSkin*vColor;else if(abs(vMid-2.)<.5)diffuseColor.rgb=uTeam*.6;else if(abs(vMid-3.)<.5)diffuseColor.rgb=uHair*vColor;else if(abs(vMid-8.)<.5)diffuseColor.rgb=uCloth*vColor;else if(abs(vMid-9.)<.5)diffuseColor.rgb=uTeam*.3;')
+      .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\n  if(abs(vMid-4.)<.5){roughnessFactor=.36;metalnessFactor=.65;}else if(abs(vMid-5.)<.5){roughnessFactor=.6;}else if(abs(vMid-1.)<.5){roughnessFactor=uSkR;}')
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  {float f=1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.);totalEmissiveRadiance+=uRim*(f*f*(3.-2.*f))+diffuseColor.rgb*uFill+uHitC*uHit*mix(1.,.25+.75*f*f,uHitR);}\n  if(abs(vMid-2.)<.5)totalEmissiveRadiance+=uTeam*uGlow;if(abs(vMid-7.)<.5)totalEmissiveRadiance+=uLamp;');
   };
   m.customProgramCacheKey=()=>'fig1';
   return m;
@@ -409,8 +437,10 @@ function figAnimate(u,m){
     else if(!P.handE[s]&&F.hw[s]<.99)hq.slerp(_fq[5],1-F.hw[s]);
     B[arm+2].quaternion.copy(_fq[3].copy(_fq[5]).invert().multiply(hq));
   }
-  // a hit: a white flash on him for a moment
-  F.mat.userData.U.uHit.value=Math.max(0,(u.hitFlash||0))*.9;
+  // a hit: a white flash on him for a moment (D-Day, Version 190: a tenth of a second of warm light at his edges from each new hit, as hitFlash jumps; held
+  // white for as long as hitFlash lasted, a man under fire, and every dead one, whose hitFlash never runs down, stood chalk-white)
+  if(MAPID==='dd'){const h=u.hitFlash||0;if(h>(F.hf||0)+.01)F.hitT=simT;F.hf=h;const k=Math.max(0,1-(simT-(F.hitT??-9))/.1);F.mat.userData.U.uHit.value=k*k*.5;}
+  else F.mat.userData.U.uHit.value=Math.max(0,(u.hitFlash||0))*.9;
   F.fresh=false;
 }
 

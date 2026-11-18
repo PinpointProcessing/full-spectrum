@@ -35,7 +35,7 @@ const DD_ROUTE=[[440,640],[450,520],[430,380],[505,336],[545,240],[570,120],[520
 const DD_LINES=[344,236,-20,-290,-470];
 let dd=null;
 // by day: no night rim light or self-light on anyone (figure.js's material)
-function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.set(DD_FIG*1.06,DD_FIG*.9,DD_FIG*1.06);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.14;U.uGlow.value=u.side==='P'?.5:0;}});}
+function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.set(DD_FIG*1.06,DD_FIG*.9,DD_FIG*1.06);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.06;U.uGlow.value=u.side==='P'?.2:0;}});}   // (uFill .14 until Version 190: in the sun lit skin went past white; uGlow .5: the team's mark is paint now, figure.js)
 const ddAlly=u=>u.side==='P'&&!u.dead&&!u.downed&&!u.away;
 const ddSq=t=>players.filter(p=>p.team===t&&!p.dead);
 function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_CORE[team].filter(r=>!have.includes(r)),all=Object.keys(DD_ROLES).filter(r=>(DD_ENG||r!=='eng')&&(r!=='sharp'||(typeof ddmSharpOpen==='function'&&ddmSharpOpen())));return miss.length?miss[0]:all[(Math.random()*all.length)|0];}
