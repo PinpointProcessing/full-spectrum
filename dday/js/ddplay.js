@@ -180,7 +180,9 @@ function ddBoat(dx,men,own,o){
   dd.boats.push(b);ddBoatPose(b);return b;
 }
 function ddBoatPose(b){
-  b.m.position.set(b.x,1.2+Math.sin(simT*1.7+b.x)*.5,b.y);b.m.rotation.z=Math.sin(simT*1.3+b.x)*.03;b.m.rotation.x=Math.sin(simT*1.1+b.x*.3)*.02;
+  // (Version 188: riding the swell, pitched and rolled with it: ddsea.js's ddSeaRide, the sea's own surface under it; a bob of its own if there's no sea)
+  const w=typeof ddSeaRide==='function'?ddSeaRide(b):null;
+  if(w){b.m.position.set(b.x,w.y,b.y);b.m.rotation.z=w.rz;b.m.rotation.x=w.rx;}else{b.m.position.set(b.x,1.2+Math.sin(simT*1.7+b.x)*.5,b.y);b.m.rotation.z=Math.sin(simT*1.3+b.x)*.03;b.m.rotation.x=Math.sin(simT*1.1+b.x*.3)*.02;}
   for(const u of b.men)if(u.inBoat){u.x=b.x+u.seat2[0];u.y=b.y+u.seat2[1];u.elev=4.4+b.m.position.y;u.ang=-Math.PI/2;u.path=[];u.cool=Math.max(u.cool,.8);}
 }
 // a boat hit on the way in: gone, with everyone in it (one of the first wave, beside the squads' own: Bryan, "Maybe someone dies or a boat gets blown up")
