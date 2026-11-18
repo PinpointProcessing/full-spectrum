@@ -69,7 +69,8 @@ function dsRippleTex(){
   const t=new T.DataTexture(D,N,N,T.RGBAFormat);t.wrapS=t.wrapT=T.RepeatWrapping;t.magFilter=T.LinearFilter;t.minFilter=T.LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;
   return DSEA_TX.n=t;
 }
-// foam: red a lace of bubbles (the edges of cells, two sizes, over a little noise), green soft blobs (where the lather gathers); both tile
+// foam: red a lace of bubbles (the edges of cells, two sizes, over a little noise), green soft blobs (where the lather gathers); both tile. Version 190:
+// the edges' width and strength wander with noise, so it reads as lather, not a net of cracks (at an even width it looked like cracked glass)
 function dsFoamTex(){
   if(DSEA_TX.f)return DSEA_TX.f;
   const N=128,D=new Uint8Array(N*N*4),r=rng(1806);
@@ -77,7 +78,8 @@ function dsFoamTex(){
     for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const cx=ix+i,cy=iy+j,q=P[((cy%G+G)%G)*G+((cx%G+G)%G)],d=Math.hypot(cx+q[0]-gx,cy+q[1]-gy);if(d<f1){f2=f1;f1=d;}else if(d<f2)f2=d;}return f2-f1;};};
   const c1=cells(7),c2=cells(15),g=new Float32Array(64);for(let i=0;i<64;i++)g[i]=r();
   const vn=(x,y)=>{const G=8,gx=x*G,gy=y*G,ix=Math.floor(gx),iy=Math.floor(gy),tx=gx-ix,ty=gy-iy,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),v=(i,j)=>g[((j%G+G)%G)*G+((i%G+G)%G)];return(v(ix,iy)*(1-sx)+v(ix+1,iy)*sx)*(1-sy)+(v(ix,iy+1)*(1-sx)+v(ix+1,iy+1)*sx)*sy;};
-  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const u=x/N,v=y/N,l=Math.max(1-dsSS(0,.16,c1(u,v)),.8*(1-dsSS(0,.14,c2(u,v))));
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const u=x/N,v=y/N,w1=.08+.22*vn(u*3+.1,v*3+.7),w2=.06+.18*vn(u*4+.4,v*4+.2),
+      l=Math.max((1-dsSS(0,w1,c1(u,v)))*(.3+.7*vn(u*4+.3,v*4+.9)),.8*(1-dsSS(0,w2,c2(u,v)))*(.25+.75*vn(u*5+.6,v*5+.1)));
     const k=(y*N+x)*4;D[k]=clamp((l*.72+vn(u*2,v*2)*.28)*255,0,255);D[k+1]=clamp((vn(u,v)*.65+vn(u*2+.5,v*2+.3)*.35)*255,0,255);D[k+2]=0;D[k+3]=255;}
   const t=new T.DataTexture(D,N,N,T.RGBAFormat);t.wrapS=t.wrapT=T.RepeatWrapping;t.magFilter=T.LinearFilter;t.minFilter=T.LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;
   return DSEA_TX.f=t;
@@ -180,7 +182,8 @@ function ddSeaMesh(sc){
           wet=max((smoothstep(702.-Rb*1.15-5.,702.-Rb*.35,z))*.55,exp(-max(dry,0.)/2.6));}
         // foam: whitewater behind each breaking crest and lather between them, whitecaps on the swell further out, the swash's leading edge and its lather,
         // a line left at the top of the run-up, foam round the stakes
-        float u=dsU(x,z),lace=texture2D(tF,vW.xz/34.+t*vec2(.004,.012)).r,blob=texture2D(tF,vW.xz/150.+t*vec2(-.003,.007)).g;
+        float u=dsU(x,z),blob=texture2D(tF,vW.xz/150.+t*vec2(-.003,.007)).g;   // (Version 190: the lace warped by the blobs, drawn out along the crests and broken into patches)
+        float lace=texture2D(tF,vW.xz/vec2(46.,24.)+(blob-.5)*.45+t*vec2(.004,.012)).r*(.35+.65*smoothstep(.28,.62,texture2D(tF,vW.xz/83.+vec2(.37,.11)-t*vec2(.002,.004)).g));
         float brk=(1.-smoothstep(778.,812.+14.*sin(x*.0061+2.),z))*smoothstep(698.,712.,z);
         float fa=brk*(exp(-u*8.)*1.3+.3*blob);
         float cd=distance(cameraPosition.xz,vW.xz),cf=1.-smoothstep(700.,2200.,cd);   // (whitecaps thin out with distance: far off their rows read as stripes)
@@ -238,7 +241,8 @@ function ddSeaWakes(sc,base){
         fa+=step(lz,-53.)*exp((lz+53.)/(4.+sp*12.))*sp*1.3*(1.-smoothstep(13.,22.,lx));                  // shoved ahead of the ramp
         fa+=step(0.,a)*exp(-abs(lx-17.-a*.36)/(2.2+a*.035))*sp*exp(-a/240.)*1.1;                        // the V of the bow wave
         float c=1.-smoothstep(7.+max(lz-53.,0.)*.06,13.+max(lz-53.,0.)*.13,lx);fa+=step(53.,lz)*c*sp*exp(-(lz-53.)/170.)*1.2;   // the screw's churn
-        float lace=texture2D(tF,vW.xz/26.+uT*vec2(.006,.01)).r,fo=clamp((lace-(1.-fa))*2.4,0.,1.)*min(1.,fa*1.4)*vK;
+        float bw=texture2D(tF,vW.xz/120.).g,pw=texture2D(tF,vW.xz/70.+vec2(.5,.2)).g,lace=texture2D(tF,vW.xz/vec2(20.,34.)+(bw-.5)*.4+uT*vec2(.006,.01)).r*(.4+.6*smoothstep(.25,.6,pw));
+        lace=mix(lace,pw*.8,.3);float fo=clamp((lace-(1.-fa))*2.,0.,1.)*min(1.,fa*1.4)*vK;   // (warped, in patches and softened with lather: Version 190, it read as cracked glass)
         float tint=clamp(fa*.5,0.,.45)*vK;                                                                // stirred-up water, paler under the foam
         vec3 C=uFoam*uLit*vec3(.62,.8,.78)*tint;float A=tint;C=uFoam*uLit*fo+C*(1.-fo);A=fo+A*(1.-fo);
         if(A<.004)discard;gl_FragColor=vec4(C/A,A);
@@ -254,25 +258,32 @@ function ddSeaPuffs(sc,base){
   const N=DSEA.puffs,g=new T.InstancedBufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute([-1,-1,0,1,-1,0,1,1,0,-1,1,0],3));g.setIndex([0,1,2,0,2,3]);
   const at=()=>{const a=new T.InstancedBufferAttribute(new Float32Array(N*4),4);a.setUsage(T.DynamicDrawUsage);return a;},iP=at(),iC=at(),iV=at();
   g.setAttribute('iP',iP);g.setAttribute('iC',iC);g.setAttribute('iV',iV);g.instanceCount=0;
-  const U=Object.assign(T.UniformsUtils.merge([T.UniformsLib.fog]),{uLit:base.uLit,uFoam:base.uFoam,uSunD:base.uSunD,tP:{value:dsPuffTex()},tC:{value:dsColTex()}});
+  const U=Object.assign(T.UniformsUtils.merge([T.UniformsLib.fog]),{uLit:base.uLit,uFoam:base.uFoam,uSunD:base.uSunD,uT:base.uT,tP:{value:dsPuffTex()},tC:{value:dsColTex()},
+    tN:{value:typeof ddNoiseTex==='function'?ddNoiseTex():dsRippleTex()}});
   const mat=new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,fog:true,
-    vertexShader:`attribute vec4 iP,iC,iV;varying vec2 vU;varying vec4 vC;varying float vS;
+    vertexShader:`attribute vec4 iP,iC,iV;varying vec2 vU;varying vec4 vC;varying float vS,vN;
       #include <fog_pars_vertex>
       void main(){vec2 c=position.xy;float s=iP.w,r=iC.z;vec2 cr=vec2(c.x*cos(r)-c.y*sin(r),c.x*sin(r)+c.y*cos(r));vec4 mvPosition;
-        if(iC.y>1.5){float h=c.y*.5+.5;mvPosition=viewMatrix*vec4(iP.xyz+vec3(0.,h*iV.x,0.),1.);mvPosition.x+=c.x*s*(.7+.5*h);   // (a column: its foot on the water, iV.x high, wider at its head)
+        if(iC.y>1.5){float h=c.y*.5+.5,d=max(1.,-(viewMatrix*vec4(iP.xyz,1.)).z);mvPosition=viewMatrix*vec4(iP.xyz+vec3(0.,h*iV.x,0.),1.);
+          mvPosition.x+=c.x*min(s,d*.055)*(.7+.5*h);vN=smoothstep(30.,110.,d);   // (a column: its foot on the water, iV.x high, wider at its head; Version 190: never wider than about a third of a portrait screen, and faded out close to the camera)
           vU=vec2((c.x*.5+.5)*.25+floor(r/6.2832*3.999)*.25,h);vS=h;vC=iC;gl_Position=projectionMatrix*mvPosition;
           #include <fog_vertex>
           return;}
         if(iC.y>.5)mvPosition=viewMatrix*vec4(iP.xyz+vec3(cr.x,0.,cr.y)*s,1.);
-        else{mvPosition=viewMatrix*vec4(iP.xyz,1.);vec2 vv=(viewMatrix*vec4(iV.xyz,0.)).xy;float L=length(vv)*iV.w;
+        else{mvPosition=viewMatrix*vec4(iP.xyz,1.);vec2 vv=(viewMatrix*vec4(iV.xyz,0.)).xy;float L=min(length(vv)*iV.w,1.2);   // (Version 190: drawn out at most a little over twice its size: close to the camera it smeared)
           if(L>.15){vec2 d=normalize(vv);cr=d*c.y*(1.+L)+vec2(-d.y,d.x)*c.x;}mvPosition.xy+=cr*s;}
+        vN=smoothstep(14.,60.,-(viewMatrix*vec4(iP.xyz,1.)).z);   // (and gone right in front of the camera)
         vU=vec2((c.x*.5+.5)*.5+iC.y*.5,c.y*.5+.5);vS=cr.y*.5+.5;vC=iC;gl_Position=projectionMatrix*mvPosition;
         #include <fog_vertex>
       }`,
-    fragmentShader:`uniform vec3 uLit,uFoam;uniform sampler2D tP,tC;varying vec2 vU;varying vec4 vC;varying float vS;
+    fragmentShader:`uniform vec3 uLit,uFoam;uniform sampler2D tP,tC,tN;uniform float uT;varying vec2 vU;varying vec4 vC;varying float vS,vN;
       #include <fog_pars_fragment>
-      void main(){float a=(vC.y>1.5?texture2D(tC,vU).a*mix(.25,1.,smoothstep(0.,.1,vS)):texture2D(tP,vU).a)*vC.x;if(a<.01)discard;   // (a column's foot thinned where it meets the water)
-        gl_FragColor=vec4(uFoam*uLit*mix(.74,1.,clamp(vS,0.,1.))*vC.w,a);
+      void main(){float a,k=1.;
+        if(vC.y>1.5){a=texture2D(tC,vU).a*mix(.25,1.,smoothstep(0.,.1,vS));   // (a column's foot thinned where it meets the water)
+          float n=texture2D(tN,vec2(vU.x*6.8+vC.z*.37,vU.y*.45-uT*.3)).g,cx=abs(fract(vU.x*4.)*2.-1.);a*=smoothstep(.3,.62,n+vS*.18+(1.-cx)*.3);k=.84;}   // (Version 190: broken into streaks running up it, frayed at its sides; grey-white, under the bloom)
+        else a=texture2D(tP,vU).a;
+        a*=vC.x*vN;if(a<.01)discard;
+        gl_FragColor=vec4(uFoam*uLit*mix(.74,1.,clamp(vS,0.,1.))*vC.w*k,a);
         ${DSEA_FRAG_END}
       }`});
   const m=new T.Mesh(g,mat);m.frustumCulled=false;sc.add(m);
@@ -288,19 +299,23 @@ function dsPuff(x,y,z,vx,vy,vz,s,gr,life,o){
   const k=P.k,j=i*6;k[j]=o.pil?2:o.flat?1:0;k[j+1]=dsRand()*TAU;k[j+2]=o.shade??1;k[j+3]=o.fall??1;k[j+4]=o.a??.85;k[j+5]=o.st??0;
 }
 // a column of water: shoots up to its height in the first third of its life, then its head falls back into it and it thins (dsPuffsTick); w its width
-const DSEA_PIL={pil:1,a:.97};
+const DSEA_PIL={pil:1,a:.78};   // (Version 190: .97 read as a white post)
 function dsPillar(x,y,z,w,H,life,gr,shade){DSEA_PIL.shade=shade??1;dsPuff(x,y,z,H,0,0,w,gr,life,DSEA_PIL);}
 // water thrown up where a shell or a bullet hits the sea (dday.js's ddSplash hands it here): s about .35-.6 for a bullet, 1.5-2.6 for a shell
 const DSEA_SPL={col:{st:.012,a:.95},drop:{st:.022,shade:1,a:.95},crown:{st:.007,shade:.9},mist:{fall:.05,shade:.88,a:.38},ring:{flat:1,a:.75},ring2:{flat:1,a:.55,shade:.95},spout:{st:.016,a:.9}};
+// (Version 190: on the ride in and in first person a shell's water is kept at least 60 from the camera and made smaller within 120 of it, sc: one beside
+// the boat covered two thirds of a phone's screen in white)
 function ddSeaSplash(x,y,s=1){
-  if(!DD||!DD.seaP)return;const R=dsRand,h=ddSeaY(x,y),O=DSEA_SPL;
-  if(s>1){const k=Math.sqrt(s/2);
-    dsPillar(x,h-2.5,y,(4+R()*1.4)*s,(34+R()*14)*s,2.7+R()*.5,1.4*s,1);dsPillar(x+(R()-.5)*4*s,h-2.5,y+(R()-.5)*4*s,(2.2+R())*s,(44+R()*18)*s,2.3+R()*.4,1.1*s,.96);   // the column: a thick one and a taller thin one in it
-    dsPillar(x+(R()-.5)*6*s,h-2.5,y+(R()-.5)*6*s,(6+R()*2)*s,(13+R()*7)*s,3+R()*.4,2.6*s,.9);   // and a low wide skirt round its foot
-    for(let i=0;i<10+s*4;i++){const a=R()*TAU,o=R()*3.5*s;O.col.shade=.88+R()*.12;dsPuff(x+Math.cos(a)*o,h+2,y+Math.sin(a)*o,(R()-.5)*18*s,(130+R()*100)*k,(R()-.5)*18*s,(1.8+R()*2.2)*s,3*s,1.6+R()*.8,O.col);}   // the column
+  if(!DD||!DD.seaP)return;const R=dsRand,O=DSEA_SPL;let c=1;
+  if(s>1&&typeof dd!=='undefined'&&dd&&(dd.fp||(dd.land&&!dd.land.done))){const C=camera.position,dx=x-C.x,dz=y-C.z,d=Math.hypot(dx,dz)||1;if(d<60){x=C.x+dx/d*60;y=C.z+dz/d*60;}c=clamp(d/120,.5,1);}
+  const h=ddSeaY(x,y);
+  if(s>1){const k=Math.sqrt(s/2),sc=s*c;
+    dsPillar(x,h-2.5,y,(4+R()*1.4)*sc,(34+R()*14)*sc,2.7+R()*.5,1.4*sc,.9);dsPillar(x+(R()-.5)*4*sc,h-2.5,y+(R()-.5)*4*sc,(2.2+R())*sc,(44+R()*18)*sc,2.3+R()*.4,1.1*sc,.88);   // the column: a thick one and a taller thin one in it
+    dsPillar(x+(R()-.5)*6*sc,h-2.5,y+(R()-.5)*6*sc,(6+R()*2)*sc,(13+R()*7)*sc,3+R()*.4,2.6*sc,.84);   // and a low wide skirt round its foot
+    for(let i=0;i<10+s*4;i++){const a=R()*TAU,o=R()*3.5*s;O.col.shade=.86+R()*.1;dsPuff(x+Math.cos(a)*o,h+2,y+Math.sin(a)*o,(R()-.5)*18*s,(130+R()*100)*k,(R()-.5)*18*s,(1.8+R()*2.2)*sc,3*sc,1.6+R()*.8,O.col);}   // the column
     for(let i=0;i<12;i++){const a=R()*TAU,sp=30+R()*45;dsPuff(x,h+3+R()*20*s,y,Math.cos(a)*sp,(80+R()*90)*k,Math.sin(a)*sp,(.7+R()*.7)*Math.sqrt(s),0,1+R()*.6,O.drop);}   // drops flung out of it
     for(let i=0;i<9;i++){const a=i/9*TAU+R()*.4,sp=(40+R()*40)*k;dsPuff(x,h+3,y,Math.cos(a)*sp,30+R()*45,Math.sin(a)*sp,(3+R()*3)*s,5*s,1+R()*.6,O.crown);}   // the crown round its foot
-    for(let i=0;i<2;i++)dsPuff(x+(R()-.5)*8*s,h+16*s+i*22*s,y+(R()-.5)*8*s,(R()-.5)*6,10+R()*8,(R()-.5)*6,9*s,8*s,2.6+R(),O.mist);   // mist hanging after it
+    for(let i=0;i<2;i++)dsPuff(x+(R()-.5)*8*s,h+16*s+i*22*s,y+(R()-.5)*8*s,(R()-.5)*6,10+R()*8,(R()-.5)*6,9*sc,8*sc,2.6+R(),O.mist);   // mist hanging after it
     dsPuff(x,h+.4,y,0,0,0,6*s,15*s,4.5,O.ring);dsPuff(x,h+.3,y,0,0,0,4*s,8*s,3.2,O.ring2);}   // the rings of foam it leaves
   else{dsPillar(x,h-.5,y,(1.1+R()*.5)*(.6+s),(9+R()*8)*(.5+s),.65+R()*.25,.8,1);   // a bullet's spout
     for(let i=0;i<2;i++)dsPuff(x+(R()-.5)*2,h+1,y+(R()-.5)*2,(R()-.5)*6,60+R()*60,(R()-.5)*6,1+R(),1.5,.55+R()*.35,O.spout);
