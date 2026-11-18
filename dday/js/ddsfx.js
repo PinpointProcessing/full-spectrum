@@ -32,7 +32,7 @@ const DDS_GUN={
   ksnip:{near:'kar',far:'karfar',vol:.72,r:[.88,.93],cap:2,carry:1.6},
   mp40:{near:'smg',far:'smgfar',vol:.48,r:[.96,1.05],cap:2,carry:1},
   trench:{near:'trench',far:'usfar',vol:.65,r:[.96,1.03],cap:2,carry:1.1},
-  mg:{near:'thud',far:'thud',vol:.9,r:[.97,1.03],cap:4,carry:2.2}};
+  mg:{near:'thud',far:'thud',vol:.9,r:[.97,1.03],cap:4,carry:1.9}};
 const ddsR=(a,b)=>a+Math.random()*(b-a);
 
 /* ---------- loading (from audioInit) ---------- */
@@ -208,7 +208,7 @@ function ddsBoom(x,y,size){
   // crack (a rifle report an octave down) and a short sub-bass knock for headphones, then earth falling back
   switch(kind){
     case'art':case'big':   // a shell or a bunker going up: the big boom, earth and sand coming down for a while
-      ddsSrc(o,ddsPick('xbig'),t,kind==='big'?ddsR(.84,.92):ddsR(.88,.98),v);crack(.42,.45);
+      ddsSrc(o,ddsPick('xbig'),t,kind==='big'?ddsR(.84,.92):ddsR(.88,.98),v);if(kind==='big'&&xm)ddsSrc(o,xm,t,ddsR(.9,1),v*.5);crack(.42,.45);   // (a building going up: a harder bang inside the boom)
       toneHit(o.g,t,.6,'sine',80,40,.25*v,.006);ddsGrains(o,t+.25,1.8,14,2400,.07*v);break;
     case'tank':   // a tank's shell: a sharp crack and a heavy bang
       ddsSrc(o,xm,t,ddsR(.95,1.05),v*.95);crack(.47,.6);toneHit(o.g,t,.4,'sine',95,45,.25*v,.004);ddsGrains(o,t+.2,1,8,2600,.05*v);break;
@@ -217,7 +217,7 @@ function ddsBoom(x,y,size){
     case'rocket':   // a bazooka rocket: a sharp crack and a short bang
       ddsSrc(o,xm,t,ddsR(1.15,1.28),v*.8);crack(.52,.55);ddsGrains(o,t+.15,.8,7,3000,.045*v);break;
     default:{   // a grenade or a rifle grenade: a sharp crack, a short bang, sand pattering down
-      const fr=ddsPick('xfrag')||boom;if(fr)ddsSrc(o,fr,t,ddsR(.96,1.08)*(kind==='rgl'?.94:1),v*.9,fr===boom?90:0);
+      const fr=ddsPick('xfrag')||boom;if(fr)ddsSrc(o,fr,t,ddsR(.96,1.08)*(kind==='rgl'?.94:1),v*1.1,fr===boom?90:0);
       crack(.56,.5);toneHit(o.g,t,.25,'sine',110,50,.2*v,.003);ddsGrains(o,t+.15,.8,7,3000,.045*v);}
   }
 }
