@@ -16,14 +16,17 @@
    sand or dirt where it lands) or hits cover (chips), a man running (dust at his heels), drifting battle smoke low over the field (ddFxHaze), and the
    rockets' trails (dday.js's ddRockets hands its puffs here). */
 const DDFX={
-  cap:{soft:[240,400,560],glow:[100,160,220],streak:[28,44,64],clod:[30,64,100],ring:[6,10,14]},   // the most alive at once, by tier (0 cheapest .. 2)
+  cap:{soft:[240,400,560],glow:[100,160,220],streak:[28,44,64],clod:[30,64,100],ring:[6,10,14],scorch:[10,18,26]},   // the most alive at once, by tier (0 cheapest .. 2)
   haze:[0,3,6],              // patches of battle smoke drifting low over the field, by tier
   wind:[-7,2.4],             // smoke's drift over the battle (x, y units a second; the light's far columns lean the same way)
   fireFlame:[7,11,16],fireSmoke:[1.5,2.4,3.2],   // a burning wreck's flames and puffs of black smoke a second, by tier
   muzzle:[.35,.7,1],         // the chance a shot leaves a puff at the muzzle, by tier
   dust:[.36,.24,.17],        // a running man kicks up a puff this often (seconds), by tier
   menK:.2,                   // smoke in front of one of the squad you play thins to this (on the screen, round each man)
-  amb:[.72,.7,.68],sunK:.55   // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
+  amb:[.72,.7,.68],sunK:.55,  // the soft particles' light: the sky's fill, and how much of the sun's colour on their lit side
+  linger:[3,5,7],            // a shell's smoke left standing over where it fell, drifting off downwind for ten seconds or so (puffs, by tier)
+  scorch:40,                 // a blast's scorch on the ground lasts this long (seconds), fading over its last third
+  far:[0,6.5,4]              // the battle beyond yours (Version 188, pass 3): a shell bursting out on the beach's flanks or in the sea every so many seconds, by tier (0: none)
 };
 // its own run of random numbers, so the effects leave the game's (Math.random) as it was: a seeded test plays out the same with them or without
 let _fxs=19440606;const fxR=()=>(_fxs=(_fxs*16807)%2147483647)/2147483647;
@@ -102,11 +105,21 @@ const DDF_STREAK_VS=`attribute vec4 iA,iB,iC;uniform float uPx;varying float vA,
   void main(){vec4 a=viewMatrix*vec4(iA.xyz,1.),b=viewMatrix*vec4(iB.xyz,1.),v=mix(a,b,position.x);vec3 sd=cross(b.xyz-a.xyz,v.xyz);float L=length(sd);sd=L>1e-5?sd/L:vec3(0.,1.,0.);
     v.xyz+=sd*position.y*max(iA.w,-v.z*uPx);vA=position.x;vS=position.y;vC=vec4(iC.rgb,iB.w);gl_Position=projectionMatrix*v;}`;
 const DDF_STREAK_FS=`varying float vA,vS;varying vec4 vC;
-  void main(){float k=exp(-vS*vS*2.6)*(.12+.88*vA*vA)+exp(-vS*vS*14.)*vA*.9;gl_FragColor=vec4(vC.rgb*k*vC.a,1.);}`;
+  void main(){float c=exp(-vS*vS*12.)*vA,k=exp(-vS*vS*2.6)*(.12+.88*vA*vA)+c*.9;gl_FragColor=vec4(vC.rgb*k*vC.a,c*.6*vC.a);}`;
+// (blended as light added over what's behind, the hot core also covering a little of it: on the bright sand a purely added bolt came out a pale near-white
+// line; now the core keeps its colour, yellow-orange ours, red-orange theirs. Version 188, pass 4)
 // the dust ring: a flat band lying on the ground, racing outward
 const DDF_RING_VS=`attribute vec4 iA,iB,iC;varying vec2 vP;varying vec4 vB;void main(){vP=position.xz;vB=iB;gl_Position=projectionMatrix*viewMatrix*vec4(iA.xyz+position*iA.w,1.);}`;
 const DDF_RING_FS=`uniform sampler2D tN;varying vec2 vP;varying vec4 vB;
   void main(){float r=length(vP);if(r>1.)discard;float n=texture2D(tN,vP*.35+.5).g;float a=smoothstep(1.,.78,r)*smoothstep(.3,.8,r)*(.45+.75*n);gl_FragColor=vec4(vB.rgb,a*vB.a);}`;
+// a scorch: a dark ragged blotch lying on the ground where a blast was, raked out in rays, thinner at its rim (Version 188, pass 3)
+const DDF_SCORCH_VS=`attribute vec4 iA,iB,iC;varying vec2 vP;varying vec4 vB;varying float vS;
+  void main(){float c=cos(iC.x),s=sin(iC.x);vP=vec2(position.x*c-position.z*s,position.x*s+position.z*c);vB=iB;vS=iC.y;gl_Position=projectionMatrix*viewMatrix*vec4(iA.xyz+vec3(vP.x,0.,vP.y)*iA.w,1.);}`;
+const DDF_SCORCH_FS=`uniform sampler2D tN;varying vec2 vP;varying vec4 vB;varying float vS;
+  void main(){float r=length(vP);if(r>1.)discard;float an=atan(vP.y,vP.x);vec2 t=vP*.42+vS*vec2(3.1,1.7);float n=texture2D(tN,t).g*.6+texture2D(tN,t*2.7+.3).b*.4;
+    float ray=pow(abs(cos(an*3.5+vS*9.)),6.)*.55+pow(abs(cos(an*5.+vS*5.)),10.)*.4;
+    float a=smoothstep(.0,.35,(.62+ray*.5-r)*(.7+n*.8))*(.55+.45*smoothstep(.65,.0,r))*(.75+.5*n);
+    if(a<.01)discard;gl_FragColor=vec4(vB.rgb*(.75+.5*n),a*vB.a);}`;
 function ddFxNoise(){
   if(typeof ddNoiseTex==='function')return ddNoiseTex();
   const N=64,D=new Uint8Array(N*N*4),r=rng(77);for(let i=0;i<D.length;i++)D[i]=(r()*255)|0;const t=new T.DataTexture(D,N,N,T.RGBAFormat);t.wrapS=t.wrapT=T.RepeatWrapping;t.magFilter=T.LinearFilter;t.needsUpdate=true;return t;
@@ -118,17 +131,19 @@ function ddFxBuild(sc){
   const sm=new T.ShaderMaterial({uniforms:U,vertexShader:DDF_VS,fragmentShader:DDF_SOFT_FS,transparent:true,depthWrite:false,fog:false});
   const gm=new T.ShaderMaterial({uniforms:{tN:U.tN,uFN:U.uFN,uFF:U.uFF},vertexShader:DDF_VS,fragmentShader:DDF_GLOW_FS,transparent:true,depthWrite:false,blending:T.AdditiveBlending,fog:false});
   const sq=new T.BufferGeometry();sq.setAttribute('position',new T.Float32BufferAttribute([0,-1,0,1,-1,0,1,1,0,0,1,0],3));sq.setIndex([0,1,2,0,2,3]);
-  const km=new T.ShaderMaterial({uniforms:{uPx:{value:.002}},vertexShader:DDF_STREAK_VS,fragmentShader:DDF_STREAK_FS,transparent:true,depthWrite:false,blending:T.AdditiveBlending,fog:false});
+  const km=new T.ShaderMaterial({uniforms:{uPx:{value:.002}},vertexShader:DDF_STREAK_VS,fragmentShader:DDF_STREAK_FS,transparent:true,depthWrite:false,fog:false,
+    blending:T.CustomBlending,blendEquation:T.AddEquation,blendSrc:T.OneFactor,blendDst:T.OneMinusSrcAlphaFactor,blendSrcAlpha:T.OneFactor,blendDstAlpha:T.OneMinusSrcAlphaFactor});
   const rq=new T.BufferGeometry();rq.setAttribute('position',new T.Float32BufferAttribute([-1,0,-1,1,0,-1,1,0,1,-1,0,1],3));rq.setIndex([0,2,1,0,3,2]);
   const rm=new T.ShaderMaterial({uniforms:{tN:U.tN},vertexShader:DDF_RING_VS,fragmentShader:DDF_RING_FS,transparent:true,depthWrite:false,fog:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+  const zm=new T.ShaderMaterial({uniforms:{tN:U.tN},vertexShader:DDF_SCORCH_VS,fragmentShader:DDF_SCORCH_FS,transparent:true,depthWrite:false,fog:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
   const cg=new T.DodecahedronGeometry(1,0),cm=new T.MeshLambertMaterial({color:0xffffff});cm.userData.ddKeep=true;   // (its colours are set as light already: ddlight.js's sweep leaves it)
   const clod=new T.InstancedMesh(cg,cm,C.clod[2]);clod.instanceMatrix.setUsage(T.DynamicDrawUsage);clod.frustumCulled=false;
   const wc=new T.Color(1,1,1);for(let i=0;i<C.clod[2];i++)clod.setColorAt(i,wc);clod.instanceColor.setUsage(T.DynamicDrawUsage);clod.count=0;sc.add(clod);   // (the colours made while count is the whole pool: setColorAt sizes its buffer by count)
   DDF={sc,U,
-    soft:ddFxStore(C.soft[2]),glow:ddFxStore(C.glow[2]),clods:ddFxStore(C.clod[2]),rings:ddFxStore(C.ring[2]),
-    softM:ddFxInst(sc,C.soft[2],q,sm,4),glowM:ddFxInst(sc,C.glow[2],q,gm,5),streakM:ddFxInst(sc,C.streak[2],sq,km,6),ringM:ddFxInst(sc,C.ring[2],rq,rm,3),clod,
+    soft:ddFxStore(C.soft[2]),glow:ddFxStore(C.glow[2]),clods:ddFxStore(C.clod[2]),rings:ddFxStore(C.ring[2]),scorch:ddFxStore(C.scorch[2]),
+    softM:ddFxInst(sc,C.soft[2],q,sm,4),glowM:ddFxInst(sc,C.glow[2],q,gm,5),streakM:ddFxInst(sc,C.streak[2],sq,km,6),ringM:ddFxInst(sc,C.ring[2],rq,rm,3),scorchM:ddFxInst(sc,C.scorch[2],rq,zm,2),clod,
     seen:new WeakSet(),hit:new WeakSet(),run:new WeakMap(),nPrev:[],nPrevN:0,fwd:new T.Vector3(),v:new T.Vector3(),m4:new T.Matrix4(),e:new T.Euler(),bs:new T.Vector2(),
-    col:[0,0,0],col2:[0,0,0],budget:0,hazeT:0,trail:0};
+    col:[0,0,0],col2:[0,0,0],budget:0,hazeT:0,trail:0,farT:3};
   DDF.sortCmp=(a,b)=>DDF.soft.dep[b]-DDF.soft.dep[a];
 }
 
@@ -166,18 +181,29 @@ function ddFxBlast(x,y,k,hot){
   // its heart: a dark column of smoke and earth standing a moment
   const nc=Math.round((2+2*k)*few);
   for(let i=0;i<nc;i++){const h=(10+i*16)*k;ddFxAdd(S,L,x+(R()-.5)*8*k,g+h,y+(R()-.5)*8*k,(R()-.5)*14,(60+R()*70)*k,(R()-.5)*14,1.1+R()*.7,(16+R()*8)*k,(38+R()*18)*k,f[0]*.7,f[1]*.68,f[2]*.66,.45,.42,.38,.8,0,1.4,-60,.3,.9,.03);}
-  // the smoke that's left, drifting off (black and oily from a wreck)
+  // a shell's (and a wreck's) smoke left standing as a column over where it fell, darker at its foot, leaning off downwind for ten seconds or so; it
+  // fades in as the earth comes down, and takes no more than most of the store, so the next blast always has room (Version 188, pass 3)
+  if(k>=.9){const nl=Math.round(DDFX.linger[t]*(hot?1.4:1)*Math.min(1.3,k));
+    for(let i=0;i<nl;i++){const u=i/Math.max(1,nl-1),dk=hot?.1:.2+u*.1;ddFxAdd(S,L*.85,x+(R()-.5)*16*k,g+(14+u*52)*k,y+(R()-.5)*16*k,(R()-.5)*5,(8+u*14+R()*6)*k,(R()-.5)*5,
+      10+R()*5+u*3,(30+R()*10)*k,(80+u*44+R()*30)*k,dk,dk*.93,dk*.86,dk+.26,dk+.24,dk+.21,.72-u*.2,0,.5,.7,1+u*.5,.8,.8+u*.6);}}
+  // the smoke that's left, drifting off (black and oily from a wreck; a brownish grey from earth and sand, not a cold grey)
   const ns=Math.round((hot?8:2+4*k)*few);
   for(let i=0;i<ns;i++){const a=R()*TAU,o=R()*16*k;const dk=hot?.12:sand?.42:.36;ddFxAdd(S,L,x+Math.cos(a)*o,g+(12+R()*24)*k,y+Math.sin(a)*o,Math.cos(a)*10,(5+R()*8)*k,Math.sin(a)*10,
-    (hot?8:5)+R()*2.5,(18+R()*10)*k,(46+R()*26)*k*(hot?1.3:1),dk,dk*.96,dk*.92,dk+.2,dk+.18,dk+.15,hot?.8:.72,0,.5,2.6,1,.85,.45);}
+    (hot?8:5)+R()*2.5,(18+R()*10)*k,(46+R()*26)*k*(hot?1.3:1),dk,dk*.94,dk*.86,dk+.2,dk+.17,dk+.12,hot?.8:.72,0,.5,2.6,1,.85,.45);}
   // the shock: dust racing out along the ground, and its ring
   const nr=Math.round((4+7*k)*few);
   for(let i=0;i<nr;i++){const a=i/nr*TAU+R()*.5,s=(130+R()*80)*k;ddFxAdd(S,L,x+Math.cos(a)*8*k,g+6,y+Math.sin(a)*8*k,Math.cos(a)*s,4+R()*8,Math.sin(a)*s,.9+R()*.7,(9+R()*5)*k,(28+R()*14)*k,Math.min(1,cr*1.1+.07),Math.min(1,cg*1.1+.07),Math.min(1,cb*1.1+.07),cr,cg,cb,.55,1,3.2,0,.4,.6,.02);}
+  ddFxScorch(x,y,g,k,sand);
   ddFxAdd(DDF.rings,DDFX.cap.ring[t],x,g+2.5,y,0,0,0,.42,6*k,120*k,Math.min(1,cr*1.14+.08),Math.min(1,cg*1.14+.08),Math.min(1,cb*1.14+.08),cr,cg,cb,.8,0,0,0,0,0,0);
   // clods
   const nk=Math.round((sand?2+3*k:3+10*k)*few),K=DDF.clods;
   for(let i=0;i<nk;i++){const a=R()*TAU,s=(30+R()*90)*k;const j=ddFxAdd(K,DDFX.cap.clod[t],x+Math.cos(a)*4,g+6,y+Math.sin(a)*4,Math.cos(a)*s,(140+R()*170)*k,Math.sin(a)*s,2.2+R()*1.4,(1.6+R()*1.9)*Math.sqrt(k),0,f[0]*1.15,f[1]*1.15,f[2]*1.15,0,0,0,1,0,0,-400,0,0,0);
     if(j>=0){K.rv[j]=(R()-.5)*16;K.c1[j*3]=R()*TAU;K.c1[j*3+1]=R()*TAU;}}
+}
+// a scorch where it went off: the oldest goes when the store is full (a long fight keeps the newest)
+function ddFxScorch(x,y,g,k,sand){
+  const Z=DDF.scorch,lim=Math.min(Z.cap,DDFX.cap.scorch[ddFxTier()]);if(Z.n>=lim){let o=0;for(let i=1;i<Z.n;i++)if(Z.age[i]/Z.life[i]>Z.age[o]/Z.life[o])o=i;ddFxKill(Z,o);}
+  const d=sand?[.2,.16,.11]:[.11,.09,.07];ddFxAdd(Z,lim,x,g+.6,y,0,0,0,DDFX.scorch*(.6+.4*Math.min(1,k)),(22+fxR()*8)*k,0,d[0],d[1],d[2],0,0,0,sand?.62:.72,0,0,0,0,0,.25);
 }
 // a shell in the sea: a column of white water thrown up and falling back, and mist
 function ddFxSpout(x,y,k){
@@ -220,8 +246,10 @@ function ddFxHaze(dt){
 /* ---------- shots: a puff at the muzzle, a kick of dirt where a round lands, chips off cover, dust from running feet ---------- */
 function ddFxShots(dt){
   const t=ddFxTier(),S=DDF.soft,L=DDFX.cap.soft[t]*.7,R=fxR,seen=DDF.seen,v=DDF.v;
-  for(const f of flashes){if(!f.u||seen.has(f))continue;seen.add(f);if(R()>DDFX.muzzle[t])continue;
+  for(const f of flashes){if(!f.u||seen.has(f))continue;seen.add(f);
     const at=f.u&&typeof muzzleAt==='function'?muzzleAt(f.u,v):null,x=at?at.x:f.x,h=at?at.y:ddH(f.x,f.y)+12,y=at?at.z:f.y,mg=f.u&&f.u.gunner;
+    ddFxAdd(DDF.glow,DDFX.cap.glow[t]*.6,x,h,y,0,0,0,.055,mg?10:6.5,mg?15:9,1,.9,.6,1,.55,.2,mg?1:.8,1,0,0,0,0,0);   // a star of flame at the barrel, each shot (Version 188, pass 4: the sprite alone was lost in daylight)
+    if(R()>DDFX.muzzle[t])continue;
     ddFxAdd(S,L,x,h,y,(R()-.5)*6,5+R()*4,(R()-.5)*6,mg?1.4:.9,mg?5:3.4,mg?18:12,.86,.85,.83,.7,.7,.69,mg?.42:.34,0,.8,2,.6,.6,.04);}
   let kick=0;
   for(const r of tracers){if(r.t<.085||DDF.hit.has(r))continue;DDF.hit.add(r);if(kick++>8)continue;
@@ -273,11 +301,24 @@ function ddFxBigGuns(dt){
 }
 // a puff for the rockets' trails, back-blasts and a hit gun's smoke (dday.js's ddRockets and ddcounter.js call DD.rk.puff, which comes here): col a hex
 function ddFxPuff(x,h,y,s,life,col,vy,j1=.5,j2=.5,j3=.5){
-  if(!DDF)return false;x+=(j1-.5)*2;h+=(j2-.5)*2;y+=(j3-.5)*2;if(life>1.6&&life<2&&(DDF.trail=(DDF.trail+1)%2))return true;   // (a rocket's trail comes 80 puffs a second: every other one is plenty, each bigger)
+  if(!DDF)return false;x+=(j1-.5)*2;h+=(j2-.5)*2;y+=(j3-.5)*2;const tr=life>1.6&&life<2;if(tr&&(DDF.trail=(DDF.trail+1)%2))return true;   // (a rocket's trail comes 80 puffs a second: every other one is plenty, each bigger)
   const t=ddFxTier(),r=((col>>16)&255)/255,g=((col>>8)&255)/255,b=(col&255)/255,warm=r>.8&&b<.5;
   if(warm)return ddFxAdd(DDF.glow,DDFX.cap.glow[t],x,h,y,(fxR()-.5)*6,vy||2,(fxR()-.5)*6,life*.6,s*1.6,s*.6,r,g*.85,b*.6,r*.8,g*.3,b*.1,.8,0,1,0,0,0,0)>=0;
-  const R=fxR,j=.75+R()*.5;
-  return ddFxAdd(DDF.soft,DDFX.cap.soft[t]*.85,x+(R()-.5)*3,h+(R()-.5)*3,y+(R()-.5)*3,(R()-.5)*5,vy||3,(R()-.5)*5,life*(1.1+R()*.5),s*.9*j,s*3.4*j,r,g,b,Math.min(1,r*1.08+.06),Math.min(1,g*1.08+.06),Math.min(1,b*1.08+.06),.7,3,.6,0,.6,.7,.05)>=0;
+  const R=fxR,j=.75+R()*.5;   // (a trail's puffs start big enough to touch the last one, about 7 apart at a rocket's speed, so it's one rope of smoke, not beads)
+  return ddFxAdd(DDF.soft,DDFX.cap.soft[t]*.85,x+(R()-.5)*3,h+(R()-.5)*3,y+(R()-.5)*3,(R()-.5)*5,vy||3,(R()-.5)*5,life*(1.1+R()*.5),s*(tr?1.9:.9)*j,s*(tr?4:3.4)*j,r,g,b,Math.min(1,r*1.08+.06),Math.min(1,g*1.08+.06),Math.min(1,b*1.08+.06),tr?.55:.7,tr?0:3,.6,0,.6,.7,.05)>=0;
+}
+
+/* ---------- the battle beyond yours: shells bursting out on the beach's flanks and in the sea ---------- */
+// Looks only (nothing is hurt, nothing hears it): a spot ahead of the camera, 500 to 1600 away, out of the fight (the beach either side of the
+// one you land on, x under 170 or over 1230, or the sea past the surf) and never within 450 of one of the squad; a column of water at sea, a burst
+// of sand on the land. The beach only (the ride in and the landing); the counterattack and the village have battles of their own
+function ddFxFar(dt){
+  const t=ddFxTier(),every=DDFX.far[t];if(!every||dt<=0||DD_MODE!=='beach'||(DDF.farT-=dt)>0)return;DDF.farT=every*(.55+fxR()*.9)*(dd&&dd.land&&!dd.land.done?.5:1);
+  const C=camera.position,F=camera.getWorldDirection(DDF.v),ha=Math.atan2(F.z,F.x);
+  for(let k=0;k<6;k++){const d=500+fxR()*1100,a=ha+(fxR()-.5)*1.1,x=C.x+Math.cos(a)*d,y=C.z+Math.sin(a)*d;
+    const sea=y>820&&y<2400,side=(x<170||x>1230)&&x>-600&&x<2000&&y>300&&y<820,ride=dd&&dd.land&&!dd.land.done&&y>330&&y<720;if(!sea&&!side&&!ride)continue;   // (on the ride in, the beach ahead is shelled too: nobody of ours is on it yet)
+    let near=false;for(const p of players)if(!p.dead&&hyp(p.x-x,p.y-y)<450){near=true;break;}if(near)continue;
+    if(sea)ddFxSpout(x,y,.8+fxR()*.5);else ddFxBlast(x,y,.9+fxR()*.4,false);return;}
 }
 
 /* ---------- each frame ---------- */
@@ -294,8 +335,8 @@ function ddFxBooms(){
 function ddFxFrame(rdt,now,dt){
   if(!DDF||!DD||DDF.sc!==DD.scene)return;
   const bl=DD.lights&&DD.lights.boomL,lb=booms[booms.length-1];if(bl&&lb){const q=clamp(lb.t/.3,0,1);bl.intensity=2.4*(1-q)*(1-q);bl.distance=240;}   // (scene.js lights the latest blast at 7 for .6 s: under the daylight curve that burned a bright disc into the ground; a quick flash now)
-  ddFxBooms();ddFxFires(dt);ddFxHaze(dt);ddFxShots(dt);ddFxBigGuns(dt);
-  ddFxStep(DDF.soft,dt);ddFxStep(DDF.glow,dt);ddFxStep(DDF.rings,dt);ddFxStepClods(dt);
+  ddFxBooms();ddFxFires(dt);ddFxHaze(dt);ddFxFar(dt);ddFxShots(dt);ddFxBigGuns(dt);
+  ddFxStep(DDF.soft,dt);ddFxStep(DDF.glow,dt);ddFxStep(DDF.rings,dt);ddFxStep(DDF.scorch,dt);ddFxStepClods(dt);
   ddFxDraw();
 }
 function ddFxStepClods(dt){
@@ -328,9 +369,15 @@ function ddFxDraw(){
   for(let i=0;i<RG.n;i++){const q=RG.age[i]/RG.life[i],e=1-(1-q)*(1-q)*(1-q),o=i*4;MR.A.array[o]=RG.x[i];MR.A.array[o+1]=RG.y[i];MR.A.array[o+2]=RG.z[i];MR.A.array[o+3]=RG.s0[i]+(RG.s1[i]-RG.s0[i])*e;
     MR.B.array[o]=RG.c0[i*3];MR.B.array[o+1]=RG.c0[i*3+1];MR.B.array[o+2]=RG.c0[i*3+2];MR.B.array[o+3]=RG.a[i]*(1-q)*(1-q);}
   ddFxSend(MR,RG.n);
+  // scorches: there at once under the plume, fading over the last third of their time
+  const Z=DDF.scorch,MZ=DDF.scorchM;
+  for(let i=0;i<Z.n;i++){const q=Z.age[i]/Z.life[i],o=i*4;MZ.A.array[o]=Z.x[i];MZ.A.array[o+1]=Z.y[i];MZ.A.array[o+2]=Z.z[i];MZ.A.array[o+3]=Z.s0[i]*(.75+.25*Math.min(1,Z.age[i]/.3));
+    MZ.B.array[o]=Z.c0[i*3];MZ.B.array[o+1]=Z.c0[i*3+1];MZ.B.array[o+2]=Z.c0[i*3+2];MZ.B.array[o+3]=Z.a[i]*Math.min(1,Z.age[i]/Z.fin[i])*(q<.66?1:(1-q)/.34);
+    MZ.C.array[o]=Z.rot[i];MZ.C.array[o+1]=Z.seed[i];}
+  ddFxSend(MZ,Z.n);
   // tracers: the bolt's head runs from the gun to where the round goes in .08 s, its tail some way behind
   const K=DDF.streakM,KA=K.A.array,KB=K.B.array,KC=K.C.array,lim=DDFX.cap.streak[ddFxTier()];let ns=0;
-  K.m.material.uniforms.uPx.value=2*Math.tan(cam.fov*Math.PI/360)/bh*2.2;
+  K.m.material.uniforms.uPx.value=2*Math.tan(cam.fov*Math.PI/360)/bh*3;
   for(const r of tracers){if(ns>=lim)break;const L=hyp(r.x2-r.x1,r.y2-r.y1);if(L<1)continue;
     const hd=Math.min(1,r.t/.08),tl=Math.max(0,hd-Math.min(.9,Math.max(28,L*.22)/L)),fade=r.t<.08?1:Math.max(0,1-(r.t-.08)/.04);if(fade<=0)continue;
     const h1=ddH(r.x1,r.y1)+12,h2=ddH(r.x2,r.y2)+10,o=ns*4,en=r.col&&r.col.charCodeAt(4)===49;   // ('255,140,100': theirs, a hotter orange-red)
