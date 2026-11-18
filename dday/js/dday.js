@@ -168,7 +168,7 @@ function paintDDGround(g){
     const mix=(A,B,k)=>[A[0]+(B[0]-A[0])*k,A[1]+(B[1]-A[1])*k,A[2]+(B[2]-A[2])*k];
     // (Version 188: a fuller palette. The sand: paler and drier up the beach, bands of darker sand along the shore, a dark wet band
     // with a lighter sheen where the last wave ran up; the rock in beds of grey and ochre limestone with dark seams and lit ledges)
-    const SAND=[204,180,130],SAND2=[184,160,114],DRYS=[214,198,156],SANDW=[126,110,84],SHEEN=[158,148,124],BED=[104,124,114],ROCK=[170,156,130],ROCKD=[112,100,82],ROCKL=[198,190,168],GRASS=[98,132,60],GRASS2=[72,106,46],DIRT=[156,128,88],DRY=[156,150,88];
+    const SAND=[204,180,130],SAND2=[184,160,114],DRYS=[214,198,156],SANDW=[126,110,84],SHEEN=[158,148,124],BED=[104,124,114],ROCK=[162,148,122],ROCKD=[106,96,80],ROCKL=[188,180,158],GRASS=[98,132,60],GRASS2=[72,106,46],DIRT=[156,128,88],DRY=[156,150,88];
     for(let j=0;j<SH;j++)for(let i=0;i<SW;i++){
       const dx=i*2+1,y=DDB.y0+j*2+1,wx=dx+DDX,h=ddH(wx,y),hx=(ddH(wx+4,y)-ddH(wx-4,y))/8,hy=(ddH(wx,y+4)-ddH(wx,y-4))/8,sl=Math.hypot(hx,hy);
       const n1=fbm(dx*.02,y*.02),n2=fbm(dx*.07+40,y*.07+11);let c;
@@ -179,7 +179,7 @@ function paintDDGround(g){
       else{const steep=clamp((sl-.28)/.35,0,1);
         let g2=mix(GRASS,GRASS2,clamp(n1*1.6-.3,0,1));g2=mix(g2,DRY,clamp(n2*2-1.1,0,1)*.7);
         const flat=ddRock(dx,y)?g2:(y<-320?mix(g2,DIRT,clamp(n2*1.8-.55,0,1)*.6):mix(DIRT,g2,clamp(n1*2.2-.75,0,1)*.8));
-        const band=.5+.5*Math.sin(h*.42+n1*4);let rk=mix(ROCKD,ROCK,band*.6+n2*.4);rk=mix(rk,ROCKL,clamp(n1*2-1.1,0,1)*.5);   // (the beds themselves are drawn by ddground.js's shader, sharp at any distance: in this picture they blurred into streaks down the faces)
+        const band=.5+.5*Math.sin(h*.42+n1*4);let rk=mix(ROCKD,ROCK,band*.15+n2*.55+.15);rk=mix(rk,ROCKL,clamp(n1*2-1.1,0,1)*.5);   // (the beds themselves are drawn by ddground.js's shader, sharp at any distance: in this picture they blurred into streaks down the faces)
         c=mix(flat,rk,steep);}
       const lit=clamp(.9+(-hx*.4-hy*.55)*.9,.62,1.25);                    // the sun from the south-west, a little
       const hol=(ddH(wx-10,y)+ddH(wx+10,y)+ddH(wx,y-10)+ddH(wx,y+10))/4-h,ao=clamp(1-hol*.03,.72,1.06);
@@ -333,7 +333,7 @@ function ddProps(sc,objsL){
     conc=M(0xb4b0a4,.95),concD=M(0x8a877c,.95),bag=M(0xb8a372,1),steel=M(0x3a3632,.6,.7),rust=M(0x5a4030,.8,.4),wood=M(0x5d4a34,.95),rockM=new T.MeshStandardMaterial({color:0x857a68,roughness:1,flatShading:true}),olive=M(0x4d5540,.9),dark=M(0x26282a,.7,.5);
   const add=(geo,mat,x,y,z,ry,rx,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;if(rx)m.rotation.x=rx;if(rz)m.rotation.z=rz;m.castShadow=true;m.receiveShadow=true;G.add(m);return m;};
   const box=(o,h,mat,lift=0)=>{const g0=ddH(o.x+o.w/2,o.y+o.h/2);const m=add(new T.BoxGeometry(o.w,h,o.h),mat,o.x+o.w/2,g0+h/2+lift,o.y+o.h/2);(o.meshes=o.meshes||[]).push(m);return m;};
-  const bagG=new T.SphereGeometry(1,7,5),bagGeo=ddgBagGeo(),bagM=new T.MeshStandardMaterial({map:ddgTex('burlap'),roughness:1,vertexColors:true}),crateM=new T.MeshStandardMaterial({map:ddgTex('crate'),roughness:.88,vertexColors:true}),hogM=new T.MeshStandardMaterial({map:ddgTex('rust'),roughness:.8,metalness:.12}),wireM=new T.MeshStandardMaterial({vertexColors:true,roughness:.62,metalness:.45}),r=rng(66),BK=DD.bk={},concT=ddConcTex(),bkM=(k,v=0)=>{const L=BK[k]||(BK[k]=[]);return L[v]||(L[v]=v===2?new T.MeshStandardMaterial({color:0x7a6a48,roughness:1,transparent:true}):v===3?new T.MeshStandardMaterial({color:0x5f8a3a,roughness:1,transparent:true}):new T.MeshStandardMaterial({color:v?0x8f8b80:0xd0ccc0,map:concT,bumpMap:DD.concH,bumpScale:.7,roughness:.95,transparent:true}));};
+  const bagG=new T.SphereGeometry(1,7,5),bagGeo=ddgBagGeo(),bagM=new T.MeshStandardMaterial({map:ddgTex('burlap'),roughness:1,vertexColors:true}),crateM=new T.MeshStandardMaterial({map:ddgTex('crate'),roughness:.88,vertexColors:true}),hogM=new T.MeshStandardMaterial({map:ddgTex('rust'),roughness:.8,metalness:.12}),wireM=new T.MeshStandardMaterial({vertexColors:true,roughness:.62,metalness:.45}),r=rng(66),BK=DD.bk={},concT=ddConcTex(),bkM=(k,v=0)=>{const L=BK[k]||(BK[k]=[]);return L[v]||(L[v]=v===2?new T.MeshStandardMaterial({color:0x7a6a48,roughness:1,transparent:true}):v===3?new T.MeshStandardMaterial({color:0xffffff,map:ddgTex('turf'),roughness:1,transparent:true}):new T.MeshStandardMaterial({color:v?0x8f8b80:0xd0ccc0,map:concT,bumpMap:DD.concH,bumpScale:.7,roughness:.95,transparent:true}));};
   for(const o of objsL){
     const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=ddH(cx,cy);
     if(o.kind==='sandbag'){   // two courses of bags (Version 188: burlap sacks, fat in the middle and tied at the ends, each its own shade; one mesh a line)

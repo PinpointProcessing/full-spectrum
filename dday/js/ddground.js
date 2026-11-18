@@ -64,8 +64,10 @@ function ddgLand(sc){
       .replace('#include <bumpmap_pars_fragment>',T.ShaderChunk.bumpmap_pars_fragment.replace(/vUv/g,'(vUv*uGRep)').replace(/texture2D\( bumpMap, /g,'dot(gW,texture2D( bumpMap, ').replace(/ \)\.x/g,' ).rgb)').replace('return vec2( dBx, dBy );','return vec2( dBx, dBy )*(1.-gSteep*.8);'))
       .replace('#include <map_fragment>','#include <map_fragment>\n  {vec3 mk=texture2D(uGMask,vUv).rgb;gW=mk/max(.001,mk.r+mk.g+mk.b);vec2 du=vUv*uGRep;vec3 d1=texture2D(uGDet,du).rgb-.5,d2=texture2D(uGDet,du*.41+vec2(.31,.17)).rgb-.5;\n'+
        '   vec3 wn=inverseTransformDirection(normalize(vNormal),viewMatrix);gSteep=smoothstep(.55,.85,1.-abs(wn.y));\n'+   // (on a steep face the ground's picture is stretched: there the detail is read from the side instead, along the face)
-       '   if(gSteep>0.){vec2 sv=vec2(abs(wn.x)>abs(wn.z)?vGWp.z:vGWp.x,vGWp.y*1.3)/56.;vec3 d3=texture2D(uGDet,sv).rgb-.5,d4=texture2D(uGDet,sv*.41+vec2(.13,.71)).rgb-.5;d1=mix(d1,d3,gSteep);d2=mix(d2,d4,gSteep);\n'+
-       '    float sh=vGWp.y*.085+d3.b*.9,f=fract(sh),hb=fract(sin(floor(sh)*91.7)*43758.5);vec3 st=vec3(.9+hb*.2)*(1.-.34*(1.-smoothstep(0.,.11,f)))*(1.+.08*smoothstep(.85,1.,f));if(hb>.72)st*=vec3(1.07,1.03,.95);\n'+   // beds of rock along the face: each its own shade, a dark seam under it, its top edge lit
+       '   if(gSteep>0.){float hz=abs(wn.x)>abs(wn.z)?vGWp.z:vGWp.x;vec2 sv=vec2(hz,vGWp.y*1.3)/56.;vec3 d3=texture2D(uGDet,sv).rgb-.5,d4=texture2D(uGDet,sv*.41+vec2(.13,.71)).rgb-.5;d1=mix(d1,d3,gSteep);d2=mix(d2,d4,gSteep);\n'+
+       '    float yy=vGWp.y+6.*sin(hz*.011+1.3)+2.5*sin(hz*.037),sh=yy*.072+.5*sin(yy*.05+1.7)+.4*sin(yy*.021+hz*.003)+d3.b*.7,f=fract(sh),hb=fract(sin(floor(sh)*91.7)*43758.5),hb2=fract(sin(floor(sh)*37.3+2.)*24634.6);\n'+   // beds of rock along the face, dipping and swelling along it, no two as thick:
+       '    vec3 st=vec3(.84+hb*.3)*(1.-.4*(1.-smoothstep(0.,.05+hb2*.14,f)))*(1.+.1*smoothstep(.82,1.,f));if(hb>.64)st*=vec3(1.08,1.01,.9);else if(hb<.22)st*=vec3(.93,.96,1.02);\n'+   // each its own shade (ochre, grey), a dark seam of its own depth under it, its top edge lit
+       '    st*=1.+(texture2D(uGDet,vec2(hz*.03,vGWp.y*.0035)).b-.5)*.42;\n'+   // and streaks of weathering run down it (the detail read stretched tall)
        '    diffuseColor.rgb*=mix(vec3(1.),st,gSteep*gW.b);}\n'+
        '   diffuseColor.rgb*=clamp(1.+(dot(gW,d1)+dot(gW,d2)*.7)*uGAmp,.5,1.38);}');
     s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vGWp;').replace('#include <fog_vertex>','#include <fog_vertex>\n  vGWp=(modelMatrix*vec4(transformed,1.)).xyz;');
@@ -112,6 +114,7 @@ function ddgInst(G,geo,mat,L,shadow,cell=350,lin=true){
     if(!g.boundingSphere)g.computeBoundingSphere();const R=g.boundingSphere.radius*sz+g.boundingSphere.center.length()*sz;
     g.boundingSphere=new THREE.Sphere(new THREE.Vector3((x0+x1)/2,(h0+h1)/2,(y0+y1)/2),Math.hypot(x1-x0,y1-y0,h1-h0)/2+R);
     m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;m.castShadow=!!shadow;m.receiveShadow=true;G.add(m);out.push(m);}
+  if(lin)mat.userData.ddKeep=true;   // (its colours already in the light's terms: ddlight.js's sweep would take them darker again)
   return out;
 }
 // the props' pictures, made once and kept (a chapter's rebuild throws its materials away; a picture thrown away is simply sent again)
@@ -123,10 +126,16 @@ function ddgTex(k){
     for(let i=0;i<26;i++){q.fillStyle=`rgba(${r()<.6?'96,78,50':'70,60,44'},${.06+r()*.12})`;q.beginPath();q.ellipse(r()*w,r()*h,6+r()*20,4+r()*12,r()*3,0,7);q.fill();}
     let g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(60,48,30,.32)');g.addColorStop(.18,'rgba(60,48,30,0)');g.addColorStop(.82,'rgba(60,48,30,0)');g.addColorStop(1,'rgba(60,48,30,.4)');q.fillStyle=g;q.fillRect(0,0,w,h);
     q.strokeStyle='rgba(84,66,40,.45)';q.lineWidth=1.4;q.setLineDash([3,2]);q.beginPath();q.moveTo(w*.25,0);q.lineTo(w*.25,h);q.stroke();q.setLineDash([]);});
-  else if(k==='rust')t=canvasTex(128,128,(q,w,h)=>{q.fillStyle='#5e4636';q.fillRect(0,0,w,h);   // steel left in the sea: rust blooms, streaks running down, scale flaking
-    for(let i=0;i<70;i++){q.fillStyle=`rgba(${r()<.5?'150,94,54':'120,78,48'},${.25+r()*.35})`;q.beginPath();q.ellipse(r()*w,r()*h,2+r()*12,2+r()*8,r()*3,0,7);q.fill();}
-    for(let i=0;i<40;i++){const x=r()*w;q.fillStyle=`rgba(${r()<.5?'170,90,40':'34,24,18'},${.12+r()*.2})`;q.fillRect(x,r()*h,1+r()*2,10+r()*40);}
-    for(let i=0;i<500;i++){q.fillStyle=`rgba(${r()<.5?'26,20,16':'190,120,70'},${.15+r()*.3})`;q.fillRect(r()*w,r()*h,1+r()*1.5,1+r()*1.5);}});
+  else if(k==='rust')t=canvasTex(128,128,(q,w,h)=>{q.fillStyle='#3e3732';q.fillRect(0,0,w,h);   // steel left in the sea: dark iron, rust blooming orange through it, streaks running down, scale flaking, bright metal where it's scraped
+    for(let i=0;i<46;i++){q.fillStyle=`rgba(${r()<.5?'58,56,54':'30,26,24'},${.3+r()*.3})`;q.beginPath();q.ellipse(r()*w,r()*h,4+r()*16,3+r()*10,r()*3,0,7);q.fill();}
+    for(let i=0;i<60;i++){q.fillStyle=`rgba(${r()<.5?'156,78,34':'122,62,30'},${.3+r()*.4})`;q.beginPath();q.ellipse(r()*w,r()*h,2+r()*10,2+r()*6,r()*3,0,7);q.fill();}
+    for(let i=0;i<40;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,`rgba(176,88,36,${.2+r()*.3})`);g.addColorStop(1,'rgba(176,88,36,0)');q.fillStyle=g;q.fillRect(x,r()*h*.6,1+r()*2.5,20+r()*60);}
+    for(let i=0;i<600;i++){q.fillStyle=`rgba(${r()<.5?'20,16,14':'196,110,56'},${.15+r()*.35})`;q.fillRect(r()*w,r()*h,1+r()*1.5,1+r()*1.5);}
+    for(let i=0;i<14;i++){q.strokeStyle=`rgba(150,148,140,${.25+r()*.25})`;q.lineWidth=.8;q.beginPath();const x=r()*w,y=r()*h;q.moveTo(x,y);q.lineTo(x+(r()-.5)*20,y+(r()-.5)*6);q.stroke();}});
+  else if(k==='turf')t=canvasTex(128,128,(q,w,h)=>{q.fillStyle='#53703a';q.fillRect(0,0,w,h);   // turf laid on a bunker's roof: grass in clumps, bare earth showing, darker where it's damp
+    for(let i=0;i<40;i++){q.fillStyle=`rgba(${r()<.5?'40,58,28':'104,124,62'},${.25+r()*.3})`;q.beginPath();q.ellipse(r()*w,r()*h,4+r()*14,3+r()*9,r()*3,0,7);q.fill();}
+    for(let i=0;i<10;i++){q.fillStyle=`rgba(96,78,52,${.3+r()*.3})`;q.beginPath();q.ellipse(r()*w,r()*h,2+r()*7,2+r()*4,r()*3,0,7);q.fill();}
+    for(let i=0;i<900;i++){const x=r()*w,y=r()*h;q.strokeStyle=`rgba(${r()<.55?'34,52,24':'140,156,84'},${.3+r()*.4})`;q.lineWidth=1;q.beginPath();q.moveTo(x,y);q.lineTo(x+(r()-.5)*3,y-2-r()*4);q.stroke();}});
   else if(k==='crate')t=canvasTex(256,256,(q,w,h)=>{   // an ammunition box, three faces in one picture: the side (top left), the end (top right), the lid (bottom left); the bottom right is plain rope
     const plank=(x0,y0,pw,ph,n,vert)=>{for(let i=0;i<n;i++){const a=vert?x0+i*pw/n:x0,b=vert?y0:y0+i*ph/n,ww=vert?pw/n:pw,hh=vert?ph:ph/n;const sh=r()*14-7;q.fillStyle=`rgb(${114+sh},${120+sh},${90+sh})`;q.fillRect(a,b,ww,hh);
       for(let k=0;k<14;k++){q.fillStyle=`rgba(${r()<.5?'60,62,44':'130,132,104'},${.15+r()*.2})`;if(vert)q.fillRect(a+r()*ww,b,1,hh);else q.fillRect(a,b+r()*hh,ww,1);}
@@ -179,6 +188,15 @@ function ddgTex(k){
       const g=q.createLinearGradient(0,y,0,y+ch);g.addColorStop(0,'rgba(255,255,240,.15)');g.addColorStop(1,'rgba(60,50,40,.22)');q.fillStyle=g;q.fillRect(x+2,y+2,cw-3,ch-3);x+=cw;}y+=ch;}
     for(let i=0;i<20;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,`rgba(60,56,46,${.1+r()*.15})`);g.addColorStop(1,'rgba(60,56,46,0)');q.fillStyle=g;q.fillRect(x,0,4+r()*10,h);}
     for(let i=0;i<1600;i++){q.fillStyle=`rgba(${r()<.5?'70,64,52':'250,246,230'},${.06+r()*.12})`;q.fillRect(r()*w,r()*h,1.5,1.5);}});
+  else if(k==='plaster')t=canvasTex(256,256,(q,w,h)=>{   // a limewashed render over rubble stone, a tile of 32 units: the wash gone patchy and grey, fallen away in places to the stone beneath, streaked from the sills, damp and green at the foot
+    q.fillStyle='#d8cfb8';q.fillRect(0,0,w,h);
+    for(let i=0;i<30;i++){q.fillStyle=`rgba(${r()<.5?'150,144,128':'240,236,222'},${.08+r()*.14})`;q.beginPath();q.ellipse(r()*w,r()*h,14+r()*40,10+r()*30,r()*3,0,7);q.fill();}
+    for(let i=0;i<7;i++){const x=r()*w,y=r()*h,rw=10+r()*26,rh=8+r()*16;q.save();q.beginPath();q.ellipse(x,y,rw,rh,r()*3,0,7);q.clip();q.fillStyle='#8e8370';q.fillRect(x-rw,y-rh,rw*2,rh*2);
+      for(let yy=y-rh;yy<y+rh;yy+=6+r()*4)for(let xx=x-rw-r()*6;xx<x+rw;xx+=7+r()*8){const t=(r()-.5)*26;q.fillStyle=`rgb(${176+t},${166+t},${144+t})`;q.fillRect(xx+1,yy+1,5+r()*5,4+r()*3);}q.restore();
+      q.strokeStyle='rgba(120,112,96,.6)';q.lineWidth=1.2;q.beginPath();q.ellipse(x,y,rw,rh,0,0,7);q.stroke();}
+    for(let i=0;i<26;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,`rgba(90,84,70,${.08+r()*.14})`);g.addColorStop(1,'rgba(90,84,70,0)');q.fillStyle=g;q.fillRect(x,r()*h*.5,2+r()*7,h*.6);}
+    {const g=q.createLinearGradient(0,h*.7,0,h);g.addColorStop(0,'rgba(96,100,70,0)');g.addColorStop(1,'rgba(96,100,70,.35)');q.fillStyle=g;q.fillRect(0,h*.7,w,h*.3);}
+    for(let i=0;i<1800;i++){q.fillStyle=`rgba(${r()<.5?'90,84,70':'255,252,240'},${.05+r()*.1})`;q.fillRect(r()*w,r()*h,1.5,1.5);}});
   else if(k==='wire')t=null;
   return DDG_TEX[k]=t;
 }
@@ -252,7 +270,53 @@ function ddgRoof(span,len,rise,th=1){
   P.push({g:ddgBoxUV(len,1.6,2.2,12),p:[0,rise+.6,0]});   // the ridge
   return ddgMerge(P,false);
 }
+// the land's own colour anywhere, as painted (sRGB, 0..1; its picture read back once a chapter at 2 units a point), for things laid on it
+// to meet it without a seam
+function ddgLandCol(){
+  if(DD.landCol)return DD.landCol;
+  const W=Math.round((DDB.x1-DDB.x0)/2),H=Math.round((DDB.y1-DDB.y0)/2),c=document.createElement('canvas');c.width=W;c.height=H;const q=c.getContext('2d');q.drawImage(DD.canvas,0,0,W,H);
+  const d=q.getImageData(0,0,W,H).data;
+  return DD.landCol=(x,y,o)=>{const i=clamp(((x-DDB.x0)/2)|0,0,W-1),j=clamp(((y-DDB.y0)/2)|0,0,H-1),k=(j*W+i)*4;return o.setRGB(d[k]/255,d[k+1]/255,d[k+2]/255);};
+}
+// the banks thrown up round shell holes (Version 188; they were a pale ring like a life belt, then a smooth orange one): for each hole {x,y,r}
+// (world units) a ring of churned ground: its outer edge the land's own colour, so it meets the land without a seam, fresh spoil heaped
+// along the crest in lumps, dark damp earth down the inside, scorched black on the side the blast threw its flash, and the inside meeting
+// the hole as painted. o: {spoil, earth} the thrown and the dug colours as [r,g,b] 0..255 (sRGB), lift (how high the crest), seed. One mesh.
+function ddgCraters(G,holes,o){
+  o=o||{};const r=rng(o.seed||188),L=ddgLandCol(),S=48,P=[],C=[],I=[],ca=new T.Color(),cb=new T.Color(),sp=new T.Color(),ea=new T.Color(),ch=new T.Color(44/255,38/255,32/255),lift=o.lift||1;
+  for(const hh of holes){const R=hh.r,base=P.length/3,sa=r()*TAU,ph1=r()*6,ph2=r()*6,ph3=r()*6;
+    // [radius, height above the ground, colour: 0 the hole as painted, 1 dug earth, 2 the crest's spoil, 3 spoil into land, 4 the land]
+    const rows=[[R*.55,0,0],[R*.8,.45,1],[R*.97,1.8,1.5],[R+2.6,2.9,2],[R+6.2,1.4,3],[R+11,-.3,4]];
+    for(let i=0;i<S;i++){const a=i/S*TAU,cs=Math.cos(a),sn=Math.sin(a),n=Math.max(.35,1+.3*Math.sin(a*3+ph1)+.22*Math.sin(a*7+ph2)+.16*Math.sin(a*13+ph3)+(r()-.5)*.4),burn=Math.max(0,Math.cos(a-sa))**2;
+      L(hh.x+cs*(R+16),hh.y+sn*(R+16),sp);if(o.spoil)sp.setRGB(o.spoil[0]/255,o.spoil[1]/255,o.spoil[2]/255).lerp(L(hh.x+cs*(R+16),hh.y+sn*(R+16),cb),.25);else sp.multiplyScalar(1.07);
+      if(o.earth)ea.setRGB(o.earth[0]/255,o.earth[1]/255,o.earth[2]/255);else ea.copy(sp).multiplyScalar(.58);
+      for(const[rr,hg,k]of rows){const churn=k>=1&&k<=3,rad=rr+(churn?(r()-.5)*2.4:0),x=hh.x+cs*rad,y=hh.y+sn*rad;
+        if(k===0||k===4)L(x,y,ca);else if(k===1)L(x,y,ca).lerp(ea,.6);else if(k===1.5)ca.copy(ea).lerp(sp,.35+r()*.2);else if(k===2)ca.copy(sp).lerp(ea,r()<.25?.5:r()*.15);else ca.copy(sp).lerp(L(x,y,cb),.55);
+        if(k>=1&&k<=2)ca.lerp(ch,burn*(k===2?.55:.8));
+        if(churn)ca.multiplyScalar(.9+r()*.2);
+        P.push(x,ddH(x,y)+hg*lift*(k===4||k===0?1:n)+(churn?(r()-.5)*.9*lift:0),y);ca.convertSRGBToLinear();C.push(ca.r,ca.g,ca.b);}}
+    for(let i=0;i<S;i++){const i2=(i+1)%S;for(let j=0;j<rows.length-1;j++){const a=base+i*rows.length+j,b=base+i2*rows.length+j;I.push(a,b,a+1,b,b+1,a+1);}}}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();
+  const m=new T.Mesh(g,new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}));m.material.userData.ddKeep=true;m.castShadow=true;m.receiveShadow=true;G.add(m);return m;
+}
+// lumps thrown out of the holes: [{x,y,c}] the instances, c a colour (sRGB). Round the rims, sized by the hole
+function ddgClods(holes,r,n,spoil,earth){
+  const L=ddgLandCol(),out=[],a=new T.Color(),b=new T.Color();
+  for(const hh of holes)for(let k=0;k<n*hh.r/26;k++){const an=r()*TAU,d=hh.r*(.95+r()*r()*1.1)+2,x=hh.x+Math.cos(an)*d,y=hh.y+Math.sin(an)*d;L(x,y,a);
+    if(spoil)a.lerp(b.setRGB(spoil[0]/255,spoil[1]/255,spoil[2]/255),.6);else a.multiplyScalar(1.05);if(r()<.4)a.lerp(earth?b.setRGB(earth[0]/255,earth[1]/255,earth[2]/255):b.copy(a).multiplyScalar(.6),.7);
+    out.push({x,y,h:ddH(x,y)+.3,ry:r()*6,rx:r()*3,sx:.6+r()*r()*2.2,sy:.45+r()*.6,c:a.clone()});}
+  return out;
+}
 function ddgMat(k,o){const key='mat_'+k;if(DD[key])return DD[key];return DD[key]=new THREE.MeshStandardMaterial(Object.assign({map:ddgTex(k),roughness:.92},o||{}));}
+// the same picture for a shape whose uvs are in plain units (an extruded gable, say): its tile `tile` units across
+function ddgMatRep(k,tile){const key='matr_'+k+tile;if(DD[key])return DD[key];const t=ddgTex(k).clone();t.needsUpdate=true;t.repeat.set(1/tile,1/tile);return DD[key]=new THREE.MeshStandardMaterial({map:t,roughness:.92});}
+// a tuft of grass blades (Version 188: the tufts were pale cones, specks at the game's distance): six blades splayed from a dark root to lit
+// tips, the shading baked in (the colour attribute multiplies the tuft's own colour); shared by every chapter, drawn double-sided
+function ddgTuftGeo(seed){
+  const r=rng(seed||5),P=[],C=[];for(let k=0;k<6;k++){const a=k*1.05+r()*.5,l=k?.7+r()*.5:.1,hh=k?2.4+r()*1.4:3.6,ca=Math.cos(a),sa=Math.sin(a),w=.32;
+    P.push(-sa*w,0,ca*w, sa*w,0,-ca*w, ca*l*1.4,hh,sa*l*1.4);C.push(.42,.42,.42,.42,.42,.42,1.15,1.15,1.15);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(C,3));g.computeVertexNormals();return g;
+}
 function ddGroundBuild(sc){
   if(!DD)return;
   ddgLand(sc);

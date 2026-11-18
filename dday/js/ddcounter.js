@@ -59,6 +59,7 @@ function dcObjects(){
 function dcPaint(g){
   const S=DDS,r=rng(1945);g.setTransform(S,0,0,S,0,-DDB.y0*S);
   g.fillStyle='#6f8a4b';g.fillRect(0,DDB.y0,1400,1660);
+  for(let i=0;i<420;i++){const x=r()*1400,y=DDB.y0+r()*1660,k=r();g.fillStyle=k<.4?`rgba(62,92,44,${.12+r()*.16})`:k<.75?`rgba(136,158,82,${.1+r()*.14})`:`rgba(150,146,84,${.1+r()*.14})`;g.beginPath();g.ellipse(x,y,20+r()*70,12+r()*40,r()*3,0,7);g.fill();}   // (Version 188) the meadow in patches: lusher, paler, gone to seed
   for(let i=0;i<5200;i++){const x=r()*1400,y=DDB.y0+r()*1660;g.fillStyle=`rgba(${r()<.5?'58,82,40':'150,170,96'},${.06+r()*.12})`;g.fillRect(x,y,3+r()*9,2+r()*5);}
   // plough land and pasture beyond the hedgerow
   g.fillStyle='rgba(132,156,84,.55)';g.fillRect(230,-330,300,250);g.fillStyle='rgba(150,150,86,.5)';g.fillRect(760,-340,400,260);
@@ -80,7 +81,7 @@ function dcPaint(g){
   for(let i=0;i<14;i++){const x=260+r()*880,y=DCA.wallY+10+r()*300,gr=g.createRadialGradient(x,y,1,x,y,8+r()*14);gr.addColorStop(0,'rgba(30,28,24,.5)');gr.addColorStop(1,'rgba(30,28,24,0)');g.fillStyle=gr;g.fillRect(x-24,y-24,48,48);}
   for(const sd of[-1,1]){g.strokeStyle='rgba(84,72,50,.3)';g.lineWidth=7;g.beginPath();g.moveTo(DCA.road+sd*44,-300);g.bezierCurveTo(DCA.road+sd*60,0,DCA.road+sd*30,300,DCA.road+sd*14,560);g.stroke();}
   for(const[x,y]of[[450,250],[950,250],[590,345],[330,470],[1070,470]]){g.strokeStyle='rgba(120,102,70,.35)';g.lineWidth=6;g.beginPath();g.moveTo(x,y+20);g.quadraticCurveTo((x+700)/2+(r()-.5)*60,(y+560)/2,700+(r()-.5)*100,DCA.wallY);g.stroke();}
-  for(let i=0;i<16;i++){const x=260+r()*880,y=-60+r()*340,R=7+r()*9;if(Math.abs(x-DCA.road)<40)continue;
+  DD.dcHoles=[];for(let i=0;i<16;i++){const x=260+r()*880,y=-60+r()*340,R=7+r()*9;if(Math.abs(x-DCA.road)<40)continue;DD.dcHoles.push({x,y,r:R});
     for(let k=0;k<12;k++){const a=r()*TAU,l=R*(1.3+r());g.strokeStyle='rgba(92,76,50,.2)';g.lineWidth=2+r()*3;g.beginPath();g.moveTo(x+Math.cos(a)*R*.8,y+Math.sin(a)*R*.8);g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke();}
     const gr=g.createRadialGradient(x,y,1,x,y,R+4);gr.addColorStop(0,'rgba(40,32,22,.85)');gr.addColorStop(.6,'rgba(84,68,44,.6)');gr.addColorStop(1,'rgba(84,68,44,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,R+4,0,7);g.fill();
     for(let k=0;k<30;k++){const a=r()*TAU,d=R*(.9+r()*.6);g.fillStyle=r()<.5?'rgba(60,48,32,.5)':'rgba(140,120,84,.45)';g.fillRect(x+Math.cos(a)*d,y+Math.sin(a)*d,1.5+r()*2,1.5+r()*2);}}
@@ -125,6 +126,12 @@ function dcBuild(G,sc,M,add){
   {const lv=new T.MeshLambertMaterial({vertexColors:true});
     ddgInst(G,ddgShade(new T.CylinderGeometry(1.4,2,16,6),.5,1.05),new T.MeshLambertMaterial({color:0x5d4a34,vertexColors:true}),TK,true,350,false);
     ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.16,11),.48,1.12),lv,C1,true,350,false);ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.16,12),.55,1.12),lv,C2,true,350,false);}
+  // (Version 188) grass in tufts over the fields, and banks of thrown earth round yesterday's shell holes (dcPaint's DD.dcHoles), clods about them
+  {const tr2=rng(1188),tf=[],pk=a=>a[(tr2()*a.length)|0];for(let i=0;i<4600;i++){const x=tr2()*1400,y=DDB.y0+tr2()*(DCA.wallY-DDB.y0-10);if(Math.abs(x-DCA.road)<36)continue;
+      tf.push({x,y,h:H(x,y)-.2,ry:tr2()*6,sx:.8+tr2()*.9,sy:.7+tr2()*1.2,c:pk([0x5c8238,0x6a8c40,0x527a32,0x7e8a44,0x668a3c,0x8e8c56])});}
+    ddgInst(G,ddgTuftGeo(1188),new T.MeshLambertMaterial({color:0xffffff,vertexColors:true,side:T.DoubleSide}),tf,false);
+    if(DD.dcHoles&&DD.dcHoles.length){const earthC=[96,78,52],spoilC=[128,108,74];ddgCraters(G,DD.dcHoles,{seed:1945,spoil:spoilC,earth:earthC,lift:.75});
+      ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.25,9),.55,1.05),new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),ddgClods(DD.dcHoles,tr2,30,spoilC,earthC),false);}}
   // the ruined farm's fallen roof and chimney
   add(new T.BoxGeometry(60,3,40),M(0x7a4a36,.9),384,6,-226,.2).rotation.z=.18;add(new T.BoxGeometry(10,34,10),M(0x8a7f6e,.95),338,17,-250);
 }

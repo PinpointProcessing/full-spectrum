@@ -26,6 +26,10 @@ function ddDress(G,sc,M){
   // they read as grass and not as pale specks)
   for(let i=0;i<5200;i++){const x=r()*X1,y=-756+r()*1070,k=ddGroundAt(x,y);if(k==='sand'||k==='sea'||k==='rock')continue;if(k==='dirt'&&r()<.75)continue;
     tufts.push({x,y,h:ddH(x,y)-.2,ry:r()*6,sx:.8+r()*.9,sy:.7+r()*1.1,c:pick([0x648a3c,0x749444,0x587e36,0x88904a,0x709042,0x989462])});}
+  // (Version 188) turf hanging over the top of every face: a fringe of grass where the flat top breaks into the steep, hanging down the face
+  const drape=[];for(let i=0;i<14000&&drape.length<1100;i++){const x=r()*X1,y=-470+r()*790,k=ddGroundAt(x,y);if(k!=='top'&&k!=='dirt'&&k!=='grass')continue;
+    const gx=ddH(x+6,y)-ddH(x-6,y),gy=ddH(x,y+6)-ddH(x,y-6),gl=Math.hypot(gx,gy);if(gl<2.2)continue;const ux=-gx/gl,uy=-gy/gl;if(ddGroundAt(x+ux*8,y+uy*8)!=='rock')continue;
+    drape.push({x,y,h:ddH(x,y)-.3,ry:Math.atan2(-uy,ux)+(r()-.5)*.6,sx:.8+r()*.7,sy:.7+r()*.7,c:pick([0x587e36,0x648a3c,0x4e7230,0x6e8c40,0x7a8a46])});}
   for(let i=0;i<900;i++){const x=r()*X1,y=-756+r()*1070;if(ddGroundAt(x,y)!=='top')continue;
     bush.push({x,y,h:ddH(x,y)+2.2,ry:r()*6,sx:3.4+r()*4.5,sy:2.6+r()*2.8,c:pick([0x5c8a3a,0x6a9842,0x507c36,0x7a9446,0x8a9a48])});}
   // trees: on the tops well back from their edges, and a hedgerow along the back of the base
@@ -41,18 +45,19 @@ function ddDress(G,sc,M){
   for(let x=14;x<X1;x+=17+r()*16){const y=716+r()*46,rx=.34+r()*.2,ry=(r()-.5)*.5,sy=.8+r()*.5,h=ddH(x,y)+6;stake.push({x,y,h,rx,ry,sx:1,sy});
     if(r()<.45){const L=7.6*sy,sz=L*Math.sin(rx),sh=L*Math.cos(rx);mine.push({x,y:y+sz,h:h+sh,rx,ry,sx:1});}}
   for(let i=0;i<150;i++){const x=r()*X1,y=350+r()*340;if(ddGroundAt(x,y)!=='sand')continue;const k=r();
-    if(k<.3)can.push({x,y,h:ddH(x,y)+1.3,ry:r()*6,rz:(r()-.5)*.3,sx:.8+r()*.4,c:pick([0x5e6644,0x6a6848,0x535a3e])});
+    if(k<.3)can.push({x,y,h:ddH(x,y)+1.3,ry:r()*6,rz:(r()-.5)*.3,sx:.8+r()*.4,c:pick([0x6e744c,0x7a7650,0x646c48])});
     else if(k<.55)pack.push({x,y,h:ddH(x,y)+1,ry:r()*6,rz:(r()-.5)*.4,sx:.9+r()*.3,c:pick([0x6a6a4a,0x5e6446,0x74704e])});
-    else helm.push({x,y,h:ddH(x,y)+.9,ry:r()*6,rz:(r()-.5)*1.2,sx:1,c:pick([0x5d6a42,0x4f5a3c])});}
+    else helm.push({x,y,h:ddH(x,y)+.3,ry:r()*6,rz:(r()-.5)*1.2,sx:1,c:pick([0x5d6a42,0x4f5a3c])});}
   for(let i=0;i<70;i++){const x=r()*X1,y=640+r()*70;if(ddGroundAt(x,y)!=='sand')continue;plank.push({x,y,h:ddH(x,y)+.5,ry:r()*6,rz:(r()-.5)*.1,sx:.6+r()*1.2,sy:1,sz:.7+r()*.6,c:pick([0x7a6a52,0x685a46,0x8a7a5e,0x5e5c56])});}
   // the clods round each shell hole: the sand and the earth under it thrown out in lumps
-  for(const hh of DD_HOLES)for(let k=0;k<26;k++){const a=r()*TAU,d=hh.r*(1+r()*r()*.9)+3,x=hh.x+DDX+Math.cos(a)*d,y=hh.y+Math.sin(a)*d;clod.push({x,y,h:ddH(x,y)+.2,ry:r()*6,rx:r()*3,sx:.7+r()*1.4,sy:.5+r()*.6,c:pick([0x7a6a4c,0x8a7656,0x645440,0xb8a47c,0x9a8664])});}
+  const holesW=DD_HOLES.map(h=>({x:h.x+DDX,y:h.y,r:h.r}));clod.push(...ddgClods(holesW,r,34,null,[104,88,64]));
   const lam=(c)=>new T.MeshLambertMaterial({color:c}),lamV=o=>new T.MeshLambertMaterial(Object.assign({color:0xffffff,vertexColors:true},o));
   // the shapes, each with its shading baked in (darker underneath) and its corners pulled about a little
-  const tg=new T.BufferGeometry();{const P=[],C=[];for(let k=0;k<6;k++){const a=k*1.05+r()*.5,l=k?.7+r()*.5:.1,hh=k?2.4+r()*1.4:3.6,ca=Math.cos(a),sa=Math.sin(a),w=.32;
-      P.push(-sa*w,0,ca*w, sa*w,0,-ca*w, ca*l*1.4,hh,sa*l*1.4);C.push(.42,.42,.42,.42,.42,.42,1.15,1.15,1.15);}
-    tg.setAttribute('position',new T.Float32BufferAttribute(P,3));tg.setAttribute('color',new T.Float32BufferAttribute(C,3));tg.computeVertexNormals();}
-  ddgInst(G,tg,lamV({side:T.DoubleSide}),tufts,false);
+  ddgInst(G,ddgTuftGeo(606),lamV({side:T.DoubleSide}),tufts,false);
+  {const P=[],C=[];for(let k=0;k<10;k++){const z=(k/9-.5)*5.5+(r()-.5)*.6,l=2.6+r()*2,d=2.2+r()*2.8,w=.32,j=(r()-.5)*.8;   // a fringe: blades out over the edge and hanging down it
+      P.push(0,0,z-w, 0,0,z+w, l*.55,.7,z+j*.5, l*.55,.7,z-w*.7+j*.5, l*.55,.7,z+w*.7+j*.5, l,-d,z+j);C.push(.42,.42,.42, .42,.42,.42, 1.1,1.1,1.1, 1.1,1.1,1.1, 1.1,1.1,1.1, .78,.78,.78);}
+    const dg=new T.BufferGeometry();dg.setAttribute('position',new T.Float32BufferAttribute(P,3));dg.setAttribute('color',new T.Float32BufferAttribute(C,3));dg.computeVertexNormals();
+    ddgInst(G,dg,lamV({side:T.DoubleSide}),drape,false);}
   ddgInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(1,0),.22,4),.5,1.12),lamV(),bush,true);
   ddInst(G,new T.CylinderGeometry(1.1,1.7,14,6),lam(0x5a4630),trunk,true);
   ddInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(9,0),1.6,6),.5,1.12),lamV(),crown,true);
@@ -63,19 +68,15 @@ function ddDress(G,sc,M){
   ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.25,9),.55,1.05),new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),clod,false);
   ddInst(G,new T.CylinderGeometry(.9,1.1,15,5),lam(0x4d3c2a),stake,true);
   {const mg=new T.CylinderGeometry(1.7,1.7,1,10);mg.translate(0,.5,0);ddInst(G,mg,new T.MeshStandardMaterial({color:0x4e5240,roughness:.7,metalness:.4}),mine,true);}
-  ddgInst(G,ddgMerge([{g:new T.BoxGeometry(5,2.8,2.4),c:0xffffff},{g:new T.BoxGeometry(5.2,.5,2.6),p:[0,1.5,0],c:0xb8b8b0},{g:new T.BoxGeometry(2,.6,.5),p:[0,2,0],c:0x606060}],true),new T.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:.3,vertexColors:true}),can,true);
+  ddgInst(G,ddgMerge([{g:new T.BoxGeometry(5,2.8,2.4),c:0xffffff},{g:new T.BoxGeometry(5.2,.5,2.6),p:[0,1.5,0],c:0xd0d0c4},{g:new T.BoxGeometry(2,.6,.5),p:[0,2,0],c:0x8a8a80},{g:new T.BoxGeometry(5.3,.35,2.5),p:[0,-.6,0],c:0xa8a8a0}],true),new T.MeshStandardMaterial({color:0xffffff,roughness:.8,metalness:.05,vertexColors:true}),can,true);   // (dull painted steel: with any shine and nothing to reflect they came out black)
   {const pg=ddgBagGeo();pg.scale(5,4.6,6.4);ddgInst(G,ddgShade(pg,.6,1.08),lamV(),pack,true);}
   ddgInst(G,ddgShade(new T.BoxGeometry(14,1,2.4),.7,1.05),lamV(),plank,true);
-  ddInst(G,new T.SphereGeometry(1.5,7,5,0,TAU,0,Math.PI*.55),lam(0xffffff),helm,false);
-  // the lips of thrown sand round each shell hole (Version 188: a churned, uneven bank, dark and scorched on the inside, the colour of the
-  // sand where it meets it, all of them one mesh; it was a pale ring like a life belt)
+  {const hg=ddgMerge([{g:new T.SphereGeometry(1.5,8,5,0,TAU,0,Math.PI*.5),c:0xffffff},{g:new T.CylinderGeometry(2.05,2.1,.25,10),p:[0,.05,0],c:0xc8c8c0}],true);   // (a helmet, its brim; they were green peas)
+    ddgInst(G,ddgShade(hg,.55,1.1),new T.MeshStandardMaterial({color:0xffffff,roughness:.7,vertexColors:true}),helm,false);}
+  // the lips of thrown sand round each shell hole (Version 188: a churned, uneven bank, dark and scorched on the inside, meeting the sand
+  // in the sand's own colour, all of them one mesh: ddground.js's ddgCraters; it was a pale ring like a life belt)
   const one=(geo,mat,x,h,y,ry,rx,rz)=>{const m=new T.Mesh(geo,mat);m.position.set(x,h,y);m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=true;m.receiveShadow=true;G.add(m);return m;};
-  {const P=[],C=[],I=[];for(const hh of DD_HOLES){const cx=hh.x+DDX,cy=hh.y,R=hh.r,S=40,rows=[[R*.8,.15,.5],[R*.95,1.3,.6],[R+2.5,2.6,.8],[R+5.5,1.3,.92],[R+9.5,-.4,1]],base=P.length/3,sa=r()*TAU,ph1=r()*6,ph2=r()*6;
-      for(let i=0;i<S;i++){const a=i/S*TAU,n=1+.32*Math.sin(a*3+ph1)+.22*Math.sin(a*7+ph2)+(r()-.5)*.35,burn=Math.max(0,Math.cos(a-sa))**2;
-        for(const[rr,hgt,col]of rows){const rad=rr+(hgt>1?(r()-.5)*2.2:0),x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad,k=col*(1-burn*.4*(1-col*.5))*(.9+r()*.18);P.push(x,ddH(x,y)+hgt*n+(hgt>1?(r()-.5)*.9:0),y);C.push(k,k*.97,k*.92);}}
-      for(let i=0;i<S;i++){const i2=(i+1)%S;for(let j=0;j<rows.length-1;j++){const a=base+i*rows.length+j,b=base+i2*rows.length+j;I.push(a,b,a+1,b,b+1,a+1);}}}
-    const lg=new T.BufferGeometry();lg.setAttribute('position',new T.Float32BufferAttribute(P,3));lg.setAttribute('color',new T.Float32BufferAttribute(C,3));lg.setIndex(I);lg.computeVertexNormals();
-    const lm=one(lg,new T.MeshStandardMaterial({color:new T.Color(0xbca474).convertSRGBToLinear(),roughness:1,vertexColors:true}),0,0,0);lm.castShadow=false;}
+  ddgCraters(G,holesW,{seed:606});
   // mine signs by the wire and the gates
   const signT=canvasTex(96,64,(q,w,h)=>{q.fillStyle='#e9e2c8';q.fillRect(0,0,w,h);q.strokeStyle='#1c1a16';q.lineWidth=5;q.strokeRect(3,3,w-6,h-6);q.fillStyle='#1c1a16';q.font='bold 19px sans-serif';q.textAlign='center';q.fillText('ACHTUNG',w/2,27);q.fillStyle='#a3231a';q.font='bold 22px sans-serif';q.fillText('MINEN',w/2,52);});
   for(const[dx,y,ry]of[[150,478,.1],[40,340,-.2],[450,336,.15],[590,340,-.1]]){const x=dx+DDX,h=ddH(x,y);one(new T.BoxGeometry(.9,13,.9),lam(0x4d3c2a),x,h+6.5,y);const p=one(new T.BoxGeometry(11,7.4,.7),new T.MeshLambertMaterial({map:signT}),x,h+11,y+.7,ry);p.castShadow=false;}
