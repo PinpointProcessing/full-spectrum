@@ -10,7 +10,7 @@
    smashGate, sfxClang from the tank, sfxThunder from the lightning, audioFrame every frame (engines, muffling, and new
    explosions / rockets found in booms / rockets). */
 const SND_KEY='warehouseYard.sound',MAX_VOICES=40;
-const SAMPLE_FILES={shot:['shot-1','shot-2','shot-3','shot-4'],shotgun:['shotgun-1','shotgun-2'],enemy:['enemy-1','enemy-2','enemy-3'],mg:['mg-1','mg-2','mg-3'],boom:['boom-1','boom-2'],launch:['launch']};
+const SAMPLE_FILES={boom:['boom-1','boom-2'],launch:['launch']};   // (Version 188: the modern gun WAVs, shot-*, enemy-*, mg-*, shotgun-*, aren't loaded any more: D-Day's guns are sounds/guns/, ddsfx.js, which also hands them to the kinds the other game's code asks for)
 let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,sndVerbIn=null,noiseBuf=null,sndOn=true,voices=0,loops={},samples={},rainG=[],amb=null;
 try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
 
@@ -38,6 +38,7 @@ function audioInit(){
     for(const[k,spans]of Object.entries(m))fetch(`sounds/sfx/${k}.mp3`).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no)))
       .then(buf=>{samples[k]=spans.map(([t,d])=>sliceBuf(buf,t,d));}).catch(()=>{});
   }).catch(()=>{});
+  if(typeof ddsLoad==='function')ddsLoad();   // (Version 188: D-Day's guns and blasts, sounds/guns/: ddsfx.js)
   // recorded samples, if they can be fetched (not from file://)
   for(const[k,names]of Object.entries(SAMPLE_FILES)){
     samples[k]=[];
@@ -125,18 +126,16 @@ function sfxShot(u,quiet){
   noiseHit(out,t,.05,'highpass',2500,0,1);noiseHit(out,t,.18,'lowpass',2600*r,0,.8,.002,300);toneHit(out,t,.09,'sine',110,40,.5);
 }
 // D-Day's guns (Bryan: "the audio is too modern sounding"; "The turrets should have a THUD THUD THUD sounding like a heavy
-// machine gunner would"): a mounted gun a slow heavy thud, each one a deep body under a dull crack, about six a second
-// however fast its rounds go out; the BAR a slower, deeper bark than a modern gun; rifles the older semi-automatic's crack,
-// pitched down for the M1 (a ping as its clip goes, every eighth round) and the sharpshooter's and the defenders' bolt rifles
+// machine gunner would"): since Version 188 recordings of the period's guns, each its own (ddsfx.js's ddsShot: the M1 Garand, the
+// BAR, the Springfield, the Kar98k, an MP40, the bunkers' guns a heavy thud about six beats a second). This is the fallback if
+// ddsfx.js isn't there: a mounted gun's synthesised thud, everyone else a dull crack
 function sfxShotDD(u){
   if(!AC)return true;   // (no sound yet: nothing to play)
-  const now=AC.currentTime,w=u.weapon;
+  if(typeof ddsShot==='function')return ddsShot(u);
+  const now=AC.currentTime;
   if(u.gunner){if(now-(u.thudT||0)<.165)return true;u.thudT=now;const out=voice(u.x,u.y,1,.5);if(!out)return true;
     toneHit(out,now,.16,'sine',92,38,.95);noiseHit(out,now,.11,'lowpass',420,0,.9,.002,90);noiseHit(out,now,.03,'bandpass',1500,1,.35,.001);return true;}
-  if(w==='hmg'){if(now-(u.thudT||0)<.12)return true;u.thudT=now;if(!playSample('enemy',u.x,u.y,.7,.62+Math.random()*.05)){const out=voice(u.x,u.y,.6,.3);if(out){toneHit(out,now,.1,'sine',120,50,.7);noiseHit(out,now,.09,'lowpass',900,0,.8,.002,150);}}return true;}
-  const r=w==='sniper'?.66:u.side==='P'?.8:.9;
-  if(!playSample('enemy',u.x,u.y,w==='sniper'?.85:.6,r+Math.random()*.06)){const out=voice(u.x,u.y,.45,.3);if(out){noiseHit(out,now,.05,'highpass',1800,0,.9);noiseHit(out,now,.2,'lowpass',1700,0,.8,.002,220);toneHit(out,now,.1,'sine',95,40,.5);}}
-  if(u.side==='P'&&w==='rifle'){u.clipN=(u.clipN||0)+1;if(u.clipN>=8){u.clipN=0;const out=voice(u.x,u.y,.25,.2);if(out){toneHit(out,now+.09,.16,'sine',2750,2500,.22);toneHit(out,now+.09,.1,'sine',4100,3900,.1);}}}
+  const out=voice(u.x,u.y,.45,.3);if(out){noiseHit(out,now,.05,'highpass',1800,0,.9);noiseHit(out,now,.2,'lowpass',1700,0,.8,.002,220);toneHit(out,now,.1,'sine',95,40,.5);}
   return true;
 }
 // low rumble and falling debris under every explosion, so they carry weight
@@ -146,13 +145,14 @@ function rumble(x,y,size){
   if(size>.9)for(let k=0;k<10;k++)noiseHit(out,t+.25+Math.random()*1.2,.05,'bandpass',1800+Math.random()*2500,2,.08+Math.random()*.1);
 }
 function sfxBoom(x,y,size=1){
+  if(MAPID==='dd'&&typeof ddsBoom==='function'){ddsBoom(x,y,size);rumble(x,y,size*.6);return;}   // (Version 188: D-Day's blasts by what made them, ddsfx.js; a lighter rumble under them)
   rumble(x,y,size);
   if(playSample('boom',x,y,Math.min(1.3,.9*size),size>1.2?.82:.95+Math.random()*.1))return;
   const out=voice(x,y,Math.min(1.2,.8*size),1.8);if(!out)return;const t=AC.currentTime;
   noiseHit(out,t,.08,'highpass',2000,0,.7);noiseHit(out,t,1.2,'lowpass',1400,0,1,.005,60);toneHit(out,t,.6,'sine',70,28,.9,.008);
 }
 function sfxLaunch(x,y){if(playSample('launch',x,y,.75))return;const out=voice(x,y,.5,1);if(!out)return;const t=AC.currentTime;noiseHit(out,t,.08,'lowpass',1500,0,.8);noiseHit(out,t,.9,'bandpass',700,1.2,.6,.05,250);}
-function sfxCannon(x,y){if(!playSample('boom',x,y,1.3,.7)){const out=voice(x,y,1,1.6);if(out){const t=AC.currentTime;noiseHit(out,t,1.2,'lowpass',900,0,.9,.004,60);}}rumble(x,y,1.3);}
+function sfxCannon(x,y){if(MAPID==='dd'&&typeof ddsCannon==='function'){ddsCannon(x,y);rumble(x,y,.8);return;}if(!playSample('boom',x,y,1.3,.7)){const out=voice(x,y,1,1.6);if(out){const t=AC.currentTime;noiseHit(out,t,1.2,'lowpass',900,0,.9,.004,60);}}rumble(x,y,1.3);}
 function sliceBuf(buf,t,d){const sr=buf.sampleRate,a=Math.floor(t*sr),n=Math.max(1,Math.min(buf.length-a,Math.floor(d*sr))),o=AC.createBuffer(1,n,sr);o.getChannelData(0).set(buf.getChannelData(0).subarray(a,a+n));return o;}
 const varied=(lo=.94,hi=1.06)=>lo+Math.random()*(hi-lo);   // a little pitch and speed difference each time, so repeats don't sound canned
 function sfxBark(x,y){   // a big dog barking (recorded); synthesised if the recording isn't loaded
@@ -230,7 +230,8 @@ function sfxRicochet(x,y,helmet){
   noiseHit(out,t+.002,helmet?.05:.085,'bandpass',helmet?1500:620+Math.random()*260,helmet?2.2:1.3,.75,.001);   // the knock of the plate
   if(Math.random()<(helmet?.85:.55)){const f=2300+Math.random()*1900;toneHit(out,t+.012,.2+Math.random()*.22,'sawtooth',f,f*(.28+Math.random()*.16),.045,.006);noiseHit(out,t+.012,.24,'bandpass',f*.8,7,.2,.006,f*.3);}   // the whine
 }
-function sfxImpact(x,y,mat){const m=mat||matAt(x,y);if(MAPID==='dd'&&m==='metal'){sfxRicochet(x,y);if(typeof ddSpark==='function')ddSpark(x,gndH(x,y)+7+Math.random()*6,y,.9);return;}playSample('hit_'+m,x,y,.55,varied());}
+function sfxImpact(x,y,mat){if(MAPID==='dd'&&typeof ddsImpact==='function'){ddsImpact(x,y,mat);return;}   // (Version 188, D-Day: sand puffs, concrete chips, wood, the ricochet off steel: ddsfx.js)
+  const m=mat||matAt(x,y);if(MAPID==='dd'&&m==='metal'){sfxRicochet(x,y);if(typeof ddSpark==='function')ddSpark(x,gndH(x,y)+7+Math.random()*6,y,.9);return;}playSample('hit_'+m,x,y,.55,varied());}
 function sfxFlesh(x,y){playSample('flesh',x,y,.45,varied(.85,1));}
 function sfxGrunt(u,big){if(u&&!u.dog)playSample(big?'grunt_down':'grunt',u.x,u.y,big?.8:.6,varied(u.side==='E'?.86:.96,u.side==='E'?.96:1.06));}
 // pain and fear (Bryan: they should be screaming, not a voice saying "ow, my leg"): recorded yells (HaelDB, CC0), never a voice line.
