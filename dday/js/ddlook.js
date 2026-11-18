@@ -27,9 +27,9 @@ function ddDress(G,sc,M){
   for(let i=0;i<5200;i++){const x=r()*X1,y=-756+r()*1070,k=ddGroundAt(x,y);if(k==='sand'||k==='sea'||k==='rock')continue;if(k==='dirt'&&r()<.75)continue;
     tufts.push({x,y,h:ddH(x,y)-.2,ry:r()*6,sx:.8+r()*.9,sy:.7+r()*1.1,c:pick([0x648a3c,0x749444,0x587e36,0x88904a,0x709042,0x989462])});}
   // (Version 188) turf hanging over the top of every face: a fringe of grass where the flat top breaks into the steep, hanging down the face
-  const drape=[];for(let i=0;i<14000&&drape.length<1100;i++){const x=r()*X1,y=-470+r()*790,k=ddGroundAt(x,y);if(k!=='top'&&k!=='dirt'&&k!=='grass')continue;
-    const gx=ddH(x+6,y)-ddH(x-6,y),gy=ddH(x,y+6)-ddH(x,y-6),gl=Math.hypot(gx,gy);if(gl<2.2)continue;const ux=-gx/gl,uy=-gy/gl;if(ddGroundAt(x+ux*8,y+uy*8)!=='rock')continue;
-    drape.push({x,y,h:ddH(x,y)-.3,ry:Math.atan2(-uy,ux)+(r()-.5)*.6,sx:.8+r()*.7,sy:.7+r()*.7,c:pick([0x587e36,0x648a3c,0x4e7230,0x6e8c40,0x7a8a46])});}
+  const drape=[];for(let i=0;i<14000&&drape.length<900;i++){const x=r()*X1,y=-470+r()*790,k=ddGroundAt(x,y);if(k!=='top'&&k!=='dirt'&&k!=='grass')continue;
+    const gx=ddH(x+6,y)-ddH(x-6,y),gy=ddH(x,y+6)-ddH(x,y-6),gl=Math.hypot(gx,gy);if(gl<2.2)continue;const ux=-gx/gl,uy=-gy/gl,below=(ddH(x+ux*4,y+uy*4)-ddH(x+ux*10,y+uy*10))/6;if(below<.75)continue;   // (only over a real face: on a slope the fringe stood out in the air)
+    drape.push({x,y,h:ddH(x,y)-.3,ry:Math.atan2(-uy,ux)+(r()-.5)*.6,rz:-Math.atan(below)*.55,sx:.7+r()*.6,sy:.6+r()*.6,c:pick([0x587e36,0x648a3c,0x4e7230,0x6e8c40,0x7a8a46])});}
   for(let i=0;i<900;i++){const x=r()*X1,y=-756+r()*1070;if(ddGroundAt(x,y)!=='top')continue;
     bush.push({x,y,h:ddH(x,y)+2.2,ry:r()*6,sx:3.4+r()*4.5,sy:2.6+r()*2.8,c:pick([0x5c8a3a,0x6a9842,0x507c36,0x7a9446,0x8a9a48])});}
   // trees: on the tops well back from their edges, and a hedgerow along the back of the base
@@ -54,7 +54,7 @@ function ddDress(G,sc,M){
   const lam=(c)=>new T.MeshLambertMaterial({color:c}),lamV=o=>new T.MeshLambertMaterial(Object.assign({color:0xffffff,vertexColors:true},o));
   // the shapes, each with its shading baked in (darker underneath) and its corners pulled about a little
   ddgInst(G,ddgTuftGeo(606),lamV({side:T.DoubleSide}),tufts,false);
-  {const P=[],C=[];for(let k=0;k<10;k++){const z=(k/9-.5)*5.5+(r()-.5)*.6,l=2.6+r()*2,d=2.2+r()*2.8,w=.32,j=(r()-.5)*.8;   // a fringe: blades out over the edge and hanging down it
+  {const P=[],C=[];for(let k=0;k<14;k++){const z=(k/13-.5)*6+(r()-.5)*.6,l=1.6+r()*2,d=1+r()*2.6,w=.24,j=(r()-.5)*.8;   // a fringe: blades out over the edge and hanging down it
       P.push(0,0,z-w, 0,0,z+w, l*.55,.7,z+j*.5, l*.55,.7,z-w*.7+j*.5, l*.55,.7,z+w*.7+j*.5, l,-d,z+j);C.push(.42,.42,.42, .42,.42,.42, 1.1,1.1,1.1, 1.1,1.1,1.1, 1.1,1.1,1.1, .78,.78,.78);}
     const dg=new T.BufferGeometry();dg.setAttribute('position',new T.Float32BufferAttribute(P,3));dg.setAttribute('color',new T.Float32BufferAttribute(C,3));dg.computeVertexNormals();
     ddgInst(G,dg,lamV({side:T.DoubleSide}),drape,false);}
@@ -81,12 +81,14 @@ function ddDress(G,sc,M){
   const signT=canvasTex(96,64,(q,w,h)=>{q.fillStyle='#e9e2c8';q.fillRect(0,0,w,h);q.strokeStyle='#1c1a16';q.lineWidth=5;q.strokeRect(3,3,w-6,h-6);q.fillStyle='#1c1a16';q.font='bold 19px sans-serif';q.textAlign='center';q.fillText('ACHTUNG',w/2,27);q.fillStyle='#a3231a';q.font='bold 22px sans-serif';q.fillText('MINEN',w/2,52);});
   for(const[dx,y,ry]of[[150,478,.1],[40,340,-.2],[450,336,.15],[590,340,-.1]]){const x=dx+DDX,h=ddH(x,y);one(new T.BoxGeometry(.9,13,.9),lam(0x4d3c2a),x,h+6.5,y);const p=one(new T.BoxGeometry(11,7.4,.7),new T.MeshLambertMaterial({map:signT}),x,h+11,y+.7,ry);p.castShadow=false;}
   // the base's vehicles, tents, drums and its mast (blocks from ddObjects)
-  const olive=M(0x5f6a44,.9),canvas=M(0x8a8a5c,1),tyre=M(0x1e1e1c,.9),drumC=[0x5a6a48,0x7a3a2a,0x4a5258];
+  // (Version 188: the trucks' canvas tilts and the tents in army canvas, the trucks with a windscreen, bumper and white star; the drums ribbed, chipped and rusting)
+  const olive=M(0x5f6a44,.9),canvas=new T.MeshStandardMaterial({map:ddgTex('canvas'),color:0x9c9a6c,roughness:1}),tentM=new T.MeshStandardMaterial({map:ddgMatRep('canvas',24).map,color:0xb0a678,roughness:1}),tyre=M(0x1e1e1c,.9),drumC=[0x5a6a48,0x8a3a26,0x4a5258],drumM=drumC.map(c=>new T.MeshStandardMaterial({map:ddgTex('drum'),color:c,roughness:.6,metalness:.15})),glassM=M(0x2a3034,.3,.4),starM=new T.MeshStandardMaterial({color:0xe8e6dc,roughness:.8});
   for(const o of DD.objs){const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=ddH(cx,cy);
-    if(o.kind==='ddtruck'){o.meshes=[one(new T.BoxGeometry(o.w-4,5,o.h),olive,cx,g0+7,cy),one(new T.BoxGeometry(o.w-4,13,o.h*.26),olive,cx,g0+15,o.y+o.h*.86),one(new T.BoxGeometry(o.w-2,15,o.h*.62),canvas,cx,g0+17,o.y+o.h*.33)];
+    if(o.kind==='ddtruck'){o.meshes=[one(new T.BoxGeometry(o.w-4,5,o.h),olive,cx,g0+7,cy),one(new T.BoxGeometry(o.w-4,13,o.h*.26),olive,cx,g0+15,o.y+o.h*.86),one(ddgBoxUV(o.w-2,15,o.h*.62,24),canvas,cx,g0+17,o.y+o.h*.33)];
+      o.meshes.push(one(new T.BoxGeometry(o.w-7,5,.5),glassM,cx,g0+18,o.y+o.h*.73-.3),one(new T.BoxGeometry(o.w,1.6,1.6),M(0x3a3e30,.8),cx,g0+5,o.y+o.h+.4),one(new T.BoxGeometry(.4,6,6),starM,cx+o.w/2-1.8,g0+16,o.y+o.h*.86));
       for(const sx of[-1,1])for(const fz of[.16,.5,.86]){const w=one(new T.CylinderGeometry(4.6,4.6,3.4,10),tyre,cx+sx*(o.w/2-2),g0+4.6,o.y+o.h*fz,0,0,Math.PI/2);o.meshes.push(w);}}
-    else if(o.kind==='ddtent'){const sh=new T.Shape();sh.moveTo(-o.w/2,0);sh.lineTo(o.w/2,0);sh.lineTo(0,o.w*.5);sh.closePath();const t=one(new T.ExtrudeGeometry(sh,{depth:o.h,bevelEnabled:false}),canvas,cx,g0,o.y);o.meshes=[t];}
-    else if(o.kind==='dddrum'){o.meshes=[];for(let k=0;k<5;k++){const a=k*1.26,x=cx+Math.cos(a)*(k?6:0),y=cy+Math.sin(a)*(k?6:0);o.meshes.push(one(new T.CylinderGeometry(3.3,3.3,9.5,10),M(drumC[k%3],.7,.3),x,g0+4.8,y));}}
+    else if(o.kind==='ddtent'){const sh=new T.Shape();sh.moveTo(-o.w/2,0);sh.lineTo(o.w/2,0);sh.lineTo(0,o.w*.5);sh.closePath();const t=one(new T.ExtrudeGeometry(sh,{depth:o.h,bevelEnabled:false}),tentM,cx,g0,o.y);o.meshes=[t];}
+    else if(o.kind==='dddrum'){o.meshes=[];for(let k=0;k<5;k++){const a=k*1.26,x=cx+Math.cos(a)*(k?6:0),y=cy+Math.sin(a)*(k?6:0);o.meshes.push(one(new T.CylinderGeometry(3.3,3.3,9.5,12),drumM[k%3],x,g0+4.8,y,k*1.7));}}
     else if(o.kind==='ddmast'){o.meshes=[one(new T.CylinderGeometry(.7,1.2,150,6),M(0x6a6e70,.6,.6),cx,g0+75,cy)];for(const hh of[40,80,120])o.meshes.push(one(new T.BoxGeometry(13,.8,.8),M(0x6a6e70,.6,.6),cx,g0+hh,cy));
       for(const a of[.5,2.6,4.7])o.meshes.push(one(new T.CylinderGeometry(.18,.18,150,3),M(0x40423f,.7),cx+Math.cos(a)*34,g0+68,cy+Math.sin(a)*34,-a,0,.46));}
   }

@@ -197,6 +197,17 @@ function ddgTex(k){
     for(let i=0;i<26;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,`rgba(90,84,70,${.08+r()*.14})`);g.addColorStop(1,'rgba(90,84,70,0)');q.fillStyle=g;q.fillRect(x,r()*h*.5,2+r()*7,h*.6);}
     {const g=q.createLinearGradient(0,h*.7,0,h);g.addColorStop(0,'rgba(96,100,70,0)');g.addColorStop(1,'rgba(96,100,70,.35)');q.fillStyle=g;q.fillRect(0,h*.7,w,h*.3);}
     for(let i=0;i<1800;i++){q.fillStyle=`rgba(${r()<.5?'90,84,70':'255,252,240'},${.05+r()*.1})`;q.fillRect(r()*w,r()*h,1.5,1.5);}});
+  else if(k==='canvas')t=canvasTex(128,128,(q,w,h)=>{q.fillStyle='#cfc6a4';q.fillRect(0,0,w,h);   // army canvas, a tile of 24 units: the weave, seams, mud splashed up from the ground, water stains (the colour comes from the material)
+    for(let y=0;y<h;y+=2){q.fillStyle=`rgba(${r()<.5?'90,84,60':'240,234,210'},${.06+r()*.08})`;q.fillRect(0,y,w,1);}
+    q.fillStyle='rgba(70,64,46,.35)';q.fillRect(0,0,w,2);q.fillRect(0,h/2,w,1.5);q.fillRect(w/2,0,1.5,h);
+    for(let i=0;i<18;i++){q.fillStyle=`rgba(${r()<.6?'80,72,52':'60,58,50'},${.08+r()*.12})`;q.beginPath();q.ellipse(r()*w,r()*h,6+r()*18,4+r()*12,r()*3,0,7);q.fill();}
+    {const g=q.createLinearGradient(0,h*.75,0,h);g.addColorStop(0,'rgba(90,74,50,0)');g.addColorStop(1,'rgba(90,74,50,.4)');q.fillStyle=g;q.fillRect(0,h*.75,w,h*.25);}});
+  else if(k==='drum')t=canvasTex(128,64,(q,w,h)=>{q.fillStyle='#d8d8d0';q.fillRect(0,0,w,h);   // a fuel drum's sides (the colour from the material): two rolled ribs, the paint chipped and rusting, a stencilled band, dents
+    for(const y of[h*.32,h*.68]){q.fillStyle='rgba(40,40,36,.45)';q.fillRect(0,y-2,w,2);q.fillStyle='rgba(255,255,250,.35)';q.fillRect(0,y,w,1.5);}
+    q.fillStyle='rgba(60,56,50,.5)';q.fillRect(0,0,w,2.5);q.fillRect(0,h-2.5,w,2.5);
+    q.fillStyle='rgba(250,248,236,.55)';q.fillRect(w*.3,h*.42,w*.22,h*.14);
+    for(let i=0;i<40;i++){q.fillStyle=`rgba(${r()<.5?'130,70,36':'90,52,30'},${.2+r()*.35})`;q.beginPath();q.ellipse(r()*w,r()*h,1+r()*5,1+r()*3,0,0,7);q.fill();}
+    for(let i=0;i<14;i++){const x=r()*w,g=q.createLinearGradient(0,0,0,h);g.addColorStop(0,'rgba(120,64,30,.35)');g.addColorStop(1,'rgba(120,64,30,0)');q.fillStyle=g;q.fillRect(x,h*.7,1+r()*2,h*.3);}});
   else if(k==='wire')t=null;
   return DDG_TEX[k]=t;
 }
@@ -319,6 +330,23 @@ function ddgTuftGeo(seed){
 }
 function ddGroundBuild(sc){
   if(!DD)return;
+  ddgFading.clear();ddgFadeT=0;
   ddgLand(sc);
 }
-function ddGroundFrame(rdt,now,dt){}
+// the buildings the engine never fades (their objects give no height, so scene.js's seeThrough skips them: the barracks, the base's huts and
+// sheds): faded the same way when one of ours is behind one from the camera, so the squad is never lost under a roof (Version 188, looks only)
+const DDG_FADE=new Set(['ddbarr','dcbld','ddbld']),ddgFading=new Set(),_gB=new THREE.Box3();let ddgFadeT=0;
+function ddgFadeFrame(rdt){
+  if(!DD||!DD.objs||typeof segHitsBox!=='function'||!camera)return;
+  if((ddgFadeT-=rdt)<=0){ddgFadeT=.12;const c=camera.position,hit=new Set();
+    for(const o of DD.objs){if(!DDG_FADE.has(o.kind)||!o.meshes||!o.meshes.length)continue;
+      if(!o._gBox){_gB.makeEmpty();for(const m of o.meshes)_gB.expandByObject(m);o._gBox=_gB.clone();}const b=o._gBox;
+      for(const p of players){if(p.dead||p.offMap||p.carriedBy||p.inBoat)continue;const py=ddH(p.x,p.y)+(p.downed?3:11);
+        if(segHitsBox(c.x,c.y,c.z,p.x,py,p.y,b.min.x,b.min.y,b.min.z,b.max.x,b.max.y,b.max.z)){hit.add(o);break;}}}
+    for(const o of hit){if(!ddgFading.has(o)){ddgFading.add(o);for(const m of o.meshes)if(!m.userData.ownMat&&m.material){m.material=Array.isArray(m.material)?m.material.map(x=>x.clone()):m.material.clone();m.userData.ownMat=true;}}o.gFadeTo=.28;}
+    for(const o of ddgFading)if(!hit.has(o))o.gFadeTo=1;}
+  for(const o of ddgFading){o.gFadeA=(o.gFadeA??1)+((o.gFadeTo??1)-(o.gFadeA??1))*Math.min(1,rdt*7);const done=o.gFadeTo===1&&o.gFadeA>.985;
+    for(const m of o.meshes)for(const mt of Array.isArray(m.material)?m.material:[m.material]){if(!mt)continue;mt.opacity=done?1:o.gFadeA;mt.transparent=!done;mt.depthWrite=done||o.gFadeA>.9;}
+    if(done){o.gFadeA=1;ddgFading.delete(o);}}
+}
+function ddGroundFrame(rdt,now,dt){ddgFadeFrame(rdt);}

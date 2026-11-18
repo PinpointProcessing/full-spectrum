@@ -168,7 +168,7 @@ function paintDDGround(g){
     const mix=(A,B,k)=>[A[0]+(B[0]-A[0])*k,A[1]+(B[1]-A[1])*k,A[2]+(B[2]-A[2])*k];
     // (Version 188: a fuller palette. The sand: paler and drier up the beach, bands of darker sand along the shore, a dark wet band
     // with a lighter sheen where the last wave ran up; the rock in beds of grey and ochre limestone with dark seams and lit ledges)
-    const SAND=[204,180,130],SAND2=[184,160,114],DRYS=[214,198,156],SANDW=[126,110,84],SHEEN=[158,148,124],BED=[104,124,114],ROCK=[162,148,122],ROCKD=[106,96,80],ROCKL=[188,180,158],GRASS=[98,132,60],GRASS2=[72,106,46],DIRT=[156,128,88],DRY=[156,150,88];
+    const SAND=[204,180,130],SAND2=[184,160,114],DRYS=[214,198,156],SANDW=[126,110,84],SHEEN=[158,148,124],BED=[104,124,114],ROCK=[168,150,118],ROCKD=[110,96,76],ROCKL=[192,180,152],GRASS=[98,132,60],GRASS2=[72,106,46],DIRT=[156,128,88],DRY=[156,150,88];
     for(let j=0;j<SH;j++)for(let i=0;i<SW;i++){
       const dx=i*2+1,y=DDB.y0+j*2+1,wx=dx+DDX,h=ddH(wx,y),hx=(ddH(wx+4,y)-ddH(wx-4,y))/8,hy=(ddH(wx,y+4)-ddH(wx,y-4))/8,sl=Math.hypot(hx,hy);
       const n1=fbm(dx*.02,y*.02),n2=fbm(dx*.07+40,y*.07+11);let c;
@@ -181,7 +181,7 @@ function paintDDGround(g){
         const flat=ddRock(dx,y)?g2:(y<-320?mix(g2,DIRT,clamp(n2*1.8-.55,0,1)*.6):mix(DIRT,g2,clamp(n1*2.2-.75,0,1)*.8));
         const band=.5+.5*Math.sin(h*.42+n1*4);let rk=mix(ROCKD,ROCK,band*.15+n2*.55+.15);rk=mix(rk,ROCKL,clamp(n1*2-1.1,0,1)*.5);   // (the beds themselves are drawn by ddground.js's shader, sharp at any distance: in this picture they blurred into streaks down the faces)
         c=mix(flat,rk,steep);}
-      const lit=clamp(.9+(-hx*.4-hy*.55)*.9,.62,1.25);                    // the sun from the south-west, a little
+      const lit=clamp(.92+(-hy*.55)*.9,.66,1.22);                    // the light from the south, a little (Version 188: from the south only: an east-west term turned dark where the picture is mirrored at the play area's edges, a seam down every slope; the sun itself does the rest)
       const hol=(ddH(wx-10,y)+ddH(wx+10,y)+ddH(wx,y-10)+ddH(wx,y+10))/4-h,ao=clamp(1-hol*.03,.72,1.06);
       const k=(j*SW+i)*4,f=lit*ao*(.94+n2*.12);D[k]=clamp(c[0]*f,0,255);D[k+1]=clamp(c[1]*f,0,255);D[k+2]=clamp(c[2]*f,0,255);D[k+3]=255;}
     s2.putImageData(img,0,0);x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(sc2,0,DDB.y0,W0,DDB.y1-DDB.y0);}
