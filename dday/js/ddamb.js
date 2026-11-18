@@ -24,7 +24,7 @@
    D-Day is left. Its own random numbers (ddaR), so the game's Math.random sequence is the same with sound as without. */
 const DDA={sr:24000,shore:706,maxEv:24,loop:{water:18,birds:24.5},   // (the loops' lengths in sounds/amb/: ddaLoopCut)
   wash:[[.08,3.95],[4.18,2.45],[6.78,2.2],[9.13,3.46],[12.74,1.7],[14.59,3.2],[17.94,2.3],[20.39,1.97]],   // (where each recorded wash is in surf.mp3)
-  lv:{wind:.19,surf:.42,sea:.13,diesel:.19,chorus:.05,slap:.2,mg:.24,rifle:.18,art:.3,naval:.4,shell:.22,air:.42,tank:.5,track:.42,truck:.42,fire:.3,roar:.32,birds:.1}};
+  lv:{wind:.19,surf:.42,sea:.13,diesel:.19,chorus:.05,slap:.2,mg:.24,rifle:.18,art:.3,naval:.4,shell:.22,air:.42,tank:.5,track:.42,truck:.42,fire:.3,roar:.32,birds:.1,gun:.55}};
 let ddA=null;
 const ddaR=(()=>{let s=0x2545f491;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296;};})(),ddaN=()=>ddaR()*2-1;
 
@@ -285,7 +285,7 @@ function ddaRoar(t,S,live){
   const A=ddA;if(!A.roar)return;
   if(!A.v.roarL){const g=AC.createGain(),sd=AC.createGain();g.connect(A.bus);sd.gain.value=.45;g.connect(sd);sd.connect(A.cv);ddaVoice('roarL',g);ddaVoice('roarR',g);}   // (more of it dry than the posts: its shots stay distinct, the echo still behind them)
   const I=clamp(A.I,0,1),fl=clamp(A.fl||1,.35,1.6)/1.6,lv=DDA.lv.roar*Math.pow(I,1.4)*(.4+.6*fl)*(live?1:.5),c=650+2100*I;
-  ddaVoiceSet('roarL',A.roar[0],lv,-.7,c,1,t);ddaVoiceSet('roarR',A.roar[1],lv*(.85+.15*Math.sin(t*.05)),.7,c,1,t);
+  ddaVoiceSet('roarL',A.roar[0],lv,-.7,c,1+.03*Math.sin(t*.11),t);ddaVoiceSet('roarR',A.roar[1],lv*(.85+.15*Math.sin(t*.05)),.7,c,1+.03*Math.sin(t*.083+2),t);   // (each a little faster and slower in turn: a loop that never quite comes round the same)
 }
 // birds in the hedgerows and the woods (the village's approach, the march out, the quiet after): they go quiet the moment guns go off
 // anywhere (a muzzle flash) and come back slowly, over half a minute of quiet
@@ -414,16 +414,20 @@ function ddaBattle(bt,t,S){
   for(const P of A.posts){
     if(bt>=P.move){Object.assign(P,ddaPost(S,A.posts.indexOf(P)),{next:bt+2+ddaR()*6,move:bt+30+ddaR()*60});continue;}   // (it moves on, or another takes up)
     if(bt<P.next)continue;P.next=bt+ddaShoot(P,t,I)/Math.max(.05,I*.55)*(ddaR()<.12?4:1);}   // (now and then a longer quiet)
-  if(bt>=E.art){E.art=bt+(4.5+ddaR()*9)/(.3+.7*I);const w=ddaWhere(S,'art'),p=ddaPan(w.dx,w.dz)*.85,rec=A.farRec&&ddaR()<.3;
-    ddaPlay(rec?A.farRec:B[['art1','art2','art3'][Math.floor(ddaR()*3)]],t+.03,L.art*(1.1-w.far*.6)*(rec?.8:1),p,1100-w.far*600,rec?.75+ddaR()*.2:.9+ddaR()*.2);
+  if(bt>=E.art){E.art=bt+(4.5+ddaR()*9)/(.3+.7*I);const w=ddaWhere(S,'art'),p=ddaPan(w.dx,w.dz)*.85,X=ddaRec('xfar'),r=ddaR(),rec=A.farRec&&r<.25,xf=X&&r>.55;   // (a shell landing far off: the synthesised boom, or one of two recordings of far blasts, Version 188 pass 5)
+    ddaPlay(xf?X[Math.floor(ddaR()*X.length)]:rec?A.farRec:B[['art1','art2','art3'][Math.floor(ddaR()*3)]],t+.03,L.art*(1.1-w.far*.6)*(rec?.8:xf?.75:1),p,(1100-w.far*600)*(xf?1.3:1),xf?.78+ddaR()*.2:rec?.75+ddaR()*.2:.9+ddaR()*.2);
     if(ddaR()<.35*I){const at=t+.4+ddaR()*1.2;ddaPlay(B['art'+(1+Math.floor(ddaR()*3))],at,L.art*(1-w.far*.6)*.8,clamp(p+(ddaR()-.5)*.3,-1,1),1000-w.far*500,.85+ddaR()*.25);}}   // (often a second from the same battery)
   if(S.naval&&bt>=E.nav){E.nav=bt+(S.mode==='ride'?6+ddaR()*5:(14+ddaR()*20)/((.4+.6*I)*S.naval));ddaNaval(t,S);}   // (the ships' guns going all the way in)
   if(S.air&&bt>=E.air){E.air=bt+(60+ddaR()*80)/S.air;ddaPlane(t);}
 }
-// a battleship's broadside from the horizon; on D-Day its shells go over a few seconds later and land inland
+// a battleship's broadside from the horizon; on D-Day its shells go over a few seconds later and land inland. Since Version 188 pass 5
+// the guns themselves are a recording of a ship's gun (ddsfx.js's 'xgun', CC0) slowed into a bigger one, two to four of them a salvo,
+// over the synthesised boom's weight (which on its own was all bass: a phone's speaker gave nothing of it)
+const ddaRec=k=>typeof DSFX!=='undefined'&&DSFX.buf[k]&&DSFX.buf[k].length?DSFX.buf[k]:null;
 function ddaNaval(t,S){
-  const A=ddA,B=A.b,L=DDA.lv,w=ddaWhere(S,'nav'),p=ddaPan(w.dx,w.dz)*.7;
-  ddaPlay(B[ddaR()<.5?'nav1':'nav2'],t+.03,L.naval*(S.mode==='ride'||S.mode==='beach'?1:.55),p,S.mode==='ride'?900:650,.95+ddaR()*.1);
+  const A=ddA,B=A.b,L=DDA.lv,w=ddaWhere(S,'nav'),p=ddaPan(w.dx,w.dz)*.7,k=S.mode==='ride'||S.mode==='beach'?1:.55,c=S.mode==='ride'?900:650,G=ddaRec('xgun');
+  ddaPlay(B[ddaR()<.5?'nav1':'nav2'],t+.03,L.naval*k,p,c,.95+ddaR()*.1);
+  if(G)for(let j=0,m=2+Math.floor(ddaR()*3),at=t+.03;j<m;j++,at+=.14+ddaR()*.24)ddaPlay(G[Math.floor(ddaR()*G.length)],at,L.gun*k*(j?.55+ddaR()*.35:1),clamp(p+(ddaR()-.5)*.25,-1,1),c*1.5,.6+ddaR()*.14);
   if((S.mode==='ride'||S.mode==='beach')&&ddaR()<.75){const at=t+2.6+ddaR()*1.5,o=ddaPlay(B.shell,at,L.shell,p,2000,.9+ddaR()*.2,A.near);
     if(o&&o.p.pan)o.p.pan.setValueCurveAtTime(new Float32Array([p,p*.5,(ddaR()-.5)*.6]),at,3.2);
     const w2={dx:(ddaR()-.5)*1.2,dz:-1};ddaPlay(B.art2,at+3.6+ddaR()*1.5,L.art*.75,ddaPan(w2.dx,w2.dz)*.6,700,.8+ddaR()*.15);}
