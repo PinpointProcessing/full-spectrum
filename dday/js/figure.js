@@ -234,17 +234,19 @@ function figGeometry(key){
 function figMaterial(L,side){
   const m=new T.MeshStandardMaterial({vertexColors:true,skinning:true,roughness:.8,metalness:.04});
   const c=h=>new T.Color(h).convertSRGBToLinear();
+  const dd=typeof MAPID!=='undefined'&&MAPID==='dd';   // (Version 190, D-Day's daylight: skin matte, not shiny (its sheen burnt white in the sun); a hit a short warm flash at the edges, not a white fill)
   const U={uSkin:{value:c(L.skin)},uHair:{value:c(L.hair)},uCloth:{value:c(L.cloth)},uTeam:{value:c(L.team)},uGlow:{value:side==='P'?1.6:0},
-    uRim:{value:c(side==='E'?'#5a3a32':side==='P'?'#3a5a80':'#4a4f55').multiplyScalar(side==='P'?.42:.32)},uFill:{value:side==='P'?.16:.12},uHit:{value:0},uLamp:{value:c('#dfeaff').multiplyScalar(2.2)}};
+    uRim:{value:c(side==='E'?'#5a3a32':side==='P'?'#3a5a80':'#4a4f55').multiplyScalar(side==='P'?.42:.32)},uFill:{value:side==='P'?.16:.12},uHit:{value:0},uLamp:{value:c('#dfeaff').multiplyScalar(2.2)},
+    uSkR:{value:dd?.86:.58},uHitC:{value:dd?new T.Color(1,.45,.3):new T.Color(1,1,1)},uHitR:{value:dd?1:0}};
   m.userData.U=U;
   m.onBeforeCompile=s=>{
     Object.assign(s.uniforms,U);
     s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nattribute float mid;\nvarying float vMid;').replace('#include <begin_vertex>','#include <begin_vertex>\nvMid=mid;');
     s.fragmentShader=s.fragmentShader
-      .replace('#include <common>','#include <common>\nvarying float vMid;\nuniform vec3 uSkin,uHair,uCloth,uTeam,uRim,uLamp;\nuniform float uGlow,uHit,uFill;')
+      .replace('#include <common>','#include <common>\nvarying float vMid;\nuniform vec3 uSkin,uHair,uCloth,uTeam,uRim,uLamp,uHitC;\nuniform float uGlow,uHit,uFill,uSkR,uHitR;')
       .replace('#include <color_fragment>','#include <color_fragment>\n  if(abs(vMid-1.)<.5)diffuseColor.rgb=uSkin*vColor;else if(abs(vMid-2.)<.5)diffuseColor.rgb=uTeam*.6;else if(abs(vMid-3.)<.5)diffuseColor.rgb=uHair*vColor;else if(abs(vMid-8.)<.5)diffuseColor.rgb=uCloth*vColor;')
-      .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\n  if(abs(vMid-4.)<.5){roughnessFactor=.36;metalnessFactor=.65;}else if(abs(vMid-5.)<.5){roughnessFactor=.6;}else if(abs(vMid-1.)<.5){roughnessFactor=.58;}')
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  {float f=1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.);totalEmissiveRadiance+=uRim*(f*f*(3.-2.*f))+diffuseColor.rgb*uFill;}\n  if(abs(vMid-2.)<.5)totalEmissiveRadiance+=uTeam*uGlow;if(abs(vMid-7.)<.5)totalEmissiveRadiance+=uLamp;totalEmissiveRadiance+=vec3(uHit);');
+      .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\n  if(abs(vMid-4.)<.5){roughnessFactor=.36;metalnessFactor=.65;}else if(abs(vMid-5.)<.5){roughnessFactor=.6;}else if(abs(vMid-1.)<.5){roughnessFactor=uSkR;}')
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  {float f=1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.);totalEmissiveRadiance+=uRim*(f*f*(3.-2.*f))+diffuseColor.rgb*uFill+uHitC*uHit*mix(1.,.25+.75*f*f,uHitR);}\n  if(abs(vMid-2.)<.5)totalEmissiveRadiance+=uTeam*uGlow;if(abs(vMid-7.)<.5)totalEmissiveRadiance+=uLamp;');
   };
   m.customProgramCacheKey=()=>'fig1';
   return m;
@@ -409,8 +411,10 @@ function figAnimate(u,m){
     else if(!P.handE[s]&&F.hw[s]<.99)hq.slerp(_fq[5],1-F.hw[s]);
     B[arm+2].quaternion.copy(_fq[3].copy(_fq[5]).invert().multiply(hq));
   }
-  // a hit: a white flash on him for a moment
-  F.mat.userData.U.uHit.value=Math.max(0,(u.hitFlash||0))*.9;
+  // a hit: a white flash on him for a moment (D-Day, Version 190: a tenth of a second of warm light at his edges from each new hit, as hitFlash jumps; held
+  // white for as long as hitFlash lasted, a man under fire, and every dead one, whose hitFlash never runs down, stood chalk-white)
+  if(MAPID==='dd'){const h=u.hitFlash||0;if(h>(F.hf||0)+.01)F.hitT=simT;F.hf=h;const k=Math.max(0,1-(simT-(F.hitT??-9))/.1);F.mat.userData.U.uHit.value=k*k*.5;}
+  else F.mat.userData.U.uHit.value=Math.max(0,(u.hitFlash||0))*.9;
   F.fresh=false;
 }
 

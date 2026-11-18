@@ -15,13 +15,17 @@ const DDL={
   fogFar:3300,      // ...and is thickest this much further on (the far land and the sea's edge melt into the horizon)
   shadowMax:720,shadowMin:170,shadowStep:24,shadowReach:1150,shadowUp:520,   // the sun's shadow box: its half-size limits, the step it grows in, how far the camera's view is followed, how far above the ground casters can stand
   bias:-.0004,normalBias:.7,
-  shade:.15         // how much the clouds' shadows darken the ground (0: none)
+  shade:.15,shadeLo:.08,shadeNear:[60,150]   // how much the clouds' shadows darken the ground (0: none; shadeLo on a phone's tiers, 1 and 0, since Version 190), and
+                    // between what distances from either squad's middle they fade in (none over our men: they sank into the sand under a cloud)
 };
 // each chapter's sky: how much cloud (0 clear .. 1 overcast), and how fast it drifts
 const DDL_MODE={beach:{cloud:.6,wind:1},counter:{cloud:.46,wind:1.3},village:{cloud:.7,wind:.8}};
 // the renderer for D-Day's frames (scene.js's render sets these, then puts the old ones back): a curve that stays straight to 60% and rolls the brightest
 // channel off softly, the others scaled with it, so lit sand and faces keep their colour (ACES took them pale and yellow)
-const DDL_TONE={map:null,exp:1.17};   // (map: three's CustomToneMapping, set with its curve by ddToneChunk)
+const DDL_TONE={map:null,exp:1.26,beach:1.26,top:1.33,counter:1.33,village:1.31};   // (map: three's CustomToneMapping, set with its curve by ddToneChunk. exp 1.17 until Version 190,
+// when the picture had come out about a fifth darker than Version 187's and the olive men sank into the sand: now each chapter's own (ddLightFrame), the top
+// of the bluffs, the counterattack and the village a little brighter still: their grass had gone dark olive. The sea (ddsea.js) takes its colours back
+// through the exposure it's built under, so the beach's is the one it starts at)
 // the daylight grade in post.js's last pass (tiers 1 and 2): black point, contrast, cooler shadows, warmer light, colour where it's dull
 const DDL_GRADE={black:.02,con:.3,cold:.5,warm:.3,sat:1.22,vig:.2,grain:.01};
 let ddToneDone=false;
@@ -149,13 +153,16 @@ function ddSmokeCols(sc){
 // noise is thick; the men and the props are left as they are). Faded with the haze; not on the cheapest tier (POST.tier 0).
 function ddCloudShade(sc){
   if(!DDL.shade)return;const L=[],bo=DD.bo||[],P=DDL_MODE[DD_MODE]||DDL_MODE.beach;sc.traverse(o=>{if(o.isMesh&&o.material&&(o.material.map===DD.tex||o.userData.ddLand)&&!bo.includes(o))L.push(o);});   // (the battle's own sheet only: the mirror copies either side are too far off to be worth a second pass)
-  const U={tC:{value:ddNoiseTex()},uT:{value:0},uK:{value:DDL.shade*(.5+P.cloud)},uW:{value:P.wind},uFN:{value:1000},uFF:{value:5000}};
+  const U={tC:{value:ddNoiseTex()},uT:{value:0},uK:{value:DDL.shade*(.5+P.cloud)},uW:{value:P.wind},uFN:{value:1000},uFF:{value:5000},uSq:{value:[new T.Vector2(1e6,1e6),new T.Vector2(1e6,1e6)]},uNr:{value:new T.Vector2(...DDL.shadeNear)}};
   const mat=new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:T.MultiplyBlending,fog:false,
     vertexShader:'varying vec3 vW;varying float vD;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vec4 mv=viewMatrix*w;vD=-mv.z;gl_Position=projectionMatrix*mv;}',
-    fragmentShader:`uniform sampler2D tC;uniform float uT,uK,uW,uFN,uFF;varying vec3 vW;varying float vD;
+    fragmentShader:`uniform sampler2D tC;uniform float uT,uK,uW,uFN,uFF;uniform vec2 uSq[2],uNr;varying vec3 vW;varying float vD;
       void main(){vec2 p=vW.xz*.0008+vec2(.0045,.0016)*uT*uW;float n=texture2D(tC,p).r*.7+texture2D(tC,p*2.2+.27).g*.3;
-        float s=smoothstep(.46,.8,n)*uK*(1.-smoothstep(uFN,uFF,vD));gl_FragColor=vec4(vec3(1.-s),1.);}`});
-  DD.shade={U,L:L.map(o=>{const m=new T.Mesh(o.geometry,mat);m.position.copy(o.position);m.rotation.copy(o.rotation);m.scale.copy(o.scale);m.renderOrder=-1;sc.add(m);return{m,o};})};
+        float s=smoothstep(.46,.8,n)*uK*(1.-smoothstep(uFN,uFF,vD))*smoothstep(uNr.x,uNr.y,min(distance(vW.xz,uSq[0]),distance(vW.xz,uSq[1])));gl_FragColor=vec4(vec3(1.-s),1.);}`});
+  // before a sheet draws: how dark (by the tier: a phone's lighter), and where the two squads are (the middle of each)
+  const sq=(t,v)=>{let x=0,y=0,n=0;for(const p of players)if(p.team===t&&!p.dead&&!p.npc){x+=p.x;y+=p.y;n++;}if(n)v.set(x/n,y/n);else v.set(1e6,1e6);};
+  const pre=()=>{U.uK.value=(POST.tier>=2?DDL.shade:DDL.shadeLo)*(.5+P.cloud);sq('A',U.uSq.value[0]);sq('B',U.uSq.value[1]);};
+  DD.shade={U,L:L.map(o=>{const m=new T.Mesh(o.geometry,mat);m.onBeforeRender=pre;m.position.copy(o.position);m.rotation.copy(o.rotation);m.scale.copy(o.scale);m.renderOrder=-1;sc.add(m);return{m,o};})};
 }
 /* ---------- building it ---------- */
 function ddLightBuild(sc){
@@ -192,6 +199,9 @@ function ddSunFrame(){
 function ddLightFrame(rdt,now){
   if(!DD||!DD.lights)return;
   ddSunFrame();
+  // the exposure (Version 190): the chapter's own, the beach's rising to the top's as the camera goes up the bluffs; eased, set at once in a new chapter
+  {const E=DDL_TONE,k=DD_MODE==='beach'?clamp((-60-camT.z)/360,0,1):0,want=DD_MODE==='beach'?E.beach+(E.top-E.beach)*k*k*(3-2*k):(E[DD_MODE]||E.beach);
+    if(DD.expSet)E.exp+=(want-E.exp)*Math.min(1,rdt*1.5);else{E.exp=want;DD.expSet=true;}}
   // the haze: none over the battle, thicker past it (the camera's distance to the ground at the view's centre)
   const fog=DD.scene.fog;if(fog&&fog.isFog){const C=camera.position,dv=Math.hypot(C.x-camT.x,C.y-gndH(camT.x,camT.z),C.z-camT.z),near=Math.max(DDL.fogMin,Math.min(1700,dv)*DDL.fogNear);fog.near=near;fog.far=near+DDL.fogFar;
     const K=DD.cols;if(K){K.U.uFN.value=near;K.U.uFF.value=near+DDL.fogFar;}}
