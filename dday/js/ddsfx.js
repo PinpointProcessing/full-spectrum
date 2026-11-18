@@ -9,11 +9,16 @@
    shot quieter, duller, wetter with echo, and later (sound's speed). Blasts by what made them: a grenade's crack, a mortar's crump,
    a shell's deep boom, a tank's gun, a shell into the sea (a thump and a splash), CC0 explosion recordings (sounds/CREDITS.md)
    layered with a crack, a sub-bass knock and falling sand. Incoming shells whistle down for the last second and a half, louder the
-   nearer they land; rounds that just miss the squad you're playing crack past; bullets into sand puff, into concrete chip.
-   ddSfxFrame from audio.js's audioFrame every frame on this map; sfxShotDD, sfxBoom, sfxCannon and sfxImpact hand over to ddsShot,
-   ddsBoom, ddsCannon and ddsImpact here. Everything checks AC and sndOn: with sound off nothing is made. */
+   nearer they land; rounds that just miss the squad you're playing crack past; bullets into sand puff, into concrete chip. The
+   blasts' recordings are EQ'd so they carry on a phone's small speaker (a shell had sounded no louder than a rifle there); every
+   shot and blast also slaps back off the bluffs, the base or the village walls a moment later (ddsEcho); a landing craft's ramp
+   clanks down into the shallows (ddsRamp); and men's cries and screams go by the same distance as the guns, a few at once
+   (ddsSample), so a crowded beach isn't one long scream.
+   ddSfxFrame from audio.js's audioFrame every frame on this map; sfxShotDD, sfxBoom, sfxCannon, sfxImpact, sfxClang, sfxFlesh and
+   playSample hand over to ddsShot, ddsBoom, ddsCannon, ddsImpact, ddsRamp, ddsFleshOK and ddsSample here. Everything checks AC and
+   sndOn: with sound off nothing is made. */
 const DSFX={whT:0,cat:{},buf:{},live:[],trk:[],rk:[],wh:[],fired:[],blasts:[],frame:0,crackT:0,crackN:0,fakeT:0,hitT:0,crack:null};
-const DDS_MAX=24,DDS_BUSY=14,DDS_FAR=30;   // voices of ours at once; past BUSY only the louder get in; past FAR m a gun's far take
+const DDS_MAX=24,DDS_BUSY=12,DDS_FAR=30;   // voices of ours at once; past BUSY only the louder get in; past FAR m a gun's far take
 // each gun: its near and far takes, how loud at the muzzle, its pitch range (a little different every round), and how many bursts
 // of it further off than about 25 m may sound at once (a beach with forty rifles going is a wall of noise otherwise; the near
 // ones always sound)
@@ -136,7 +141,7 @@ function ddsPattern(u,gun){
 function ddsBurst(u,gun,G,offs,ts){
   const last=offs[offs.length-1]/ts,P=ddsPlace(u.x,u.y),now=AC.currentTime,C=DSFX.cat[gun]||(DSFX.cat[gun]=[]);for(let i=C.length-1;i>=0;i--)if(C[i]<now)C.splice(i,1);
   if(P.d>25&&C.length>=G.cap)return;
-  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.7:1),last+1.7,false,gun==='mg'?.35:.8,G.carry);if(!o)return;C.push(o.t0+last+.6);   // (the other troops a little under your own squads)
+  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.6:1),last+1.7,false,gun==='mg'?.35:.8,G.carry);if(!o)return;C.push(o.t0+last+.6);   // (the other troops under your own squads: there are dozens of them)
   const far=o.d>DDS_FAR,kind=far?G.far:G.near;
   for(let i=0;i<offs.length;i++){
     const at=o.t0+offs[i]/ts,r=ddsR(G.r[0],G.r[1]);
@@ -190,6 +195,7 @@ function ddsBoom(x,y,size){
   // a blast right after another in the same spot (a bunker going up in several bursts) is a smaller one inside it; the very same
   // spot again at once (a blast both pushed to booms and played) is the same blast: once is enough
   let sec=false;for(let i=DSFX.blasts.length-1;i>=0;i--){const b=DSFX.blasts[i];if(now-b.t>.6){DSFX.blasts.splice(i,1);continue;}if(b.x===x&&b.y===y&&now-b.t<.1)return;if(Math.abs(b.x-x)<60&&Math.abs(b.y-y)<60)sec=true;}
+  if(hyp(x-(dd&&dd.fp&&dd.fp.u?dd.fp.u.x:camT.x),y-(dd&&dd.fp&&dd.fp.u?dd.fp.u.y:camT.z))>800){const F=DSFX.cat.farx||(DSFX.cat.farx=[]);for(let i=F.length-1;i>=0;i--)if(F[i]<now)F.splice(i,1);if(F.length>=2)return;F.push(now+2.2);}   // (Version 188 pass 3: two far blasts rolling at once at most; a shelled beach was a wall of them)
   DSFX.blasts.push({x,y,t:now});
   const o=ddsOut(x,y,1,4.5,true,.7,kind==='art'||kind==='big'||kind==='sea'?1.6:1.3);if(!o)return;const t=o.t0,far=o.d>80;   // (a blast carries further than a shot)
   const v=sec?.45:1,boom=samples.boom&&samples.boom.length?samples.boom[(Math.random()*samples.boom.length)|0]:null;
@@ -229,11 +235,11 @@ function ddsTube(x,y){const o=ddsOut(x,y,.6,.6,false);if(!o)return;toneHit(o.g,o
 /* ---------- incoming ---------- */
 // a shell's whistle down (Version 188 pass 2): a falling tone with the spin's warble in it and a faint overtone, the air tearing
 // round it (a rushing noise that brightens and swells as it comes), all of it rising to the landing and cut off there; the
-// mortars' shorter, lower and breathier. Only the ones landing near you (none past 50 m), louder the nearer; two at most at once
+// mortars' shorter, lower and breathier. Only the ones landing near you (none past 50 m), louder the nearer; one at a time
 function ddsWhistle(n){
   const ts=Math.max(.25,timeScale()||1),rem=(n.dur-n.t)/ts,mort=n.ddsK==='mortar',L=Math.min(rem,mort?1:1.55);if(L<.35)return;
   const P=ddsPlace(n.x1,n.y1),v=(mort?.16:.24)*clamp(1-(P.d-12)/40,0,1);if(v<.02)return;   // (only the ones coming down near you: 50 m off, none)
-  const now=AC.currentTime;for(let i=DSFX.wh.length-1;i>=0;i--)if(DSFX.wh[i].end<now)DSFX.wh.splice(i,1);if(DSFX.wh.length>=2||now<DSFX.whT)return;DSFX.whT=now+.4;
+  const now=AC.currentTime;for(let i=DSFX.wh.length-1;i>=0;i--)if(DSFX.wh[i].end<now)DSFX.wh.splice(i,1);if(DSFX.wh.length||now<DSFX.whT)return;DSFX.whT=now+L+.9;   // (one at a time and a breath between: a shelled beach was a constant whistling)
   const g=AC.createGain(),t0=now,t1=now+L;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v*.3,t0+L*.5);g.gain.exponentialRampToValueAtTime(v,t1-.05);g.gain.linearRampToValueAtTime(.0001,t1);
   let out=g;if(AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=P.pan*.7;g.connect(p);out=p;}out.connect(sndMuffle);const s=AC.createGain();s.gain.value=.25;out.connect(s);s.connect(sndVerb);
   const f0=mort?ddsR(900,1000):ddsR(1250,1500),f1=mort?ddsR(520,600):ddsR(360,460),nodes=[];
