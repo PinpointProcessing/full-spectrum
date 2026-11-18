@@ -428,7 +428,7 @@ function ddRockets(rdt){
       const fl=new T.Mesh(new T.ConeGeometry(1.0,6,8),fm);fl.rotation.z=Math.PI/2;fl.position.x=-5.6;g.add(fl);g.userData.fl=fl;
       const gl=new T.Mesh(R.geo,new T.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:.9,fog:false}));gl.scale.setScalar(1.5);gl.position.x=-3.2;g.add(gl);
       g.scale.setScalar(2.1);DD.scene.add(g);return g;};
-    R.puff=(x,h,y,s,life,col,vy)=>{let p=R.puffs.find(q=>q.t>=q.life);if(!p){if(R.puffs.length>260)return;const m=new T.Mesh(R.geo,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));DD.scene.add(m);p={m,t:0,life:0};R.puffs.push(p);}
+    R.puff=(x,h,y,s,life,col,vy)=>{if(typeof ddFxPuff==='function'&&ddFxPuff(x,h,y,s,life,col,vy,Math.random(),Math.random(),Math.random()))return;let p=R.puffs.find(q=>q.t>=q.life);if(!p){if(R.puffs.length>260)return;const m=new T.Mesh(R.geo,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));DD.scene.add(m);p={m,t:0,life:0};R.puffs.push(p);}
       p.t=0;p.life=life;p.s=s;p.vy=vy||3;p.m.material.color.setHex(col);p.m.position.set(x+(Math.random()-.5)*2,h+(Math.random()-.5)*2,y+(Math.random()-.5)*2);p.m.visible=true;};
   }
   let i=0;
