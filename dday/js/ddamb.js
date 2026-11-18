@@ -16,7 +16,7 @@
      whine on the ride in and the other boats' either side (ddaBoats); the tanks' engines with their tracks' clatter and squeal, by
      distance and whether they're moving (ddaTanks, dd.tanks); the village's trucks (dd.vg.trucks); fires crackling near (tankFires).
    - Version 188 pass 3: the battle as a constant sound under the separate posts (ddaRoar: a crackle of rifles and machine guns from
-     every side, built from the guns' far recordings into two loops, ddaRoarBuf); the waves' lanes made of a recording of real water
+     every side, built from the guns' far recordings into two loops, ddaRoarGen); the waves' lanes made of a recording of real water
      (sounds/amb/water.mp3, CC0) instead of noise, so the wash bubbles and fizzes like water; birdsong in the woods, the field and the
      quiet spells (sounds/amb/birds.mp3, CC0), gone quiet while guns are going (ddaBirds).
    Placed from the camera (audio.js's place(), and the camera's right-hand side for the far-off things: ddaPan); slow-mo and pause muffle
@@ -29,10 +29,14 @@ let ddA=null;
 const ddaR=(()=>{let s=0x2545f491;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296;};})(),ddaN=()=>ddaR()*2-1;
 
 /* ---------- small sums for building the buffers ---------- */
-function ddaLP(d,f,sr){const a=1-Math.exp(-TAU*f/sr);let y=0;for(let i=0;i<d.length;i++){y+=a*(d[i]-y);d[i]=y;}return d;}
-function ddaHP(d,f,sr){const a=1-Math.exp(-TAU*f/sr);let y=0;for(let i=0;i<d.length;i++){y+=a*(d[i]-y);d[i]-=y;}return d;}
+// (each filter's state is nudged by a speck, DDA_EPS, far below anything heard: a filter ringing down after a sound otherwise sticks at
+// the smallest number a computer can hold short of zero, and sums on such numbers run ten times slower: Version 188 pass 5 found the
+// battle's crackle took 110 ms to build because of it, a dropped frame or two on the ride in)
+const DDA_EPS=1e-20;
+function ddaLP(d,f,sr){const a=1-Math.exp(-TAU*f/sr);let y=0;for(let i=0;i<d.length;i++){y+=a*(d[i]-y)+DDA_EPS;d[i]=y;}return d;}
+function ddaHP(d,f,sr){const a=1-Math.exp(-TAU*f/sr);let y=0;for(let i=0;i<d.length;i++){y+=a*(d[i]-y)+DDA_EPS;d[i]-=y;}return d;}
 function ddaBP(d,f,q,sr){const w=TAU*f/sr,al=Math.sin(w)/(2*q),c=Math.cos(w),a0=1+al,b0=al/a0,b2=-al/a0,a1=-2*c/a0,a2=(1-al)/a0;let x1=0,x2=0,y1=0,y2=0;
-  for(let i=0;i<d.length;i++){const x=d[i],y=b0*x+b2*x2-a1*y1-a2*y2;x2=x1;x1=x;y2=y1;y1=y;d[i]=y;}return d;}
+  for(let i=0;i<d.length;i++){const x=d[i],y=b0*x+b2*x2-a1*y1-a2*y2+DDA_EPS;x2=x1;x1=x;y2=y1;y1=y;d[i]=y;}return d;}
 function ddaWrap(d,fn){const e=new Float32Array(d.length*2);e.set(d);e.set(d,d.length);fn(e);return e.slice(d.length);}   // (a filter run round a loop's seam)
 function ddaNorm(d,pk){let m=0;for(let i=0;i<d.length;i++)m=Math.max(m,Math.abs(d[i]));const k=pk/(m||1);for(let i=0;i<d.length;i++)d[i]*=k;return d;}
 function ddaMk(d,sr){const b=AC.createBuffer(1,d.length,sr||DDA.sr);b.getChannelData(0).set(d);return b;}
@@ -49,16 +53,18 @@ function ddaAddBuf(d,i0,src,r,a,mx){
 /* ---------- the buffers ---------- */
 // an engine's loop: its firing pulses (fire a second, pat the cylinders' unevenness), each a knock of noise and a ringing body, the
 // exhaust's breath riding on them, and a whine (a blower, a gearbox) on top. Pitch follows playbackRate (revs)
-function ddaEngine(o){
-  const sr=DDA.sr,n=Math.round(sr*o.len),d=new Float32Array(n),N=Math.round(o.fire*o.len),per=1/o.fire,L=Math.floor(sr*per*2.4),sh=new Float32Array(L);
-  for(let i=0;i<L;i++){const t=i/sr;let v=0;for(const[f,tau,g]of o.body)v+=Math.sin(TAU*f*t)*Math.exp(-t/tau)*g;sh[i]=v;}
+// (this and ddaBoom are generators since Version 188 pass 5: ddaBuildStep runs them a few milliseconds a frame, so building the bed
+// as a chapter starts doesn't stutter the picture; each was 30-50 ms in one go)
+function* ddaEngine(o){
+  const sr=DDA.sr,n=Math.round(sr*o.len),d=new Float32Array(n),N=Math.round(o.fire*o.len),per=1/o.fire,L=Math.floor(sr*per*2.4),sh=new Float32Array(L),ne=new Float32Array(L);
+  for(let i=0;i<L;i++){const t=i/sr;let v=0;for(const[f,tau,g]of o.body)v+=Math.sin(TAU*f*t)*Math.exp(-t/tau)*g;sh[i]=v;ne[i]=Math.exp(-i/(sr*o.nT))*o.nz;}
   for(let k=0;k<N;k++){const st=Math.floor((k*per+(ddaR()-.5)*per*o.jit)*sr),a=o.pat[k%o.pat.length]*(1-o.rough/2+ddaR()*o.rough);
-    for(let i=0;i<L;i++){d[(st+i+n)%n]+=a*(sh[i]+ddaN()*Math.exp(-i/(sr*o.nT))*o.nz);}}
-  const ex=ddaWrap(ddaWhite(n),x=>{ddaLP(x,o.exCut,sr);ddaLP(x,o.exCut,sr);});
+    for(let i=0;i<L;i++){d[(st+i+n)%n]+=a*(sh[i]+ddaN()*ne[i]);}if(k%90===89)yield;}
+  const ex=ddaWrap(ddaWhite(n),x=>{ddaLP(x,o.exCut,sr);ddaLP(x,o.exCut,sr);});yield;
   // the whine (a blower, a gearbox) is air and teeth, not a pure note: a little of a wavering tone in a narrow band of noise (Version 188
   // pass 4: a clean sine line read as a whistle over everything)
-  const wn=o.whine?ddaNorm(ddaWrap(ddaWhite(n),x=>{ddaBP(x,o.whine,9,sr);ddaBP(x,o.whine,9,sr);}),1.6):null;
-  for(let i=0;i<n;i++){const t=i/sr;d[i]+=ex[i]*o.ex*(1.2+Math.cos(TAU*o.fire*t))+(wn?(Math.sin(TAU*o.whine*t+Math.sin(TAU*2/o.len*t)*1.5)*.35+wn[i]*.65)*o.wg:0);}
+  const wn=o.whine?ddaNorm(ddaWrap(ddaWhite(n),x=>{ddaBP(x,o.whine,9,sr);ddaBP(x,o.whine,9,sr);}),1.6):null;yield;
+  for(let i=0;i<n;i++){const t=i/sr;d[i]+=ex[i]*o.ex*(1.2+Math.cos(TAU*o.fire*t))+(wn?(Math.sin(TAU*o.whine*t+Math.sin(TAU*2/o.len*t)*1.5)*.35+wn[i]*.65)*o.wg:0);}yield;
   return ddaMk(ddaNorm(ddaWrap(d,x=>{ddaHP(x,32,sr);ddaLP(x,o.cut,sr);}),.9));
 }
 // each engine built twice, ticking over and working hard, with the same body, so its ring stays where it is as the revs change
@@ -136,18 +142,20 @@ function ddaRecBuild(){
 // a far-off big gun or shell: the thump, a crump a phone's speaker can still give, then the roll of its echoes coming back off the land,
 // each part set to its own peak before they're mixed. o.hits: when each gun of a salvo goes (s); f0 the thump's pitch; tb/ts how long
 // its low body and its thump last; cut its body's top, mid the crump's pitch, tr how long the roll lasts, rl how loud
-function ddaBoom(o){
-  const sr=DDA.sr,n=Math.floor(sr*o.len),d=new Float32Array(n),lo=new Float32Array(n),bo=new Float32Array(n),su=new Float32Array(n);
-  for(const at of o.hits){const i0=Math.floor(at*sr),g=at?(.6+ddaR()*.35):1,m=Math.min(n-i0,Math.floor(sr*1.6));
-    for(let i=0;i<m;i++){const t=i/sr,e=Math.min(1,t/.004);lo[i0+i]+=g*ddaN()*e*Math.exp(-t/o.tb);bo[i0+i]+=g*ddaN()*e*Math.exp(-t/.06);
-      su[i0+i]+=g*Math.sin(TAU*o.f0*(1-.18*Math.min(1,t/.4))*t)*e*Math.exp(-t/o.ts);}}
-  ddaLP(lo,o.cut,sr);ddaLP(lo,o.cut,sr);ddaBP(bo,o.mid,.9,sr);ddaNorm(lo,.7);ddaNorm(bo,.55);
-  const ro=ddaWhite(n);ddaLP(ro,o.cut*1.6,sr);ddaLP(ro,o.cut*1.6,sr);const am=ddaWhite(n);ddaLP(am,3,sr);ddaLP(am,3,sr);ddaNorm(am,1);
-  const t0=o.hits[0]+.08;for(let i=0;i<n;i++){const t=i/sr-t0;ro[i]=t<0?0:ro[i]*Math.min(1,t/.3)*Math.exp(-t/o.tr)*(.45+.55*Math.abs(am[i]));}
+function* ddaBoom(o){
+  const sr=DDA.sr,n=Math.floor(sr*o.len),d=new Float32Array(n),lo=new Float32Array(n),bo=new Float32Array(n),su=new Float32Array(n),a4=sr*.004;
+  const klo=Math.exp(-1/(sr*o.tb)),kbo=Math.exp(-1/(sr*.06)),ksu=Math.exp(-1/(sr*o.ts));   // (decays step by step, not an exp a sample)
+  for(const at of o.hits){const i0=Math.floor(at*sr),g=at?(.6+ddaR()*.35):1,m=Math.min(n-i0,Math.floor(sr*1.6));let elo=g,ebo=g,esu=g;
+    for(let i=0;i<m;i++){const t=i/sr,e=i<a4?i/a4:1;lo[i0+i]+=ddaN()*e*elo;bo[i0+i]+=ddaN()*e*ebo;su[i0+i]+=Math.sin(TAU*o.f0*(1-.18*Math.min(1,t/.4))*t)*e*esu;elo*=klo;ebo*=kbo;esu*=ksu;}
+    yield;}
+  ddaLP(lo,o.cut,sr);ddaLP(lo,o.cut,sr);ddaBP(bo,o.mid,.9,sr);ddaNorm(lo,.7);ddaNorm(bo,.55);yield;
+  const ro=ddaWhite(n);ddaLP(ro,o.cut*1.6,sr);ddaLP(ro,o.cut*1.6,sr);const am=ddaWhite(n);ddaLP(am,3,sr);ddaLP(am,3,sr);ddaNorm(am,1);yield;
+  const t0=o.hits[0]+.08,i1=Math.ceil(t0*sr),ktr=Math.exp(-1/(sr*o.tr));let er=Math.exp(-(i1/sr-t0)/o.tr);
+  for(let i=0;i<n;i++){if(i<i1){ro[i]=0;continue;}const t=i/sr-t0;ro[i]*=Math.min(1,t/.3)*er*(.45+.55*Math.abs(am[i]));er*=ktr;}
   let rm=0;for(let i=0;i<n;i++)rm=Math.max(rm,Math.abs(ro[i]));
-  for(let k=0;k<3;k++){const i0=Math.floor((t0+.35+ddaR()*1.8)*sr),a=rm*(.5+ddaR()*.5);for(let i=0;i<sr*.5&&i0+i<n;i++){const t=i/sr;ro[i0+i]+=a*ddaN()*Math.exp(-t/.15)*Math.min(1,t/.02);}}   // (echoes back off the hills)
-  ddaLP(ro,o.cut*2.2,sr);ddaNorm(ro,o.rl);
-  for(let i=0;i<n;i++)d[i]=Math.tanh((su[i]*.8+lo[i]+bo[i]+ro[i])*1.15);
+  const kec=Math.exp(-1/(sr*.15));for(let k=0;k<3;k++){const i0=Math.floor((t0+.35+ddaR()*1.8)*sr),a=rm*(.5+ddaR()*.5);let ee=a;for(let i=0;i<sr*.5&&i0+i<n;i++){const t=i/sr;ro[i0+i]+=ddaN()*ee*Math.min(1,t/.02);ee*=kec;}}   // (echoes back off the hills)
+  ddaLP(ro,o.cut*2.2,sr);ddaNorm(ro,o.rl);yield;
+  for(let i=0;i<n;i++)d[i]=Math.tanh((su[i]*.8+lo[i]+bo[i]+ro[i])*1.15);yield;
   return ddaMk(ddaNorm(ddaHP(ddaHP(d,32,sr),32,sr),.9));
 }
 // a heavy shell going over: a low rushing roar that flutters as it tumbles, rising, then falling away
@@ -170,8 +178,9 @@ function ddaFarIR(){
 // the battle round about as one sound (Version 188 pass 3): on D-Day the shooting never stopped, so under the separate far-off posts
 // (ddaPosts) there's a constant crackle from every side: exchanges of rifle fire, a machine gun's rip, a burst from a submachine gun,
 // the nearer of them sharp, the far a dull patter, and the odd low roll of guns far off. One loop of len seconds: three distances, each
-// mixed then darkened on its own, from the guns' far recordings (ddsfx.js's DSFX.buf) once they're in, the synthesised pops until then
-function ddaRoarBuf(len){
+// mixed then darkened on its own, from the guns' far recordings (ddsfx.js's DSFX.buf) once they're in, the synthesised pops until then.
+// Built a little at a time (a generator: ddaRoarStep runs it for a few milliseconds a frame, so building it never drops a frame)
+function* ddaRoarGen(len){
   const sr=DDA.sr,n=Math.floor(sr*len),T=[new Float32Array(n),new Float32Array(n),new Float32Array(n)],B=typeof DSFX!=='undefined'?DSFX.buf:{},A=ddA;
   const syn=[A.b.rf1,A.b.rf2,A.b.rf3].filter(Boolean),rif=(B.usfar||B.karfar)?[...(B.usfar||[]),...(B.karfar||[])]:syn,kar=B.karfar||rif,smg=B.smgfar||null;
   const pick=L=>L[Math.floor(ddaR()*L.length)],at=t=>Math.floor(t*sr);
@@ -180,13 +189,13 @@ function ddaRoarBuf(len){
     if(k<.58){let u=t;for(let j=0,m=2+Math.floor(ddaR()*6);j<m;j++){ddaAddBuf(d,at(u),pick(rif),.84+ddaR()*.26,g*(.55+ddaR()*.5),.7);u+=.09+ddaR()*.55;}}   // rifles
     else if(k<.82){const src=pick(kar),rate=19+ddaR()*3.5;for(let j=0,m=5+Math.floor(ddaR()*13);j<m;j++)ddaAddBuf(d,at(t+j/rate+(ddaR()-.5)*.008),src,.9+ddaR()*.04,g*(.62+ddaR()*.3)*(j?1:1.15),.45);}   // an MG42's rip
     else if(k<.92&&smg)ddaAddBuf(d,at(t),pick(smg),.9+ddaR()*.15,g*.8,1.2);   // a submachine gun
-    else{const src=pick(rif),rate=8+ddaR()*1.5;for(let j=0,m=4+Math.floor(ddaR()*8);j<m;j++)ddaAddBuf(d,at(t+j/rate),src,.8+ddaR()*.04,g*(.7+ddaR()*.25),.5);}}   // a Browning's slower knock
-  const cut=[2600,1500,760];T.forEach((d,i)=>{const f=ddaWrap(d,x=>{ddaLP(x,cut[i],sr);ddaLP(x,cut[i]*1.2,sr);ddaHP(x,90,sr);});d.set(f);});
-  const o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=T[0][i]+T[1][i]+T[2][i];
-  const ro=ddaWrap(ddaWhite(n),x=>{ddaLP(x,170,sr);ddaLP(x,170,sr);});let rm=0;for(let i=0;i<n;i++)rm+=o[i]*o[i];rm=Math.sqrt(rm/n)||1;   // the far guns' roll, under it
-  let pr=0;for(let i=0;i<n;i++)pr+=ro[i]*ro[i];pr=Math.sqrt(pr/n)||1;
-  for(let q=0;q<3;q++){const c=ddaR()*n,w=sr*(1+ddaR()*1.5),a=rm/pr*(.5+ddaR()*.5);for(let i=0;i<n;i++){let e=Math.abs(i-c);e=Math.min(e,n-e)/w;if(e<1)o[i]+=ro[i]*a*.5*(1+Math.cos(Math.PI*e));}}
-  for(let i=0;i<n;i++)o[i]=Math.tanh(o[i]/rm*.28)/.28*.12;   // (levelled by its loudness, the odd peak rounded off)
+    else{const src=pick(rif),rate=8+ddaR()*1.5;for(let j=0,m=4+Math.floor(ddaR()*8);j<m;j++)ddaAddBuf(d,at(t+j/rate),src,.8+ddaR()*.04,g*(.7+ddaR()*.25),.5);}   // a Browning's slower knock
+    yield;}
+  const cut=[2600,1500,760];for(let i=0;i<3;i++){const d=T[i],f=ddaWrap(d,x=>{ddaLP(x,cut[i],sr);ddaLP(x,cut[i]*1.2,sr);ddaHP(x,90,sr);});d.set(f);yield;}
+  const o=new Float32Array(n);for(let i=0;i<n;i++)o[i]=T[0][i]+T[1][i]+T[2][i];let rm=0;for(let i=0;i<n;i++)rm+=o[i]*o[i];rm=Math.sqrt(rm/n)||1;yield;
+  const ro=ddaWhite(n);ddaLP(ro,170,sr);yield;ddaLP(ro,170,sr);let pr=0;for(let i=0;i<n;i++)pr+=ro[i]*ro[i];pr=Math.sqrt(pr/n)||1;yield;   // the far guns' roll, under it
+  for(let q=0;q<3;q++){const c=Math.floor(ddaR()*n),w=Math.floor(sr*(1+ddaR()*1.5)),a=rm/pr*(.5+ddaR()*.5);for(let j=-w;j<=w;j++){const i=(c+j+n)%n;o[i]+=ro[i]*a*.5*(1+Math.cos(Math.PI*j/w));}yield;}
+  for(let k=0;k<4;k++){for(let i=Math.floor(n*k/4),e=Math.floor(n*(k+1)/4);i<e;i++)o[i]=Math.tanh(o[i]/rm*.28)/.28*.12;yield;}   // (levelled by its loudness, the odd peak rounded off)
   return ddaMk(o);
 }
 // what's built, a few a frame (the first frames of a chapter shouldn't stall), in the order it's wanted
@@ -210,14 +219,19 @@ function ddAmbBuild(){
   L('sounds/amb/surf.mp3',buf=>{A.wash=DDA.wash.map(([t,d])=>sliceBuf(buf,t,d));});L('sounds/amb/far.mp3',buf=>{A.farRec=buf;});
   L('sounds/amb/water.mp3',buf=>{A.water=ddaLoopCut(buf,DDA.loop.water);});L('sounds/amb/birds.mp3',buf=>{A.birds=ddaLoopCut(buf,DDA.loop.birds);});
 }
-function ddaBuildStep(){const A=ddA;for(let k=0;k<2&&A.bi<DDA_BUILD.length;k++){const[id,fn]=DDA_BUILD[A.bi++];try{A.b[id]=fn();}catch(e){}}
+function ddaBuildStep(){const A=ddA,t0=performance.now();   // (a few milliseconds a frame: the small ones several at once, a generator a step at a time)
+  while(A.bi<DDA_BUILD.length&&performance.now()-t0<4){const id=DDA_BUILD[A.bi][0];
+    try{if(!A.bg){const r=DDA_BUILD[A.bi][1]();if(r&&typeof r.next==='function')A.bg=r;else{A.b[id]=r;A.bi++;continue;}}
+      const s=A.bg.next();if(s.done){A.b[id]=s.value;A.bg=null;A.bi++;}}catch(e){A.bg=null;A.bi++;}}
   if(A.bi>=DDA_BUILD.length){A.rt=(A.rt||0)+1;if(!A.rec&&A.rt%30===0)ddaRecBuild();ddaRoarStep();}}
 // the roar's two loops (one each side, of different lengths), one a frame, once the guns' far recordings are in; after about 5 s
 // without them, synthesised, and built again from the recordings if they turn up later
 function ddaRoarStep(){
-  const A=ddA,rec=typeof DSFX!=='undefined'&&!!DSFX.buf.usfar&&!!DSFX.buf.karfar;if(A.roar&&A.roarRec===rec)return;if(!rec&&A.rt<300)return;
-  if(!A.roarNew||A.roarNew.rec!==rec)A.roarNew={rec,b:[]};const N=A.roarNew;try{N.b.push(ddaRoarBuf(N.b.length?13.7:11.3));}catch(e){A.roarRec=rec;A.roarNew=null;return;}
-  if(N.b.length===2){A.roar=N.b;A.roarRec=rec;A.roarNew=null;}
+  const A=ddA,rec=typeof DSFX!=='undefined'&&!!DSFX.buf.usfar&&!!DSFX.buf.karfar;if(A.roar&&A.roarRec===rec||A.roarFail===rec)return;if(!rec&&A.rt<300)return;
+  if(!A.roarNew||A.roarNew.rec!==rec)A.roarNew={rec,b:[],g:null};const N=A.roarNew,t0=performance.now();
+  try{while(performance.now()-t0<5){if(!N.g)N.g=ddaRoarGen(N.b.length?13.7:11.3);const r=N.g.next();if(!r.done)continue;
+    N.b.push(r.value);N.g=null;if(N.b.length===2){A.roar=N.b;A.roarRec=rec;A.roarNew=null;return;}}}
+  catch(e){A.roarFail=rec;A.roarNew=null;}
 }
 function ddaPan(dx,dz){const e=camera.matrixWorld.elements,rx=e[0],rz=e[2],l=Math.hypot(rx,rz)||1,dl=Math.hypot(dx,dz)||1;return clamp((dx*rx+dz*rz)/(l*dl),-1,1);}   // (left or right of the view, from a world direction)
 const ddaMkF=(type,f,q)=>{const b=AC.createBiquadFilter();b.type=type;b.frequency.value=f;if(q!=null)b.Q.value=q;return b;};
@@ -279,7 +293,7 @@ function ddAmbStop(t){
 }
 
 /* ---------- the battle's constant crackle, and birdsong ---------- */
-// the roar's loops (ddaRoarBuf) into the far bus and its echo: louder, nearer and brighter as the fighting round about swells (A.I)
+// the roar's loops (ddaRoarGen) into the far bus and its echo: louder, nearer and brighter as the fighting round about swells (A.I)
 // and with its flurries and lulls (A.fl); half as loud while paused (the posts' clock is held then)
 function ddaRoar(t,S,live){
   const A=ddA;if(!A.roar)return;
