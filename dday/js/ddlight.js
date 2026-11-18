@@ -12,18 +12,18 @@
 const DDL={
   lin:.8,           // how far the scenery's colours go from "a hex read as light" to the hex as painted (1: all the way; ddLinMat)
   fogNear:1.25,fogMin:760,   // the haze starts this many times the camera's distance to the view's centre away, and never nearer than fogMin (the battle stays clear; in the ride, the beach and the bluffs)
-  fogFar:4300,      // ...and is thickest this much further on (the far land and the sea's edge melt into the horizon)
+  fogFar:3300,      // ...and is thickest this much further on (the far land and the sea's edge melt into the horizon)
   shadowMax:720,shadowMin:170,shadowStep:24,shadowReach:1150,shadowUp:520,   // the sun's shadow box: its half-size limits, the step it grows in, how far the camera's view is followed, how far above the ground casters can stand
   bias:-.0004,normalBias:.7,
-  shade:.2          // how much the clouds' shadows darken the ground (0: none)
+  shade:.15         // how much the clouds' shadows darken the ground (0: none)
 };
 // each chapter's sky: how much cloud (0 clear .. 1 overcast), and how fast it drifts
 const DDL_MODE={beach:{cloud:.6,wind:1},counter:{cloud:.46,wind:1.3},village:{cloud:.7,wind:.8}};
 // the renderer for D-Day's frames (scene.js's render sets these, then puts the old ones back): a curve that stays straight to 60% and rolls the brightest
 // channel off softly, the others scaled with it, so lit sand and faces keep their colour (ACES took them pale and yellow)
-const DDL_TONE={map:null,exp:1.15};   // (map: three's CustomToneMapping, set with its curve by ddToneChunk)
+const DDL_TONE={map:null,exp:1.17};   // (map: three's CustomToneMapping, set with its curve by ddToneChunk)
 // the daylight grade in post.js's last pass (tiers 1 and 2): black point, contrast, cooler shadows, warmer light, colour where it's dull
-const DDL_GRADE={black:.02,con:.24,cold:.5,warm:.3,sat:1.14,vig:.2,grain:.01};
+const DDL_GRADE={black:.02,con:.3,cold:.5,warm:.3,sat:1.22,vig:.2,grain:.01};
 let ddToneDone=false;
 function ddToneChunk(){
   if(ddToneDone)return;ddToneDone=true;DDL_TONE.map=T.CustomToneMapping;
@@ -108,7 +108,7 @@ function ddDome(){
 // above, lighter where it thins, lit on the sun's side, the haze over the far ones. Where they stand: off the play area (the map's x 200-1200 is the
 // battle; these are behind the bluffs, inland and along the coast either side), so they never cover our men. [x, y, height, width at the foot, fire]
 const DDL_COLS={
-  beach:[[-260,-1350,720,120,1],[520,-1780,880,150,0],[1320,-1520,660,110,1],[1980,-1180,560,100,0],[960,-1150,420,70,1],[180,-1050,380,60,0],
+  beach:[[-260,-1350,560,100,1],[520,-1780,1000,170,0],[1320,-1520,720,110,1],[1980,-1180,440,90,0],[960,-1150,330,60,1],[180,-1050,300,54,0],
     [-720,650,360,70,1],[-1480,520,470,90,0],[2160,660,420,80,1],[2920,470,520,96,0],[-1100,2650,380,80,0],[2600,2300,300,64,1]],
   counter:[[-620,-1250,620,110,1],[2120,-950,560,100,0],[1450,-1500,700,120,0],[60,-1700,520,90,1],[320,1750,700,130,1],[1150,2150,820,150,0],[1900,1500,520,96,1],[-300,1900,460,84,0]],
   village:[[-720,-950,560,100,0],[2220,-1300,640,110,1],[1150,-1650,520,90,1],[480,2050,720,130,0],[1550,2350,820,150,1],[-500,1600,420,84,0]]};
@@ -134,10 +134,11 @@ function ddSmokeCols(sc){
         float e=abs(x)+(.5-n)*1.25,a=1.-smoothstep(.3,.78,e);                                       // the edge eaten in and pushed out by the billows
         a*=smoothstep(.0,.05,y)*(1.-smoothstep(.5,1.,y+(.5-n)*.45))*mix(1.,.62,y);
         if(a<.01)discard;
-        vec3 c=mix(vec3(.06,.052,.046),vec3(.2,.19,.18),smoothstep(.02,.28,y));c=mix(c,vec3(.46,.45,.43),smoothstep(.28,.95,y));
+        float tn=fract(s*7.13);vec3 md=mix(vec3(.2,.19,.18),vec3(.33,.3,.26),step(.62,tn)),tp=mix(vec3(.46,.45,.43),vec3(.6,.57,.52),step(.62,tn));   // most black and oily, some browner and paler (grass, timber)
+        vec3 c=mix(vec3(.09,.08,.07),md,smoothstep(.02,.28,y));c=mix(c,tp,smoothstep(.28,.95,y));
         c*=.62+.7*n;                                                                                 // billows catching the light, the hollows dark
         c+=vec3(.13,.11,.08)*clamp(vL*x,0.,1.)*(.35+.65*y);                                        // the sun's side
-        c+=vec3(1.,.42,.12)*vZ.w*(1.-smoothstep(.0,.07,y))*(1.-smoothstep(.15,.6,abs(x)))*1.3;    // flames at the foot
+        c+=vec3(1.,.42,.12)*vZ.w*(1.-smoothstep(.0,.07,y))*(1.-smoothstep(.15,.6,abs(x)))*(1.1+.35*sin(uTime*7.+s*40.)*sin(uTime*2.3+s*9.));   // flames at the foot, flickering
         c=mix(c,uHor,vF);a*=1.-vF*.4;gl_FragColor=vec4(c,a*.96);}`}));
   m.frustumCulled=false;sc.add(m);DD.cols={m,U};
 }
@@ -149,8 +150,8 @@ function ddCloudShade(sc){
   const mat=new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:T.MultiplyBlending,fog:false,
     vertexShader:'varying vec3 vW;varying float vD;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vec4 mv=viewMatrix*w;vD=-mv.z;gl_Position=projectionMatrix*mv;}',
     fragmentShader:`uniform sampler2D tC;uniform float uT,uK,uW,uFN,uFF;varying vec3 vW;varying float vD;
-      void main(){vec2 p=vW.xz*.00055+vec2(.0045,.0016)*uT*uW;float n=texture2D(tC,p).r*.7+texture2D(tC,p*2.2+.27).g*.3;
-        float s=smoothstep(.5,.72,n)*uK*(1.-smoothstep(uFN,uFF,vD));gl_FragColor=vec4(vec3(1.-s),1.);}`});
+      void main(){vec2 p=vW.xz*.0008+vec2(.0045,.0016)*uT*uW;float n=texture2D(tC,p).r*.7+texture2D(tC,p*2.2+.27).g*.3;
+        float s=smoothstep(.46,.8,n)*uK*(1.-smoothstep(uFN,uFF,vD));gl_FragColor=vec4(vec3(1.-s),1.);}`});
   DD.shade={U,L:L.map(o=>{const m=new T.Mesh(o.geometry,mat);m.position.copy(o.position);m.rotation.copy(o.rotation);m.scale.copy(o.scale);m.renderOrder=-1;sc.add(m);return{m,o};})};
 }
 /* ---------- building it ---------- */
@@ -195,6 +196,6 @@ function ddLightFrame(rdt,now){
   if(DD.domeU)DD.domeU.uTime.value=now;
   if(DD.cols)DD.cols.U.uTime.value=now;
   const H=DD.shade;if(H){H.U.uT.value=now;if(fog&&fog.isFog){H.U.uFN.value=fog.near;H.U.uFF.value=fog.far;}for(const q of H.L)q.m.visible=q.o.visible&&POST.tier>0;}
-  // anything new in the scene (a wreck's charred paint, the first-person gun...) gets its colours like the rest, four times a second
-  if((DD.linT-=rdt)<=0){DD.linT=.25;ddLinSweep(DD.scene);}
+  // anything new in the scene (a wreck's charred paint, the first-person gun...) gets its colours like the rest, twice a second (a sweep is about 0.6 ms)
+  if((DD.linT-=rdt)<=0){DD.linT=.5;ddLinSweep(DD.scene);}
 }
