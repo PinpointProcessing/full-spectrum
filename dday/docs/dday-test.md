@@ -814,3 +814,6 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 ## Version 196
 - Level-up perks are now his job's (a gunner: pins harder or takes less). At levels 3 and 5 a bigger upgrade for his job unlocks by itself; his card shows the next one.
 - The base: the camera glides to each stop and back out.
+
+## Version 197
+- The report's sounds are recordings now: a snare roll as the bar fills, brass for a level up, VICTORY and the medal, a thump with the WOUNDED stamp.

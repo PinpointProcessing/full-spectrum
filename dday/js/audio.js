@@ -38,6 +38,7 @@ function audioInit(){
     for(const[k,spans]of Object.entries(m))fetch(`sounds/sfx/${k}.mp3`).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no)))
       .then(buf=>{samples[k]=spans.map(([t,d])=>sliceBuf(buf,t,d));}).catch(()=>{});
   }).catch(()=>{});
+  for(const k of['fanfare','snare'])fetch(`sounds/ui/${k}.mp3`).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(buf=>{samples['ui_'+k]=[buf];}).catch(()=>{});   // (Version 197: the report's recorded brass and drum)
   if(typeof ddsLoad==='function')ddsLoad();   // (Version 188: D-Day's guns and blasts, sounds/guns/: ddsfx.js)
   // recorded samples, if they can be fetched (not from file://)
   for(const[k,names]of Object.entries(SAMPLE_FILES)){
@@ -203,17 +204,26 @@ function uiOut(vol,life){
   const send=AC.createGain();send.gain.value=.12;g.connect(send);send.connect(sndVerb);
   setTimeout(()=>{g.disconnect();send.disconnect();},(life+.5)*1000);return g;
 }
+// Version 197 (Bryan: "The sounds sound very Atari like"): the report's sounds are recordings now (sounds/ui: a brass fanfare and a snare drum,
+// CC0, sounds/CREDITS.md): the bar fills to a drum roll that swells, a level up is a ruff and the fanfare's first phrase, VICTORY, the medal
+// and an unlock the whole fanfare, the WOUNDED stamp a thump. The synthesised ones below are only for when the files can't load.
+function uiSample(k,vol,rate=1,when=0,off=0,dur=null){
+  const L=samples[k];if(!AC||!sndOn||!L||!L.length)return false;const buf=L[0],d=dur||(buf.duration-off),out=uiOut(vol,when+d/rate+.2);if(!out)return false;
+  const s=AC.createBufferSource(),g=AC.createGain(),t=AC.currentTime+when;s.buffer=buf;s.playbackRate.value=rate;g.gain.setValueAtTime(1,t);
+  if(dur){g.gain.setValueAtTime(1,t+Math.max(0,d/rate-.12));g.gain.linearRampToValueAtTime(.0001,t+d/rate);}s.connect(g);g.connect(out);s.start(t,off,dur?d+.02:undefined);return true;
+}
+function uiRoll(dur,v0,v1,when=0){   // a snare roll: quick strokes, swelling from v0 to v1
+  if(!samples.ui_snare||!samples.ui_snare.length)return false;const n=Math.max(4,Math.round(dur/.052));
+  for(let i=0;i<n;i++){const p=i/(n-1);uiSample('ui_snare',(v0+(v1-v0)*p*p)*(i%2?.8:1),1.5+(i%2)*.06,when+dur*p,0,.16);}return true;
+}
+function sfxStamp(){if(!uiSample('ui_snare',.5,.55,0,0,.4)){const out=uiOut(.3,.5);if(out)toneHit(out,AC.currentTime,.25,'sine',90,50,.5,.004);}}
 function sfxXpFill(frac,dur=.8){   // frac: how much of the bar fills (0..1); dur: its CSS transition
-  // Version 195 (Bryan: "the beep noise should be improved"): no tones; a soft rush of air that rises as the bar fills, with dry wooden ticks in it
-  if(!(frac>0))return;const out=uiOut(.22,dur+.2);if(!out)return;const t0=AC.currentTime,n=Math.max(3,Math.round(3+frac*11));
-  try{const len=Math.ceil(AC.sampleRate*(dur+.1)),buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
-    const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();src.buffer=buf;f.type='bandpass';f.Q.value=.9;f.frequency.setValueAtTime(500,t0);f.frequency.exponentialRampToValueAtTime(900+frac*2200,t0+dur);
-    g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(.16,t0+dur*.6);g.gain.exponentialRampToValueAtTime(.0001,t0+dur+.08);src.connect(f);f.connect(g);g.connect(out);src.start(t0);src.stop(t0+dur+.1);}catch(e){}
-  for(let i=1;i<=n;i++){const p=i/n,t=t0+dur*(1-Math.sqrt(1-p));   // (the bar's ease-out: about 1-(1-t)^2)
-    noiseHit(out,t,.018,'bandpass',1100+p*500,4,.2,.001);}
+  if(!(frac>0))return;if(uiRoll(dur,.05,.1+.2*frac))return;
+  const out=uiOut(.22,dur+.2);if(!out)return;const t0=AC.currentTime,n=Math.max(3,Math.round(3+frac*11));
+  for(let i=1;i<=n;i++){const p=i/n,t=t0+dur*(1-Math.sqrt(1-p));noiseHit(out,t,.018,'bandpass',1100+p*500,4,.2,.001);}
 }
 function sfxLevelUp(promoted){
-  // Version 195: a snare ruff and a warm two- or three-note call (triangle and sine, no saw), a low drum under it
+  if(samples.ui_fanfare&&samples.ui_fanfare.length){uiRoll(.2,.12,.34);if(promoted)uiSample('ui_fanfare',.5,1,.2);else uiSample('ui_fanfare',.42,1,.2,0,.74);uiSample('ui_snare',.4,1,promoted?.2:.2);return;}
   const out=uiOut(.3,1.8);if(!out)return;const t=AC.currentTime,notes=promoted?[392,523.25,659.25]:[392,523.25];   // G C; promoted, G C E
   for(let i=0;i<4;i++)noiseHit(out,t+i*.035,.05,'bandpass',1900,1.2,.1+i*.05,.002);
   notes.forEach((f,i)=>{const s=t+.16+i*.13,last=i===notes.length-1,L=last?1.1:.3;

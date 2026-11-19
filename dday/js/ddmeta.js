@@ -488,7 +488,7 @@ function ddmRollGo(i){
   const o=ddm.rows[ddm.step];if(o&&ddm.step!==i){o.seen=true;}
   ddm.scr=null;ddm.step=i;ddm.stepT=0;const c=ddm.rows[i];ddm.an=c&&c.seen?{done:true}:null;
   ddm.rows.forEach((r,k)=>{const u=r.u;if(r.y0==null){r.y0=u.y;r.a0=u.ang;}u.y=r.y0+(k===i?20:0);u.ang=k===i?Math.PI/2:r.a0;});   // (the man whose turn it is steps out of the line toward the camera)
-  ddmUI();if(i<0&&typeof sfxLevelUp==='function')sfxLevelUp(true);}
+  ddmUI();if(i<0&&typeof sfxLevelUp==='function')sfxLevelUp(true);if(c&&c.hurt&&!c.seen&&typeof sfxStamp==='function')setTimeout(sfxStamp,330);}
 function ddmRollTick(rdt){
   if(!ddm||ddm.ph!=='report'||ddm.scr)return;ddm.stepT+=rdt;const i=ddm.step,r=ddm.rows[i];
   if(i<0){if(!ddm.fan){ddm.fan=1;if(typeof sfxLevelUp==='function')sfxLevelUp(true);}if(!ddm.rows.length&&ddm.stepT>1)ddmRollGo(0);return;}

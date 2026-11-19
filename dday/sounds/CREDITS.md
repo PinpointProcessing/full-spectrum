@@ -117,3 +117,7 @@ going over, aircraft, the landing craft's diesel and the hull on the swell, tank
 | `amb/far.mp3` | a muffled far-off explosion, one of the distant artillery's voices | [Muffled Distant Explosion](https://opengameart.org/content/muffled-distant-explosion), NenadSimic, CC0 |
 | `amb/water.mp3` | 18 s of waves on a shore, made into a loop (0.2 s of its own end before it and of its start after it, so it goes round without a seam whatever the mp3 decoder does); the waves' lanes and the open sea round the landing craft are this filtered | [Sea and river wave sounds](https://opengameart.org/content/sea-and-river-wave-sounds), randommind ("VistulaShort", 2:30-2:49), CC0 |
 | `amb/birds.mp3` | 24.5 s of small birds in a copse, the low end taken off, made into a loop the same way; the woods, the field and the quiet spells, silent while guns are going | [Park ambiences](https://opengameart.org/content/park-ambiences), "park_ambience_birds" (2:20-2:46), CC0 |
+
+## The report's sounds (sounds/ui, Version 197)
+- `fanfare.mp3`: "Classic fanfare lick" by MedicineStorm, CC0, https://opengameart.org/content/classic-fanfare-lick (trimmed, mono).
+- `snare.mp3`: "An Interesting Snare Drum Sound" by Pixel Level Beginner, CC0, https://opengameart.org/content/an-interesting-snare-drum-sound (mono, quieter).
