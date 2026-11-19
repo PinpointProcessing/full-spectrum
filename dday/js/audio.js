@@ -204,19 +204,23 @@ function uiOut(vol,life){
   setTimeout(()=>{g.disconnect();send.disconnect();},(life+.5)*1000);return g;
 }
 function sfxXpFill(frac,dur=.8){   // frac: how much of the bar fills (0..1); dur: its CSS transition
-  if(!(frac>0))return;const out=uiOut(.2,dur);if(!out)return;const t0=AC.currentTime,n=Math.max(3,Math.round(3+frac*13));
+  // Version 195 (Bryan: "the beep noise should be improved"): no tones; a soft rush of air that rises as the bar fills, with dry wooden ticks in it
+  if(!(frac>0))return;const out=uiOut(.22,dur+.2);if(!out)return;const t0=AC.currentTime,n=Math.max(3,Math.round(3+frac*11));
+  try{const len=Math.ceil(AC.sampleRate*(dur+.1)),buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();src.buffer=buf;f.type='bandpass';f.Q.value=.9;f.frequency.setValueAtTime(500,t0);f.frequency.exponentialRampToValueAtTime(900+frac*2200,t0+dur);
+    g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(.16,t0+dur*.6);g.gain.exponentialRampToValueAtTime(.0001,t0+dur+.08);src.connect(f);f.connect(g);g.connect(out);src.start(t0);src.stop(t0+dur+.1);}catch(e){}
   for(let i=1;i<=n;i++){const p=i/n,t=t0+dur*(1-Math.sqrt(1-p));   // (the bar's ease-out: about 1-(1-t)^2)
-    noiseHit(out,t,.025,'bandpass',2600+p*1800,5,.22,.001);toneHit(out,t,.06,'sine',480+p*420,0,.1,.003);}
+    noiseHit(out,t,.018,'bandpass',1100+p*500,4,.2,.001);}
 }
 function sfxLevelUp(promoted){
-  const out=uiOut(.32,1.6);if(!out)return;const t=AC.currentTime,notes=promoted?[392,523.25,659.25]:[392,587.33];   // G and D a fifth up; promoted, G C E
-  notes.forEach((f,i)=>{const s=t+i*.12;
-    for(const det of[-5,5]){const o=AC.createOscillator(),flt=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o.frequency.value=f;o.detune.value=det;
-      flt.type='lowpass';flt.frequency.setValueAtTime(500,s);flt.frequency.exponentialRampToValueAtTime(2000,s+.12);flt.frequency.exponentialRampToValueAtTime(700,s+1);
-      g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.13,s+.06);g.gain.exponentialRampToValueAtTime(.0001,s+1.15);
-      o.connect(flt);flt.connect(g);g.connect(out);o.start(s);o.stop(s+1.25);}
+  // Version 195: a snare ruff and a warm two- or three-note call (triangle and sine, no saw), a low drum under it
+  const out=uiOut(.3,1.8);if(!out)return;const t=AC.currentTime,notes=promoted?[392,523.25,659.25]:[392,523.25];   // G C; promoted, G C E
+  for(let i=0;i<4;i++)noiseHit(out,t+i*.035,.05,'bandpass',1900,1.2,.1+i*.05,.002);
+  notes.forEach((f,i)=>{const s=t+.16+i*.13,last=i===notes.length-1,L=last?1.1:.3;
+    for(const[ty,m,v]of[['triangle',1,.2],['sine',2,.05],['sine',.5,.08]]){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f*m;
+      g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(v,s+.03);g.gain.exponentialRampToValueAtTime(.0001,s+L);o.connect(g);g.connect(out);o.start(s);o.stop(s+L+.05);}
   });
-  toneHit(out,t,.35,'sine',110,70,.35,.006);noiseHit(out,t,.3,'highpass',6000,0,.04,.002);   // a soft thump under it, a breath of air on top
+  toneHit(out,t+.16,.4,'sine',95,60,.4,.006);
 }
 
 /* ---------- recorded effects (sounds/sfx) ---------- */

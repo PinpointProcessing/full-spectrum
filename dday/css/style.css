@@ -586,3 +586,11 @@ button.ddm-sr{text-align:left;width:100%;background:rgba(10,15,20,.9)!important;
 .ddm-next{display:flex;align-items:center;gap:10px;background:#141d25;border-left:3px solid #ffd76a;border-radius:9px;padding:7px 10px;margin-bottom:2px}.ddm-next.hospital{border-color:#ff6a5e}.ddm-next.report{border-color:#2faa4f}
 .ddm-next>div{flex:1;min-width:0}.ddm-next>div>b{display:block;font-size:14px;font-weight:800}.ddm-next>div>span{font-size:11px;color:#b9c4cc}.ddm-next .ddm-btn.sm{margin:0;min-height:38px;padding:0 16px;width:auto;font-size:13px}
 @media (prefers-reduced-motion:reduce){.ddm-tag.stop.on,.ddm-pk,.ddm-aw .ddm-sheet{animation:none}}
+/* Version 195: WOUNDED stamped on a man's card; the report's grid is just the cards */
+.ddm-stamp{position:absolute;top:10px;right:74px;transform:rotate(-9deg);border:3px solid #ff5a4e;color:#ff5a4e;border-radius:6px;padding:2px 9px;font-weight:900;font-size:17px;letter-spacing:.14em;background:rgba(40,10,8,.55);pointer-events:none;animation:ddmStamp .35s .25s both;z-index:2}
+.ddm-stamp.sm{top:auto;bottom:5px;right:6px;font-size:9px;border-width:2px;padding:0 5px;animation:none}
+@keyframes ddmStamp{from{opacity:0;transform:rotate(-9deg) scale(2.2)}to{opacity:1;transform:rotate(-9deg) scale(1)}}
+button.ddm-sr{position:relative;padding:9px 9px;min-height:58px;border-radius:9px}
+.ddm-sum{gap:7px;top:124px}.ddm-sr b{font-size:14px}.ddm-sr span{font-size:9.5px}.ddm-sr>i{width:24px;height:24px}.ddm-sr q{display:inline-block;margin-top:3px;font-size:8.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px}
+.ddm-sum .ddm-dead{grid-column:1/-1;text-align:center;color:#9aa6b0;font-size:10.5px;font-weight:700;letter-spacing:.04em;background:rgba(10,15,20,.8);border-radius:7px;padding:5px}
+@media (prefers-reduced-motion:reduce){.ddm-stamp{animation:none}}

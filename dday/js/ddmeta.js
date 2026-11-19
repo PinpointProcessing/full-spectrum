@@ -422,11 +422,11 @@ const ddmStepsHTML=n=>`<div class="ddm-steps">${['REPORT','BASE','NEXT MISSION']
 // the one thing to do next at the base: perks left to choose, the wounded, a look at the barracks, then the briefing
 function ddmTodo(){
   const R=ddRoster,w=ddmHurt().length,p=ddmPerksDue(),N=DDM_NEXT[R.stage||1]||DDM_NEXT[1];
-  if(p)return{k:'report',t:`${p} perk${p>1?'s':''} still to choose`,d:'Back to the report: tap a man marked ▲ PERK.'};
-  if(w&&((R.treat||0)>0||R.medals>0))return{k:'hospital',t:'The field hospital',d:`${w} wounded. ${ddmTreatCost()==='FREE'?'One treatment is free this round.':'A treatment costs a medal.'} Untreated, he sits out the next mission.`};
-  if(!ddm.vis.bk)return{k:'barracks',t:'The barracks',d:`Check kit, and ${R.recruits.length} recruits are on offer. Optional.`};
+  if(p)return{k:'report',t:`${p} perk${p>1?'s':''} still to choose`,d:'Tap a marked man.'};
+  if(w&&((R.treat||0)>0||R.medals>0))return{k:'hospital',t:'The field hospital',d:`${w} wounded · treat ${ddmTreatCost()==='FREE'?'one free':'★ 1 each'}`};
+  if(!ddm.vis.bk)return{k:'barracks',t:'The barracks',d:`Kit · ${R.recruits.length} recruits · optional`};
   if((R.stage||0)>=3)return{k:'',t:'All done here',d:'The next chapter is still to come.'};
-  return{k:'go',t:N[0],d:`${ddmFit().length} of 8 ready. Read the briefing, then start when you choose.`};
+  return{k:'go',t:N[0],d:`${ddmFit().length} of 8 ready`};
 }
 function ddmNextHTML(nx){
   return`<div class="ddm-next ${nx.k}"><div><div class="ddm-gl gold">NEXT</div><b>${nx.t}</b><span>${nx.d}</span></div>${nx.k?`<button type="button" class="ddm-btn sm" data-a="${nx.k}">GO ▸</button>`:''}</div>`;
@@ -442,13 +442,13 @@ function ddmBriefHTML(){
 function ddmReportHTML(){
   const n=ddm.rows.length,i=ddm.step,tiles=`<div class="ddm-tiles">${ddm.tiles.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`;
   if(ddm.scr==='medal'){const k=ddm.nom||0,c=ddm.noms[k];
-    return`<div class="ddm-aw"><div class="ddm-sheet"><div class="ddm-t gold">★ THE COMPANY'S MEDAL</div><div class="ddm-dim" style="margin:3px 0 9px">Yours to give. He gets a star and +100 XP.</div>
+    return`<div class="ddm-aw"><div class="ddm-sheet"><div class="ddm-t gold">★ THE COMPANY'S MEDAL</div><div class="ddm-dim" style="margin:3px 0 9px">A star and +100 XP</div>
       ${ddm.noms.map((r,j)=>`<button type="button" class="ddm-nom${j===k?' on':''}" style="--tc:${teamCol(r.u)}" data-a="nom" data-i="${j}"><i>${DDM_ICON[r.rm.role]||''}</i><span><b>${ddmEsc(r.rm.name)} <small>${r.team==='A'?'Alpha':'Bravo'} · ${DDM_ROLE[r.rm.role]}</small></b><em>${ddmEsc(ddmNomWhy(r))}</em></span><u>${j===k?'★':'☆'}</u></button>`).join('')}
       <button type="button" class="ddm-btn" data-a="award">GIVE IT TO ${ddmEsc(c.rm.name).toUpperCase()} ▸</button></div></div>`;}
   if(i<0)return`<div class="ddm-vic" data-a="rolltap"><div class="ddm-vt">VICTORY</div><div class="ddm-vc">${ddm.chap}</div>${tiles}<div class="ddm-tap on">TAP TO CONTINUE ▸</div></div>`;
   if(i<n){const r=ddm.rows[i],m=r.rm,up=r.lv1>r.lv0,sn=!!r.seen,pk=m.pk>0?ddmPerkOpts(m):null;
-    return`<div class="ddm-roll" data-a="rolltap"><div class="ddm-rtop"><div><div class="ddm-t gold">YOUR SQUAD</div><div class="ddm-dim">${i+1} of ${n} · swipe or tap NEXT</div></div><button type="button" class="ddm-skip" data-a="rollskip">SEE ALL ▸▸</button></div>
-      <div class="ddm-rc${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}">
+    return`<div class="ddm-roll" data-a="rolltap"><div class="ddm-rtop"><div><div class="ddm-t gold">YOUR SQUAD</div><div class="ddm-dim">${i+1} of ${n}</div></div><button type="button" class="ddm-skip" data-a="rollskip">SEE ALL ▸▸</button></div>
+      <div class="ddm-rc${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}">${r.hurt?'<div class="ddm-stamp">WOUNDED</div>':''}
         <div class="ddm-rh"><i>${DDM_ICON[m.role]||''}</i><div class="nm"><b>${ddmEsc(m.name)}</b><span>${r.team==='A'?'ALPHA':'BRAVO'} · ${DDM_ROLE[m.role].toUpperCase()}</span></div><div class="ddm-lvl">LEVEL<u id="ddmLv">${sn?r.lv1:r.lv0}</u></div></div>
         <div class="ddm-cite"><b>${r.mvp?'★ ':''}${r.cite[0]}</b><span>${ddmEsc(r.cite[1])}</span></div>
         <div class="ddm-chips"><span>KILLS<b>${r.kills}</b></span><span>REVIVES<b>${r.rev}</b></span><span>TIMES DOWN<b>${r.downs}</b></span><span>GRENADES<b>${r.items}</b></span></div>
@@ -456,19 +456,14 @@ function ddmReportHTML(){
         <div class="ddm-up" id="ddmUp"${sn&&up?'':' hidden'}>▲ LEVEL UP${r.lv1-r.lv0>1?' ×'+(r.lv1-r.lv0):''} · +${2*(r.lv1-r.lv0)} Health · Aim · Speed · Nerve</div>
         ${pk?`<div class="ddm-pk" id="ddmPk"${sn?'':' hidden'}><div class="ddm-gl gold">CHOOSE A PERK${m.pk>1?' · '+m.pk+' TO CHOOSE':''}</div><div class="ddm-row">${pk.map(k=>`<button type="button" class="ddm-pkb" data-a="perk" data-k="${k}"><b>${DDM_PERK[k][0]}</b><span>${DDM_PERK[k][1]} · now ${m.st[k]}</span></button>`).join('')}</div></div>`:''}
         ${(r.pkd||[]).length?`<div class="ddm-pkd">✓ ${r.pkd.map(k=>DDM_PERK[k][0]+' '+DDM_PERK[k][1]).join(' · ')}</div>`:''}
-        ${r.mvp?'<div class="ddm-medal">★ The company\'s medal, from you</div>':''}${r.hurt?'<div class="ddm-wd">✚ Wounded: he sits out the next mission unless the field hospital treats him</div>':''}
+        ${r.mvp?'<div class="ddm-medal">★ The company\'s medal, from you</div>':''}
         <div class="ddm-dots">${ddm.rows.map((q,k)=>`<i class="${k===i?'on':q.seen?'ok':''}" data-a="card" data-i="${k}"></i>`).join('')}</div>
         <div class="ddm-row ddm-nav"><button type="button" class="ddm-btn grey" data-a="rollprev"${i?'':' disabled'}>◂</button><button type="button" class="ddm-btn" data-a="rollnext">${i<n-1?'NEXT MAN ▸':'DONE ▸'}</button></div>
       </div></div>`;}
-  const row=(r,k)=>`<button type="button" class="ddm-sr${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}" data-a="card" data-i="${k}"><i>${DDM_ICON[r.rm.role]||''}</i><div class="nm"><b>${ddmEsc(r.rm.name)}${r.hurt?' <em>✚</em>':''}</b><span>${r.rm.pk>0?'<q>▲ PERK</q> ':''}${r.mvp?'★ ':''}${r.cite[0]}</span></div><div class="x"><b>${r.lv1>r.lv0?'▲ ':''}Lv ${r.lv1}</b><span>+${r.gain} XP</span></div></button>`;
-  const hr=ddm.rows.filter(r=>r.hurt),pd=ddm.rows.reduce((q,r)=>q+(r.rm.pk||0),0);
+  const row=(r,k)=>`<button type="button" class="ddm-sr${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}" data-a="card" data-i="${k}">${r.hurt?'<div class="ddm-stamp sm">WOUNDED</div>':''}<i>${DDM_ICON[r.rm.role]||''}</i><div class="nm"><b>${ddmEsc(r.rm.name)}</b><span>${r.mvp?'★ ':''}${r.cite[0]}</span>${r.rm.pk>0?'<q>▲ PERK</q>':''}</div><div class="x"><b>${r.lv1>r.lv0?'▲ ':''}Lv ${r.lv1}</b><span>+${r.gain} XP</span></div></button>`;
   return`<div class="ddm-bar top"><div class="ddm-hd"><div><div class="ddm-t gold">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div>${ddmStepsHTML(1)}</div>${tiles}</div>
-    <div class="ddm-sum">${ddm.rows.map(row).join('')}</div>
-    <div class="ddm-bar bot">
-      ${ddm.dead.length?`<div class="ddm-gl ddm-dim">FALLEN · ${ddm.dead.length}</div><div class="ddm-dead">${ddm.dead.slice(0,7).map(d=>`<span>${ddmEsc(d.name)} · ${DDM_ROLE[d.role]}${d.kills?' · K '+d.kills:''}</span>`).join('')}${ddm.dead.length>7?`<span>+${ddm.dead.length-7}</span>`:''}</div>`:'<div class="ddm-dim">Nobody lost.</div>'}
-      ${hr.length?`<div class="ddm-wd">✚ ${hr.map(r=>ddmEsc(r.rm.name)).join(', ')} wounded: the field hospital at your base can treat ${hr.length>1?'them':'him'} (one a round free).</div>`:''}
-      <div class="ddm-dim" style="margin-top:4px">${pd?`<b class="ddm-pdn">▲ ${pd} perk${pd>1?'s':''} to choose: tap a man marked PERK.</b> `:'Tap a man to see his card. '}★ A medal for the company to spend at the base.</div>
-      <button type="button" class="ddm-btn" data-a="base">CONTINUE TO YOUR BASE ▸</button></div>`;
+    <div class="ddm-sum">${ddm.rows.map(row).join('')}${ddm.dead.length?`<div class="ddm-dead">FALLEN · ${ddm.dead.slice(0,7).map(d=>ddmEsc(d.name)).join(' · ')}${ddm.dead.length>7?' +'+(ddm.dead.length-7):''}</div>`:''}</div>
+    <div class="ddm-bar bot"><button type="button" class="ddm-btn" data-a="base">CONTINUE ▸</button></div>`;
 }
 function ddmNomWhy(r){const pl=(n,w)=>n+' '+w+(n===1?'':'s'),a=[];if(r.kills)a.push(pl(r.kills,'kill'));if(r.rev)a.push(r.rev+(r.rev===1?' man':' men')+' brought back');if(r.best>=3)a.push(r.best+' in a row');a.push(r.downs?'down '+(r.downs===1?'once':r.downs+' times'):'never went down');return a.join(' · ');}
 // the report's clock: the title, the medal, then each man's card: his bar filling a level at a time, once (r.seen)

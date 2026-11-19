@@ -807,3 +807,6 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 - After VICTORY you give the company's medal to one of three men (a star and +100 XP).
 - Then one card a man: swipe, or NEXT MAN. At a level up, choose one of two perks (+6 on one stat). SEE ALL shows everyone; tap a man for his card.
 - The base: numbered stops (hospital, barracks, briefing) and one NEXT card with GO. Perks you skipped are asked for first.
+
+## Version 195
+- New XP and level-up sounds (no beeps). WOUNDED is stamped on a wounded man's card. The grid after the cards is only the cards and CONTINUE.
