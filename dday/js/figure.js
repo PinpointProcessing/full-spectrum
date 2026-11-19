@@ -284,7 +284,7 @@ function figMaterial(L,side){
   const m=new T.MeshStandardMaterial({vertexColors:true,skinning:true,roughness:.8,metalness:.04});
   const c=h=>new T.Color(h).convertSRGBToLinear();
   const dd=typeof MAPID!=='undefined'&&MAPID==='dd';   // (Version 190, D-Day's daylight: skin matte, not shiny (its sheen burnt white in the sun); a hit a short warm flash at the edges, not a white fill)
-  const U={uSkin:{value:c(L.skin)},uHair:{value:c(L.hair)},uCloth:{value:c(L.cloth)},uTeam:{value:c(L.team)},uGlow:{value:side==='P'?1.6:0},
+  const U={uSkin:{value:c(L.skin)},uHair:{value:c(L.hair)},uCloth:{value:c(L.cloth)},uTeam:{value:c(L.team)},uMk:{value:1},uGlow:{value:side==='P'?1.6:0},
     uRim:{value:c(side==='E'?'#5a3a32':side==='P'?'#3a5a80':'#4a4f55').multiplyScalar(side==='P'?.42:.32)},uFill:{value:side==='P'?.16:.12},uHit:{value:0},uLamp:{value:c('#dfeaff').multiplyScalar(2.2)},
     uSkR:{value:dd?.86:.58},uHitC:{value:dd?new T.Color(1,.45,.3):new T.Color(1,1,1)},uHitR:{value:dd?1:0}};
   m.userData.U=U;
@@ -292,8 +292,8 @@ function figMaterial(L,side){
     Object.assign(s.uniforms,U);
     s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nattribute float mid;\nvarying float vMid;').replace('#include <begin_vertex>','#include <begin_vertex>\nvMid=mid;');
     s.fragmentShader=s.fragmentShader
-      .replace('#include <common>','#include <common>\nvarying float vMid;\nuniform vec3 uSkin,uHair,uCloth,uTeam,uRim,uLamp,uHitC;\nuniform float uGlow,uHit,uFill,uSkR,uHitR;')
-      .replace('#include <color_fragment>','#include <color_fragment>\n  if(abs(vMid-1.)<.5)diffuseColor.rgb=uSkin*vColor;else if(abs(vMid-2.)<.5)diffuseColor.rgb=uTeam*.6;else if(abs(vMid-3.)<.5)diffuseColor.rgb=uHair*vColor;else if(abs(vMid-8.)<.5)diffuseColor.rgb=uCloth*vColor;else if(abs(vMid-9.)<.5)diffuseColor.rgb=uTeam*.3;')
+      .replace('#include <common>','#include <common>\nvarying float vMid;\nuniform vec3 uSkin,uHair,uCloth,uTeam,uRim,uLamp,uHitC;\nuniform float uGlow,uHit,uFill,uSkR,uHitR,uMk;')
+      .replace('#include <color_fragment>','#include <color_fragment>\n  if(abs(vMid-1.)<.5)diffuseColor.rgb=uSkin*vColor;else if(abs(vMid-2.)<.5)diffuseColor.rgb=uTeam*.6;else if(abs(vMid-3.)<.5)diffuseColor.rgb=uHair*vColor;else if(abs(vMid-8.)<.5)diffuseColor.rgb=uCloth*vColor;else if(abs(vMid-9.)<.5)diffuseColor.rgb=mix(vec3(.068,.089,.058),uTeam*.3,uMk);')
       .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\n  if(abs(vMid-4.)<.5){roughnessFactor=.36;metalnessFactor=.65;}else if(abs(vMid-5.)<.5){roughnessFactor=.6;}else if(abs(vMid-1.)<.5){roughnessFactor=uSkR;}')
       .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  {float f=1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.);totalEmissiveRadiance+=uRim*(f*f*(3.-2.*f))+diffuseColor.rgb*uFill+uHitC*uHit*mix(1.,.25+.75*f*f,uHitR);}\n  if(abs(vMid-2.)<.5)totalEmissiveRadiance+=uTeam*uGlow;if(abs(vMid-7.)<.5)totalEmissiveRadiance+=uLamp;');
   };

@@ -92,7 +92,7 @@ function dcScenery(sc){
   const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),typeof ddgFarMat==='function'?ddgFarMat(9000,1800,0xe4e8dc):new T.MeshStandardMaterial({color:0x5b7340,roughness:1}));hill.rotation.x=-Math.PI/2+.06;hill.position.set(700,60,DDB.y0-880);sc.add(hill);
 }
 function dcBuild(G,sc,M,add){
-  const earth=M(0x6a5c40,1),turf=M(0x7d8a4c,1),wall=M(0x9a9482,.95),roofM=M(0x55584e,.9),cpM=M(0x8d9298,.9),dark=M(0x26282a,.7,.5),wood=M(0x5d4a34,.95),steel=M(0x3a3632,.6,.7),wm=M(0x55504a,.5,.7),hedge=new T.MeshStandardMaterial({color:0x35542c,roughness:1,flatShading:true}),leaf=new T.MeshStandardMaterial({color:0x3f6a34,roughness:1,flatShading:true}),leaf2=new T.MeshStandardMaterial({color:0x577a3a,roughness:1,flatShading:true});
+  const earth=M(0x6a5c40,1),turf=M(0x7d8a4c,1),wall=M(0x9a9482,.95),roofM=M(0x55584e,.9),cpM=M(0x8d9298,.9),dark=M(0x26282a,.7,.5),wood=M(0x5d4a34,.95),steel=M(0x3a3632,.6,.7),wm=M(0x55504a,.5,.7),hedge=new T.MeshStandardMaterial({color:0x35542c,roughness:1}),leaf=new T.MeshStandardMaterial({color:0x3f6a34,roughness:1,flatShading:true}),leaf2=new T.MeshStandardMaterial({color:0x577a3a,roughness:1,flatShading:true});
   const H=(x,y)=>ddH(x,y);
   for(const o of DD.objs){const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=H(cx,cy);
     if(o.kind==='dcbank')o.meshes=[add(ddgBoxUV(o.w,9,o.h+4,24),ddgMat('earth'),cx,g0+4.5,cy),add(ddgBoxUV(o.w-2,3,o.h-2,24),ddgMat('turf'),cx,g0+10,cy)];   // (Version 188: dug earth, turf along the top)
@@ -102,7 +102,7 @@ function dcBuild(G,sc,M,add){
       if(cp){o.meshes.push(add(new T.BoxGeometry(1.6,22,18),dark,o.x-.6,g0+11,cy));const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,g0+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x2b4a8a,.8),cx+8.5,g0+h+40,cy));}
       else if(o.look==='shed'){for(let k=0;k<3;k++)o.meshes.push(add(new T.BoxGeometry(o.w/3-8,22,1.4),dark,o.x+o.w*(k+.5)/3,g0+11,o.y-.5));}
       else o.meshes.push(add(new T.BoxGeometry(14,18,1.4),dark,cx,g0+9,o.y-.5));}
-    else if(o.kind==='dchedge'){o.meshes=[];const r=rng(Math.round(o.x));for(let x=o.x+7;x<o.x+o.w;x+=13){const m=add(new T.DodecahedronGeometry(9,0),hedge,x,H(x,cy)+7+r()*2,cy+(r()-.5)*3,r()*6);m.scale.set(1.1,1+r()*.5,.95);o.meshes.push(m);}}
+    else if(o.kind==='dchedge'){o.meshes=[];const r=rng(Math.round(o.x));for(let x=o.x+7;x<o.x+o.w;x+=13){const m=add(DD.hedgeG||(DD.hedgeG=ddgSmooth(ddgJitter(new T.DodecahedronGeometry(9,0),1.2,31))),hedge,x,H(x,cy)+7+r()*2,cy+(r()-.5)*3,r()*6);m.scale.set(1.1,1+r()*.5,.95);o.meshes.push(m);}}
   }
   // watchtowers at the north corners, the flag on the square
   for(const[tx,ty]of[[256,586],[1144,586]]){for(const[dx,dz]of[[-7,-7],[7,-7],[-7,7],[7,7]])add(new T.BoxGeometry(1.6,30,1.6),wood,tx+dx,15,ty+dz);
@@ -125,7 +125,7 @@ function dcBuild(G,sc,M,add){
   for(const[x,y]of[[300,-290],[470,-230],[250,-130],[1130,-120],[640,-560],[770,-610]])tree(x,y,1,leaf);
   {const lv=new T.MeshLambertMaterial({vertexColors:true});
     ddgInst(G,ddgShade(new T.CylinderGeometry(1.4,2,16,6),.5,1.05),new T.MeshLambertMaterial({color:0x5d4a34,vertexColors:true}),TK,true,350,false);
-    ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.16,11),.48,1.12),lv,C1,true,350,false);ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.16,12),.55,1.12),lv,C2,true,350,false);}
+    ddgInst(G,ddgShade(ddgSmooth(ddgJitter(new T.DodecahedronGeometry(1,0),.16,11)),.48,1.12),lv,C1,true,350,false);ddgInst(G,ddgShade(ddgSmooth(ddgJitter(new T.DodecahedronGeometry(1,0),.16,12)),.55,1.12),lv,C2,true,350,false);}
   // (Version 188) grass in tufts over the fields, and banks of thrown earth round yesterday's shell holes (dcPaint's DD.dcHoles), clods about them
   {const tr2=rng(1188),tf=[],pk=a=>a[(tr2()*a.length)|0];for(let i=0;i<4600;i++){const x=tr2()*1400,y=DDB.y0+tr2()*(DCA.wallY-DDB.y0-10);if(Math.abs(x-DCA.road)<36)continue;
       tf.push({x,y,h:H(x,y)-.2,ry:tr2()*6,sx:.8+tr2()*.9,sy:.7+tr2()*1.2,c:pk([0x5c8238,0x6a8c40,0x527a32,0x7e8a44,0x668a3c,0x8e8c56])});}

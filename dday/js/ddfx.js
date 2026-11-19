@@ -28,7 +28,7 @@ const DDFX={
   scorch:22,                 // a blast's scorch on the ground lasts this long (seconds), fading over its last third (Version 190: 40 drew the eye more than the men)
   far:[0,6.5,4],             // the battle beyond yours (Version 188, pass 3): a shell bursting out on the beach's flanks or in the sea every so many seconds, by tier (0: none)
   bluff:[0,4,4],             // Version 190: on a portrait screen after the landing, a burst on the bluff ahead every 3-5 s (by tier; 0 none): ddFxBluff
-  farClear:[450,200,90],     // ...never this far from our squads, our other troops, and a German (200 from them too left about 1 spot in 100 in a
+  farClear:[320,200,90],     // ...never this far from our squads, our other troops, and a German (200 from them too left about 1 spot in 100 in a
                              // portrait view while the bunkers are manned, 140 none in front of the camera; a burst 9 m off a gun on the bluff reads as a near miss)
   bluffSmoke:[0,2,3]         // Version 190: slow low banks of smoke along the foot of the bluff beyond their line (by tier): ddFxBluffSmoke
 };
@@ -177,8 +177,8 @@ function ddFxBlast(x,y,k,hot,far){
   for(let i=0;i<Math.round((hot?10:3+3*k)*few);i++){const a=R()*TAU,s=(60+R()*120)*k;ddFxAdd(G,LG,x,g+8*k,y,Math.cos(a)*s,(90+R()*160)*k,Math.sin(a)*s,.5+R()*.6,2.2,1.2,1,.8,.45,1,.35,.08,1,2,.4,-300,0,0,0);}   // sparks flung out
   // the plume: earth (or sand) flung up all at once at every speed, so it stands as a column for a moment, narrow and pale at the top, broad and dark at
   // the foot, then falls back as a curtain and lies as dust; and the heavier body of it thrown out low
-  const sand=DD_MODE==='beach'&&y>300,np=Math.round((10+12*k)*few);
-  for(let i=0;i<np;i++){const u=i/(np-1),a=R()*TAU,up=(60+u*330)*k*(.9+.2*R()),out=(5+(1-u)*34+R()*10)*k,m=.55+.45*u,j=.6+.8*R();   // (j: sizes mixed, Version 190, so its outline is one ragged mass)
+  const sand=DD_MODE==='beach'&&y>300,np=Math.round((14+16*k)*few);
+  for(let i=0;i<np;i++){const u=i/(np-1),a=R()*TAU,up=(60+u*330)*k*(.9+.2*R()),out=(5+(1-u)*34+R()*10)*k,m=.55+.45*u,j=.42+1.02*R()*(.55+.45*R());   // (j: sizes mixed, Version 190, so its outline is one ragged mass)
     ddFxAdd(S,L,x+Math.cos(a)*3*k,g+5*k,y+Math.sin(a)*3*k,Math.cos(a)*out,up,Math.sin(a)*out,1.3+u*.9+R()*.4,(13-6*u+R()*4)*k*j,(32-12*u+R()*10)*k*j,
       f[0]+(cr-f[0])*m,f[1]+(cg-f[1])*m,f[2]+(cb-f[2])*m,cr*1.04,cg*1.04,cb*1.04,.9,1,.25,-300,.12,.75,.015);}
   const nb=Math.round((4+5*k)*few);

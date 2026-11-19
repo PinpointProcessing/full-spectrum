@@ -789,3 +789,7 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 - The sea: real water with a swell that breaks on the shallows, turquoise to teal with depth, foam lines where the waves run up the sand and a dark wet band behind them, foam round the obstacles; the landing craft ride the swell with wakes and bow spray; shell splashes as water columns.
 - After an independent look at the whole game: skin no longer burnt orange or white; the white "statue" enemies gone (a dead man's hit flash never faded); 1944 kit (M1 helmets, field jackets, leggings; the Germans in Stahlhelms) and 1944 guns (M1 Garand, BAR, Kar98k) in place of the modern kit; the picture a little brighter; splashes and smoke no longer white out or black out the screen near your men; tanks rebuilt (a Panzer IV in dunkelgelb, a Sherman wreck on the beach, burnt brown instead of black); the land beyond the battle Normandy's fields and hedgerows fading into the haze instead of a lime slab; boulders that aren't dice.
 - Pictures: `docs/drafts/v190-phone.jpg`, `v190-wide.jpg` (Version 187 above, this below), `v190-close.jpg` (the kit, the guns, the tanks close up).
+
+## Version 191: polish after Version 190
+- The bluffs have gullies, lighter and darker masses and scrub, so they read from the boat; trees, bushes and hedges rounder and less neon; the helmet's team mark hidden on the ride in and in first person; the bluff shelled nearer your men on a phone; shell plumes more ragged.
+- Still synthesised: engines and wind. Picture: `docs/drafts/v191-polish.jpg`.

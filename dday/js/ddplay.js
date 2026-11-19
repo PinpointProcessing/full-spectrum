@@ -36,6 +36,12 @@ const DD_LINES=[344,236,-20,-290,-470];
 let dd=null;
 // by day: no night rim light or self-light on anyone (figure.js's material)
 function ddDayFig(u){if(!u.m||!u.m.g)return;u.m.g.scale.set(DD_FIG*1.06,DD_FIG*.9,DD_FIG*1.06);u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U){U.uRim.value.multiplyScalar(.15);U.uFill.value=.06;U.uGlow.value=u.side==='P'?.2:0;}});}   // (uFill .14 until Version 190: in the sun lit skin went past white; uGlow .5: the team's mark is paint now, figure.js)
+// Version 191: on the ride in and in first person the helmets in front of the camera fill the screen, and the team's painted mark sat in the middle of it:
+// faded into the helmet's own paint meanwhile (figure.js's uMk), back for the battle's camera, where it tells the squads apart (checked twice a second)
+function ddMarkFrame(rdt){
+  if(!dd||(dd.mkT=(dd.mkT||0)-rdt)>0)return;dd.mkT=.5;const off=dd.fp||(dd.land&&!dd.land.done)?0:1;
+  for(const u of players)if(u.m&&u.m.g&&u.mkV!==off){u.mkV=off;u.m.g.traverse(o=>{const U=o.material&&o.material.userData&&o.material.userData.U;if(U&&U.uMk)U.uMk.value=off;});}
+}
 const ddAlly=u=>u.side==='P'&&!u.dead&&!u.downed&&!u.away;
 const ddSq=t=>players.filter(p=>p.team===t&&!p.dead);
 function ddPickRole(team){const have=ddSq(team).map(p=>p.ddRole),miss=DD_CORE[team].filter(r=>!have.includes(r)),all=Object.keys(DD_ROLES).filter(r=>(DD_ENG||r!=='eng')&&(r!=='sharp'||(typeof ddmSharpOpen==='function'&&ddmSharpOpen())));return miss.length?miss[0]:all[(Math.random()*all.length)|0];}

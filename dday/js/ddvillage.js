@@ -130,7 +130,7 @@ function vgBuild(G,sc,M,add){
   const H=(x,y)=>ddH(x,y),r=rng(808),pick=a=>a[(r()*a.length)|0];
   const stoneC=[0xcfc5b0,0xbdb39c,0xd8cdb8,0xb4aa94,0xc8bca2],roofC=[0x4c525a,0x5a5e62,0x8a4a34,0x7a4630,0x4a4e50],shutC=[0x51708a,0x5d7a52,0x7a5236,0x8a8a7a];
   const dark=M(0x26282a,.7,.3),glass=new T.MeshStandardMaterial({color:0x2a3238,roughness:.25,metalness:.4}),wood=M(0x5d4a34,.95),earth=M(0x5e5236,1);
-  const hedgeM=[0x35542c,0x3f5e30,0x2f4c28].map(c=>new T.MeshStandardMaterial({color:c,roughness:1,flatShading:true}));
+  const hedgeM=[0x35542c,0x3f5e30,0x2f4c28].map(c=>new T.MeshStandardMaterial({color:c,roughness:1}));
   const roofOn=(o,g0,ht,rm,pitch)=>{   // a pitched roof along the building's long side
     const along=o.w>=o.h,span=(along?o.h:o.w)+8,len=(along?o.w:o.h)+8,rh=span*(pitch||.42),sh=new T.Shape();sh.moveTo(-span/2,0);sh.lineTo(span/2,0);sh.lineTo(0,rh);sh.closePath();
     const m=add(new T.ExtrudeGeometry(sh,{depth:len,bevelEnabled:false}),rm,along?o.x-4:o.x+o.w/2,g0+ht,along?o.y+o.h/2:o.y-4,along?Math.PI/2:0);return m;};
@@ -173,7 +173,7 @@ function vgBuild(G,sc,M,add){
     }
     else if(o.kind==='vghut'){o.meshes=[add(new T.BoxGeometry(o.w,o.ht,o.h),M(0x6a5236,.95),cx,g0+o.ht/2,cy)];o.meshes.push(roofOn(o,g0,o.ht,M(0x4a3a2a,.9),.5),add(new T.BoxGeometry(12,18,1.2),dark,cx+10,g0+9,o.y+o.h+.6));}
     else if(o.kind==='vghedge'){o.meshes=[add(new T.BoxGeometry(o.w,7,o.h+6),earth,cx,g0+3.5,cy)];
-      for(let x=o.x+6;x<o.x+o.w-2;x+=11){const m=add(new T.DodecahedronGeometry(8.5,0),hedgeM[(r()*3)|0],x,H(x,cy)+12+r()*3,cy+(r()-.5)*3,r()*6);m.scale.set(1.15,1.05+r()*.55,1);o.meshes.push(m);}}
+      for(let x=o.x+6;x<o.x+o.w-2;x+=11){const m=add(DD.hedgeG||(DD.hedgeG=ddgSmooth(ddgJitter(new T.DodecahedronGeometry(8.5,0),1.2,31))),hedgeM[(r()*3)|0],x,H(x,cy)+12+r()*3,cy+(r()-.5)*3,r()*6);m.scale.set(1.15,1.05+r()*.55,1);o.meshes.push(m);}}
     else if(o.kind==='vgwall'||o.kind==='vgruin'){const hh=o.ht,m=add(ddgBoxUV(o.w,hh,o.h,28),ddgMat('stone'),cx,g0+hh/2,cy);o.meshes=[m];   // (Version 188: the walls in the houses' stone)
       if(o.kind==='vgwall')o.meshes.push(add(new T.BoxGeometry(o.w+1.5,1.6,o.h+1.5),M(0x8f8672,.95),cx,g0+hh+.8,cy));
       else for(let k=0;k<3;k++){const along=o.w>o.h,t=r(),x=along?o.x+t*o.w:cx,y=along?cy:o.y+t*o.h;o.meshes.push(add(new T.BoxGeometry(along?8:o.w,6+r()*7,along?o.h:8),M(0xa89e88,.98),x,g0+hh+2,y));}}
@@ -202,8 +202,8 @@ function vgBuild(G,sc,M,add){
   const inst=(geo,mat,L,sh)=>typeof ddInst==='function'?ddInst(G,geo,mat,L,sh):null,lam=c=>new T.MeshLambertMaterial({color:c});
   const trunk=[],crown=[],crown2=[],fern=[],brush=[],wheat=[],tuft=[];
   const tree=(t,far)=>{const h=H(t.x,t.y),s=t.s,o=t.k==='o';trunk.push({x:t.x,y:t.y,h:h+(o?5:11)*s,sx:s*(o?.8:1),sy:s*(o?.7:1.5),ry:r()*6});
-    crown.push({x:t.x+(r()-.5)*3,y:t.y+(r()-.5)*3,h:h+(o?14:30)*s,sx:s*(o?1.05:1.15)*(1+r()*.2),sy:s*(o?.8:1)*(.9+r()*.25),ry:r()*6,c:o?pick([0x5d8a36,0x6a9440,0x55803a]):pick([0x3f6a2a,0x4c7a2e,0x365e26,0x557f32]),far});
-    crown2.push({x:t.x+(r()-.5)*10*s,y:t.y+(r()-.5)*10*s,h:h+(o?19:40)*s+r()*4,sx:s*(o?.65:.8),ry:r()*6,c:o?pick([0x6a9a3e,0x77a046]):pick([0x46742c,0x3c6628,0x5a8634]),far});};
+    crown.push({x:t.x+(r()-.5)*3,y:t.y+(r()-.5)*3,h:h+(o?14:30)*s,sx:s*(o?1.05:1.15)*(1+r()*.2),sy:s*(o?.8:1)*(.9+r()*.25),ry:r()*6,c:o?pick([0x5c7c40,0x678549,0x547341]):pick([0x405f31,0x4d6e37,0x38552c,0x54723b]),far});
+    crown2.push({x:t.x+(r()-.5)*10*s,y:t.y+(r()-.5)*10*s,h:h+(o?19:40)*s+r()*4,sx:s*(o?.65:.8),ry:r()*6,c:o?pick([0x688b48,0x72904f]):pick([0x476835,0x3e5c2f,0x59793e]),far});};
   for(const t of vgTrees())tree(t,false);
   for(let i=0;i<520;i++){const x=-500+r()*2400,y=300+r()*640;if(x>VG.x0-8&&x<VG.x1+8)continue;tree({x,y,s:.9+r()*.7,k:'w'},true);}
   for(let i=0;i<160;i++){const side=r()<.5,x=side?100+r()*96:1204+r()*120,y=-760+r()*1060;tree({x,y,s:.8+r()*.6,k:'w'},true);}
@@ -214,7 +214,7 @@ function vgBuild(G,sc,M,add){
   for(let i=0;i<2200;i++){const x=VG.x0+r()*(VG.x1-VG.x0),y=-280+r()*600;if(y>vgEdge(x)-4||(x>420&&x<656&&y>62&&y<262)||Math.abs(x-VG.road)<26)continue;tuft.push({x,y,h:H(x,y)-.2,ry:r()*6,sx:.8+r()*.8,sy:.7+r()*1.1,c:pick([0x5e8a38,0x6c9240,0x527c32,0x7a9044,0x8a9050])});}
   const lamV=()=>new T.MeshLambertMaterial({color:0xffffff,vertexColors:true});   // (Version 188: trunks and crowns shaded darker underneath, each crown's corners pulled about)
   inst(ddgShade(new T.CylinderGeometry(1.3,2,14,6),.45,1.05),new T.MeshLambertMaterial({color:0x5a4836,vertexColors:true}),trunk,true);
-  const cA=inst(ddgShade(ddgJitter(new T.IcosahedronGeometry(11,0),1.8,21),.5,1.12),lamV(),crown,true),cB=inst(ddgShade(ddgJitter(new T.IcosahedronGeometry(8.5,0),1.4,22),.55,1.12),lamV(),crown2,true);
+  const cA=inst(ddgShade(ddgSmooth(ddgJitter(new T.IcosahedronGeometry(11,0),1.8,21)),.5,1.12),lamV(),crown,true),cB=inst(ddgShade(ddgSmooth(ddgJitter(new T.IcosahedronGeometry(8.5,0),1.4,22)),.55,1.12),lamV(),crown2,true);
   const fg=new T.ConeGeometry(1.6,3.6,4);fg.translate(0,.8,0);inst(fg,lam(0xffffff),fern,false);inst(new T.IcosahedronGeometry(2.4,0),lam(0xffffff),brush,false);
   const wg=new T.ConeGeometry(.6,7,3);wg.translate(0,2.6,0);inst(wg,lam(0xffffff),wheat,false);
   inst(ddgTuftGeo(808),new T.MeshLambertMaterial({color:0xffffff,vertexColors:true,side:T.DoubleSide}),tuft,false);   // (Version 188: tufts of blades, not pale cones)

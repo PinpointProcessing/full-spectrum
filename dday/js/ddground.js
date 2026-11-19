@@ -68,6 +68,8 @@ function ddgLand(sc){
        '    float yy=vGWp.y+6.*sin(hz*.011+1.3)+2.5*sin(hz*.037),sh=yy*.072+.5*sin(yy*.05+1.7)+.4*sin(yy*.021+hz*.003)+d3.b*.7,f=fract(sh),hb=fract(sin(floor(sh)*91.7)*43758.5),hb2=fract(sin(floor(sh)*37.3+2.)*24634.6);\n'+   // beds of rock along the face, dipping and swelling along it, no two as thick:
        '    vec3 st=vec3(.84+hb*.3)*(1.-.4*(1.-smoothstep(0.,.05+hb2*.14,f)))*(1.+.1*smoothstep(.82,1.,f));if(hb>.64)st*=vec3(1.08,1.01,.9);else if(hb<.22)st*=vec3(.93,.96,1.02);\n'+   // each its own shade (ochre, grey), a dark seam of its own depth under it, its top edge lit
        '    st*=1.+(texture2D(uGDet,vec2(hz*.03,vGWp.y*.0035)).b-.5)*.42;\n'+   // and streaks of weathering run down it (the detail read stretched tall)
+       '    {float gul=texture2D(uGDet,vec2(hz*.0052,vGWp.y*.0007)).r,big=texture2D(uGDet,vec2(hz*.0019,vGWp.y*.0012)+.37).g,scr=texture2D(uGDet,vec2(hz*.0043,vGWp.y*.004)+.61).b;\n'+   // Version 191: the face read from far off too:
+       '     st*=mix(1.,.7,smoothstep(.5,.72,gul))*(.88+.26*big);st=mix(st,st*vec3(.68,.9,.52),smoothstep(.56,.72,scr)*(1.-.55*gSteep));}\n'+   // gullies running down it, broad lighter and darker masses, scrub and grass holding on where it eases
        '    diffuseColor.rgb*=mix(vec3(1.),st,gSteep*gW.b);}\n'+
        '   diffuseColor.rgb*=clamp(1.+(dot(gW,d1)+dot(gW,d2)*.7)*uGAmp,.5,1.38);}');
     s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vGWp;').replace('#include <fog_vertex>','#include <fog_vertex>\n  vGWp=(modelMatrix*vec4(transformed,1.)).xyz;');
@@ -95,6 +97,14 @@ function ddgShade(g,lo=.55,hi=1.1,jit=.08,seed=5){
   const r=rng(seed),pa=g.attributes.position;g.computeBoundingBox();const b=g.boundingBox,C=[];
   for(let i=0;i<pa.count;i++){const t=clamp((pa.getY(i)-b.min.y)/((b.max.y-b.min.y)||1),0,1),k=lo+(hi-lo)*Math.pow(t,.8)+(r()-.5)*jit;C.push(k,k,k);}
   g.setAttribute('color',new THREE.Float32BufferAttribute(C,3));return g;
+}
+// Version 191: a faceted shape's faces rounded into each other (each corner's normal most of the way to the average of the faces meeting there), so a
+// crown or a bush reads as a soft mass with a hint of its planes, not a cut gem
+function ddgSmooth(g,k=.75){
+  g.computeVertexNormals();const p=g.attributes.position,n=g.attributes.normal,M=new Map();
+  for(let i=0;i<p.count;i++){const key=p.getX(i).toFixed(2)+','+p.getY(i).toFixed(2)+','+p.getZ(i).toFixed(2);let a=M.get(key);if(!a)M.set(key,a=[0,0,0,[]]);a[0]+=n.getX(i);a[1]+=n.getY(i);a[2]+=n.getZ(i);a[3].push(i);}
+  for(const a of M.values()){const l=Math.hypot(a[0],a[1],a[2])||1;for(const i of a[3]){const x=n.getX(i)*(1-k)+a[0]/l*k,y=n.getY(i)*(1-k)+a[1]/l*k,z=n.getZ(i)*(1-k)+a[2]/l*k,m=Math.hypot(x,y,z)||1;n.setXYZ(i,x/m,y/m,z/m);}}
+  n.needsUpdate=true;return g;
 }
 // a shape's corners pulled about a little (shared corners move together), so a hundred copies of it aren't one stamp
 function ddgJitter(g,k,seed=3){

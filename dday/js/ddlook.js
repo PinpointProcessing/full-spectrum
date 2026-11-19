@@ -31,9 +31,9 @@ function ddDress(G,sc,M){
     const gx=ddH(x+6,y)-ddH(x-6,y),gy=ddH(x,y+6)-ddH(x,y-6),gl=Math.hypot(gx,gy);if(gl<2.2)continue;const ux=-gx/gl,uy=-gy/gl,below=(ddH(x+ux*4,y+uy*4)-ddH(x+ux*10,y+uy*10))/6;if(below<.75)continue;   // (only over a real face: on a slope the fringe stood out in the air)
     drape.push({x,y,h:ddH(x,y)-.3,ry:Math.atan2(-uy,ux)+(r()-.5)*.6,rz:-Math.atan(below)*.55,sx:.7+r()*.6,sy:.6+r()*.6,c:pick([0x587e36,0x648a3c,0x4e7230,0x6e8c40,0x7a8a46])});}
   for(let i=0;i<900;i++){const x=r()*X1,y=-756+r()*1070;if(ddGroundAt(x,y)!=='top')continue;
-    bush.push({x,y,h:ddH(x,y)+2.2,ry:r()*6,sx:3.4+r()*4.5,sy:2.6+r()*2.8,c:pick([0x5c8a3a,0x6a9842,0x507c36,0x7a9446,0x8a9a48])});}
+    bush.push({x,y,h:ddH(x,y)+2.2,ry:r()*6,sx:3.4+r()*4.5,sy:2.6+r()*2.8,c:pick([0x5b7c43,0x68894b,0x50703d,0x72854d,0x7f8b50])});}
   // trees: on the tops well back from their edges, and a hedgerow along the back of the base
-  const tree=(x,y,s)=>{const h=ddH(x,y);trunk.push({x,y,h:h+7*s,sx:s,ry:r()*6});crown.push({x:x+(r()-.5)*3,y:y+(r()-.5)*3,h:h+19*s,sx:s*(1+r()*.25),sy:s*(.85+r()*.25),ry:r()*6,c:pick([0x4c7a2e,0x5a8a34,0x3f6a2a,0x6a9438])});crown2.push({x:x+(r()-.5)*9*s,y:y+(r()-.5)*9*s,h:h+14*s+r()*4,sx:s*.72,ry:r()*6,c:pick([0x55842f,0x487430,0x6c963a])});};
+  const tree=(x,y,s)=>{const h=ddH(x,y);trunk.push({x,y,h:h+7*s,sx:s,ry:r()*6});crown.push({x:x+(r()-.5)*3,y:y+(r()-.5)*3,h:h+19*s,sx:s*(1+r()*.25),sy:s*(.85+r()*.25),ry:r()*6,c:pick([0x4d6e37,0x5a7c3e,0x405f31,0x678543])});crown2.push({x:x+(r()-.5)*9*s,y:y+(r()-.5)*9*s,h:h+14*s+r()*4,sx:s*.72,ry:r()*6,c:pick([0x55773a,0x496837,0x698745])});};
   for(let i=0,n=0;i<700&&n<70;i++){const x=r()*X1,y=-440+r()*740;if(ddGroundAt(x,y)!=='top')continue;let ok=true;for(const[ox,oy]of[[26,0],[-26,0],[0,26],[0,-26]])if(ddGroundAt(x+ox,y+oy)!=='top')ok=false;if(!ok)continue;tree(x,y,.9+r()*.7);n++;}
   for(let x=10;x<X1;x+=24+r()*20)tree(x,-752+r()*10,1+r()*.6);
   // stones: tumbled down the faces and at their feet; shingle under the wall
@@ -58,10 +58,10 @@ function ddDress(G,sc,M){
       P.push(0,0,z-w, 0,0,z+w, l*.55,.7,z+j*.5, l*.55,.7,z-w*.7+j*.5, l*.55,.7,z+w*.7+j*.5, l,-d,z+j);C.push(.42,.42,.42, .42,.42,.42, 1.1,1.1,1.1, 1.1,1.1,1.1, 1.1,1.1,1.1, .78,.78,.78);}
     const dg=new T.BufferGeometry();dg.setAttribute('position',new T.Float32BufferAttribute(P,3));dg.setAttribute('color',new T.Float32BufferAttribute(C,3));dg.computeVertexNormals();
     ddgInst(G,dg,lamV({side:T.DoubleSide}),drape,false);}
-  ddgInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(1,0),.22,4),.5,1.12),lamV(),bush,true);
+  ddgInst(G,ddgShade(ddgSmooth(ddgJitter(new T.IcosahedronGeometry(1,0),.22,4)),.5,1.12),lamV(),bush,true);
   ddInst(G,new T.CylinderGeometry(1.1,1.7,14,6),lam(0x5a4630),trunk,true);
-  ddInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(9,0),1.6,6),.5,1.12),lamV(),crown,true);
-  ddInst(G,ddgShade(ddgJitter(new T.IcosahedronGeometry(8,0),1.4,7),.55,1.12),lamV(),crown2,true);
+  ddInst(G,ddgShade(ddgSmooth(ddgJitter(new T.IcosahedronGeometry(9,1),1.9,6)),.5,1.12),lamV(),crown,true);
+  ddInst(G,ddgShade(ddgSmooth(ddgJitter(new T.IcosahedronGeometry(8,0),1.4,7)),.55,1.12),lamV(),crown2,true);
   const stG=ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.18,8),.6,1.1);
   ddgInst(G,stG,new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),stone,true);
   ddgInst(G,stG,new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),peb,false);
