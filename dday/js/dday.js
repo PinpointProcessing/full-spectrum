@@ -373,6 +373,9 @@ function ddProps(sc,objsL){
       for(let x=o.x;x<=o.x+o.w;x+=38)o.meshes.push(add(new T.BoxGeometry(1,9,1),wood,x,ddH(x,cy)+4.5,cy));
     }else if(o.kind==='ddwreck'){
       if(o.lc){o.meshes=[ddBoatMesh(G,true)];o.meshes[0].position.set(cx,g0-1,cy);o.meshes[0].rotation.set(.05,.3,.22);}
+      else if(typeof ddgTankWreckGeo==='function'){   // (Version 190: a knocked-out tank, not three black boxes: on the beach a Sherman, olive drab sooted, its star still showing; in the village a burnt Panzer; the turret turned, the gun down; the same footprint)
+        const pz=DD_MODE==='village',W=ddgTankWreckGeo(pz?'panzer':'sherman'),k='wreckM'+(pz?1:0),ms=DD[k]||(DD[k]=ddgTankMats(pz?'burnt':'shermanw')),along=o.w>=o.h,sc=Math.min(Math.max(o.w,o.h)/64,Math.min(o.w,o.h)/36),ry=(along?0:-Math.PI/2)+(Math.abs(cx*13+cy*7)%10/10-.5)*.2;
+        o.meshes=[add(W.paint,ms[0],cx,g0-1,cy,ry,.03,-.04),add(W.trk,ms[1],cx,g0-1,cy,ry,.03,-.04)];for(const m of o.meshes)m.scale.setScalar(sc);}
       else{box(o,14,dark);o.meshes.push(add(new T.BoxGeometry(22,9,18),dark,cx+4,g0+18,cy),add(new T.CylinderGeometry(1.4,1.4,30,6),dark,cx+22,g0+19,cy-2,0,0,Math.PI/2-.25));}
     }else if(o.kind==='ddgun'){   // a gun on its mount, barrel out over the beach
       o.meshes=[add(new T.BoxGeometry(o.w,9,o.h),steel,cx,g0+4.5,cy),add(new T.BoxGeometry(20,12,3),olive,cx,g0+13,cy+7)];

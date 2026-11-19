@@ -742,14 +742,10 @@ function ddCounter(dt){
 }
 // a tank (since Version 148 there can be several, dd.tanks): o = {x,y,ang,way:[[x,y]..] in map coordinates,name,range,hold}; hold keeps it where it is until it's let go
 function ddTankSpawn(o){
-  const T=THREE,g=new T.Group(),M=c=>new T.MeshStandardMaterial({color:c,roughness:.8,metalness:.25}),gy=M(0x5a5e54),dk=M(0x2a2c28);
-  const add=(par,geo,m,x,y,z)=>{const q=new T.Mesh(geo,m);q.position.set(x,y,z);q.castShadow=true;par.add(q);return q;};
-  add(g,new T.BoxGeometry(60,11,30),gy,0,12,0);add(g,new T.BoxGeometry(50,5,26),gy,-2,20,0);
-  for(const z of[-17,17]){add(g,new T.BoxGeometry(66,10,8),dk,0,5,z);for(let k=-2;k<=2;k++){const w=add(g,new T.CylinderGeometry(4.6,4.6,8.6,10),gy,k*13,5,z);w.rotation.x=Math.PI/2;}}
-  const tur=new T.Group();tur.position.set(-3,22,0);g.add(tur);add(tur,new T.BoxGeometry(27,10,22),gy,0,5,0);add(tur,new T.BoxGeometry(8,4,8),dk,-6,12,-4);
-  const br=add(tur,new T.CylinderGeometry(1.7,2,42,8),dk,33,6,0);br.rotation.z=Math.PI/2;add(tur,new T.CylinderGeometry(2.6,2.6,6,8),dk,55,6,0).rotation.z=Math.PI/2;
+  // (Version 190: a chunky Panzer IV in dunkelgelb, olive and red-brown, three meshes where there were eighteen: ddground.js's ddgTank; the same place, size and turning turret)
+  const tk=ddgTank('panzer'),g=tk.g,tur=tk.tur;
   DD.scene.add(g);const L=dd.tanks||(dd.tanks=[]),a=o.ang==null?Math.PI:o.ang;
-  const K={x:o.x,y:o.y,ang:a,ta:a,hp:330,hp0:330,i:0,way:o.way||[],g,tur,fireT:simT+5,side:'E',name:o.name||'Tank',id:'TANK'+(L.length+1),stats:{},mats:[gy,dk],range:o.range||520,hold:!!o.hold};
+  const K={x:o.x,y:o.y,ang:a,ta:a,hp:330,hp0:330,i:0,way:o.way||[],g,tur,fireT:simT+5,side:'E',name:o.name||'Tank',id:'TANK'+(L.length+1),stats:{},mats:tk.mats,range:o.range||520,hold:!!o.hold};
   L.push(K);K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;return K;
 }
 const ddTanksUp=()=>(dd&&dd.tanks||[]).filter(K=>K.hp>0);
@@ -772,7 +768,7 @@ function ddTankHit(x,y,k=1){
   for(const K of dd.tanks||[]){if(K.hp<=0)continue;const d=hyp(x-K.x,y-K.y);if(d>58*k)continue;
     K.hp-=170*k*(1-d/(75*k));
     if(K.hp>0)continue;   // (hit: the bar over it says how much is left, Version 167)
-    K.hp=0;for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;
+    K.hp=0;if(typeof ddgTankBurn==='function')ddgTankBurn(K);else for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;   // (Version 190: burnt paint, rust and a scorch, not black)
     for(let q=0;q<5;q++)booms.push({x:K.x+(Math.random()-.5)*40,y:K.y+(Math.random()-.5)*26,t:-q*.12,size:1.3});
     tankFires.push({x:K.x,y:K.y,r:12,t0:simT,puffs:[],emit:0});shake(1);if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.4);banner(`${K.name} is knocked out.`,3000);ddTankWreck(K);}
 }
