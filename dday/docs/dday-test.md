@@ -793,3 +793,8 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 ## Version 191: polish after Version 190
 - The bluffs have gullies, lighter and darker masses and scrub, so they read from the boat; trees, bushes and hedges rounder and less neon; the helmet's team mark hidden on the ride in and in first person; the bluff shelled nearer your men on a phone; shell plumes more ragged.
 - Still synthesised: engines and wind. Picture: `docs/drafts/v191-polish.jpg`.
+
+## Version 192: following into cover, the report as a roll call, a shortcut to it
+- The squad you aren't playing takes cover when it follows yours instead of standing in the open beside it.
+- After a win: VICTORY, then each man in turn with his own commendation, his XP bar filling with sound and his level up, then a summary; the base says what's next; the next mission starts only from NEXT MISSION and its briefing's START.
+- Start card: "After Chapter 1 · The report and your base" goes straight to the report.

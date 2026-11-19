@@ -15,7 +15,7 @@ log.push(await ev(()=>{window.requestAnimationFrame=()=>0;for(let i=0;i<900&&!dd
   dd.won=true;ddFinish();r.push('state '+state+' ph '+(ddm&&ddm.ph)+' rows '+ddm.rows.length+' dead '+ddm.dead.length+' mvp '+(ddm.mvp&&ddm.mvp.name)+' medals '+ddRoster.medals);
   r.push('roster A '+ddRoster.squads.A.map(m=>m?m.role[0]+m.level:'-')+' B '+ddRoster.squads.B.map(m=>m?m.role[0]+m.level:'-')+' recruits '+ddRoster.recruits.length+' starred '+ddRoster.recruits.filter(m=>m.cost).length);return r.join('\n');}));
 await page.waitForTimeout(2600);await fr(6,'1report');
-await page.click('#ddm [data-a="base"]');await fr(6,'2base');
+await page.evaluate(()=>ddmRollTap(true));await page.waitForTimeout(150);await page.click('#ddm [data-a="base"]');await fr(6,'2base');
 await page.click('#ddm [data-a="armory"]');await fr(2,'2armory');await page.click('#ddm [data-a="armoryx"]');
 await page.click('#ddm [data-a="barracks"]');await fr(30,'3room');
 await page.click('#ddm .ddm-sq[data-t="A"][data-i="1"]');await fr(30,'4unit');

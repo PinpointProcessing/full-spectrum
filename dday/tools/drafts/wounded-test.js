@@ -12,7 +12,7 @@ const names=await ev(()=>{const a=players.find(p=>p.id==='A2'),b=players.find(p=
 await page.waitForTimeout(2400);
 await log('report',()=>`stage ${ddRoster.stage} hurt ${ddmHurt().map(h=>h.m.name+'@'+h.where).join(', ')} treat ${ddRoster.treat} rows hurt ${ddm.rows.filter(r=>r.hurt).length}`);
 await shot('1report');
-await page.click('#ddm .ddm-bar [data-a="base"]');await page.waitForTimeout(400);await shot('2base');
+await page.evaluate(()=>ddmRollTap(true));await page.waitForTimeout(150);await page.click('#ddm .ddm-bar [data-a="base"]');await page.waitForTimeout(400);await shot('2base');
 await log('hospital tag',()=>{const t=$('#ddm [data-a="hospital"]');return t?t.textContent+' flag '+!!ddm.flag:'none';});
 await page.click('#ddm [data-a="hospital"]');await page.waitForTimeout(300);await shot('3hospital');
 await log('sheet',()=>$('#ddm .ddm-sheet').textContent.replace(/\s+/g,' ').trim().slice(0,300));
@@ -29,7 +29,7 @@ await page.click('#ddm [data-a="wide"]');await page.waitForTimeout(300);
 // leaving with him still in Bravo: a warning first, then a second tap goes
 await page.click('#ddm [data-a="out"]');await page.waitForTimeout(300);
 await log('first tap',()=>`state ${state} banner ${$('#banner').textContent}`);
-await page.click('#ddm [data-a="out"]');await page.waitForTimeout(600);
+await page.click('#ddm [data-a="go"]');await page.waitForTimeout(150);await page.click('#ddm [data-a="start"]');await page.waitForTimeout(600);
 await log('second tap',()=>`state ${state} seq ${!!(dd&&dd.seq)} players ${players.length} ids ${players.map(p=>p.id).join(',')}`);
 await ev(()=>{if(dd.seq){dd.seq.out=true;if(talk.on)talkStop();}vgFade(vgBattle);});await page.waitForTimeout(1400);
 await log('village',()=>`vil ${!!(dd&&dd.vil)} players ${players.length} ids ${players.map(p=>p.id).join(',')} pool ${dd.pool}`);

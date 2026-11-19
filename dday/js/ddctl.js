@@ -58,7 +58,20 @@ function ddcFwd(D){   // the way they're going, from where yours is going
   const th=enemies.filter(e=>!beaten(e)&&(e.seen||e.vis)&&hyp(e.x-D.x,e.y-D.y)<600);if(th.length){const c=ddcMid(th),d=hyp(c.x-D.x,c.y-D.y)||1;return{x:(c.x-D.x)/d,y:(c.y-D.y)/d};}
   return{x:0,y:-1};
 }
-function ddcSend(free,cands){for(const[x,y]of cands){const[tx,ty]=ddcBound(x,y),as=makeAssign(free,tx,ty);if(as.length){for(const q of as)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});return{x:tx,y:ty};}}return null;}
+// Version 192 (Bryan: "when I move one team, the other team runs out in the open when side by side. The units should look for cover always, if following
+// the lead squad"): every place tried, and the one that puts the most of them behind cover taken (the first with everyone covered at once); any man still
+// left in the open goes to the nearest cover point by his place instead (within 16 m of it, not one a mate is taking), covered from the enemy first
+function ddcSend(free,cands){
+  let best=null,bn=-1,bt=null;
+  for(let i=0;i<cands.length;i++){const[tx,ty]=ddcBound(cands[i][0],cands[i][1]),as=makeAssign(free,tx,ty);if(!as.length)continue;
+    const n=as.filter(q=>q.cp||q.cov).length-(free.length-as.length)-i*.15;if(n>bn){bn=n;best=as;bt={x:tx,y:ty};}if(as.length===free.length&&as.every(q=>q.cp||q.cov))break;}
+  if(!best)return null;
+  const th=threats(),taken=[...best.map(q=>({x:q.x,y:q.y})),...players.filter(p=>!p.dead&&!free.includes(p)).map(destOf)];
+  for(const q of best){if(q.cp||q.cov)continue;let bc=null,bs=1e9;
+    for(const c of coverPts){const d=hyp(c.x-q.x,c.y-q.y);if(d>160)continue;if(taken.some(o=>o!==q&&hyp(o.x-c.x,o.y-c.y)<10&&!(o.x===q.x&&o.y===q.y)))continue;const sc=d+(isCovered(c,th)?0:60);if(sc<bs){bs=sc;bc=c;}}
+    if(bc){const path=findPath(q.u.x,q.u.y,bc.x,bc.y);if(path){const k=taken.findIndex(o=>o.x===q.x&&o.y===q.y);if(k>=0)taken[k]={x:bc.x,y:bc.y};q.x=bc.x;q.y=bc.y;q.path=path;q.cp=true;}}}
+  for(const q of best)Object.assign(q.u,{path:q.path,gaitForce:null,exposeT:0,supT:null});return bt;
+}
 function ddcPin(free,T){if(!T)return 0;let n=0;for(const u of free)if(!u.path.length&&hyp(u.x-T.x,u.y-T.y)<=wRange(u)&&fireLine(u,T)){if(!u.supT||hyp(u.supT.x-T.x,u.supT.y-T.y)>40)Object.assign(u,{supT:{x:T.x,y:T.y},noLine:0});n++;}return n;}
 // Version 181 (Bryan, after Version 180: "Pincer move can happen under fire only when the ai thinks it's safe-ish. And there is cover available.
 // Make up your own mind on how this can be made effective. I want the player to see the teams working together while they are controlling it"):
@@ -181,7 +194,7 @@ function ddcSupport(t){
     S.wait=null;S.t=-99;}   // (yours is there, or long enough: up beside it now)
   else if(!fresh&&(S.stay||simT-(S.t??-99)<3||hyp(B.x-want.x,B.y-want.y)<DDC_CATCH||free.some(u=>u.path.length)))return;
   S.t=simT;S.sentT=simT;
-  S.to=ddcSend(free,[[0,DDC_SIDE],[0,80],[-12,120],[12,70],[-20,135],[0,-DDC_SIDE],[0,-80]].map(([fw,of])=>[D.x+f.x*fw+rx*s*of,D.y+f.y*fw+ry*s*of]))||S.to;
+  S.to=ddcSend(free,[[0,DDC_SIDE],[0,80],[-12,120],[12,70],[-20,135],[-30,100],[-45,70],[25,110],[0,-DDC_SIDE],[0,-80],[-30,-100]].map(([fw,of])=>[D.x+f.x*fw+rx*s*of,D.y+f.y*fw+ry*s*of]))||S.to;
 }
 // everyone you play down and the other squad has men up: you play that one now
 function ddcLeadCheck(){

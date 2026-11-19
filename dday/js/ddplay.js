@@ -129,9 +129,20 @@ function startDDay(){
   bigText('Chapter 1: D\u2011Day','chapter');setTimeout(()=>{if(dd&&state==='play'&&!dd.land.done)banner('Thirty seconds to the beach!',3000);},8400);hud();
 }
 // the start card's chapter buttons
-function ddCtrBtnShow(){for(const id of['#ddCtrBtn','#ddVilBtn']){const b=$(id);if(b)b.hidden=false;}}   // (every chapter open from the start since Version 178, like the horror game's levels: one not reached yet gets squads made for it, ddmeta.js's ddmReady)
+// Version 192 (Bryan: "make sure we have a button to enter the post battle menu after the first mission like the shortcut to the other levels"): Chapter 1
+// started and ended at once as a win, with a battle's worth of made-up numbers so the report has something to say: their men taken off the map, ours each
+// given kills, a revive here, a man down there (one still down at the end), then the report as after a real win (ddFinish -> ddmeta.js's ddmStart)
+function ddAfterFirst(){
+  startDDay();
+  setTimeout(()=>{if(!dd||state!=='play')return;
+    for(const e of enemies){if(e.m&&e.m.g&&e.m.g.parent)e.m.g.parent.remove(e.m.g);e.dead=true;}
+    const L=players.filter(p=>p.rm&&!p.dead),K=[7,3,5,2,4,6,1,3];L.forEach((u,i)=>{u.stats.kills=K[i%8];u.stats.best=i%3===0?3:1;u.stats.items=i%2?2:0;u.inBoat=false;});
+    if(L[1])L[1].stats.revives=2;if(L[4]){L[4].stats.downs=1;L[4].stats.revives=1;}if(L[6]){L[6].stats.downs=2;L[6].downed=true;}
+    dd.lost=3;dd.t0=simT-23*60-41;dd.won=true;if(dd.land)dd.land.done=true;ddFinish();},350);
+}
+function ddCtrBtnShow(){for(const id of['#ddCtrBtn','#ddVilBtn','#ddAfterBtn']){const b=$(id);if(b)b.hidden=false;}}   // (every chapter open from the start since Version 178, like the horror game's levels: one not reached yet gets squads made for it, ddmeta.js's ddmReady)
 function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();if(typeof ddcBind==='function')ddcBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
-  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}
+  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}{const v=$('#ddAfterBtn');if(v)v.addEventListener('click',()=>ddAfterFirst());}
   const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}
 const ddBusy=()=>!!dd&&(!dd.land.done||!!dd.seq);   // (dd.seq: the sequence before Chapter 3, ddvillage.js)
 /* ---------- the camera ----------

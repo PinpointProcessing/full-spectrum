@@ -119,11 +119,12 @@ function ddmStart(){
   for(const t of['A','B'])R.squads[t].forEach((m,i)=>{if(m&&m.hurt&&!inBattle.has(m))sat.push({m,t,i});});
   for(const m of[...R.squads.A,...R.squads.B,...R.reserve])if(m&&m.hurt&&!inBattle.has(m))m.hurt=0;
   let mvp=null;for(const u of[...alive8,...fallen])if(score(u)>0&&(!mvp||score(u)>score(mvp)))mvp=u;if(!mvp)mvp=alive8[0]||null;
-  const rows=alive8.map(u=>{const rm=u.rm,lv0=rm.level,gain=u.stats.kills*40+(u.stats.revives||0)*50+60+(u===mvp?100:0);
+  const rows=alive8.map(u=>{const rm=u.rm,lv0=rm.level,xp0=rm.xp,gain=u.stats.kills*40+(u.stats.revives||0)*50+60+(u===mvp?100:0);
     rm.kills+=u.stats.kills;rm.xp+=gain;while(rm.xp>=ddmNeed(rm.level)){rm.xp-=ddmNeed(rm.level);rm.level++;for(const k in rm.st)rm.st[k]=Math.min(99,rm.st[k]+2);}
     const hurt=!!u.downed;rm.hurt=hurt?1:0;   // (still down when it ended: wounded)
     if(u===mvp)rm.stars++;if(u.downed){u.downed=false;u.critical=false;u.hp=35;}
-    return{u,rm,team:u.team,kills:u.stats.kills,rev:u.stats.revives||0,gain,lv0,lv1:rm.level,mvp:u===mvp,hurt};});
+    return{u,rm,team:u.team,kills:u.stats.kills,rev:u.stats.revives||0,gain,lv0,xp0,lv1:rm.level,mvp:u===mvp,hurt,downs:u.stats.downs||0,items:u.stats.items||0,best:u.stats.best||0};});
+  ddmCite(rows);
   const dead=fallen.map(u=>({name:u.name,role:u.ddRole,kills:u.stats.kills,rev:u.stats.revives||0,mvp:u===mvp}));
   // whoever he ended with is the roster (Bryan); the dead are gone, and their kit with them
   for(const t of['A','B']){R.squads[t]=[null,null,null,null];for(const u of alive8.filter(p=>p.team===t)){const i=clamp((+String(u.id).slice(1)||1)-1,0,3);R.squads[t][R.squads[t][i]?R.squads[t].indexOf(null):i]=u.rm;}}
@@ -132,14 +133,14 @@ function ddmStart(){
   const chap=dd.vil?3:dd.counter?2:1;   // (1 D-Day, 2 the counterattack, 3 the village)
   R.medals++;R.battles++;R.minLevel=Math.max(R.minLevel,chap+1);R.stage=Math.max(R.stage||0,chap);ddmRecruits();ddmSave();
   const t=Math.floor(simT-dd.t0);
-  ddm={ph:'report',t:0,rows,dead,mvp,chap:['CHAPTER 1 · D-DAY','CHAPTER 2 · THE COUNTERATTACK','CHAPTER 3 · THE VILLAGE'][chap-1],sp:ddmSpots(),sum:`${chap===3?'The village taken in':dd.counter?'The base held for':'Their base taken in'} ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length} enemy down${chap===3?' · '+enemies.filter(e=>e.surr&&!e.dead).length+' taken prisoner':''}${dd.counter||chap===3?' · '+dd.tanks.filter(K=>K.hp<=0&&!K.left).length+' tank'+(dd.tanks.filter(K=>K.hp<=0&&!K.left).length===1?'':'s')+' knocked out':''} · ${dd.lost} of ours lost`,pick:null,slot:null,ui:null,room:null,cam:{k:1}};
+  ddm={ph:'report',step:-1,stepT:0,tiles:[['TIME',`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`],['ENEMY DOWN',dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length],['OURS LOST',dd.lost]],nextCh:chap,t:0,rows,dead,mvp,chap:['CHAPTER 1 · D-DAY','CHAPTER 2 · THE COUNTERATTACK','CHAPTER 3 · THE VILLAGE'][chap-1],sp:ddmSpots(),sum:`${chap===3?'The village taken in':dd.counter?'The base held for':'Their base taken in'} ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length} enemy down${chap===3?' · '+enemies.filter(e=>e.surr&&!e.dead).length+' taken prisoner':''}${dd.counter||chap===3?' · '+dd.tanks.filter(K=>K.hp<=0&&!K.left).length+' tank'+(dd.tanks.filter(K=>K.hp<=0&&!K.left).length===1?'':'s')+' knocked out':''} · ${dd.lost} of ours lost`,pick:null,slot:null,ui:null,room:null,cam:{k:1}};
   state='ddmeta';sel=[];cardGroup=[];mode=null;camPan=null;dd.track=null;paused=false;
   if(chap===3)for(const K of dd.tanks||[])if(K.g)K.g.visible=false;   // (the village: the wrecked tank out of the line-up's way)
   document.body.classList.add('ddm');{const q=$('#sq');if(q)q.hidden=true;}{const o=$('#oob');if(o)o.hidden=true;}
   // the line-up: each squad in a diagonal line across from the other, in front of the barracks on the hill
   const[cx,cy]=ddm.sp.line;
   for(const r of rows){const u=r.u,s=u.team==='A'?-1:1,i=rows.filter(q=>q.team===u.team).indexOf(r);
-    Object.assign(u,{x:cx+s*(8+i*10.5),y:cy-30+i*14,ang:Math.PI/2+s*.5,path:[],sup:0,focus:null,target:null,cool:99,aimT:-9,watch:null,supT:0,covered:false,inBoat:false,joining:false,lx:0,ly:0,elev:0});}
+    Object.assign(u,{x:cx+s*(8+i*10.5),y:cy-30+i*14,ang:Math.PI/2+s*.5,path:[],sup:0,focus:null,target:null,cool:99,aimT:-9,watch:null,supT:0,covered:false,inBoat:false,afloat:false,joining:false,lx:0,ly:0,elev:0});}
   for(const u of units)if(!rows.some(r=>r.u===u)){u.path=[];if(u.side==='P'&&!u.dead&&Math.hypot(u.x-cx,u.y-(cy-10))<70){u.x+=u.x<cx?-70:70;}}
   ddmUI();
 }
@@ -153,7 +154,8 @@ function ddMetaFrame(rdt,now){
   if(!ddm)return;ddm.t+=rdt;simT+=rdt;
   if(ddm.ph==='barracks'){ddmRoomFrame(rdt);ddmPlace();return;}
   const SP=ddm.sp;
-  if(ddm.ph==='report'){const z=cw<ch?7.6:6.4;zoom=z;yaw=0;tilt=ddTilt(z);camT.x=SP.line[0];camT.z=SP.line[1]-34+DD_CAM.look;}
+  if(ddm.ph==='report'){ddmRollTick(rdt);const r=ddm.rows[ddm.step],C=ddm.cam,one=!!r,zt=one?(cw<ch?10.5:9.5):(cw<ch?7.6:6.4),tx=one?r.u.x:SP.line[0],tz=(one?r.u.y+(cw<ch?16:6):SP.line[1]-34)+DD_CAM.look;
+    if(C.x==null){C.x=tx;C.z=tz;C.zm=zt;}const e=Math.min(1,rdt*4.5);C.x+=(tx-C.x)*e;C.z+=(tz-C.z)*e;C.zm+=(zt-C.zm)*e;zoom=C.zm;yaw=0;tilt=ddTilt(C.zm);camT.x=C.x;camT.z=C.z;}
   else{const z=cw<ch?SP.zoom[0]:SP.zoom[1];zoom=z;yaw=0;tilt=-.5;camT.x=SP.cam[0];camT.z=SP.cam[1]+DD_CAM.look;}
   camShift=0;updateCamera();render(rdt,now);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);ddmPlace();
 }
@@ -171,30 +173,20 @@ const ddmEsc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 function ddmUI(){
   let el=$('#ddm');if(!el){el=document.createElement('div');el.id='ddm';stage.appendChild(el);el.addEventListener('click',ddmClick);}
   const R=ddRoster,ph=ddm.ph;let h='';
-  if(ph==='report'){
-    const card=r=>`<div class="ddm-c${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}"><i>${DDM_ICON[r.rm.role]||''}</i><b>${ddmEsc(r.rm.name)}</b><s>K <u data-n="${r.kills}">0</u>${r.rev?` · R <u data-n="${r.rev}">0</u>`:''}</s><s>+<u data-n="${r.gain}">0</u> XP</s><s class="lv">${r.lv1>r.lv0?`LEVEL ${r.lv1} ▲`:`Level ${r.lv1}`}</s><div class="ddm-xp"><em style="--w:${Math.round(r.rm.xp/ddmNeed(r.rm.level)*100)}%"></em></div>${r.mvp?'<span class="ddm-mvp">★ MVP</span>':''}${r.hurt?'<span class="ddm-hurt">✚ WOUNDED</span>':''}</div>`;
-    const sq=t=>{const L=ddm.rows.filter(r=>r.team===t);return`<div class="ddm-sqd">${L.length?`<div class="ddm-gl" style="color:${t==='A'?'#58c4f6':'#f0b429'}">${t==='A'?'ALPHA':'BRAVO'}</div><div class="ddm-g4">${L.map(card).join('')}</div>`:''}</div>`;};
-    const dm=ddm.dead.find(d=>d.mvp),hr=ddm.rows.filter(r=>r.hurt);
-    h=`<div class="ddm-bar top"><div class="ddm-t">${ddm.chap}</div><div class="ddm-dim">${ddmEsc(ddm.sum)}</div></div>
-      <div class="ddm-rep">${sq('A')}${sq('B')}</div>
-      <div class="ddm-bar bot">${dm?`<div class="ddm-post">★ MVP, posthumous: ${ddmEsc(dm.name)}, ${DDM_ROLE[dm.role]} · the medal is yours to spend</div>`:''}
-        ${ddm.dead.length?`<div class="ddm-gl ddm-dim">FALLEN · ${ddm.dead.length}</div><div class="ddm-dead">${ddm.dead.slice(0,7).map(d=>`<span>${ddmEsc(d.name)} · ${DDM_ROLE[d.role]}${d.kills?' · K '+d.kills:''}</span>`).join('')}${ddm.dead.length>7?`<span>+${ddm.dead.length-7}</span>`:''}</div>`:'<div class="ddm-dim">Nobody lost.</div>'}
-        ${hr.length?`<div class="ddm-gl" style="color:#ff8a7e">WOUNDED · ${hr.length}</div><div class="ddm-dead hurt">${hr.map(r=>`<span>${ddmEsc(r.rm.name)} · ${DDM_ROLE[r.rm.role]}</span>`).join('')}</div><div class="ddm-dim">Down when it ended: they sit out the next chapter unless the field hospital treats them (one a round free).</div>`:''}
-        <button type="button" class="ddm-btn" data-a="base">TO THE BASE ▸</button></div>`;
+  if(ph==='report'){h=ddmReportHTML();
   }else if(ph==='base'){
-    h=`<div class="ddm-bar top row"><div><div class="ddm-t">YOUR BASE</div><div class="ddm-dim">Tap a building</div></div><div class="r"><div class="ddm-t gold">★ ${R.medals} MEDAL${R.medals===1?'':'S'}</div><div class="ddm-dim">Reserve ${R.reserve.length}/${DDM_RES} · Armory ${R.armory.length}</div></div></div>
+    h=`<div class="ddm-bar top row"><div><div class="ddm-t">YOUR BASE</div>${ddmStepsHTML(2)}</div><div class="r"><div class="ddm-t gold">★ ${R.medals} MEDAL${R.medals===1?'':'S'}</div><div class="ddm-dim">Reserve ${R.reserve.length}/${DDM_RES} · Armory ${R.armory.length}</div></div></div>
       <button type="button" class="ddm-tag" data-b="bk" data-a="barracks">BARRACKS<small>squads · recruits · reserve</small></button>
       <button type="button" class="ddm-tag" data-b="ar" data-a="armory">ARMORY<small>saved equipment</small></button>
       <button type="button" class="ddm-tag off" data-b="vd" data-a="depot">VEHICLE DEPOT<small>later</small></button>
       <button type="button" class="ddm-tag${ddmHurt().length?' hurt':''}" data-b="hs" data-a="hospital">FIELD HOSPITAL<small>${ddmHurt().length?ddmHurt().length+' wounded':'nobody wounded'}</small></button>
       ${ddm.hosp?`<div class="ddm-sheet mid"><div class="ddm-t">FIELD HOSPITAL</div><div class="ddm-dim" style="margin:4px 0 6px">A wounded man sits out the next chapter unless he's treated. ${(R.treat||0)>0?'One treatment this round is free; then a medal each.':'Each treatment costs a medal.'} You have ★ ${R.medals}.</div>${ddmHurt().length?ddmHurt().map(h=>`<div class="ddm-it"><span><b>${ddmEsc(h.m.name)}</b> · ${DDM_ROLE[h.m.role]} · Level ${h.m.level}</span><em>${h.where}</em><button type="button" class="ddm-btn sm" data-a="treat" data-u="${h.m.uid}"${(R.treat||0)<1&&R.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`).join(''):'<div class="ddm-dim" style="margin:8px 0">Nobody is wounded.</div>'}<button type="button" class="ddm-btn grey" data-a="hospx" style="margin-top:8px">CLOSE</button></div>`:''}
       ${ddm.armory?`<div class="ddm-sheet mid"><div class="ddm-t">ARMORY · SAVED EQUIPMENT</div>${R.armory.length?R.armory.map(id=>`<div class="ddm-it${DDM_ITEMS[id].star?' gold':''}"><span><b>${DDM_ITEMS[id].star?'★ ':''}${DDM_ITEMS[id].n}</b> · ${DDM_ITEMS[id].d}</span><em>${DDM_ITEMS[id].role?DDM_ITEMS[id].role.map(r=>DDM_ROLE[r]).join(', '):'anyone'}</em></div>`).join(''):'<div class="ddm-dim" style="margin:8px 0">Nothing saved yet. In the barracks, press a piece of a man\'s kit and choose "Put it in the armory" to keep it here for later.</div>'}<button type="button" class="ddm-btn grey" data-a="armoryx">CLOSE</button></div>`:''}
-      <div class="ddm-bar bot">${(R.stage||0)<3?`<div class="ddm-post">Ready your squads in the barracks. ${(R.stage||0)<2?'When you come back out, they counterattack.':'When you come back out, you set out for the village inland.'}</div><div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn" data-a="barracks">TO THE BARRACKS ▸</button></div>`
+      ${ddm.brief?ddmBriefHTML():''}
+      <div class="ddm-bar bot">${(R.stage||0)<3?`${ddmNextHTML()}<div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn grey" data-a="barracks">BARRACKS</button><button type="button" class="ddm-btn" data-a="go">NEXT MISSION ▸</button></div>`
         :`<div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn grey" data-a="next">D-DAY AGAIN</button><button type="button" class="ddm-btn grey" data-a="again2">HOLD THE BASE AGAIN</button><button type="button" class="ddm-btn" data-a="again3">THE VILLAGE AGAIN</button></div><div class="ddm-dim">The village is yours. The next chapter is still to come.</div>`}</div>`;
   }else h=ddmBarracksHTML();
   el.className='ph-'+ph;el.innerHTML=h;
-  if(ph==='report'){const t0=performance.now();const tick=()=>{if(!ddm||ddm.ph!=='report')return;const k=clamp((performance.now()-t0-500)/1800,0,1),e=1-Math.pow(1-k,3);
-    for(const n of el.querySelectorAll('u[data-n]'))n.textContent=Math.round(+n.dataset.n*e);el.classList.toggle('done',k>=1);if(k<1)setTimeout(tick,40);};tick();}
   ddmPlace();
 }
 // what follows the picture: the buildings' names over their buildings, the chosen man's name over his head, the kit bar under his feet
@@ -216,7 +208,11 @@ function ddmClick(ev){
     for(const u of r.men){r.v.set(u.x,16,u.y).project(r.cam);const d=Math.hypot((r.v.x+1)*cw/2-mx,(1-r.v.y)*ch/2-my);if(d<bd){bd=d;best=u;}}
     if(!best||(ddm.slot&&best.slotK===ddm.slot[0]+ddm.slot[1]))return;b=$(`#ddm .ddm-sq[data-t="${best.slotK[0]}"][data-i="${best.slotK[1]}"]`);if(!b)return;}
   const a=b.dataset.a,R=ddRoster;
-  if(a==='base'){ddm.ph='base';ddm.armory=false;ddm.hosp=false;ddmHospFlag();const A=ddm.rows.map(r=>r.u);A.forEach((u,i)=>{u.x=ddm.sp.sq[0]+(i%4)*14;u.y=ddm.sp.sq[1]+((i/4)|0)*16;u.ang=Math.PI/2;u.atEase=true;figRefresh(u);});}
+  if(a==='rolltap'||a==='rollskip'){ddmRollTap(a==='rollskip');return;}
+  if(a==='go'){ddm.brief=true;ddm.armory=false;ddm.hosp=false;ddmUI();return;}
+  if(a==='gox'){ddm.brief=false;ddmUI();return;}
+  if(a==='start'){ddmSave();if(!ddmFit().length){banner('Nobody fit in the squads: treat the wounded, or bring men in from the reserve or the recruits.',3600);return;}ddmEnd();if(R.stage===2)startVillage();else startCounter();return;}
+  if(a==='base'){ddm.ph='base';ddm.armory=false;ddm.hosp=false;ddm.brief=false;ddmHospFlag();const A=ddm.rows.map(r=>r.u);A.forEach((u,i)=>{u.x=ddm.sp.sq[0]+(i%4)*14;u.y=ddm.sp.sq[1]+((i/4)|0)*16;u.ang=Math.PI/2;u.atEase=true;figRefresh(u);});}
   else if(a==='armory'){ddm.armory=true;ddm.hosp=false;}else if(a==='armoryx')ddm.armory=false;
   else if(a==='hospital'){ddm.hosp=true;ddm.armory=false;}else if(a==='hospx')ddm.hosp=false;
   else if(a==='treat'){const m=ddmAll().find(q=>String(q.uid)===b.dataset.u);if(ddmTreat(m)&&ddm.room)ddmRoomMen();}
@@ -226,8 +222,7 @@ function ddmClick(ev){
   else if(a==='again3'){ddmSave();ddmEnd();startVillage({skip:true});return;}
   else if(a==='next'){if(ddmFit().length<1){banner('Nobody in the squads. Recruit someone at the barracks first.',3000);return;}ddmNext();return;}
   else if(a==='barracks'){ddm.ph='barracks';ddm.slot=null;ddm.sub=null;ddm.swap=null;ddm.cand=null;if(!ddm.room)ddmRoomBuild();ddmRoomMen();ddm.cam={k:1};}
-  else if(a==='out'){if(((R.stage||0)===1||(R.stage||0)===2)&&typeof startCounter==='function'){ddmSave();if(!ddmFit().length){banner('Nobody fit in the squads: treat the wounded, or bring men in from the reserve or the recruits.',3600);return;}
-    {const w=[...R.squads.A,...R.squads.B].filter(m=>m&&m.hurt);if(w.length&&performance.now()-(ddm.outWarn||0)>5000){ddm.outWarn=performance.now();banner(`${w.map(m=>m.name).join(' and ')} ${w.length>1?'are':'is'} wounded and will sit out: treat ${w.length>1?'them':'him'}, swap someone in, or tap again to go ${w.length>1?'men':'a man'} short.`,5000);return;}}ddmEnd();if(R.stage===2)startVillage();else startCounter();return;}   // (stage 2: the sequence on the base, then Chapter 3, ddvillage.js)   // (Bryan: "After the player enters the barracks and exit it, it triggers the counter attack")
+  else if(a==='out'){   // (Version 192: leaving the barracks is only ever back to the base; the next mission starts from its briefing there, Bryan: "I entered the next level too quickly")
     ddm.ph='base';ddm.armory=false;}
   else ddmBarracksClick(a,b);
   ddmSave();ddmUI();
@@ -256,7 +251,7 @@ function ddmBarracksHTML(){
     if(ddm.swap){const L=ddmSwapList(m,ddm.swap);
       h+=`<div class="ddm-swap" data-follow="under">${L.length?L.map((o,i)=>`<button type="button" class="ddm-it${o.star?' gold':''}" data-a="swap" data-i="${i}"><span><b>${o.star?'★ ':''}${o.n}</b> · ${o.from}</span><em>${o.verb}</em></button>`).join(''):`<div class="ddm-dim">Nothing else he can carry in this slot yet.</div>`}</div>`;}
     h+=`<div class="ddm-bar bot"><div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="wide">‹ SQUADS</button><button type="button" class="ddm-btn grey" data-a="reserve"${R.reserve.length>=DDM_RES?' disabled':''}>RESERVE</button><button type="button" class="ddm-btn" data-a="replace">REPLACE</button></div></div>`;
-  }else h+=`<div class="ddm-bar bot"><div class="ddm-dim">Alpha's bunks on the left, Bravo's on the right. Tap a man or his square; a + is an empty bunk.</div><button type="button" class="ddm-btn${(R.stage||0)===1||(R.stage||0)===2?'':' grey'}" data-a="out">${(R.stage||0)===1||(R.stage||0)===2?'LEAVE THE BARRACKS ▸':'‹ BACK TO THE BASE'}</button></div>`;
+  }else h+=`<div class="ddm-bar bot"><div class="ddm-dim">Alpha's bunks on the left, Bravo's on the right. Tap a man or his square; a + is an empty bunk.</div><button type="button" class="ddm-btn${(R.stage||0)===1||(R.stage||0)===2?'':' grey'}" data-a="out">‹ BACK TO THE BASE</button></div>`;
   return h;
 }
 // what he could carry in that slot instead: standard issue, a special piece a squad mate or a reserve man of his kind holds (a swap), or
@@ -373,4 +368,101 @@ function ddmRoomPlace(el){
     if(f==='head'){n.style.left=clamp(hd[0],60,cw-60)+'px';n.style.top=clamp(hd[1],110,ch-200)+'px';}
     else if(f==='feet')n.style.top=clamp(ft[1]+10,ch*.45,ch-(tall?150:106))+'px';
     else if(tall)n.style.top=clamp(ft[1]+62,ch*.45+52,ch-98)+'px';}   // (a wide screen: the choices beside him, css)
+}
+
+/* ---------- Version 192: the report as a roll call, and a way through what follows ----------
+   Bryan, after Version 191: "the post battle menu looked pretty bad. No sounds with the exp bar rising. I did not feel any special things for the individual
+   players. I entered the next level too quickly. The post battle menu had no direction, was confusing, and ugly."
+   The report now goes: VICTORY and the battle's numbers; then each man in turn, the camera on him, his own commendation from what he did (ddmCite), his
+   kills, revives and times down, his XP bar filling from where it was with its ticks (audio.js's sfxXpFill), a level up with its chime (sfxLevelUp) and
+   what it gave him, the MVP's medal, a wound; a tap goes on (a tap while it fills finishes it first), SKIP goes to the summary; then the summary with
+   everyone, the fallen, and one button on to the base. The base says where you are (ddmStepsHTML) and what the next mission is (ddmNextHTML); it starts
+   only from NEXT MISSION and its briefing's START (ddmBriefHTML); leaving the barracks is back to the base. */
+const DDM_NEXT={1:['Chapter 2 · Hold the base','They counterattack from inland with infantry and tanks. Man the machine guns and the field guns, and hold through three waves.'],
+  2:['Chapter 3 · Take the village','Out of the base and inland: through the woods and across the field to the village, then hold it against what they send.']};
+// each man's commendation, from his battle: the first that fits; the "most" ones go to one man each
+function ddmCite(rows){
+  const top=k=>{let b=null;for(const r of rows)if(r[k]>0&&(!b||r[k]>b[k]))b=r;return b;},mk=top('kills'),mr=top('rev'),mi=top('items'),ms=top('best');
+  for(const r of rows){const k=r.kills,pl=(n,w)=>n+' '+(n===1?w:w==='man'?'men':w+'s');
+    r.cite=r.mvp?['MOST VALUABLE',k?`${pl(k,'kill')}${r.rev?' and '+pl(r.rev,'man')+' brought back':''}: the company's best today`:'The one the others followed']
+      :r===mr&&r.rev>0?['LIFESAVER',`Brought ${pl(r.rev,'man')} back under fire`]
+      :r===mk&&k>=2?['DEADEYE',`${pl(k,'kill')}, the most in the squads`]
+      :r===ms&&r.best>=3?['ON A ROLL',`${r.best} kills one after another`]
+      :r===mi&&r.items>=2?['GRENADIER',`${pl(r.items,'grenade')} and tools put to work`]
+      :r.hurt?['WOUNDED IN ACTION','Still down when it ended, and still with us']
+      :r.downs>0?['HARD TO KILL',`Went down ${r.downs===1?'once':r.downs+' times'} and got back up`]
+      :k>0?['HELD THE LINE',`${pl(k,'kill')}, and never went down`]
+      :r.rm.role==='medic'?['STEADY HANDS','Kept the squad on its feet']
+      :['DID HIS PART','Came through it with the rest'];}
+}
+const ddmStepsHTML=n=>`<div class="ddm-steps">${['REPORT','BASE','NEXT MISSION'].map((t,i)=>`<span class="${i+1<n?'ok':i+1===n?'on':''}">${i+1<n?'✓':i+1} ${t}</span>`).join('<i>›</i>')}</div>`;
+function ddmNextHTML(){
+  const R=ddRoster,N=DDM_NEXT[R.stage||1]||DDM_NEXT[1],w=ddmHurt().length,fit=ddmFit().length;
+  return`<div class="ddm-next"><div class="ddm-gl gold">NEXT MISSION</div><b>${N[0]}</b>
+    <div class="ddm-todo"><span class="${w?'warn':'ok'}">${w?`✚ ${w} wounded: tap FIELD HOSPITAL to treat (${ddmTreatCost()==='FREE'?'one free':'★ 1 each'})`:'✓ Nobody wounded'}</span><span>● Barracks: change kit, bring in recruits and reserves (optional)</span><span class="ok">✓ ${fit} of 8 ready to go</span></div></div>`;
+}
+function ddmBriefHTML(){
+  const R=ddRoster,N=DDM_NEXT[R.stage||1]||DDM_NEXT[1],sq=t=>R.squads[t].map(m=>m?`<span class="${m.hurt?'hurt':''}">${ddmEsc(m.name)}${m.hurt?' ✚':''}</span>`:'<span class="none">empty</span>').join('');
+  const w=[...R.squads.A,...R.squads.B].filter(m=>m&&m.hurt);
+  return`<div class="ddm-sheet mid ddm-brief"><div class="ddm-gl gold">NEXT MISSION</div><div class="ddm-t">${N[0]}</div><div class="ddm-dim" style="margin:5px 0 8px">${N[1]}</div>
+    <div class="ddm-gl" style="color:#58c4f6">ALPHA</div><div class="ddm-who">${sq('A')}</div><div class="ddm-gl" style="color:#f0b429">BRAVO</div><div class="ddm-who">${sq('B')}</div>
+    ${w.length?`<div class="ddm-wd">✚ ${w.map(m=>ddmEsc(m.name)).join(' and ')} ${w.length>1?'are':'is'} wounded and will sit this one out. Treat ${w.length>1?'them':'him'} at the field hospital first, or go ${w.length>1?'men':'a man'} short.</div>`:''}
+    <div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="gox">NOT YET</button><button type="button" class="ddm-btn go" data-a="start">START MISSION ▸</button></div></div>`;
+}
+function ddmReportHTML(){
+  const n=ddm.rows.length,i=ddm.step,tiles=`<div class="ddm-tiles">${ddm.tiles.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`;
+  if(i<0)return`<div class="ddm-vic" data-a="rolltap"><div class="ddm-vt">VICTORY</div><div class="ddm-vc">${ddm.chap}</div>${tiles}<div class="ddm-tap on">TAP TO CONTINUE ▸</div></div>`;
+  if(i<n){const r=ddm.rows[i],m=r.rm,up=r.lv1>r.lv0;
+    return`<div class="ddm-roll" data-a="rolltap"><div class="ddm-rtop"><div><div class="ddm-t gold">ROLL CALL</div><div class="ddm-dim">${i+1} of ${n}</div></div><button type="button" class="ddm-skip" data-a="rollskip">SKIP ▸▸</button></div>
+      <div class="ddm-rc${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}">
+        <div class="ddm-rh"><i>${DDM_ICON[m.role]||''}</i><div class="nm"><b>${ddmEsc(m.name)}</b><span>${r.team==='A'?'ALPHA':'BRAVO'} · ${DDM_ROLE[m.role].toUpperCase()}</span></div><div class="ddm-lvl">LEVEL<u id="ddmLv">${r.lv0}</u></div></div>
+        <div class="ddm-cite"><b>${r.mvp?'★ ':''}${r.cite[0]}</b><span>${ddmEsc(r.cite[1])}</span></div>
+        <div class="ddm-chips"><span>KILLS<b>${r.kills}</b></span><span>REVIVES<b>${r.rev}</b></span><span>TIMES DOWN<b>${r.downs}</b></span></div>
+        <div class="ddm-xpr"><div class="ddm-xpb"><em id="ddmXp" style="width:${Math.round(r.xp0/ddmNeed(r.lv0)*100)}%"></em></div><span id="ddmXpN">+0 XP</span></div>
+        <div class="ddm-up" id="ddmUp" hidden>▲ LEVEL UP${r.lv1-r.lv0>1?' ×'+(r.lv1-r.lv0):''} · +${2*(r.lv1-r.lv0)} Health · Aim · Speed · Nerve</div>
+        ${r.mvp?'<div class="ddm-medal">★ A medal for the company: spend it at the base</div>':''}${r.hurt?'<div class="ddm-wd">✚ Wounded: he sits out the next mission unless the field hospital treats him</div>':''}
+        <div class="ddm-dots">${ddm.rows.map((q,k)=>`<i class="${k<i?'ok':k===i?'on':''}"></i>`).join('')}</div><div class="ddm-tap" id="ddmTap">TAP TO CONTINUE ▸</div>
+      </div></div>`;}
+  const row=r=>`<div class="ddm-sr${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}"><i>${DDM_ICON[r.rm.role]||''}</i><div class="nm"><b>${ddmEsc(r.rm.name)}${r.hurt?' <em>✚</em>':''}</b><span>${r.mvp?'★ ':''}${r.cite[0]}</span></div><div class="x"><b>${r.lv1>r.lv0?'▲ ':''}Lv ${r.lv1}</b><span>+${r.gain} XP</span></div></div>`;
+  const hr=ddm.rows.filter(r=>r.hurt),dm=ddm.dead.find(d=>d.mvp);
+  return`<div class="ddm-bar top"><div class="ddm-hd"><div><div class="ddm-t gold">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div>${ddmStepsHTML(1)}</div>${tiles}</div>
+    <div class="ddm-sum">${ddm.rows.map(row).join('')}</div>
+    <div class="ddm-bar bot">${dm?`<div class="ddm-post">★ MVP, posthumous: ${ddmEsc(dm.name)}, ${DDM_ROLE[dm.role]} · the medal is yours to spend</div>`:''}
+      ${ddm.dead.length?`<div class="ddm-gl ddm-dim">FALLEN · ${ddm.dead.length}</div><div class="ddm-dead">${ddm.dead.slice(0,7).map(d=>`<span>${ddmEsc(d.name)} · ${DDM_ROLE[d.role]}${d.kills?' · K '+d.kills:''}</span>`).join('')}${ddm.dead.length>7?`<span>+${ddm.dead.length-7}</span>`:''}</div>`:'<div class="ddm-dim">Nobody lost.</div>'}
+      ${hr.length?`<div class="ddm-wd">✚ ${hr.map(r=>ddmEsc(r.rm.name)).join(', ')} wounded: the field hospital at your base can treat ${hr.length>1?'them':'him'} (one a round free).</div>`:''}
+      <div class="ddm-dim" style="margin-top:4px">Next: your base. Treat the wounded, ready your squads, then start the next mission when you choose.</div>
+      <button type="button" class="ddm-btn" data-a="base">CONTINUE TO YOUR BASE ▸</button></div>`;
+}
+// the roll call's clock: the title, then each man's bar filling a level at a time
+function ddmRollGo(i){ddm.step=i;ddm.stepT=0;ddm.an=null;
+  ddm.rows.forEach((r,k)=>{const u=r.u;if(r.y0==null){r.y0=u.y;r.a0=u.ang;}u.y=r.y0+(k===i?20:0);u.ang=k===i?Math.PI/2:r.a0;});   // (the man whose turn it is steps out of the line toward the camera)
+  ddmUI();if(i<0&&typeof sfxLevelUp==='function')sfxLevelUp(true);}
+function ddmRollTick(rdt){
+  if(!ddm||ddm.ph!=='report')return;ddm.stepT+=rdt;const i=ddm.step,r=ddm.rows[i];
+  if(i<0){if(!ddm.fan){ddm.fan=1;if(typeof sfxLevelUp==='function')sfxLevelUp(true);}if(!ddm.rows.length&&ddm.stepT>1)ddmRollGo(0);return;}
+  if(!r)return;
+  const A=ddm.an||(ddm.an={seg:-1,t:0,lv:r.lv0,done:false,segs:(()=>{const L=[];let f=r.xp0/ddmNeed(r.lv0);for(let l=r.lv0;l<r.lv1;l++){L.push([f,1,l]);f=0;}L.push([f,r.rm.xp/ddmNeed(r.lv1),r.lv1]);return L;})()});
+  if(A.done||ddm.stepT<.55)return;
+  const bar=document.getElementById('ddmXp'),xn=document.getElementById('ddmXpN'),lv=document.getElementById('ddmLv'),D=.75;
+  if(A.seg<0){A.seg=0;A.t=0;const S=A.segs[0];if(typeof sfxXpFill==='function')sfxXpFill(S[1]-S[0],D);}
+  A.t+=rdt;const S=A.segs[A.seg],k=clamp(A.t/D,0,1),e=1-(1-k)*(1-k);
+  if(bar)bar.style.width=Math.round((S[0]+(S[1]-S[0])*e)*100)+'%';
+  if(xn)xn.textContent='+'+Math.round(r.gain*clamp((A.seg+e)/A.segs.length,0,1))+' XP';
+  if(k>=1){if(A.seg<A.segs.length-1){A.seg++;A.t=0;A.lv=A.segs[A.seg][2];if(lv){lv.textContent=A.lv;lv.classList.remove('pop');void lv.offsetWidth;lv.classList.add('pop');}
+      const up=document.getElementById('ddmUp');if(up)up.hidden=false;if(bar){bar.style.width='0%';bar.parentNode.classList.remove('flash');void bar.offsetWidth;bar.parentNode.classList.add('flash');}
+      if(typeof sfxLevelUp==='function')sfxLevelUp(false);const N=A.segs[A.seg];if(typeof sfxXpFill==='function')setTimeout(()=>sfxXpFill(N[1]-N[0],D),260);A.t=-.3;}
+    else ddmRollEnd();}
+}
+function ddmRollEnd(){   // his numbers as they end up
+  const r=ddm.rows[ddm.step],A=ddm.an;if(!r||!A)return;A.done=true;const g=id=>document.getElementById(id);
+  if(g('ddmXp'))g('ddmXp').style.width=Math.round(r.rm.xp/ddmNeed(r.lv1)*100)+'%';if(g('ddmXpN'))g('ddmXpN').textContent='+'+r.gain+' XP';if(g('ddmLv'))g('ddmLv').textContent=r.lv1;
+  if(g('ddmUp')&&r.lv1>r.lv0)g('ddmUp').hidden=false;if(g('ddmTap'))g('ddmTap').classList.add('on');
+}
+function ddmRollTap(skip){
+  if(!ddm||ddm.ph!=='report')return;const n=ddm.rows.length;
+  if(skip){ddmRollGo(n);return;}
+  if(ddm.step<0){if(ddm.stepT>.5)ddmRollGo(n?0:n);return;}
+  if(ddm.step>=n)return;
+  if(!ddm.an||!ddm.an.done){if(!ddm.an)ddmRollTick(.6);ddmRollEnd();return;}
+  ddmRollGo(ddm.step+1);
 }

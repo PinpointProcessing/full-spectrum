@@ -6,11 +6,11 @@ const ev=(f,a)=>page.evaluate(f,a);const fr=async n=>{await ev(n=>{for(let i=0;i
 console.log('start card: chapter 2 button hidden '+await ev(()=>document.querySelector('#ddCtrBtn').hidden));
 await page.click('#ddBtn');await page.waitForTimeout(1200);
 console.log(await ev(()=>{window.requestAnimationFrame=()=>0;for(let i=0;i<900&&!dd.land.done;i++)update(1/30);players[1].stats.kills=5;dd.won=true;ddFinish();return 'D-Day won: state '+state+' stage '+ddRoster.stage;}));
-await fr(4);await page.click('#ddm [data-a="base"]');await fr(4);
+await fr(4);await page.evaluate(()=>ddmRollTap(true));await page.waitForTimeout(150);await page.click('#ddm [data-a="base"]');await fr(4);
 console.log('base bar: '+await page.$eval('#ddm .ddm-bar.bot',e=>e.textContent.trim().replace(/\s+/g,' ')));
 await page.click('#ddm .ddm-bar.bot [data-a="barracks"]');await fr(10);
 console.log('barracks out button: '+await page.$eval('#ddm [data-a="out"]',e=>e.textContent));
-await page.click('#ddm [data-a="out"]');await page.waitForTimeout(1500);
+await page.click('#ddm [data-a="out"]');await page.waitForTimeout(200);await page.click('#ddm [data-a="go"]');await page.waitForTimeout(150);await page.click('#ddm [data-a="start"]');await page.waitForTimeout(1500);
 console.log(await ev(()=>'after leaving: state '+state+' mode '+DD_MODE+' counter '+!!(dd&&dd.counter)+' players '+players.map(p=>p.name+'/'+p.ddRole[0]).join(' ')+' enemies '+enemies.length+' #ddm '+!!document.querySelector('#ddm')));
 // lose it: the retry
 console.log(await ev(()=>{for(let i=0;i<300;i++)update(1/30);const names=players.map(p=>p.name).join(',');for(const p of players.slice())ddKill(p,'test',true);ddRoster.reserve.length=0;dd.queue.length=0;for(let i=0;i<120;i++)update(1/30);const e=!!endAt;finish();return 'all lost: endAt '+e+' state '+state+' title "'+document.querySelector('#endTitle').textContent+'" button "'+document.querySelector('#againBtn').textContent+'" was '+names;}));

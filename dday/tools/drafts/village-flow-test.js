@@ -31,10 +31,10 @@ await ev(()=>{let n=0;while(!endAt&&n++<120)RUNB(5);});await log('end',()=>`won 
 await ev(()=>{dd.track=null;camT.x=700;camT.z=-480;zoom=4;tilt=ddTilt(4);});await shot('7won');
 await ev(()=>{finish();});await page.waitForTimeout(2600);
 await log('report',()=>`state ${state} ph ${ddm&&ddm.ph} chap ${ddm&&ddm.chap} sum ${ddm&&ddm.sum} stage ${ddRoster.stage} minLevel ${ddRoster.minLevel}`);await shot('8report');
-await page.click('#ddm [data-a="base"]');await page.waitForTimeout(300);await shot('9base');
+await page.evaluate(()=>ddmRollTap(true));await page.waitForTimeout(150);await page.click('#ddm [data-a="base"]');await page.waitForTimeout(300);await shot('9base');
 await log('base bar',()=>$('#ddm .ddm-bar.bot').textContent.replace(/\s+/g,' ').trim());
 await page.click('#ddm [data-a="barracks"]');await page.waitForTimeout(400);await log('barracks out',()=>$('#ddm [data-a="out"]').textContent);
-await page.click('#ddm [data-a="out"]');await page.waitForTimeout(300);await log('after out',()=>`ph ${ddm&&ddm.ph} state ${state}`);
+await page.click('#ddm [data-a="out"]');await page.waitForTimeout(200);await page.click('#ddm [data-a="go"]');await page.waitForTimeout(150);await page.click('#ddm [data-a="start"]');await page.waitForTimeout(300);await log('after out',()=>`ph ${ddm&&ddm.ph} state ${state}`);
 await page.click('#ddm [data-a="menu"]');await page.waitForTimeout(300);await log('menu',()=>`intro ${!$('#intro').hidden} vilBtn ${!$('#ddVilBtn').hidden}`);
 console.log('errors',errors.length,errors.slice(0,8));
 await b.close();srv.close();})();
