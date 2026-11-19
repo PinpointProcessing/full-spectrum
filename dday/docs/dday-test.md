@@ -798,3 +798,7 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 - The squad you aren't playing takes cover when it follows yours instead of standing in the open beside it.
 - After a win: VICTORY, then each man in turn with his own commendation, his XP bar filling with sound and his level up, then a summary; the base says what's next; the next mission starts only from NEXT MISSION and its briefing's START.
 - Start card: "After Chapter 1 · The report and your base" goes straight to the report.
+
+## Version 193: sound after an interruption; drafts for the post-battle screens
+- If the sound went away (after the screen locked, a call, or switching apps), the next tap brings it back. Not yet checked on a real phone.
+- Drafts only for the post-battle screens: `docs/drafts/v193-postbattle-drafts.jpg`.

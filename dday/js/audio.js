@@ -15,7 +15,7 @@ let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,sndVerbIn=null,noiseBuf=n
 try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
 
 function audioInit(){
-  if(AC){if(AC.state==='suspended')AC.resume();return;}
+  if(AC){if(AC.state!=='running'&&AC.state!=='closed'){try{const r=AC.resume();if(r&&r.catch)r.catch(()=>{});}catch(e){}}return;}   // (Version 193: an iPhone puts the sound into 'interrupted', not 'suspended', after a call, a lock or a switch of apps, and it was never woken again: Bryan's second level with no sound)
   const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
   try{AC=new Ctx();}catch(e){return;}
   const comp=AC.createDynamicsCompressor();comp.threshold.value=-16;comp.knee.value=12;comp.ratio.value=5;comp.attack.value=.003;comp.release.value=.25;comp.connect(AC.destination);
@@ -350,6 +350,8 @@ function audioFrame(){
 function bindAudio(){
   const wake=()=>audioInit();
   window.addEventListener('pointerdown',wake,true);window.addEventListener('keydown',wake,true);
+  for(const e of['touchend','click'])window.addEventListener(e,wake,true);   // (Version 193: iOS only lets sound resume from a finished touch or a click, not always from pointerdown)
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&AC&&AC.state!=='running')wake();});
   $('#sndBtn').addEventListener('click',()=>{audioInit();setSound(!sndOn);});
   setSound(sndOn);
 }
