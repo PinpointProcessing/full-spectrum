@@ -802,3 +802,8 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 ## Version 193: sound after an interruption; drafts for the post-battle screens
 - If the sound went away (after the screen locked, a call, or switching apps), the next tap brings it back. Not yet checked on a real phone.
 - Drafts only for the post-battle screens: `docs/drafts/v193-postbattle-drafts.jpg`.
+
+## Version 194: the new report and base
+- After VICTORY you give the company's medal to one of three men (a star and +100 XP).
+- Then one card a man: swipe, or NEXT MAN. At a level up, choose one of two perks (+6 on one stat). SEE ALL shows everyone; tap a man for his card.
+- The base: numbered stops (hospital, barracks, briefing) and one NEXT card with GO. Perks you skipped are asked for first.
