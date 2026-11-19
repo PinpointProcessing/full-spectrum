@@ -357,3 +357,171 @@ function ddgFadeFrame(rdt){
     if(done){o.gFadeA=1;ddgFading.delete(o);}}
 }
 function ddGroundFrame(rdt,now,dt){ddgFadeFrame(rdt);}
+
+/* ---------- Version 190: the land beyond the battle ----------
+   The far planes (dday.js's 'far' behind the base, ddcounter.js's and ddvillage.js's 'far' and 'hill') were flat sheets of one green, nearly clear of
+   the haze since the light's fog moved out, so they read as a lime slab with trees standing on it. Now: Normandy's bocage from above (small fields in
+   muted greens and ochres, ploughed strips, dark hedgerows with trees along them; one picture, cached), fading into the horizon's haze the further
+   it lies from the camera (outside the play area, DDB, only), so far land melts into the sky whatever the fog does and land near the camera keeps its fields. */
+function ddgBocageTex(){
+  if(DDG_TEX.bocage)return DDG_TEX.bocage;
+  const S=512,c=document.createElement('canvas');c.width=c.height=S;const q=c.getContext('2d'),r=rng(1944);
+  const fields=['#5d7340','#6b7a45','#7a7448','#4f6538','#8a8150','#556b3a','#687845','#73703f'];
+  q.fillStyle='#5f7240';q.fillRect(0,0,S,S);
+  // a jittered grid of fields (wrapping, so the picture tiles); each field its own tone, some ploughed or striped
+  const N=6,P=[];for(let j=0;j<=N;j++){P[j]=[];for(let i=0;i<=N;i++){const e=i===0||i===N||j===0||j===N;P[j][i]=[i*S/N+(e?0:(r()-.5)*S/N*.5),j*S/N+(e?0:(r()-.5)*S/N*.5)];}}
+  for(let i=0;i<=N;i++){P[N][i]=[P[0][i][0],S];}for(let j=0;j<=N;j++){P[j][N]=[S,P[j][0][1]];}
+  const poly=(j,i)=>[P[j][i],P[j][i+1],P[j+1][i+1],P[j+1][i]];
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const pts=poly(j,i);q.fillStyle=fields[(r()*fields.length)|0];q.beginPath();pts.forEach((p,k)=>k?q.lineTo(p[0],p[1]):q.moveTo(p[0],p[1]));q.closePath();q.fill();
+    if(r()<.35){q.save();q.clip();q.strokeStyle=`rgba(${r()<.5?'60,52,36':'150,140,96'},.22)`;q.lineWidth=2;const a=r()*3.14,dx=Math.cos(a),dy=Math.sin(a);for(let k=-S;k<S;k+=6){q.beginPath();q.moveTo(pts[0][0]+dx*-S-dy*k,pts[0][1]+dy*-S+dx*k);q.lineTo(pts[0][0]+dx*S-dy*k,pts[0][1]+dy*S+dx*k);q.stroke();}q.restore();}
+    for(let k=0;k<40;k++){q.fillStyle=`rgba(${r()<.5?'30,40,20':'200,190,140'},${.04+r()*.05})`;const p=pts[0];q.fillRect(p[0]+r()*S/N,p[1]+r()*S/N,3+r()*8,2+r()*5);}}
+  // hedgerows along every field edge, a little wobbly, with trees in clumps along them
+  q.lineCap='round';
+  const hedge=(a,b)=>{q.strokeStyle='#2f3a24';q.lineWidth=3+r()*1.5;q.beginPath();q.moveTo(a[0],a[1]);const m=[(a[0]+b[0])/2+(r()-.5)*8,(a[1]+b[1])/2+(r()-.5)*8];q.quadraticCurveTo(m[0],m[1],b[0],b[1]);q.stroke();
+    const n=2+(r()*5|0);for(let k=0;k<n;k++){const t=r(),x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t,R=3+r()*4;q.fillStyle='#26301d';q.beginPath();q.arc(x+1.5,y+1.5,R,0,7);q.fill();q.fillStyle=r()<.5?'#3a4a2a':'#435330';q.beginPath();q.arc(x,y,R,0,7);q.fill();}};
+  for(let j=0;j<=N;j++)for(let i=0;i<N;i++)hedge(P[j][i],P[j][i+1]);
+  for(let j=0;j<N;j++)for(let i=0;i<=N;i++)hedge(P[j][i],P[j+1][i]);
+  // a few farm roofs
+  for(let k=0;k<5;k++){const x=r()*S,y=r()*S;q.fillStyle='#6e4a38';q.fillRect(x,y,7,4);q.fillStyle='#8a8478';q.fillRect(x+9,y+1,4,3);}
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return DDG_TEX.bocage=t;
+}
+// the material for a far plane w by d units: the bocage picture (one tile about 760 units) and the fade into the haze outside the play area
+function ddgFarMat(w,d,tint){
+  const t=ddgBocageTex().clone();t.needsUpdate=true;t.repeat.set(w/760,d/760);
+  const m=new THREE.MeshStandardMaterial({map:t,color:tint||0xffffff,roughness:1});
+  m.onBeforeCompile=s=>{s.uniforms.uBox={value:new THREE.Vector4(DDB.x0+700,(DDB.y0+DDB.y1)/2,700,(DDB.y1-DDB.y0)/2)};
+    s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vFarW;varying float vFarD;').replace('#include <project_vertex>','#include <project_vertex>\nvFarW=(modelMatrix*vec4(transformed,1.)).xyz;vFarD=-mvPosition.z;');
+    s.fragmentShader=s.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vFarW;varying float vFarD;uniform vec4 uBox;')
+      .replace('#include <fog_fragment>','#ifdef USE_FOG\n{vec2 q=max(abs(vFarW.xz-uBox.xy)-uBox.zw,0.);float dE=length(q);gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(350.,2600.,vFarD)*smoothstep(0.,220.,dE)*.8);}\n#endif\n#include <fog_fragment>');};
+  return m;
+}
+
+/* ---------- Version 190: the tanks ----------
+   The Panzer was a stack of plain boxes and its wreck went pure black; the beach's knocked-out tank was three black boxes. Now one chunky
+   stylised tank (a Panzer IV: a sloped glacis and nose, the superstructure over the tracks, eight road wheels a side, sprocket and idler, track runs
+   of links, side skirts, a sloped turret with its mantlet, cupola and stowage bin, the long gun and its muzzle brake, jerrycans, tools, exhausts)
+   or, on the beach, a Sherman (olive drab, white stars, no skirts, the short gun). Two meshes for the hull (the paint, the tracks) and one for the
+   turret, which turns: three draw calls where there were eighteen. The paint is one picture a scheme (camouflage, marks and dark steel in an atlas);
+   a knocked-out tank swaps it for a burnt one (ddgTankBurn): charred brown-grey, rust and soot, never black, and a scorch on the ground under it. */
+// the paint: the left three quarters of the picture the scheme, the top right its mark (a cross or a star), below it plain dark steel
+function ddgTankTex(k){
+  const key='tank_'+k;if(DDG_TEX[key])return DDG_TEX[key];
+  const r=rng(k==='panzer'?41:k==='sherman'?44:k==='shermanw'?47:45),P=192;
+  return DDG_TEX[key]=canvasTex(256,256,(q,w,h)=>{
+    const burnt=k==='burnt'||k==='shermanw',base={panzer:'#b39a5e',sherman:'#5d6438',shermanw:'#4e5134',burnt:'#4f463d'}[k];
+    q.fillStyle=base;q.fillRect(0,0,w,h);
+    const blob=(col,n,R)=>{for(let i=0;i<n;i++){const x=r()*P,y=r()*h,a=r()*3;q.fillStyle=col;for(let j=0;j<5;j++){q.beginPath();q.ellipse(x+Math.cos(a+j)*R*.5*r(),y+Math.sin(a+j)*R*.4*r(),R*(.4+r()*.5),R*(.2+r()*.3),a+(r()-.5),0,7);q.fill();}}};
+    if(k==='panzer'){blob('#5a6232',9,26);blob('#6e4129',7,22);blob('rgba(150,128,80,.5)',10,10);}   // dunkelgelb, olive and red-brown
+    if(k==='sherman')blob('rgba(70,76,44,.6)',14,18);
+    if(burnt){blob(k==='shermanw'?'rgba(52,48,40,.75)':'rgba(64,56,48,.8)',12,26);blob('rgba(116,66,36,.55)',12,14);blob('rgba(140,84,44,.4)',10,8);blob('rgba(34,31,28,.55)',8,16);blob('rgba(112,106,96,.35)',8,10);}   // charred paint, rust, soot, ash
+    // wear: fine grain, dust low down (the picture's bottom is the tank's low side), streaks running down
+    for(let i=0;i<1600;i++){q.fillStyle=`rgba(${r()<.5?'30,26,20':'210,196,160'},${.03+r()*.05})`;q.fillRect(r()*P,r()*h,1+r()*2,1+r()*2);}
+    let gr=q.createLinearGradient(0,h*.55,0,h);gr.addColorStop(0,'rgba(120,100,70,0)');gr.addColorStop(1,burnt?'rgba(60,46,34,.4)':'rgba(132,112,78,.45)');q.fillStyle=gr;q.fillRect(0,0,P,h);
+    for(let i=0;i<40;i++){q.fillStyle=`rgba(${burnt?'90,52,30':'40,34,26'},${.05+r()*.08})`;q.fillRect(r()*P,r()*h,1+r()*1.5,10+r()*30);}
+    // the mark, top right (64 square): a black cross edged white, or a white star; dark steel below it; a lamp's glass
+    q.fillStyle=base;q.fillRect(P,0,64,64);
+    if(k==='panzer'||k==='burnt'){q.fillStyle=k==='burnt'?'rgba(200,190,170,.35)':'#e8e4d8';q.fillRect(P+24,10,16,44);q.fillRect(P+10,24,44,16);q.fillStyle=k==='burnt'?'rgba(26,24,22,.7)':'#1c1c1a';q.fillRect(P+27,13,10,38);q.fillRect(P+13,27,38,10);}
+    else{q.fillStyle=k==='shermanw'?'rgba(220,216,200,.6)':'#e6e4d8';q.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,R=i%2?9:24;q.lineTo(P+32+Math.cos(a)*R,34+Math.sin(a)*R);}q.closePath();q.fill();}
+    q.fillStyle=burnt?'#2e2a26':'#34332f';q.fillRect(P,64,64,64);for(let i=0;i<300;i++){q.fillStyle=`rgba(${r()<.5?'0,0,0':'120,110,96'},${.08+r()*.1})`;q.fillRect(P+r()*64,64+r()*64,2,2);}
+    q.fillStyle=burnt?'#3a3530':'#8a8778';q.fillRect(P,128,64,32);   // (lamp glass, plates' edges)
+    q.fillStyle=burnt?'#5a3a26':'#5b4a36';q.fillRect(P,160,64,96);   // (wood: the tools' hafts)
+  });
+}
+// the tracks: links with their grousers and the gaps between, wrapping along the run; rusty when burnt
+function ddgTrackTex(burnt){
+  const key='trk_'+(burnt?1:0);if(DDG_TEX[key])return DDG_TEX[key];const r=rng(burnt?52:51);
+  return DDG_TEX[key]=canvasTex(128,32,(q,w,h)=>{q.fillStyle=burnt?'#4a3a2e':'#3b3833';q.fillRect(0,0,w,h);
+    for(let x=0;x<w;x+=16){q.fillStyle=burnt?'#2a221c':'#1d1c1a';q.fillRect(x,0,3,h);q.fillStyle=burnt?'#6a4a32':'#5a5650';q.fillRect(x+5,2,5,h-4);q.fillStyle=burnt?'#7a5236':'#6c675e';q.fillRect(x+6,h/2-3,3,6);}
+    for(let i=0;i<220;i++){q.fillStyle=`rgba(${r()<.5?'0,0,0':burnt?'150,90,50':'140,130,116'},${.06+r()*.1})`;q.fillRect(r()*w,r()*h,1+r()*2,1+r()*2);}});
+}
+// a box whose top is drawn in (tx, tz) and pushed back at the front (fs) or the rear (rs): a glacis, a sloped turret
+function ddgSBox(w,h,d,tx=1,tz=1,fs=0,rs=0,bf=0,br=0){
+  const g=new THREE.BoxGeometry(w,h,d),pa=g.attributes.position;
+  for(let i=0;i<pa.count;i++){let x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i);if(y>0){x*=tx;z*=tz;if(x>0)x-=fs;else x+=rs;}else{if(x>0)x-=bf;else x+=br;}pa.setXYZ(i,x,y,z);}
+  g.computeVertexNormals();return g;
+}
+// the paint's coordinates from where each corner is on the tank, by the way its face looks (the camouflage runs on across the parts)
+function ddgTankUV(g){
+  const pa=g.attributes.position,na=g.attributes.normal,U=[];
+  for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),ax=Math.abs(na.getX(i)),ay=Math.abs(na.getY(i)),az=Math.abs(na.getZ(i));
+    const a=ax>=ay&&ax>=az?z+(na.getX(i)>0?7:-7):x,b=ay>ax&&ay>=az?z+(na.getY(i)>0?0:30):y;U.push(clamp((a+64)/128,0,1)*.75,clamp((b+30)/92,0,1));}
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));return g;
+}
+// a track's piece: its links along its length (u), across its width (v)
+function ddgTrackUV(g,len){
+  const pa=g.attributes.position,U=[];for(let i=0;i<pa.count;i++)U.push((pa.getX(i)+len/2)/14,(pa.getZ(i)+pa.getY(i))/8+.5);
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));return g;
+}
+// the shapes, made once a kind and shared: {hull, trk, tur, tp (the turret's place on the hull)}; kind 'panzer' or 'sherman'
+function ddgTankGeo(kind){
+  const key='geo_'+kind;if(DD&&DD[key])return DD[key];
+  const T=THREE,pz=kind==='panzer',P=[],K=[],R=[],D=[.875,.62],MK=[.875,.875],Cyl=(r0,r1,l,n=9)=>new T.CylinderGeometry(r0,r1,l,n);
+  const hz=Math.PI/2;
+  // the hull: the lower hull between the tracks with its sloped nose, the superstructure over them with the glacis, fenders
+  P.push({g:ddgSBox(56,9,24,1,1,0,0,7,3),p:[0,8.5,0]});
+  P.push({g:ddgSBox(pz?62:60,pz?9:10,35,1,.9,pz?8:16,3),p:[pz?-1:-2,pz?17.5:18,0]});
+  for(const s of[-1,1]){P.push({g:new T.BoxGeometry(70,1.1,7.5),p:[0,13.4,s*18.4]});
+    // road wheels (Panzer: eight a side; Sherman: six, bigger), the sprocket ahead and the idler behind
+    const n=pz?8:6,wr=pz?3.5:4.3;for(let i=0;i<n;i++)P.push({g:Cyl(wr,wr,3.2),p:[-24+i*48/(n-1),wr+.4,s*16.8],r:[hz,0,0]});
+    if(pz)for(let i=0;i<4;i++)P.push({g:Cyl(1.5,1.5,2.4,7),p:[-18+i*12,11,s*16.4],r:[hz,0,0]});
+    R.push({g:Cyl(4.4,4.4,5.2,10),p:[28,8,s*17.2],r:[hz,0,0]},{g:Cyl(3.8,3.8,5,10),p:[-29,7.4,s*17.2],r:[hz,0,0]});
+    // the tracks: the runs top and bottom, round the sprocket and the idler, a backing inside so nothing shows through
+    const run=(len,x,y,rz)=>K.push({g:ddgTrackUV(new T.BoxGeometry(len,1.5,8),len),p:[x,y,s*17.2],r:[0,0,rz]});
+    run(54,-1,.75,0);run(56,-1,12.2,0);run(9.2,28.6,3.2,.95);run(6.2,31.2,10,-1.25);run(8.4,-29.8,3,-.95);run(6,-31.6,9.6,1.2);
+    R.push({g:new T.BoxGeometry(52,9,2),p:[0,6.4,s*14.2]});
+    // side skirts, a little out of true; plates on the Sherman's sides with its star
+    if(pz)for(let i=0;i<5;i++)P.push({g:new T.BoxGeometry(12.4,7.2,.7),p:[-24+i*12.2,10.6,s*(22.2+(i%2)*.25)],r:[s*(.03+(i%3)*.015),0,0]});
+    P.push({g:new T.BoxGeometry(pz?6:9,pz?6:9,.4),p:pz?[-5,10.6,s*22.8]:[-6,17.6,s*16.9],r:pz?[0,0,0]:[-s*.17,0,0],uv:[.25,.25,MK[0]-.125,MK[1]-.125],mark:1});
+    // exhausts and their mufflers at the back, a jerrycan rack, tools along the fender
+    R.push({g:Cyl(1.4,1.4,7,8),p:[-33,13,s*7],r:[hz,0,0]});
+    P.push({g:new T.BoxGeometry(3,4.6,3.6),p:[-26,24.4,s*12.6]},{g:new T.BoxGeometry(3,4.6,3.6),p:[-22.4,24.4,s*12.6]});
+    R.push({g:new T.BoxGeometry(18,.9,.9),p:[6,14.4,s*20.6]},{g:new T.BoxGeometry(3.2,.6,2.4),p:[16,14.4,s*20.6]});
+    P.push({g:Cyl(1.1,1.1,1.6,7),p:[pz?31.5:30.5,15.2,s*15],r:[0,0,-hz],at:[.875,.4]});}
+  // the engine deck's grilles, the driver's visor, the hull gun; spare track links on the nose
+  R.push({g:new T.BoxGeometry(16,.6,14),p:[-20,22.4,0]},{g:new T.BoxGeometry(2,2.4,8),p:[pz?23.8:16.6,20,-7]},{g:Cyl(1.2,1.6,4,8),p:[pz?25.6:18.6,19.2,7],r:[0,0,-hz]});
+  K.push({g:ddgTrackUV(new T.BoxGeometry(14,1.2,7),14),p:pz?[26.6,18,0]:[20.4,18.7,0],r:[0,0,pz?-.84:-.56]});
+  // the turret: sloped sides, the mantlet, the cupola and its hatch, a stowage bin behind (Panzer), the gun and its brake
+  const tu=[];
+  tu.push({g:ddgSBox(pz?26:24,pz?10.5:12,pz?23:22,pz?.82:.78,pz?.74:.76,pz?2:3,1,0,0),p:[0,pz?5.2:6,0]});
+  tu.push({g:ddgSBox(5,pz?7.5:8,pz?11:13,1,1,1.2,0),p:[pz?13.5:12.5,5,0]});
+  tu.push({g:Cyl(3.6,3.9,3.8,10),p:[-6,12.2,-4.5]},{g:Cyl(3.7,3.7,.8,10),p:[-6,14.4,-4.5]});
+  if(pz)tu.push({g:new T.BoxGeometry(8,6.5,17),p:[-15.5,5.2,0]});
+  for(const s of[-1,1])tu.push({g:new T.BoxGeometry(5,5,.3),p:[-2,5,s*(pz?10.2:10.05)],r:[-s*(pz?.28:.22),0,0],uv:[.25,.25,MK[0]-.125,MK[1]-.125],mark:1});
+  const bl=pz?42:28;tu.push({g:Cyl(1.15,1.5,bl,8),p:[16+bl/2,5.6,0],r:[0,0,-hz]});
+  if(pz)tu.push({g:Cyl(2.1,2.1,2.2,8),p:[16+bl+1.2,5.6,0],r:[0,0,hz],at:D},{g:Cyl(1.9,1.9,1.6,8),p:[16+bl+3.6,5.6,0],r:[0,0,hz],at:D});
+  // merged: the paint's parts get the paint's coordinates from where they are, the marks theirs, the dark bits a point of dark steel
+  const paint=(L)=>{const plain=L.filter(q=>!q.mark&&!q.at),A=ddgTankUV(ddgMerge(plain)),B=L.filter(q=>q.mark||q.at);return ddgShade(ddgMerge([{g:A},...B]),.66,1.06,.04,7);};
+  // (the dark steel parts go with the tracks' mesh, on a dark corner of its picture)
+  const trk=ddgShade(ddgMerge([...K,...R.map(q=>Object.assign(q,{at:[.11,.5]}))]),.7,1.04,.04,9);
+  const out={hull:paint(P),trk,tur:paint(tu),tp:pz?[-3,22,0]:[-1,22.5,0]};
+  if(DD)DD[key]=out;return out;
+}
+// the materials for one tank (its own, so one knocked out doesn't take the rest with it): the paint and the tracks
+function ddgTankMats(scheme){
+  return[new THREE.MeshStandardMaterial({map:ddgTankTex(scheme),roughness:.8,metalness:.15,vertexColors:true}),new THREE.MeshStandardMaterial({map:ddgTrackTex(scheme==='burnt'||scheme==='shermanw'),roughness:.75,metalness:.35,vertexColors:true})];
+}
+// a whole tank as ddplay.js's ddTankSpawn had it: g (the hull, at the ground), tur (turns), mats
+function ddgTank(kind,scheme){
+  const T=THREE,G=ddgTankGeo(kind),[pm,tm]=ddgTankMats(scheme||kind),g=new T.Group(),tur=new T.Group();
+  const mk=(geo,m,par)=>{const q=new T.Mesh(geo,m);q.castShadow=true;q.receiveShadow=true;par.add(q);return q;};
+  mk(G.hull,pm,g);mk(G.trk,tm,g);tur.position.set(...G.tp);g.add(tur);mk(G.tur,pm,tur);
+  return{g,tur,mats:[pm,tm]};
+}
+// one geometry for a wreck that never moves (the beach's, the village's): hull and turret merged, the turret turned and tipped, the gun down
+function ddgTankWreckGeo(kind,ty=.5,tz=.08){
+  const key='wgeo_'+kind;if(DD&&DD[key])return DD[key];const G=ddgTankGeo(kind);
+  const out={paint:ddgMerge([{g:G.hull},{g:G.tur,p:G.tp,r:[tz,ty,-.06]}]),trk:G.trk};
+  // (the merge drops the shading colours: put them back)
+  ddgShade(out.paint,.62,1.04,.06,13);if(DD)DD[key]=out;return out;
+}
+// knocked out: the burnt paint, rusty tracks, roughened; a scorch on the ground under it (the ground's own picture: scene.js's paintDecal)
+function ddgTankBurn(K){
+  const [pm,tm]=K.mats;if(pm){pm.map=ddgTankTex('burnt');pm.roughness=.95;pm.metalness=.05;pm.needsUpdate=true;}
+  if(tm){tm.map=ddgTrackTex(true);tm.roughness=.9;tm.needsUpdate=true;}
+  if(typeof paintDecal==='function')for(const d of[-18,0,18])paintDecal({k:'scorch',x:K.x+Math.cos(K.ang)*d,y:K.y+Math.sin(K.ang)*d,r:Math.random()});
+}
+// a truck's or a gun's paint gone to char (ddvillage.js, ddcounter.js): dark brown-grey as it should look, never black; marked as converted
+function ddgBurnMat(m){
+  if(!m||!m.color)return;m.color.setHex(0x4a4139);if(typeof ddLinCol==='function')ddLinCol(m.color);if(typeof DDL_SEEN!=='undefined')DDL_SEEN.add(m);
+  if(m.roughness!=null)m.roughness=1;if(m.metalness!=null)m.metalness=.05;
+}

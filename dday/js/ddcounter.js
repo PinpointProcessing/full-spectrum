@@ -88,8 +88,8 @@ function dcPaint(g){
   for(let i=0;i<9000;i++){const x=r()*1400,y=DDB.y0+r()*(DCA.wallY-DDB.y0);g.fillStyle=`rgba(${r()<.6?'44,64,30':'170,176,104'},${.08+r()*.14})`;g.fillRect(x,y,1+r()*1.5,1+r()*2);}
 }
 function dcScenery(sc){
-  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),new T.MeshStandardMaterial({color:0x6f8a4b,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);
-  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),new T.MeshStandardMaterial({color:0x5b7340,roughness:1}));hill.rotation.x=-Math.PI/2+.06;hill.position.set(700,60,DDB.y0-880);sc.add(hill);
+  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),typeof ddgFarMat==='function'?ddgFarMat(9000,5000):new T.MeshStandardMaterial({color:0x6f8a4b,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);   // (Version 190: bocage fading into the haze, ddground.js)
+  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),typeof ddgFarMat==='function'?ddgFarMat(9000,1800,0xe4e8dc):new T.MeshStandardMaterial({color:0x5b7340,roughness:1}));hill.rotation.x=-Math.PI/2+.06;hill.position.set(700,60,DDB.y0-880);sc.add(hill);
 }
 function dcBuild(G,sc,M,add){
   const earth=M(0x6a5c40,1),turf=M(0x7d8a4c,1),wall=M(0x9a9482,.95),roofM=M(0x55584e,.9),cpM=M(0x8d9298,.9),dark=M(0x26282a,.7,.5),wood=M(0x5d4a34,.95),steel=M(0x3a3632,.6,.7),wm=M(0x55504a,.5,.7),hedge=new T.MeshStandardMaterial({color:0x35542c,roughness:1,flatShading:true}),leaf=new T.MeshStandardMaterial({color:0x3f6a34,roughness:1,flatShading:true}),leaf2=new T.MeshStandardMaterial({color:0x577a3a,roughness:1,flatShading:true});
@@ -217,7 +217,7 @@ function dcGunHit(g){
   if(g.hits<3){banner(g.hits===1?`${g.n} hit · 2 more and it's gone`:`${g.n} hit again · 1 more and it's gone`,2600);return;}
   g.dead=true;g.aim=null;if(dd.dc.art===g)dd.dc.art=null;
   for(const u of[g.man,g.going])if(u){if(u.onGun){u.onGun=null;u.gunner=false;}if(u.dcGun===g)u.dcGun=null;}g.man=null;g.going=null;
-  if(m){m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.color.setHex(0x1b1a18);}});}
+  if(m){m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.material=o.material.clone();if(typeof ddgBurnMat==='function')ddgBurnMat(o.material);else o.material.color.setHex(0x1b1a18);}});}   // (Version 190: charred brown-grey, not black)
   for(let q=0;q<3;q++)booms.push({x:g.x+(Math.random()-.5)*24,y:g.y+(Math.random()-.5)*20,t:-q*.1,size:1});tankFires.push({x:g.x,y:g.y-8,r:9,t0:simT,puffs:[],emit:0});
   shake(.6);if(typeof sfxBoom==='function')sfxBoom(g.x,g.y,1.1);banner(`${g.n} is knocked out.`,3200);
 }

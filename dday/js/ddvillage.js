@@ -121,8 +121,8 @@ function vgPaint(g){
   g.fillStyle='#a08e66';g.fillRect(680,-280,40,600);
 }
 function vgScenery(sc){
-  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),new T.MeshStandardMaterial({color:0x667d44,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);
-  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),new T.MeshStandardMaterial({color:0x58703f,roughness:1}));hill.rotation.x=-Math.PI/2+.05;hill.position.set(700,50,DDB.y0-900);sc.add(hill);
+  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),typeof ddgFarMat==='function'?ddgFarMat(9000,5000):new T.MeshStandardMaterial({color:0x667d44,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);   // (Version 190: bocage fading into the haze, ddground.js)
+  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),typeof ddgFarMat==='function'?ddgFarMat(9000,1800,0xe4e8dc):new T.MeshStandardMaterial({color:0x58703f,roughness:1}));hill.rotation.x=-Math.PI/2+.05;hill.position.set(700,50,DDB.y0-900);sc.add(hill);
 }
 
 /* ---------- the props: the village's buildings, the hedgerow, walls, logs, bales; the trees (instanced, see vgFrame) ---------- */
@@ -468,7 +468,7 @@ function vgTrucks(dt){
 function vgBlast(x,y){
   if(!dd||!dd.vil)return;
   for(const K of dd.vg.trucks){if(K.hp<=0||hyp(x-K.x,y-K.y)>44)continue;K.hp=0;if(K.ph==='unload'||K.ph==='drive'){K.ph='parked';K.men=K.n;}
-    for(const m of K.mats)m.color.setHex(0x1b1a18);tankFires.push({x:K.x,y:K.y,r:9,t0:simT,puffs:[],emit:0});booms.push({x:K.x,y:K.y,t:0,size:1.2});
+    if(typeof ddgTankBurn==='function')ddgTankBurn(K);else for(const m of K.mats)m.color.setHex(0x1b1a18);tankFires.push({x:K.x,y:K.y,r:9,t0:simT,puffs:[],emit:0});booms.push({x:K.x,y:K.y,t:0,size:1.2});
     if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.1);banner('A truck goes up.',2200);if(dd.vg.trucks.every(q=>q.ph==='parked'))dd.vg.r1&&(dd.vg.r1.done=true);}
 }
 // one of theirs sent to a place (a zone of the village, by its key, or a spot): there, he fights from cover round it
