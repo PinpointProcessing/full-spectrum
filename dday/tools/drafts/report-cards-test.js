@@ -15,12 +15,12 @@ await page.click('[data-a=award]');await page.waitForTimeout(300);
 const s1=await ev(()=>({mvp:ddm.mvp&&ddm.mvp.name,first:ddm.rows[0].rm.name,stars:ddm.rows[0].rm.stars,gain:ddm.rows[0].gain,step:ddm.step,cite:ddm.rows[0].cite[0]}));console.log(JSON.stringify(s1));
 ok(s1.mvp===pick.n&&s1.first===pick.n&&s1.stars===1&&s1.gain===pick.g+100&&s1.step===0&&s1.cite==='MOST VALUABLE','the second nominee picked: star, +100 XP, first card');
 await page.waitForFunction(()=>ddm.an&&ddm.an.done,null,{timeout:90000});await snap('3-card-perk');
-const p0=await ev(()=>{const m=ddm.rows[0].rm;return{pk:m.pk,o:m.pkO,st:{...m.st}};});console.log(JSON.stringify(p0));
+const p0=await ev(()=>{const m=ddm.rows[0].rm;return{pk:m.pk,o:ddmPerkOpts(m),role:m.role,st:{...m.st}};});console.log(JSON.stringify(p0));
 ok(p0.pk>0&&await page.$('.ddm-pkb')!=null,'a level up offers a perk');
 // a tap on the finished card stays
 await page.click('.ddm-rc .ddm-cite');await page.waitForTimeout(200);ok(await ev(()=>ddm.step)===0,'a tap on a finished card stays on it');
 await page.click('.ddm-pkb');await page.waitForTimeout(300);const p1=await ev(()=>{const m=ddm.rows[0].rm;return{pk:m.pk,st:{...m.st},perks:m.perks};});
-ok(p1.pk===p0.pk-1&&p1.st[p0.o[0]]===Math.min(99,p0.st[p0.o[0]]+6),'the perk: +6 on that stat, one fewer to choose');await snap('4-card-picked');
+ok(p1.pk===p0.pk-1&&p1.perks.length===1&&p1.perks[0]===p0.o[0]&&JSON.stringify(p1.st)===JSON.stringify(p0.st),'the perk: one of his job\'s two, kept; one fewer to choose');await snap('4-card-picked');
 for(let k=0;k<4&&await page.$('.ddm-pkb');k++){await page.click('.ddm-pkb');await page.waitForTimeout(200);}
 // swipe left: next man; swipe right: back, shown finished
 const sw=async dx=>{const y=H-200,x=W/2;await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+dx/2,y,{steps:3});await page.mouse.move(x+dx,y,{steps:3});await page.mouse.up();await page.waitForTimeout(450);};
@@ -42,4 +42,7 @@ await snap('9-base-barracks-next');await page.click('.ddm-next [data-a=barracks]
 ok(await ev(()=>ddmTodo().k)==='go','after the barracks: the briefing next');await snap('10-base-brief-next');
 await page.click('.ddm-tag.brief');await page.waitForTimeout(300);ok(await page.$('.ddm-brief')!=null,'the briefing stop opens the briefing');await snap('11-brief');
 await page.click('[data-a=start]');await page.waitForTimeout(2500);const en=await ev(()=>({state,counter:!!(dd&&dd.counter),players:players.length}));console.log(JSON.stringify(en));ok(en.counter,'START MISSION: Chapter 2');
-console.log('errors',errors.length,errors.slice(0,4));console.log(fails?'FAILS '+fails:'ALL OK');await b.close();srv.close();process.exit(0);})();
+console.log('errors',errors.length,errors.slice(0,4));const fx=await ev(()=>{const mk=(role,level,perks)=>{const u={ddRole:role,name:'T',stats:{}};const rm=ddmNewMan(role,level,false,'T');rm.st={hp:50,aim:50,spd:50,brv:50};rm.perks=perks;ddmAttach(u,rm);return{sup:+u.supK.toFixed(3),dmg:+u.dmgIn.toFixed(3),aim:+u.aimK.toFixed(3),gr:u.grenade,sn:u.specN};};
+  return{g1:mk('gunner',1,[]),g1p:mk('gunner',1,['sup','sup','armor']),g3:mk('gunner',3,[]),g5:mk('gunner',5,[]),d1:mk('demo',1,[]),d3:mk('demo',3,['kit']),r3:mk('rifle',3,['aim'])};});console.log(JSON.stringify(fx));
+ok(Math.abs(fx.g1p.sup-fx.g1.sup*1.15*1.15)<.01&&fx.g1p.dmg<fx.g1.dmg&&Math.abs(fx.g3.sup-fx.g1.sup*1.3)<.01&&fx.g5.dmg<fx.g3.dmg*.85&&fx.d3.sn===fx.d1.sn+3&&fx.r3.gr>=5,'perks and unlocks reach the man in battle');
+console.log(fails?'FAILS '+fails:'ALL OK');await b.close();srv.close();process.exit(0);})();

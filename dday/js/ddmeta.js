@@ -80,6 +80,8 @@ function ddmAttach(u,rm){
   for(const k of['w','g','t']){if(!ddmCan(rm,rm.gear[k]))rm.gear[k]=ddmStd(rm.role,k);const I=DDM_ITEMS[rm.gear[k]];
     if(I.weapon)u.weapon=I.weapon;if(I.grenade){u.grenade=I.grenade;u.gl=!!I.gl;}if(I.spec){u.spec=I.spec;u.specN=I.specN;}
     if(I.mod)for(const q in I.mod)u[q]=q==='supK'?I.mod[q]:(u[q]||0)+I.mod[q];}
+  for(const k of rm.perks||[])if(DDM_FX[k]&&ddmPerkOpts(rm).includes(k))DDM_FX[k](u);
+  for(const q of ddmUnl(rm))if(rm.level>=q[0])DDM_FX[q[1]](u);
 }
 const ddmSlotMan=(t,i)=>{if(!ddRoster)ddRoster=ddmRead();const m=ddRoster.squads[t][i]||null;return m&&m.hurt?false:m;};   // (false: he's wounded and sits this one out, Version 165)
 // Version 165, wounds (Bryan: "Another round of mid-battle customizing and healing happens before they set out"; his answers: a man still down
@@ -151,9 +153,21 @@ function ddmLineUp(){const rows=ddm.rows,[cx,cy]=ddm.sp.line,T={A:0,B:0};
 // (ddm.noms, the three who did most; ddmAward: a star and +100 XP); a perk is +6 on one stat, one of two on offer (rm.pkO)
 function ddmGain(r,xp){const rm=r.rm;r.gain+=xp;rm.xp+=xp;while(rm.xp>=ddmNeed(rm.level)){rm.xp-=ddmNeed(rm.level);rm.level++;rm.pk=(rm.pk||0)+1;for(const k in rm.st)rm.st[k]=Math.min(99,rm.st[k]+2);}r.lv1=rm.level;return r;}
 function ddmAward(i){const r=ddm.noms[i];if(!r||ddm.mvp)return;r.mvp=true;r.rm.stars++;ddmGain(r,100);ddm.mvp=r.u;ddm.rows.splice(ddm.rows.indexOf(r),1);ddm.rows.unshift(r);ddmCite(ddm.rows);ddmSave();}
-const DDM_PERK={hp:['TOUGH','+6 Health'],aim:['SHARP EYE','+6 Aim'],spd:['QUICK','+6 Speed'],brv:['STEADY','+6 Nerve']};
-function ddmPerkOpts(rm){if(!rm.pkO||rm.pkO.length!==2){const K=Object.keys(DDM_PERK),a=K.splice((Math.random()*K.length)|0,1)[0],b=K[(Math.random()*K.length)|0];rm.pkO=[a,b];}return rm.pkO;}
-function ddmPerkPick(rm,k){if(!rm||!(rm.pk>0)||!DDM_PERK[k]||!ddmPerkOpts(rm).includes(k))return false;rm.st[k]=Math.min(99,rm.st[k]+6);rm.pk--;rm.pkO=null;(rm.perks=rm.perks||[]).push(k);return true;}
+// Version 196 (Bryan: "perks tied to the man's jobs and unlockable upgrades with higher levels"): a perk is one of his job's two (DDM_JOB,
+// taken as often as he likes, kept in rm.perks); at levels 3 and 5 his job's upgrade unlocks by itself (DDM_UNLOCK, from rm.level). Both are
+// applied to the unit in ddmAttach (DDM_FX). The +6 stat perks of Versions 194-195 already taken stay in his stats.
+const DDM_FX={kit:u=>{if(u.spec)u.specN=(u.specN||0)+1;},kit2:u=>{if(u.spec)u.specN=(u.specN||0)+2;},calm:u=>{u.nerveK*=.85;},calm2:u=>{u.nerveK*=.5;},sup:u=>{u.supK*=1.15;},sup2:u=>{u.supK*=1.3;},
+  armor:u=>{u.dmgIn*=.92;},armor2:u=>{u.dmgIn*=.8;},aim:u=>{u.aimK+=.03;},aim2:u=>{u.aimK+=.07;},gren:u=>{u.grenade=(u.grenade||0)+1;},gren2:u=>{u.grenade=(u.grenade||0)+2;},fast:u=>{u.spdK+=.05;},fast2:u=>{u.spdK+=.12;}};
+const DDM_JOB={medic:[['kit','FIELD SURGEON','+1 medic kit'],['calm','CALM HANDS','Harder to pin']],gunner:[['sup','HEAVY FIRE','Pins 15% harder'],['armor','THICK SKIN','Takes 8% less']],
+  rifle:[['aim','MARKSMAN','Better aim'],['gren','GRENADIER','+1 grenade']],sharp:[['aim','STEADY BREATH','Better aim'],['fast','LIGHT FEET','Faster']],
+  demo:[['kit','ROCKETEER','+1 rocket'],['fast','LIGHT FEET','Faster']],eng:[['kit','BUILDER','+1 build kit'],['armor','THICK SKIN','Takes 8% less']]};
+const DDM_UNLOCK={medic:[[3,'kit2','COMBAT MEDIC','+2 medic kits'],[5,'calm2','UNSHAKEABLE','Half as easy to pin']],gunner:[[3,'sup2','SUPPRESSOR','Pins 30% harder'],[5,'armor2','BULWARK','Takes 20% less']],
+  rifle:[[3,'gren2','BANDOLIER','+2 grenades'],[5,'aim2','CRACK SHOT','Much better aim']],sharp:[[3,'aim2','HUNTER','Much better aim'],[5,'calm2','ICE COLD','Half as easy to pin']],
+  demo:[[3,'kit2','TANK HUNTER','+2 rockets'],[5,'fast2','SPRINTER','Much faster']],eng:[[3,'kit2','SAPPER','+2 build kits'],[5,'armor2','BULWARK','Takes 20% less']]};
+const ddmJob=rm=>DDM_JOB[rm.role]||DDM_JOB.rifle,ddmUnl=rm=>DDM_UNLOCK[rm.role]||DDM_UNLOCK.rifle;
+const ddmPerkOpts=rm=>ddmJob(rm).map(q=>q[0]);
+function ddmPerkPick(rm,k){if(!rm||!(rm.pk>0)||!ddmPerkOpts(rm).includes(k))return false;rm.pk--;rm.pkO=null;(rm.perks=rm.perks||[]).push(k);return true;}
+const ddmPerkN=(rm,k)=>(rm.perks||[]).filter(q=>q===k).length;
 const ddmPerksDue=()=>[...ddRoster.squads.A,...ddRoster.squads.B].reduce((n,m)=>n+(m&&m.pk||0),0);
 function ddmEnd(){   // (from leaveDDayNow and reset: everything of this put away)
   if(ddm&&ddm.room)ddmRoomDispose();ddm=null;document.body.classList.remove('ddm');const e=$('#ddm');if(e)e.remove();if(state==='ddmeta')state='end';
@@ -167,7 +181,8 @@ function ddMetaFrame(rdt,now){
   const SP=ddm.sp;
   if(ddm.ph==='report'){ddmRollTick(rdt);const r=ddm.rows[ddm.step],C=ddm.cam,one=!!r,zt=one?(cw<ch?10.5:9.5):(cw<ch?7.6:6.4),tx=one?r.u.x:SP.line[0],tz=(one?r.u.y+(cw<ch?16:6):SP.line[1]-34)+DD_CAM.look;
     if(C.x==null){C.x=tx;C.z=tz;C.zm=zt;}const e=Math.min(1,rdt*4.5);C.x+=(tx-C.x)*e;C.z+=(tz-C.z)*e;C.zm+=(zt-C.zm)*e;zoom=C.zm;yaw=0;tilt=ddTilt(C.zm);camT.x=C.x;camT.z=C.z;}
-  else{const z=cw<ch?SP.zoom[0]:SP.zoom[1];zoom=z;yaw=0;tilt=-.5;camT.x=SP.cam[0];camT.z=SP.cam[1]+DD_CAM.look;}
+  else{const z=cw<ch?SP.zoom[0]:SP.zoom[1],at=ddm.at&&SP[ddm.at],tx=at?at[0]:SP.cam[0],tz=(at?at[1]-(cw<ch?30:8):SP.cam[1])+DD_CAM.look,zt=at?z*1.7:z,C=ddm.bc||(ddm.bc={x:tx,z:tz,zm:zt}),e=Math.min(1,rdt*3.2);
+    C.x+=(tx-C.x)*e;C.z+=(tz-C.z)*e;C.zm+=(zt-C.zm)*e;zoom=C.zm;yaw=0;tilt=-.5;camT.x=C.x;camT.z=C.z;}   // (Version 196: walking the base)
   camShift=0;updateCamera();render(rdt,now);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);ddmPlace();
 }
 
@@ -193,7 +208,7 @@ function ddmUI(){
       <button type="button" class="ddm-tag stop${st('barracks',ddm.vis.bk)}" data-b="bk" data-a="barracks"><u>${ddm.vis.bk?'✓':++n}</u><span>BARRACKS<small>kit · ${R.recruits.length} recruits · reserve</small></span></button>
       ${last?'':`<button type="button" class="ddm-tag stop brief${st('go',false)}" data-b="sq" data-a="go"><u>${++n}</u><span>BRIEFING<small>${ddmEsc((DDM_NEXT[R.stage||1]||DDM_NEXT[1])[0])}</small></span></button>`}
       <button type="button" class="ddm-tag min" data-b="ar" data-a="armory">ARMORY<small>saved equipment</small></button>
-      ${ddm.hosp?`<div class="ddm-sheet mid"><div class="ddm-t">FIELD HOSPITAL</div><div class="ddm-dim" style="margin:4px 0 6px">A wounded man sits out the next chapter unless he's treated. ${(R.treat||0)>0?'One treatment this round is free; then a medal each.':'Each treatment costs a medal.'} You have ★ ${R.medals}.</div>${ddmHurt().length?ddmHurt().map(h=>`<div class="ddm-it"><span><b>${ddmEsc(h.m.name)}</b> · ${DDM_ROLE[h.m.role]} · Level ${h.m.level}</span><em>${h.where}</em><button type="button" class="ddm-btn sm" data-a="treat" data-u="${h.m.uid}"${(R.treat||0)<1&&R.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`).join(''):'<div class="ddm-dim" style="margin:8px 0">Nobody is wounded.</div>'}<button type="button" class="ddm-btn grey" data-a="hospx" style="margin-top:8px">CLOSE</button></div>`:''}
+      ${ddm.hosp?`<div class="ddm-sheet mid"><div class="ddm-t">FIELD HOSPITAL</div><div class="ddm-dim" style="margin:4px 0 6px">Untreated, he sits out the next mission. ${(R.treat||0)>0?'One free, then ★ 1 each.':'★ 1 each.'}</div>${ddmHurt().length?ddmHurt().map(h=>`<div class="ddm-it"><span><b>${ddmEsc(h.m.name)}</b> · ${DDM_ROLE[h.m.role]} · Level ${h.m.level}</span><em>${h.where}</em><button type="button" class="ddm-btn sm" data-a="treat" data-u="${h.m.uid}"${(R.treat||0)<1&&R.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`).join(''):'<div class="ddm-dim" style="margin:8px 0">Nobody is wounded.</div>'}<button type="button" class="ddm-btn grey" data-a="hospx" style="margin-top:8px">CLOSE</button></div>`:''}
       ${ddm.armory?`<div class="ddm-sheet mid"><div class="ddm-t">ARMORY · SAVED EQUIPMENT</div>${R.armory.length?R.armory.map(id=>`<div class="ddm-it${DDM_ITEMS[id].star?' gold':''}"><span><b>${DDM_ITEMS[id].star?'★ ':''}${DDM_ITEMS[id].n}</b> · ${DDM_ITEMS[id].d}</span><em>${DDM_ITEMS[id].role?DDM_ITEMS[id].role.map(r=>DDM_ROLE[r]).join(', '):'anyone'}</em></div>`).join(''):'<div class="ddm-dim" style="margin:8px 0">Nothing saved yet. In the barracks, press a piece of a man\'s kit and choose "Put it in the armory" to keep it here for later.</div>'}<button type="button" class="ddm-btn grey" data-a="armoryx">CLOSE</button></div>`:''}
       ${ddm.brief?ddmBriefHTML():''}
       <div class="ddm-bar bot">${(R.stage||0)<3?`${ddmNextHTML(nx)}<div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="menu">MENU</button><button type="button" class="ddm-btn grey" data-a="barracks">BARRACKS</button><button type="button" class="ddm-btn go" data-a="go">NEXT MISSION ▸</button></div>`
@@ -232,12 +247,12 @@ function ddmClick(ev){
   if(a==='award'){ddmAward(ddm.nom||0);ddm.scr=null;if(typeof sfxLevelUp==='function')sfxLevelUp(true);ddmRollGo(0);return;}
   if(a==='perk'){const r=ddm.rows[ddm.step];if(r&&ddmPerkPick(r.rm,b.dataset.k)){r.pkd=(r.pkd||[]).concat(b.dataset.k);if(typeof sfxLevelUp==='function')sfxLevelUp(false);ddmSave();ddmUI();}return;}
   if(a==='report'){ddm.ph='report';ddm.scr=null;ddm.cam={k:1};ddm.brief=ddm.hosp=ddm.armory=false;ddmLineUp();for(const r of ddm.rows)figRefresh(r.u);ddmRollGo(ddm.rows.length);return;}
-  if(a==='go'){ddm.brief=true;ddm.armory=false;ddm.hosp=false;ddmUI();return;}
-  if(a==='gox'){ddm.brief=false;ddmUI();return;}
+  if(a==='go'){ddm.brief=true;ddm.armory=false;ddm.hosp=false;ddm.at='sq';ddmUI();return;}
+  if(a==='gox'){ddm.brief=false;ddm.at=null;ddmUI();return;}
   if(a==='start'){ddmSave();if(!ddmFit().length){banner('Nobody fit in the squads: treat the wounded, or bring men in from the reserve or the recruits.',3600);return;}ddmEnd();if(R.stage===2)startVillage();else startCounter();return;}
-  if(a==='base'){ddm.ph='base';ddm.armory=false;ddm.hosp=false;ddm.brief=false;ddmHospFlag();const A=ddm.rows.map(r=>r.u);A.forEach((u,i)=>{u.x=ddm.sp.sq[0]+(i%4)*14;u.y=ddm.sp.sq[1]+((i/4)|0)*16;u.ang=Math.PI/2;u.atEase=true;figRefresh(u);});}
-  else if(a==='armory'){ddm.armory=true;ddm.hosp=false;}else if(a==='armoryx')ddm.armory=false;
-  else if(a==='hospital'){ddm.hosp=true;ddm.armory=false;}else if(a==='hospx')ddm.hosp=false;
+  if(a==='base'){ddm.ph='base';ddm.armory=false;ddm.hosp=false;ddm.brief=false;ddm.at=null;ddm.bc={x:ddm.sp.sq[0],z:ddm.sp.sq[1]+DD_CAM.look,zm:(cw<ch?ddm.sp.zoom[0]:ddm.sp.zoom[1])*1.7};ddmHospFlag();const A=ddm.rows.map(r=>r.u);A.forEach((u,i)=>{u.x=ddm.sp.sq[0]+(i%4)*14;u.y=ddm.sp.sq[1]+((i/4)|0)*16;u.ang=Math.PI/2;u.atEase=true;figRefresh(u);});}
+  else if(a==='armory'){ddm.armory=true;ddm.hosp=false;ddm.at='ar';}else if(a==='armoryx'){ddm.armory=false;ddm.at=null;}
+  else if(a==='hospital'){ddm.hosp=true;ddm.armory=false;ddm.at='hs';}else if(a==='hospx'){ddm.hosp=false;ddm.at=null;}
   else if(a==='treat'){const m=ddmAll().find(q=>String(q.uid)===b.dataset.u);if(ddmTreat(m)&&ddm.room)ddmRoomMen();}
   else if(a==='depot'){banner('The vehicle depot comes later.',2200);return;}
   else if(a==='menu'){ddmSave();reset();$('#end').hidden=true;$('#intro').hidden=false;state='intro';if(typeof ddCtrBtnShow==='function')ddCtrBtnShow();return;}
@@ -246,14 +261,14 @@ function ddmClick(ev){
   else if(a==='next'){if(ddmFit().length<1){banner('Nobody in the squads. Recruit someone at the barracks first.',3000);return;}ddmNext();return;}
   else if(a==='barracks'){ddm.vis.bk=1;ddm.ph='barracks';ddm.slot=null;ddm.sub=null;ddm.swap=null;ddm.cand=null;if(!ddm.room)ddmRoomBuild();ddmRoomMen();ddm.cam={k:1};}
   else if(a==='out'){   // (Version 192: leaving the barracks is only ever back to the base; the next mission starts from its briefing there, Bryan: "I entered the next level too quickly")
-    ddm.ph='base';ddm.armory=false;}
+    ddm.ph='base';ddm.armory=false;ddm.at=null;ddm.bc={x:ddm.sp.bk[0],z:ddm.sp.bk[1]+DD_CAM.look,zm:(cw<ch?ddm.sp.zoom[0]:ddm.sp.zoom[1])*1.7};}
   else ddmBarracksClick(a,b);
   ddmSave();ddmUI();
 }
 
 /* ---------- the barracks: its panels ---------- */
 const ddmSel=()=>ddm.slot?ddRoster.squads[ddm.slot[0]][ddm.slot[1]]:null;
-const ddmStats=(m,cls)=>`<div class="ddm-stats ${cls||''}"><div class="ddm-dim">${DDM_ROLE[m.role]} · Level ${m.level}${m.stars?' · '+'★'.repeat(Math.min(3,m.stars)):''}${m.kills?' · '+m.kills+' kills':''}</div>${[['Health','hp'],['Aim','aim'],['Speed','spd'],['Bravery','brv']].map(([n,k])=>`<div class="ddm-st"><span>${n}</span><div><em style="width:${m.st[k]}%"></em></div><b>${m.st[k]}</b></div>`).join('')}<div class="ddm-xp"><em style="--w:${Math.round(m.xp/ddmNeed(m.level)*100)}%"></em></div>${m.trait?`<div class="ddm-perk gold"><b>★ ${DDM_TRAITS[m.trait].n}</b><br>${DDM_TRAITS[m.trait].d}</div>`:''}${['w','t'].map(k=>DDM_ITEMS[m.gear[k]]).filter(I=>I.star).map(I=>`<div class="ddm-perk gold"><b>★ ${I.n}</b><br>${I.d} Lost if he dies.</div>`).join('')}${m.hurt?`<div class="ddm-perk hurt"><b>✚ Wounded</b><br>He sits out the next chapter unless he's treated.<br><button type="button" class="ddm-btn sm" data-a="treat" data-u="${m.uid}"${(ddRoster.treat||0)<1&&ddRoster.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`:''}</div>`;
+const ddmStats=(m,cls)=>`<div class="ddm-stats ${cls||''}"><div class="ddm-dim">${DDM_ROLE[m.role]} · Level ${m.level}${m.stars?' · '+'★'.repeat(Math.min(3,m.stars)):''}${m.kills?' · '+m.kills+' kills':''}</div>${[['Health','hp'],['Aim','aim'],['Speed','spd'],['Bravery','brv']].map(([n,k])=>`<div class="ddm-st"><span>${n}</span><div><em style="width:${m.st[k]}%"></em></div><b>${m.st[k]}</b></div>`).join('')}<div class="ddm-xp"><em style="--w:${Math.round(m.xp/ddmNeed(m.level)*100)}%"></em></div>${m.trait?`<div class="ddm-perk gold"><b>★ ${DDM_TRAITS[m.trait].n}</b><br>${DDM_TRAITS[m.trait].d}</div>`:''}${ddmUnl(m).map(q=>`<div class="ddm-unl sm${m.level>=q[0]?' new':''}"><b>${m.level>=q[0]?'★':'LV '+q[0]} ${q[2]}</b><span>${q[3]}</span></div>`).join('')}${ddmJob(m).filter(q=>ddmPerkN(m,q[0])).map(q=>`<div class="ddm-unl sm new"><b>${q[1]}${ddmPerkN(m,q[0])>1?' ×'+ddmPerkN(m,q[0]):''}</b><span>${q[2]}</span></div>`).join('')}${['w','t'].map(k=>DDM_ITEMS[m.gear[k]]).filter(I=>I.star).map(I=>`<div class="ddm-perk gold"><b>★ ${I.n}</b><br>${I.d} Lost if he dies.</div>`).join('')}${m.hurt?`<div class="ddm-perk hurt"><b>✚ Wounded</b><br>He sits out the next chapter unless he's treated.<br><button type="button" class="ddm-btn sm" data-a="treat" data-u="${m.uid}"${(ddRoster.treat||0)<1&&ddRoster.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`:''}</div>`;
 const ddmStar=m=>!!(m.trait||DDM_ITEMS[m.gear.w].star||DDM_ITEMS[m.gear.t].star);
 function ddmBarracksHTML(){
   const R=ddRoster,S=ddm.slot,m=ddmSel(),right=S&&S[0]==='B';
@@ -454,8 +469,9 @@ function ddmReportHTML(){
         <div class="ddm-chips"><span>KILLS<b>${r.kills}</b></span><span>REVIVES<b>${r.rev}</b></span><span>TIMES DOWN<b>${r.downs}</b></span><span>GRENADES<b>${r.items}</b></span></div>
         <div class="ddm-xpr"><div class="ddm-xpb"><em id="ddmXp" style="width:${Math.round((sn?m.xp/ddmNeed(r.lv1):r.xp0/ddmNeed(r.lv0))*100)}%"></em></div><span id="ddmXpN">+${sn?r.gain:0} XP</span></div>
         <div class="ddm-up" id="ddmUp"${sn&&up?'':' hidden'}>▲ LEVEL UP${r.lv1-r.lv0>1?' ×'+(r.lv1-r.lv0):''} · +${2*(r.lv1-r.lv0)} Health · Aim · Speed · Nerve</div>
-        ${pk?`<div class="ddm-pk" id="ddmPk"${sn?'':' hidden'}><div class="ddm-gl gold">CHOOSE A PERK${m.pk>1?' · '+m.pk+' TO CHOOSE':''}</div><div class="ddm-row">${pk.map(k=>`<button type="button" class="ddm-pkb" data-a="perk" data-k="${k}"><b>${DDM_PERK[k][0]}</b><span>${DDM_PERK[k][1]} · now ${m.st[k]}</span></button>`).join('')}</div></div>`:''}
-        ${(r.pkd||[]).length?`<div class="ddm-pkd">✓ ${r.pkd.map(k=>DDM_PERK[k][0]+' '+DDM_PERK[k][1]).join(' · ')}</div>`:''}
+        ${pk?`<div class="ddm-pk" id="ddmPk"${sn?'':' hidden'}><div class="ddm-gl gold">CHOOSE A PERK${m.pk>1?' · '+m.pk+' TO CHOOSE':''}</div><div class="ddm-row">${ddmJob(m).map(q=>`<button type="button" class="ddm-pkb" data-a="perk" data-k="${q[0]}"><b>${q[1]}${ddmPerkN(m,q[0])?' ×'+(ddmPerkN(m,q[0])+1):''}</b><span>${q[2]}</span></button>`).join('')}</div></div>`:''}
+        ${(r.pkd||[]).length?`<div class="ddm-pkd">✓ ${r.pkd.map(k=>(ddmJob(m).find(q=>q[0]===k)||[0,k])[1]).join(' · ')}</div>`:''}
+        ${ddmUnl(m).map(q=>q[0]<=r.lv1&&q[0]>r.lv0?`<div class="ddm-unl new" id="ddmUn"${sn?'':' hidden'}><b>★ UNLOCKED · ${q[2]}</b><span>${q[3]}</span></div>`:'').join('')}${(q=>q?`<div class="ddm-unl"><b>LEVEL ${q[0]} · ${q[2]}</b><span>${q[3]}</span></div>`:'')(ddmUnl(m).find(q=>q[0]>r.lv1))}
         ${r.mvp?'<div class="ddm-medal">★ The company\'s medal, from you</div>':''}
         <div class="ddm-dots">${ddm.rows.map((q,k)=>`<i class="${k===i?'on':q.seen?'ok':''}" data-a="card" data-i="${k}"></i>`).join('')}</div>
         <div class="ddm-row ddm-nav"><button type="button" class="ddm-btn grey" data-a="rollprev"${i?'':' disabled'}>◂</button><button type="button" class="ddm-btn" data-a="rollnext">${i<n-1?'NEXT MAN ▸':'DONE ▸'}</button></div>
@@ -492,7 +508,7 @@ function ddmRollTick(rdt){
 function ddmRollEnd(){   // his numbers as they end up, and his perk to choose
   const r=ddm.rows[ddm.step],A=ddm.an;if(!r||!A)return;A.done=true;r.seen=true;const g=id=>document.getElementById(id);
   if(g('ddmXp'))g('ddmXp').style.width=Math.round(r.rm.xp/ddmNeed(r.lv1)*100)+'%';if(g('ddmXpN'))g('ddmXpN').textContent='+'+r.gain+' XP';if(g('ddmLv'))g('ddmLv').textContent=r.lv1;
-  if(g('ddmUp')&&r.lv1>r.lv0)g('ddmUp').hidden=false;if(g('ddmPk'))g('ddmPk').hidden=false;
+  if(g('ddmUp')&&r.lv1>r.lv0)g('ddmUp').hidden=false;if(g('ddmPk'))g('ddmPk').hidden=false;if(g('ddmUn')){g('ddmUn').hidden=false;if(!r.unS){r.unS=1;if(typeof sfxLevelUp==='function')setTimeout(()=>sfxLevelUp(true),350);}}
 }
 function ddmRollTap(skip){
   if(!ddm||ddm.ph!=='report'||ddm.scr)return;const n=ddm.rows.length;

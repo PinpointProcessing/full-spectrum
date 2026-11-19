@@ -594,3 +594,6 @@ button.ddm-sr{position:relative;padding:9px 9px;min-height:58px;border-radius:9p
 .ddm-sum{gap:7px;top:124px}.ddm-sr b{font-size:14px}.ddm-sr span{font-size:9.5px}.ddm-sr>i{width:24px;height:24px}.ddm-sr q{display:inline-block;margin-top:3px;font-size:8.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px}
 .ddm-sum .ddm-dead{grid-column:1/-1;text-align:center;color:#9aa6b0;font-size:10.5px;font-weight:700;letter-spacing:.04em;background:rgba(10,15,20,.8);border-radius:7px;padding:5px}
 @media (prefers-reduced-motion:reduce){.ddm-stamp{animation:none}}
+/* Version 196: his job's upgrades on his card */
+.ddm-unl{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;padding:5px 9px;border-radius:8px;background:#18222b;color:#8793a0;font-size:10.5px}.ddm-unl b{letter-spacing:.06em;font-size:10.5px}
+.ddm-unl.new{background:rgba(255,215,106,.18);color:#ffe08a;animation:ddmPop .6s both}.ddm-unl.sm{margin-top:4px;padding:3px 6px;font-size:9px;display:block;animation:none}.ddm-unl.sm b{display:block;font-size:9px}
