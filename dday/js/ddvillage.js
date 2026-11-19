@@ -468,7 +468,7 @@ function vgTrucks(dt){
 function vgBlast(x,y){
   if(!dd||!dd.vil)return;
   for(const K of dd.vg.trucks){if(K.hp<=0||hyp(x-K.x,y-K.y)>44)continue;K.hp=0;if(K.ph==='unload'||K.ph==='drive'){K.ph='parked';K.men=K.n;}
-    for(const m of K.mats)m.color.setHex(0x1b1a18);tankFires.push({x:K.x,y:K.y,r:9,t0:simT,puffs:[],emit:0});booms.push({x:K.x,y:K.y,t:0,size:1.2});
+    if(typeof ddgTankBurn==='function')ddgTankBurn(K);else for(const m of K.mats)m.color.setHex(0x1b1a18);tankFires.push({x:K.x,y:K.y,r:9,t0:simT,puffs:[],emit:0});booms.push({x:K.x,y:K.y,t:0,size:1.2});
     if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.1);banner('A truck goes up.',2200);if(dd.vg.trucks.every(q=>q.ph==='parked'))dd.vg.r1&&(dd.vg.r1.done=true);}
 }
 // one of theirs sent to a place (a zone of the village, by its key, or a spot): there, he fights from cover round it

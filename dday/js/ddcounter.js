@@ -217,7 +217,7 @@ function dcGunHit(g){
   if(g.hits<3){banner(g.hits===1?`${g.n} hit · 2 more and it's gone`:`${g.n} hit again · 1 more and it's gone`,2600);return;}
   g.dead=true;g.aim=null;if(dd.dc.art===g)dd.dc.art=null;
   for(const u of[g.man,g.going])if(u){if(u.onGun){u.onGun=null;u.gunner=false;}if(u.dcGun===g)u.dcGun=null;}g.man=null;g.going=null;
-  if(m){m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.material=o.material.clone();o.material.color.setHex(0x1b1a18);}});}
+  if(m){m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.material=o.material.clone();if(typeof ddgBurnMat==='function')ddgBurnMat(o.material);else o.material.color.setHex(0x1b1a18);}});}   // (Version 190: charred brown-grey, not black)
   for(let q=0;q<3;q++)booms.push({x:g.x+(Math.random()-.5)*24,y:g.y+(Math.random()-.5)*20,t:-q*.1,size:1});tankFires.push({x:g.x,y:g.y-8,r:9,t0:simT,puffs:[],emit:0});
   shake(.6);if(typeof sfxBoom==='function')sfxBoom(g.x,g.y,1.1);banner(`${g.n} is knocked out.`,3200);
 }
