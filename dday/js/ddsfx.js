@@ -221,6 +221,12 @@ function ddsBoom(x,y,size){
       crack(.56,.5);toneHit(o.g,t,.25,'sine',110,50,.2*v,.003);ddsGrains(o,t+.15,.8,7,3000,.045*v);}
   }
 }
+// Version 190: the bursts that are only there to look at (ddfx.js's ddFxFar out on the flanks and the sea, ddFxBluff on the bluff ahead): a far
+// boom rolling in for each, late by the distance (ddsOut), never more than two far booms at once (shared with ddsBoom's far ones)
+function ddsFarBoom(x,y,sea){
+  if(!AC||!sndOn)return;const now=AC.currentTime,F=DSFX.cat.farx||(DSFX.cat.farx=[]);for(let i=F.length-1;i>=0;i--)if(F[i]<now)F.splice(i,1);if(F.length>=2)return;F.push(now+2.2);
+  const o=ddsOut(x,y,.85,4.5,true,.7,1.6);if(!o)return;ddsSrc(o,ddsPick(sea?'xsea':'xfar'),o.t0,ddsR(.8,.98),sea?.8:1);
+}
 // sand, earth or spray falling back: little filtered ticks scattered over a while
 function ddsGrains(o,t,len,n,f,a){for(let k=0;k<n;k++){const at=t+Math.pow(Math.random(),1.6)*len;noiseHit(o.g,at,.03+Math.random()*.05,'bandpass',f*(.5+Math.random()),1.5,a*(.4+Math.random()*.8),.002);}}
 // a gun firing: a tank's (where a tank is), else a field gun or the coast guns: the cannon recording with a crack in front

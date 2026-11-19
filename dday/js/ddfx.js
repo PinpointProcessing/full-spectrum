@@ -329,7 +329,7 @@ function ddFxFar(dt){
   for(let k=0;k<6;k++){const d=500+fxR()*1100,a=ha+(fxR()-.5)*1.1,x=C.x+Math.cos(a)*d,y=C.z+Math.sin(a)*d;
     const sea=y>820&&y<2400,side=(x<170||x>1230)&&x>-600&&x<2000&&y>300&&y<820,ride=dd&&dd.land&&!dd.land.done&&y>330&&y<720;if(!sea&&!side&&!ride)continue;   // (on the ride in, the beach ahead is shelled too: nobody of ours is on it yet)
     let near=false;for(const p of players)if(!p.dead&&hyp(p.x-x,p.y-y)<450){near=true;break;}if(near)continue;
-    if(sea)ddFxSpout(x,y,.8+fxR()*.5);else ddFxBlast(x,y,.9+fxR()*.4,false);return;}
+    if(sea)ddFxSpout(x,y,.8+fxR()*.5);else ddFxBlast(x,y,.9+fxR()*.4,false);if(typeof ddsFarBoom==='function')ddsFarBoom(x,y,sea);return;}   // (Version 190: heard too)
 }
 
 // Version 190: on a portrait phone the view ahead after the landing is narrow, and the far bursts above land off its sides, so the beach looked calm
@@ -342,7 +342,7 @@ function ddFxBluff(dt){
    if(x<200||x>1200||y>300)continue;
     let near=false;for(const p of players)if(!p.dead&&hyp(p.x-x,p.y-y)<cl[0]){near=true;break;}
     if(!near)for(const u of units)if(!u.dead&&hyp(u.x-x,u.y-y)<(u.side==='E'?cl[2]:cl[1])){near=true;break;}
-    if(near)continue;ddFxBlast(x,y,.75+fxR()*.35,false,true);return;}
+    if(near)continue;ddFxBlast(x,y,.75+fxR()*.35,false,true);if(typeof ddsFarBoom==='function')ddsFarBoom(x,y,false);return;}
 }
 // Version 190: two or three slow banks of battle smoke low along the foot of the bluff, beyond their line on the sand (y 90-130, within 220 either side
 // of where the view's middle meets it), never laid down within 140 of one of our men or in front of a German within 90 (one in front of it stays in
