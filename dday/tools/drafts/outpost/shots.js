@@ -16,6 +16,7 @@ const shot=async(n,cx,cy,zm,yw,tl)=>{await page.evaluate(([cx,cy,zm,yw,tl])=>{fo
   await page.waitForTimeout(500);await page.evaluate(()=>{render(.03,simT);});await page.waitForTimeout(200);await page.screenshot({path:`${OUT}/${n}.png`});console.log('shot',n);};
 const T=CAP?'cap-':'';
 await shot(T+'game',600,90,8.5,-.85,.38);
-await shot(T+'close',721,-9,9,-.85,.45);
-await shot(T+'top',686,26,5.5,0,.8);
+await shot(T+'close',728,-18,7.5,-.85,.45);
+await shot(T+'top',720,-10,5.5,0,.8);
+await shot(T+'back',740,-30,7,2.3,.5);
 console.log(JSON.stringify(await page.evaluate(()=>({LD,state,cam:camera.position.toArray().map(Math.round)}))));console.log('errors',errors.length,errors.slice(0,3));await b.close();srv.close();process.exit(0);})();
