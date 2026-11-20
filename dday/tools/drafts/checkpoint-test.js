@@ -28,12 +28,13 @@ await ev(()=>{render(.03,simT);drawOverlay(.03,simT);hud();});await page.waitFor
 const r=await ev(()=>{SAFE=1;{const L=enemies.filter(e=>e.tag==='outpost'&&!e.dead);L.slice(1).forEach(e=>e.hp=1e6);if(L.length>4){L[0].hp=0;L[0].dead=true;}}PUT('A',620,60);PUT('B',600,100);const n0=enemies.filter(e=>e.tag==='outpost').length;RUN(80);return{n0,n1:enemies.filter(e=>e.tag==='outpost').length,sent:dd.post.sent};});
 console.log(JSON.stringify(r));ok(r.sent===4&&r.n1>r.n0,'four more come out of the house over the fight, no more, and they count as theirs');
 // taken
-const t=await ev(()=>{for(const e of enemies)if(e.tag==='outpost'){e.hp=0;e.dead=true;}for(const e of enemies)if(e.tag==='draw')e.dead=true;PUT('A',742,-14);PUT('B',750,-28);dd.npcs.slice(0,6).forEach((u,k)=>Object.assign(u,{x:DDX+640+k*10,y:40,path:[],inBoat:false,afloat:false}));
-  RUN(2);const h=!!dd.held.outpost,flag=DD.postFlag.color.getHexString();RUN(60);
+const t=await ev(()=>{dd.track=null;for(const e of enemies)if(e.tag==='outpost'){e.hp=0;e.dead=true;}for(const e of enemies)if(e.tag==='draw')e.dead=true;PUT('A',742,-14);PUT('B',750,-28);dd.npcs.slice(0,6).forEach((u,k)=>Object.assign(u,{x:DDX+640+k*10,y:40,path:[],inBoat:false,afloat:false}));
+  RUN(2);const h=!!dd.held.outpost,flag=DD.postFlag.color.getHexString();RUN(60);const yaw0=+yaw.toFixed(2),tr=!!dd.track;
   const g=dd.post.guns.map(q=>q.man?[q.man.npc?'npc':'squad',+q.man.onGun.ang.toFixed(2),q.man.gunner]:null);selectTeam('A');dd.active='A';ddGoSquad('A');RUN(5);
-  const u=players.find(p=>p.team==='A'),w=ddRouteWay(u.x,u.y),O=ddObjective();return{h,flag,g,dbg:dd.post.guns.map(q=>[!!q.going,q.going&&q.going.path.length,dd.npcs.filter(n=>alive(n)&&!n.inBoat).length]),sp:ddSpawnAt(),order:dd.heldOrder,obj:O&&O.t,yaw:+yaw.toFixed(2),way:w?+Math.atan2(-w.x,-w.y).toFixed(2):null};});
+  const u=players.find(p=>p.team==='A'),w=ddRouteWay(u.x,u.y),O=ddObjective();return{yaw0,tr,h,flag,g,dbg:dd.post.guns.map(q=>[!!q.going,q.going&&q.going.path.length,dd.npcs.filter(n=>alive(n)&&!n.inBoat).length]),sp:ddSpawnAt(),order:dd.heldOrder,obj:O&&O.t,yaw:+yaw.toFixed(2),way:w?+Math.atan2(-w.x,-w.y).toFixed(2):null};});
 console.log(JSON.stringify(t));ok(t.h&&t.flag==='2f6fd0','the checkpoint is ours and its flag blue');ok(t.g.every(q=>q&&q[0]==='npc'&&q[2]),'one of the other troops on each gun, turned up the hill');
 ok(!/checkpoint/.test(t.obj||''),'the objective moves on: '+t.obj);
+ok(t.tr&&Math.abs(t.yaw0-.35)<.12,'the camera let go by a drag: taking the checkpoint takes it back and it swings to the second hill: '+t.yaw0);
 ok(Math.abs(t.yaw-.35)<.12,'taken, with the squad in it, the camera has swung round to face up the second hill: '+t.yaw);
 await ev(()=>{render(.03,simT);drawOverlay(.03,simT);hud();});await page.waitForTimeout(500);await ev(()=>{render(.03,simT);});await page.waitForTimeout(200);await page.screenshot({path:OUT+'/cp-2-taken.png'});
 // the other chapters still start

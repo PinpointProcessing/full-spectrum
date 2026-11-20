@@ -548,3 +548,8 @@ Bryan: "there should be a capture text above the flag or something pointing the 
 
 ## Version 205
 Bryan picked A: the place to take is lit in gold (`DD_CAP_HL` 1), like the blue of a place that's ours. "I don't like how it looks on the second checkpoint. It's too hilly. Can we make it a tad smaller to avoid the hills?": the checkpoint's gold area is its flat yard and the ground before its wall, `DD_CAPS[1].r` (692,-64,822,30), not its whole zone (the capture rule still uses the zone). `docs/drafts/v205-capture-area.png`.
+
+## Version 206
+Bryan, after Version 205: "the camera didn't turn up the hills when I entered either checkpoint"; "the players should advance when I man a gun (if the objective is to advance)".
+- The camera: its turns only run while it follows a squad (`dd.track`), and a drag of the map lets it go, so after any drag it never turned again until a squad was picked. That is my reading of why neither place turned for him; not reproduced from his play. Now taking the left bunker or the checkpoint (`ddZones`, ddplay.js) puts the camera back on the squad you play and clears a held hand-turn and where they'd been sent, so the turn that follows happens: the first hill at the left bunker, the second hill at the checkpoint. `checkpoint-test.js` lets the camera go first.
+- On a gun: while you're in first person on one of the checkpoint's guns, your own squad runs itself like the other (`ddSquadAI(dd.active)` in the once-a-second tick): on up the way when nobody of theirs is in front, held where it is while there is; it never takes a man on a gun (`!p.postGun`). EXIT and it's yours again. `gun-control-test.js`: from y -41 to -249 in 40 s with the gunner still on the gun.

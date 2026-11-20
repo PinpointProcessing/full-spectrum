@@ -517,7 +517,7 @@ function ddSelected(){
 }
 /* ---------- the squad that runs itself ---------- */
 function ddSquadAI(t){
-  const m=players.filter(p=>p.team===t&&alive(p)&&!p.inBoat);if(!m.length)return;
+  const m=players.filter(p=>p.team===t&&alive(p)&&!p.inBoat&&!p.postGun);if(!m.length)return;   // (not a man on one of the checkpoint's guns)
   const idle=dd.idle[t],cx=m.reduce((a,u)=>a+u.x,0)/m.length,cy=m.reduce((a,u)=>a+u.y,0)/m.length;
   // their own wounded first (always)
   for(const d of players.filter(p=>p.team===t&&p.downed&&!p.dead&&!p.carriedBy)){
@@ -828,7 +828,9 @@ function ddZones(){
     if(Z.k==='base'){if(dd.won)H.base=true;continue;}
     if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e)))continue;
     if(!dd.allies.some(u=>!u.inBoat&&u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1))continue;
-    H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were taken in: ddSpawnAt)
+    H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);
+    if((Z.k==='left'||Z.k==='outpost')&&dd.active&&!dd.fp){dd.track={team:dd.active};if(dd.cam){dd.cam.heldT=0;dd.cam.go=null;dd.cam.offA=null;}}   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
+if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were taken in: ddSpawnAt)
     for(const m of(Z.bk&&DD&&DD.bk&&DD.bk[Z.bk])||[])if(m&&m.color){m.color.lerp(new T.Color(0x5fa4ff),.42);if(m.emissive)m.emissive.setHex(0x12305a);}
   }
   // the barracks: ours once nobody of theirs is left near it and two of ours have stood at its door for four seconds
@@ -975,7 +977,8 @@ function ddTick(dt){
   // the squad that isn't being played, the other troops, the boats, the shells, the barracks
   dd.idle[dd.active]=0;const other=dd.active==='A'?'B':'A';
   ddHot();
-  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}else ddSquadAI(other);if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}   // (Version 168: with Lead one squad on, the other backs you up, ddctl.js)
+  if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}else ddSquadAI(other);if(dd.fp&&dd.fp.u&&dd.fp.u.postGun&&players.some(p=>p.team===dd.active&&alive(p)&&!p.postGun))ddSquadAI(dd.active);   // (Version 206, Bryan: "the players should advance when I man a gun (if the objective is to advance)": you're behind a gun, so your own squad goes on by itself, as the other does)
+    if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}   // (Version 168: with Lead one squad on, the other backs you up, ddctl.js)
   if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();if(typeof ddPostTick==='function')ddPostTick();ddRaids();ddHelpers();ddTidy();updateObjUI();}
   // the battle next door: tracers and shell bursts off to both sides, splashes out at sea
   if((dd.ambT-=dt)<=0){dd.ambT=.12+Math.random()*.2;const side=Math.random()<.5?-1:1,x=side<0?-80-Math.random()*700:DDB.x1+80+Math.random()*700,y=-300+Math.random()*900;
