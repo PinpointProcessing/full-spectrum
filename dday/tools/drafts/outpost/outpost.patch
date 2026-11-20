@@ -1,29 +1,25 @@
---- /home/user/full-spectrum/dday/js/dday.js	2026-11-19 11:44:58.398272253 +0000
-+++ js/dday.js	2026-11-20 11:12:59.713461940 +0000
+--- js/dday.js	2026-11-19 11:44:58.398272253 +0000
++++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 11:24:10.841975739 +0000
 @@ -85,7 +85,7 @@
    leftMG:{x:342,y:280,ang:Math.PI/2,arc:.34},leftMGs:[{x:318,y:280,ang:Math.PI/2+.6,arc:.34},{x:366,y:280,ang:Math.PI/2-.6,arc:.34}],
    nests:[{x:858,y:280,ang:Math.PI/2+.66,arc:.38},{x:906,y:280,ang:Math.PI/2,arc:.36},{x:954,y:280,ang:Math.PI/2-.5,arc:.36}],
    hillMG2:{x:912,y:186,ang:Math.PI/2-.55,arc:.62},hillMG3:{x:880,y:188,ang:Math.PI/2,arc:.62},pathMG:{x:292,y:-424,ang:1.32,arc:.8},sniper2:{x:206,y:-590},
 -  hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
-+  outMG:{x:806,y:78,ang:-2.45,arc:.95},hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
++  outMG:{x:630,y:88,ang:Math.PI/2+.25,arc:.9},hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
    mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:400,y:-715,w:240,h:60},door:{x:520,y:-640},   // (Version 152, Bryan: "The upper right barracks is awkward to turn too. Can we make it more direct on the path?": it stood at dx 700-940, a long way east along the top; now it's straight ahead where the way up comes out, beside the other one)
    
    barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},door3:{x:1085,y:-600},tankWay:[[1085,-600],[930,-578],[800,-565]],   // (Version 145: a second barracks behind the highest bunker; since Version 148 the counterattack comes out of their base's gate, ddbase.js)
-@@ -117,10 +117,12 @@
+@@ -117,6 +117,9 @@
    // the top of the hill on the right: a third bunker at its south rim, over the path and the beach, and an artillery piece behind sandbags
    o('ddpb',826,194,108,8,{cover:2,bk:'p3'});o('ddpb',826,154,8,40,{cover:2,full:true,bk:'p3'});o('ddpb',926,154,8,40,{cover:2,full:true,bk:'p3'});
    o('sandbag',946,124,34,10);o('sandbag',790,124,44,10);
-+  o('sandbag',826,46,124,10);o('sandbag',816,46,10,62);o('sandbag',950,46,10,52);o('sandbag',792,62,24,10);o('sandbag',786,62,10,30);   // (draft: the outpost on the first hill: a wall north and either side, the gun's pit at its north-west corner)
-+  o('ddcrate',905,104,20,16,{cover:1});
++  // (draft 2: the outpost at the top of the first path, running off to the right toward the hilltop: a front wall across the neck with the path through its left end, the gun's pit beside the gap, a back wall north, a leg of bags up the slope to the right)
++  o('sandbag',622,100,82,10);o('sandbag',704,56,10,54);o('sandbag',612,14,102,10);o('sandbag',612,76,10,34);o('sandbag',728,6,46,10);o('sandbag',768,6,10,30);
++  o('ddcrate',682,82,20,16,{cover:1});o('ddcrate',630,30,22,16,{cover:1});o('ddcrate',740,24,18,14,{cover:1});
    // the artillery, two guns on the second hill's top looking out over everything
    o('ddgun',690,-392,24,22,{cover:1,hp:200,tag:'art'});o('ddgun',800,-392,24,22,{cover:1,hp:200,tag:'art'});o('sandbag',676,-352,58,10);o('sandbag',786,-352,58,10);o('ddcrate',748,-420,22,20,{cover:1});
    // the nest up the draw: bags round three sides of its gun, which looks straight down the way up (Bryan: "The hill up should have a mg nest facing downwards")
--  o('sandbag',420,-158,10,38);o('sandbag',498,-158,10,38);o('ddcrate',850,66,22,20,{cover:1});o('ddcrate',930,60,22,20,{cover:1});
-+  o('sandbag',420,-158,10,38);o('sandbag',498,-158,10,38);o('ddcrate',846,62,22,18,{cover:1});o('ddcrate',926,62,18,16,{cover:1});
-   // the draw: sandbags across it at three heights, and boulders
-   for(const[x,y]of[[500,190],[430,-130],[520,-152],[230,-270]])o('sandbag',x,y,66,10);
-   for(const[x,y]of[[590,120],[660,20],[540,-40],[430,-80],[610,-100],[380,-190],[500,-215],[310,-245],[420,-262],[640,-170],[560,250],[520,105]])o('ddbould',x,y,18,15,{cover:1});
-@@ -404,11 +406,25 @@
+@@ -404,11 +407,25 @@
    DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,120,76,25,'hv')];
    for(const m of DD.roofs)m.castShadow=true;
    // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
@@ -34,17 +30,17 @@
        for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
        G.add(g);}}
 +  {   // (draft) the outpost's dugout: logs and earth over a pit, a camouflage net on poles over the stores, a flag, a radio mast
-+    const x0=DDX+884,y0=82,g0=ddH(x0,y0),log=M(0x5a4630,.9,0),earth=M(0x5c5a3a,1,0),net=new T.MeshStandardMaterial({color:0x4e5a34,roughness:1,side:T.DoubleSide,transparent:true,opacity:.86}),pole=M(0x3c3226,.9,0);
-+    for(const sx of[-17,17])for(let k=0;k<3;k++)add(new T.CylinderGeometry(1.9,1.9,30,7),log,x0+sx,g0+2+k*3.6,y0).rotation.x=Math.PI/2;      // side walls of stacked logs
-+    for(let k=0;k<3;k++)add(new T.CylinderGeometry(1.9,1.9,36,7),log,x0,g0+2+k*3.6,y0-14).rotation.z=Math.PI/2;                                 // the back wall, north
-+    for(let k=0;k<9;k++)add(new T.CylinderGeometry(1.7,1.7,34,7),log,x0-16+k*4,g0+13.4,y0-1).rotation.x=Math.PI/2;                               // the roof's logs
-+    const mound=add(new T.SphereGeometry(1,12,7),earth,x0,g0+14.2,y0-2);mound.scale.set(20,4.2,17);                                             // earth over them
++    const x0=DDX+672,y0=50,g0=ddH(x0,y0),log=M(0x5a4630,.9,0),earth=M(0x5c5a3a,1,0),net=new T.MeshStandardMaterial({color:0x4e5a34,roughness:1,side:T.DoubleSide,transparent:true,opacity:.86}),pole=M(0x3c3226,.9,0);
++    for(const sx of[-17,17])for(let k=0;k<3;k++)add(new T.CylinderGeometry(1.9,1.9,30,7),log,x0+sx,g0+2+k*3.6,y0).rotation.x=Math.PI/2;
++    for(let k=0;k<3;k++)add(new T.CylinderGeometry(1.9,1.9,36,7),log,x0,g0+2+k*3.6,y0-14).rotation.z=Math.PI/2;
++    for(let k=0;k<9;k++)add(new T.CylinderGeometry(1.7,1.7,34,7),log,x0-16+k*4,g0+13.4,y0-1).rotation.x=Math.PI/2;
++    const mound=add(new T.SphereGeometry(1,12,7),earth,x0,g0+14.2,y0-2);mound.scale.set(20,4.2,17);
 +    for(let k=0;k<6;k++){const b=add(bagG,bagM,x0-13+k*5.2,g0+17.4,y0+13);b.scale.set(3.4,1.9,2.6);}
-+    const nx=DDX+848,ny=74,n0=ddH(nx,ny);for(const[ax,ay]of[[-16,-12],[16,-12],[-16,12],[16,12]])add(new T.CylinderGeometry(.6,.6,17,5),pole,nx+ax,n0+8.5,ny+ay);
-+    const ng=new T.PlaneGeometry(38,30,6,5),np=ng.attributes.position;for(let i=0;i<np.count;i++)np.setZ(i,Math.sin(np.getX(i)*.3)*1.2+Math.cos(np.getY(i)*.4)*1.1-(Math.abs(np.getX(i))>18?3:0));ng.computeVertexNormals();
++    const nx=DDX+634,ny=40,n0=ddH(nx,ny);for(const[ax,ay]of[[-15,-11],[15,-11],[-15,11],[15,11]])add(new T.CylinderGeometry(.6,.6,17,5),pole,nx+ax,n0+8.5,ny+ay);
++    const ng=new T.PlaneGeometry(36,28,6,5),np=ng.attributes.position;for(let i=0;i<np.count;i++)np.setZ(i,Math.sin(np.getX(i)*.3)*1.2+Math.cos(np.getY(i)*.4)*1.1-(Math.abs(np.getX(i))>17?3:0));ng.computeVertexNormals();
 +    const nm=add(ng,net,nx,n0+17,ny);nm.rotation.x=-Math.PI/2;
-+    const fx=DDX+934,fy=92,f0=ddH(fx,fy);add(new T.CylinderGeometry(.5,.5,44,6),pole,fx,f0+22,fy);
-+    const fl=add(new T.PlaneGeometry(20,12),new T.MeshStandardMaterial({color:window.OP_FLAG||0xb02222,roughness:.9,side:T.DoubleSide,emissive:window.OP_FLAG||0xb02222,emissiveIntensity:.25}),fx+7,f0+37.5,fy+7,-Math.PI/4);
++    const fx=DDX+696,fy=92,f0=ddH(fx,fy);add(new T.CylinderGeometry(.5,.5,44,6),pole,fx,f0+22,fy);
++    add(new T.PlaneGeometry(20,12),new T.MeshStandardMaterial({color:window.OP_FLAG||0xb02222,roughness:.9,side:T.DoubleSide,emissive:window.OP_FLAG||0xb02222,emissiveIntensity:.25}),fx+7,f0+37.5,fy+7,-Math.PI/4);
 +    add(new T.CylinderGeometry(.25,.25,30,5),M(0x2a2c2e,.5,.7),x0+12,g0+30,y0-8);
 +  }
    if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
