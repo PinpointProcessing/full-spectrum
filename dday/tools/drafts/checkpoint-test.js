@@ -12,13 +12,13 @@ const a=await ev(()=>{window.SAFE=1;const d0=damage;damage=(t,d,s)=>SAFE&&t.side
   o.hid=objs.filter(q=>q.post).length;o.zone=!!DD_ZONES.find(z=>z.k==='outpost');
   o.seat=dd.post.guns.map(g=>!!findPath(DDX+560,150,g.x,g.y));o.door=!!findPath(P.door[0]+DDX,P.door[1],P.c[0]+DDX,P.c[1]);o.free=[isFree(P.door[0]+DDX,P.door[1]),isFree(DD_POST.c[0]+DDX,DD_POST.c[1]),isFree(DD_POST.house.x+DDX,DD_POST.house.y)];
   o.up=!!findPath(DDX+560,150,DDX+520,-60);   // (the way up still open past it)
-  o.cov=coverAt(DDX+700,10,DDX+680,120);o.los=los(DDX+742,-14,DDX+600,150);return o;});
+  o.cov=coverAt(dd.post.guns[0].x,dd.post.guns[0].y,DDX+680,120);o.los=los(DDX+752,-14,DDX+600,150);return o;});
 console.log(JSON.stringify(a));
 ok(a.foes.length===5&&a.foes.filter(s=>s.startsWith('mg')).length===2,'two gunners and three riflemen hold it');
 ok(a.zone&&a.hid>20,'its walls are on the map, and it is a place to take');
 ok(a.seat.every(Boolean)&&a.door&&a.up,'the guns can be reached from the path, the house\'s door leads in, the way up is still open');
 ok(a.free[0]&&a.free[1]&&!a.free[2],'the door and the yard are free ground, the house is solid');
-ok(a.cov>0,'a man behind the front wall has cover from down the path');
+ok(a.cov>0,'a man on a gun behind the wall has cover from down the path');
 // the objective and the camera
 const c=await ev(()=>{for(const e of enemies)if(e.tag==='left'||e.tag==='pill')e.dead=true;dd.held=dd.held||{};dd.held.beach=true;dd.held.left=true;PUT('A',540,200);PUT('B',600,230);selectTeam('A');dd.active='A';ddGoSquad('A');RUN(6);
   const O=ddObjective(),u=players.find(p=>p.team==='A'),px=DD_POST.c[0]+DDX,py=DD_POST.c[1],want=Math.atan2(-(px-u.x),-(py-u.y));let d=yaw-want;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return{t:O&&O.t,d:+d.toFixed(2),yaw:+yaw.toFixed(2)};});

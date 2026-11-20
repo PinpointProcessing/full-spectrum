@@ -3,11 +3,16 @@
 // taken"; the look settled over fourteen drafts, docs/drafts/v198-outpost-draft-*.jpg, from his own drawing: two walls of sandbags meeting at
 // the boulder at the top of the hill, two machine guns on the front one, field-stone walls along the back and the right, an open stone
 // shelter in the back corner, boxes and equipment about, a concrete house off to the right for men to come out of, no tent).
+// Version 201: one wall of bags in place of the two (Bryan: a captured gun turned almost a half circle and ended with its bags behind it):
+// W0 at the stone back wall down to W1 at the lip of the draw, the guns behind it on the yard's side (their seats `s` off the gun), facing
+// down at the climb and, once taken, turned to their right up the upper path over the corner where the bags meet the stone. A, B, F0, F1
+// and L1 are the old walls' ends, kept for the drafts' tools.
 // Everything is in beach coordinates (dx, y): add DDX for the world's x.
-const DD_POST={A:[743,-69],B:[679,17],F0:[686,19],F1:[739,28],C:[747,30],D:[826,-62],L1:[727,-47],   // (L1: where the left wall of bags stops, short of the stone at the back: the way in from the path)
-  sh:{x:796,y:-50,rot:-.84,w:32,d:22},house:{x:886,y:-36,w:36,d:54},door:[854,-36],flag:[684,32],c:[742,-14],
-  mg:[{x:712,y:16,ang:Math.PI/2+.3,arc:.8},{x:731,y:19,ang:Math.PI/2-.05,arc:.8}],
-  men:[[718,-4,1.9],[746,-24,2.2],[784,-40,2.4]],zone:[664,-92,846,42],reinf:4,every:14};
+const DD_POST={A:[743,-69],B:[679,17],F0:[686,19],F1:[739,28],C:[747,30],D:[826,-62],L1:[727,-47],
+  W0:[716,-69],W1:[741,28],S0:[718,-70],   // (Version 201: one wall of bags, from the stone at the back, carried west to S0 to meet it, down to the lip of the draw)
+  sh:{x:796,y:-50,rot:-.84,w:32,d:22},house:{x:886,y:-36,w:36,d:54},door:[854,-36],flag:[834,-16],c:[752,-14],
+  mg:[{x:729.9,y:-31.2,ang:2.6,arc:.8,s:[10,-2.6]},{x:736.9,y:-4,ang:2.4,arc:.8,s:[10,-2.6]}],
+  men:[[752,-12,2.5],[764,-32,2.6],[748,-46,2.8]],zone:[664,-92,846,42],reinf:4,every:14};
 const ddPostMid=(P,Q,t)=>[P[0]+(Q[0]-P[0])*t,P[1]+(Q[1]-P[1])*t];
 // the shelter's corners on the map (its long side turned sh.rot)
 function ddPostSh(lx,lz){const S=DD_POST.sh,c=Math.cos(S.rot),s=Math.sin(S.rot);return[S.x+lx*c+lz*s,S.y-lx*s+lz*c];}
@@ -16,11 +21,11 @@ function ddPostShWalls(){const S=DD_POST.sh,w=S.w/2,d=S.d/2;return[[ddPostSh(-w,
 // and the house solid, two stacks of ammunition boxes (the game's own, drawn as usual)
 function ddPostObjects(o){
   const P=DD_POST,run=(A,B,kind,ex)=>{const L=Math.hypot(B[0]-A[0],B[1]-A[1]),n=Math.max(1,Math.ceil(L/10));for(let i=0;i<n;i++){const q=ddPostMid(A,B,(i+.5)/n);o(kind,Math.round(q[0]-5),Math.round(q[1]-5),10,10,Object.assign({hid:true,post:1},ex||{}));}};
-  run(P.L1,P.B,'sandbag');run(P.F0,P.F1,'sandbag');
-  run(P.A,P.D,'sandbag',{stone:1});run(P.C,ddPostMid(P.C,P.D,.3),'sandbag',{stone:1});run(ddPostMid(P.C,P.D,.6),P.D,'sandbag',{stone:1});
+  run(P.W0,P.W1,'sandbag');
+  run(P.S0,P.D,'sandbag',{stone:1});run(P.C,ddPostMid(P.C,P.D,.3),'sandbag',{stone:1});run(ddPostMid(P.C,P.D,.6),P.D,'sandbag',{stone:1});
   for(const[a,b]of ddPostShWalls())run(a,b,'ddconc',{full:true,cover:2,stone:1});
   const H=P.house;o('ddconc',H.x-H.w/2,H.y-H.d/2,H.w,H.d,{hid:true,post:1,full:true,cover:2});
-  o('ddcrate',724,-36,18,14,{cover:1});
+  o('ddcrate',806,-6,18,14,{cover:1});
 }
 function ddPostStoneTex(){
   if(ddPostStoneTex.t)return ddPostStoneTex.t;const r=rng(4471);
@@ -39,7 +44,7 @@ function ddPostBuild(G,add,M){
     const wall=(A,B,cs)=>{const len=Math.hypot(B[0]-A[0],B[1]-A[1]),a=Math.atan2(B[1]-A[1],B[0]-A[0]),n=Math.max(2,Math.round(len/8.4));
       for(let c=0;c<cs;c++)for(let k=0;k<n-(c%2);k++){const q=ddPostMid(A,B,(k+.5+(c%2)*.5)/n),j=.94+r()*.12,tone=.8+r()*.26;
         L.push({g:bagGeo,p:[X(q[0]),gh(q[0],q[1])+2.3+c*3.7,q[1]],r:[0,-a+(r()-.5)*.2,(r()-.5)*.08],s:[8.9*j,9.6*j,15.5*j],c:new T.Color(tone,tone*(.97+r()*.05),tone*(.92+r()*.1))});}};
-    wall(P.L1,P.B,3);wall(P.F0,P.F1,3);
+    wall(P.W0,P.W1,3);
     for(let k=0;k<7;k++){const x=766+(k%3)*5.6,y=16-((k/3)|0)*4;L.push({g:bagGeo,p:[X(x),gh(x,y)+2.3+((k/3)|0)*3.6,y],r:[0,.3,0],s:[8.9,9.6,15.5],c:new T.Color(.9,.88,.84)});}   // a pile of spare ones
     add(ddgMerge(L,true),bagM,0,0,0);}
   // the stone: field stones laid in courses, each its own size and shade, one mesh
@@ -48,7 +53,7 @@ function ddPostBuild(G,add,M){
     const stone=(A,B,hh,th)=>{const len=Math.hypot(B[0]-A[0],B[1]-A[1]),a=Math.atan2(B[1]-A[1],B[0]-A[0]),cs=Math.round(hh/3.4);
       for(let c=0;c<cs;c++){let t=-(c%2)*2.6;while(t<len){const w=4.6+r()*5.4,m=clamp(t+w/2,1.5,len-1.5),q=ddPostMid(A,B,m/len),top=c===cs-1,h=3.3+(top?r()*1.6-.3:0);
           L.push({g:box,p:[X(q[0]),gh(q[0],q[1])+1.7+c*3.4+(top?(h-3.3)/2:0),q[1]],r:[(r()-.5)*.05,-a+(r()-.5)*.1,(r()-.5)*.05],s:[w-.45,h,th*(.84+r()*.3)],c:sh()});t+=w;}}};
-    stone(P.A,P.D,10.5,5.4);stone(P.C,ddPostMid(P.C,P.D,.3),10.5,5.4);stone(ddPostMid(P.C,P.D,.6),P.D,10.5,5.4);
+    stone(P.S0,P.D,10.5,5.4);stone(P.C,ddPostMid(P.C,P.D,.3),10.5,5.4);stone(ddPostMid(P.C,P.D,.6),P.D,10.5,5.4);
     for(const[a,b]of ddPostShWalls())stone(a,b,20.4,5.8);
     add(ddgMerge(L,true),stM,0,0,0);}
   const wood=M(0x6a5438,.9,0),steel=M(0x2a2c2e,.5,.7);
@@ -61,7 +66,7 @@ function ddPostBuild(G,add,M){
   // drums, jerrycans, a coil of wire
   {const drum=M(0x3c4a36,.7,.3),drum2=M(0x5a3a2a,.8,.2),can=M(0x4a5238,.7,.2);
     for(const[x,y,m]of[[806,-34,drum],[811,-38,drum],[808,-29,drum2]])add(new T.CylinderGeometry(3.1,3.1,9,10),m,X(x),gh(x,y)+4.5,y);
-    for(const[x,y,ry]of[[697,6,.3],[700,9,.5],[703,5,-.2]])add(new T.BoxGeometry(3.4,5,1.7),can,X(x),gh(x,y)+2.5,y,ry);
+    for(const[x,y,ry]of[[746,-16,.3],[749,-13,.5],[752,-17,-.2]])add(new T.BoxGeometry(3.4,5,1.7),can,X(x),gh(x,y)+2.5,y,ry);
     const c=add(new T.TorusGeometry(4.4,1.3,6,14),M(0x6a6058,.6,.6),X(752),gh(752,-52)+1.4,-52);c.rotation.x=Math.PI/2;}
   // the house: thick concrete, a flat roof with an overhang, an open doorway and a slit either side facing the checkpoint, bags on the roof
   {const H=P.house,conc=new T.MeshStandardMaterial({map:ddConcTex(),color:0xb9b7ae,roughness:.95}),dark=M(0x14161a,1,0),lint=M(0x77766e,.95,0),g=new T.Group(),h0=gh(H.x,H.y)-2;g.position.set(X(H.x),h0,H.y);g.rotation.y=-Math.PI/2;G.add(g);
@@ -84,8 +89,8 @@ function ddPostBuild(G,add,M){
 // its defenders, with the beach's others (ddplay.js): a gunner on each gun and three riflemen. A handful (Bryan: "Handful of men and a gun is
 // just fine. The points should get harder as the map progresses, this is still relatively early on the map")
 function ddPostSpawn(){
-  const P=DD_POST;for(const g of P.mg)ddGunner('outpost',g);for(const[x,y,a]of P.men)ddFoe('outpost',x,y,{post:true,ang:a});
-  dd.post={sent:0,t:6,done:false,guns:P.mg.map(g=>({gx:g.x+DDX,gy:g.y,x:g.x+DDX,y:g.y-7,man:null,going:null,goT:0}))};
+  const P=DD_POST;for(const g of P.mg){const u=ddGunner('outpost',g);u.x=g.x+DDX+g.s[0];u.y=g.y+g.s[1];}for(const[x,y,a]of P.men)ddFoe('outpost',x,y,{post:true,ang:a});
+  dd.post={sent:0,t:6,done:false,guns:P.mg.map(g=>({gx:g.x+DDX,gy:g.y,x:g.x+DDX+g.s[0],y:g.y+g.s[1],man:null,going:null,goT:0}))};
 }
 const DD_POST_UP=-Math.PI/2-.35;   // (up the hill and onto the draw's gun: north, a little west)
 // twice a second, with the other troops' thinking (ddplay.js)
@@ -94,7 +99,7 @@ function ddPostTick(){
   if(!held){   // a few more of theirs out of the house, one at a time, once the fight for it has started
     const mine=enemies.filter(e=>e.tag==='outpost'&&!beaten(e)).length;
     if(S.sent<P.reinf&&mine&&mine<5&&dd.allies.some(u=>!u.dead&&!u.inBoat&&hyp(u.x-cx,u.y-cy)<300)&&(S.t-=.5)<=0){
-      S.t=P.every;S.sent++;const u=ddFoe('outpost',P.door[0],P.door[1],{ang:Math.PI,name:'Defender'});enemies.push(u);const to=[[752,-14],[740,0],[766,-30],[758,-44]][S.sent%4];
+      S.t=P.every;S.sent++;const u=ddFoe('outpost',P.door[0],P.door[1],{ang:Math.PI,name:'Defender'});enemies.push(u);const to=[[752,-8],[750,-24],[766,-34],[748,-46]][S.sent%4];
       u.path=findPath(u.x,u.y,to[0]+DDX,to[1])||[];}
     return;}
   if(!S.done){S.done=true;if(DD.postFlag){DD.postFlag.color.setHex(0x2f6fd0);DD.postFlag.emissive.setHex(0x2f6fd0);}for(const g of DD.postGuns||[])g.rotation.y=-DD_POST_UP;}
@@ -165,7 +170,7 @@ function ddPostDraw(now){
   const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost||dd.fp||dd.counter||dd.vil)return;
   for(const g of S.guns){const mine=ddPostMine(g.man),going=ddPostMine(g.going),pu=.5+.5*Math.sin(now*4);
     const col=mine?'88,196,246':'205,210,216',a=mine?.95:going?.55+pu*.4:.8;
-    gPath(g.gx,g.gy,19);if(toSBack)continue;const q0=toS(g.gx,g.gy),q1=toS(g.gx+19,g.gy),R=Math.max(14,Math.hypot(q1[0]-q0[0],q1[1]-q0[1])),seg=R*Math.PI*2/6;   // a thick ring in six pieces that turns, nothing filled
+    gPath(g.gx,g.gy,14);if(toSBack)continue;const q0=toS(g.gx,g.gy),q1=toS(g.gx+14,g.gy),R=Math.max(14,Math.hypot(q1[0]-q0[0],q1[1]-q0[1])),seg=R*Math.PI*2/6;   // a thick ring in six pieces that turns, nothing filled
     ox.save();ox.lineCap='butt';ox.lineWidth=Math.max(4.5,R*.2);ox.strokeStyle='rgba(8,12,16,.45)';ox.stroke();ox.setLineDash([seg*.72,seg*.28]);ox.lineDashOffset=-now*R*(mine?1.5:.8);ox.lineWidth=Math.max(3.5,R*.15);ox.strokeStyle=`rgba(${col},${a})`;ox.stroke();ox.restore();
     toSBack=false;const q=toS(g.gx,g.gy+23);if(toSBack)continue;label(mine?'CONTROL':going?'ENTERING':'ENTER',q[0],q[1]+10,`rgb(${col})`,12,800);}
 }
