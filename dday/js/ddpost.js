@@ -165,7 +165,8 @@ function ddPostDraw(now){
   const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost||dd.fp||dd.counter||dd.vil)return;
   for(const g of S.guns){const mine=ddPostMine(g.man),going=ddPostMine(g.going),pu=.5+.5*Math.sin(now*4);
     const col=mine?'88,196,246':'205,210,216',a=mine?.95:going?.55+pu*.4:.8;
-    gPath(g.gx,g.gy,18);if(toSBack)continue;ox.fillStyle=`rgba(${col},${mine?.2:.12})`;ox.fill();ox.lineWidth=mine?3:2.4;ox.strokeStyle=`rgba(${col},${a})`;ox.stroke();
+    gPath(g.gx,g.gy,19);if(toSBack)continue;const q0=toS(g.gx,g.gy),q1=toS(g.gx+19,g.gy),R=Math.max(14,Math.hypot(q1[0]-q0[0],q1[1]-q0[1])),seg=R*Math.PI*2/6;   // a thick ring in six pieces that turns, nothing filled
+    ox.save();ox.lineCap='butt';ox.lineWidth=Math.max(4.5,R*.2);ox.strokeStyle='rgba(8,12,16,.45)';ox.stroke();ox.setLineDash([seg*.72,seg*.28]);ox.lineDashOffset=-now*R*(mine?1.5:.8);ox.lineWidth=Math.max(3.5,R*.15);ox.strokeStyle=`rgba(${col},${a})`;ox.stroke();ox.restore();
     toSBack=false;const q=toS(g.gx,g.gy+23);if(toSBack)continue;label(mine?'CONTROL':going?'ENTERING':'ENTER',q[0],q[1]+10,`rgb(${col})`,12,800);}
 }
 // the gun as you see it from behind it: a belt-fed machine gun on its mount (its barrel along +x, the sights on the line of the eye)
