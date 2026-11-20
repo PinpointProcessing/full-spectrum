@@ -1,5 +1,5 @@
 --- js/dday.js	2026-11-19 11:44:58.398272253 +0000
-+++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 12:21:44.695470911 +0000
++++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 12:23:16.364159847 +0000
 @@ -85,7 +85,7 @@
    leftMG:{x:342,y:280,ang:Math.PI/2,arc:.34},leftMGs:[{x:318,y:280,ang:Math.PI/2+.6,arc:.34},{x:366,y:280,ang:Math.PI/2-.6,arc:.34}],
    nests:[{x:858,y:280,ang:Math.PI/2+.66,arc:.38},{x:906,y:280,ang:Math.PI/2,arc:.36},{x:954,y:280,ang:Math.PI/2-.5,arc:.36}],
@@ -31,7 +31,7 @@
 +      for(const px of[-36,0,36])for(const pz of[-17,17]){const q=new T.Mesh(new T.CylinderGeometry(.6,.6,18,5),pole);q.position.set(px,9,pz);tg.add(q);}
 +      for(const px of[-36,36]){const q=new T.Mesh(new T.CylinderGeometry(.6,.6,25.5,5),pole);q.position.set(px,12.7,0);tg.add(q);}
 +      const rg=new T.Mesh(new T.CylinderGeometry(.5,.5,76,5),pole);rg.rotation.z=Math.PI/2;rg.position.y=25.4;tg.add(rg);}
-+    {const hx=DDX+892,hy=88,h0=ddH(hx,hy)-2,hg=new T.Group();hg.position.set(hx,h0,hy);hg.rotation.y=-Math.PI/2-.35;G.add(hg);
++    {const OH=window.OP_H||[892,88,-Math.PI/2-.35],hx=DDX+OH[0],hy=OH[1],h0=ddH(hx,hy)-2,hg=new T.Group();hg.position.set(hx,h0,hy);hg.rotation.y=OH[2];G.add(hg);
 +      const hb=(geo,mat,x,y,z)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;hg.add(m);return m;};
 +      hb(new T.BoxGeometry(54,26,36),conc,0,13,0);hb(new T.BoxGeometry(62,4.5,44),conc,0,28,0);hb(new T.BoxGeometry(58,3,40),M(0x77766e,.95,0),0,2,0);
 +      hb(new T.BoxGeometry(11,19,3),dark,0,9.5,17.4);hb(new T.BoxGeometry(15,2.4,2),M(0x77766e,.95,0),0,20.2,18.4);for(const sx of[-17,17])hb(new T.BoxGeometry(10,2.6,1.2),dark,sx,16,18.2);
