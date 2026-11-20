@@ -1,11 +1,11 @@
 --- js/dday.js	2026-11-19 11:44:58.398272253 +0000
-+++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 11:45:50.171416780 +0000
++++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 11:48:12.602954932 +0000
 @@ -85,7 +85,7 @@
    leftMG:{x:342,y:280,ang:Math.PI/2,arc:.34},leftMGs:[{x:318,y:280,ang:Math.PI/2+.6,arc:.34},{x:366,y:280,ang:Math.PI/2-.6,arc:.34}],
    nests:[{x:858,y:280,ang:Math.PI/2+.66,arc:.38},{x:906,y:280,ang:Math.PI/2,arc:.36},{x:954,y:280,ang:Math.PI/2-.5,arc:.36}],
    hillMG2:{x:912,y:186,ang:Math.PI/2-.55,arc:.62},hillMG3:{x:880,y:188,ang:Math.PI/2,arc:.62},pathMG:{x:292,y:-424,ang:1.32,arc:.8},sniper2:{x:206,y:-590},
 -  hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
-+  outMG:{x:625,y:75,ang:2.98,arc:.8},outMG2:{x:651,y:101,ang:1.74,arc:.8},hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
++  outMG:{x:634,y:83,ang:2.57,arc:.8},outMG2:{x:664,y:102,ang:2.22,arc:.8},hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
    mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:400,y:-715,w:240,h:60},door:{x:520,y:-640},   // (Version 152, Bryan: "The upper right barracks is awkward to turn too. Can we make it more direct on the path?": it stood at dx 700-940, a long way east along the top; now it's straight ahead where the way up comes out, beside the other one)
    
    barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},door3:{x:1085,y:-600},tankWay:[[1085,-600],[930,-578],[800,-565]],   // (Version 145: a second barracks behind the highest bunker; since Version 148 the counterattack comes out of their base's gate, ddbase.js)
@@ -13,11 +13,11 @@
    // the top of the hill on the right: a third bunker at its south rim, over the path and the beach, and an artillery piece behind sandbags
    o('ddpb',826,194,108,8,{cover:2,bk:'p3'});o('ddpb',826,154,8,40,{cover:2,full:true,bk:'p3'});o('ddpb',926,154,8,40,{cover:2,full:true,bk:'p3'});
    o('sandbag',946,124,34,10);o('sandbag',790,124,44,10);
-+  o('ddcrate',668,60,18,14,{cover:1});o('ddcrate',646,52,14,12,{cover:1});   // (draft 4: stores inside the horseshoe)
++  o('ddcrate',664,58,18,14,{cover:1});o('ddcrate',650,40,14,12,{cover:1});   // (draft 4: stores inside the horseshoe)
    // the artillery, two guns on the second hill's top looking out over everything
    o('ddgun',690,-392,24,22,{cover:1,hp:200,tag:'art'});o('ddgun',800,-392,24,22,{cover:1,hp:200,tag:'art'});o('sandbag',676,-352,58,10);o('sandbag',786,-352,58,10);o('ddcrate',748,-420,22,20,{cover:1});
    // the nest up the draw: bags round three sides of its gun, which looks straight down the way up (Bryan: "The hill up should have a mg nest facing downwards")
-@@ -404,11 +405,27 @@
+@@ -404,11 +405,30 @@
    DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,120,76,25,'hv')];
    for(const m of DD.roofs)m.castShadow=true;
    // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
@@ -29,9 +29,12 @@
        G.add(g);}}
 +  {   // (draft 4, from Bryan's sketch) a horseshoe of sandbags at the top of the first path, open at the back, a gun at each front corner; a tent behind it; a concrete house behind that
 +    const cx=DDX+656,cy=70,R=36,f0=2.3562,bm=new T.MeshStandardMaterial({map:ddgTex('burlap'),color:0xd8c9a0,roughness:1}),canvas=new T.MeshStandardMaterial({color:0x6a6a44,roughness:1,side:T.DoubleSide}),conc=new T.MeshStandardMaterial({map:ddConcTex(),color:0xb9b7ae,roughness:.95}),dark=M(0x14161a,1,0),pole=M(0x3c3226,.9,0);
-+    for(let c=0;c<3;c++){const n=30-c;for(let i=0;i<n;i++){const a=f0-2.2+4.4*(i+(c%2)*.5)/(n-1+.5),x=cx+R*Math.cos(a),y=cy+R*Math.sin(a);if(a>f0+2.2)continue;const b=add(bagG,bm,x,ddH(x,y)+2+c*3.5,y,-a+Math.PI/2);b.scale.set(4.6,2.1,2.9);}}
++    // straight walls of bags, as he drew it: a left face and a front face meeting in a point toward the path, a back wall, the right side open but for a stub at each end
++    const wall=(P,Q,cs=3)=>{const L=Math.hypot(Q[0]-P[0],Q[1]-P[1]),a=Math.atan2(Q[1]-P[1],Q[0]-P[0]);for(let c=0;c<cs;c++){const n=Math.max(2,Math.round(L/8.6))-(c%2);for(let i=0;i<n;i++){const t=(i+.5+(c%2)*.5)/(n+(c%2)),x=DDX+P[0]+(Q[0]-P[0])*t,y=P[1]+(Q[1]-P[1])*t;const b=add(bagG,bm,x,ddH(x,y)+2+c*3.5,y,-a);b.scale.set(4.7,2.1,2.9);}}};
++    const A=[648.5,16.7],B=[621.1,80.8],Cc=[664.7,107.6],E=[711.4,74.5],mid=(P,Q,t)=>[P[0]+(Q[0]-P[0])*t,P[1]+(Q[1]-P[1])*t];
++    wall(A,B);wall(B,Cc);wall(A,E,2);wall(Cc,mid(Cc,E,.28));wall(mid(Cc,E,.74),E,2);
 +    // the tent: a ridge tent, flaps open toward the horseshoe
-+    const tx=DDX+690,ty=30,t0=ddH(tx,ty),tr=-f0+Math.PI/2;const tg=new T.Group();tg.position.set(tx,t0,ty);tg.rotation.y=tr;G.add(tg);
++    const tx=DDX+704,ty=26,t0=ddH(tx,ty),tr=-f0+Math.PI/2;const tg=new T.Group();tg.position.set(tx,t0,ty);tg.rotation.y=tr;G.add(tg);
 +    {const t=new T.Mesh(new T.CylinderGeometry(12,12,34,3,1),canvas);t.rotation.set(0,0,Math.PI/2);t.rotation.x=Math.PI/2;t.position.y=6;t.castShadow=true;const w=new T.Group();w.rotation.x=0;w.add(t);tg.add(w);
 +      const fl=new T.Mesh(new T.PlaneGeometry(7,11),dark);fl.position.set(-17.1,5.4,0);fl.rotation.y=-Math.PI/2;tg.add(fl);}
 +    // the house: thick concrete walls, a flat roof with an overhang, a steel door facing the outpost, a slit either side
