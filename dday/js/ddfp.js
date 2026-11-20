@@ -70,7 +70,7 @@ function fpAimPoint(max,min){   // the spot on the ground under the crosshair, k
 /* one round, where the crosshair is: it hits whoever is on that line (their cover still stops some), not a roll of the dice */
 function fpShoot(){
   const F=dd.fp,u=F.u,P=fpPose(),W=FP_W[fpWK(u)],O=P.O,D=P.D.clone();
-  const sp=W.spread*(F.aim?.5:1)*(F.moving?1.8:1)*(1+Math.min(1,u.sup));
+  const sp=W.spread*(F.aim?.5:1)*(F.moving?1.8:1)*(1+Math.min(1,u.sup))*(u.postGun?.6:1);   // (the checkpoint's guns are steadier: at 73 m four rounds in sixty hit, Version 211)
   D.x+=(Math.random()-.5)*2*sp;D.y+=(Math.random()-.5)*2*sp;D.z+=(Math.random()-.5)*2*sp;D.normalize();
   const tmin=P.one?0:FPC.back*.9,G=fpGround(O,D),tG=G?G.t:1500;
   let best=null,bt=tG+6;
@@ -78,8 +78,11 @@ function fpShoot(){
     for(const h of[5,12,19]){const vx=e.x-O.x,vy=g+h-O.y,vz=e.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;
       if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<4.2+t*.011){best=e;bt=t;break;}}}
   let tank=null;for(const K of ddTanksUp()){const vx=K.x-O.x,vy=gndH(K.x,K.y)+12-O.y,vz=K.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<24){tank=K;best=null;bt=t-20;}}
-  const reach=Math.min(bt,W.range+tmin);let ex=O.x+D.x*reach,ey=O.z+D.z*reach;
-  if(best&&(hyp(best.x-u.x,best.y-u.y)>W.range||!los(u.x,u.y,best.x,best.y)))best=null;
+  // (Version 211, Bryan: "the MG nest from the top of the hill can reach the lowers MG nests and vice versa. It seems like I was unable to hit them
+  // from the bottom MG nest": a gun's reach in your hands was 62 m and the roof's guns are 72 to 75 m off, so every round stopped short. One of the
+  // checkpoint's guns reaches 90 m now; and a man up on a roof is hit over whatever stands between on the ground)
+  const R=u.postGun?900:W.range,reach=Math.min(bt,R+tmin);let ex=O.x+D.x*reach,ey=O.z+D.z*reach;
+  if(best&&(hyp(best.x-u.x,best.y-u.y)>R||!((best.elev||0)>20&&u.postGun)&&!los(u.x,u.y,best.x,best.y)))best=null;
   if(best){ex=best.x;ey=best.y;const c=coverAt(best.x,best.y,u.x,u.y);best.revealT=Math.max(best.revealT||0,simT+1.6);
     best.sup=Math.min(1.2,best.sup+W.sup*(u.supK||1)*(best.nerveK||1));if(!best.alerted)best.alerted=true;
     if(c&&Math.random()<(c>=2?.45:.25)){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}
