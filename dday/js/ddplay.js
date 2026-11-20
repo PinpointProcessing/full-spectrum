@@ -74,8 +74,8 @@ function spawnDDay(){
   ddFoe('top',S.sniper2.x,S.sniper2.y,{post:true,name:'Sniper',weapon:'sniper'});ddFoe('art',676,-410,{post:true,name:'Gun crew'});ddFoe('art',746,-404,{post:true,name:'Gun crew'});ddFoe('art',830,-410,{post:true,name:'Gun crew'});
   ddGunner('draw',S.drawMG);ddFoe('draw',420,-150,{zone:Z(380,-200,640,-60)});ddFoe('draw',542,-164,{zone:Z(380,-200,640,-60),nade:1});
   ddFoe('draw',252,-282,{zone:Z(150,-320,420,-220)});ddFoe('draw',318,-258,{zone:Z(150,-320,420,-220)});
-  for(const g of S.heavyMGs){const u=ddGunner('heavy',g,'Machine gunner',{longR:560,elev:g.elev});u.x=g.x+DDX-7;u.y=g.y;}   // (Version 210: two on the heavy gun's roof, looking down at the checkpoint and the way up)
-  ddFoe('heavy',56,-412,{post:true,name:'Gun crew'});ddFoe('heavy',126,-412,{post:true,name:'Gun crew'});
+  for(const g of S.heavyMGs){const u=ddGunner('heavy',g,'Machine gunner',{longR:560});u.x=g.x+DDX-10;u.y=g.y;}   // (Version 212: two inside the heavy gun's bunker, at its east opening, on the checkpoint and the way up)
+  ddFoe('heavy',56,-412,{post:true,name:'Gun crew'});ddFoe('heavy',60,-392,{post:true,name:'Gun crew'});
   ddFoe('top',S.sniper.x,S.sniper.y,{post:true,name:'Sniper',weapon:'sniper'});
   ddFoe('cannon',264,-592,{post:true,name:'Gun crew'});
   ddGunner('top',S.topMG);

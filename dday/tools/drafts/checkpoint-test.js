@@ -31,7 +31,7 @@ console.log(JSON.stringify(r));ok(r.sent===4&&r.n1>r.n0,'four more come out of t
 const t=await ev(()=>{dd.track=null;yaw+=1.3;for(const e of enemies)if(e.tag==='outpost'){e.hp=0;e.dead=true;}for(const e of enemies)if(e.tag==='draw')e.dead=true;PUT('A',640,96);PUT('B',750,-28);   // (the hard case: the camera let go and turned by hand, your own squad still below the wall, the other one inside)
   dd.npcs.slice(0,6).forEach((u,k)=>Object.assign(u,{x:DDX+640+k*10,y:40,path:[],inBoat:false,afloat:false}));
   RUN(2);const h=!!dd.held.outpost,flag=DD.postFlag.color.getHexString();RUN(7);const yaw0=+yaw.toFixed(2),tr=!!dd.track;PUT('A',742,-14);RUN(53);
-  const g=dd.post.guns.map(q=>q.man?[q.man.npc?'npc':'squad',+q.man.onGun.ang.toFixed(2),q.man.gunner]:null);selectTeam('A');dd.active='A';ddGoSquad('A');RUN(5);
+  const g=dd.post.guns.filter(q=>q.z==='outpost').map(q=>q.man?[q.man.npc?'npc':'squad',+q.man.onGun.ang.toFixed(2),q.man.gunner]:null);selectTeam('A');dd.active='A';ddGoSquad('A');RUN(5);
   const u=players.find(p=>p.team==='A'),w=ddRouteWay(u.x,u.y),O=ddObjective();return{yaw0,tr,h,flag,g,dbg:dd.post.guns.map(q=>[!!q.going,q.going&&q.going.path.length,dd.npcs.filter(n=>alive(n)&&!n.inBoat).length]),sp:ddSpawnAt(),order:dd.heldOrder,obj:O&&O.t,yaw:+yaw.toFixed(2),way:w?+Math.atan2(-w.x,-w.y).toFixed(2):null};});
 console.log(JSON.stringify(t));ok(t.h&&t.flag==='2f6fd0','the checkpoint is ours and its flag blue');ok(t.g.every(q=>q&&q[0]==='npc'&&q[2]),'one of the other troops on each gun, turned up the hill');
 ok(!/checkpoint/.test(t.obj||''),'the objective moves on: '+t.obj);
