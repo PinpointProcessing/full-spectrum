@@ -47,8 +47,8 @@ function buildVaultLinks(){
   WINDOWS.length=0;vaultLinks.clear();
   for(const o of objs){
     if(!VAULTABLE.has(o.kind))continue;
-    const vert=o.h>o.w,w={o,vert,c:vert?o.x+o.w/2:o.y+o.h/2,id:WINDOWS.length};WINDOWS.push(w);   // vert: runs north-south, crossed east-west
-    const a0=(vert?o.y:o.x)+6,a1=(vert?o.y+o.h:o.x+o.w)-6,mid=Math.floor((vert?w.c:w.c-TOP)/CS);   // the row or column of cells the window sits in
+    const all=!!o.vaultAll,vert=all?!!o.vert:o.h>o.w,w={o,vert,c:vert?o.x+o.w/2:o.y+o.h/2,id:WINDOWS.length};WINDOWS.push(w);   // vert: runs north-south, crossed east-west
+    const a0=(vert?o.y:o.x)+(all?0:6),a1=(vert?o.y+o.h:o.x+o.w)-(all?.01:6),mid=Math.floor((vert?w.c:w.c-TOP)/CS);   // the row or column of cells the window sits in
     for(let g=0;g<(vert?GH:GW);g++){
       const a=vert?cy0(g):cx0(g);if(a<a0||a>a1)continue;
       const at=k=>vert?g*GW+k:k*GW+g,free=k=>k>=0&&k<(vert?GW:GH)&&!blk[at(k)];
@@ -65,8 +65,8 @@ function buildVaultLinks(){
 function throughOpening(a,b,w){
   const o=w.o,da=w.vert?b.x-a.x:b.y-a.y;if(!da)return false;
   const t=(w.c-(w.vert?a.x:a.y))/da;if(t<0||t>1)return false;
-  const at=w.vert?a.y+(b.y-a.y)*t:a.x+(b.x-a.x)*t,lo=(w.vert?o.y:o.x)+6,hi=(w.vert?o.y+o.h:o.x+o.w)-6;
-  return at>=lo&&at<=hi&&!objs.some(q=>q!==o&&segHitsRect(a.x,a.y,b.x,b.y,q,4));
+  const at=w.vert?a.y+(b.y-a.y)*t:a.x+(b.x-a.x)*t,lo=(w.vert?o.y:o.x)+(o.vaultAll?-2:6),hi=(w.vert?o.y+o.h:o.x+o.w)-(o.vaultAll?-2:6);   // (vaultAll: a piece of a slanted run of bags, ddpost.js: crossed anywhere, its neighbours not in the way)
+  return at>=lo&&at<=hi&&!objs.some(q=>q!==o&&!(o.vaultAll&&q.vaultAll)&&segHitsRect(a.x,a.y,b.x,b.y,q,4));
 }
 buildVaultLinks();
 // everything that depends on the map's objects, rebuilt when the map changes (interior.js)

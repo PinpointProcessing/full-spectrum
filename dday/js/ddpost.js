@@ -21,7 +21,7 @@ function ddPostShWalls(){const S=DD_POST.sh,w=S.w/2,d=S.d/2;return[[ddPostSh(-w,
 // and the house solid, two stacks of ammunition boxes (the game's own, drawn as usual)
 function ddPostObjects(o){
   const P=DD_POST,run=(A,B,kind,ex)=>{const L=Math.hypot(B[0]-A[0],B[1]-A[1]),n=Math.max(1,Math.ceil(L/10));for(let i=0;i<n;i++){const q=ddPostMid(A,B,(i+.5)/n);o(kind,Math.round(q[0]-5),Math.round(q[1]-5),10,10,Object.assign({hid:true,post:1},ex||{}));}};
-  run(P.W0,P.W1,'sandbag');
+  run(P.W0,P.W1,'sandbag',{vaultAll:true,vert:true});   // (hopped over anywhere along it, east-west: pathfinding.js)
   run(P.S0,P.D,'sandbag',{stone:1});run(P.C,ddPostMid(P.C,P.D,.3),'sandbag',{stone:1});run(ddPostMid(P.C,P.D,.6),P.D,'sandbag',{stone:1});
   for(const[a,b]of ddPostShWalls())run(a,b,'ddconc',{full:true,cover:2,stone:1});
   const H=P.house;o('ddconc',H.x-H.w/2,H.y-H.d/2,H.w,H.d,{hid:true,post:1,full:true,cover:2});
@@ -79,10 +79,11 @@ function ddPostBuild(G,add,M){
   {const[fx,fy]=P.flag,f0=gh(fx,fy);add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),X(fx),f0+23,fy);
     const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,X(fx)+7,f0+39,fy+7,-Math.PI/4);DD.postFlag=fm;}
   // the two guns on their tripods, pointing down the path; turned up the hill once they're ours
-  DD.postGuns=P.mg.map(sp=>{const g=new T.Group();g.position.set(X(sp.x),gh(sp.x,sp.y),sp.y);g.rotation.y=-sp.ang;
-    const q=(geo,px,py,pz,rz)=>{const b=new T.Mesh(geo,steel);b.position.set(px,py,pz);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);};
+  DD.postGuns=P.mg.map(sp=>{const g=new T.Group(),gm=steel.clone();g.userData.mat=gm;   // (its own material: it glows once it's yours to take, ddPostDraw)
+    g.position.set(X(sp.x),gh(sp.x,sp.y),sp.y);g.rotation.y=-sp.ang;
+    const q=(geo,px,py,pz,rz)=>{const b=new T.Mesh(geo,gm);b.position.set(px,py,pz);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);};
     q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);
-    for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),steel);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
+    for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
     G.add(g);return g;});
 }
 /* ---------- the fight for it ---------- */
@@ -111,7 +112,7 @@ function ddPostTick(){
     if(m&&(!alive(m)||m.path.length||m.postGun!==g)){if(m.postGun===g){m.onGun=null;m.gunner=false;m.postGun=null;}g.man=null;}
     const u=g.going;
     if(u){if(!alive(u)||u.postGun!==g||simT-g.goT>40){if(u.postGun===g)u.postGun=null;g.going=null;}
-      else if(!u.path.length){g.going=null;if(hyp(u.x-g.x,u.y-g.y)<20&&!g.man){g.man=u;g.idleT=simT;g.manT=simT;u.x=g.x;u.y=g.y;u.ang=DD_POST_UP;u.aimT=simT;u.onGun={x:g.gx,y:g.gy,ang:DD_POST_UP,arc:1.15};u.gunner=true;}else if(g.man||(u.lastOrder??-99)>g.goT+.01)u.postGun=null;   // (taken meanwhile, or you've sent him somewhere else)
+      else if(!u.path.length){g.going=null;if(hyp(u.x-g.x,u.y-g.y)<20&&!g.man){g.man=u;g.idleT=simT;g.manT=simT;u.x=g.x;u.y=g.y;u.ang=DD_POST_UP;u.aimT=simT;u.onGun={x:g.gx,y:g.gy,ang:DD_POST_UP,arc:1.15};u.gunner=true;if(g.auto&&ddPostMine(u)){g.auto=false;ddPostControl(g);}}else if(g.man||(u.lastOrder??-99)>g.goT+.01)u.postGun=null;   // (taken meanwhile, or you've sent him somewhere else)
         else{const p=findPath(u.x,u.y,g.x,g.y);if(p&&p.length){u.path=p;g.going=u;}else u.postGun=null;}}   // (stopped short of it: on again)
       continue;}
     if(g.man)continue;
@@ -151,28 +152,39 @@ function ddPostBlast(n){
   const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost)return;const R=(n.R||58)+6;
   for(const g of S.guns){const m=g.man;if(!ddPostMine(m)||hyp(g.x-n.x1,g.y-n.y1)>R)continue;ddPostOff(g,m,'Incoming! Off the gun.');m.lastOrder=simT-2;}
 }
+// you behind the gun your man holds: first person, with EXIT
+function ddPostControl(g){const u=g.man;if(!ddPostMine(u)||dd.fp)return;u.ang=DD_POST_UP;if(typeof fpEnter==='function'&&fpEnter(u,'1p')){dd.fp.a=DD_POST_UP;dd.fp.p=-.03;const b=document.querySelector('#fp [data-a="back"]');if(b)b.textContent='◀ EXIT';banner('On the gun. EXIT to go back.',2400);}}
 // a tap on a gun's circle: the nearest free man of the squad you play goes to it (one of the other troops on it gives way); a tap on one
 // your man holds takes you into first person on it
 function ddPostTap(wx,wy,sx,sy){
   const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost||dd.fp)return false;
   let g=null,bd=40;for(const q of S.guns){toSBack=false;const a=toS(q.gx,q.gy,8),b=toS(q.gx,q.gy+26);if(toSBack)continue;const d=Math.min(hyp(a[0]-sx,a[1]-sy),hyp(b[0]-sx,b[1]-sy+10));if(d<bd){bd=d;g=q;}}
   if(!g)return false;
-  if(ddPostMine(g.man)){const u=g.man;u.ang=DD_POST_UP;if(typeof fpEnter==='function'&&fpEnter(u,'1p')){dd.fp.a=DD_POST_UP;dd.fp.p=-.03;const b=document.querySelector('#fp [data-a="back"]');if(b)b.textContent='◀ EXIT';banner('On the gun. EXIT to go back to the squads.',2400);}return true;}
-  if(ddPostMine(g.going))return true;
+  return ddPostSend(g);
+}
+// what a tap on a gun does: behind it if your man holds it, else your nearest free man goes to it
+function ddPostSend(g){
+  const S=dd.post;
+  if(ddPostMine(g.man)){ddPostControl(g);return true;}
+  if(ddPostMine(g.going)){g.auto=!DD_POST.noAuto;return true;}
   const c=players.filter(p=>p.team===dd.active&&alive(p)&&!p.inBoat&&!p.joining&&!p.onGun&&!p.postGun&&!p.carry).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];
   if(!c){banner('Nobody free to take the gun.',1800);return true;}
   const p=findPath(c.x,c.y,g.x,g.y);if(!p){banner('Can’t get to the gun.',1800);return true;}
   for(const u of[g.man,g.going])if(u&&u.npc)ddPostOff(g,u);
-  Object.assign(c,{path:p,lastOrder:simT,postGun:g,watch:null,supT:null,focus:null});g.going=c;g.goT=simT;return true;
+  Object.assign(c,{path:p,lastOrder:simT,postGun:g,watch:null,supT:null,focus:null});g.going=c;g.goT=simT;g.auto=!DD_POST.noAuto;banner('Taking the gun.',1600);return true;   // (auto: you're behind it the moment he's on it, Bryan: "selecting the circle should enter and control")
 }
 // the circles round the guns once the checkpoint is ours: grey and ENTER while none of the squads' men holds it, blue and CONTROL once one does
 function ddPostDraw(now){
   const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost||dd.fp||dd.counter||dd.vil)return;
+  S.guns.forEach((g,i)=>{const m=DD.postGuns&&DD.postGuns[i]&&DD.postGuns[i].userData.mat;if(!m)return;const mine=ddPostMine(g.man),k=mine?.55:.5+.5*Math.sin(now*5);m.emissive.setHex(mine?0x2f8fe0:0xffc24a);m.emissiveIntensity=mine?.8:.35+k*1.3;});   // the guns themselves glow: gold and pulsing while one's yours to take, blue once your man is on it
   for(const g of S.guns){const mine=ddPostMine(g.man),going=ddPostMine(g.going),pu=.5+.5*Math.sin(now*4);
-    const col=mine?'88,196,246':'205,210,216',a=mine?.95:going?.55+pu*.4:.8;
+    const col=mine?'88,196,246':'255,206,96',a=mine?.95:.6+pu*.4;   // (gold while it's yours to take, Version 202: grey didn't read as something to tap)
     gPath(g.gx,g.gy,14);if(toSBack)continue;const q0=toS(g.gx,g.gy),q1=toS(g.gx+14,g.gy),R=Math.max(14,Math.hypot(q1[0]-q0[0],q1[1]-q0[1])),seg=R*Math.PI*2/6;   // a thick ring in six pieces that turns, nothing filled
     ox.save();ox.lineCap='butt';ox.lineWidth=Math.max(4.5,R*.2);ox.strokeStyle='rgba(8,12,16,.45)';ox.stroke();ox.setLineDash([seg*.72,seg*.28]);ox.lineDashOffset=-now*R*(mine?1.5:.8);ox.lineWidth=Math.max(3.5,R*.15);ox.strokeStyle=`rgba(${col},${a})`;ox.stroke();ox.restore();
-    toSBack=false;const q=toS(g.gx,g.gy+23);if(toSBack)continue;label(mine?'CONTROL':going?'ENTERING':'ENTER',q[0],q[1]+10,`rgb(${col})`,12,800);}
+    toSBack=false;const c=toS(g.gx,g.gy,12);if(!toSBack){   // a glow over the gun itself and, while it's free, an arrow bobbing above it: seen even with the bags between
+      const gr=ox.createRadialGradient(c[0],c[1],2,c[0],c[1],30);gr.addColorStop(0,`rgba(${col},${mine?.5:.35+pu*.4})`);gr.addColorStop(1,`rgba(${col},0)`);ox.fillStyle=gr;ox.beginPath();ox.arc(c[0],c[1],30,0,7);ox.fill();
+      if(!mine){const y=c[1]-34-pu*7;ox.beginPath();ox.moveTo(c[0],y+11);ox.lineTo(c[0]-9,y-3);ox.lineTo(c[0]+9,y-3);ox.closePath();ox.fillStyle=`rgb(${col})`;ox.fill();ox.lineWidth=2;ox.strokeStyle='rgba(8,12,16,.7)';ox.stroke();}}
+    toSBack=false;const q=toS(g.gx,g.gy+23);if(toSBack)continue;label(mine?'CONTROL':going?'ENTERING':'ENTER',q[0],q[1]+10,`rgb(${col})`,14,800);}
 }
 // the gun as you see it from behind it: a belt-fed machine gun on its mount (its barrel along +x, the sights on the line of the eye)
 function ddPostFpGun(){

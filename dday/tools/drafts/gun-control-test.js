@@ -11,7 +11,8 @@ await ev(()=>{window.SAFE=1;const d0=damage;damage=(t,d,s)=>SAFE&&t.side==='P'?u
   window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){update(1/30);if(i%10==0){panTick(1/3);ddFrame(1/3,simT);}}};
   // everything of theirs near the beach and the checkpoint gone, the checkpoint ours, the other troops kept away so the guns stay empty
   for(const e of enemies){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}   // (nobody of theirs left: the test brings its own)dd.held=dd.held||{};dd.held.beach=dd.held.left=dd.held.outpost=true;
-  for(const u of dd.npcs)Object.assign(u,{x:DDX+300,y:600,path:[]});dd.npcs.length=0;
+  for(const u of dd.npcs)Object.assign(u,{x:DDX+300,y:600,path:[]});dd.npcs.length=0;DD_POST.noAuto=true;   // (the steps below seat a man without going behind the gun; the one tap doing both is checked last)
+
   PUT('A',748,-14);PUT('B',770,-34);selectTeam('A');dd.active='A';ddGoSquad('A');RUN(2);});
 await draw('g1-enter');
 const s0=await ev(()=>({g:dd.post.guns.map(g=>[!!g.man,!!g.going]),lab:1}));ok(s0.g.every(q=>!q[0]&&!q[1]),'both guns empty: grey ENTER circles');
@@ -45,4 +46,8 @@ console.log(JSON.stringify(s7));ok(s7.own,'its own machine-gun model in the view
 await ev(()=>{dd.fp.fire=true;for(let i=0;i<3;i++){update(1/30);fpCam(1/30);}render(1/30,simT);});await page.waitForTimeout(450);await ev(()=>{fpCam(1/30);render(1/30,simT);});await page.waitForTimeout(200);await page.screenshot({path:OUT+'/g4-pov-fire.png'});await ev(()=>{dd.fp.fire=false;});
 await page.click('#fp [data-a="back"]');await page.waitForTimeout(300);
 const s8=await ev(()=>{const g=dd.post.guns[1];return{fp:!!dd.fp,on:!!(g.man&&g.man.onGun)};});ok(!s8.fp&&s8.on,'EXIT: back to the squads, he stays on the gun');
+// Version 202: one tap on the circle seats him and puts you behind the gun; the guns glow
+await ev(()=>{if(dd.fp)fpExit();for(const g of dd.post.guns)if(g.man)ddPostOff(g,g.man);DD_POST.noAuto=false;PUT('A',748,-14);selectTeam('A');dd.active='A';RUN(.5);const g=dd.post.guns[1];dd.track=null;zoom=6;yaw=-.85;tilt=ddTilt(6,.45);camShift=0;camT.x=g.gx;camT.z=g.gy;updateCamera();render(.03,simT);});await page.waitForTimeout(400);   // (the test's own camera, on the gun: leaving first person left it over the man)
+const s9=await ev(()=>{render(.03,simT);drawOverlay(.03,simT);const g=dd.post.guns[1],glow=DD.postGuns.map(q=>+q.userData.mat.emissiveIntensity.toFixed(2));const r=ddPostSend(g);RUN(8);const m=g.man;return{r,glow,fp:!!dd.fp,me:!!(m&&dd.fp&&dd.fp.u===m)};});
+console.log(JSON.stringify(s9));ok(s9.glow.every(v=>v>0),'the guns glow while they are yours to take');ok(s9.r&&s9.fp&&s9.me,'one tap on the circle: he takes the gun and you are behind it');
 console.log('errors',errors.length,errors.slice(0,4));console.log(fails||errors.length?'FAILS '+fails:'ALL OK');await b.close();srv.close();process.exit(0);})();
