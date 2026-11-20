@@ -1,5 +1,5 @@
 --- js/dday.js	2026-11-19 11:44:58.398272253 +0000
-+++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 12:35:31.048596425 +0000
++++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 12:37:15.447537936 +0000
 @@ -85,7 +85,7 @@
    leftMG:{x:342,y:280,ang:Math.PI/2,arc:.34},leftMGs:[{x:318,y:280,ang:Math.PI/2+.6,arc:.34},{x:366,y:280,ang:Math.PI/2-.6,arc:.34}],
    nests:[{x:858,y:280,ang:Math.PI/2+.66,arc:.38},{x:906,y:280,ang:Math.PI/2,arc:.36},{x:954,y:280,ang:Math.PI/2-.5,arc:.36}],
@@ -9,7 +9,7 @@
    mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:400,y:-715,w:240,h:60},door:{x:520,y:-640},   // (Version 152, Bryan: "The upper right barracks is awkward to turn too. Can we make it more direct on the path?": it stood at dx 700-940, a long way east along the top; now it's straight ahead where the way up comes out, beside the other one)
    
    barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},door3:{x:1085,y:-600},tankWay:[[1085,-600],[930,-578],[800,-565]],   // (Version 145: a second barracks behind the highest bunker; since Version 148 the counterattack comes out of their base's gate, ddbase.js)
-@@ -404,11 +404,37 @@
+@@ -404,11 +404,46 @@
    DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,120,76,25,'hv')];
    for(const m of DD.roofs)m.castShadow=true;
    // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
@@ -25,17 +25,26 @@
 +    wall([743,-69],[681,12]);wall([686,19],[739,28]);
 +    // the tent behind the front wall, and the concrete house at the back for men to come out of
 +    const canvas=new T.MeshStandardMaterial({color:0x6a6a44,roughness:1,side:T.DoubleSide}),conc=new T.MeshStandardMaterial({map:ddConcTex(),color:0xb9b7ae,roughness:.95}),dark=M(0x14161a,1,0),pole=M(0x3c3226,.9,0),steel=M(0x4a4d4a,.6,.5),tr=-2.2;
-+    {// no tent (Bryan): boxes and equipment about the place instead: stacks of ammunition boxes, fuel drums, jerrycans, a radio on a table, a coil of wire, spare bags
++    {// no tent. Stone: a wall of field stones along the back and the right side (a gap in the right one toward the house), and an open stone shelter in the back corner: three walls, timbers across the top, no roof. Boxes and equipment about
 +      const rr=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(911),crM=new T.MeshStandardMaterial({map:ddgTex('crate'),roughness:.88,vertexColors:true}),drum=M(0x3c4a36,.7,.3),drum2=M(0x5a3a2a,.8,.2),can=M(0x4a5238,.7,.2),wood=M(0x6a5438,.9,0),radio=M(0x2e3a30,.6,.3);
-+      const P=(x,y)=>[DDX+x,ddH(DDX+x,y),y];
-+      for(const[x,y,w,d,ry]of[[712,2,22,16,.2],[735,-12,18,14,-.4],[724,-44,24,16,.9],[752,8,16,14,.1],[703,-22,14,12,1.2]]){const[X,Y,Z]=P(x,y);add(ddgCrates(w,13,d,rr),crM,X,Y,Z,ry);}
-+      for(const[x,y,m]of[[744,-30,drum],[750,-34,drum],[747,-25,drum2],[716,-58,drum],[721,-62,drum]]){const[X,Y,Z]=P(x,y);add(new T.CylinderGeometry(3.1,3.1,9,10),m,X,Y+4.5,Z);}
-+      {const[X,Y,Z]=P(729,-70);add(new T.CylinderGeometry(3.1,3.1,9,10),drum2,X,Y+3.1,Z,0,0,Math.PI/2);}
-+      for(const[x,y,ry]of[[697,6,.3],[700,9,.5],[703,5,-.2],[738,14,1.4],[741,12,1.1]]){const[X,Y,Z]=P(x,y);add(new T.BoxGeometry(3.4,5,1.7),can,X,Y+2.5,Z,ry);}
-+      {const[X,Y,Z]=P(726,-24);add(new T.BoxGeometry(16,1.2,9),wood,X,Y+7.4,Z,.5);for(const[ax,az]of[[-6,-3],[6,-3],[-6,3],[6,3]])add(new T.CylinderGeometry(.5,.5,7,5),wood,X+ax*Math.cos(.5)+az*Math.sin(.5),Y+3.5,Z-ax*Math.sin(.5)+az*Math.cos(.5));
-+        add(new T.BoxGeometry(6,4.4,3.4),radio,X-2,Y+10.2,Z,.5);add(new T.CylinderGeometry(.18,.18,16,4),M(0x2a2c2e,.5,.7),X-4,Y+19,Z+1);add(new T.BoxGeometry(4,1,5),M(0xc9c2a8,.9,0),X+4,Y+8.4,Z-1,.9);}
-+      {const[X,Y,Z]=P(708,-40);const c=add(new T.TorusGeometry(4.4,1.3,6,14),M(0x6a6058,.6,.6),X,Y+1.4,Z);c.rotation.x=Math.PI/2;const c2=add(new T.TorusGeometry(4.2,1.2,6,14),M(0x6a6058,.6,.6),X+.6,Y+3.6,Z+.4);c2.rotation.x=Math.PI/2;}
-+      for(let k=0;k<7;k++){const[X,Y,Z]=P(757+(k%3)*5.2-(k>5?2:0),-8-((k/3)|0)*3.4);const b=add(bagG,bm,X,Y+2+((k/3)|0)*3.3,Z,.3);b.scale.set(4.6,2.1,2.9);}
++      const st=[0x8f8a7c,0x7d786b,0x9a9484,0x6f6b60,0x857c68].map(c=>M(c,.96,0)),P=(x,y)=>[DDX+x,ddH(DDX+x,y),y];
++      const stone=(P0,Q0,hh,th=5)=>{const L=Math.hypot(Q0[0]-P0[0],Q0[1]-P0[1]),a=Math.atan2(Q0[1]-P0[1],Q0[0]-P0[0]),cs=Math.round(hh/3.4);
++        for(let c=0;c<cs;c++){let t=-(c%2)*2.5;while(t<L){const w=5+rr()*5,m=Math.min(t+w/2,L),x=DDX+P0[0]+Math.cos(a)*m,y=P0[1]+Math.sin(a)*m;
++            add(new T.BoxGeometry(w-.5,3.3+(c===cs-1?rr()*1.2:0),th*(.86+rr()*.25)),st[(rr()*st.length)|0],x,ddH(x,y)+1.7+c*3.4,y,-a+(rr()-.5)*.08);t+=w;}}};
++      const A=[743,-69],C=[745,29],D=[796,-52],mid=(P0,Q0,t)=>[P0[0]+(Q0[0]-P0[0])*t,P0[1]+(Q0[1]-P0[1])*t];
++      stone(A,D,10.5);stone(C,mid(C,D,.38),10.5);stone(mid(C,D,.6),D,10.5);
++      {// the shelter, in the back corner, open toward the guns
++        const g=new T.Group(),cx=DDX+768,cy=-44;g.position.set(cx,ddH(cx,cy),cy);g.rotation.y=-.95;G.add(g);const W=34,Dp=24,H=20;
++        const lw=(x0,z0,x1,z1)=>{const L=Math.hypot(x1-x0,z1-z0),a=Math.atan2(z1-z0,x1-x0);for(let c=0;c<6;c++){let t=-(c%2)*2.5;while(t<L){const w=5+rr()*5,m=Math.min(t+w/2,L),b=new T.Mesh(new T.BoxGeometry(w-.5,3.3,5.4),st[(rr()*st.length)|0]);b.position.set(x0+Math.cos(a)*m,1.7+c*3.4,z0+Math.sin(a)*m);b.rotation.y=-a;b.castShadow=true;b.receiveShadow=true;g.add(b);t+=w;}}};
++        lw(-W/2,-Dp/2,W/2,-Dp/2);lw(-W/2,-Dp/2,-W/2,Dp/2);lw(W/2,-Dp/2,W/2,Dp/2);
++        for(let k=0;k<5;k++){const q=new T.Mesh(new T.BoxGeometry(2,2,Dp+8),wood);q.position.set(-W/2+3+k*(W-6)/4,H+1.4,1);q.castShadow=true;g.add(q);}
++        const tb=new T.Mesh(new T.BoxGeometry(15,1.2,8),wood);tb.position.set(-4,7.4,-5);g.add(tb);for(const[ax,az]of[[-10,-8],[2,-8],[-10,-2],[2,-2]]){const q=new T.Mesh(new T.CylinderGeometry(.5,.5,7,5),wood);q.position.set(ax,3.5,az);g.add(q);}
++        const rd=new T.Mesh(new T.BoxGeometry(6,4.4,3.4),radio);rd.position.set(-6,10.2,-5);g.add(rd);const an=new T.Mesh(new T.CylinderGeometry(.18,.18,18,4),M(0x2a2c2e,.5,.7));an.position.set(-8,20,-4);g.add(an);
++        const cr=new T.Mesh(ddgCrates(14,13,10,rr),crM);cr.position.set(9,0,-5);g.add(cr);}
++      for(const[x,y,w,d,ry]of[[714,-4,20,14,.2],[736,-56,20,14,.9]]){const[X,Y,Z]=P(x,y);add(ddgCrates(w,13,d,rr),crM,X,Y,Z,ry);}
++      for(const[x,y,m]of[[752,10,drum],[757,6,drum],[754,15,drum2]]){const[X,Y,Z]=P(x,y);add(new T.CylinderGeometry(3.1,3.1,9,10),m,X,Y+4.5,Z);}
++      for(const[x,y,ry]of[[697,6,.3],[700,9,.5],[703,5,-.2]]){const[X,Y,Z]=P(x,y);add(new T.BoxGeometry(3.4,5,1.7),can,X,Y+2.5,Z,ry);}
++      {const[X,Y,Z]=P(722,-40);const c=add(new T.TorusGeometry(4.4,1.3,6,14),M(0x6a6058,.6,.6),X,Y+1.4,Z);c.rotation.x=Math.PI/2;}
 +    }
 +    {const OH=window.OP_H||[850,-40,-Math.PI/2],hx=DDX+OH[0],hy=OH[1],h0=ddH(hx,hy)-2,hg=new T.Group();hg.position.set(hx,h0,hy);hg.rotation.y=OH[2];G.add(hg);
 +      const hb=(geo,mat,x,y,z)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;hg.add(m);return m;};
