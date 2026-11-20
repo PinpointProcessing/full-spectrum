@@ -78,6 +78,7 @@ function ddPostBuild(G,add,M){
   // the flag: theirs red, ours blue once it's taken (ddPostTick)
   {const[fx,fy]=P.flag,f0=gh(fx,fy);add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),X(fx),f0+23,fy);
     const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,X(fx)+7,f0+39,fy+7,-Math.PI/4);DD.postFlag=fm;}
+  ddCapBuild(add,M);   // (the left bunker's flag)
   // the two guns on their tripods, pointing down the path; turned up the hill once they're ours
   DD.postGuns=P.mg.map(sp=>{const g=new T.Group(),gm=steel.clone();g.userData.mat=gm;   // (its own material: it glows once it's yours to take, ddPostDraw)
     g.position.set(X(sp.x),gh(sp.x,sp.y),sp.y);g.rotation.y=-sp.ang;
@@ -85,6 +86,29 @@ function ddPostBuild(G,add,M){
     q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);
     for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
     G.add(g);return g;});
+}
+/* ---------- Version 204: CAPTURE over the places to take ----------
+   Bryan: "there should be a capture text above the flag or something pointing the player to that location. There should also be one at the
+   first bunker right off the beach. A flag with golden text that says 'Capture' above it should work. Maybe a highlighted area - can we
+   draft the highlighted area". A flag at each (the left bunker's on its roof), red until it's ours, and CAPTURE in gold over it with an arrow
+   until then. The highlighted ground is a draft, off in the game: DD_CAP_HL 1 the place's whole area, 2 a disc round the flag. */
+const DD_CAPS=[{k:'left',f:[342,274],up:25,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:DD_POST.zone}];
+let DD_CAP_HL=0;
+function ddCapBuild(add,M){
+  const T=THREE,C=DD_CAPS[0],[fx,fy]=C.f,f0=ddH(fx+DDX,fy)+C.up;add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),fx+DDX,f0+23,fy);
+  const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,fx+DDX+7,f0+39,fy+7,-Math.PI/4);DD.capFlag=fm;
+}
+function ddCapDraw(now){
+  if(!dd||!dd.land||!dd.land.done||dd.fp||dd.counter||dd.vil||!dd.post)return;const H=dd.held||{},pu=.5+.5*Math.sin(now*4);
+  if(DD.capFlag){const c=H.left?0x2f6fd0:0xb02222;DD.capFlag.color.setHex(c);DD.capFlag.emissive.setHex(c);}
+  for(const C of DD_CAPS){if(H[C.k])continue;const x=C.f[0]+DDX,y=C.f[1];
+    if(DD_CAP_HL===1){const[x0,y0,x1,y1]=C.r,P=[];let bad=false;const ad=(px,py)=>{toSBack=false;const q=toS(px+DDX,py,1.5);if(toSBack)bad=true;P.push(q);};
+      for(let px=x0;px<x1;px+=24)ad(px,y0);for(let py=y0;py<y1;py+=24)ad(x1,py);for(let px=x1;px>x0;px-=24)ad(px,y1);for(let py=y1;py>y0;py-=24)ad(x0,py);
+      if(!bad){ox.beginPath();ox.moveTo(P[0][0],P[0][1]);for(const q of P)ox.lineTo(q[0],q[1]);ox.closePath();ox.fillStyle=`rgba(255,206,96,${.1+pu*.08})`;ox.fill();ox.strokeStyle='rgba(255,214,120,.85)';ox.lineWidth=2.4;ox.stroke();}}
+    if(DD_CAP_HL===2){gPath(x,y,74);if(!toSBack){ox.fillStyle=`rgba(255,206,96,${.12+pu*.1})`;ox.fill();ox.save();ox.setLineDash([10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(255,214,120,.9)';ox.lineWidth=2.6;ox.stroke();ox.restore();}}
+    toSBack=false;const q=toS(x,y,C.up+58);if(toSBack)continue;if(q[0]<-140||q[0]>cw+140||q[1]<-140||q[1]>ch+140)continue;q[0]=clamp(q[0],46,cw-46);const yy=Math.max(150,q[1])-pu*4;   // (kept whole at the screen's edge and clear of the top bar)
+    label('CAPTURE',q[0],yy-12,'rgb(255,206,96)',15,800);
+    ox.beginPath();ox.moveTo(q[0],yy+8);ox.lineTo(q[0]-7,yy-2);ox.lineTo(q[0]+7,yy-2);ox.closePath();ox.fillStyle='rgb(255,206,96)';ox.fill();ox.lineWidth=2;ox.strokeStyle='rgba(8,12,16,.75)';ox.stroke();}
 }
 /* ---------- the fight for it ---------- */
 // its defenders, with the beach's others (ddplay.js): a gunner on each gun and three riflemen. A handful (Bryan: "Handful of men and a gun is
