@@ -92,8 +92,8 @@ function ddPostBuild(G,add,M){
    first bunker right off the beach. A flag with golden text that says 'Capture' above it should work. Maybe a highlighted area - can we
    draft the highlighted area". A flag at each (the left bunker's on its roof), red until it's ours, and CAPTURE in gold over it with an arrow
    until then. The highlighted ground is a draft, off in the game: DD_CAP_HL 1 the place's whole area, 2 a disc round the flag. */
-const DD_CAPS=[{k:'left',f:[342,274],up:25,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:DD_POST.zone}];
-let DD_CAP_HL=0;
+const DD_CAPS=[{k:'left',f:[342,274],up:25,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:[692,-64,822,30]}]   // (r: the ground lit in gold; the checkpoint's is its flat yard and the ground before its wall, not its whole zone: over the slopes behind it looked wrong, Bryan);
+let DD_CAP_HL=1;   // (Version 205: A, Bryan's pick)
 function ddCapBuild(add,M){
   const T=THREE,C=DD_CAPS[0],[fx,fy]=C.f,f0=ddH(fx+DDX,fy)+C.up;add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),fx+DDX,f0+23,fy);
   const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,fx+DDX+7,f0+39,fy+7,-Math.PI/4);DD.capFlag=fm;
