@@ -188,6 +188,8 @@ function fpCam(rdt){
   camera.lookAt(P.O.x+P.D.x*300,P.O.y+bob+P.D.y*300,P.O.z+P.D.z*300);camera.updateMatrixWorld();
   camT.x=u.x;camT.z=u.y;if(typeof glide!=='undefined'&&glide)glide.vx=glide.vz=0;camPan=null;
   if(u.m)u.m.g.visible=!P.one;
+  if(P.mt){const cx=Math.cos(F.a),cy=Math.sin(F.a);   // (Version 207, on a gun: your own side's men standing beside it or just in front aren't drawn; they filled the view. scene.js shows them again each frame)
+    for(const q of units){if(q===u||!q.m||q.side==='E'||q.dead)continue;const dx=q.x-u.x,dy=q.y-u.y,d=hyp(dx,dy);if(d<30||(d<95&&(dx*cx+dy*cy)/d>.72))q.m.g.visible=false;}}
   // the gun in his hands, first person
   const kind=P.mt?'minigun':u.weapon==='hmg'?'bar':u.weapon==='sniper'?'spring':'garand';
   if(P.one&&!P.A&&!scope){
@@ -224,6 +226,7 @@ function fpBuild(){
     if(b){P.fire=true;F.fire=true;return;}
     if(ev.pointerType==='mouse'){if(ev.button===2){F.aim=true;P.aimHold=true;}else{F.fire=true;P.fire=true;}
       if(document.pointerLockElement!==el&&el.requestPointerLock)try{const r=el.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}return;}
+    if(F.u.onGun||fpArt(F.u))return;   // (Version 207, on a gun: a finger anywhere turns it. The left of the screen was still the walking stick, which does nothing on a gun, so a drag there didn't move the view: Bryan, "I couldn't move the viewpoint")
     if(ev.clientX<innerWidth*.42&&!Object.values(ptrs).some(q=>q.k==='stick')){P.k='stick';stick.style.left=ev.clientX+'px';stick.style.top=ev.clientY+'px';stick.classList.add('on');knob.style.transform='';}});
   el.addEventListener('pointermove',ev=>{const F=dd&&dd.fp,P=ptrs[ev.pointerId];if(!F)return;
     if(ev.pointerType==='mouse'){if(document.pointerLockElement!==el)look(ev.movementX||0,ev.movementY||0,FPC.msens);return;}   // (the mouse looks whether or not the browser let it be locked)

@@ -53,4 +53,14 @@ console.log(JSON.stringify(s9));ok(s9.glow.every(v=>v>0),'the guns glow while th
 // Version 206: behind the gun, your own squad goes on up by itself
 const s10=await ev(()=>{const g=dd.post.guns[1],m=g.man,o=players.filter(p=>p.team==='A'&&p!==m&&alive(p)),y0=Math.min(...o.map(p=>p.y));for(const e of enemies)if(!e.dead&&e.y>-420){e.hp=0;e.dead=true;}dd.hop.A=0;RUN(40);return{fp:!!dd.fp,on:g.man===m,y0:Math.round(y0),y1:Math.round(Math.min(...o.map(p=>p.y)))};});
 console.log(JSON.stringify(s10));ok(s10.fp&&s10.on&&s10.y1<s10.y0-60,'with you on the gun and nobody in front, your squad advances up the way; your man stays on the gun');
+// Version 207: on either gun, a finger dragged on the left of the screen or the right turns the view
+for(const k of[0,1]){
+  await ev(k=>{if(dd.fp)fpExit();for(const g of dd.post.guns)if(g.man)ddPostOff(g,g.man);PUT('A',748,-14);selectTeam('A');dd.active='A';RUN(.5);ddPostSend(dd.post.guns[k]);RUN(8);},k);
+  const a0=await ev(()=>dd.fp?+dd.fp.a.toFixed(3):null);const res=[];
+  for(const x of[70,300]){const b=await ev(()=>dd.fp.a);
+    await page.evaluate(([x])=>{const el=document.querySelector('#fp'),E=(t,cx)=>el.dispatchEvent(new PointerEvent(t,{pointerId:7,pointerType:'touch',clientX:cx,clientY:380,bubbles:true,cancelable:true}));E('pointerdown',x);E('pointermove',x+30);E('pointermove',x+60);E('pointerup',x+60);},[x]);
+    const c=await ev(()=>dd.fp.a);res.push(+(c-b).toFixed(3));}
+  const st=await ev(k=>({fp:!!dd.fp,on:!!(dd.fp&&dd.fp.u.onGun),mine:dd.fp&&dd.post.guns[k].man===dd.fp.u}),k);
+  await ev(k=>{dd.fp.a=dd.post.guns[k].up;dd.fp.p=-.03;for(let i=0;i<3;i++)update(1/30);fpCam(1/30);render(1/30,simT);},k);await page.waitForTimeout(450);await ev(()=>{fpCam(1/30);render(1/30,simT);});await page.waitForTimeout(200);await page.screenshot({path:OUT+'/g5-pov-gun'+(k+1)+'.png'});
+  console.log(JSON.stringify({k,a0,res,st}));ok(st.fp&&st.on&&st.mine&&res.every(d=>Math.abs(d)>.02),'gun '+(k+1)+': behind it, and a drag on the left or the right of the screen turns the view');}
 console.log('errors',errors.length,errors.slice(0,4));console.log(fails||errors.length?'FAILS '+fails:'ALL OK');await b.close();srv.close();process.exit(0);})();
