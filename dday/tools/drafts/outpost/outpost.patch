@@ -1,15 +1,15 @@
 --- js/dday.js	2026-11-19 11:44:58.398272253 +0000
-+++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 12:31:41.237679019 +0000
++++ /tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/op/dday/js/dday.js	2026-11-20 12:35:31.048596425 +0000
 @@ -85,7 +85,7 @@
    leftMG:{x:342,y:280,ang:Math.PI/2,arc:.34},leftMGs:[{x:318,y:280,ang:Math.PI/2+.6,arc:.34},{x:366,y:280,ang:Math.PI/2-.6,arc:.34}],
    nests:[{x:858,y:280,ang:Math.PI/2+.66,arc:.38},{x:906,y:280,ang:Math.PI/2,arc:.36},{x:954,y:280,ang:Math.PI/2-.5,arc:.36}],
    hillMG2:{x:912,y:186,ang:Math.PI/2-.55,arc:.62},hillMG3:{x:880,y:188,ang:Math.PI/2,arc:.62},pathMG:{x:292,y:-424,ang:1.32,arc:.8},sniper2:{x:206,y:-590},
 -  hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
-+  outMG:{x:700,y:14,ang:1.87,arc:.8},outMG2:{x:732,y:20,ang:1.67,arc:.8},hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
++  outMG:{x:698,y:13,ang:1.87,arc:.8},outMG2:{x:731,y:19,ang:1.52,arc:.8},hillMG:{x:848,y:186,ang:Math.PI/2+.75,arc:.62},art:{x:756,y:-384},heavy:{x:90,y:-398},cannon:{x:240,y:-594},topMG:{x:350,y:-588,ang:Math.PI/2,arc:1.3},drawMG:{x:466,y:-140,ang:1.35,arc:.85},sniper:{x:122,y:-590},
    mortars:[{x:862,y:-478},{x:922,y:-468},{x:974,y:-480}],barracks:{x:400,y:-715,w:240,h:60},door:{x:520,y:-640},   // (Version 152, Bryan: "The upper right barracks is awkward to turn too. Can we make it more direct on the path?": it stood at dx 700-940, a long way east along the top; now it's straight ahead where the way up comes out, beside the other one)
    
    barr2:{x:112,y:-716,w:250,h:58},door2:{x:236,y:-646},door3:{x:1085,y:-600},tankWay:[[1085,-600],[930,-578],[800,-565]],   // (Version 145: a second barracks behind the highest bunker; since Version 148 the counterattack comes out of their base's gate, ddbase.js)
-@@ -404,11 +404,31 @@
+@@ -404,11 +404,37 @@
    DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,120,76,25,'hv')];
    for(const m of DD.roofs)m.castShadow=true;
    // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
@@ -22,21 +22,27 @@
 +  {   // (draft 6: the checkpoint's outline as Bryan drew it: two straight walls of bags meeting at the boulder by the path (dx 601, y 120), one running up the right of the path, one along the front to the bank; a gun at each end of the front wall)
 +    const bm=new T.MeshStandardMaterial({map:ddgTex('burlap'),color:0xd8c9a0,roughness:1});
 +    const wall=(P,Q,cs=3)=>{const L=Math.hypot(Q[0]-P[0],Q[1]-P[1]),a=Math.atan2(Q[1]-P[1],Q[0]-P[0]);for(let c=0;c<cs;c++){const n=Math.max(2,Math.round(L/8.6))-(c%2);for(let i=0;i<n;i++){const t=(i+.5+(c%2)*.5)/(n+(c%2)),x=DDX+P[0]+(Q[0]-P[0])*t,y=P[1]+(Q[1]-P[1])*t;const b=add(bagG,bm,x,ddH(x,y)+2+c*3.5,y,-a);b.scale.set(4.7,2.1,2.9);}}};
-+    wall([690,-47],[679,17]);wall([679,17],[743,28]);
++    wall([743,-69],[681,12]);wall([686,19],[739,28]);
 +    // the tent behind the front wall, and the concrete house at the back for men to come out of
 +    const canvas=new T.MeshStandardMaterial({color:0x6a6a44,roughness:1,side:T.DoubleSide}),conc=new T.MeshStandardMaterial({map:ddConcTex(),color:0xb9b7ae,roughness:.95}),dark=M(0x14161a,1,0),pole=M(0x3c3226,.9,0),steel=M(0x4a4d4a,.6,.5),tr=-2.2;
-+    {// the tent: one large square tent over the checkpoint, its roof a low pyramid on poles, open at the sides, the men and the guns under it
-+      const S=76,tx=DDX+717,ty=-9,t0=Math.max(ddH(tx,ty),ddH(tx-S/2,ty+S/2),ddH(tx+S/2,ty+S/2)),tg=new T.Group();tg.position.set(tx,t0,ty);tg.rotation.y=-.18;G.add(tg);
-+      const rf=new T.Mesh(new T.ConeGeometry(S/2*Math.SQRT2,13,4,1,true),canvas);rf.rotation.y=Math.PI/4;rf.position.y=19+6.5;rf.castShadow=true;tg.add(rf);
-+      for(const[ax,az,rx,rz]of[[0,S/2,0,0],[0,-S/2,0,0],[S/2,0,0,1],[-S/2,0,0,1]]){const v=new T.Mesh(new T.PlaneGeometry(S,3.4),canvas);v.position.set(ax,17.4,az);if(rz)v.rotation.y=Math.PI/2;tg.add(v);}
-+      for(const px of[-S/2,0,S/2])for(const pz of[-S/2,0,S/2]){if(!px&&!pz)continue;const q=new T.Mesh(new T.CylinderGeometry(.6,.6,19,5),pole);q.position.set(px,9.5,pz);tg.add(q);}
-+      const cp=new T.Mesh(new T.CylinderGeometry(.7,.7,32,5),pole);cp.position.y=16;tg.add(cp);}
++    {// no tent (Bryan): boxes and equipment about the place instead: stacks of ammunition boxes, fuel drums, jerrycans, a radio on a table, a coil of wire, spare bags
++      const rr=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(911),crM=new T.MeshStandardMaterial({map:ddgTex('crate'),roughness:.88,vertexColors:true}),drum=M(0x3c4a36,.7,.3),drum2=M(0x5a3a2a,.8,.2),can=M(0x4a5238,.7,.2),wood=M(0x6a5438,.9,0),radio=M(0x2e3a30,.6,.3);
++      const P=(x,y)=>[DDX+x,ddH(DDX+x,y),y];
++      for(const[x,y,w,d,ry]of[[712,2,22,16,.2],[735,-12,18,14,-.4],[724,-44,24,16,.9],[752,8,16,14,.1],[703,-22,14,12,1.2]]){const[X,Y,Z]=P(x,y);add(ddgCrates(w,13,d,rr),crM,X,Y,Z,ry);}
++      for(const[x,y,m]of[[744,-30,drum],[750,-34,drum],[747,-25,drum2],[716,-58,drum],[721,-62,drum]]){const[X,Y,Z]=P(x,y);add(new T.CylinderGeometry(3.1,3.1,9,10),m,X,Y+4.5,Z);}
++      {const[X,Y,Z]=P(729,-70);add(new T.CylinderGeometry(3.1,3.1,9,10),drum2,X,Y+3.1,Z,0,0,Math.PI/2);}
++      for(const[x,y,ry]of[[697,6,.3],[700,9,.5],[703,5,-.2],[738,14,1.4],[741,12,1.1]]){const[X,Y,Z]=P(x,y);add(new T.BoxGeometry(3.4,5,1.7),can,X,Y+2.5,Z,ry);}
++      {const[X,Y,Z]=P(726,-24);add(new T.BoxGeometry(16,1.2,9),wood,X,Y+7.4,Z,.5);for(const[ax,az]of[[-6,-3],[6,-3],[-6,3],[6,3]])add(new T.CylinderGeometry(.5,.5,7,5),wood,X+ax*Math.cos(.5)+az*Math.sin(.5),Y+3.5,Z-ax*Math.sin(.5)+az*Math.cos(.5));
++        add(new T.BoxGeometry(6,4.4,3.4),radio,X-2,Y+10.2,Z,.5);add(new T.CylinderGeometry(.18,.18,16,4),M(0x2a2c2e,.5,.7),X-4,Y+19,Z+1);add(new T.BoxGeometry(4,1,5),M(0xc9c2a8,.9,0),X+4,Y+8.4,Z-1,.9);}
++      {const[X,Y,Z]=P(708,-40);const c=add(new T.TorusGeometry(4.4,1.3,6,14),M(0x6a6058,.6,.6),X,Y+1.4,Z);c.rotation.x=Math.PI/2;const c2=add(new T.TorusGeometry(4.2,1.2,6,14),M(0x6a6058,.6,.6),X+.6,Y+3.6,Z+.4);c2.rotation.x=Math.PI/2;}
++      for(let k=0;k<7;k++){const[X,Y,Z]=P(757+(k%3)*5.2-(k>5?2:0),-8-((k/3)|0)*3.4);const b=add(bagG,bm,X,Y+2+((k/3)|0)*3.3,Z,.3);b.scale.set(4.6,2.1,2.9);}
++    }
 +    {const OH=window.OP_H||[850,-40,-Math.PI/2],hx=DDX+OH[0],hy=OH[1],h0=ddH(hx,hy)-2,hg=new T.Group();hg.position.set(hx,h0,hy);hg.rotation.y=OH[2];G.add(hg);
 +      const hb=(geo,mat,x,y,z)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;hg.add(m);return m;};
 +      hb(new T.BoxGeometry(54,26,36),conc,0,13,0);hb(new T.BoxGeometry(62,4.5,44),conc,0,28,0);hb(new T.BoxGeometry(58,3,40),M(0x77766e,.95,0),0,2,0);
 +      hb(new T.BoxGeometry(11,19,3),dark,0,9.5,17.4);hb(new T.BoxGeometry(15,2.4,2),M(0x77766e,.95,0),0,20.2,18.4);for(const sx of[-17,17])hb(new T.BoxGeometry(10,2.6,1.2),dark,sx,16,18.2);
 +      hb(new T.CylinderGeometry(1.2,1.2,8,7),steel,18,34,-8);for(let k=0;k<6;k++){const b=hb(bagG,bm,-22+k*8.8,32,20);b.scale.set(4.6,2.1,2.9);}
-+      const fx=DDX+684,fy=-55,f1=ddH(fx,fy);add(new T.CylinderGeometry(.5,.5,46,6),pole,fx,f1+23,fy);
++      const fx=DDX+700,fy=-30,f1=ddH(fx,fy);add(new T.CylinderGeometry(.5,.5,46,6),pole,fx,f1+23,fy);
 +      add(new T.PlaneGeometry(20,12),new T.MeshStandardMaterial({color:window.OP_FLAG||0xb02222,roughness:.9,side:T.DoubleSide,emissive:window.OP_FLAG||0xb02222,emissiveIntensity:.25}),fx+7,f1+39,fy+7,-Math.PI/4);}
 +  }
    if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
