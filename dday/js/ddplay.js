@@ -65,12 +65,13 @@ function ddFoe(tag,dx,y,ex){
 function ddGunner(tag,s,name,ex){const u=ddFoe(tag,s.x,s.y-6,Object.assign({name:name||'Machine gunner',gunner:true,post:true,ang:s.ang},ex||{}));u.onGun={x:s.x+DDX,y:s.y,ang:s.ang,arc:s.arc};return u;}
 function spawnDDay(){
   const S=DD_SPOT,Z=(x0,y0,x1,y1)=>({x0:x0+DDX,x1:x1+DDX,y0,y1});
-  ddGunner('pill',S.pill);for(const g of S.pillMGs)ddGunner('pill',g);for(const g of S.leftMGs)ddGunner('left',g);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddGunner('left',S.leftMG);ddFoe('left',316,262,{post:true});ddFoe('left',246,282,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',150,290,{post:true});ddFoe('left',400,268,{post:true,nade:1});
+  ddGunner('pill',S.pill);for(const g of S.pillMGs)ddGunner('pill',g);for(const g of S.leftMGs)ddGunner('left',g);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddGunner('left',S.leftMG);ddFoe('left',316,262,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('left',400,268,{post:true,nade:1});
   for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',790,262,{post:true});ddFoe('draw',800,-52,{zone:Z(752,-95,1000,40)});
   ddFoe('draw',484,178,{post:true});ddFoe('draw',520,178,{post:true});ddFoe('draw',600,60,{zone:Z(480,0,660,130)});ddFoe('draw',470,-20,{zone:Z(400,-60,640,60),nade:1});ddFoe('draw',556,178,{post:true,nade:1});
   if(typeof ddPostSpawn==='function')ddPostSpawn();   // (Version 198: the checkpoint's men, ddpost.js)
   for(const g of[S.hillMG,S.hillMG2,S.hillMG3])ddGunner('hill',g,null,{longR:700});ddFoe('hill',880,166,{post:true,name:'Grenadier',mortarT:simT+24+Math.random()*6,lob:1});   // (Version 155: on the lip; they reach 70 m, wild past 42: Bryan, "longer but much more inaccurate after 42m")
-  ddGunner('top',S.pathMG,'Light machine gunner');ddFoe('top',S.sniper2.x,S.sniper2.y,{post:true,name:'Sniper',weapon:'sniper'});ddFoe('art',676,-410,{post:true,name:'Gun crew'});ddFoe('art',746,-404,{post:true,name:'Gun crew'});ddFoe('art',830,-410,{post:true,name:'Gun crew'});
+  ddGunner('crest',S.pathMG,'Light machine gunner');ddFoe('crest',350,-436,{post:true});   // (Version 208: the top of the hill is a place to take, its own men 'crest')
+  ddFoe('top',S.sniper2.x,S.sniper2.y,{post:true,name:'Sniper',weapon:'sniper'});ddFoe('art',676,-410,{post:true,name:'Gun crew'});ddFoe('art',746,-404,{post:true,name:'Gun crew'});ddFoe('art',830,-410,{post:true,name:'Gun crew'});
   ddGunner('draw',S.drawMG);ddFoe('draw',420,-150,{zone:Z(380,-200,640,-60)});ddFoe('draw',542,-164,{zone:Z(380,-200,640,-60),nade:1});
   ddFoe('draw',252,-282,{zone:Z(150,-320,420,-220)});ddFoe('draw',318,-258,{zone:Z(150,-320,420,-220)});
   ddFoe('heavy',56,-412,{post:true,name:'Gun crew'});ddFoe('heavy',126,-412,{post:true,name:'Gun crew'});
@@ -481,6 +482,7 @@ function ddTurnFirst(u,walking){   // u: the man the camera follows (a squad's: 
 }
 function ddTurnWant(u){   // {a: the way to face, tk: a tank's} or null to leave the camera as it is
   const C=dd.cam,K=ddTankNear(u),G=K?null:C.go;
+  if(!K&&C.capT&&simT<C.capT){const T=ddTanksUp()[0],W=DD_SPOT.tankWay[0],tx=T?T.x:W[0]+DDX,ty=T?T.y:W[1];return{a:Math.atan2(-(tx-u.x),-(ty-u.y))};}   // (Version 208: the top of the hill just taken: round to where the tank comes from, or to the tank if it's out, for nine seconds)
   if(K)return{a:Math.atan2(-(K.x-u.x),-(K.y-u.y)),tk:true};   // (a tank coming: face it)
   if(G&&!G.done&&(simT-(G.t??simT)>DD_TURN.walkT||!(u.path&&u.path.length)&&players.filter(p=>p.team===u.team&&alive(p)&&p.path&&p.path.length).length<=1))G.done=true;   // (they're there: the man it follows has stopped and at most one other is still walking, or it's been DD_TURN.walkT s)
   const walking=!!G&&!G.done,off=!!G&&ddRouteOff(G.x,G.y)>DD_TURN.off;
@@ -726,7 +728,8 @@ function ddShell(by,x,y,R,D,dur){if(by&&by.side==='E'&&dd){const L={x,y,R,t:simT
 function ddShelling(){
   const al=dd.allies.filter(u=>!u.inBoat);if(!al.length)return;
   const pickAt=f=>{const c=al.filter(f);const u=(c.length?c:al)[(Math.random()*(c.length?c.length:al.length))|0];return{x:u.x+(Math.random()-.5)*90,y:u.y+(Math.random()-.5)*90};};
-  for(const e of enemies){if(e.mortarT==null||beaten(e)||simT<e.mortarT)continue;e.mortarT=simT+11+Math.random()*8;
+  for(const e of enemies){if(e.mortarT==null||beaten(e)||simT<e.mortarT)continue;e.mortarT=simT+(e.lob?24:17)+Math.random()*10;   // (Version 208, Bryan: "a bit too many grenades being thrown at the player. They feel constant": it was every 11 to 19 s for each of them)
+   
     if(e.lob){const c=al.filter(u=>hyp(u.x-e.x,u.y-e.y)<430);if(!c.length)continue;const u=c[(Math.random()*c.length)|0];ddShell(e,u.x+(Math.random()-.5)*70,u.y+(Math.random()-.5)*70,42,62,2.2);e.throwT=simT;continue;}   // the hill bunker's grenadier: rifle grenades down onto whoever's nearest
     const p=pickAt(u=>u.y<360);ddShell(e,p.x,p.y,50,78,2.6);e.throwT=simT;}
   for(const tag of['heavy','cannon','art']){
@@ -760,7 +763,7 @@ function ddCounter(dt){
     // (Version 153: with the barracks at the top of the way up since 152, "near the barracks" was true the moment the squads came out on top, so the tank,
     // sixteen men and the base's garrison all arrived while the top bunker, the cannon and both barracks were still fighting. Now it waits until the top's
     // own guns are all but silenced, or someone is right at the barracks' door)
-    const near=r=>players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<r),topLeft=enemies.filter(e=>(e.tag==='top'||e.tag==='cannon')&&!beaten(e)).length;
+    const near=r=>players.some(u=>alive(u)&&hyp(u.x-d.x-DDX,u.y-d.y)<r),topLeft=enemies.filter(e=>(e.tag==='top'||e.tag==='crest'||e.tag==='cannon')&&!beaten(e)).length;
     if(!(near(100)||near(230)&&topLeft<=1))return;
     C.on=true;C.t=simT+2;banner('Counterattack! A tank and infantry from the right.',3600);
     const W=DD_SPOT.tankWay;ddTankSpawn({x:W[0][0]+DDX,y:W[0][1],way:W.slice(1).map(q=>[q[0]+DDX,q[1]])});
@@ -820,7 +823,8 @@ function ddTankWreck(K){
    base is the last: held with the barracks, which is the win (Bryan: "The player doesn't need to destroy the barracks, just control it") */
 const DD_ZONES=[
   {k:'beach',n:'The beach',r:[0,348,1000,776],tags:[]},{k:'left',n:'The left bunker',r:[236,204,468,344],tags:['left'],bk:'p0'},   // (the pillbox, r 600,206,770,344, isn't one since Version 187, Bryan: "the Pill box on the right side of the beach doesn't need to be a capture point": its guns are still there to knock out)
-  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'outpost',n:'The checkpoint',r:[664,-92,846,42],tags:['outpost']},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},
+  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'outpost',n:'The checkpoint',r:[664,-92,846,42],tags:['outpost']},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},{k:'crest',n:'The top of the hill',r:[180,-476,420,-330],tags:['crest']},   // (Version 208, Bryan: "the top of the hill should be it's own capture point. The camera circles towards the tank once it's captured")
+  
   {k:'heavy',n:'The heavy gun',r:[14,-456,166,-344],tags:['heavy'],bk:'hv'},{k:'art',n:'The artillery',r:[640,-436,900,-336],tags:['art']},{k:'base',n:'The base',r:[200,-756,1000,-440],tags:['base','top','cannon','mortar','reinf']}];
 function ddZones(){
   const H=dd.held||(dd.held={});
@@ -829,7 +833,7 @@ function ddZones(){
     if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e)))continue;
     if(!dd.allies.some(u=>!u.inBoat&&u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1))continue;
     H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);
-    if((Z.k==='left'||Z.k==='outpost')&&dd.active&&!dd.fp){dd.track={team:dd.active};if(dd.cam){dd.cam.heldT=0;dd.cam.go=null;dd.cam.offA=null;}}   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
+    if((Z.k==='left'||Z.k==='outpost'||Z.k==='crest')&&dd.active&&!dd.fp){dd.track={team:dd.active};if(dd.cam){dd.cam.heldT=0;dd.cam.go=null;dd.cam.offA=null;if(Z.k==='crest')dd.cam.capT=simT+9;}}   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
 if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were taken in: ddSpawnAt)
     for(const m of(Z.bk&&DD&&DD.bk&&DD.bk[Z.bk])||[])if(m&&m.color){m.color.lerp(new T.Color(0x5fa4ff),.42);if(m.emissive)m.emissive.setHex(0x12305a);}
   }

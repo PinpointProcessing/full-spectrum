@@ -92,15 +92,16 @@ function ddPostBuild(G,add,M){
    first bunker right off the beach. A flag with golden text that says 'Capture' above it should work. Maybe a highlighted area - can we
    draft the highlighted area". A flag at each (the left bunker's on its roof), red until it's ours, and CAPTURE in gold over it with an arrow
    until then. The highlighted ground is a draft, off in the game: DD_CAP_HL 1 the place's whole area, 2 a disc round the flag. */
-const DD_CAPS=[{k:'left',f:[342,274],up:25,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:[692,-64,822,30]}]   // (r: the ground lit in gold; the checkpoint's is its flat yard and the ground before its wall, not its whole zone: over the slopes behind it looked wrong, Bryan);
+const DD_CAPS=[{k:'left',f:[342,274],up:25,own:1,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:[692,-64,822,30]},{k:'crest',f:[225,-405],up:0,own:1,r:[190,-468,376,-350]}]   // (r: the ground lit in gold; the checkpoint's is its flat yard and the ground before its wall, not its whole zone: over the slopes behind it looked wrong, Bryan);
 let DD_CAP_HL=1;   // (Version 205: A, Bryan's pick)
 function ddCapBuild(add,M){
-  const T=THREE,C=DD_CAPS[0],[fx,fy]=C.f,f0=ddH(fx+DDX,fy)+C.up;add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),fx+DDX,f0+23,fy);
-  const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,fx+DDX+7,f0+39,fy+7,-Math.PI/4);DD.capFlag=fm;
+  const T=THREE;DD.capFlags={};
+  for(const C of DD_CAPS){if(!C.own)continue;const[fx,fy]=C.f,f0=ddH(fx+DDX,fy)+C.up;add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),fx+DDX,f0+23,fy);
+    const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,fx+DDX+7,f0+39,fy+7,-Math.PI/4);DD.capFlags[C.k]=fm;}
 }
 function ddCapDraw(now){
   if(!dd||!dd.land||!dd.land.done||dd.fp||dd.counter||dd.vil||!dd.post)return;const H=dd.held||{},pu=.5+.5*Math.sin(now*4);
-  if(DD.capFlag){const c=H.left?0x2f6fd0:0xb02222;DD.capFlag.color.setHex(c);DD.capFlag.emissive.setHex(c);}
+  for(const k in DD.capFlags||{}){const c=H[k]?0x2f6fd0:0xb02222,m=DD.capFlags[k];m.color.setHex(c);m.emissive.setHex(c);}
   for(const C of DD_CAPS){if(H[C.k])continue;const x=C.f[0]+DDX,y=C.f[1];
     if(DD_CAP_HL===1){const[x0,y0,x1,y1]=C.r,P=[];let bad=false;const ad=(px,py)=>{toSBack=false;const q=toS(px+DDX,py,1.5);if(toSBack)bad=true;P.push(q);};
       for(let px=x0;px<x1;px+=24)ad(px,y0);for(let py=y0;py<y1;py+=24)ad(x1,py);for(let px=x1;px>x0;px-=24)ad(px,y1);for(let py=y1;py>y0;py-=24)ad(x0,py);
@@ -176,10 +177,22 @@ function ddPostMen(S){
 // a shell or grenade coming down on a gun: whoever of the squads is on it gets off, so the usual dodge takes him (ddplay.js's ddDodge)
 function ddPostBlast(n){
   const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost)return;const R=(n.R||58)+6;
-  for(const g of S.guns){const m=g.man;if(!ddPostMine(m)||hyp(g.x-n.x1,g.y-n.y1)>R)continue;ddPostOff(g,m,'Incoming! Off the gun.');m.lastOrder=simT-2;}
+  for(const g of S.guns){const m=g.man;if(!ddPostMine(m)||m.fp||hyp(g.x-n.x1,g.y-n.y1)>R)continue;ddPostOff(g,m,'Incoming! Off the gun.');m.lastOrder=simT-2;}
 }
 // you behind the gun your man holds: first person, with EXIT
 function ddPostControl(g){const u=g.man;if(!ddPostMine(u)||dd.fp)return;u.ang=g.up;if(typeof fpEnter==='function'&&fpEnter(u,'1p')){dd.fp.a=g.up;dd.fp.p=-.03;const b=document.querySelector('#fp [data-a="back"]');if(b)b.textContent='◀ EXIT';banner('On the gun. EXIT to go back.',2400);}}
+// Version 208, in first person (Bryan: "a grenade shouldn't force a player off the gun, it should show a grenade icon around the players screen
+// (like it works in COD)"): anything of theirs coming down near you shows as a grenade on a ring round the middle of the screen, on the side
+// it's on, red and bigger when you're inside its blast
+function fpNadeDraw(now){
+  const F=dd&&dd.fp;if(!F||typeof nades==='undefined')return;const u=F.u,cx=cw/2,cy=ch/2,pu=.5+.5*Math.sin(now*12);
+  for(const n of nades){if(!n.enemy)continue;const R=n.R||ENADE.r,d=hyp(n.x1-u.x,n.y1-u.y);if(d>R+70)continue;
+    const a=Math.atan2(n.y1-u.y,n.x1-u.x)-F.a,r=Math.min(cw,ch)*.3,x=cx+Math.sin(a)*r,y=cy-Math.cos(a)*r,hot=d<R,k=hot?1.25+pu*.2:1,col=hot?'255,70,50':'255,206,96';
+    ox.save();ox.translate(x,y);ox.scale(k,k);
+    ox.beginPath();ox.arc(0,0,19,0,7);ox.fillStyle='rgba(8,12,16,.6)';ox.fill();ox.lineWidth=2.5;ox.strokeStyle=`rgba(${col},${.7+pu*.3})`;ox.stroke();
+    ox.fillStyle=`rgb(${col})`;ox.beginPath();ox.ellipse(0,2.5,6.5,8,0,0,7);ox.fill();ox.fillRect(-3,-9.5,6,4);ox.fillRect(2,-10.5,6,2.2);   // a grenade: its body, its neck, its lever
+    ox.rotate(a);ox.beginPath();ox.moveTo(0,-30);ox.lineTo(-6,-22);ox.lineTo(6,-22);ox.closePath();ox.fill();ox.restore();}   // and an arrow out toward it
+}
 // a tap on a gun's circle: the nearest free man of the squad you play goes to it (one of the other troops on it gives way); a tap on one
 // your man holds takes you into first person on it
 function ddPostTap(wx,wy,sx,sy){

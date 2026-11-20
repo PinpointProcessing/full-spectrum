@@ -49,7 +49,7 @@ await ok('the box starts under the pill',()=>{drawOverlay(.03,simT);ddBoxC=null;
 await ok('blood: a sprite that fades',()=>{const e=enemies.find(e=>!beaten(e)&&!e.gunner);ddGore(e,true);const on=DD.blood.filter(q=>q.on).length;RUN(32);const left=DD.blood.filter(q=>q.on&&q.t<28).length;return{ok:on>0&&DD.blood.every(q=>!q.on||q.t<28),on,left,ground:'not painted'};});
 await ok('a squad man hurt shows a bar, the target only gets the pill',()=>{const u=players.find(p=>p.team===dd.active&&alive(p));u.hp=60;const e=enemies.find(q=>q.vis&&!beaten(q));if(e){for(const p of players)if(p.team===dd.active)p.focus=e;}drawOverlay(.03,simT);u.hp=100;return{ok:true,target:!!e,pill:e&&e._pill?e._pill.text:null};});
 // the base: the barracks taken, the command post
-await ok('the way up, then the barracks, then the command post',()=>{dd.held=dd.held||{};dd.held.outpost=true;   // (Version 198: the checkpoint counted as taken; its own steps are checkpoint-test.js's)
+await ok('the way up, then the barracks, then the command post',()=>{dd.held=dd.held||{};dd.held.outpost=dd.held.crest=true;   // (Version 198: the checkpoint counted as taken; its own steps are checkpoint-test.js's)
   const M=players.filter(p=>p.team===dd.active&&alive(p)),P=M.map(u=>[u.x,u.y]);const GS=enemies.filter(e=>e.gunner).map(e=>[e,e.seen,e.vis]);for(const[e]of GS){e.seen=false;e.vis=false;}   // (guns unseen: the steps for knocking them out are checked by the woods and field cases)
 const at=(x,y)=>M.forEach(u=>{u.x=x;u.y=y;});
   at(ddRouteX(150),150);const w=OBJ();at(ddRouteX(-200),-200);const up=OBJ();at(720,-420);const a=OBJ();at(720,-620);const F0=dd.holdFoes;dd.holdFoes=0;const nr=OBJ();dd.holdT=2;const b2=OBJ();dd.holdT=0;dd.holdFoes=F0;

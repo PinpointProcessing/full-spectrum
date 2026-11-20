@@ -177,6 +177,7 @@ function ddObjective(){
   if(Ly>200&&!(dd.held||{}).left)return{t:'Take the left bunker',x:DD_SPOT.leftMG.x+DDX,y:262,cam:1};   // (cam: the camera turns to it once your squad isn't on the move, ddplay.js's ddTurnObj, Version 184; since Version 187 the left bunker only, Bryan: "the Pill box on the right side of the beach doesn't need to be a capture point")
   if(Ly>-200&&dd.post&&!(dd.held||{}).outpost){const n=enemies.filter(e=>e.tag==='outpost'&&!beaten(e)).length;   // (Version 198: the checkpoint at the top of the first path, ddpost.js: it has to be taken before the way up)
     return{t:n?`Take the checkpoint · ${n} left`:'Take the checkpoint',x:DD_POST.c[0]+DDX,y:DD_POST.c[1],k:n?'danger':undefined};}
+  if(!(dd.held||{}).crest&&Ly<=-230&&Ly>-520){const n=enemies.filter(e=>e.tag==='crest'&&!beaten(e)).length;return{t:n?`Take the top of the hill · ${n} left`:'Take the top of the hill',x:DDX+300,y:-410,k:n?'danger':undefined};}   // (Version 208: from near the top of the draw until it's ours)
   if(Ly>-300){const g=enemies.find(e=>e.tag==='draw'&&e.gunner&&known(e));
     if(g&&Ly>-160)return{t:'Knock out the MG nest',x:g.x,y:g.y,h:14,k:'danger'};
     const ty=Math.max(-340,Ly-120);return{t:'Up the draw to the top',x:ddRouteX(ty),y:ty,far:ddRouteLeft(Ly,-340)};}
