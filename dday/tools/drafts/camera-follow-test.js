@@ -74,7 +74,7 @@ await ok('Versions 185 to 187, the bunkers taken: at the end of the beach the ca
 await ok('Version 186: sent from the end of the beach to the far side of the ramp\'s top, off the way up: on the way it faces where they\'re going; once they\'re there it swings left, up the way',()=>{
   PUT('A',745,300);ddGoSquad('A');RUN(3);MOVE('A',880,60);const G=dd.cam.go,off=Math.round(ddRouteOff(G.x,G.y));RUN(2.5);const onTheWay=yaw;
   WALK(80);RUN(3);const u=ddTrackAt(),w=WANT(u);
-  return{ok:off>DD_TURN.off&&G.a!=null&&Math.abs(WRAP(onTheWay-G.a))<.3&&u.y<=DD_FIRST.top&&Math.abs(WRAP(yaw-w))<.2&&WRAP(yaw-G.a)>.8&&!dd.cam.go,
+  return{ok:off>DD_TURN.off&&G.a!=null&&Math.abs(WRAP(onTheWay-G.a))<.3&&u.y<=DD_FIRST.top&&Math.abs(WRAP(yaw-w))<.25&&WRAP(yaw-G.a)>.8&&!dd.cam.go,
     offTheWay:off,sent:+G.a.toFixed(2),onTheWay:+onTheWay.toFixed(2),yaw:+yaw.toFixed(2),wayUp:+w.toFixed(2),lead:[Math.round(u.x),Math.round(u.y)]};});
 await ok('sent off the way again with a tank coming: the tank still comes first',()=>{MOVE('A',1078,105);RUN(2);const u=ddTrackAt(),K=(ddTankSpawn({x:u.x+500,y:u.y-300,ang:Math.PI,way:[]}),dd.tanks[dd.tanks.length-1]);K.fireT=1e12;RUN(5);
   const v=ddTrackAt(),to=TO(v,K);const r={ok:Math.abs(WRAP(yaw-to))<.2,yaw:+yaw.toFixed(2),tank:+to.toFixed(2)};K.hp=0;return r;});

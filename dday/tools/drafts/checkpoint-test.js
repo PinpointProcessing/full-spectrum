@@ -34,6 +34,7 @@ const t=await ev(()=>{for(const e of enemies)if(e.tag==='outpost'){e.hp=0;e.dead
   const u=players.find(p=>p.team==='A'),w=ddRouteWay(u.x,u.y),O=ddObjective();return{h,flag,g,dbg:dd.post.guns.map(q=>[!!q.going,q.going&&q.going.path.length,dd.npcs.filter(n=>alive(n)&&!n.inBoat).length]),sp:ddSpawnAt(),order:dd.heldOrder,obj:O&&O.t,yaw:+yaw.toFixed(2),way:w?+Math.atan2(-w.x,-w.y).toFixed(2):null};});
 console.log(JSON.stringify(t));ok(t.h&&t.flag==='2f6fd0','the checkpoint is ours and its flag blue');ok(t.g.every(q=>q&&q[0]==='npc'&&q[2]),'one of the other troops on each gun, turned up the hill');
 ok(!/checkpoint/.test(t.obj||''),'the objective moves on: '+t.obj);
+ok(Math.abs(t.yaw-.35)<.12,'taken, with the squad in it, the camera has swung round to face up the second hill: '+t.yaw);
 await ev(()=>{render(.03,simT);drawOverlay(.03,simT);hud();});await page.waitForTimeout(500);await ev(()=>{render(.03,simT);});await page.waitForTimeout(200);await page.screenshot({path:OUT+'/cp-2-taken.png'});
 // the other chapters still start
 const o2=await ev(async()=>{startCounter();await new Promise(r=>setTimeout(r,900));const c=!!(dd&&dd.counter),p=!dd.post;return{c,p};});ok(o2.c,'the counterattack still starts');

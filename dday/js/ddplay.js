@@ -462,6 +462,10 @@ function ddTurnFirst(u,walking){   // u: the man the camera follows (a squad's: 
     const m=dd.track&&dd.track.id?[u]:players.filter(p=>p.team===u.team&&alive(p)&&!p.inBoat&&!p.joining&&hyp(p.x-u.x,p.y-u.y)<F.near),mx=m.reduce((n,q)=>n+q.x,0)/m.length,my=m.reduce((n,q)=>n+q.y,0)/m.length,px=DD_POST.c[0]+DDX,py=DD_POST.c[1];
     if(!walking){C.go=null;C.offA=null;}
     return hyp(px-mx,py-my)<90?null:Math.atan2(-(px-mx),-(py-my));}
+  // Version 203 (Bryan: "When the upper bunker is entered the camera should swing around to show the second hill"): the checkpoint ours and
+  // the man it follows in or beside it, it faces up the second hill, the way the captured guns point (it was left facing however they'd come in)
+  if(typeof DD_POST!=='undefined'&&dd.post&&(dd.held||{}).outpost){const Z=DD_POST.zone,x=u.x-DDX;
+    if(x>Z[0]-30&&x<Z[2]+30&&u.y>Z[1]-30&&u.y<Z[3]+30){if(!walking){C.go=null;C.offA=null;}return Math.atan2(-Math.cos(DD_POST_UP),-Math.sin(DD_POST_UP));}}
   if(u.y<=F.top)C.firstUp=true;else if(u.y>F.from){C.firstUp=false;C.firstMin=null;}   // (back down at the ramp's foot: the first hill again)
   if(u.y>F.y0||u.x>F.xMax)return null;   // (not on the plateau itself: there it faces where you sent them, Version 183)
   const w=ddRouteWay(u.x,u.y),b=w?Math.atan2(-w.x,-w.y):null;
