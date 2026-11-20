@@ -5,7 +5,7 @@
 // shelter in the back corner, boxes and equipment about, a concrete house off to the right for men to come out of, no tent).
 // Everything is in beach coordinates (dx, y): add DDX for the world's x.
 const DD_POST={A:[743,-69],B:[679,17],F0:[686,19],F1:[739,28],C:[747,30],D:[826,-62],L1:[727,-47],   // (L1: where the left wall of bags stops, short of the stone at the back: the way in from the path)
-  sh:{x:796,y:-50,rot:-.84,w:32,d:22},house:{x:886,y:-36,w:36,d:54},door:[854,-36],flag:[700,-30],c:[742,-14],
+  sh:{x:796,y:-50,rot:-.84,w:32,d:22},house:{x:886,y:-36,w:36,d:54},door:[854,-36],flag:[684,32],c:[742,-14],
   mg:[{x:712,y:16,ang:Math.PI/2+.3,arc:.8},{x:731,y:19,ang:Math.PI/2-.05,arc:.8}],
   men:[[718,-4,1.9],[746,-24,2.2],[784,-40,2.4]],zone:[664,-92,846,42],reinf:4,every:14};
 const ddPostMid=(P,Q,t)=>[P[0]+(Q[0]-P[0])*t,P[1]+(Q[1]-P[1])*t];
@@ -94,19 +94,99 @@ function ddPostTick(){
   if(!held){   // a few more of theirs out of the house, one at a time, once the fight for it has started
     const mine=enemies.filter(e=>e.tag==='outpost'&&!beaten(e)).length;
     if(S.sent<P.reinf&&mine&&mine<5&&dd.allies.some(u=>!u.dead&&!u.inBoat&&hyp(u.x-cx,u.y-cy)<300)&&(S.t-=.5)<=0){
-      S.t=P.every;S.sent++;const u=ddFoe('outpost',P.door[0],P.door[1],{ang:Math.PI,name:'Defender'}),to=[[752,-14],[740,0],[766,-30],[758,-44]][S.sent%4];
+      S.t=P.every;S.sent++;const u=ddFoe('outpost',P.door[0],P.door[1],{ang:Math.PI,name:'Defender'});enemies.push(u);const to=[[752,-14],[740,0],[766,-30],[758,-44]][S.sent%4];
       u.path=findPath(u.x,u.y,to[0]+DDX,to[1])||[];}
     return;}
   if(!S.done){S.done=true;if(DD.postFlag){DD.postFlag.color.setHex(0x2f6fd0);DD.postFlag.emissive.setHex(0x2f6fd0);}for(const g of DD.postGuns||[])g.rotation.y=-DD_POST_UP;}
   // ours now: one of the other troops takes each gun by himself and turns it up the hill (Bryan: "It can be automatically entered by an AI
   // troop and provide mostly an increase in suppression fire"); how the squads' own men work a fixed gun is still to be settled
+  ddPostMen(S);
   for(const g of S.guns){
-    const m=g.man;if(m&&(!alive(m)||m.path.length||m.postGun!==g)){if(m.postGun===g){m.onGun=null;m.gunner=false;m.postGun=null;}g.man=null;}
+    const m=g.man;if(ddPostMine(m))continue;   // (one of the squads' own men holds it: ddPostMen)
+    if(m&&(!alive(m)||m.path.length||m.postGun!==g)){if(m.postGun===g){m.onGun=null;m.gunner=false;m.postGun=null;}g.man=null;}
     const u=g.going;
     if(u){if(!alive(u)||u.postGun!==g||simT-g.goT>40){if(u.postGun===g)u.postGun=null;g.going=null;}
-      else if(!u.path.length){g.going=null;if(hyp(u.x-g.x,u.y-g.y)<20&&!g.man){g.man=u;u.x=g.x;u.y=g.y;u.ang=DD_POST_UP;u.aimT=simT;u.onGun={x:g.gx,y:g.gy,ang:DD_POST_UP,arc:1.15};u.gunner=true;}else u.postGun=null;}
+      else if(!u.path.length){g.going=null;if(hyp(u.x-g.x,u.y-g.y)<20&&!g.man){g.man=u;g.idleT=simT;g.manT=simT;u.x=g.x;u.y=g.y;u.ang=DD_POST_UP;u.aimT=simT;u.onGun={x:g.gx,y:g.gy,ang:DD_POST_UP,arc:1.15};u.gunner=true;}else if(g.man||(u.lastOrder??-99)>g.goT+.01)u.postGun=null;   // (taken meanwhile, or you've sent him somewhere else)
+        else{const p=findPath(u.x,u.y,g.x,g.y);if(p&&p.length){u.path=p;g.going=u;}else u.postGun=null;}}   // (stopped short of it: on again)
       continue;}
     if(g.man)continue;
     const c=dd.npcs.filter(q=>alive(q)&&!q.inBoat&&!q.onGun&&!q.postGun&&!q.raid&&hyp(q.x-g.x,q.y-g.y)<420).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(!c)continue;
     const p=findPath(c.x,c.y,g.x,g.y);if(!p)continue;c.path=p;c.postGun=g;g.going=c;g.goT=simT;}
+}
+
+/* ---------- Version 199: the squads' own men on the guns ----------
+   Bryan: "A grey circle turns around the empty gun nest and says Enter. Once a unit enters it, the circle turns blue and says control. The
+   words will be below the circle. Controlling it enters a first person view that the player can shoot while the squads advance or hold...
+   To exit from the enter, either the team just advances to the next location and no more enemies are left to shoot at, or the individual
+   unit is dragged off. From control, there is an exit button that exits the pov view. The player will abandon the gun nest if a grenade or
+   explosion highlights the area (like normal). Make sure the graphics look nice in POV view" */
+const ddPostMine=u=>!!u&&!u.npc&&u.side==='P';
+function ddPostOff(g,u,why){   // he's off it (and out of first person if it was him)
+  if(!u)return;if(u.postGun===g)u.postGun=null;u.onGun=null;u.gunner=false;if(g.man===u)g.man=null;if(g.going===u)g.going=null;
+  if(dd.fp&&dd.fp.u===u&&typeof fpExit==='function')fpExit(why||null);
+}
+// who he could shoot from it: theirs, up, within its reach and swing, in sight
+function ddPostTargets(g){const a=DD_POST_UP;return enemies.filter(e=>!beaten(e)&&e.side==='E'&&hyp(e.x-g.gx,e.y-g.gy)<640&&Math.abs(Math.atan2(Math.sin(Math.atan2(e.y-g.gy,e.x-g.gx)-a),Math.cos(Math.atan2(e.y-g.gy,e.x-g.gx)-a)))<1.15&&los(g.gx,g.gy,e.x,e.y));}
+// the squads' men on the guns, with the rest of ddPostTick: seated when he gets there, kept on it while there's something to shoot, off it
+// when you order him alone, when his squad has moved on and nothing's left to shoot, or when a shell is coming down on it
+function ddPostMen(S){
+  for(const g of S.guns){const m=g.man;if(!ddPostMine(m))continue;
+    if(!alive(m)||m.postGun!==g){ddPostOff(g,m);continue;}
+    if(m.fp){g.manT=simT+.2;continue;}   // (yours to shoot: he stays until EXIT or a shell)
+    const T=ddPostTargets(g).length;if(T)g.idleT=simT;
+    if(m.path.length||!m.onGun){const ordered=(m.lastOrder??-99)>(g.manT??0)+.01;   // (an order of yours since he sat down; a shift to cover of his own isn't one)
+      if(ordered&&(sel.length===1&&sel[0]===m||!T)){ddPostOff(g,m);continue;}
+      m.path=[];m.x=g.x;m.y=g.y;m.ang=DD_POST_UP;m.onGun={x:g.gx,y:g.gy,ang:DD_POST_UP,arc:1.15};m.gunner=true;if(ordered)g.manT=simT;}   // (a move of his squad's leaves him on it while there's anything to shoot)
+    const o=players.filter(p=>p!==m&&p.team===m.team&&alive(p)&&!p.inBoat&&!p.joining);
+    if(o.length&&!T&&simT-(g.idleT??simT)>4){const n=o.slice().sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y))[0];   // (his nearest squad-mate: one walking up from the beach to join doesn't count as the squad having gone)
+      if(hyp(n.x-m.x,n.y-m.y)>200){const p=findPath(m.x,m.y,n.x,n.y+14);ddPostOff(g,m);if(p)m.path=p;}}}
+}
+// a shell or grenade coming down on a gun: whoever of the squads is on it gets off, so the usual dodge takes him (ddplay.js's ddDodge)
+function ddPostBlast(n){
+  const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost)return;const R=(n.R||58)+6;
+  for(const g of S.guns){const m=g.man;if(!ddPostMine(m)||hyp(g.x-n.x1,g.y-n.y1)>R)continue;ddPostOff(g,m,'Incoming! Off the gun.');m.lastOrder=simT-2;}
+}
+// a tap on a gun's circle: the nearest free man of the squad you play goes to it (one of the other troops on it gives way); a tap on one
+// your man holds takes you into first person on it
+function ddPostTap(wx,wy,sx,sy){
+  const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost||dd.fp)return false;
+  let g=null,bd=40;for(const q of S.guns){toSBack=false;const a=toS(q.gx,q.gy,8),b=toS(q.gx,q.gy+26);if(toSBack)continue;const d=Math.min(hyp(a[0]-sx,a[1]-sy),hyp(b[0]-sx,b[1]-sy+10));if(d<bd){bd=d;g=q;}}
+  if(!g)return false;
+  if(ddPostMine(g.man)){const u=g.man;u.ang=DD_POST_UP;if(typeof fpEnter==='function'&&fpEnter(u,'1p')){dd.fp.a=DD_POST_UP;dd.fp.p=-.03;const b=document.querySelector('#fp [data-a="back"]');if(b)b.textContent='◀ EXIT';banner('On the gun. EXIT to go back to the squads.',2400);}return true;}
+  if(ddPostMine(g.going))return true;
+  const c=players.filter(p=>p.team===dd.active&&alive(p)&&!p.inBoat&&!p.joining&&!p.onGun&&!p.postGun&&!p.carry).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];
+  if(!c){banner('Nobody free to take the gun.',1800);return true;}
+  const p=findPath(c.x,c.y,g.x,g.y);if(!p){banner('Can’t get to the gun.',1800);return true;}
+  for(const u of[g.man,g.going])if(u&&u.npc)ddPostOff(g,u);
+  Object.assign(c,{path:p,lastOrder:simT,postGun:g,watch:null,supT:null,focus:null});g.going=c;g.goT=simT;return true;
+}
+// the circles round the guns once the checkpoint is ours: grey and ENTER while none of the squads' men holds it, blue and CONTROL once one does
+function ddPostDraw(now){
+  const S=dd&&dd.post;if(!S||!(dd.held||{}).outpost||dd.fp||dd.counter||dd.vil)return;
+  for(const g of S.guns){const mine=ddPostMine(g.man),going=ddPostMine(g.going),pu=.5+.5*Math.sin(now*4);
+    const col=mine?'88,196,246':'205,210,216',a=mine?.95:going?.55+pu*.4:.8;
+    gPath(g.gx,g.gy,18);if(toSBack)continue;ox.fillStyle=`rgba(${col},${mine?.2:.12})`;ox.fill();ox.lineWidth=mine?3:2.4;ox.strokeStyle=`rgba(${col},${a})`;ox.stroke();
+    toSBack=false;const q=toS(g.gx,g.gy+23);if(toSBack)continue;label(mine?'CONTROL':going?'ENTERING':'ENTER',q[0],q[1]+10,`rgb(${col})`,12,800);}
+}
+// the gun as you see it from behind it: a belt-fed machine gun on its mount (its barrel along +x, the sights on the line of the eye)
+function ddPostFpGun(){
+  const T=THREE,g=new T.Group(),gm=new T.MeshStandardMaterial({color:0x33373c,roughness:.42,metalness:.75}),dk=new T.MeshStandardMaterial({color:0x1c1e21,roughness:.5,metalness:.6}),br=new T.MeshStandardMaterial({color:0xb48a38,roughness:.35,metalness:.85}),ol=new T.MeshStandardMaterial({color:0x4a5238,roughness:.8,metalness:.1}),wd=new T.MeshStandardMaterial({color:0x5a4028,roughness:.7});
+  const a=(geo,m,x,y,z,rz,rx)=>{const q=new T.Mesh(geo,m);q.position.set(x,y,z);if(rz)q.rotation.z=rz;if(rx)q.rotation.x=rx;q.frustumCulled=false;g.add(q);return q;};
+  a(new T.BoxGeometry(9,2.3,1.9),gm,-1.5,0,0);a(new T.BoxGeometry(7.4,.7,2.1),dk,-1.2,1.45,0);                     // the receiver and its top cover
+  a(new T.CylinderGeometry(1,1,17,12),gm,11.5,.1,0,Math.PI/2);                                                      // the barrel's jacket
+  for(let k=0;k<7;k++)for(const s of[-1,1])a(new T.BoxGeometry(1.5,.5,.25),dk,5+k*2.1,.1,s*.98);                  // its cooling slots
+  for(let k=0;k<7;k++)a(new T.BoxGeometry(1.5,.25,.5),dk,5+k*2.1,1.08,0);
+  a(new T.CylinderGeometry(1.25,.8,2.2,12),dk,21,.1,0,Math.PI/2);a(new T.CylinderGeometry(.45,.45,.6,8),dk,22.3,.1,0,Math.PI/2);   // the muzzle
+  a(new T.BoxGeometry(.5,1.3,.22),dk,18.6,1.75,0);a(new T.BoxGeometry(.9,.3,.8),dk,18.6,1.15,0);                    // the front sight
+  for(const s of[-1,1])a(new T.BoxGeometry(.4,.7,.16),dk,-.4,2.1,s*.26);a(new T.BoxGeometry(.7,.25,.9),dk,-.4,1.85,0);          // the rear sight's notch
+  a(new T.BoxGeometry(4.6,1.5,1.5),wd,-8.2,-.9,0);a(new T.BoxGeometry(1,2.6,1.2),dk,-4.6,-2,0,.25);                 // the butt and the grip
+  a(new T.BoxGeometry(2.2,.5,3.4),dk,.6,.6,-2.4);                                                                    // the feed tray, the belt, the ammunition box
+  for(let k=0;k<9;k++)a(new T.CylinderGeometry(.24,.24,1.9,6),br,.6+Math.sin(k*.5)*.25,.9-k*.72-(k>3?(k-3)*.1:0),-2.4-k*.42,Math.PI/2);
+  a(new T.BoxGeometry(3.2,3.6,4.4),ol,.6,-7.2,-5.4);
+  a(new T.CylinderGeometry(.7,.7,3.4,8),dk,3.5,-2.4,0);a(new T.BoxGeometry(5,.8,3.6),dk,3.5,-4.3,0);                // the mount under it
+  for(const[x,z]of[[7.5,0],[.5,3],[.5,-3]]){const l=a(new T.CylinderGeometry(.42,.42,9,6),dk,x,-7.6,z);l.rotation.z=x>3?-.5:.22;l.rotation.x=z?(z>0?-.35:.35):0;}
+  const fm=new T.MeshBasicMaterial({color:0xffd27a,transparent:true,opacity:.92,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide});
+  const f=new T.Group();f.position.set(24.5,.1,0);for(const r of[0,Math.PI/3,-Math.PI/3]){const q=new T.Mesh(new T.PlaneGeometry(4.6,1.9),fm);q.rotation.x=r;q.frustumCulled=false;f.add(q);}
+  const fc=new T.Mesh(new T.CircleGeometry(1.2,10),fm);fc.rotation.y=Math.PI/2;fc.frustumCulled=false;f.add(fc);f.visible=false;g.add(f);
+  g.userData.flash=f;g.userData.own=true;return g;
 }

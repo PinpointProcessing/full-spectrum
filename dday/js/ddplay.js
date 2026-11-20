@@ -608,6 +608,7 @@ function ddOpenN(x,y,skip){let n=0;for(const e of enemies){if(e===skip||beaten(e
 // the shell holes and the run for cover counting every gun that can reach, combat.js's playerThink and dashToCover. Tried and dropped: going back to
 // his spot once the shell had landed; the guns shell where the men are, so it walked them back into the next shell: twice the moves, more hurt)
 function ddDodge(n){
+  if(typeof ddPostBlast==='function')ddPostBlast(n);   // (a man of yours on one of the checkpoint's guns gets off it first)
   const R=n.R||ENADE.r;
   for(const p of players){
     if(!alive(p)||p.offMap||p.inBoat||p.fp||hyp(p.x-n.x1,p.y-n.y1)>R+6||simT-p.lastOrder<1)continue;
@@ -1025,7 +1026,8 @@ function ddToolKeep(){
 // own; a grenade, a rifle grenade or a rocket landing on it breaks that stretch (ddBlast: its hp 40, about 3 m from the blast does it)
 // A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
-function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;if(typeof ddcTap==='function'){const r=ddcTap(wx,wy,sx,sy);if(r!=null)return r;}   // (Version 168: an enemy, a tank or the wire tapped brings up its ring of actions, ddctl.js)
+function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(typeof ddPostTap==='function'&&ddPostTap(wx,wy,sx,sy))return true;   /* (Version 199: a gun's ENTER / CONTROL circle, ddpost.js) */
+  if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;if(typeof ddcTap==='function'){const r=ddcTap(wx,wy,sx,sy);if(r!=null)return r;}   // (Version 168: an enemy, a tank or the wire tapped brings up its ring of actions, ddctl.js)
   if(!sel.length)return false;
   // the tank under the finger: the squad's own answer to armour, a rocket (a grenade if that's all there is and he's near enough). Bryan: "our
   // units use explosives only for heavily armored vehicles when targeted? Like a rocket?"

@@ -822,3 +822,8 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 - At the top of the first path: sandbags, two machine guns, stone walls, a stone shelter, a concrete house. Five men hold it; four more come out of the house during the fight.
 - The objective reads "Take the checkpoint" and the camera faces it until it's yours; then the camera turns up the second hill.
 - Taken: the flag turns blue, your other troops man both guns and turn them up the hill, and replacements arrive from the house.
+
+## Version 199: your own men on the checkpoint's guns
+- Once the checkpoint is yours, each gun has a grey circle with ENTER under it. Tap it and the nearest man of your squad takes the gun; the circle turns blue with CONTROL.
+- Tap CONTROL to fire it yourself in first person. EXIT (top left) goes back to the squads and leaves him on the gun.
+- He gets off when you order him alone, when his squad has moved on and nothing is left to shoot, or when a shell is coming down on the gun.

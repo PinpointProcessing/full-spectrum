@@ -111,9 +111,11 @@ function fpSpec(){
 }
 /* a gun to man (the counterattack's nests and field guns): walk up, Use; the stick pushed takes him off it */
 function fpGunNear(){const u=dd.fp.u;if(!dd.counter||!dd.dc)return null;let b=null,bd=70;for(const g of dd.dc.guns){if(g.dead||g.man&&!g.man.npc&&g.man!==u)continue;const d=hyp(g.x-u.x,g.y-u.y);if(d<bd){bd=d;b=g;}}return b;}
-function fpLeaveGun(){const F=dd.fp,u=F.u;if(!u.onGun&&!u.dcGun)return;u.onGun=null;u.gunner=false;u.dcGun=null;F.offT=0;F.clip=0;F.wk=null;if(isFree(u.x,u.y+12,5))u.y+=12;fpSay('Off the gun');}
+function fpLeaveGun(){const F=dd.fp,u=F.u;if(u.postGun)return;   /* (the checkpoint's guns: EXIT, not the stick) */
+  if(!u.onGun&&!u.dcGun)return;u.onGun=null;u.gunner=false;u.dcGun=null;F.offT=0;F.clip=0;F.wk=null;if(isFree(u.x,u.y+12,5))u.y+=12;fpSay('Off the gun');}
 function fpUse(){
-  const F=dd.fp;if(!F)return;const u=F.u;if(u.onGun||fpArt(u)){fpLeaveGun();return;}
+  const F=dd.fp;if(!F)return;const u=F.u;if(u.postGun&&typeof ddPostOff==='function'){ddPostOff(u.postGun,u,'Off the gun.');return;}   // (LEAVE THE GUN on one of the checkpoint's: off it and back to the squads)
+  if(u.onGun||fpArt(u)){fpLeaveGun();return;}
   const g=fpGunNear();if(!g){fpSay('Nothing to use here');return;}
   if(dcMan(u,g)){fpSay(g.t==='art'?'Taking the field gun':'Taking the gun');F.a=-Math.PI/2;F.p=-.03;}else fpSay('Can’t reach it');
 }
@@ -136,6 +138,7 @@ function fpUnit(u,dt){
 }
 /* the rest of his squad: they keep with him and fight by themselves, and use what they carry when it's needed */
 function fpMates(){
+  if(dd.fp.u.postGun)return;   // (on one of the checkpoint's guns: his squad stays where it is, ddpost.js)
   const F=dd.fp,u=F.u,m=players.filter(p=>p!==u&&p.team===u.team&&alive(p)&&!p.inBoat&&!p.joining);if(!m.length)return;
   const free=m.filter(p=>!p.medGo&&!p.throwGo&&!p.rpgAim&&!p.dcGun&&!p.onGun&&!pinnedNow(p));
   const A=F.anchor,moved=!A||hyp(u.x-A.x,u.y-A.y)>FPC.follow,far=free.filter(p=>!p.path.length&&hyp(p.x-u.x,p.y-u.y)>130),list=moved?free:far;
@@ -188,12 +191,12 @@ function fpCam(rdt){
   // the gun in his hands, first person
   const kind=P.mt?'minigun':u.weapon==='hmg'?'bar':u.weapon==='sniper'?'spring':'garand';
   if(P.one&&!P.A&&!scope){
-    if(!F.gun||F.gunK!==kind+(P.mt?'m':'')||F.gun.parent!==scene){if(F.gun&&F.gun.parent)F.gun.parent.remove(F.gun);F.gun=ddmGun(kind);F.gunK=kind+(P.mt?'m':'');F.gun.traverse(o=>{o.frustumCulled=false;o.castShadow=false;if(P.mt&&o.material)o.material.color.setHex(0x2a2c30);});scene.add(F.gun);}
+    if(!F.gun||F.gunK!==kind+(P.mt?'m':'')||F.gun.parent!==scene){if(F.gun&&F.gun.parent)F.gun.parent.remove(F.gun);F.gun=P.mt&&typeof ddPostFpGun==='function'?ddPostFpGun():ddmGun(kind);F.gunK=kind+(P.mt?'m':'');const own=F.gun.userData.own;F.gun.traverse(o=>{o.frustumCulled=false;o.castShadow=false;if(P.mt&&!own&&o.material)o.material.color.setHex(0x2a2c30);});scene.add(F.gun);}
     const g=F.gun,up=new T.Vector3(0,1,0).applyQuaternion(camera.quaternion),rt=new T.Vector3(1,0,0).applyQuaternion(camera.quaternion),fw=new T.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
     const dip=F.reloadT?Math.min(1.6,(F.reloadT-simT)*2,(simT-(F.reloadT-W.reload))*6):0;
     g.visible=true;g.scale.setScalar(P.mt?.8:.5);
     g.position.copy(camera.position).addScaledVector(fw,(P.mt?9.5:7.5)-F.kick*22).addScaledVector(rt,P.mt?0:F.aim?0:2.2).addScaledVector(up,(P.mt?-3.6:F.aim?-1.35:-2.5)-dip+bob*.3);
-    g.quaternion.copy(camera.quaternion).multiply(_fpq);
+    g.quaternion.copy(camera.quaternion).multiply(_fpq);if(g.userData.flash){g.userData.flash.visible=F.cool>W.cool-.05&&!F.reloadT;g.userData.flash.rotation.x=simT*37;g.scale.setScalar(.74);g.position.addScaledVector(fw,1.5).addScaledVector(up,.5);}
   }else if(F.gun)F.gun.visible=false;
   document.body.classList.toggle('fp-scope',scope);
   fpHud();return true;

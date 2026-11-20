@@ -26,7 +26,7 @@ console.log(JSON.stringify(c));ok(/Take the checkpoint/.test(c.t||''),'the objec
 await ev(()=>{render(.03,simT);drawOverlay(.03,simT);hud();});await page.waitForTimeout(500);await ev(()=>{render(.03,simT);});await page.waitForTimeout(200);await page.screenshot({path:OUT+'/cp-1-approach.png'});
 // reinforcements out of the house, at most four
 const r=await ev(()=>{SAFE=1;{const L=enemies.filter(e=>e.tag==='outpost'&&!e.dead);L.slice(1).forEach(e=>e.hp=1e6);if(L.length>4){L[0].hp=0;L[0].dead=true;}}PUT('A',620,60);PUT('B',600,100);const n0=enemies.filter(e=>e.tag==='outpost').length;RUN(80);return{n0,n1:enemies.filter(e=>e.tag==='outpost').length,sent:dd.post.sent};});
-console.log(JSON.stringify(r));ok(r.sent===4,'four more come out of the house over the fight, no more');
+console.log(JSON.stringify(r));ok(r.sent===4&&r.n1>r.n0,'four more come out of the house over the fight, no more, and they count as theirs');
 // taken
 const t=await ev(()=>{for(const e of enemies)if(e.tag==='outpost'){e.hp=0;e.dead=true;}for(const e of enemies)if(e.tag==='draw')e.dead=true;PUT('A',742,-14);PUT('B',750,-28);dd.npcs.slice(0,6).forEach((u,k)=>Object.assign(u,{x:DDX+640+k*10,y:40,path:[],inBoat:false,afloat:false}));
   RUN(2);const h=!!dd.held.outpost,flag=DD.postFlag.color.getHexString();RUN(60);
