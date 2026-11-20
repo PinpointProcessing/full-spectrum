@@ -15,8 +15,8 @@ const shot=async(n,cx,cy,zm,yw,tl)=>{await page.evaluate(([cx,cy,zm,yw,tl])=>{fo
     zoom=zm;yaw=yw;tilt=ddTilt(zm,tl);camT.x=DDX+cx;camT.z=cy;camShift=0;updateCamera();render(.03,simT);ox.setTransform(1,0,0,1,0,0);ox.clearRect(0,0,9999,9999);},[cx,cy,zm,yw,tl]);
   await page.waitForTimeout(500);await page.evaluate(()=>{render(.03,simT);});await page.waitForTimeout(200);await page.screenshot({path:`${OUT}/${n}.png`});console.log('shot',n);};
 const T=CAP?'cap-':'';
-await shot(T+'game',640,100,7.5,-.85,.38);
-await shot(T+'close',716,10,9,-.85,.45);
-await shot(T+'house',860,80,8,-.85,.45);
-await shot(T+'top',790,40,4.6,0,.8);
+await shot(T+'game',740,60,5.6,-.85,.38);
+await shot(T+'close',722,-14,8,-.85,.45);
+await shot(T+'top',770,-10,5,0,.8);
+await shot(T+'back',760,-30,6.5,2.3,.5);
 console.log(JSON.stringify(await page.evaluate(()=>({LD,state,cam:camera.position.toArray().map(Math.round)}))));console.log('errors',errors.length,errors.slice(0,3));await b.close();srv.close();process.exit(0);})();
