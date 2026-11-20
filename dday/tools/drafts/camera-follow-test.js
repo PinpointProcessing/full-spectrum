@@ -37,7 +37,7 @@ await ev(()=>{let n=0;while(!dd.land.done&&n++<200)RUN(.5);RUN(2);dd.ctr={on:tru
 await ok('walking up the sand, the camera faces the way they go, up the way as before',()=>{const R=DD_ROUTE;PUT('A',R[1][0]+DDX,R[1][1]);PUT('B',R[1][0]+DDX+120,R[1][1]+20);selectTeam('A');dd.active='A';ddGoSquad('A');RUN(2);
   MOVE('A',R[2][0]+DDX,R[2][1]);RUN(3);const u=ddTrackAt(),w=WANT(u);return{ok:Math.abs(WRAP(yaw-w))<.3,yaw:+yaw.toFixed(2),wayUp:+w.toFixed(2)};});
 await ok('Bryan\'s picture: the left bunker taken, sent up the beach to the road by it: facing north on the way, and once there it turns right (since Version 187 to the first hill: the pillbox isn\'t a place to take any more)',()=>{
-  for(const e of enemies)if(e.tag==='left'&&!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.held=dd.held||{};dd.held.left=true;
+  for(const e of enemies)if(e.tag==='left'&&!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.held=dd.held||{};dd.held.left=true;dd.held.outpost=true;for(const e of enemies)if(e.tag==='outpost'&&!e.dead){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}   /* (Version 198: the checkpoint counted as taken: these are the camera's rules after it; before it, checkpoint-test.js) */
   for(const e of enemies)if(e.tag==='pill'&&!beaten(e))e.hp=1e6;   // (the pillbox's men still there: they can't be shot down meanwhile, by Bravo either)
   const L=DD_SPOT.leftMG.x+DDX;for(const o of dd.wires||[])if(o.y===340&&!o.gone&&Math.abs(o.x+o.w/2-L)<160)ddWreck(o,null);   // (a gap blown in the wire below the left bunker: climbing it can take longer than the test waits)
   PUT('A',L+10,430);PUT('B',L+150,440);ddGoSquad('A');RUN(3);MOVE('A',L,305);const G=dd.cam.go,off=Math.round(ddRouteOff(G.x,G.y));RUN(1.5);const onTheWay=yaw;
@@ -58,7 +58,7 @@ await ok('sent back down toward the beach, off the way up: it doesn\'t spin roun
 await ok('picking the squad again forgets where they were sent: it faces what it would with no move given (the next bunker, the first hill or the way up)',()=>{WALK(60);ddGoSquad('A');RUN(5);const u=ddTrackAt(),W=ddTurnWant(u);
   return{ok:!dd.cam.go&&!!W&&Math.abs(WRAP(yaw-W.a))<.35,yaw:+yaw.toFixed(2),want:W?+W.a.toFixed(2):null};});
 await ok('Versions 185 to 187, the bunkers taken: at the end of the beach the camera faces the first hill; up the ramp it drifts steadily left, toward the way up the draw where their men come down from, and by the top it faces up the draw; on up it stays so',()=>{
-  for(const e of enemies)if((e.tag==='left'||e.tag==='pill')&&!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.held.left=true;
+  for(const e of enemies)if((e.tag==='left'||e.tag==='pill')&&!beaten(e)){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}dd.held.left=true;dd.held.outpost=true;for(const e of enemies)if(e.tag==='outpost'&&!e.dead){e.hp=0;e.dead=true;if(e.m&&e.m.g)e.m.g.visible=false;}   /* (Version 198: the checkpoint counted as taken: these are the camera's rules after it; before it, checkpoint-test.js) */
   PUT('A',745,300);PUT('B',860,320);ddGoSquad('A');RUN(4);let u=ddTrackAt(),M=MID(SQ('A'));const F=DD_FIRST,r=v=>+v.toFixed(2);
   const st=[{at:'end of the beach',yaw:yaw,first:Math.max(F.maxR,TO(M,F)),way:WANT(u),y:Math.round(u.y)}];
   for(const[x,y,n]of[[760,236,'foot of the ramp'],[768,186,'half way up'],[772,150,'near the top'],[800,70,'at the top']]){MOVE('A',x,y);WALK(60);RUN(3);u=ddTrackAt();M=MID(SQ('A'));const W=ddTurnWant(u);

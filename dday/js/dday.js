@@ -117,6 +117,7 @@ function ddObjects(){
   // the top of the hill on the right: a third bunker at its south rim, over the path and the beach, and an artillery piece behind sandbags
   o('ddpb',826,194,108,8,{cover:2,bk:'p3'});o('ddpb',826,154,8,40,{cover:2,full:true,bk:'p3'});o('ddpb',926,154,8,40,{cover:2,full:true,bk:'p3'});
   o('sandbag',946,124,34,10);o('sandbag',790,124,44,10);
+  if(typeof ddPostObjects==='function')ddPostObjects(o);   // (Version 198: the checkpoint at the top of the first path, ddpost.js)
   // the artillery, two guns on the second hill's top looking out over everything
   o('ddgun',690,-392,24,22,{cover:1,hp:200,tag:'art'});o('ddgun',800,-392,24,22,{cover:1,hp:200,tag:'art'});o('sandbag',676,-352,58,10);o('sandbag',786,-352,58,10);o('ddcrate',748,-420,22,20,{cover:1});
   // the nest up the draw: bags round three sides of its gun, which looks straight down the way up (Bryan: "The hill up should have a mg nest facing downwards")
@@ -327,6 +328,7 @@ function ddProps(sc,objsL){
   const box=(o,h,mat,lift=0)=>{const g0=ddH(o.x+o.w/2,o.y+o.h/2);const m=add(new T.BoxGeometry(o.w,h,o.h),mat,o.x+o.w/2,g0+h/2+lift,o.y+o.h/2);(o.meshes=o.meshes||[]).push(m);return m;};
   const bagG=new T.SphereGeometry(1,7,5),bagGeo=ddgBagGeo(),bagM=new T.MeshStandardMaterial({map:ddgTex('burlap'),roughness:1,vertexColors:true}),crateM=new T.MeshStandardMaterial({map:ddgTex('crate'),roughness:.88,vertexColors:true}),hogM=new T.MeshStandardMaterial({map:ddgTex('rust'),roughness:.8,metalness:.12}),wireM=new T.MeshStandardMaterial({vertexColors:true,roughness:.62,metalness:.45}),r=rng(66),BK=DD.bk={},concT=ddConcTex(),bkM=(k,v=0)=>{const L=BK[k]||(BK[k]=[]);return L[v]||(L[v]=v===2?new T.MeshStandardMaterial({color:0x7a6a48,roughness:1,transparent:true}):v===3?new T.MeshStandardMaterial({color:0xffffff,map:ddgTex('turf'),roughness:1,transparent:true}):new T.MeshStandardMaterial({color:v?0x8f8b80:0xd0ccc0,map:concT,bumpMap:DD.concH,bumpScale:.7,roughness:.95,transparent:true}));};
   for(const o of objsL){
+    if(o.hid)continue;   // (drawn elsewhere: ddpost.js's walls)
     const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=ddH(cx,cy);
     if(o.kind==='sandbag'){   // two courses of bags (Version 188: burlap sacks, fat in the middle and tied at the ends, each its own shade; one mesh a line)
       const horiz=o.w>=o.h,n=Math.round((horiz?o.w:o.h)/8),dep=horiz?o.h:o.w,P=[];
@@ -409,6 +411,7 @@ function ddProps(sc,objsL){
       q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
       G.add(g);}}
+  if(DD_MODE==='beach'&&typeof ddPostBuild==='function')ddPostBuild(G,add,M);   // (Version 198: the checkpoint)
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored
   for(const s of[-1,1]){const c=G.clone(true);c.scale.x=-1;c.position.x=s<0?0:2*(DDB.x1-DDB.x0);sc.add(c);

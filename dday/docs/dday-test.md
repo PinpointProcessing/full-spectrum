@@ -817,3 +817,8 @@ Bryan: "do everything you can to make this game better in your own opinions. Gra
 
 ## Version 197
 - The report's sounds are recordings now: a snare roll as the bar fills, brass for a level up, VICTORY and the medal, a thump with the WOUNDED stamp.
+
+## Version 198: the checkpoint
+- At the top of the first path: sandbags, two machine guns, stone walls, a stone shelter, a concrete house. Five men hold it; four more come out of the house during the fight.
+- The objective reads "Take the checkpoint" and the camera faces it until it's yours; then the camera turns up the second hill.
+- Taken: the flag turns blue, your other troops man both guns and turn them up the hill, and replacements arrive from the house.

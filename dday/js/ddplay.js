@@ -68,6 +68,7 @@ function spawnDDay(){
   ddGunner('pill',S.pill);for(const g of S.pillMGs)ddGunner('pill',g);for(const g of S.leftMGs)ddGunner('left',g);ddFoe('pill',724,268,{post:true});ddFoe('pill',612,262,{post:true,nade:1});ddGunner('left',S.leftMG);ddFoe('left',316,262,{post:true});ddFoe('left',246,282,{post:true});ddFoe('wall',505,280,{post:true,nade:1});ddFoe('wall',150,290,{post:true});ddFoe('left',400,268,{post:true,nade:1});
   for(const n of S.nests)ddGunner('nest',n);ddFoe('nest',790,262,{post:true});ddFoe('draw',800,-52,{zone:Z(752,-95,1000,40)});
   ddFoe('draw',484,178,{post:true});ddFoe('draw',520,178,{post:true});ddFoe('draw',600,60,{zone:Z(480,0,660,130)});ddFoe('draw',470,-20,{zone:Z(400,-60,640,60),nade:1});ddFoe('draw',556,178,{post:true,nade:1});
+  if(typeof ddPostSpawn==='function')ddPostSpawn();   // (Version 198: the checkpoint's men, ddpost.js)
   for(const g of[S.hillMG,S.hillMG2,S.hillMG3])ddGunner('hill',g,null,{longR:700});ddFoe('hill',880,166,{post:true,name:'Grenadier',mortarT:simT+24+Math.random()*6,lob:1});   // (Version 155: on the lip; they reach 70 m, wild past 42: Bryan, "longer but much more inaccurate after 42m")
   ddGunner('top',S.pathMG,'Light machine gunner');ddFoe('top',S.sniper2.x,S.sniper2.y,{post:true,name:'Sniper',weapon:'sniper'});ddFoe('art',676,-410,{post:true,name:'Gun crew'});ddFoe('art',746,-404,{post:true,name:'Gun crew'});ddFoe('art',830,-410,{post:true,name:'Gun crew'});
   ddGunner('draw',S.drawMG);ddFoe('draw',420,-150,{zone:Z(380,-200,640,-60)});ddFoe('draw',542,-164,{zone:Z(380,-200,640,-60),nade:1});
@@ -454,6 +455,13 @@ function ddTurnObj(u){
 // barracks (ddBarracks sends them down the way to the front), so by the top it already faces up the draw
 function ddTurnFirst(u,walking){   // u: the man the camera follows (a squad's: its man furthest up the way)
   const F=DD_FIRST,C=dd.cam;if(!ddTurnRoute())return null;
+  // Version 198 (Bryan: "The camera wouldn't switch up the second hill until the second objective is taken"; "Once taken, the camera switches
+  // around to face up the second hill"): from the wire until the checkpoint is ours the camera faces the checkpoint, from the men round the
+  // one it follows; within 9 m of it, as it is. Taken, what follows faces up the way as before
+  if(typeof DD_POST!=='undefined'&&dd.post&&!(dd.held||{}).outpost&&u.y<=F.y0&&u.y>-170){
+    const m=dd.track&&dd.track.id?[u]:players.filter(p=>p.team===u.team&&alive(p)&&!p.inBoat&&!p.joining&&hyp(p.x-u.x,p.y-u.y)<F.near),mx=m.reduce((n,q)=>n+q.x,0)/m.length,my=m.reduce((n,q)=>n+q.y,0)/m.length,px=DD_POST.c[0]+DDX,py=DD_POST.c[1];
+    if(!walking){C.go=null;C.offA=null;}
+    return hyp(px-mx,py-my)<90?null:Math.atan2(-(px-mx),-(py-my));}
   if(u.y<=F.top)C.firstUp=true;else if(u.y>F.from){C.firstUp=false;C.firstMin=null;}   // (back down at the ramp's foot: the first hill again)
   if(u.y>F.y0||u.x>F.xMax)return null;   // (not on the plateau itself: there it faces where you sent them, Version 183)
   const w=ddRouteWay(u.x,u.y),b=w?Math.atan2(-w.x,-w.y):null;
@@ -552,6 +560,7 @@ function ddLine(){   // how far up they may go: behind the squads, and no furthe
 function ddRouteX(y){const R=DD_ROUTE;if(y>=R[0][1])return R[0][0]+DDX;for(let i=1;i<R.length;i++){const[a,b]=R[i-1],[c,d]=R[i];if(y>=d){const t=(a===c&&b===d)?0:(b-y)/(b-d);return a+(c-a)*t+DDX;}}return R[R.length-1][0]+DDX;}
 function ddNpcThink(u,line){
   if(u.dead||u.inBoat||u.path.length||simT<u.hopT)return;
+  if(u.postGun)return;   // (on one of the checkpoint's guns, or on his way to it: ddpost.js)
   if(u.raid&&ddRaidThink(u))return;   // (one of those sent for a bunker the squads went past: below)
   if(dd.base&&dd.base.open&&u.y<-430){ddNpcEast(u);return;}   // (on the top, once the barracks is ours: east to their base, ddbase.js)
   if(u.y<=line+24){u.hopT=simT+3;return;}
@@ -671,7 +680,7 @@ function ddWaves(){
 }
 // where a replacement comes from (Version 170, Bryan: "The previously controlled area should produce the reinforcements, not the most recent"): the place
 // taken before the one taken last, the barracks last of all; the beach (a boat) while that's the beach. Until Version 170: the held place nearest his squad
-const DD_SPAWN={left:[352,236],nest:[906,236],hill:[880,120],draw:[530,60],heavy:[120,-380],art:[770,-390]};
+const DD_SPAWN={outpost:[854,-36],left:[352,236],nest:[906,236],hill:[880,120],draw:[530,60],heavy:[120,-380],art:[770,-390]};
 function ddSpawnAt(){
   const O=(dd.heldOrder||[]).filter(k=>k==='beach'||DD_SPAWN[k]);if(dd.blown.barracks)O.push('barracks');
   const k=O.length>=2?O[O.length-2]:null;if(!k||k==='beach')return null;
@@ -806,7 +815,7 @@ function ddTankWreck(K){
    base is the last: held with the barracks, which is the win (Bryan: "The player doesn't need to destroy the barracks, just control it") */
 const DD_ZONES=[
   {k:'beach',n:'The beach',r:[0,348,1000,776],tags:[]},{k:'left',n:'The left bunker',r:[236,204,468,344],tags:['left'],bk:'p0'},   // (the pillbox, r 600,206,770,344, isn't one since Version 187, Bryan: "the Pill box on the right side of the beach doesn't need to be a capture point": its guns are still there to knock out)
-  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},
+  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'outpost',n:'The checkpoint',r:[664,-92,846,42],tags:['outpost']},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},
   {k:'heavy',n:'The heavy gun',r:[14,-456,166,-344],tags:['heavy'],bk:'hv'},{k:'art',n:'The artillery',r:[640,-436,900,-336],tags:['art']},{k:'base',n:'The base',r:[200,-756,1000,-440],tags:['base','top','cannon','mortar','reinf']}];
 function ddZones(){
   const H=dd.held||(dd.held={});
@@ -962,7 +971,7 @@ function ddTick(dt){
   dd.idle[dd.active]=0;const other=dd.active==='A'?'B':'A';
   ddHot();
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}else ddSquadAI(other);if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}   // (Version 168: with Lead one squad on, the other backs you up, ddctl.js)
-  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();ddRaids();ddHelpers();ddTidy();updateObjUI();}
+  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();if(typeof ddPostTick==='function')ddPostTick();ddRaids();ddHelpers();ddTidy();updateObjUI();}
   // the battle next door: tracers and shell bursts off to both sides, splashes out at sea
   if((dd.ambT-=dt)<=0){dd.ambT=.12+Math.random()*.2;const side=Math.random()<.5?-1:1,x=side<0?-80-Math.random()*700:DDB.x1+80+Math.random()*700,y=-300+Math.random()*900;
     tracers.push({x1:x,y1:y,x2:x+(Math.random()-.5)*200,y2:y+(Math.random()<.5?260:-260)*(.5+Math.random()),t:0,col:Math.random()<.5?'255,231,163':'255,140,100'});
