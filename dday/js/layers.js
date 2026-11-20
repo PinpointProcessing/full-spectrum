@@ -122,6 +122,7 @@ function checkInTick(dt){
 
 /* ---------- surrender and zip ties ---------- */
 function moraleBreak(e){
+  if(MAPID==='dd')return false;   // (D-Day, Version 209, Bryan: "get rid of enemies surrendering, at least for this level"; the village's own scripted ones, ddvillage.js, don't come through here)
   if(e.surr||e.dog||e.gunner||e.post||e.rpg||e.hp>=SURRENDER.hp||e.sup<=PINNED||simT<(e.surrNext||0))return false;
   if(enemies.some(o=>o!==e&&!o.dead&&!o.surr&&!o.dog&&(MAPID!=='in'||o.floor===e.floor)&&hyp(o.x-e.x,o.y-e.y)<SURRENDER.alone))return false;
   e.surrNext=simT+SURRENDER.every;if(Math.random()>SURRENDER.chance)return false;   // one roll every few seconds while it holds

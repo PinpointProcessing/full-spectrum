@@ -482,7 +482,13 @@ function ddTurnFirst(u,walking){   // u: the man the camera follows (a squad's: 
 }
 function ddTurnWant(u){   // {a: the way to face, tk: a tank's} or null to leave the camera as it is
   const C=dd.cam,K=ddTankNear(u),G=K?null:C.go;
-  if(!K&&C.capT&&simT<C.capT){const T=ddTanksUp()[0],W=DD_SPOT.tankWay[0],tx=T?T.x:W[0]+DDX,ty=T?T.y:W[1];return{a:Math.atan2(-(tx-u.x),-(ty-u.y))};}   // (Version 208: the top of the hill just taken: round to where the tank comes from, or to the tank if it's out, for nine seconds)
+  // Version 209 (Bryan: "the camera still doesn't swing when capturing the second capture point"): a place just taken turns the camera for nine
+  // seconds whatever else: wherever your men stand, whichever way they were sent, a turn by hand just before, or you on a gun at the time (it
+  // starts when you're back). The checkpoint: up the second hill. The top of the hill: the tank, or where it comes from
+  if(!K&&C.cap){const c=C.cap;if(c.t==null)c.t=simT+9;
+    if(simT>=c.t)C.cap=null;
+    else if(c.k==='outpost')return{a:Math.atan2(-Math.cos(DD_POST_UP),-Math.sin(DD_POST_UP))};
+    else if(c.k==='crest'){const T=ddTanksUp()[0],W=DD_SPOT.tankWay[0],tx=T?T.x:W[0]+DDX,ty=T?T.y:W[1];return{a:Math.atan2(-(tx-u.x),-(ty-u.y))};}}
   if(K)return{a:Math.atan2(-(K.x-u.x),-(K.y-u.y)),tk:true};   // (a tank coming: face it)
   if(G&&!G.done&&(simT-(G.t??simT)>DD_TURN.walkT||!(u.path&&u.path.length)&&players.filter(p=>p.team===u.team&&alive(p)&&p.path&&p.path.length).length<=1))G.done=true;   // (they're there: the man it follows has stopped and at most one other is still walking, or it's been DD_TURN.walkT s)
   const walking=!!G&&!G.done,off=!!G&&ddRouteOff(G.x,G.y)>DD_TURN.off;
@@ -496,7 +502,8 @@ function ddTurnWant(u){   // {a: the way to face, tk: a tank's} or null to leave
 }
 function ddTurn(u,rdt){
   const C=dd.cam||(dd.cam={k:1,p:null,q:null}),now=performance.now();
-  if(C.yaw!=null&&Math.abs(yaw-C.yaw)>1e-4){C.heldT=now;C.tk=false;}   // (turned by hand since the last frame: kept a while, and a turn of the camera's own to a tank forgotten)
+  if(C.cap&&C.cap.t==null){C.yaw=yaw;C.heldT=0;}   // (a place just taken: its turn starts clean, not held by a turn made before)
+  if(C.yaw!=null&&Math.abs(yaw-C.yaw)>1e-4){C.heldT=now;C.tk=false;C.cap=null;}   // (turned by hand since the last frame: kept a while, and a turn of the camera's own to a tank forgotten)
   if(C.heldT&&now-C.heldT<DD_TURN.hold*1000){C.yaw=yaw;return;}
   const W=ddTurnWant(u);if(!W){C.yaw=yaw;return;}
   if(W.tk)C.tk=true;
@@ -833,7 +840,7 @@ function ddZones(){
     if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e)))continue;
     if(!dd.allies.some(u=>!u.inBoat&&u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1))continue;
     H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);
-    if((Z.k==='left'||Z.k==='outpost'||Z.k==='crest')&&dd.active&&!dd.fp){dd.track={team:dd.active};if(dd.cam){dd.cam.heldT=0;dd.cam.go=null;dd.cam.offA=null;if(Z.k==='crest')dd.cam.capT=simT+9;}}   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
+    if((Z.k==='left'||Z.k==='outpost'||Z.k==='crest')&&dd.active){if(!dd.fp)dd.track={team:dd.active};const C=dd.cam||(dd.cam={k:1,p:null,q:null});C.heldT=0;C.go=null;C.offA=null;C.yaw=yaw;C.cap={k:Z.k,t:null};}   // (Version 209: C.cap, a turn the camera makes whatever else: ddTurnWant)   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
 if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were taken in: ddSpawnAt)
     for(const m of(Z.bk&&DD&&DD.bk&&DD.bk[Z.bk])||[])if(m&&m.color){m.color.lerp(new T.Color(0x5fa4ff),.42);if(m.emissive)m.emissive.setHex(0x12305a);}
   }
