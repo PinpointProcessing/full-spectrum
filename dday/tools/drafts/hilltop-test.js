@@ -15,7 +15,7 @@ const a=await ev(()=>{window.SAFE=1;const d0=damage;damage=(t,d,s)=>SAFE&&t.side
 console.log(JSON.stringify(a));ok(!a.leftOf.length&&a.left>=3,'nobody of theirs stands left of the first bunker; its guns and men inside are still there');
 ok(a.zone&&a.crest.length===2&&a.way,'the top of the hill is a place to take, with its machine gun and a rifleman');
 // up the draw with everything below dead: the objective, then take it with the camera let go
-const o=await ev(()=>{for(const e of enemies)if(e.y>-330&&e.tag!=='crest'){e.hp=0;e.dead=true;}for(const k of['beach','left','nest','outpost','draw'])dd.held[k]=true;for(const e of enemies)e.stunT=999;
+const o=await ev(()=>{for(const e of enemies)if(e.y>-330&&e.tag!=='crest'){e.hp=0;e.dead=true;}for(const k of['beach','left','nest','outpost','draw'])dd.held[k]=true;for(const e of enemies){e.stunT=999;if(e.tag==='crest')e.hp=1e6;}   // (its men kept alive for the look at the objective: since Version 214 it's taken from this near once they're down)
   PUT('A',250,-316);PUT('B',290,-300);selectTeam('A');dd.active='A';ddGoSquad('A');RUN(3);const O=ddObjective();return{t:O&&O.t,held:!!dd.held.crest,ys:players.map(p=>p.team+Math.round(p.y)+(alive(p)?'':'x')+(p.inBoat?'b':'')+(p.joining?'j':''))};});
 console.log(JSON.stringify(o));ok(/top of the hill/.test(o.t||'')&&!o.held,'the objective: '+o.t);await shot('h1-crest');
 const c=await ev(()=>{dd.track=null;const y0=yaw;for(const e of enemies)if(e.tag==='crest'){e.hp=0;e.dead=true;}PUT('A',290,-400);PUT('B',330,-380);RUN(1.2);const held=!!dd.held.crest,tr=!!dd.track;RUN(5);drawOverlay(.03,simT);

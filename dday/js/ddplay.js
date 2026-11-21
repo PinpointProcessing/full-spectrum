@@ -369,6 +369,9 @@ function ddGoMan(u){
   dd.track={team:u.team,id:u.id};ddTurnFree();
 }
 function ddTrack(rdt){
+  // (Version 214: while a place just taken is turning the camera, a drag of the map only holds it while the finger is down; let go, it's back on
+  // your squad and the turn finishes. A drag used to let the camera go for good, and the turn stopped part of the way round and never ended)
+  if(!dd.track&&dd.cam&&dd.cam.cap&&dd.active&&!dd.fp&&!(typeof ptr!=='undefined'&&ptr)&&!(typeof pinch!=='undefined'&&pinch))dd.track={team:dd.active};
   if(!dd.track||camPan||(typeof ptr!=='undefined'&&ptr)||(typeof pinch!=='undefined'&&pinch))return;
   const u=ddTrackAt();if(!u)return;
   ddTurn(u,rdt);
@@ -455,6 +458,7 @@ function ddTurnObj(u){
 // before reaching the top. Basically, the camera should drift towards where the enemy troops are coming from"): no swing at the top; from
 // the ramp's foot to its top it drifts steadily from the first hill round to the way up, up the draw, where their men come down from the
 // barracks (ddBarracks sends them down the way to the front), so by the top it already faces up the draw
+const DD_NEXT3={x:300+DDX,y:-405};   // (the top of the hill: where the camera looks from the checkpoint once that's ours)
 function ddTurnFirst(u,walking){   // u: the man the camera follows (a squad's: its man furthest up the way)
   const F=DD_FIRST,C=dd.cam;if(!ddTurnRoute())return null;
   // Version 198 (Bryan: "The camera wouldn't switch up the second hill until the second objective is taken"; "Once taken, the camera switches
@@ -467,7 +471,7 @@ function ddTurnFirst(u,walking){   // u: the man the camera follows (a squad's: 
   // Version 203 (Bryan: "When the upper bunker is entered the camera should swing around to show the second hill"): the checkpoint ours and
   // the man it follows in or beside it, it faces up the second hill, the way the captured guns point (it was left facing however they'd come in)
   if(typeof DD_POST!=='undefined'&&dd.post&&(dd.held||{}).outpost){const Z=DD_POST.zone,x=u.x-DDX;
-    if(x>Z[0]-30&&x<Z[2]+30&&u.y>Z[1]-30&&u.y<Z[3]+30){if(!walking){C.go=null;C.offA=null;}return Math.atan2(-Math.cos(DD_POST_UP),-Math.sin(DD_POST_UP));}}
+    if(!dd.held.crest&&x>Z[0]-30&&x<Z[2]+30&&u.y>Z[1]-30&&u.y<Z[3]+30){if(!walking){C.go=null;C.offA=null;}return Math.atan2(-(DD_NEXT3.x-u.x),-(DD_NEXT3.y-u.y));}}
   if(u.y<=F.top)C.firstUp=true;else if(u.y>F.from){C.firstUp=false;C.firstMin=null;}   // (back down at the ramp's foot: the first hill again)
   if(u.y>F.y0||u.x>F.xMax)return null;   // (not on the plateau itself: there it faces where you sent them, Version 183)
   const w=ddRouteWay(u.x,u.y),b=w?Math.atan2(-w.x,-w.y):null;
@@ -488,7 +492,7 @@ function ddTurnWant(u){   // {a: the way to face, tk: a tank's} or null to leave
   // starts when you're back). The checkpoint: up the second hill. The top of the hill: the tank, or where it comes from
   if(!K&&C.cap){const c=C.cap;if(c.t==null)c.t=simT+9;
     if(simT>=c.t)C.cap=null;
-    else if(c.k==='outpost')return{a:Math.atan2(-Math.cos(DD_POST_UP),-Math.sin(DD_POST_UP))};
+    else if(c.k==='outpost')return{a:Math.atan2(-(DD_NEXT3.x-u.x),-(DD_NEXT3.y-u.y))};   // (Version 214: at the top of the hill itself, the third place to take, from wherever he stands)
     else if(c.k==='crest'){const T=ddTanksUp()[0],W=DD_SPOT.tankWay[0],tx=T?T.x:W[0]+DDX,ty=T?T.y:W[1];return{a:Math.atan2(-(tx-u.x),-(ty-u.y))};}}
   if(K)return{a:Math.atan2(-(K.x-u.x),-(K.y-u.y)),tk:true};   // (a tank coming: face it)
   if(G&&!G.done&&(simT-(G.t??simT)>DD_TURN.walkT||!(u.path&&u.path.length)&&players.filter(p=>p.team===u.team&&alive(p)&&p.path&&p.path.length).length<=1))G.done=true;   // (they're there: the man it follows has stopped and at most one other is still walking, or it's been DD_TURN.walkT s)
@@ -831,7 +835,7 @@ function ddTankWreck(K){
    base is the last: held with the barracks, which is the win (Bryan: "The player doesn't need to destroy the barracks, just control it") */
 const DD_ZONES=[
   {k:'beach',n:'The beach',r:[0,348,1000,776],tags:[]},{k:'left',n:'The left bunker',r:[236,204,468,344],tags:['left'],bk:'p0'},   // (the pillbox, r 600,206,770,344, isn't one since Version 187, Bryan: "the Pill box on the right side of the beach doesn't need to be a capture point": its guns are still there to knock out)
-  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'outpost',n:'The checkpoint',r:[664,-92,846,42],tags:['outpost']},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},{k:'crest',n:'The top of the hill',r:[180,-476,420,-330],tags:['crest']},   // (Version 208, Bryan: "the top of the hill should be it's own capture point. The camera circles towards the tank once it's captured")
+  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'outpost',n:'The checkpoint',r:[664,-92,846,42],tags:['outpost'],near:300},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},{k:'crest',n:'The top of the hill',r:[180,-476,420,-330],tags:['crest'],near:240},   // (Version 208, Bryan: "the top of the hill should be it's own capture point. The camera circles towards the tank once it's captured")
   
   {k:'heavy',n:'The heavy gun',r:[14,-456,166,-344],tags:['heavy'],bk:'hv'},{k:'art',n:'The artillery',r:[640,-436,900,-336],tags:['art']},{k:'base',n:'The base',r:[200,-756,1000,-440],tags:['base','top','cannon','mortar','reinf']}];
 function ddZones(){
@@ -839,7 +843,9 @@ function ddZones(){
   for(const Z of DD_ZONES){if(H[Z.k])continue;const[x0,y0,x1,y1]=Z.r;
     if(Z.k==='base'){if(dd.won)H.base=true;continue;}
     if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e)))continue;
-    if(!dd.allies.some(u=>!u.inBoat&&u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1))continue;
+    // (Version 214, near: the checkpoint and the top of the hill are ours once their men are down and one of ours is within 30 m or 24 m of the middle,
+    // not only inside. Cleared from the path below, the checkpoint stayed theirs until someone walked in, and nothing that waits on it happened)
+    if(!dd.allies.some(u=>!u.inBoat&&!u.dead&&(u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1||Z.near&&hyp(u.x-(x0+x1)/2-DDX,u.y-(y0+y1)/2)<Z.near)))continue;
     H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);
     if((Z.k==='left'||Z.k==='outpost'||Z.k==='crest')&&dd.active){if(!dd.fp)dd.track={team:dd.active};const C=dd.cam||(dd.cam={k:1,p:null,q:null});C.heldT=0;C.go=null;C.offA=null;C.yaw=yaw;C.cap={k:Z.k,t:null};}   // (Version 209: C.cap, a turn the camera makes whatever else: ddTurnWant)   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
 if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were taken in: ddSpawnAt)
