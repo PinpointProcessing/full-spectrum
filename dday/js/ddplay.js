@@ -835,7 +835,7 @@ function ddTankWreck(K){
    base is the last: held with the barracks, which is the win (Bryan: "The player doesn't need to destroy the barracks, just control it") */
 const DD_ZONES=[
   {k:'beach',n:'The beach',r:[0,348,1000,776],tags:[]},{k:'left',n:'The left bunker',r:[236,204,468,344],tags:['left'],bk:'p0'},   // (the pillbox, r 600,206,770,344, isn't one since Version 187, Bryan: "the Pill box on the right side of the beach doesn't need to be a capture point": its guns are still there to knock out)
-  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'outpost',n:'The checkpoint',r:[664,-92,846,42],tags:['outpost'],near:300},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},{k:'crest',n:'The top of the hill',r:[180,-476,420,-330],tags:['crest'],near:240},   // (Version 208, Bryan: "the top of the hill should be it's own capture point. The camera circles towards the tank once it's captured")
+  {k:'nest',n:'The upper bunker',r:[790,206,1000,344],tags:['nest'],bk:'p2'},{k:'hill',n:'The hill bunker',r:[770,40,986,206],tags:['hill'],bk:'p3'},{k:'outpost',n:'The checkpoint',r:[664,-92,846,42],tags:['outpost']},{k:'draw',n:'The way up',r:[392,-204,664,200],tags:['draw']},{k:'crest',n:'The top of the hill',r:[180,-476,420,-330],tags:['crest']},   // (Version 208, Bryan: "the top of the hill should be it's own capture point. The camera circles towards the tank once it's captured")
   
   {k:'heavy',n:'The heavy gun',r:[14,-456,166,-344],tags:['heavy'],bk:'hv'},{k:'art',n:'The artillery',r:[640,-436,900,-336],tags:['art']},{k:'base',n:'The base',r:[200,-756,1000,-440],tags:['base','top','cannon','mortar','reinf']}];
 function ddZones(){
