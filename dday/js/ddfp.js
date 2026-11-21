@@ -180,6 +180,7 @@ function fpTick(dt){
   else if(F.fire&&!F.reloadT&&F.cool<=0&&!u.path.length&&!u.vaultK&&!u.carry&&!u.rpgAim&&simT-(u.throwT??-9)>.5){fpShoot();F.cool=W.cool;}
   if((F.aiT-=dt)<=0){F.aiT=1;fpMates();}
 }
+const _fpl=typeof T!=='undefined'?new T.Quaternion():null,_fpe=typeof T!=='undefined'?new T.Euler():null;
 const _fpq=typeof T!=='undefined'?new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI/2):null;
 function fpCam(rdt){
   const F=dd.fp;if(!F)return false;if(state!=='play'){fpExit();return false;}
@@ -191,17 +192,30 @@ function fpCam(rdt){
   camera.lookAt(P.O.x+P.D.x*300,P.O.y+bob+P.D.y*300,P.O.z+P.D.z*300);camera.updateMatrixWorld();
   camT.x=u.x;camT.z=u.y;if(typeof glide!=='undefined'&&glide)glide.vx=glide.vz=0;camPan=null;
   if(u.m)u.m.g.visible=!P.one;
+  if(P.one&&!P.mt)for(const q of units){if(q===u||!q.m||q.side==='E'||q.dead)continue;if(hyp(q.x-u.x,q.y-u.y)<13)q.m.g.visible=false;}   // (Version 213: a man of yours standing at your shoulder filled the corner of the view)
   if(P.mt){const cx=Math.cos(F.a),cy=Math.sin(F.a);   // (Version 207, on a gun: your own side's men standing beside it or just in front aren't drawn; they filled the view. scene.js shows them again each frame)
     for(const q of units){if(q===u||!q.m||q.side==='E'||q.dead)continue;const dx=q.x-u.x,dy=q.y-u.y,d=hyp(dx,dy);if(d<30||(d<95&&(dx*cx+dy*cy)/d>.72))q.m.g.visible=false;}}
   // the gun in his hands, first person
   const kind=P.mt?'minigun':u.weapon==='hmg'?'bar':u.weapon==='sniper'?'spring':'garand';
   if(P.one&&!P.A&&!scope){
-    if(!F.gun||F.gunK!==kind+(P.mt?'m':'')||F.gun.parent!==scene){if(F.gun&&F.gun.parent)F.gun.parent.remove(F.gun);F.gun=P.mt&&typeof ddPostFpGun==='function'?ddPostFpGun():ddmGun(kind);F.gunK=kind+(P.mt?'m':'');const own=F.gun.userData.own;F.gun.traverse(o=>{o.frustumCulled=false;o.castShadow=false;if(P.mt&&!own&&o.material)o.material.color.setHex(0x2a2c30);});scene.add(F.gun);}
+    if(!F.gun||F.gunK!==kind+(P.mt?'m':'')||F.gun.parent!==scene){if(F.gun&&F.gun.parent)F.gun.parent.remove(F.gun);F.gun=P.mt&&typeof ddPostFpGun==='function'?ddPostFpGun():typeof fpGunModel==='function'&&!P.mt?fpGunModel(kind):ddmGun(kind);F.gunK=kind+(P.mt?'m':'');const own=F.gun.userData.own;F.gun.traverse(o=>{o.frustumCulled=false;o.castShadow=false;if(P.mt&&!own&&o.material)o.material.color.setHex(0x2a2c30);});scene.add(F.gun);}
     const g=F.gun,up=new T.Vector3(0,1,0).applyQuaternion(camera.quaternion),rt=new T.Vector3(1,0,0).applyQuaternion(camera.quaternion),fw=new T.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
-    const dip=F.reloadT?Math.min(1.6,(F.reloadT-simT)*2,(simT-(F.reloadT-W.reload))*6):0;
-    g.visible=true;g.scale.setScalar(P.mt?.8:.5);
-    g.position.copy(camera.position).addScaledVector(fw,(P.mt?9.5:7.5)-F.kick*22).addScaledVector(rt,P.mt?0:F.aim?0:2.2).addScaledVector(up,(P.mt?-3.6:F.aim?-1.35:-2.5)-dip+bob*.3);
-    g.quaternion.copy(camera.quaternion).multiply(_fpq);if(g.userData.flash){g.userData.flash.visible=F.cool>W.cool-.05&&!F.reloadT;g.userData.flash.rotation.x=simT*37;g.scale.setScalar(.74);g.position.addScaledVector(fw,1.5).addScaledVector(up,.5);}
+    const dip=F.reloadT?Math.min(1.6,(F.reloadT-simT)*2,(simT-(F.reloadT-W.reload))*6):0,shot=F.cool>W.cool-.05&&!F.reloadT;
+    g.visible=true;
+    if(g.userData.hand){   // (Version 213) the rifle in his hands: held low and to the right, brought up to the eye to aim, swaying as he breathes and walks, lagging a little behind a turn, kicking when it fires (ddfpgun.js)
+      const S=.5,dt=Math.min(.05,rdt||.016),ads=F.ads=(F.ads||0)+((F.aim?1:0)-(F.ads||0))*Math.min(1,dt*11),k=1-ads*.88;
+      const da=Math.atan2(Math.sin(F.a-(F.pa??F.a)),Math.cos(F.a-(F.pa??F.a))),dp=F.p-(F.pp??F.p);F.pa=F.a;F.pp=F.p;
+      F.lx=clamp((F.lx||0)*Math.max(0,1-dt*9)+da*4,-.8,.8);F.ly=clamp((F.ly||0)*Math.max(0,1-dt*9)+dp*4,-.6,.6);
+      if(shot)F.vk=1;F.vk=(F.vk||0)*Math.max(0,1-dt*11);
+      const t=performance.now()/1000,mv=F.moving?1:0,sx=Math.sin(t*1.3)*.06+mv*Math.sin(simT*5.5)*.2,sy=Math.sin(t*1.9)*.045+mv*Math.abs(Math.sin(simT*5.5))*.16;
+      g.scale.setScalar(S);
+      const tall=camera.aspect<1;   // (a phone held upright: the view is narrow and the buttons fill its lower right, so the rifle is held higher and nearer the middle)
+      g.position.copy(camera.position).addScaledVector(fw,(tall?5.4:6.4)*(1-ads)+6.3*ads-F.vk*.85-F.kick*6).addScaledVector(rt,(tall?1.25:2.25)*(1-ads)+(sx-F.lx*1.1)*k).addScaledVector(up,(tall?-1.35:-2.3)*(1-ads)-g.userData.sight*S*ads+(sy+F.ly*.9)*k-dip*1.5);
+      g.quaternion.copy(camera.quaternion).multiply(_fpq).multiply(_fpl.setFromEuler(_fpe.set(-.07*(1-ads)+dip*.25,(tall?.11:.05)*(1-ads)+F.lx*.1*k,(tall?.05:0)*(1-ads)+F.vk*.06+F.ly*.1*k-dip*.35,'YZX')));
+      if(g.userData.flash){g.userData.flash.visible=shot;g.userData.flash.rotation.x=simT*37;}
+    }else{g.scale.setScalar(P.mt?.8:.5);
+      g.position.copy(camera.position).addScaledVector(fw,(P.mt?9.5:7.5)-F.kick*22).addScaledVector(rt,P.mt?0:F.aim?0:2.2).addScaledVector(up,(P.mt?-3.6:F.aim?-1.35:-2.5)-dip+bob*.3);
+      g.quaternion.copy(camera.quaternion).multiply(_fpq);if(g.userData.flash){g.userData.flash.visible=shot;g.userData.flash.rotation.x=simT*37;g.scale.setScalar(.74);g.position.addScaledVector(fw,1.5).addScaledVector(up,.5);}}
   }else if(F.gun)F.gun.visible=false;
   document.body.classList.toggle('fp-scope',scope);
   fpHud();return true;
