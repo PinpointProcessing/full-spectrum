@@ -1,0 +1,1284 @@
+# Playtest notes (Bryan, testing v64; the changes are in v65)
+
+Bryan: "I am testing now so take my notes into consideration and then we can make the changes."
+His notes, collected here as they come; the changes are made together once he's done.
+
+1. Level 1's ending: "at the end, the radio relay - its confusing how your supposed to take it down. We will redesign
+   Level 1 but for now it's good." (Level 1 stays as it is until the redesign.)
+2. Instructions in the middle of the screen: "the instructions are right in the middle of the screen - we should place them
+   somewhere else. Same with in the warehouse." That's the cyan box near the top of the map (`#tut`): Level 1's boot camp
+   and tips, and Level 2's checkpoint tour after the warehouse (`hqGotIt` in hq.js uses the same box).
+   Bryan: "Can you show me a draft on how the hint bar would look? I was thinking a small bubble and when clicked it clears.
+   Because currently, I click it and it moves my troops." (The box let taps through to the map.) Draft:
+   `docs/tutorial-bubble-draft.png`: a small bubble low on the left (above the cards when they're up); a tap hides it and
+   stops there (nobody moves), a "?" in its place brings it back, a new step or tip shows by itself; Skip tutorial / No more
+   tips inside it. Built as a prototype to make the draft.
+   Bryan: "Okay this is better. Instead of No more tips, say Turn off tips. Everything else is good. It should also not allow
+   any other actions to happen unless you do the tip." Built, published in v65: the button
+   reads "Turn off tips"; while a step or tip is up only what it asks for works (and picking soldiers, where the tip needs it;
+   the camera, Pause and Fit map always), anything else shakes the bubble and it says "Do this first". A tip that only tells
+   you something ends with a tap on it ("Tap to continue"); one that asks for something waits until it's done, at quarter
+   speed. If the moment passes the tip goes, and if its action can't be done from there (no way behind the guard, no safe
+   throw) the game says why and lets you move again.
+3. Level 2 north of the canal: "Make the containers horizontal and run along the canal. There is a large road before the
+   data center, like a runway road, not small. The jeep patrols that road, from left to right continuously (the user can
+   sneak by or engage). The containers are lightly guarded with most in front of the data center and at the bridge. The
+   whole point of the containers is for stealth. Show me a draft image of the level and I will tell you if it's right."
+   Draft: `docs/map-draft-F.png` (three rows of containers along the canal's north bank; a 13 m runway road across the
+   map; the gun jeep driving it end to end; guards: containers 3, bridge 6, data center front 7 plus the jeep).
+   Bryan: "Yes this works! And let's make the truck just a light jeep." Built, published in v65
+   (was held until he'd finished testing). Two changes from the draft, found by testing the quiet route: a container closes the west half's first aisle
+   at its east end (the tower's sniper could look down it and spot the squad leaving the pipe), and the data center's guns
+   and riflemen stand a little further east (x 350-710) so the far west end of the road is the quiet crossing.
+
+# Playtest notes (Bryan, testing v65; the changes are in v66)
+
+Bryan: "Here is everything from my testing."
+
+1. Level 1, boot camp 5/7: "Draw a route. Have a dotted line to the box to the right of the container closest to the team."
+   A dotted guide line from Reyes to a ring by the crate right of the container; only a route that ends there is taken.
+2. "There should also be a tutorial point that teaches the unit how to take out a troop with a takedown. Like move Reyes
+   towards the troop to stage a takedown." After the boot camp: Reyes alone to a ring behind the shed guard, then tap him.
+3. "Then the next tip would be a double silent shot at the two guards near the fence." Alpha to a ring by the gate, then
+   tap one guard, then the other; they fire together.
+4. "The watch and suppress buttons look bad. Can we just have the user choose suppress by holding down the location where
+   they suppress? We would have to add a tip for that. Let's get rid of the buttons on the bottom. Just the teams and
+   'Clear'. Maybe 'watch' can just be automatic?" The bottom bar is the three team tabs and Clear. Suppress: hold a finger
+   on an enemy (or where one was last seen) with soldiers selected; a ring fills, then they pin him down (and a tip teaches
+   it in Level 1's yard). Watch is automatic in a fight (a soldier holding still watches the nearest enemy and fires first);
+   never before contact. Breach (it had a button inside the office building and at the warehouse) is a BREACH marker at a
+   room's doorway when selected soldiers are next to it.
+5. "Level 1 should also give scenarios for grenades on the enemy and suppress on the enemy." The yard: everyone to a ring
+   by the barrels, then suppress (hold on a guard), then a grenade.
+6. "The RPG to the mast was a bit confusing, it should say Radio Tower - RPG and the tools should be highlighted in a bold
+   color that matches the team selected. A circle underneath the radio tower should have been presented so the user knows
+   what to press." The label reads RADIO TOWER · RPG, a ring pulses under it once the scout is up, and what a tip asks for
+   glows in the team's colour (the RPG button in Bravo's amber, filled).
+7. "Get rid of the tips on Level 2." The checkpoint's camera tour (the only tip box in Level 2) is gone.
+8. "Players equipment is refilled at the start of each level." It already was (checked: grenades and special items full at
+   the start of Level 1, Level 2 and Level 1 again); Continue and Retry bring back what was saved at the checkpoint.
+9. "I was playing through Level 2 and once I got to the containers the camera stopped moving. I was only able to spin the
+   camera around but not move it. THIS IS A BIG ISSUE." Found: a finger's lift that never reached the game (likely taken by
+   the page around it) left a phantom finger, and every one-finger drag after that was read as a two-finger twist and zoom.
+   Reproduced on v65 with a simulated lost lift; fixed: a new first touch starts clean, and a lost capture, the page losing
+   focus or being hidden drop every finger.
+10. "When my players are behind a wall or object, that object should turn translucent." Anything tall between the camera
+   and one of ours fades to see-through and comes back once he's clear (outdoors and in Level 1; inside the office building
+   the walls are cut low already).
+11. "Not all corners of the containers were able to place the units. Spaces in between the containers and the edge of the
+   map were inaccessible." The rows stop 4.5 m short of both edges (a strip you can walk and hide in); a slot between two
+   containers that looked like a gap but wasn't is closed; a script tapped round all 17 containers and every corner takes a
+   soldier.
+12. "The corner near the bridge, can you open that up instead of enclosing it. That would make it easier to ambush/flank the
+   bridge." The container that closed the first aisle by the bridge is gone; the tower's sniper now faces the bridge's
+   south approach, so he can't look down the aisle at the pipe (the quiet route still went unseen in the scripted run).
+
+13. "Nobody should be able to see the units inside the warehouse while they are collecting medical and resupply. Can you move
+   the two circles to the middle of the warehouse? Right after the boxes and before the center box in the back." Moved there;
+   a script checked every spot in both rings against every enemy post (none sees in). The old ones were partly in a line of
+   sight through the back door.
+14. "If one squad is caught and the other remains undetected, then that squad can continue in a covert fashion." Detection is
+   by fire team now: the hidden team keeps sneaking, holds fire, can take men down quietly and ambush, and isn't shot at;
+   alerted men have to notice it (their cone, or close by) instead of seeing it all round; each team breaks contact on its own.
+
+# Playtest notes (Bryan, testing v68; the changes are in v69)
+
+1. "My unit doesn't stand in the sniper nest." The height of whoever climbed was eased back to the ground every tick (the
+   vault hop's easing); he stands on the platform now, his label and ring with him.
+2. "When I get a sniper, how can I switch back?" He keeps his own rifle on his back: the gun on his card shows a SWAP tag
+   (⇄ M4); tap it to swap, and again for the sniper rifle. Both are saved.
+3. "'The lift needs and access card from a shared room' just say 'Find an access card'." The lift, the computer and the
+   cells all say "Find an access card." now.
+4. "Can they go up the stairs just to see an access card door at the top? Also, the stairs look terrible." The stairs up
+   are open without the card; at the top the stairwell's door is locked (a red strip, LOCKED, a card reader beside it) and
+   opens with the card. Every flight is real 3D steps now (yellow nosings, handrails): up a block of steps, down into a
+   hole in the floor, and men climb and sink with them. You step on at the bottom or top only.
+5. "The last unit in the data warehouse was unkillable. Nothing happened when I clicked him." The operator sits right on the
+   COMPUTER's ring, and a tap there went to the computer ("needs the access card") before it reached him. A hostile under
+   the finger now comes before anything on the ground.
+6. "When I select an enemy unit, whoever I have selected on my squad should open fire on that individual. If they don't have
+   an open line of fire, they need to find one." Done: everyone selected takes him; anyone without a clear shot walks to the
+   nearest spot that has one (in a fight in cover, unseen out of the other guards' sight) and fires from there. Against a man
+   who hasn't noticed them, the silenced ones take him together on a count (those not in range move up first; tap him again
+   to fire at once), and anyone without a silencer waits for that shot. Tapping a second man during the count splits them,
+   one each, still together. Found on the way: in a volley only the first shot ever went off (his miss alerted the man and
+   called off the second); the shots land together now.
+7. "All the units should have silenced assault rifles for this level. Maybe start upgrading them or going to the store?"
+   Level 2 hands out silenced M4s (M4 SD: quiet like the silencer, never wears out). The store is a question for Bryan
+   (below).
+8. "Maybe level 2 can be level 3 and something a little easier for level 2." A draft for the new Level 2 is in
+   `docs/map-draft-G.png` ("Lights Out", the power station), waiting for his OK before anything is built.
+9. "I also want a screen between missions to equip your soldiers." Between missions: the squad in the dinghy on a night sea
+   (swell, rain, a far light or two, the camera drifting round), and each soldier's main weapon (M4 SD or the one M240) and
+   special item (smoke, one of two medic kits, the one RPG). Kept for next time. It comes after Level 1's report and before
+   Level 2 from the intro card.
+10. "The first training level should be a real level with a tutorial (no trainer on the grounds) then after blowing the
+   radio tower, you hop on a dinghy... In between the missions, you see your squad in the middle of the ocean." The tutorial
+   box says "Tutorial n/7" (no "boot camp"); after the radio tower they go back to the boat on the beach (a green ring,
+   BOAT n/4; anyone down is carried), push off, and the report and the sea come after.
+11. "To start level 1, maybe a helicopter drops off the players, and a voice says, you're on your own now - good luck!" A
+   helicopter comes in low over the river, hovers over the beach, the four jump out, and it flies off; the pilot on the
+   radio: "Thirty seconds to the beach. Get ready." and "You're on your own now. Good luck." (a new Zonos voice). "Try
+   Level 1 again" starts on the beach without it.
+
+Open for Bryan: a store or upgrades (what you'd buy with, what's for sale), and the new Level 2 draft.
+
+# Bryan after v69 (the changes are in v70)
+
+1. "Yes lets keep designing the map then go to horizontal later." The new Level 2 is built from the draft
+   (`docs/map-draft-G.png`): Lights Out, the power station on the coast (`js/level2.js`, notes in `docs/level2.md`). In from
+   the sea at a cove, past a fishermen's camp, into a fenced station by the main gate (a machine gun over it) or a hole in the
+   fence, through a transformer yard with a patrol, to the control building (a Breach), where a panel shuts the power down:
+   every light goes out, the guards hunt with torches, and the squad gets out by boat. The data center is Level 3 now, and
+   after Lights Out its front is dark (its lamps, floodlights and the heavy gun's searchlight). The intro card has a button
+   for each level; Level 1's report leads to Level 2, Level 2's to Level 3, each through the sea and the loadout.
+2. "Lets wait to do the graphics enhance until level 1 and level 2 is working functionally." Noted: the graphics pass waits,
+   and so does the landscape layout (after the maps).
+3. The soldier classes (Spec Ops, Medic, Support, Assault, Recon, Cyber Ops, Captain; a class at level 3; Class Attribute
+   Slots): written up in `docs/classes.md`, not built. With today's XP the choice would come after the second mission,
+   before the data center.
+
+Open for Bryan: Lights Out to play; the four questions in `docs/classes.md` (can a soldier retrain, can two share a class,
+can the Medic bring back the dead, does the player pick); a store or upgrades.
+
+# Bryan testing v70 (the changes are in v71)
+
+1. "Theres a problem when throwing smokes. and shooting RPGs they dont read where i want to deploy it right away and directs my
+   unit to that location instead." Out of reach, or with anything solid in the straight line (a container, a crate, even a
+   smoke cloud), they walked off to find a spot. Now smoke is lobbed over low cover from where he stands and reaches 26 m (was
+   17); a rocket flies up to the height of what it's aimed at, so Hayes hits Level 1's radio mast over the hut from the
+   checkpoint (that's where the walk came from); too close, or a building in the way, he takes a few steps; out of range he
+   says so and keeps aiming. Frags still walk to a safe spot first, as Bryan asked before.
+2. "Breach room is showing up in locatins where there are no entries to rooms." The office's shared room and its two wings are
+   one open space, and the open side counted as a doorway. A doorway needs a wall on both sides now and a doorway's width.
+3. "Can we add doors to break down. We can have them kick it in, later incoporate C4s or flashbangs." Next (not in v71).
+4. Eight units on screen: Alpha's row on top, Bravo's under it, each man always in his own slot, the name instead of callsign
+   and rank (a line less). Bryan's "maybe we keep it" holds otherwise.
+5. Squads on different floors: picking the other one takes you there; not while the squad on screen is under fire (unless both
+   are).
+6. The lab table: a tap anywhere on it now (the DESTROY ring at one end was a small target); a frag or a rocket wrecks it too.
+7. The scientists: stubborn when found ("I'm not talking." "You people are terrorists."), grumbling on the way, panicking only
+   near the HQ ("Don't open it!"), and a third as chatty. The new lines show as words until they're voiced.
+8. "One soldier does each task": zip-ties and things to use (cells, benches, the computer) are one soldier's job each, so two
+   taps send two men.
+9. Chatter: no "Brennan, on me" with a team round him; small talk at most twice a mission.
+10. Voices: the radio is a real radio now (squashed, clipped, a waver in the throat, narrow, hiss under it) and the dead air at
+   commas is cut out of every line; a listening page compares it with v70 and with lines re-recorded without names or commas.
+
+Still to build from this round: the classes, the monsters pouring out of the HQ and the HQ itself (the boss room), monster
+sounds, doors to kick in, the scientists' and the unnamed lines voiced.
+
+# Bryan after v71 (the changes are in v72)
+
+1. "Re-Recorded is the best, hands down." Every squad line whose words to the voice model change is being made again (no
+   names but for who's down and who's asked if he's alright, no pauses at commas): 298 lines across the eight squad
+   voices, recorded in the background, checked by the speech recogniser, then packed. The rest keep their takes.
+2. "The scout would only come in after the mission when you are back to HQ or base." Noted for the roster: he joins at base
+   after Level 1, not in the field.
+3. "I'm ready to build the HQ and everything else in your order." Built:
+   - When the drawbridge comes down, the Brood Mother roars somewhere inside and hounds pour out: 20 in four waves, out of
+     the gate and up over the moat's edge right beside the squad. They run you down, crouch and snarl (a violet line on
+     the ground shows where they'll go), lunge, knock a man down, pull back and come again. They go for the scientists
+     too.
+   - The gate clear is a checkpoint. Everyone gathers at the drawbridge and goes in.
+   - The Headquarters: a long hall with three rooms down each side and an entry hall with a medic station and an ammo
+     drop. The Brood Mother sleeps at the far end; stepping into the hall wakes her. Her roar opens two side rooms; at two
+     thirds and a third of her health two more; another every 40 s. A slam you can see coming (a violet ring fills), a
+     swipe up close. When nothing is left alive: "Headquarters taken", the freed men's goodbye, the report.
+   - Sounds: CC0 creature recordings layered, slowed and roughened (a listening page has every take).
+   - Tested with a bot that only moves the squad (the shooting is automatic): four soldiers won 3 runs of 3, with one or
+     two men down by the end; eight won with nobody down inside.
+4. The scientists' new lines are voiced.
+
+Next: the classes, then doors to kick in.
+
+# v73: the classes, step 1
+
+Built from `docs/classes.md` ("Every private can use a basic assault rifle. When they reach level 3 their class type
+should be chosen"): a PROMOTE button on the between-missions screen for anyone at level 3 without a class, the picker
+with the seven classes, the class on his card in place of his rank, each class's weapon (the shotgun for Assault, with
+its own 3D model; the sniper rifle for Recon) and one passive each, measured like for like in a test (table in
+`docs/classes.md`). Defaults until Bryan answers the four questions: the player picks, a class is for good, one Captain,
+the freed men have none. Fixed on the way: a frag throw emptied a soldier's grenades instead of using one (it didn't
+matter while everyone carried one). Still to come: the Class Attribute Slots, the new class gear, the store.
+
+# v74: doors to kick in
+
+Bryan (testing v70): "can we add doors to break down. We can have them kick it in, later incorporate C4s or flashbangs."
+The nine offices off the office building's halls have doors now, shut to start (but for the meeting room's onto the east
+hall, which its guard watches through). A shut door hides the room until it's opened. Walking through opens it quietly
+in half a second (guards open them too), tapping it sends the nearest selected soldier to open it and look in, and a
+breach kicks it in: the team stacks up, the nearest man kicks, the door bangs open off its hinges and they go in. It's
+loud, but the men inside are caught off guard. Tested: sight blocked shut and clear open; a soldier and a guard each
+walking through; a tap from the hall; a breach on the security office (kick at 1.7 s, both guards down by 4 s); the office
+suites (the story, stairs, carrying, floors, the tasks, the breach marker). The warehouse and Level 2's control building
+have no doors yet: their quiet routes were tested on open doorways. C4 and flashbangs on doors come later.
+
+# v75: the Defender
+
+Bryan: "Add another class 'defender' who can build mobile fortifications and wall amongst other things." The eighth
+class. Heavy armour (a quarter off every hit), and a build kit as his special item (three uses; a new Defender takes it,
+an ammo drop fills it). Tap the kit, then a spot inside the circle: he goes round behind it and builds across the line to
+the nearest threat:
+- a barricade (one use, 2.5 s): a steel shield on wheels, waist high, heavy cover the squad shoots over. Tap it with him
+  selected and he packs it up (2 s) and gets the use back: the mobile fortification, rolled on to the next position.
+- a wall (tap the kit again; two uses, 5 s): sand-filled barriers taller than a man. It blocks sight, shots, rockets
+  and blasts: cover a crossing, cut a machine gun's line. It stays.
+A frag close by wrecks a barricade; a wall takes two. Hostiles can use them for cover too. They're cleared at a level's
+start or a retry and not kept by a save. Tested: promotion and the kit on the loadout; both built and measured (see over
+the barricade, heavy cover; the wall blocks sight and the way); an empty kit refused; packing up; blasts; a reset.
+Still to come for him ("amongst other things"): razor wire, a sandbagged gun nest, barring a door, repairs.
+
+# v76: class skills
+
+From the classes plan (step 3, Bryan's own descriptions of the classes): a third button on a classed soldier's card.
+- Medic, field station: once a mission he sets a medic station down where he stands (2 s). Heals inside, gets a carried
+  downed man back up.
+- Support, ammo bag: once a mission, an ammo drop where he stands (2 s). Grenades and special items refill inside.
+- Recon, binoculars: every 30 s, tap a spot he can see (out to 60 m): every hostile within 20 m of it that he has a line
+  to is marked for the whole squad for 12 s.
+- Spec Ops, distraction: twice a mission, a clatter where you tap (within 20 m): unaware guards within 12 m go to look,
+  then back. The stealth roadmap's distraction throw.
+- Assault, flashbang (Bryan, on the doors: "later incorporate C4s or flashbangs"): twice a mission, thrown where you tap
+  (within 20 m): 1.1 s later every hostile within 9 m who sees it is stunned for 3.5 s and can't shoot. Loud, but heard as
+  an ambush. Open or kick a door, throw one in, go in.
+- Cyber Ops, hacking: no button. Anything that needs the access card inside the office building, a selected Cyber gets
+  into without it (4 s).
+Tested each one; on a phone's four cards the three gear buttons shrink to fit.
+
+# v77: barring doors, the controls list
+
+- The Defender's build kit also bars a door: in a build mode, tap a shut door inside the office building (one use,
+  1.5 s at it). From then on it only opens by being kicked in, by anyone, and that's loud: seal a room behind you or cut
+  off a flank. Tested: a guard walking out of the barred security office had to kick his way out; one of ours walking
+  into a barred door kicked it in after 1.2 s.
+- The intro card's Controls list now covers doors, classes and the Defender.
+- The Captain's skill, rally (from docs/classes.md: "rallies a pinned team"): every 60 s, everyone of ours within 20 m
+  of him shakes off being pinned and gets +0.1 to hit for 8 s. Every class but the Defender (whose build kit is his
+  special item) and Cyber Ops (whose hacking needs no button) now has a skill button.
+
+# v80: the re-recorded squad voices
+
+Bryan: "Re-Recorded is the best, hands down." Every squad line whose words to the voice model changed was made again with
+Zonos, the commas taken out of what it's given and no names but for who's down and who's asked if he's alright, checked by
+the speech recogniser and made again where it was bad (two rounds), then packed: Reyes, Kowalski, Hayes, Okafor and the
+four freed men, and the scientists' files repacked with their best takes. The conversations' unnamed lines ("On me.",
+"Right behind you.", "Hang on. I've got you.", "Thanks. I owe you.", "Nice shot.") are voiced now; before they were skipped.
+Reyes keeps his "Tower's down. Everyone back to the boat." (made on its own). 32 of about 2,000 lines are still flagged by
+the recogniser, nearly all one- or two-word shouts ("Frag!", "Dog! Dog!") or names it mishears; their takes match the
+length of the ones already in the game.
+
+# v81: the Brood Mother awake when you come in
+
+Bryan: "I think they should be awake upon entering. The battle commences immediately, right? Why would it roar from
+inside before the fight then?" Right: she roared at the drawbridge, so she knows they're coming. Now she roars the moment
+the squad comes in (0.6 s after the fade) and comes down the hall for them; her roar opens the first two side rooms as
+before. The entry banner about something breathing in the dark is gone; her banner says where the medic station and ammo
+are. Tested with the bot that only moves the squad: four soldiers won 3 of 3, eight won. A squad that comes in and does
+nothing: she walks the hall under fire and reaches the entry hall in about 40 s; 1 of 2 won.
+Found while taking pictures of the monsters for Bryan:
+- She couldn't be seen beyond 36 m (everyone's sight limit), so from the entry hall she was invisible at the far end and
+  nobody shot at her until she was close. She's seen wherever there's a line to her now.
+- The lair's violet lamp sat right on her and burned her out to white up close: it's behind her and higher now, the two
+  red lamps in the hall are a little dimmer, and the monsters' skin a little darker.
+- "Flanked" came up over hounds (they don't take cover): not over monsters now.
+
+# v82: puddles that look wet
+
+Bryan: the puddles "just look like grey circles (I noticed this on the normal map too". They're ragged now, with a damp
+darker ring, flat (the ground's fine bumps made them glitter), and the wet ground reflects a dim night sky with a few lamp
+glows. Before and after: `docs/drafts/puddles-before-after.jpg`.
+
+# v83: the new monsters and her nest, in the game
+
+Bryan picked: "the hunters come out of the gate, the young fight alongside with her." The mother ("the mother is great for
+now. They will get more fierce as the game goes on"), the eggs and the goo were already right; the slime rocks are as in
+the round-3 drafts.
+- At the drawbridge: the hunters pour out (the hounds' behaviour as before: they crouch with the violet line, lunge, pull
+  back and come again), black, spined, scythe arms raised as they crouch, splayed flat when they die.
+- Inside: the Headquarters is her nest (resin down the walls, wet resin over the lair's floor, egg clutches, slime rocks
+  in black, deep purple, dark red and brown up every fitting and wall and out over the floor; a low amber glow over the
+  lair, the red lamps deep orange-red, no pink). She lies coiled round her clutch, rears up to roar as you come in, comes
+  down the hall with her body following her head, rears and crashes down to slam, strikes with her claws up close, and
+  collapses when she dies. Her young (small centipedes) wait in the side rooms; they rear up before they lunge (their
+  crouch) and die on their backs.
+- What it costs: all the hunters share a dozen or so draw calls, and so do all her young; the gate with every hunter out
+  fell from 1,639 draw calls to 428 (triangles 124k to 354k), the Headquarters from 611 to 340 (triangles 34k to about
+  650k, most of it the slime rocks). Not yet measured on a real phone.
+- Tested with the bot that only moves the squad: four soldiers won 2 of 2 (one or two down by the end: she now starts
+  7 m nearer, coiled round her eggs), eight won with nobody down; the pour-out killed all 20 hunters each time.
+
+
+# v84: her eggs hatch, and the scene after the gate
+
+Bryan: "Her young as the swarm coming from the side rooms and from the nest eggs. The hunters pour out the gate." "The slime
+rocks look fine." And after the attack at the gate: a soldier screams "What the hell was that?!" ("scream it, not say it
+loudly"), the scientists say they can leave now and save themselves, the leader says no, they're moving in, team on him, be
+careful; the scientists follow behind and are told to stay on the bridge till it's cleared, zip-tied to the railings. "Make
+it feel natural, fear from scientists and one of the soldiers, then fearless reassurance from the leader."
+- The eggs: each side room's clutch hatches as the room opens, and her own clutch hatches every time she roars (as you come
+  in, at two thirds and at a third of her health). Five eggs split for each newborn that crawls out; newborns are smaller
+  game (40 HP, a weaker bite). So the swarm doesn't double, one young waits in each room for a squad of four (two for
+  eight), and the rest hatch. "Her eggs are hatching!" the first time.
+- The scene: once the last hunter's down, one of the soldiers screams it (Okafor, else Kowalski, else Hayes: whoever isn't
+  leading), a scientist begs to leave ("We can still leave! Please. We can save ourselves!"), another says what they made
+  ("We bred those things. There's worse in there!"), and the leader answers ("No. We're moving in. Team on me. Be
+  careful." Reyes, or Hayes if Reyes is down). The lines wait for each other; the chatter and the scientists' own panic
+  lines keep quiet meanwhile. At the gather, when you tap to go in: "You stay on the bridge till we've cleared it.", the
+  scientists walk out onto the drawbridge to its railings, one of the others follows and zip-ties them (they kneel, hands
+  behind them), a scientist pleads "Don't leave us out here! Please!", and in. A tap to go in while the leader's still
+  talking is kept for when he's done.
+- The scream: the voice model shouts rather than screams (its takes came out at a man's speaking pitch, under a second), so
+  the chosen takes were reshaped into screams with a vocoder: pitched up into a scream's range (about 300-350 Hz), rising to
+  the last word, which is drawn out, with a waver, a crack, more breath and strain, then driven. A speech recogniser still
+  hears every word. Bryan to judge by ear (`tools/voices/scream.py`).
+- Continue from the drawbridge's or the gate's save brings the scientists back too (before, they only came back from the
+  bio scanner's save), so they're there to be tied up.
+- Once the drawbridge is down the scientists no longer say "Don't open it!".
+- Found on the way: a hint line said "medic station and ammo drop" twice by the gate.
+- Tested: the scene plays in order on its own and from both saves; the bot that only moves the squad, tapping to go in the
+  moment the gate's clear: four soldiers won 2 of 2 (nobody down at the end), eight won; hatchlings and burst eggs
+  counted inside; every new line decodes in the browser and the scene finds and plays each one with sound on.
+
+# v85: the scientists tied up straight after the swarm
+
+Bryan: "The scientists are detained AFTER the hunter swarm. Before the squads enter the HQ building the scientists are left
+outside when it's all clear." In v84 they were only tied up when you tapped to go in. Now it's all one scene the moment the
+last hunter is down: the scream, the two scientists, the leader's "No. We're moving in. Team on me. Be careful.", a beat,
+then to the scientists "You stay on the bridge till we've cleared it." They walk out onto the drawbridge (round anything in
+the way to its foot, then out along the deck), one of the soldiers follows them out, ties them to the railings and walks back
+to the others, one pleads "Don't leave us out here! Please!", and the banner says to gather to go in. The tap then goes
+straight in; they stay tied outside. A tap during the scene still waits for its end. A Continue from the gate's save puts
+them back at the railings, tied.
+Tested: in that order from the drawbridge's save, the tap straight in, the scientists outside on the bridge in the
+Headquarters' saved outdoor state; from the gate's save tied at the railings at once.
+
+# v86: the scientists brought in at the end, and a talk
+
+Bryan: "Yes, one of the surviving soldiers exits the HQ off screen and returns with the scientist. Then a sequence happens.
+Do you think we can handle longer conversations? Or do you think we should fall back to text conversations outside of
+battle?"
+- Once the Headquarters is taken: everyone who's up gathers in the entry hall ("Bring the scientists in." / "On it."), one
+  of them walks out of a new door in its south wall into the dark, and comes back a couple of seconds later with the
+  scientists who were tied on the drawbridge. They stop in front of the squad and the talk starts.
+- The talk is a panel along the bottom of the map: the speaker's portrait, name and words, a tap for the next line, Skip
+  for the rest. The words are a draft for Bryan (12 lines: the scientist, the leader, one more soldier) and have no voices
+  yet: once he's happy with them they get voiced like the rest, and the panel plays each line's voice with its words.
+  Then the freed men's goodbye and the report, as before.
+- Meanwhile no orders, and nobody down bleeds out. The objective box reads "Headquarters taken" after the win, and the
+  hint line "The Headquarters is yours." (it said "Here she comes." if she died before waking).
+- Tested: the whole end on a phone and a wide screen (the fetch, the 12 lines through real clicks, then the report);
+  the bot's fight through to the report, tapping through the talk; Levels 1, 2 and 3 start without errors.
+
+# v87: start at a checkpoint (in front of the Headquarters)
+
+Bryan: "Can you set me up in front of the HQ with both squads (from the prisoners-armed) and the scientists? This wouldn't
+be a separate level, just a checkpoint. Btw, if players exit and come back to the game they can start off at checkpoints or
+have a decision to start the level over."
+- A new checkpoint, "In front of the Headquarters": it saves itself when the squad reaches the drawbridge with a scientist,
+  before the bio scanner (the drawbridge's own save comes once it's down, as before).
+- On the intro card, under Level 3: "Level 3 · start at a checkpoint" opens the list of Level 3's checkpoints (the
+  warehouse, the bridge, the container maze, the data center's front, inside the data center, the scientists detained, in
+  front of the Headquarters, the drawbridge down, the gate cleared). Every one is open for now, like the levels. Each
+  starts at full health with the loadout from the between-missions screen; from the scientists on, with the four freed men
+  armed with rifles and all four scientists. It becomes the save, so Continue comes back to it.
+- Coming back to the game: Level 3 already offers Continue (with the checkpoint's name) or New game. Levels 1 and 2 still
+  have no saves: they start from the beginning.
+- Found on the way: "Stick to the containers. Out of sight." was said on arriving at any checkpoint north of the canal,
+  even at the drawbridge; now only among the containers.
+- Tested: the list on a phone; in front of the Headquarters with eight armed men and four scientists, the scan from there
+  (the drawbridge down, the hunters, its save); from the scientists' save, walking up to the drawbridge saves the new
+  checkpoint by itself.
+
+# v88: the freed men stay
+
+Bryan: "the freed prisoners are now part of the players squad. They never say bye." The goodbye at the end is gone: after
+the talk in the Headquarters it goes straight to the report. (Their recorded goodbye lines are still in their voice files,
+unused, and the voice tools no longer make them.) Bryan on the talk: "We will work on the script and after battle sequence
+more after the testing of the HQ battle."
+
+# v89: the bio scanner calls a scientist over
+
+Bryan: "When using the bio scanner, a scientist should be called over no matter who detained him. When I press the bio
+scanner, a unit and a scientist go over together. Right now, a scientist doesn't go." Before, only the soldier went, and
+on arriving he looked for a scientist already within 14 m of the scanner; the scientists follow whoever tied them, so
+usually none was. Now the press sends the soldier and the nearest scientist together, whoever tied him; the scan starts
+once both are there. If the soldier is sent somewhere else on the way, the scientist goes back to the squad.
+Tested from the "Scientists detained" checkpoint, about 70 m away, with a soldier who wasn't minding any scientist: they
+walked over side by side and the drawbridge came down 17 s after the press; sent elsewhere at 3 s, the scientist turned back.
+
+# v90: the hunters in one stream
+
+Bryan: "I think all the hunters should attack at once, the waves were too long of a gap, make them run out of the HQ
+entrance over the bridge continuously." The four waves over about half a minute (some climbing up over the moat's edge
+beside the squad) are gone: all 20 hunters run out of the gate's mouth and down the drawbridge in one stream, about 0.3 s
+apart, starting just after her roar, so all of them are out in about 6 s. The fight at the gate is over in 13-15 s.
+Tested with the bot that only moves the squad (the shooting is automatic): four soldiers had one or two men go down on
+each of 3 seeds and won every time (one man still down at the end on one seed); eight soldiers, nobody down. At a half
+second apart it was easier with four (one seed nobody went down, the other two men left at 31 and 8 HP).
+
+# v91: no dragging soldiers
+
+Bryan: "I think we need to make it so when a soldier is clicked then they can be directed to move. I don't think I like
+the dragging feature. Can we get rid of that? Too many times I accidentally dragged a unit to a different spot." Route
+drawing is gone: a drag that starts on a soldier moves the map, like any other drag, and never moves anyone. Moving is by
+tapping: tap a soldier (his fire team), tap him again for just him (or hold him, or tap his card), then tap where he
+should go; a team's move is still the two-tap preview. Level 1's tutorial step 5 was "Draw a route"; it's "Send him" now
+(Reyes selected, tap the ring by the crate; the dotted guide line stays). The controls list on the intro card says so.
+Tested with real mouse input: a drag from Reyes moved the camera and nobody; tap, tap, tap the ground moved Reyes alone;
+the tutorial lock test passes all 25 checks with the new step 5.
+
+# v92: back to the group, harder monsters, no words over them, a natural yell
+
+Bryan: "1) the player at the bioscanner should run back to the group (any time a unit does an action, they run back to the
+group if they were originally with them. If not, they move independently, until the squad is back together. 2) the
+monsters are a bit too easy, make it a little challenging. I wouldn't mind if some units got knocked down. 3) the text
+above when they appear should be removed entirely. 4) “What the Hell was that” sounds weird."
+
+1. A soldier sent off on his own to do something (the bio scanner, the drawbridge's panel, a thing to use or hack, a zip
+   tie, a revive or a medic kit, a takedown, a frag or a rocket he has to walk for) who was with others when he went
+   (within 8 m of one of them) runs back to them once it's done, to wherever they are by then ("Regrouping"); a man he was
+   sent to revive comes back with him. One who was already off on his own stays where he finishes. Another order on the
+   way, or in the moment after, and he does that instead. Posts are kept: the pillbox's gun, the tower, a door opened to
+   look through. Tested from the "In front of the Headquarters" checkpoint: the scanner soldier walked over, the scan ran,
+   and he was back with the others 3 s later; one sent from 29 m away from everyone stayed by the scanner; one sent to
+   revive a man 15 m out of the group came back with him. Level 2's quiet run (takedowns, the panel) still wins unseen.
+2. The gate: hunters have 80 HP (70), run 110 (86), lunge for 22 (18) and bite for 12 (10); two in three swing out to one
+   side once off the drawbridge and come in from there; a bigger squad gets more of them closer together (four men: 20,
+   0.2 s apart; eight men: 36, about 0.08 s apart). The drawbridge's medic station and ammo drop now come once the gate is
+   clear: standing in the medic ring healed 8 HP a second through the whole fight. The bot (it only stands in a line and
+   revives; the shooting is automatic) with eight men: 0 to 3 down (usually 1) over 7 seeds, all won (before: nobody
+   down); four men: 0 or 1 down on 7 of 8 seeds, 3 on one, all won. Denser streams for four men wiped them now and then,
+   so they keep the wider spacing.
+   Inside: the Brood Mother has 600 + 230 a man (180), her slam does 65 (55) and her swipe 34 (28), a big squad (six or
+   more) meets three young in each side room (two), and another room opens every 30 s (40). Eight men: 3 down inside on the
+   test seed (before: nobody, her down in half a minute).
+3. No words over the monsters at all: no contact banner or "Contact!" call when they come, no PINNED, and no hit-chance
+   pill under them (with a swarm out that was a wall of numbers); their health bars stay.
+4. The scream is a natural yelled take now, no reshaping: Zonos made several takes per soldier with fear and surprise in
+   the voice, all checked by the speech recogniser, and the loudest, brightest one of each is in (Okafor's is the one
+   usually heard). The pitch-raised version (scream.py) is no longer used.
+
+# v93: the scream, screamed
+
+Bryan: "Can't the 'What the hell was that!?' be screamed?" The voice model (Zonos) only shouts: with any emotion and pitch
+settings, and even carrying on from a recorded scream, its takes stayed at a man's shouting pitch (115-155 Hz; real screams
+are 280-370). It copies a voice from a reference recording, though, and a reference of a man screaming brings the scream with
+it: five CC0 screams (HaelDB's yells, already used for the pain screams) end to end, blended with the soldier's own reference.
+Now Okafor screams it at about 340 Hz with some of his own voice kept (40 %); Kowalski and Hayes, who say it only when Okafor
+is down, from the screamer's voice alone, at about 310 and 390 Hz (their blends stayed under 260 Hz). Nothing reshaped
+afterwards, and a speech recogniser hears every word of all of them. Still over the radio, like the squad's other lines.
+
+# v94: a bigger gather box, and a clear screen when the drawbridge comes down
+
+Bryan: "1) make the green box larger. 2) don't say Drawbridge Down and don't expand the objective list. I want full visual
+when the monsters attack." The green box at the drawbridge (gather everyone there to go into the Headquarters) is about
+three times the area: 15 x 13 m, it was 12 x 6, which eight men sent there together didn't always fit in. The drawbridge's
+medic station and ammo drop (they come once the gate is clear) moved 5 m west, out of it. Lowering the drawbridge shows
+nothing now: no "Drawbridge down!", the objective list doesn't open (it's crossed off quietly), and the save happens without
+its "Saved" chip; a Continue from that save doesn't put up "Continuing: Drawbridge down." either.
+
+# v95: after the boss: the wounded, the scientists, the clean-up, the finished HQ
+
+Bryan: "Okay that was a pretty awesome boss battle lol. Hard but winnable. Now, when the match is over. The player should
+revive any downed unit, if there save bar hasn't depleted, remember only a medic can revive when it's depleted completely,
+so if one managed to survive they can survive them all. Then the player should send someone to go get the scientist. When
+the scientists come in, they all walk to the center while the conversation is happening. Then after the conversation the
+screen shows a montage of the units and scientists cleaning the HQ. It then goes to the complete HQ which has a command
+center, medic table, supply table." (His ideas for more stations and rooms are in docs/hq-base.md, as a proposal.)
+
+- Once nothing's left alive, nobody bleeds out: each downed man's bar stops where it is. A teammate beside him gets him up
+  while his bar lasts; once it has run out (CRITICAL) it takes a medic kit, or carrying him to the medic station. The
+  ammo drop refills a medic kit, so one medic can get everyone up.
+- BRING THE SCIENTISTS at the entry hall's south door: select a soldier and tap it (while anyone's down it says "Get the
+  wounded up first."). He goes out and comes back with the scientists left tied on the drawbridge; as they come in,
+  everyone walks to the middle of the hall while they talk.
+- Then the montage: four shots with a fade between: her lair, the squad and scientists kneeling round the clutch while
+  the eggs come away; a side room, the resin and slime rocks coming off the walls; the hall, clean, the scientists at the
+  old consoles and the squad hauling the debris out while the lights come back on one by one; and the finished HQ.
+- The finished HQ: the hall clean and lit, a command center in the middle (a map table that lights up, three screens,
+  chairs), a medic table and a supply table (they heal and refill like the stations did), the six side rooms empty and
+  labelled for what's built next. "Mission complete!", the report, and a save: Continue (or the new last checkpoint,
+  "The Headquarters") goes straight back in.
+- If every scientist died at the gate, there's nobody to fetch: the clean-up starts by itself once the wounded are up.
+- Found on the way: the side rooms' floor creep in her nest had never shown (its seed read room fields that don't exist,
+  so every vertex was NaN); it shows now, as designed. Scorch marks inside the HQ were being painted onto the big map's
+  ground. And the test harness only reported page errors from loading, so errors after that never showed in any test; it
+  reports them all now (the nest's NaN was the only one).
+- Tested headless: two men down after the fight (one still bleeding, one critical), their bars frozen for 10 s, the fetch
+  refused until both were up (9 s: a hand revive and a medic kit), the fetch, all twelve lines while everyone gathered in
+  the middle, the montage and the finished HQ, the save, Continue straight back in (healing at the medic table). With a
+  real fight, eight men: won with one down, the bot got him up and went on through the talk and the montage to the report.
+  Four men lost to her on that seed. With no scientists, the clean-up started on its own. Level 1's tutorial lock test,
+  Level 2's quiet run and the regroup test still pass.
+
+# v96: out of the HQ, the road east to a dark tunnel
+Bryan, after v95: "1) supplies and Intel to start 2) the moment you get the supplies. 3) both, upgraded to strikes later
+one. Extra men start at level 1 and are limitedly available 4) Yes it should grow. 5) Both 6) yes. As for the map outside.
+When the user exits, the map now extends to the right. The road continues out to a dark tunnel. The leader says, alright,
+we need to get our radio communication up. Then a scientist responds, there's a decommissioned radio tower accessible from
+the tunnel down the road. You'll probably find the supplies you need from there. And that opens up to the next mission."
+(His six answers are in docs/hq-base.md, with the plan rewritten to follow them.)
+
+- In the finished HQ, gather everyone at the entry hall's south door (GO OUT n/m, then TAP TO GO OUT). They come out of
+  the gate two by two and walk off the drawbridge; the first time, one of the scientists walks out with them.
+- The big map now goes on past its old east edge. The piece of the east fence across the runway road is gone (its two
+  gate leaves stand open), and the road runs on, narrower, past an empty sentry hut and a failing lamp, round a bend to the
+  left and into a tunnel in a hillside: a concrete portal, chevrons either side, black inside, a dim work light over the
+  mouth and a red light far in. Rock along the north and east, the canal along the south, boulders and a burnt-out car to
+  take cover behind. It stays open from then on, saves included; a new game closes it again.
+- The first time out, the camera goes down the road to the tunnel, the leader (Reyes, or Hayes if Reyes is gone) says
+  "Alright, we need to get our radio communication up." and the scientist answers "There's a decommissioned radio tower
+  accessible from the tunnel down the road. You'll probably find the supplies you need from there." Both are voiced
+  (Zonos, as before). Then the camera comes back to the squad and the scientist walks back in. Objective: "Next mission ·
+  The old radio tower". A save: "The road east" (the last checkpoint on the intro card).
+- Then Bryan: "The tunnel could be it's own map. When approaching it it changes to it." So it is: walk everyone into the
+  mouth (TUNNEL n/m) and half a second after the last one's in, it fades into the tunnel by itself, no tap. Inside: a dark
+  two-lane road tunnel running north under the hill, about 125 m, walls cut away low so the floor reads (like the office
+  building), glowing studs along both kerbs, most wall lights dead and a few flickering, red lights by two cross-passage
+  doors. On the way: the old checkpoint's barrier arm down across one lane, a car slewed across the other, a lorry left in
+  the east lane, a jet fan fallen from the roof, and a collapse that leaves one way through on the east side. At the far
+  end the portal opens on the night; the old radio tower's mission isn't built yet, so the gather area there says so. Walk
+  back to the south end and it takes you out the same way. Nothing is waiting in it yet: that's yours to say.
+- Classes (Bryan: "when the team finishes the HQ, I think classes should be assigned to the units... Maybe we should wait
+  for the radio control"): today the choice is only on the boat screen before Levels 2 and 3, nothing after the HQ offers
+  it, and the freed men can't take one. Agreed to wait: with radio control, promote at the HQ and bring the class weapons
+  in on a supply drop (docs/classes.md, docs/hq-base.md).
+- The drawbridge's green area takes the squad back into the HQ (in at the south door); going out again doesn't replay the
+  talk.
+- Under the hood: the pathfinding grid is wider than the old map now (1440 instead of 1000), and the old edge still counts
+  as the edge on every map until the road opens.
+- Found on the way: every scientist brought into the HQ (the fetch, a Continue) was in the game's list of people twice, so
+  they moved at double speed (fixed). After a Continue into the HQ there was no way back in from outside, because the
+  drawbridge's gather area only existed after the gate fight (fixed).
+- Tested headless: from the HQ save, GO OUT, the walk-out, the camera, both lines, the save, real paths to the tunnel for
+  all eight (about 10 s), a tap on the new ground, back into the HQ and out again; into the tunnel by walking (it switched
+  0.5 s after the last man was in), real paths to the far end round every wreck and through the gap at the collapse
+  (about 22 s), the far end's message, back to the south end and out by itself (short of the mouth, so it doesn't send
+  them straight back in), in again, a reset from inside; the same from the end of
+  a real fight, the fetch and the montage; Continue from every Level 3 checkpoint; a new game. Regressions: Level 1's
+  tutorial lock (0 fails), Level 2's quiet run (won, never seen), back to the group after a job, the gate and the HQ fight
+  (eight men, won, three down at the end), the HQ's end.
+
+## After v96: classes (decisions, not built yet)
+Bryan, on the two class questions: "1) yes, freed men turn into normal soldiers. 2) I think it first unlocks at the HQ.
+Maybe [any] class upgrades happen when the team returns to the HQ." And: "each class will start to unlock special tools
+they can equip. Like support can get a mobile turret. Medic gets a heal dart, assault gets C4. And they continue to unlock
+as the game progresses. They don't unlock on every level, just big milestones. We can discuss more." Recorded in
+docs/classes.md with a draft table of tools per class and milestone for him to adjust; built with radio control.
+Then, on the draft's three questions: "1) Free/unlocked. The equipment is radio'd in and arrives in a helicopter on the top
+floor (needs a radio tower). 2) hmm I'm not sure, maybe unlock slots as they level up. 3) tools and better versions of the
+class. As the game progresses enemies get stronger too." Recorded in docs/classes.md; the order of work in docs/hq-base.md
+now puts radio control and the roof (helipad, radio tower) before classes at the HQ.
+
+# v97: the HQ's upstairs (the stairs and the lift, the second floor, the roof)
+Bryan, after v96: "I think we should build the HQ, and then the story to continue to the radio tower. Let's make the
+conversation end with once we get the radio tower we can request more advanced equipment. Or something like that." The
+road east and the tunnel the way he describes them next (the bridge, the lake, the lighthouse, the bus, the centipede, the
+dark tunnel): v98.
+- Where her lair was, at the north end of the hall: a flight of stairs up (UP) and a lift (LIFT UP). With soldiers
+  selected, tap one: everyone selected on that floor goes, each up the whole flight on his own, or into the car (it goes
+  once they're all in, a ride of about 2 s). The camera follows them when nobody selected is left on the floor on screen.
+  The floor chip on the right (ROOF, 2F, GF) switches floors, with a dot for each man on each, like the office building's;
+  picking a team or a card whose men are upstairs takes the camera there too.
+- The second floor: a corridor north to the stairs up to the roof; the briefing room (a long table, a wall screen with the
+  area's map and the old radio tower marked, a whiteboard) and the barracks (ten bunks, lockers, a table) west of it; two
+  empty rooms east of it, for what's built next; a landing along the south side with the stairs down and the lift.
+- The roof: a parapet round it, the stairs' housing, the helipad (a yellow ring and a white H, green lights round it, a
+  windsock), the radio tower's base (a concrete plinth and the stub of a lattice mast with a blinking red light; it says
+  NEEDS PARTS: the next mission), air conditioning units, vents and lamps. It's outdoors: rain and lightning up there, and
+  the rain is only a hiss on the floors below.
+- The road talk ends with the leader: "Once we get that radio tower running, we can request more advanced equipment."
+  Voiced for Reyes and Hayes (whoever leads); the speech recogniser heard every take word for word.
+- Under the hood: the pathfinding grid is wider again (1800), with the second floor east of the ground floor in the same
+  frame, and the roof north of it.
+- Found on the way: the lift could set a man down outside the hall's north wall (the nearest free spot to where he stood
+  in the car); the ground outside the walls is closed off now.
+- Tested headless: from the HQ's save, all eight up the stairs by real paths (about 11 s) with the camera following, every
+  room on the second floor reachable, up to the roof (about 13 s), the helipad, the tower's base and the corners reachable,
+  everyone over to the helipad, down to the second floor and the lift down (a 2.2 s ride), two men up in the lift, the
+  floor chip and picking the men upstairs taking the camera there, GO OUT only on the ground floor, out, Continue back in.
+  The road talk's three lines in order. Regressions: the road east and the tunnel, Continue from every Level 3 checkpoint,
+  the HQ's end and its montage, the office building's stairs, lift, doors, breach and carrying (its floors share the chip),
+  back to the group after a job, Level 1's tutorial lock (0 fails), Level 2's quiet run (won, never seen); no page errors.
+
+# v98: the road to the radio tower
+Bryan, after v96: "So to start the next mission, the soldiers exit the level. And move east on the road that now appears,
+the screen slides over with the troops when they move. It's over a bridge, a larger river/lake is north of the soldiers and
+a lighthouse circling is seen in the distance. The soldiers continue to the right/east where they see the tunnel entrance.
+A centipede monster can be seen crawling into the tunnel from above it and crawls on the ceiling. The tunnel is pitch
+black. A broken down bus is scene on the left lane. Inside the tunnel will have other broken down cars and dead bodies
+hanging outside the car and on the road. Blood is pools around the bodies and trails can be seen."
+- The road east is laid out again, further: out through the gap in the east fence, east over a bridge across a river
+  that runs out of a lake to the north (the canal runs into it), on to the foot of a hill at the far east of the map, round
+  a bend into the tunnel. The lake runs on north past the map's edge, round the fortress's moat; out on it a lighthouse in
+  red and white bands, its lantern lit and its beam going round.
+- The first time out: the talk by the drawbridge (the leader, the scientist, the leader's new last line), then the
+  scientist goes back in and the squad sets off east by itself, two by two, the camera sliding along with them, tilted a
+  little so the lake shows; over the bridge, to where the tunnel's mouth is in sight. There the camera goes to the tunnel: a
+  centipede (one of her young, bigger) comes over the hill, down the headwall's face, under the arch and in along the
+  tunnel's roof upside down; a growl, and "Movement! Over the tunnel." Then back to the squad, the objective (the old radio
+  tower, through the tunnel) and the save. About 35 s in all if you let the talk play.
+- A coach broken down in the left lane at the mouth, its nose in the tunnel, one tyre flat, panes gone, its door open. The
+  gather area at the mouth is the east lane and the verge beside it.
+- Inside, pitch black: every wall light dead but one sputtering tube, the red emergency lights by the cross-passage doors,
+  three road flares burning red by the wrecks, and the squad's torches (brighter in here). The coach across the left lane at
+  the way in, three more cars left with their doors open, the slewed car and the lorry as before, the fallen fan and the
+  collapse; eight dead, three half out of a car's door, the rest in the road, blood pooled round each and four trails where
+  someone was dragged, one of them off north into the dark. Still nothing alive in there: yours to say.
+- Continue from the road's save puts the squad back where it stopped, in sight of the tunnel.
+- Found on the way: with the coach in the left lane the mouth's gather area was one man too narrow for eight (the last
+  always stood outside it, so the tunnel never came in); it takes in the verge now.
+- Tested headless: from the HQ's save, GO OUT the first time: the three lines, the walk east (about 13 s, the camera
+  following them over the bridge), the stop in sight of the tunnel, the centipede (about 7 s from the hill to gone inside),
+  the save; all eight into the mouth and the tunnel by itself (about 6 s); inside, real paths round every wreck and the
+  dead to the far end (about 20 s); back out by itself; Continue from the road's save. Regressions: Continue from every
+  Level 3 checkpoint, the HQ's end, its upstairs, the office building's stairs and doors, back to the group after a job,
+  Level 1's tutorial lock (0 fails), Level 2's quiet run (won, never seen), the HQ fight (won); no page errors.
+
+## After v98: a draft of the next mission
+Bryan: "Show me a draft". `docs/map-draft-H.png` and `docs/level4-draft.md`: Level 4, "Dead Air", the old radio tower
+through the tunnel. The Crawler in the tunnel, a valley road with a roadblock, woods with hunters in them, the compound
+on the hill (a sniper on the dead mast, a machine gun at the gate, a radio man who calls a truck in), three supplies to
+carry home and a radio log for intel. Five questions for him at the end of the write-up. Nothing built yet.
+Bryan: "No, so the east road is over a bridge to the tunnel. In the tunnel there's an interior that leads to a tunnel which
+will reach the radio tower on top of the hill the tunnel is under." Redrawn as `docs/map-draft-I.png`: a side view of the
+hill (the road tunnel along its foot, its north end caved in; a service door in it up into the plant, the tunnel's control
+rooms in the rock, where the brood has nested; the incline, an access tunnel with steps and a rail car up through the rock,
+where the Crawler lives; the old radio tower on the summit, a militia outpost that watches its own track and the road, not
+the bunker the squad comes out of), with plans of the plant and the summit. `docs/level4-draft.md` rewritten to match, with
+five questions.
+Bryan's answers: "1) yes caved in (for now) 2) enemy soldiers are in the radio tower/summit 3) a zip line leads to the
+bridge and they can make a quick route back. 4) let the player choose. Going up the lift alerts more enemy monsters and the
+guards hear them coming. Enemy monsters will come up and attack not only the player but the enemy troops too. Taking the
+stairs is quiet and the enemy troops are unaware. The player can split the teams and keep one group undetected. 5) The Old
+Radio Tower is a good name". Recorded in `docs/level4.md` (renamed from level4-draft.md), drawn as `docs/map-draft-J.png`.
+
+# Bryan testing v100 (from Level 1; the changes once he's done)
+
+Bryan: "Im testing from level 1 - I'l write down what needs to be improved or changed. When I am done I will tell you."
+Then: "No upgrades until I sy im done testing - so we can go over them all togerther." His notes, collected here as they
+come; nothing new is published until he's done and we've gone over them together.
+
+1. "The tutorial level doesnt show the yellow and green circles for the suplly and med" (Level 1's checkpoint by the hut).
+   Found: no checkpoint anywhere has drawn its rings since v71. hq.js's ring drawing was called `drawHQ`, the same name as
+   fortress.js's health bar for the Brood Mother, which loads later and replaced it. Fixed after v100 (renamed
+   `drawStations`), committed, not published; the ammo drops' strobes blink again too (the same function blinked them).
+   Seen in the same screenshot: on a phone the "BASE · CALM" line under the ring at the top ran into the objective box.
+   Fixed (the box is narrower while that line shows), committed, not published.
+2. "After Level 1 my units leveled up to select a new class - but it is not available. It should say Unlock Radio Tower
+   for upgrades." The report said "Level up · choose his class next"; the class choice is on the boat screen after it
+   (PROMOTE under his name). Then: "or maybe we should allow level ups but no new equipment until the Radio Tower is
+   built. - Yeah lets do that." To do: soldiers keep levelling up; the report's line says Unlock Radio Tower for upgrades;
+   no PROMOTE, no classes and no new equipment until the radio tower is built at the HQ (radio control, after Level 4).
+3. "Also a level up should make a sound. Maybe the exp bar moving up can make a noise too." To do. They'd be the game's
+   first interface sounds (the beeps and jingles were taken out as too arcade), so they should be low-key.
+4. "for some reason controlling units is harder. I dont like the hard switch to the squad I select. Maybe I liked the
+   dragging the troops before, but I kept on accidentally moving them scrolling around - is there any way we can fix that
+   (answer when testing is done.)" What's there now: picking a team (its tab, a card, one of its men) whose men are all
+   off the screen or on another floor cuts the camera straight to them, no glide (`selectAway`, `goTo` in input.js;
+   Bryan: "if selecting the other squad, it should bring you to them"); dragging soldiers was taken out in v91 (after
+   v90: "Too many times I accidentally dragged a unit to a different spot"). Neither changed in v99-v100 (the floors were
+   made one interface for Level 4; Level 1 has no floors). To answer when he's done.
+5. "The med pack should cure players to 100% health while they stand." Built in v101: the kit on a man who's hurt but
+   up, or on the man carrying it, brings him back to 100 in 3 s (the medic walks over and keeps up if he's moving; not
+   while pinned; another order calls it off). A downed man still gets up at 50.
+6. "Players should hold two smoke and 1 grenade." His answer to which: the smoke item holds 2 (a soldier who takes smoke
+   gets two); the frag stays one each. Built in v101.
+7. "Move the sniper to the left side of the bridge, but sneaking through the pipes can avoid the tower's sights. The
+   sniper should be able to be reached so fighting across the road is doable. It's still a little tough." His answer
+   to which road: the runway road. Built in v101: the tower stands west of the bridge's road on the strip between the
+   containers' last row and the runway road, its ladder by the gap in that row; its sniper (one of the data center
+   front's men now) faces up the road to the east, so nothing on the pipe route, the road's far west end or the strip to
+   the doors is in his sight (checked by script); from the gap a soldier gets a clear silent shot at him; up there the
+   rifle covers the whole front across the road, 20-40 m. The bridge is lighter for it (no sniper over it).
+8. "I dont want to make the enemies easier but I want to make it eaesier for the player to sneak around. Can we lower the
+   enemies sights a tad bit?" Built in v101: every unaware man sees a tenth less far (30 m to 27; the snipers 62 to 56,
+   Level 1's guards 21 to 19, Level 2's 25 to 22.5); an alerted man's sight in a fight is unchanged.
+
+Bryan: "Im ready for these changes." Then, on his questions: the camera "Don't move the camera to the other squad
+UNLESS they are in another screen. I think that is where I confused you." (note 4: built in v101, the camera goes only
+to another floor; a team merely off the screen is just selected), and dragging: "Hold, then drag" (built: hold a soldier
+a moment, he's picked out, then drag his route; a drag that starts straight away moves the map). Notes 2 and 3 built in
+v101 too: classes wait on the radio tower (the report and the boat screen say Unlock Radio Tower for upgrades), and the
+report has a level-up chime and soft ticks as the XP bars fill.
+
+Bryan, before v101 went up: "Actually can we place it at the far left corner against the containers looking towards the
+entrance of the data warehouse and up the road?" Moved: the tower stands at the container yard's north-west corner,
+against the west end of the last row, its ladder on the yard's west strip behind him; the sniper faces between the doors
+and up the road. The pipe, the first aisle and the west strip are out of his sight, so the squad can come up behind him
+and take him with a silent shot from the foot of his ladder; from the platform the rifle covers the doors and the whole
+front (31-66 m). The old quiet way (behind the barrier, along the building to the doors) is in his sight now. Found in a
+scripted run: killing him quietly starts the radio's clock; the check-in came 9 s later and sent the yard's patrol to
+him, who saw the squad crossing the road. Question for Bryan: take the sniper off the radio check-in?
+Bryan: "That way, hugging the left side all the way down will get to it. But going straight through the bridge means you
+will fight it." Built in v101: the tower's sniper is off the radio check-in and his body up on the platform isn't seen from
+below, so taking him quietly from the west strip doesn't send anyone; the loud way up the bridge's road comes out onto the
+runway road in his sight. Scripted: timing the yard's patrol, up the west strip, a silent shot from his ladder, across the
+road's far west end behind the jeep: at the doors unseen on 4 of 4.
+
+# After v101: the sniper nest
+
+Bryan: "Or what if it was across the road, and the sniper looked out towards the road and the entrance from the bridge. We
+should also put a large red cone where the sniper sees. The players should say Sniper Nest NorthWest of us against the data
+center or something like that. Really make sure the players knows the sniper tower is there." Built in v102: the nest stands
+against the data center's south wall, between its doors and the heavy gun's nest; the sniper looks out over the runway road
+and down the bridge's road to the canal (straight up from the bridge you fight him; the quiet ways in are behind him). A big
+red cone on the ground shows where he sees, from the start, cut off where the buildings and containers block his view; SNIPER
+NEST over the tower; the hint line says where he is; and a few seconds after they're out the leader says "Sniper nest. Up north,
+against the data center. Stay out of his sights." (from where they come ashore the nest is due north, so not "north-west";
+recorded for Reyes, Kowalski, Hayes and Okafor). A silent shot from the doors takes him quietly. Scripted: the old quiet way
+and the way up the west strip both reach the doors unseen.
+
+Bryan, after v102, with an arrow drawn on a screenshot (his camera turned so the road ran up the screen; the arrow from the
+road's far west end, by the data center, up the screen to the doors): "No I want the watchtower to look like this, looking
+north." Up his screen is east on the map. Built in v103: the tower stands at the road's far west end against the data
+center's south-west corner, looking along the building's front to its doors and up the road (his cone, the label and the
+warning line as before). Hugging the left side (up the yard's west strip, over the road's far west end) gets to the foot of
+his tower unseen; up there he only watches his cone, so a silent shot from his ladder takes him; then along the front to the
+doors. Coming straight up from the bridge, the bridge road's mouth is in his sight.
+
+Bryan, after v103: "Yes the location is good but can you just it out and put it on the sidewalk adjacent to the road?"
+Built in v104: the tower stands out from the wall on the sidewalk at the road's far west end, its south side at the road's
+edge, still looking east up the road to the doors (his cone, the label and the warning line as before). The way to it is
+the same: up the yard's west strip and over the road's far west end to his ladder, out of his cone. A single silent shot
+from there hits about 9 times in 10 (the rails are half cover) and a miss wakes him, so two silenced men on the count are
+the sure way. Scripted: unseen to the doors on 6 of 7 runs; the seventh was that miss. From the platform the rifle still
+has all seven of the front's men in sight.
+
+# Bryan testing v104 (the changes are in v105)
+
+1. "So I am trying to throw smoke with Alpha up ahead near the dead body but they say I can't. He's not pinned, so he should
+   be able to move to the corner and throw it. The only time someone can't do an action is if they are pinned and it would
+   say I'm Pinned, I can't do that! And it should be a voice bubble above them, maybe even have them say it. Or do you think
+   the flashing on top would be better". Since v71 smoke and the rocket only ever went from where he stood: round a corner,
+   past a stacked container or out of reach, the game said "No clear throw from here" and he stayed put. Now a frag, smoke
+   and the RPG all go from where he stands when they can, and otherwise he walks to where they can (a safe spot first, else
+   the nearest that works, however far) and throws there. A fire order with no line within a short walk looks further, and
+   the silencer's aim moves him up for a quiet shot. Pinned, he still throws from where he stands if he can, but won't
+   leave his spot: a speech bubble over him, "I'm pinned! I can't do that!", and he says it (recorded for all eight).
+   Moving him is still an order he takes, so he can always be got out. My answer to his question: the bubble over him, with
+   his voice, rather than flashing text at the top: it says who (with two teams and eight men a banner doesn't), it's where
+   the player is looking when giving the order, and the top of the screen already carries the objective, the detection
+   ring and the banners he found piling up before.
+2. "All actions should work like that. But there should be a limit on how far they can move. Let make a small imaginary
+   circle around the unit. You can draft it if you want a precise distance". The circle is 10 m round the soldier (one
+   number, `ACT_R`; a picture of it sent with v105 as the draft). Every action now works the same way: from where he
+   stands if he can, else he goes where he can, but only inside that circle and by a way that stays inside it: throws,
+   shots, hold-to-suppress, silent shots and volleys, takedowns, revives, medic kits, carrying, zip ties, anything to use,
+   the pillbox gun, the watchtower, the bio scanner, doors, Breach, the class skills and building. Beyond it he says "Too far.
+   Move me closer." (a bubble and his voice, recorded for all eight) and stays put. Getting about has no circle: moves, the
+   stairs, the lift, the gather areas, and sending a man out for the scientists. While aiming a throw a dotted ring outside
+   the dashed one shows how far it reaches once he's moved up. Things that used to go further: frags walked up to 36 m to a
+   safe spot, revives, kits, zip ties and things to use had no limit, a takedown worked from 14 m and Breach from 15 m.
+
+# Bryan, after v105 (the changes are in v106)
+
+1. "We can keep all these like this: Frags used to walk up to 36 m to a safe spot. Revives, medic kits, zip ties and using
+   things had no limit at all. Takedowns worked from 14 m, and Breach from 15 m." Those are back as they were before the
+   circle: a frag (and the M203) walks up to 36 m, a safe spot first; a revive, a medic kit, carrying a man, a zip tie and
+   anything to use (with the pillbox gun, the watchtower, the bio scanner and doors, all "using things") go however far; a
+   takedown from 14 m; Breach within 15 m. The 10 m circle stays for the actions where the soldier picks the spot himself:
+   smoke, the RPG, getting a line on a man you tap, suppressing, a silent shot, the class skills and building. Pinned, he
+   still won't leave his spot for any of them.
+
+# Bryan, after v106 (the changes are in v107)
+
+1. "When I press an action, can all available teammates go to the action to provide cover? Do you think that will be a good
+   idea? Maybe if you hold an action down the whole team goes? Let's discuss before committing". My proposal: let the
+   selection decide, no hold (a hold on the ground is already the lasso and on a hostile it's suppress). Bryan: "I like how
+   it depends on who is selected. If you have a team, they all go. If you have just one unit, he goes." Built: with a team
+   selected, one man does the job as before (the nearest who isn't pinned or busy) and the others go with him and take cover
+   round where he'll be, the way a group move places them. That's for a revive, a medic kit or carrying a critical man, a zip
+   tie, anything to use, the pillbox's gun, the watchtower, the bio scanner and a door. With one soldier selected he goes
+   alone and comes back to the group afterwards, as before. A man picked from his card (a throw, his kit, a skill) is always
+   alone. Who stays put: anyone pinned, anyone busy with a job of his own, and anyone already standing within 4 m of the
+   spot with a line to it. Defaults I took: they go even when there's nothing to hide behind there, they sneak if the team
+   is hidden, and the lift's doors and the card door at the top of the office's stairs stay one-man jobs so the men put
+   beside those doors don't move. Level 1's wounded scout is a one-man job too: his hut is inside the radio tower's blast,
+   and the tip that comes next is the rocket at the tower with nothing else allowed meanwhile, so with the whole team at
+   the hut the rocket hurt two of them (Level 1's bot ended at 89 and 75 HP). Found on the way: the spot-finder ignores
+   doors, so it could put a man in a shut door's doorway; it can't now. Still true, as before: our own rockets and frags
+   hurt our own men in the blast, so a team gathered round a job is in it if a blast goes off there.
+
+# Bryan, after v107 (the changes are in v108)
+
+1. "When a player is being shot out in the open, they will run to the nearest cover." There was already a shift to cover,
+   but it seldom happened: it only looked 5 m round him, only for a spot covered from every hostile in sight, only after
+   about 2 s, and never while he was pinned, and a man being shot at is pinned within a couple of seconds. Now a soldier
+   standing still whom a hostile has fired on, with nothing between him and that man, runs within half a second to the
+   nearest spot with cover from whoever's shooting at him (half cover will do; up to 25 m, the nearest by the way there; not
+   up close to them), pinned or not, at a run even with the gait button on sneak, "Moving to cover" over him and now and
+   then "Moving!". Defaults I took: he holds where you put him for 1.5 s after an order; he keeps at a job you gave him
+   (suppressing, a zip tie, a thing to use, a throw, a takedown, a door), and the man getting a downed teammate up or using
+   a medic kit keeps at it unless he's pinned (then he can't do it anyway, so he runs too); monsters don't shoot, so nobody
+   runs from them. Measured: the squad put in the open on our bank against the alerted bridge for 30 s and left to it,
+   three seeds: before, 1.3 men down on average (1, 2, 1); now 0.3 (0, 0, 1), all four running for cover, the damage taken
+   about the same (they're hit before and while they run) and the bridge's five down as before (4.7 of 5).
+
+# Bryan, after v108 (the changes are in v109)
+
+1. "The game froze when I was at the sniper tower." Found and fixed. When something tall stands between the camera and one
+   of ours, it fades so he can be seen. The data center's block is built with a separate material for each face, the fade
+   tried to copy that list as if it were a single material, and that threw an error. The frame loop asked for its next frame
+   only at the end of each frame, so that one error stopped the game for good on its last picture. It had been possible ever
+   since the tower moved to the building's corner (a man by the ladder with the camera turned), and v108 made it likely: a
+   man shot at by the tower now runs for cover behind that corner. My first two reproductions only ran the game's logic and
+   found nothing; the third drew the frames too, with the camera turned the way his screenshot was, and hit it every time.
+   Fixed the fade, and the frame loop now asks for the next frame first and runs each part on its own: if anything else ever
+   goes wrong, the game carries on, and a short line at the top says where (worth a screenshot), once.
+2. "Could we also add some cover near the sniper tower?" Sandbags piled against the tower's legs either side of its ladder
+   and along its north side, and an L of sandbags east of it: a wall from the road's edge to 3 m short of the building and a
+   short run along the road's edge back to the tower, a pocket between them for two or three men, covered from the data
+   center's front and from the road. Men by the ladder are covered from the front, and one north of the tower from the road
+   where the jeep turns. The quiet way in to the ladder from the yard's west strip is as it was, the walk along the front to
+   the doors goes through the gap by the building (or over the bags), sandbags don't block anyone's sight, and the jeep's
+   route clears them.
+
+# Bryan, after v109 (the changes are in v110)
+
+1. "Okay, so I think we should have the new soldiers stay back and "repair" and establish the base. I think the 2 4-unit
+   squads are overkill and can be used for large battles/missions". I asked when they stay and what they do there; his
+   answers: once the HQ is taken, and at work in the empty rooms. Built: the four freed men fight with the squad to the end
+   of Level 3 (the gate and the Brood Mother). At the end of the talk in the hall the leader tells them: "Abara, Brennan,
+   Lindqvist and Marsh: you stay here. Fix this place up and get it running." Marsh: "We'll have it running by the time
+   you're back." (text only, like the rest of that talk). They help with the clean-up, and in its last shot each is at work
+   in a side room of his own, Abara and Brennan on the west side, Lindqvist and Marsh on the east; the two rooms at the north
+   end stay empty. From then on they're the Headquarters' crew: no cards, they can't be selected, their rooms read REPAIRING
+   with the man's name, and the hint line says so. The report still has all eight rows ("freed prisoner · stays at the HQ")
+   and its summary says they stay. The squad that goes out to the road east and into Level 4 is the original four; the crew
+   are at work whenever the squad comes back in. Defaults I took: a freed man who was killed stays lost; if none of the
+   original four is left alive, nobody stays behind and the freed men go on as the squad; the checkpoints from "The
+   Headquarters" on start with the four; a save from before v110 at the Headquarters or later is read the new way (the
+   freed men in it become the crew; a Level 4 find one of them carried goes with him). Not built: bringing the crew out
+   again for a large battle; that waits for a mission that needs it.
+2. Level 4 with four (it had only been tested with eight). The same bot as before (it only moves the squad, the shooting is
+   automatic, it keeps the downed alive), from the hill checkpoint. By the lift: cleared 2 of 2, nobody downed, some
+   finishing on 1 to 25 HP. Split (two up the stairs past the Crawler, two by the lift): cleared 3 of 3 with the change
+   below. All four up the stairs and then straight at the summit: cleared 2 of 6; in the other four all four went down with
+   3 to 5 of its nine men still up. With eight the same bot cleared every run. The stairs are the quiet way (their men don't
+   know you're coming) and the bot uses no silencers or takedowns, but a loud fight of four against the summit's nine, in
+   helmets and vests, is hard. Not changed; if it's too hard, the levers are their vests (20 % less damage) or one or two
+   fewer men on the summit for a squad of four. Changed: the Crawler on the stairs was sized for the whole squad (360 HP and
+   40 a man) when the hill was built; it's now sized for the men on the stairs when it wakes, never bigger than before. Two
+   sent up the stairs alone: before, both went down to it and it lived in one of three games; after, they killed it in all
+   three.
+
+# Bryan, after v110 (the changes are in v111)
+
+Bryan: "I also don't like how it looks, the bridge to the tunnel. Maybe I can make a rough drawing for you?", then his
+drawing (the HQ on the left, a long bridge from beside it straight east to the tunnel, water north and south of it, the
+hill's shore running north from the tunnel to the lighthouse) and: "The bus can stay. See the little line near the word
+tunnel? That is one of the monsters crawling from above the tunnel to inside the tunnel, crawling on the ceiling. Also, can
+we have the ability to zoom into the troops a little closer? And also, I would like to lock the camera while the troops
+cross the bridge. Like make it perpendicular to the bridge looking north, so the lighthouse is seen in the horizon. The
+tunnel will have a lot of monsters leading to the entrance. The tunnel needs more dead bodies and more broken and abandoned
+vehicles." I asked two things; his answers: the monsters crawl in, then the squad fights through them inside; the camera
+locks for the first walk across.
+
+1. The bridge, as drawn: from the gate by the Headquarters a long straight road bridge east over the water to the hill (61 m),
+   the lake north of it and a bay south of it, the tunnel's mouth at its far end in the hill's face, facing back along it,
+   and the hill's shore running north to the lighthouse on its rocks. A concrete deck with footways, railings, lamps (two
+   dead), piers down into the water a metre below, a burnt-out car on it. The bus stays, in the left-hand lane with its
+   nose in the mouth. The old river, the ground south of the road and the bend up to the tunnel are gone; the canal spills
+   over the old map's edge into the bay. Level 4's zip line still comes down onto the bridge's north railing.
+2. The camera the first time across: locked, looking north low over the lake with the lighthouse on the horizon, sliding
+   along with the squad (no panning, turning or zooming meanwhile). At the far end it turns to look at the mouth while the
+   things go in, then it's the player's again. (Default I took: the lock covers that moment at the mouth too.)
+3. Over the mouth: five centipedes now, one after another, over the hill, down the headwall's face and in along the roof.
+4. In the tunnel: her young asleep among the wrecks on the way to the service door, in three lots (3, 4 and 4 for four
+   men); a lot wakes when one of ours comes within about 23 m in sight (12 m whatever's between), at gunfire or a blast
+   close to them (a silenced shot doesn't carry) or when one of them is hurt. A growl in the dark first; "Something's
+   moving in there." Measured with the bot (it only moves the squad, the shooting is automatic, it keeps the downed
+   alive), four seeds: all eleven killed each time, nobody lost, one man downed in one run of four, the others ending on
+   14 to 100 HP. (With the first lot a little closer to the way in it was 1, 1, 2 and 0 downed: easy to turn up.) Once
+   the squad has been into the hill the tunnel's quiet.
+5. More dead and wrecks: 18 dead (8 before) and 11 wrecks (6 before): a car run into the wall by the way in, a van and an
+   ambulance with their back doors open, a pickup on its roof, a car burnt out in the middle of the road, more blood
+   dragged about. The lorry that was there already now shows: its own colour had kept it from being drawn.
+6. The zoom: up to 6x (4x before); the camera tips a little lower at the closest.
+
+## Bryan, after v111 (the changes are in v112)
+
+"Can we make the level 4 start from inside the HQ, so crossing the bridge will be the first time and I can see the sequence
+after killing the monster?"
+
+1. The Level 4 button now starts inside the Headquarters just after the Brood Mother dies: her body lies back up the hall
+   from just short of the squad, 15 of her young dead where they fell, the side rooms open, the eggs that hatched burst,
+   all eight standing at the hall's south end. "Headquarters taken" and the objective crossed off come at once, then the
+   sequence as after a real fight: send someone for the scientists (BRING THE SCIENTISTS at the south door), the talk
+   (ending with the freed men told to stay), the clean-up, the finished HQ with the crew at work.
+2. Then GO OUT gives the first crossing: the talk by the drawbridge, the walk east with the camera locked looking north,
+   the centipedes at the mouth, the save 'road'.
+3. It's a checkpoint of its own too, "The Brood Mother dead", between "The gate cleared" and "The Headquarters" in the list,
+   and its Continue goes back to the start of the aftermath.
+4. Default I took: no Level 3 report at the end of the clean-up from this start (no fight was played, so it would show
+   nothing killed and hand out XP for it); a banner says to gather at the south door instead. After a real fight the
+   report still comes.
+
+## Bryan, after v112 (the changes are in v113)
+
+"So the cards and hud look very zoomed in after the sequence." / "The lighthouse should on a landmass, not a rocky land. (It will
+be a level later on)" / "The rocks look weird around the tunnel." / "The bridge is just a flat road, it looks like it's floating.
+Can we draft some different bridge types? I'm thinking the south side of the bridge can be more of the warehouse level." / "The
+sequence makes the characters look really tiny and far away. It's not visually pleasing."
+
+1. The zoomed-in HUD: a phone zooms the whole page on a double tap, and tapping quickly through a conversation is one. The page
+   no longer zooms (pinch or double tap) anywhere but the map, which zooms the game's camera as before.
+2. The lighthouse stands on an island out in the lake now: grass over low earth cliffs, the tower inside a low stone wall, the
+   keeper's cottage, a boat shed and a jetty with a rowing boat, a few pines.
+3. The tunnel's hill is ground now instead of a pile of faceted rocks: a rocky bank at the water, grass and earth over it, pines,
+   a few stones, rising to a summit far off; over the tunnel's mouth it dips to a saddle where the centipedes come over, and either
+   side of the headwall it comes down into the water. The lake's west shore and the far shores are grassy banks.
+4. The sequences are framed close: sending a man for the scientists, the talk, each shot of the clean-up, the talk by the
+   drawbridge, the walk across (about 15° above the water, the squad big in the lower half, the lighthouse on the horizon; on a
+   phone the camera turns a little toward it so it stays in) and the centipedes going into the tunnel. The zoom is worked out for
+   the screen's shape, so a phone gets the same close shot as a wide screen.
+5. The bridge: found while drafting that there was no water near it at all. The dark ground that stands in for the world beyond
+   the old map lay over the lake and the bay at road height, so the deck sat on a flat floor; that's cut away now and the water
+   shows, darkened for night, with the lamps in it.
+6. Four bridge drafts, the south side as a dockyard like the warehouse level, in docs/bridge-drafts.md
+   (docs/drafts/bridges-overview.jpg): A concrete beams on piers, B a steel truss on concrete piers, C stone arches, D a steel
+   lift bridge with towers. Not in the game yet: Bryan picks.
+
+## Bryan, after v113 (the changes are in v114)
+
+On the bridge drafts: "1) concrete beam and tiers 2) right now, it's just scenery." And: "3) the lighthouse should be fairly off in
+the distance, and on a large island. The water is mean to go on and on? Like an ocean's horizon. Does that makes sense? Do you
+want to draft that first?"
+
+1. The bridge is draft A, concrete beams on piers (read "tiers" as piers): deep edge beams with a drip line, three girders under
+   the deck, five piers of two round columns on a cap with a footing at the water, an abutment at each end. The water lies 3.4 m
+   below the deck now (it was 1 m), so all of that shows.
+2. The dockyard south of the bridge, scenery only: quays round a dock basin, two warehouses with roll doors and lamps over them,
+   stacked containers, a gantry crane at the root of a pier, a tug at the west quay, lamps on poles. Nobody can walk there. Kept
+   low near the bridge so nothing comes between the camera and the squad on the walk across.
+3. With the water lower, the canal now pours 3.4 m down over the quay wall into the dock basin, a sheet of falling water with
+   foam where it lands.
+4. Fixed on the way: the dark ground standing in for the world beyond the old map also lay over the foot of the hill, a flat ledge
+   along the water with a pale line where it met the slope; it's cut away under the hill now. The big stones on the hill's steep
+   slopes sat proud and looked like grey saucers from the low camera; there are fewer, sunk well in.
+5. The sea: yes, drafted first (docs/ocean-drafts.md, docs/drafts/ocean-overview.jpg). The lake opens out to the sea, the far
+   water fades into a pale haze at the horizon under a sky with a little light low down, and the lighthouse stands on a large island
+   far out, its end in the gap between the Headquarters and the hill with open sea to the right of it: A about 330 m off, B about
+   480 m off and low on the horizon. Not in the game yet: Bryan picks.
+
+## Bryan, after v114 (the changes are in v115)
+
+"Your sample in the notes is perfect" (the sea drafts, docs/ocean-drafts.md). Taken as: build it as drafted. He didn't pick between
+A and B, so it's A, the nearer island whose shape you can make out; B is only the island's position and size.
+
+1. The lake opens out to the sea. Its far shore across the head is gone. North of the Headquarters the land ends in a coast that
+   runs away west, and the hill's north end comes down into the water. The summit, the saddle over the tunnel and the zip line are
+   as they were.
+2. The lighthouse stands on the east end of a large island about 330 m north of the bridge, in the gap between the Headquarters
+   and the hill. The rest of the island runs away west behind the Headquarters, so from the bridge there's open sea to the right of
+   it.
+   - The lighthouse is twice the size it was (about 23 m), and its light isn't dimmed by the night air.
+   - Its beam is longer.
+   - The keeper's cottage has a window lit.
+   - The little island in the lake is gone.
+3. The far water fades into a pale haze at the horizon, and there's a sky with a little light low down, so the horizon shows at
+   night and land far off stands out dark against it. A lightning flash lights the sky too.
+4. The first walk across: the camera at the game's lowest angle, with the picture moved down a little so the horizon and some sky
+   are in and the squad sits in the lower part. The squad is the same size on screen. It eases back for the turn to the tunnel.
+
+## Bryan, after v115 (the changes are in v116)
+
+"So when I select a squad, and say if they are up against a bus. But I want to place them to a slightly different position against
+that bus, I cannot select the location near them, nothing happens. Can we make it so I can move squads precisely near their
+current location?" and "the entry green boxes to new areas doesn't look well to me. Can we redesign the way troops move to
+different parts of a map?"
+
+1. Moving the squad a step or two. Three things were in the way:
+   - A tap within about 26 px of any soldier counted as a tap on him, so every spot right next to the squad picked a soldier out
+     instead of moving them. Now, with soldiers selected, only a tap on a man's body (feet to head, about his width either side)
+     picks him out; anywhere else is a move. With nobody selected, a tap near a man still picks his team.
+   - The second tap, on the ghosts' marker, was checked after the soldiers, so on a short move, with the marker on top of one of
+     them, it picked him out instead of going. The marker comes first now.
+   - By the bus at the tunnel's mouth, the road east's old invisible 6 m rock boxes still caught taps and sent the squad to their far
+     side (the hill has been drawn as ground since v113). Now a tap there lands where you tapped, and a tap on the hill itself (either
+     slope beside the mouth, or the ground over the tunnel) moves them to the walkable spot nearest where you tapped. On v115 about half
+     of those taps said "Can't get there".
+2. The ways through. Every way to another map or out of a level is a marker in its doorway now, not a green box: three arrows on
+   the ground pointing through, a light running along them, and its name over it.
+   - One tap on its name or its arrows sends everyone who's up. They walk in and go through as soon as they're all there: no
+     gathering by hand, no second tap.
+   - Walking in still works where it did: the tunnel's two ends, the service door, the boats.
+   - Another order to any of them on the way calls it off.
+   - When it can't go yet, its name says why and a tap only explains: someone down (CARRY THE WOUNDED), no scientist down in the
+     lobby (BRING A SCIENTIST DOWN), the zip line's parts (PARTS n/3), the data center's doors locked while they're searching.
+   - All of them: the data center's doors and the lobby's way out, the drawbridge into the Headquarters, its south door out, the
+     tunnel's mouth and its far end, the service door, the hill's way back to the road tunnel, the zip line, and the boats out of
+     Levels 1 and 2.
+   - A soldier standing on the arrows can still be picked out with a tap on him; the name always sends everyone.
+   - Where the green areas were is plain ground now: a tap there is an ordinary move.
+
+## Bryan, after v116 (the changes are in v117)
+
+"Two things, can we make a start in HQ after the battle, and starting the old radio tower mission as two separate start points?"
+and "Also, can we make the soldier automatically go to the front gate to get the scientists?"
+
+1. Two start points on the intro card, one after the other under Level 3's button:
+   - "Level 3 · The HQ, After the Battle": inside the Headquarters just after the Brood Mother's death (what the Level 4 button did
+     from v112 to v116). The aftermath, then the fetch, the talk, the clean-up and the finished HQ.
+   - "Level 4 · The Old Radio Tower": the finished Headquarters before the squad's first trip out, the four in the hall and the
+     crew at work in the side rooms. A line says "Level 4 · The Old Radio Tower. Tap the arrows at the south door to head out."
+     Out of the door: the talk by the drawbridge about the radio tower, the first walk across the bridge with the camera locked,
+     the centipedes, then on to the tunnel. So crossing the bridge is still the first time.
+   - The Continue button reads "Level 4" from the finished Headquarters on.
+   - Taken as: the mission starts where its story starts, at home before going out. If he'd rather it start straight out at the
+     drawbridge with the talk (one tap shorter), or in sight of the tunnel as before v112, that's a one-line change.
+2. The soldier goes for the scientists by himself:
+   - Once the fight's over and nobody's down, one of the squad's riflemen (the nearer of Kowalski and Okafor to the south door) goes
+     out for them 5 s after "Headquarters taken". The banner says who ("Kowalski goes out for the scientists.") and the camera goes
+     with him. He comes back with them and the talk and the clean-up go on as before.
+   - If anyone's down, the banner says to get the wounded up first, and he goes 2 s after the last one is up.
+   - BRING THE SCIENTISTS, the thing to tap at the south door, is gone.
+
+## Bryan, after v117 (the changes are in v118)
+
+"The next mission screen on the top left should only appear full for the first 10 seconds and then collapse, it can be opened by
+selecting it. The units run on the bridge pretty awkwardly. There legs move but the upper part of their body is stiff. The
+monsters walk on top of each other when going into the bridge. It doesn't need to be so many, maybe one giant Queen and some
+babies. Also, make sure the legs aren't seen when it goes into the bridge. Wana show me some drafts?"
+
+1. The next mission box, top left: it shows in full for 10 s whenever its words change (out on the road east, back with the
+   parts) and after a Continue, then just its heading, "Next mission ▸". A tap opens it again (▾) for another 10 s; a tap on it
+   while it's open closes it. The objective box everywhere else is as before (a tap shows the list).
+2. Drafts, nothing changed in the game for these yet: `docs/run-queen-drafts.md`, pictures and videos in `docs/drafts`.
+   - The run: A, a combat run (both hands on the rifle, the body bobbing and twisting with the stride; my pick), or B, a sprint
+     (the rifle in one hand, the other arm pumping).
+   - The things going into the tunnel ("going into the bridge" taken as the tunnel at the end of it): one Queen, the Brood
+     Mother's kind at 85 % of her size, and five babies, each in a lane and at a time of its own so none walks over another, the
+     legs on whatever they're on so none goes through the hill, the headwall or the roof. A: the Queen first, the babies after.
+     B: the babies first, then she rears up over the headwall and comes in. The view of the mouth raised a little so her arrival
+     is in the picture.
+   - Questions: which of each, who she is (my suggestion: for now she only goes in, deep into the hill, and is met later), and
+     whether five babies is right.
+
+## Bryan, after v118 (the drafts)
+
+"Can I see the options in action? I just see photo stills and it's hard to judge. 2) yes I agree with you. The queen shows up
+later. Normal monsters and babies appear in the tunnel. I am considering allowing the player to use two squads and in the tunnel,
+monsters break out of grates in the walls and drags units in with a splash of blood and screaming following. So kill off troops
+essentially. What do you think about that? So 8 go in and like 4-5 survive. Maybe it stops after the fourth death? Let's discuss
+after we finalize the sequences"
+
+1. The drafts as videos he can play: a page with a Now / A / B switch for the run and for the tunnel scene (`docs/run-queen-drafts.md`,
+   "In motion"). Nothing in the game changed.
+2. The Queen: she only goes in for now and is met later. Inside the tunnel the squad meets normal monsters (the hunters) and babies
+   (her young).
+3. The grates (to discuss once the sequences are picked): my first take, given to him: a strong horror beat and very much Dark
+   Descent, but deaths the player can do nothing about feel unfair when the soldiers carry XP and ranks; so telegraph each grab
+   (the grate rattles, a growl) and let it be fought (shoot the thing, or a teammate pulls him back within a couple of seconds),
+   so careless play loses three or four and careful play fewer, with his cap of four deaths as a backstop.
+
+## Bryan, after the drafts page (the changes are in v119)
+
+"Okay combat run and queen first. Can we make it so the new units are killed, since they done have any tools or xp really?"
+
+1. The run: the combat run (A) for everyone who runs (figure.js).
+2. The tunnel: the Queen first (A), in the game (js/queen.js); the view of the mouth a little higher so she's seen coming over.
+3. The grates: yes, the victims would be the freed men (no class, no tools, little XP), not the original four. Not built yet; it
+   needs his call on the crew: since v110 the freed men stay at the HQ as its crew, so for the tunnel they'd come out with the four
+   (eight go in), and the ones who die are gone from the crew too.
+
+## Bryan, after v119: the new plan for Level 4 (not built yet)
+
+"The mission isn't to get radio equipment it's to power on the radio tower. The conversation needs to follow that idea before
+hand. The two teams will have a challenge through the tunnels and sub basement, when they reach the top they will have the upgraded
+weapons that they could attach (if they picked them up) and the top floor initial shows other troops being wiped out by the
+monsters. The team fights the monsters and carry's three large items to their correct positions to power the radio tower, all
+while under attack and attacking the enemy monsters (the troops are dead) once they place the packs in the right spot they get a
+checkpoint resupply and medic station. They then power the tower and the queen appears with its babies. Since this will be
+challenging, the player doesn't need to lose the troops automatically in the tunnel and can save them. If the player loses two
+units, it stops. The queen will be hard so I don't want to underpower the player too much right at the start."
+
+The plan as I read it (my reply asks him to confirm the open points):
+1. The road talk: the goal is to power the old radio tower on (not to bring its parts back). Lines rewritten, then re-voiced.
+2. Eight go in, both teams (the freed men come out of the HQ for this).
+3. The tunnel and the plant below the hill: the grates (monsters break out and drag a man in, telegraphed and fightable, so he
+   can be saved); once two men are lost the grabs stop. The finds (M203, the heavy MG) as now.
+4. The summit: on arrival a short scene of the militia being torn apart by monsters; then no militia, only monsters.
+5. Three packs carried to their places (sockets by the mast) under attack; all three placed: a checkpoint (medic station, ammo
+   drop, save).
+6. Power the tower on: the Queen and her babies come; the fight.
+
+His answers to the open points: "1) yes, but they are not repairing anymore, they are soldiers. 2) i think it can be anyone 3) hmm
+good question - I'm leaning to her dying here so we can introduce more enemies. 4) Once the tower is up the HQ can finally
+communicate. Make one of the four rooms a radio communication room. 5) zip line still works. I think after getting the HQ the
+freed soldiers can get equipped and classes get chosen so they are equivalent to the rest of the squad units (except the level the
+originally squad members reached.) The rooms can be reworked, just make a pending radio room and we can discuss the others when the
+time comes. I'm also thinking we should just add the special items but let's do the above first and work out way to the other
+stuff"
+
+So: the freed men are soldiers, not the HQ's crew; anyone can be grabbed at a grate; the Queen dies on the summit; one side room
+is the radio room, live once the tower is powered on; the zip line home stays. Built in three stages:
+- A (v120): the freed men kitted out at the clean-up's end and in the squad from then on (base.js's `kitFreed`; the crew is
+  dormant, `CREW_ON`); the radio room, pending (`RADIO_ROOM`, E2); the road talk about powering the tower on (text only but its
+  first line until re-voiced). Eight go out on the road.
+- B: the grates in the tunnel.
+- C: the summit: the militia wiped out, the three packs, the checkpoint, power on, the Queen and her babies, the radio room live.
+Later: the special items, the other rooms.
+
+## Bryan, after v120: the HQ is managed, not walked (not built yet)
+
+"And I think we just needs stairs to go up. No lift. We might add a basement later. Also, when the player is in the HQ, no units
+are moved or selected. The player manages the base on their own. The command center opens up the next available missions and
+squad selection. I may even have it so the player chooses the old radio tower for radio communications or something up the north
+road to the left of the HQ."
+
+My proposal back (defaults, waiting on his answers):
+- The HQ's floors: stairs only, the lift taken out (its shaft walled over); a basement later. With nobody walking in the HQ the
+  floors are looked at with the floor chip (GF, 2F, roof), the stairs drawn as they are.
+- In the HQ: no cards, team tabs, selecting or orders; the squad and the scientists stand about or work; the camera free.
+  Everyone back in the HQ is healed and restocked (the medic and supply tables do it by themselves).
+- The command center (tap it): MISSIONS (the old radio tower now; others as they're designed), then SQUAD (who goes, with each
+  man's level, class and loadout), then DEPLOY: out to the road (the first time the talk by the drawbridge and the walk across,
+  after that straight to the bridge). The OUTSIDE marker at the south door goes.
+- After a mission's report, back in the HQ.
+Questions: how many go (any number up to eight, or set per mission); the loadout picked there too; the north road mission shown
+now as "coming later" or left out; this before the tunnel's grates and the summit, or after.
+
+His answers: "After a mission: I say we can have the units extract from a mission. At first it's running back to the base then as
+the game progresses its vehicles picking them up with smoke extraction. Let's keep the zip line and running back for the radio
+tower. 1) for now it's 8, but we may limit some missions 2) yes 3) stay hidden till we design it. I think it will be another lab
+or some military installment. Let's do mission start. Also, let's go with class upgrades when the HQ is open. New items can start
+to be unlocked, if they are a high enough level. (Maybe one or two troops have reached that level… I don't want to make it easy)
+we can discuss the equipment once the HQ is built. Also, I don't think class selection should happen until the HQ. I saw I was
+able to change it on the boat, let's just keep leveling them up as is and maybe grey out the class selection and say 'Unlock HQ
+first'"
+
+Built in v121: the HQ managed from the command center (missions, the squad of eight with each man's loadout and a class at level
+3, deploy), stairs only, classes open once the HQ is taken and picked only there (the boat says "Class · Unlock HQ first", or
+"Class · at the HQ" after), and Level 4's way home: down the zip line, then back over the bridge on foot, the report once they're
+in the HQ. Later: extraction by vehicle under smoke; new items unlocked by level (to discuss once the HQ is built); the north
+road's mission (another lab or a military installation) hidden until designed; some missions may take fewer than eight.
+
+## Bryan, after v121: the silencer on the M4
+
+"Make sure the silencer is just part of the M4 weapon. The silencer wears down and shows a color, green then yellow then red then
+breaks. It can be shown in the gun menu. Spec ops have a longer silencer life span and anyone that's not has a very limited time -
+should not even be worth it as other weapons for their class will be available - or maybe spec ops can only equip them (after
+they reach the HQ). The smoke grenade, medic pack, or RPG are only available as the special item until reaching the HQ. Basically
+everyone is classless until the HQ so everything is available to them until the class selection."
+
+Built in v122: no silencer item; the M4 SD's silencer wears one per burst or silent shot, 40 for anyone without a class, 90 for a
+Spec Ops; a bar beside the gun on his card, green, yellow, red, then BROKEN (a plain loud M4 from then, the silencer gone from
+the muzzle); a new one at a mission's start, at an ammo drop and back at the HQ; once a class is picked only a Spec Ops can take
+the M4 SD (the others get the plain M4); special items stay smoke, medic kit and RPG (class items after the HQ, to discuss).
+Alpha's special item in Level 1 is smoke now (their silencers are on their rifles).
+
+Bryan, after v122: "When silent shooting a unit for an auto kill should be worth 5 or 10 bursts with the silencer, what do you
+think? I'm not sure if it should be refreshed at every ammo drop - maybe keep it like that for now. SD's might only be equipped
+with spec ops, snipers, unclassed units and maybe a couple more. We'll discuss later". My answer: 5 (see the reply); ammo drops
+keep refitting it for now; which classes get the M4 SD is to be discussed (now: Spec Ops and anyone without a class).
+
+## v124: Level 4 finished to Bryan's plan (for his test)
+
+Bryan, after v123: "keep building everything and I will test when completed. Finish the game as much as you can before adding the
+north road mission... Feel free to add new or edit features if you'd like". Built:
+- The tunnel's grates (six, low in the walls): one rattles with a red VENT · GET CLEAR ring as a man comes near, then bursts;
+  one of her young grabs the nearest man and drags him back over about 3.5 s (DRAGGED · SHOOT IT). Kill it and he's free; let it
+  reach the vent and he's gone. After two lost, the vents go quiet.
+- The summit: their men are torn apart by the brood as the squad comes up (they never shoot at the squad); three power packs
+  carried to the sockets round the mast while her young keep coming out of the vent; all three in is a checkpoint; POWER THE
+  TOWER ON brings the Queen up over the north edge with her young; she roars twice for more and dies there; then the zip line,
+  the walk back over the bridge and the report in the HQ.
+- The HQ's radio room on the air afterwards: a radio desk with a scientist on it, ON THE AIR, a short talk the first time back.
+Open for later: voices for the new lines (text only), the north road's mission, class gear unlocked by level.
+
+## v125: Bryan's Full Test, the fixes before the cleared HQ
+
+Bryan, after v124 ("Full Test"; a screenshot of Level 3 north of the bridge): the list below, "Lets correct these things before
+moving to the Cleared HQ". What was done:
+- Level 1 is called the Tutorial (intro button, objective box, report, retry). Its scout is dead by the hut: SCOUT · TAKE SNIPER
+  RIFLE gives the selected man his sniper rifle (his own gun on his back, the card's swap tag); the tip and hint say so.
+- Level 3 starts with the camera going up to the Bio Lab (the data center's new name everywhere on screen; spoken lines that say
+  "data center" stay until re-voiced) and a notice, BREACH THE BIO LAB; then "Lights and comms are out · They're being repaired.
+  Work quickly." and a chip counting down. 45 s with comms down: a radio call reaches their own men (the area is alerted) but no
+  siren and no reinforcements. Then three loud beeps, the alarm's test tone and the loudspeaker ("Communications restored. This
+  is a test of the alarm system. All posts, radio check."; text only), and calls bring reinforcements again. 60 s later the
+  front's lights come back on. A Continue carries the clock on; a save after it's all back is lit.
+- The armory (the boat, and the HQ's squad panel): a count at the bottom right of each limited item, left / total (M240 1/1,
+  0/1 once someone takes it; RPG 1/1; medic kits 2/2; sniper rifles, shotguns, build kits too).
+- Level 2's fire barrel: tap it with soldiers selected and they shoot it (a tap beside it counts); it goes up, killing the two
+  men at the fire, and everyone else within earshot walks over to look (no alarm). A silenced shot at it doesn't give the squad
+  away by itself.
+- The M4 SD's silencer: the suppressor on the gun's drawing is green, yellow or red; BROKEN as before.
+- Level 3's checkpoints: the bridge's medic station and ammo drop are just over the bridge on the left (the medic station between
+  the first container and the west sandbags, the ammo drop behind the barrier at the road's left edge); none south of the canal
+  any more, none in the container yard and none in front of the Bio Lab (the lobby inside has a pair). Those areas are still
+  checkpoints and saves.
+- The prison: an unlocked prisoner walks out of his cell by himself; an ammo drop in the basement's stair hall (no medic
+  station); a man carrying someone now goes up and down the stairs and through the lift with him (he was left out of the order:
+  that was why Marsh couldn't be carried out).
+- The stairs with a full squad: a man goes as soon as he's on the flight and a few steps from his spot, instead of everyone
+  queueing for the few spots at its far end; and a spot that spilled out of the flight no longer leaves the man behind (in the
+  basement two of seven were left behind every time). Same for the HQ's and the hill's stairs.
+- Lab benches: DESTROY is red, and a wreck goes up with a small blast (sound and flash, nobody hurt).
+- The objective arrow: a faint green arrow at the screen's edge pointing at the objective when it's off screen (the Bio Lab, the
+  bio scanner, the tunnel on the road east, the Tutorial's tower and boat, Level 2's panel and boat); a tap on the objective box
+  makes it bright for 5 s with the name and distance.
+- One man on a job: the others selected take cover about 6.5 m short of his spot, on their side of it, instead of crowding
+  round him; anyone already within 9 m of it with a line to it stays where he is.
+- The scientists: at most three warnings about the lab in all, at least 24 s apart, and shown as words only (their recordings
+  sounded robotic; to be voiced again).
+- The Brood Mother: asleep when they come in. The camera goes up the hall to her, then a side room's young, then back; "She's
+  asleep"; the leader in the talk panel: "Stay quiet. We need to kill that thing. Let's do this right." She wakes when she's hurt,
+  a blast goes off in the hall, or one of ours comes within 19 m. Easier: 480 + 170 a man (was 600 + 230); the slam 44 in a
+  5.8 m ring after 1.8 s of warning, every 5 s (65 in 6.4 m after 1.3 s, every 3.6 s); the swipe 24 (34); a big squad meets two
+  young a room (three). Her young (here, in the tunnel and on the summit) run at 76 (110), crouch 0.77 s before they lunge
+  (0.45) and bite ×0.75. Bot fights from the gate's save (the shooting automatic): eight men won with 3 knocked down and
+  nobody lost; four men healed at the entry hall's medic station first and falling back when she wakes won with nobody down. A man knocked down by any of them gets up and carries on to where he was sent.
+- The zip-tie question: answered in the reply (a proposal, not built).
+
+## Reminders for Bryan, once the pre-HQ levels are tested
+
+Bryan, after v125: "remind me of the new recorded scripts and small Godot test scene when we complete testing the pre-hq
+levels." When he says the Tutorial, Level 2 and Level 3 up to the HQ are tested, bring up:
+- Re-recording the text-only and robotic lines: the scientists' lab warnings, the loudspeaker announcement, the leader's
+  "Stay quiet..." at the Brood Mother, the road talk's last four lines, the HQ end talk, the radio-room talk, the voiced lines
+  that still say "data center" (now the Bio Lab), and the Tutorial's scout (now dead, so his old lines are unused).
+- A small Godot test scene: the warehouse yard at night with the squad moving, to compare the look against the Three.js build
+  before deciding on a move to Godot (after the core mechanics, before the bigger content).
+
+## After v125: Bryan's next round (to build when the credits are back)
+
+Bryan, after v125 (his words condensed; "We're about to run out of credits, so we'll have to finish this when the credits come
+back"). To do:
+1. Tutorial: the scout is alive, dying: his last words are to take out the radio tower and to be careful, "there is a real
+   evil out there". His sniper rifle still to take.
+2. Weapons kept: a sniper rifle picked up is added to the between-mission armory. The armory's weapons and items scroll
+   sideways in a loop (past the last you see the M4 again), each with its count (M4 4, MG 1, sniper 1; items the same). A
+   weapon a freed prisoner picks up is added to the weapon slots too.
+3. Enemy weapons: AK-47s, M4s, MGs (my call on the AK's stats against the M4's).
+4. Level 3's outage: pitch black everywhere in the yard round the warehouse until the lights come back (lamps still on now).
+5. The gun jeep in Level 3 more aggressive, its gun a heavy gun with a heavy sound ("DOO… DOO… DOO… DOO").
+6. The objective box (top left): collapsed to "Objective 2/4", a tap opens the objective's description, another tap the whole
+   list, another closes it.
+7. Objective 2/4 reads: save the prisoners, destroy the lab, detain the scientists.
+8. The access card didn't seem to drop right away (check).
+9. "Fit Map" goes; the floor chip moves up into its place.
+10. Check: tapping an enemy makes everyone selected attack him more aggressively, all on him.
+11. The silencer: no BROKEN text; the silencer just stops showing on the gun (BROKEN reads as a broken gun or a broken man).
+12. The scientists are tied in the corner to the right of the bio scanner, not on the drawbridge.
+13. A freed prisoner's card shows whatever weapon he picked up (now it shows only a grenade, which he can also pick up if the
+    dead man had one).
+14. The gate: when it drops, a beat, then a loud gurgling monster scream, then a scientist: "Let's get the hell out of here
+    now!", then the monsters attack; scientists can be attacked too.
+15. No rain heard inside interiors, or only as rain outside.
+16. The HQ fight ends too abruptly: more of her young; once they're all dead: "Hold fire! I think that's it!", "Jesus Christ,
+    I thought we were all done for.", "Someone get the scientists in here, we need to clean this place up ASAP."
+17. Classes can be chosen once the HQ is taken (check it's so from the clean-up on).
+To discuss first (no change yet): Breach at every entryway (my view in the reply); special units holding two guns (the second
+gun as a special item, an extra gun slot; now one gun unless picked up in battle); fear for the soldiers (later).
+Then: a Godot test scene, and maybe the move to Godot if it's the right time; test again with Godot from there.
+Bryan's answers to the three: Breach only at doors (as now: real doorways into rooms, not every gap). A second gun takes up the
+special-item slot (giving up smoke, a medkit or the RPG to carry it). The AK-47 as proposed: harder hits (about 13-18) but less
+accurate, worse at range, slightly slower bursts than the M4.
+
+## D-Day test (first playable, Version 127)
+Built as a separate game on the intro card ("D-Day test · Normandy"); the Warehouse Yard is untouched. Details and what's
+still to come: `docs/dday-test.md`. Follow-ups Bryan asked for: the ride-in script, new screaming voices.

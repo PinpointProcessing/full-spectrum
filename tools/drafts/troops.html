@@ -1,0 +1,69 @@
+<!doctype html><meta charset="utf-8"><title>Trooper drafts</title>
+<style>html,body{margin:0;background:#cfd9de;overflow:hidden}canvas{display:block}</style><body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* Character model drafts for the D-Day test (Bryan: "The troops should look bubblier and better drawn, show me some drafts
+   of different character model"). ?opt=A|B|C|all . Each option: a US rifleman standing, one running, a German defender.
+   Original designs from rounded parts, a toon shade and an ink outline. */
+const T=THREE,Q=new URLSearchParams(location.search),OPT=Q.get('opt')||'all';
+const R=new T.WebGLRenderer({antialias:true});R.setPixelRatio(2);R.setSize(innerWidth,innerHeight);R.outputEncoding=T.sRGBEncoding;R.shadowMap.enabled=true;R.shadowMap.type=T.PCFSoftShadowMap;document.body.appendChild(R.domElement);
+const sc=new T.Scene();sc.background=new T.Color(0xcfd9de);
+const cam=new T.PerspectiveCamera(26,innerWidth/innerHeight,1,500);
+sc.add(new T.HemisphereLight(0xffffff,0x9a8a6a,.42));const sun=new T.DirectionalLight(0xfff2dc,.62);sun.position.set(30,60,40);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60});sc.add(sun);
+const gnd=new T.Mesh(new T.CircleGeometry(200,48),new T.MeshLambertMaterial({color:0xcdb47c}));gnd.rotation.x=-Math.PI/2;gnd.receiveShadow=true;sc.add(gnd);
+const ramp=(()=>{const c=document.createElement('canvas');c.width=4;c.height=1;const g=c.getContext('2d');['#7a7a7a','#b4b4b4','#e8e8e8','#ffffff'].forEach((v,i)=>{g.fillStyle=v;g.fillRect(i,0,1,1);});const t=new T.CanvasTexture(c);t.minFilter=t.magFilter=T.NearestFilter;return t;})();
+const mat=c=>new T.MeshToonMaterial({color:c,gradientMap:ramp}),ink=new T.MeshBasicMaterial({color:0x1a1612,side:T.BackSide});
+// a rounded limb: a capsule along y, r wide, h long between its ends' centres
+function cap(r,h,r2){r2=r2??r;const P=[];for(let i=0;i<=8;i++){const a=-Math.PI/2+i/8*Math.PI/2;P.push(new T.Vector2(Math.cos(a)*r2,-h/2+Math.sin(a)*r2));}for(let i=0;i<=8;i++){const a=i/8*Math.PI/2;P.push(new T.Vector2(Math.cos(a)*r,h/2+Math.sin(a)*r));}return new T.LatheGeometry(P,18);}
+function part(g,geo,m,x,y,z,o={}){const q=new T.Mesh(geo,m);q.position.set(x,y,z);if(o.r)q.rotation.set(...o.r);if(o.s)q.scale.set(...o.s);q.castShadow=true;g.add(q);
+  if(!o.noInk){const k=new T.Mesh(geo,ink);k.position.copy(q.position);k.rotation.copy(q.rotation);const e=o.ink||.5;k.scale.copy(q.scale);k.onBeforeRender=()=>{};geo.computeBoundingSphere();const rad=geo.boundingSphere.radius*Math.max(q.scale.x,q.scale.y,q.scale.z);k.scale.multiplyScalar(1+e/Math.max(rad,1));g.add(k);}
+  return q;}
+const sph=(r,w=18,h=14)=>new T.SphereGeometry(r,w,h);
+const COL={us:{cloth:0x6e7a36,helm:0x47582a,web:0xb39a5c,boot:0x4a3020,skin:0xe0a878},ge:{cloth:0x4f6470,helm:0x35444c,web:0x2e2a26,boot:0x1e1a18,skin:0xe4b088}};
+/* P: proportions. head radius, torso, limb sizes; all figures 20 units tall or so */
+const OPTS={
+ A:{name:'A · Bubble',note:'big head, small round body, mitten hands, boots like bowling pins',head:5.2,torsoR:4.2,torsoH:3.2,armR:1.5,armL:4.6,legR:1.9,legL:4.2,hand:1.7,boot:2.5,hip:2.2,eye:.8,helmK:1.16},
+ B:{name:'B · Stocky',note:'barrel chest, thick short limbs, big helmet and boots: chunky but a soldier',head:3.9,torsoR:4.4,torsoH:5.6,armR:1.6,armL:6.2,legR:2.1,legL:5.6,hand:1.6,boot:2.6,hip:2.5,eye:.55,helmK:1.2},
+ C:{name:'C · Lean toon',note:'longer legs and arms, smaller head: closest to real proportions, still rounded',head:3.1,torsoR:3.7,torsoH:6.6,armR:1.25,armL:7.6,legR:1.6,legL:8.2,hand:1.25,boot:2.1,hip:2.1,eye:.42,helmK:1.2}};
+function trooper(P,side,pose){
+  const g=new T.Group(),C=COL[side],cloth=mat(C.cloth),web=mat(C.web),boot=mat(C.boot),skin=mat(C.skin),helm=mat(C.helm),dark=mat(0x2a2622),wood=mat(0x7a4e2c),steel=mat(0x3c3f42);
+  const run=pose==='run',legY=P.boot*.9+P.legL/2,hipY=P.boot*.9+P.legL,chestY=hipY+P.torsoH/2+P.torsoR*.35,shY=hipY+P.torsoH+P.torsoR*.8,headY=hipY+P.torsoH+P.torsoR*1.25+P.head*.72;
+  const lean=run?.3:0;const up=new T.Group();up.position.y=hipY;up.rotation.x=lean;g.add(up);const U=(geo,m,x,y,z,o)=>part(up,geo,m,x,y-hipY,z,o);
+  // legs and boots
+  for(const sx of[-1,1]){const sw=run?sx*.75:sx*.04,L=new T.Group();L.position.set(sx*P.hip,hipY,0);L.rotation.x=sw;g.add(L);
+    part(L,cap(P.legR,P.legL,P.legR*.92),cloth,0,-P.legL/2,0);part(L,cap(P.legR*1.02,P.legL*.28),web,0,-P.legL*.86,0,{noInk:1});   // trouser, gaiter
+    part(L,sph(P.boot),boot,0,-P.legL-P.boot*.25,P.boot*.3,{s:[.8,.62,1.25]});}
+  // torso, belt, webbing, pack
+  U(cap(P.torsoR,P.torsoH,P.torsoR*.9),cloth,0,chestY,0);
+  U(new T.TorusGeometry(P.torsoR*.93,.55,8,24),web,0,hipY+P.torsoR*.25,0,{r:[Math.PI/2,0,0],noInk:1});
+  for(const sx of[-1,1]){U(new T.TorusGeometry(P.torsoR*.78,.4,6,20,Math.PI),web,sx*P.torsoR*.42,chestY+P.torsoH*.1,0,{r:[0,Math.PI/2,sx*.12],noInk:1});
+    U(new T.BoxGeometry(1.7,1.9,1.1),web,sx*P.torsoR*.5,hipY+P.torsoR*.3,P.torsoR*.82,{ink:.3});}
+  U(sph(P.torsoR*.78),side==='us'?web:dark,0,chestY+.4,-P.torsoR*.95,{s:[1,1.05,.6]});                       // pack
+  if(side==='ge')U(cap(1.05,5.2),dark,P.torsoR*.2,hipY+P.torsoR*.3,-P.torsoR*1.25,{r:[0,0,Math.PI/2],ink:.3});   // gas mask tin
+  else U(cap(.5,6),wood,-P.torsoR*.9,chestY+2,-P.torsoR*1.2,{r:[.15,0,-.2],ink:.3});                            // spade handle
+  // arms, holding the rifle across the chest (or pumping on the run)
+  const hands=[];
+  for(const sx of[-1,1]){const A=new T.Group();A.position.set(sx*(P.torsoR+P.armR*.55),shY-P.armR*.2-hipY,0);A.rotation.set(run?-1.0+sx*.25:-.95,0,sx*-.5);up.add(A);
+    part(A,cap(P.armR,P.armL,P.armR*.9),cloth,0,-P.armL/2,0);const h=part(A,sph(P.hand),skin,0,-P.armL-P.hand*.35,0);hands.push(h);}
+  // head: face, eyes, helmet with its rim, chin strap
+  U(sph(P.head),skin,0,headY,0);
+  for(const sx of[-1,1]){U(sph(P.eye,10,8),dark,sx*P.head*.36,headY+P.head*.02,P.head*.9,{noInk:1,s:[1,1.25,.6]});U(sph(P.eye*.32,6,5),mat(0xffffff),sx*P.head*.36+P.eye*.25,headY+P.head*.02+P.eye*.4,P.head*.9+P.eye*.55,{noInk:1});}
+  U(sph(P.head*.2,8,6),skin,0,headY-P.head*.2,P.head*.98,{noInk:1});                                               // nose
+  const hk=P.head*P.helmK;
+  U(new T.SphereGeometry(hk,20,12,0,Math.PI*2,0,Math.PI*.44),helm,0,headY+P.head*.1,0);
+  if(side==='us'){U(new T.TorusGeometry(hk*.985,.38,6,24),helm,0,headY+P.head*.1+hk*.19,0,{r:[Math.PI/2,0,0],noInk:1});U(new T.TorusGeometry(P.head*1.0,.22,5,20,Math.PI),web,0,headY-P.head*.05,0,{r:[0,0,Math.PI],noInk:1});}
+  else{U(new T.CylinderGeometry(hk*.985,hk*1.1,P.head*.6,20,1,true,Math.PI*.5,Math.PI*1.0),helm,0,headY-P.head*.02,0,{ink:.35});}   // the skirt of his helmet round the sides and back
+  // rifle
+  const gun=new T.Group();gun.position.set(P.torsoR*.15,chestY+(run?1.2:.2)-hipY-P.armL*.28,P.torsoR+P.armL*.5);gun.rotation.set(run?-.5:-.25,0,1.15);up.add(gun);
+  part(gun,cap(.62,P.armL*1.9),wood,0,0,0,{ink:.3});part(gun,cap(.3,P.armL*1.0),steel,0,P.armL*1.3,0,{ink:.25});part(gun,new T.BoxGeometry(1.5,P.armL*.8,.9),wood,-.5,-P.armL*1.05,0,{ink:.3,r:[0,0,.18]});
+  g.userData.h=headY+P.head*1.4;return g;
+}
+const keys=OPT==='all'?['A','B','C']:[OPT];
+keys.forEach((k,i)=>{const P=OPTS[k],x0=(i-(keys.length-1)/2)*62;
+  [['us','stand',-17,0],['us','run',0,.5],['ge','stand',17,-.4]].forEach(([s,p,dx,ry])=>{const t=trooper(P,s,p);t.position.set(x0+dx,0,0);t.rotation.y=ry+.35;sc.add(t);});
+  const c=document.createElement('canvas');c.width=1024;c.height=160;const q=c.getContext('2d');q.fillStyle='#1c1a16';q.font='bold 62px sans-serif';q.textAlign='center';q.fillText(P.name,512,64);q.font='30px sans-serif';q.fillStyle='#3c3830';q.fillText(P.note,512,122);
+  const lab=new T.Mesh(new T.PlaneGeometry(58,9),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),transparent:true}));lab.position.set(x0,.1,17);lab.rotation.x=-Math.PI/2;});
+const wide=keys.length>1;cam.position.set(0,wide?34:26,wide?178:84);cam.lookAt(0,wide?11:11,0);
+if(Q.get('top')){cam.position.set(0,150,150);cam.lookAt(0,6,2);}   // the game's kind of angle
+R.render(sc,cam);window.DONE=true;
+</script>

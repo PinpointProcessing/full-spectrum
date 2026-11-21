@@ -1,0 +1,16 @@
+const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
+(async()=>{const srv=await serve('/home/user/full-spectrum/dday',9987);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
+const {page,errors}=await open(b,'http://localhost:9987/index.html?gfx=2');await page.setViewportSize({width:390,height:760});
+await page.evaluate(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=1;['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,2,false)));ddmSave();window.requestAnimationFrame=()=>0;startCounter();});
+await page.waitForTimeout(800);const ev=(f,a)=>page.evaluate(f,a);
+const shot=async n=>{await ev(()=>{updateCamera();render(.03,simT);drawOverlay(.03,simT);});await page.waitForTimeout(600);await ev(()=>{updateCamera();render(.001,simT);drawOverlay(.001,simT);});await page.screenshot({path:`ca3_${n}.png`});};
+console.log(await ev(()=>{window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){for(const e of enemies)e.cool=9;update(1/30);panTick(1/30);ddFrame(1/30,simT);}};RUN(8);
+  const C=dd.dc,g=C.guns[0],K=dd.tanks[0],r=[];select(players.filter(p=>p.team==='A'));ddTap(g.x,g.y);RUN(12);r.push('manned by '+(g.man&&g.man.name));
+  const hit=()=>{ddShell(K,g.x+5,g.y+4,48,10,.4);RUN(.6);};
+  hit();r.push('after 1: hits '+g.hits+' dead '+g.dead+' man '+!!g.man);RUN(1.5);window.G=g;return r.join('\n');}));
+await ev(()=>{camPan=null;dd.track=null;zoom=9;tilt=ddTilt(9);camT.x=G.x;camT.z=G.y+40;RUN(1);});await shot('1hit');
+console.log(await ev(()=>{const K=dd.tanks[0],g=G;ddShell(K,g.x-6,g.y+2,48,10,.4);RUN(2.2);return 'after 2: hits '+g.hits+' dead '+g.dead;}));await shot('2hits');
+console.log(await ev(()=>{const K=dd.tanks[0],g=G,m=g.man;ddShell(K,g.x,g.y,48,10,.4);RUN(2);const r=['after 3: hits '+g.hits+' dead '+g.dead+' man '+g.man+' his onGun '+(m&&m.onGun)];
+  r.push('tap it: '+ddTap(g.x,g.y)+' going '+g.going);ddShell(K,g.x+200,g.y,48,10,.4);RUN(.6);r.push('a shell 20 m off: nest 2 hits '+dd.dc.guns[1].hits+', wall gun '+dd.dc.guns[3].hits);
+  dd.dc.ph='w1';dd.dc.wave=1;RUN(3);r.push('other troops leave the wreck alone: going '+g.going+' man '+g.man);return r.join('\n');}));await shot('3dead');
+console.log('errors',JSON.stringify(errors).slice(0,400));await b.close();srv.close();})();
