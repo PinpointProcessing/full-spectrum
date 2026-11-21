@@ -167,8 +167,7 @@ function ddObjective(){
   // the beach and the top
   const hold=(T,N,F,what,door,R)=>{const d=dM(door);
     if(F){const f=near(enemies.filter(e=>known(e)&&hyp(e.x-door.x,e.y-door.y)<R));return{t:`Clear ${what} · ${F} left`,x:f?f.x:door.x,y:f?f.y:door.y,h:f?14:0,k:'danger'};}
-    if(T>0)return{t:`Hold ${what} · ${Math.max(1,Math.ceil(4-T))}`,x:door.x,y:door.y,k:'hold'};
-    if(d<200)return{t:'Two men at the door',x:door.x,y:door.y,k:'hold'};
+    if(d<200)return{t:'Stand in the gold area',x:door.x,y:door.y,k:'hold'};
     return{t:`Take ${what}`,x:door.x,y:door.y};};
   const b=dd.base;
   if(b&&b.open&&Ly<=-300)return hold(b.holdT,b.holdN,b.holdFoes,'the command post',{x:DB.cp.door.x,y:DB.cp.door.y},240);

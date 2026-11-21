@@ -135,7 +135,7 @@ function ddmStart(){
   const chap=dd.vil?3:dd.counter?2:1;   // (1 D-Day, 2 the counterattack, 3 the village)
   R.medals++;R.battles++;R.minLevel=Math.max(R.minLevel,chap+1);R.stage=Math.max(R.stage||0,chap);ddmRecruits();ddmSave();
   const t=Math.floor(simT-dd.t0);
-  ddm={ph:'report',step:-1,stepT:0,tiles:[['TIME',`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`],['ENEMY DOWN',dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length],['OURS LOST',dd.lost]],nextCh:chap,t:0,rows,dead,mvp:null,noms,scr:null,vis:{},chap:['CHAPTER 1 · D-DAY','CHAPTER 2 · THE COUNTERATTACK','CHAPTER 3 · THE VILLAGE'][chap-1],sp:ddmSpots(),sum:`${chap===3?'The village taken in':dd.counter?'The base held for':'Their base taken in'} ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length} enemy down${chap===3?' · '+enemies.filter(e=>e.surr&&!e.dead).length+' taken prisoner':''}${dd.counter||chap===3?' · '+dd.tanks.filter(K=>K.hp<=0&&!K.left).length+' tank'+(dd.tanks.filter(K=>K.hp<=0&&!K.left).length===1?'':'s')+' knocked out':''} · ${dd.lost} of ours lost`,pick:null,slot:null,ui:null,room:null,cam:{k:1}};
+  ddm={ph:'report',step:-1,stepT:0,tiles:[['TIME',`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`],['ENEMY DOWN',dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length+(dd.tidyE||0)],['OURS LOST',dd.lost]],more:[...(chap===1?[['CHECKPOINTS',`${['left','outpost','crest','base'].filter(k=>(dd.held||{})[k]).length+(dd.won?1:0)}/5`]]:[]),['TANKS OUT',(dd.tanks||[]).filter(K=>K.hp<=0&&!K.left).length],['WOUNDED',rows.filter(r=>r.hurt).length],['REVIVES',rows.reduce((n,r)=>n+(r.rev||0),0)],['GRENADES',rows.reduce((n,r)=>n+(r.items||0),0)]],nextCh:chap,t:0,rows,dead,mvp:null,noms,scr:null,vis:{},chap:['CHAPTER 1 · D-DAY','CHAPTER 2 · THE COUNTERATTACK','CHAPTER 3 · THE VILLAGE'][chap-1],sp:ddmSpots(),sum:`${chap===3?'The village taken in':dd.counter?'The base held for':'Their base taken in'} ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ${dd.counter?DCA.waves.reduce((n,w)=>n+w.inf,0):chap===3?dd.vg.spawned-enemies.filter(e=>!e.dead).length:enemies.filter(e=>e.dead).length+(dd.tidyE||0)} enemy down${chap===3?' · '+enemies.filter(e=>e.surr&&!e.dead).length+' taken prisoner':''}${dd.counter||chap===3?' · '+dd.tanks.filter(K=>K.hp<=0&&!K.left).length+' tank'+(dd.tanks.filter(K=>K.hp<=0&&!K.left).length===1?'':'s')+' knocked out':''} · ${dd.lost} of ours lost`,pick:null,slot:null,ui:null,room:null,cam:{k:1}};
   state='ddmeta';sel=[];cardGroup=[];mode=null;camPan=null;dd.track=null;paused=false;
   if(chap===3)for(const K of dd.tanks||[])if(K.g)K.g.visible=false;   // (the village: the wrecked tank out of the line-up's way)
   document.body.classList.add('ddm');{const q=$('#sq');if(q)q.hidden=true;}{const o=$('#oob');if(o)o.hidden=true;}
@@ -270,9 +270,15 @@ function ddmClick(ev){
 const ddmSel=()=>ddm.slot?ddRoster.squads[ddm.slot[0]][ddm.slot[1]]:null;
 const ddmStats=(m,cls)=>`<div class="ddm-stats ${cls||''}"><div class="ddm-dim">${DDM_ROLE[m.role]} · Level ${m.level}${m.stars?' · '+'★'.repeat(Math.min(3,m.stars)):''}${m.kills?' · '+m.kills+' kills':''}</div>${[['Health','hp'],['Aim','aim'],['Speed','spd'],['Bravery','brv']].map(([n,k])=>`<div class="ddm-st"><span>${n}</span><div><em style="width:${m.st[k]}%"></em></div><b>${m.st[k]}</b></div>`).join('')}<div class="ddm-xp"><em style="--w:${Math.round(m.xp/ddmNeed(m.level)*100)}%"></em></div>${m.trait?`<div class="ddm-perk gold"><b>★ ${DDM_TRAITS[m.trait].n}</b><br>${DDM_TRAITS[m.trait].d}</div>`:''}${ddmUnl(m).map(q=>`<div class="ddm-unl sm${m.level>=q[0]?' new':''}"><b>${m.level>=q[0]?'★':'LV '+q[0]} ${q[2]}</b><span>${q[3]}</span></div>`).join('')}${ddmJob(m).filter(q=>ddmPerkN(m,q[0])).map(q=>`<div class="ddm-unl sm new"><b>${q[1]}${ddmPerkN(m,q[0])>1?' ×'+ddmPerkN(m,q[0]):''}</b><span>${q[2]}</span></div>`).join('')}${['w','t'].map(k=>DDM_ITEMS[m.gear[k]]).filter(I=>I.star).map(I=>`<div class="ddm-perk gold"><b>★ ${I.n}</b><br>${I.d} Lost if he dies.</div>`).join('')}${m.hurt?`<div class="ddm-perk hurt"><b>✚ Wounded</b><br>He sits out the next chapter unless he's treated.<br><button type="button" class="ddm-btn sm" data-a="treat" data-u="${m.uid}"${(ddRoster.treat||0)<1&&ddRoster.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`:''}</div>`;
 const ddmStar=m=>!!(m.trait||DDM_ITEMS[m.gear.w].star||DDM_ITEMS[m.gear.t].star);
+const ddmMen8=()=>['A','B'].flatMap(t=>ddRoster.squads[t].map((q,i)=>q?[t,i]:null).filter(Boolean));
+// a picture for a piece of kit: a long gun, a grenade, or a tool
+function ddmKitIcon(k,I){const c=I&&I.star?'#ffd76a':'#cfd8e0';
+  if(k==='w')return`<svg viewBox="0 0 90 30"><path d="M2 14h60v4H40l-6 8h-8l3-8H10l-8 6z M62 13h26v3H62z" fill="${c}"/></svg>`;
+  if(k==='g')return`<svg viewBox="0 0 40 36"><ellipse cx="20" cy="22" rx="10" ry="12" fill="${c}"/><rect x="16" y="4" width="8" height="8" fill="${c}"/><path d="M24 6h8v10" stroke="${c}" stroke-width="2" fill="none"/></svg>`;
+  return`<svg viewBox="0 0 40 36"><rect x="6" y="8" width="28" height="24" rx="3" fill="${c}"/>${I&&/medic/i.test(I.n)?'<path d="M17 13h6v5h5v6h-5v5h-6v-5h-5v-6h5z" fill="#c0392b"/>':'<path d="M6 15h28M14 8v-3h12v3" stroke="#39424b" stroke-width="2.5" fill="none"/>'}</svg>`;}
 function ddmBarracksHTML(){
   const R=ddRoster,S=ddm.slot,m=ddmSel(),right=S&&S[0]==='B';
-  const sq=t=>`<div><div class="ddm-gl" style="color:${t==='A'?'#58c4f6':'#f0b429'}">${t==='A'?'ALPHA':'BRAVO'}</div><div class="ddm-sqg" style="--tc:${t==='A'?'#58c4f6':'#f0b429'}">${R.squads[t].map((q,i)=>`<button type="button" class="ddm-sq${S&&S[0]===t&&S[1]===i?' on':''}${q?'':' open'}${q&&ddmStar(q)?' star':''}${q&&q.hurt?' hurt':''}" data-a="slot" data-t="${t}" data-i="${i}" aria-label="${q?DDM_ROLE[q.role]:'Open slot'}">${q?DDM_ICON[q.role]:'+'}</button>`).join('')}</div></div>`;
+  const sq=t=>`<div><div class="ddm-gl" style="color:${t==='A'?'#58c4f6':'#f0b429'}">${t==='A'?'ALPHA':'BRAVO'}</div><div class="ddm-sqg" style="--tc:${t==='A'?'#58c4f6':'#f0b429'}">${R.squads[t].map((q,i)=>`<button type="button" class="ddm-sq${S&&S[0]===t&&S[1]===i?' on':''}${q?'':' open'}${q&&ddmStar(q)?' star':''}${q&&q.hurt?' hurt':''}${q&&q.fav?' fav':''}" data-a="slot" data-t="${t}" data-i="${i}" aria-label="${q?DDM_ROLE[q.role]:'Open slot'}">${q?DDM_ICON[q.role]:'+'}</button>`).join('')}</div></div>`;
   let h=`<div class="ddm-bar top"><div class="ddm-hd"><div class="ddm-t">BARRACKS</div><div class="ddm-t gold">★ ${R.medals}</div></div><div class="ddm-sqs">${sq('A')}${sq('B')}</div></div>`;
   if(ddm.sub==='pick'){   // recruits and the reserve, for the slot chosen
     const c=ddm.cand,tab=ddm.tab||'rec',L=tab==='rec'?R.recruits:R.reserve;
@@ -283,12 +289,22 @@ function ddmBarracksHTML(){
     h+=`<div class="ddm-bar bot">${c?`<div class="ddm-dim">${tab==='rec'?(cost?`Costs ★ ${cost}. You have ★ ${R.medals}.`:'Free.'):'From the reserve, with his level and kit.'}${m?(full?` ${ddmEsc(m.name)} is dismissed: the reserve is full.`:` ${ddmEsc(m.name)} goes to the reserve.`):''}</div>`:'<div class="ddm-dim">Pick one to look at him.</div>'}
       <div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="back">‹ BACK</button><button type="button" class="ddm-btn" data-a="take"${!c||cost>R.medals||(tab==='res'&&c.hurt)?' disabled':''}>${tab==='rec'?'RECRUIT':'TO THE SQUAD'}</button></div></div>`;
   }else if(m){
-    const order=right?['w','g','t']:['g','t','w'];
-    h+=`<div class="ddm-name" data-follow="head"><b>${ddmEsc(m.name)}</b>${DDM_ROLE[m.role].toUpperCase()}</div>`+ddmStats(m,right?'l':'r');
-    h+=`<div class="ddm-kit" data-follow="feet">${order.map(k=>{const I=DDM_ITEMS[m.gear[k]];return`<button type="button" data-a="kit" data-k="${k}" class="${ddm.swap===k?'on':''}${I.star?' star':''}"><i>${DDM_SLOT[k].toUpperCase()}${k==='w'?' · on the bunk':''}</i><b>${I.star?'★ ':''}${I.n}</b></button>`;}).join('')}</div>`;
-    if(ddm.swap){const L=ddmSwapList(m,ddm.swap);
-      h+=`<div class="ddm-swap" data-follow="under">${L.length?L.map((o,i)=>`<button type="button" class="ddm-it${o.star?' gold':''}" data-a="swap" data-i="${i}"><span><b>${o.star?'★ ':''}${o.n}</b> · ${o.from}</span><em>${o.verb}</em></button>`).join(''):`<div class="ddm-dim">Nothing else he can carry in this slot yet.</div>`}</div>`;}
-    h+=`<div class="ddm-bar bot"><div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="wide">‹ SQUADS</button><button type="button" class="ddm-btn grey" data-a="reserve"${R.reserve.length>=DDM_RES?' disabled':''}>RESERVE</button><button type="button" class="ddm-btn" data-a="replace">REPLACE</button></div></div>`;
+    // (Version 216, Bryan: "a thumb swipe feature to switch through each unit... Make sure the equipment options are bigger, maybe have a +1 for equipment that have extra items available"; "a favorite star to the top right")
+    const L8=ddmMen8(),at=L8.findIndex(q=>q[0]===S[0]&&q[1]===S[1]),sw=ddm.swap;
+    h+=`<div class="ddm-name" data-follow="head"><b>${m.fav?'<u class="ddm-fv">★</u>':''}${ddmEsc(m.name)}</b>${DDM_ROLE[m.role].toUpperCase()}</div>`+ddmStats(m,right?'l':'r low');
+    h+=`<button type="button" class="ddm-fav${m.fav?' on':''}" data-a="fav" aria-label="Favourite">${m.fav?'★':'☆'}<small>${m.fav?'FAVOURITE':'FAVOURITE?'}</small></button>`;
+    if(L8.length>1&&!sw)h+=`<button type="button" class="ddm-arr l" data-a="man" data-d="-1" aria-label="The man before">‹</button><button type="button" class="ddm-arr r" data-a="man" data-d="1" aria-label="The next man">›</button>`;
+    h+=`<div class="ddm-bar bot man">`;
+    if(sw){const Lk=ddmSwapList(m,sw),I=DDM_ITEMS[m.gear[sw]],n=Lk.filter(o=>!o.store).length;
+      h+=`<div class="ddm-gl gold">${DDM_SLOT[sw].toUpperCase()} · ${n?n+' MORE HE CAN CARRY':'NOTHING ELSE YET'}</div><div class="ddm-opts"><div class="ddm-opt cur"><i>${ddmKitIcon(sw,I)}</i><div><b>${I.star?'★ ':''}${I.n}</b><small>on him now</small></div><em>✓ CARRIED</em></div>
+        ${Lk.map((o,i)=>`<button type="button" class="ddm-opt${o.star?' gold':''}" data-a="swap" data-i="${i}"><i>${o.store?'':ddmKitIcon(sw,DDM_ITEMS[o.id])}</i><div><b>${o.star?'★ ':''}${o.n}</b><small>${o.from}</small></div><em>${o.verb.toUpperCase()}</em></button>`).join('')}</div>
+        <button type="button" class="ddm-btn grey" data-a="kit" data-k="${sw}">‹ BACK</button>`;
+    }else{
+      h+=`<div class="ddm-dots">${L8.map((q,k)=>`<i class="${k===at?'on':''}${ddRoster.squads[q[0]][q[1]].fav?' fv':''}" style="--tc:${q[0]==='A'?'#58c4f6':'#f0b429'}"></i>`).join('')}<span>${L8.length>1?'◂ SWIPE FOR THE NEXT MAN ▸':''}</span></div>
+        <div class="ddm-gl gold">HIS EQUIPMENT · TAP ONE TO CHANGE IT</div>
+        <div class="ddm-kit">${['w','g','t'].map(k=>{const I=DDM_ITEMS[m.gear[k]],n=ddmSwapList(m,k).filter(o=>!o.store).length;return`<button type="button" data-a="kit" data-k="${k}" class="${I.star?'star':''}"><i>${DDM_SLOT[k].toUpperCase()}</i>${ddmKitIcon(k,I)}<b>${I.star?'★ ':''}${I.n}</b>${n?`<u>+${n}</u>`:''}</button>`;}).join('')}</div>
+        <div class="ddm-row"><button type="button" class="ddm-btn grey two" data-a="wide">‹ SQUADS<small>all eight</small></button><button type="button" class="ddm-btn grey two" data-a="reserve"${R.reserve.length>=DDM_RES?' disabled':''}>RESERVE<small>rest him</small></button><button type="button" class="ddm-btn grey two" data-a="replace">REPLACE<small>a recruit for his bunk</small></button></div>`;}
+    h+=`</div>`;
   }else h+=`<div class="ddm-bar bot"><div class="ddm-dim">Alpha's bunks on the left, Bravo's on the right. Tap a man or his square; a + is an empty bunk.</div><button type="button" class="ddm-btn${(R.stage||0)===1||(R.stage||0)===2?'':' grey'}" data-a="out">‹ BACK TO THE BASE</button></div>`;
   return h;
 }
@@ -313,6 +329,8 @@ function ddmSwapDo(m,k,o){
 function ddmBarracksClick(a,b){
   const R=ddRoster,S=ddm.slot,m=ddmSel();
   if(a==='slot'){const t=b.dataset.t,i=+b.dataset.i;ddm.slot=[t,i];ddm.swap=null;ddm.cand=null;ddm.sub=R.squads[t][i]?null:'pick';ddm.tab='rec';ddm.cam.k=0;ddmRoomMen();}
+  else if(a==='man'&&S){const L=ddmMen8(),k=L.findIndex(q=>q[0]===S[0]&&q[1]===S[1]),q=L[(k+(+b.dataset.d)+L.length)%L.length];if(q){ddm.slot=q;ddm.swap=null;ddm.cam.k=0;ddmRoomMen();}}
+  else if(a==='fav'&&m){m.fav=!m.fav;ddmSave();}
   else if(a==='wide'){ddm.slot=null;ddm.sub=null;ddm.swap=null;ddm.cam.k=0;ddmRoomMen();}
   else if(a==='back'){ddm.sub=null;ddm.cand=null;if(!m)ddm.slot=null;ddm.cam.k=0;ddmRoomMen();}
   else if(a==='kit')ddm.swap=ddm.swap===b.dataset.k?null:b.dataset.k;
@@ -476,10 +494,16 @@ function ddmReportHTML(){
         <div class="ddm-dots">${ddm.rows.map((q,k)=>`<i class="${k===i?'on':q.seen?'ok':''}" data-a="card" data-i="${k}"></i>`).join('')}</div>
         <div class="ddm-row ddm-nav"><button type="button" class="ddm-btn grey" data-a="rollprev"${i?'':' disabled'}>◂</button><button type="button" class="ddm-btn" data-a="rollnext">${i<n-1?'NEXT MAN ▸':'DONE ▸'}</button></div>
       </div></div>`;}
-  const row=(r,k)=>`<button type="button" class="ddm-sr${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}" data-a="card" data-i="${k}">${r.hurt?'<div class="ddm-stamp sm">WOUNDED</div>':''}<i>${DDM_ICON[r.rm.role]||''}</i><div class="nm"><b>${ddmEsc(r.rm.name)}</b><span>${r.mvp?'★ ':''}${r.cite[0]}</span>${r.rm.pk>0?'<q>▲ PERK</q>':''}</div><div class="x"><b>${r.lv1>r.lv0?'▲ ':''}Lv ${r.lv1}</b><span>+${r.gain} XP</span></div></button>`;
-  return`<div class="ddm-bar top"><div class="ddm-hd"><div><div class="ddm-t gold">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div>${ddmStepsHTML(1)}</div>${tiles}</div>
+  // (Version 216, Bryan: "the after battle menu should cover the entire screen and show as much information as it can": one dark sheet, every number, a row a man)
+  const fv=m=>m.fav?'<u class="ddm-fv">★</u>':'';
+  const row=(r,k)=>`<button type="button" class="ddm-sr${r.mvp?' mvp':''}" style="--tc:${teamCol(r.u)}" data-a="card" data-i="${k}"><i>${DDM_ICON[r.rm.role]||''}</i><div class="nm"><b>${fv(r.rm)}${ddmEsc(r.rm.name)}${r.mvp?'<q class="g">MVP</q>':''}${r.hurt?'<q class="r">WOUNDED</q>':''}${r.rm.pk>0?'<q>PERK</q>':''}</b><span>${r.team==='A'?'ALPHA':'BRAVO'} · ${DDM_ROLE[r.rm.role].toUpperCase()} · ${r.cite[0]}</span></div><em class="${r.lv1>r.lv0?'up':''}">${r.lv1>r.lv0?'▲':''}${r.lv1}</em><em>${r.kills}</em><em>${r.rev}</em><em>${r.downs}</em><em>${r.items}</em><div class="x"><span>+${r.gain}</span><div class="ddm-xpb"><em style="width:${Math.round(r.rm.xp/ddmNeed(r.lv1)*100)}%"></em></div></div></button>`;
+  const mv=ddm.rows.find(r=>r.mvp);
+  return`<div class="ddm-full"><div class="ddm-hd"><div><div class="ddm-vt sm">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div>${ddmStepsHTML(1)}</div>
+    <div class="ddm-tiles all">${[...ddm.tiles,...(ddm.more||[])].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+    ${mv?`<div class="ddm-mvl"><b>★ COMPANY'S MEDAL</b> · ${ddmEsc(mv.rm.name)}<span>+100 XP</span></div>`:''}
+    <div class="ddm-srh"><span></span><span class="l">TAP A MAN FOR HIS CARD</span><span>LV</span><span>KILL</span><span>REV</span><span>DOWN</span><span>GREN</span><span class="r">XP</span></div>
     <div class="ddm-sum">${ddm.rows.map(row).join('')}${ddm.dead.length?`<div class="ddm-dead">FALLEN · ${ddm.dead.slice(0,7).map(d=>ddmEsc(d.name)).join(' · ')}${ddm.dead.length>7?' +'+(ddm.dead.length-7):''}</div>`:''}</div>
-    <div class="ddm-bar bot"><button type="button" class="ddm-btn" data-a="base">CONTINUE ▸</button></div>`;
+    <div class="ddm-fbot"><button type="button" class="ddm-btn" data-a="base">CONTINUE ▸</button></div></div>`;
 }
 function ddmNomWhy(r){const pl=(n,w)=>n+' '+w+(n===1?'':'s'),a=[];if(r.kills)a.push(pl(r.kills,'kill'));if(r.rev)a.push(r.rev+(r.rev===1?' man':' men')+' brought back');if(r.best>=3)a.push(r.best+' in a row');a.push(r.downs?'down '+(r.downs===1?'once':r.downs+' times'):'never went down');return a.join(' · ');}
 // the report's clock: the title, the medal, then each man's card: his bar filling a level at a time, once (r.seen)
@@ -521,6 +545,8 @@ function ddmRollTap(skip){
 // a swipe across a man's card: the next man, or the one before
 function ddmSwipe(el){let x0=null,y0=0;
   el.addEventListener('pointerdown',e=>{x0=e.clientX;y0=e.clientY;});
-  el.addEventListener('pointerup',e=>{if(x0==null||!ddm||ddm.ph!=='report'||ddm.scr)return;const dx=e.clientX-x0,dy=e.clientY-y0,n=ddm.rows.length,i=ddm.step;x0=null;
+  el.addEventListener('pointerup',e=>{
+    if(x0!=null&&ddm&&ddm.ph==='barracks'&&ddm.slot&&!ddm.sub&&!ddm.swap&&ddmSel()){const dx=e.clientX-x0,dy=e.clientY-y0;x0=null;if(Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.3)return;ddm.swT=performance.now();ddmBarracksClick('man',{dataset:{d:dx<0?1:-1}});ddmUI();return;}
+    if(x0==null||!ddm||ddm.ph!=='report'||ddm.scr)return;const dx=e.clientX-x0,dy=e.clientY-y0,n=ddm.rows.length,i=ddm.step;x0=null;
     if(Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.3||i<0||i>=n)return;ddm.swT=performance.now();if(ddm.an&&!ddm.an.done)ddmRollEnd();ddmRollGo(dx<0?i+1:Math.max(0,i-1));});
 }

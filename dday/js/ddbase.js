@@ -140,9 +140,9 @@ function ddBaseTick(dt){
     if(west<=3||up.some(p=>p.x>1336&&p.y<DB.y1)){b.t2.hold=false;b.t2.range=520;banner('A second tank rolls out of their motor pool.',3600);}}
   // the command post: ours once two of ours have stood at its door for four seconds with nobody of theirs, and no tank, left near it
   if(!b.open)return;
-  const d=DB.cp.door,near=up.filter(p=>hyp(p.x-d.x,p.y-d.y)<110).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-d.x,e.y-d.y)<240).length+ddTanksUp().filter(K=>hyp(K.x-d.x,K.y-d.y)<340).length;
+  const d=DB.cp.door,near=up.filter(p=>ddCapIn('cp',p)).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-d.x,e.y-d.y)<240).length+ddTanksUp().filter(K=>hyp(K.x-d.x,K.y-d.y)<340).length;
   b.holdN=near;b.holdFoes=foes;
-  if(near>=2&&!foes){b.holdT=(b.holdT||0)+.5;if(b.holdT>=4){dd.won=true;bigText('Base taken','complete');endAt=performance.now()+4200;updateObjUI();}}
+  if(near>=1&&!foes){b.holdT=(b.holdT||0)+.5;if(b.holdT>=1){(dd.held||(dd.held={})).cp=true;dd.won=true;bigText('Base taken','complete');endAt=performance.now()+4200;updateObjUI();}}
   else b.holdT=0;
 }
 // the fuel dump goes up: everyone of theirs near it, and a tank beside it

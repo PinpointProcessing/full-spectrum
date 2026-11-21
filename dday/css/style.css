@@ -597,3 +597,38 @@ button.ddm-sr{position:relative;padding:9px 9px;min-height:58px;border-radius:9p
 /* Version 196: his job's upgrades on his card */
 .ddm-unl{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;padding:5px 9px;border-radius:8px;background:#18222b;color:#8793a0;font-size:10.5px}.ddm-unl b{letter-spacing:.06em;font-size:10.5px}
 .ddm-unl.new{background:rgba(255,215,106,.18);color:#ffe08a;animation:ddmPop .6s both}.ddm-unl.sm{margin-top:4px;padding:3px 6px;font-size:9px;display:block;animation:none}.ddm-unl.sm b{display:block;font-size:9px}
+/* ---------- Version 216: the report on one full screen, the barracks one man at a time ---------- */
+.ddm-full{position:absolute;inset:0;background:rgba(10,15,21,.95);padding:max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:7px;overflow:auto}
+.ddm-full>*{width:100%;max-width:640px;margin:0 auto;flex:none}.ddm-vt.sm{font-size:28px;letter-spacing:.14em;animation:none;text-align:left;margin:0;line-height:1}
+.ddm-tiles.all{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;animation:none}.ddm-tiles.all>div{min-width:0;padding:6px 2px}.ddm-tiles.all b{font-size:18px}.ddm-tiles.all span{font-size:7.5px;letter-spacing:.06em}
+.ddm-mvl{background:#2a2412;border:1px solid #ffd76a;border-radius:8px;padding:6px 10px;font-size:12px;display:flex;gap:5px}.ddm-mvl b{color:#ffd76a}.ddm-mvl span{margin-left:auto;color:#ffd76a;font-weight:800}
+.ddm-srh,.ddm-full button.ddm-sr{display:grid;grid-template-columns:22px minmax(0,1fr) 30px 26px 26px 26px 26px 60px;align-items:center;gap:3px}
+.ddm-srh{font-size:7.5px;font-weight:800;color:#8798a8;padding:0 8px;text-align:center}.ddm-srh .l{text-align:left}.ddm-srh .r{text-align:right}
+.ddm-full .ddm-sum{position:static;display:flex;flex-direction:column;gap:5px}
+.ddm-full button.ddm-sr{min-height:46px;padding:5px 8px;text-align:center;border-left-width:4px!important}.ddm-full .ddm-sr .nm{text-align:left}
+.ddm-full .ddm-sr>em{font-style:normal;font-weight:800;font-size:14px;color:#e9eef2}.ddm-full .ddm-sr>em.up{color:#ffd76a}
+.ddm-full .ddm-sr .nm span{color:#9aa6b0;font-size:8.5px}.ddm-full .ddm-sr q{margin:0 0 0 4px;vertical-align:middle;font-size:7.5px}.ddm-sr q.g{background:#ffd76a;color:#221}.ddm-sr q.r{background:#c0392b}
+.ddm-full .ddm-sr .x span{font-size:10.5px;font-weight:800;color:#e9eef2}.ddm-full .ddm-sr .ddm-xpb{height:5px;margin-top:3px}
+.ddm-fbot{margin-top:auto!important;padding-top:4px}.ddm-fbot .ddm-btn{width:100%}
+.ddm-fv{color:#ffd76a;text-decoration:none;margin-right:3px}
+@media (orientation:landscape) and (max-height:520px){.ddm-full .ddm-sum{display:grid;grid-template-columns:1fr 1fr}.ddm-tiles.all{grid-template-columns:repeat(8,1fr)}.ddm-srh{display:none}}
+/* the barracks */
+.ddm-sq.fav{box-shadow:0 0 0 2px #ffd76a}
+.ddm-fav{position:absolute;top:112px;right:6px;width:64px;min-height:50px;border-radius:10px;background:rgba(10,14,18,.9)!important;border:1.5px solid #5a6878!important;color:#cfd8e0!important;font-size:24px;line-height:1;padding:4px 0 5px}
+.ddm-fav small{display:block;font-size:6.5px;font-weight:800;letter-spacing:.06em;margin-top:2px}.ddm-fav.on{border-color:#ffd76a!important;color:#ffd76a!important;background:#2a2412!important}
+.ddm-stats.low.r{top:170px}
+.ddm-arr{position:absolute;top:52%;width:46px;height:66px;border-radius:10px;background:rgba(10,14,18,.78)!important;border:1px solid #3a4b5c!important;color:#fff!important;font-size:32px;line-height:1;padding:0 0 6px}.ddm-arr.l{left:6px}.ddm-arr.r{right:6px}
+.ddm-bar.man{display:flex;flex-direction:column;gap:7px;background:rgba(10,14,18,.94)}.ddm-bar.man>*{width:100%;max-width:520px;margin:0 auto}
+.ddm-bar.man .ddm-dots{display:block;position:absolute;left:0;right:0;top:-46px;margin:0;text-align:center;pointer-events:none;max-width:none}
+.ddm-bar.man .ddm-dots i{display:inline-block;width:9px;height:9px;border:0;border-radius:50%;background:var(--tc);opacity:.5;margin:0 3px;vertical-align:middle}.ddm-bar.man .ddm-dots i.on{opacity:1;width:12px;height:12px;box-shadow:0 0 0 2px #fff}.ddm-bar.man .ddm-dots i.fv{background:#ffd76a}
+.ddm-bar.man .ddm-dots span{display:block;font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#e9eef2;text-shadow:0 1px 3px #000;margin-top:5px}
+.ddm-bar.man .ddm-kit{position:static;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ddm-bar.man .ddm-kit button{min-height:98px;border:2px solid #3a4b5c!important;border-radius:10px;background:#16202b!important;padding:6px 4px;font-size:13px}
+.ddm-bar.man .ddm-kit button i{font-size:9px;letter-spacing:.12em}.ddm-bar.man .ddm-kit svg{display:block;height:34px;margin:5px auto 3px;max-width:86%}.ddm-bar.man .ddm-kit b{display:block;font-size:12.5px}
+.ddm-bar.man .ddm-kit u{position:absolute;right:-5px;top:-8px;background:#ffd76a;color:#221;font-weight:900;font-size:13px;border-radius:12px;padding:2px 8px;text-decoration:none;box-shadow:0 2px 5px #000}
+.ddm-btn.two{line-height:1.15;padding-top:7px;padding-bottom:7px}.ddm-btn.two small{display:block;font-size:8px;font-weight:600;letter-spacing:.02em;opacity:.8}
+.ddm-opts{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
+.ddm-opt{display:flex;align-items:center;gap:10px;background:#16202b!important;border:2px solid #3a4b5c!important;border-radius:10px;padding:7px 10px;min-height:58px;text-align:left;color:#e9eef2!important;width:100%}
+.ddm-opt>i{width:60px;flex:none}.ddm-opt svg{width:100%;height:28px;display:block}.ddm-opt b{font-size:14px;display:block}.ddm-opt small{display:block;font-size:10px;color:#9aa6b0}.ddm-opt.gold b{color:#ffd76a}
+.ddm-opt em{margin-left:auto;font-style:normal;font-weight:800;font-size:11px;letter-spacing:.08em;background:#2f80ed;border-radius:6px;padding:8px 10px;color:#fff;flex:none}.ddm-opt.cur{border-color:#2e9e5b!important}.ddm-opt.cur em{background:none;color:#4fd08a}
+@media (orientation:landscape) and (max-height:520px){.ddm-bar.man .ddm-kit button{min-height:54px}.ddm-bar.man .ddm-kit svg{display:none}.ddm-bar.man{left:auto;width:54%;}.ddm-opts{max-height:34vh}.ddm-fav{top:76px;right:172px}.ddm-stats.low.r{top:76px}.ddm-arr{top:36%}.ddm-arr.r{right:340px}}

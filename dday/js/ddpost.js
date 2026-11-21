@@ -92,7 +92,10 @@ function ddPostBuild(G,add,M){
    first bunker right off the beach. A flag with golden text that says 'Capture' above it should work. Maybe a highlighted area - can we
    draft the highlighted area". A flag at each (the left bunker's on its roof), red until it's ours, and CAPTURE in gold over it with an arrow
    until then. The highlighted ground is a draft, off in the game: DD_CAP_HL 1 the place's whole area, 2 a disc round the flag. */
-const DD_CAPS=[{k:'left',f:[342,274],up:25,own:1,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:[692,-64,822,30]},{k:'crest',f:[225,-405],up:0,own:1,r:[190,-468,376,-350]}]   // (r: the ground lit in gold; the checkpoint's is its flat yard and the ground before its wall, not its whole zone: over the slopes behind it looked wrong, Bryan);
+const DD_CAPS=[{k:'left',f:[342,274],up:25,own:1,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:[692,-64,822,30]},{k:'crest',f:[225,-405],up:0,own:1,r:[190,-468,376,-350]},
+  // (Version 216, Bryan: "The checkpoint zones are the only things that need to be taken": the barracks and the command post are gold areas like the rest, ours once nobody of theirs is near and one man stands inside; on: only shown then)
+  {k:'base',f:[520,-622],up:0,own:1,r:[420,-652,620,-556]},{k:'cp',f:[1466,-600],up:0,own:1,r:[1352,-668,1496,-532],on:()=>!!(dd.base&&dd.base.open)}];
+const ddCapIn=(k,p)=>{const C=DD_CAPS.find(c=>c.k===k),r=C.r;return p.x>r[0]+DDX&&p.x<r[2]+DDX&&p.y>r[1]&&p.y<r[3];};   // (r: the ground lit in gold; the checkpoint's is its flat yard and the ground before its wall, not its whole zone: over the slopes behind it looked wrong, Bryan);
 let DD_CAP_HL=1;   // (Version 205: A, Bryan's pick)
 function ddCapBuild(add,M){
   const T=THREE;DD.capFlags={};
@@ -102,7 +105,7 @@ function ddCapBuild(add,M){
 function ddCapDraw(now){
   if(!dd||!dd.land||!dd.land.done||dd.fp||dd.counter||dd.vil||!dd.post)return;const H=dd.held||{},pu=.5+.5*Math.sin(now*4);
   for(const k in DD.capFlags||{}){const c=H[k]?0x2f6fd0:0xb02222,m=DD.capFlags[k];m.color.setHex(c);m.emissive.setHex(c);}
-  for(const C of DD_CAPS){if(H[C.k])continue;const x=C.f[0]+DDX,y=C.f[1];
+  for(const C of DD_CAPS){if(H[C.k]||(C.on&&!C.on()))continue;const x=C.f[0]+DDX,y=C.f[1];
     if(DD_CAP_HL===1){const[x0,y0,x1,y1]=C.r,P=[];let bad=false;const ad=(px,py)=>{toSBack=false;const q=toS(px+DDX,py,1.5);if(toSBack)bad=true;P.push(q);};
       for(let px=x0;px<x1;px+=24)ad(px,y0);for(let py=y0;py<y1;py+=24)ad(x1,py);for(let px=x1;px>x0;px-=24)ad(px,y1);for(let py=y1;py>y0;py-=24)ad(x0,py);
       if(!bad){ox.beginPath();ox.moveTo(P[0][0],P[0][1]);for(const q of P)ox.lineTo(q[0],q[1]);ox.closePath();ox.fillStyle=`rgba(255,206,96,${.1+pu*.08})`;ox.fill();ox.strokeStyle='rgba(255,214,120,.85)';ox.lineWidth=2.4;ox.stroke();}}

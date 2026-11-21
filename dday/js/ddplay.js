@@ -852,9 +852,9 @@ if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were take
     for(const m of(Z.bk&&DD&&DD.bk&&DD.bk[Z.bk])||[])if(m&&m.color){m.color.lerp(new T.Color(0x5fa4ff),.42);if(m.emissive)m.emissive.setHex(0x12305a);}
   }
   // the barracks: ours once nobody of theirs is left near it and two of ours have stood at its door for four seconds
-  if(dd.won||dd.blown.barracks)return;const d=DD_SPOT.door,B=DD_SPOT.barracks,near=players.filter(p=>alive(p)&&hyp(p.x-d.x-DDX,p.y-d.y)<140).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-(B.x+B.w/2+DDX),e.y-(B.y+B.h))<200).length+ddTanksUp().filter(K=>hyp(K.x-(B.x+B.w/2+DDX),K.y-(B.y+B.h))<300).length;
+  if(dd.won||dd.blown.barracks)return;const d=DD_SPOT.door,B=DD_SPOT.barracks,near=players.filter(p=>alive(p)&&ddCapIn('base',p)).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-(B.x+B.w/2+DDX),e.y-(B.y+B.h))<200).length+ddTanksUp().filter(K=>hyp(K.x-(B.x+B.w/2+DDX),K.y-(B.y+B.h))<300).length;
   dd.holdN=near;dd.holdFoes=foes;
-  if(near>=2&&!foes){dd.holdT=(dd.holdT||0)+.5;if(dd.holdT>=4){H.base=true;dd.blown.barracks=true;ddBaseOpen();updateObjUI();}}   // (since Version 148 the battle goes on: their base down the road, ddbase.js)
+  if(near>=1&&!foes){dd.holdT=(dd.holdT||0)+.5;if(dd.holdT>=1){H.base=true;dd.blown.barracks=true;ddBaseOpen();updateObjUI();}}   // (since Version 148 the battle goes on: their base down the road, ddbase.js)
   else dd.holdT=0;
 }
 // where a tool is going (Bryan: "When the player selects a location for a tool it should be a filled in circle. Orange for the to the rocket shows and
@@ -1009,7 +1009,7 @@ function ddTick(dt){
 function ddTidy(){   // the dead don't pile up for ever: the oldest bodies go
   const dead=units.filter(u=>u.dead&&(u.npc||u.side==='E')&&!u.veh);if(dead.length<=22)return;
   dead.sort((a,b)=>(a.deadT||0)-(b.deadT||0));
-  for(const u of dead.slice(0,dead.length-22)){if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);units.splice(units.indexOf(u),1);}
+  for(const u of dead.slice(0,dead.length-22)){if(u.side==='E')dd.tidyE=(dd.tidyE||0)+1;if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);units.splice(units.indexOf(u),1);}
   enemies=enemies.filter(e=>units.includes(e));dd.npcs=dd.npcs.filter(u=>units.includes(u));
 }
 /* ---------- the squad's bar (Bryan, after Version 128: "The units items are so hard to see... a squad shares an equipment

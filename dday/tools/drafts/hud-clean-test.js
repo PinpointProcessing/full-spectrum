@@ -54,7 +54,7 @@ await ok('the way up, then the barracks, then the command post',()=>{dd.held=dd.
 const at=(x,y)=>M.forEach(u=>{u.x=x;u.y=y;});
   at(ddRouteX(150),150);const w=OBJ();at(ddRouteX(-200),-200);const up=OBJ();at(720,-420);const a=OBJ();at(720,-620);const F0=dd.holdFoes;dd.holdFoes=0;const nr=OBJ();dd.holdT=2;const b2=OBJ();dd.holdT=0;dd.holdFoes=F0;
   const r={w,up,a,nr,b:b2};if(typeof ddBaseOpen==='function'&&!(dd.base&&dd.base.open)){try{ddBaseOpen();}catch(e){r.err=String(e);}}const c=OBJ();r.c=c;M.forEach((u,i)=>{u.x=P[i][0];u.y=P[i][1];});for(const[e,s0,v0]of GS){e.seen=s0;e.vis=v0;}
-  return{ok:/bunker|pillbox|draw/.test(w.t)&&/Up the draw|MG nest/.test(up.t)&&/the barracks|machine gun/.test(a.t)&&/Two men at the door|Take the barracks/.test(nr.t)&&/Hold the barracks · 2/.test(b2.t)&&(!dd.base||!dd.base.open||/command post/.test(c.t)),...r};});
+  return{ok:/bunker|pillbox|draw/.test(w.t)&&/Up the draw|MG nest/.test(up.t)&&/the barracks|machine gun/.test(a.t)&&/Stand in the gold area|Take the barracks/.test(nr.t)&&/Stand in the gold area|Take the barracks/.test(b2.t)&&(!dd.base||!dd.base.open||/command post/.test(c.t)),...r};});
 // --- the counterattack
 await ev(()=>{SEEN.clear();ddRoster.stage=1;startCounter();});await page.waitForTimeout(400);
 await ok('counter: intro then man the guns',()=>{const a=OBJ();RUN(8);const b2=OBJ();return{ok:!a.t&&/Man the guns · \d+/.test(b2.t||'')&&b2.x!=null,a,b:b2};});
