@@ -169,14 +169,28 @@ function nearBank(tx,ty,list){
   for(let k=4;k<d;k+=4){const x=tx+(cx-tx)*k/d,y=ty+(cy-ty)*k/d;if(isFree(x,y,8))return{x,y};}
   return{x:tx,y:ty};
 }
+// D-Day, Version 219 (Bryan: "when I try to get cover against the first bunker, sometimes one unit goes all the way inside around the other side instead
+// of going up against the front"): a bunker's front wall has a firing slit, so it doesn't block sight and the spots behind it counted as "in sight of
+// the tap". A spot is on the tap's side if a man could walk the straight line between them, or the way round is short (1.5 times and 2 m)
+function ddSameSide(tx,ty,x,y){
+  const d=hyp(x-tx,y-ty);if(d<8||clearLine(tx,ty,x,y,.5))return true;   // (nothing solid on the straight line between them)
+  // something is: how far is the walk, from the free ground beside the tap on the tap's own side of it?
+  const K=ddSameSide.k===tx+','+ty?ddSameSide.ring:(ddSameSide.k=tx+','+ty,ddSameSide.ring=[...Array(12)].map((_,i)=>({x:tx+Math.cos(i*Math.PI/6)*11,y:ty+Math.sin(i*Math.PI/6)*11})).filter(p=>isFree(p.x,p.y)&&clearLine(tx,ty,p.x,p.y,.5)));
+  if(!isFree(x,y,5))return true;
+  if(!K.length){const F=ddSameSide.from;if(!F)return true;const q=findPath(F.x,F.y,x,y),q0=findPath(F.x,F.y,tx,ty)||null;if(!q)return false;const len=(P,a)=>{let L=0;for(const w of P){L+=hyp(w.x-a.x,w.y-a.y);a=w;}return L;};return len(q,F)<=hyp(F.x-tx,F.y-ty)*1.5+d+20;}   // (the tap inside something solid: measured from the men instead)
+  let best=1e9;for(const p of K.slice().sort((a,b)=>hyp(a.x-x,a.y-y)-hyp(b.x-x,b.y-y)).slice(0,3)){const q=findPath(p.x,p.y,x,y);if(!q)continue;let L=0,a=p;for(const w of q){L+=hyp(w.x-a.x,w.y-a.y);a=w;}best=Math.min(best,L);}
+  return best<=d*1.5+20;
+}
 function makeAssign(list,tx,ty){
   ({x:tx,y:ty}=nearBank(tx,ty,list));
   const box=zoneAt(tx,ty);if(box){const r=boxAssign(list,box,tx,ty);if(r)return r;}   // a medical or supply box: everyone inside it
   const th=threats(),n=list.length,R=n>4?62:ASSIGN_R[n];   // (five or more: the freed prisoners joined, office.js)
   const others=players.filter(p=>!p.dead&&!list.includes(p)).map(destOf);
+  if(MAPID==='dd'&&n){ddSameSide.from={x:list.reduce((a,u)=>a+u.x,0)/n,y:list.reduce((a,u)=>a+u.y,0)/n};ddSameSide.k=null;}
   const cands=[],shut=objs.filter(o=>o.door&&!o.open);   // (the nav grid ignores doors: never a spot in a shut one's doorway, orders.js)
   const add=(x,y,cp,pen=0)=>{
     if(cands.some(c=>hyp(c.x-x,c.y-y)<6)||!los(tx,ty,x,y)||shut.some(o=>rectDist(x,y,o)<9))return;
+    if(MAPID==='dd'&&!ddSameSide(tx,ty,x,y))return;   // (Version 219: not a spot on the far side of a wall you can see through, e.g. inside a bunker when its front was tapped)
     if(others.some(o=>hyp(o.x-x,o.y-y)<(cp?SPACE_COVER:SPACE_OPEN)))return;
     const st=protStats({x,y},th);
     cands.push({x,y,cp,cov:st.prot===th.length,expo:(st.see?1:0)+(st.prot<th.length?1:0),v:st.prot/th.length*2+st.see*0.3-hyp(x-tx,y-ty)/12-pen});

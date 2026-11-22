@@ -108,6 +108,7 @@ function bindInput(){
     ptr.supPt=state==='play'&&!ptr.unit&&!mode&&!noOrders()&&sel.some(alive)?suppressAt(sx,sy):null;   // (for the filling ring: drawHold)
     ptr.timer=setTimeout(()=>{
       if(!ptr||ptr.kind||state!=='play')return;
+      if(mode&&MAPID==='dd')return;   // (Version 219: with a tool in hand a slow press is still the tap that uses it: it used to pick the man under the finger, which put the tool away, or start a lasso, which swallowed the tap)
       const u=unitAtScreen(ptr.sx,ptr.sy,true);
       ptr.lp=true;
       try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}

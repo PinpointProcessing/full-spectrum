@@ -12,7 +12,7 @@ function fillBlk(){
   blk.fill(0);
   for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++){const x=cx0(gx),y=cy0(gy);if(x<10||y<TOP+10||x>EAST_X-10||y>H-10)blk[gy*GW+gx]=1;}
   for(const o of objs){
-    if(o.door)continue;   // a door never blocks the way: whoever walks into a shut one opens it (orders.js)
+    if(o.door||o.walk)continue;   // (walk, Version 219: a shell hole's lip is cover you step over, dday.js)   // a door never blocks the way: whoever walks into a shut one opens it (orders.js)
     const pad=o.kind==='jeep'?4:7.5,b=o.disk?{x:o.disk.cx-o.disk.r,y:o.disk.cy-o.disk.r,w:o.disk.r*2,h:o.disk.r*2}:o;
     const g0=Math.max(0,Math.floor((b.x-pad)/CS)),g1=Math.min(GW-1,Math.floor((b.x+b.w+pad)/CS)),h0=Math.max(0,Math.floor((b.y-pad-TOP)/CS)),h1=Math.min(GH-1,Math.floor((b.y+b.h+pad-TOP)/CS));
     for(let gy=h0;gy<=h1;gy++)for(let gx=g0;gx<=g1;gx++){const i=gy*GW+gx;if(!blk[i]&&rectDist(cx0(gx),cy0(gy),o)<pad)blk[i]=1;}
@@ -33,7 +33,7 @@ function nearestFreeCell(gx,gy,b=blk){
   return -1;
 }
 function cellOf(x,y,b=blk){const gx=clamp(Math.floor(x/CS),0,GW-1),gy=clamp(Math.floor((y-TOP)/CS),0,GH-1);let i=gy*GW+gx;if(b[i])i=nearestFreeCell(gx,gy,b);return i;}
-function clearLine(ax,ay,bx,by,pad=6.5){for(const o of objs)if(!o.door&&segHitsRect(ax,ay,bx,by,o,pad))return false;return true;}   // (a door never blocks the way: whoever walks into it opens it, orders.js)
+function clearLine(ax,ay,bx,by,pad=6.5){for(const o of objs)if(!o.door&&!o.walk&&segHitsRect(ax,ay,bx,by,o,pad))return false;return true;}   // (a door never blocks the way: whoever walks into it opens it, orders.js)
 const gS=new Float32Array(GW*GH),came=new Int32Array(GW*GH),cameW=new Int16Array(GW*GH),seenSt=new Int32Array(GW*GH),closedSt=new Int32Array(GW*GH);let stampN=0;
 
 /* ---------- windows, sandbags and barriers: the squad vaults over them ---------- */
@@ -79,7 +79,7 @@ function rebuildNav(){fillBlk();buildVaultLinks();fillSight();fillCover();dEpoch
 // alerted, all round within rifle range, counting less the further off. Sight itself is a quick check on a grid of the
 // sight-blocking objects (sightBlk), cached until the known enemies move or turn. The safe route is only taken if it's at
 // most SAFE_DETOUR longer than the quickest.
-const SAFE_W=1,SAFE_R=380,SAFE_DETOUR=[1.3,30];
+const SAFE_W=1,SAFE_R=380,SAFE_DETOUR=[1.3,30],DD_SAFE_DETOUR=[1.06,6];
 const sightBlk=new Uint8Array(GW*GH),dVal=new Float32Array(GW*GH),dSt=new Int32Array(GW*GH);let dEpoch=0,dKey='',dThreats=[];
 function fillSight(){   // cells whose centre is inside a sight-blocking object
   sightBlk.fill(0);
@@ -152,7 +152,11 @@ function findPath(sx,sy,tx,ty,nav=SQUAD){
   const quick=buildPath(astar(s,g,b,!!nav.vault,false),sx,sy,tx,ty,nav,false);
   if(!quick||!nav.safe||!routeThreats().length)return quick;
   const safe=buildPath(astar(s,g,b,true,true),sx,sy,tx,ty,nav,true);
-  return safe&&pathTime(safe,sx,sy)<=pathTime(quick,sx,sy)*SAFE_DETOUR[0]+SAFE_DETOUR[1]?safe:quick;
+  // (D-Day, Version 219, Bryan: "when I move players sometimes, they run the other way for a second and then reroute... Shouldn't they go straight there?":
+  // the safer way was taken when up to 1.3 times as long and 3 m, which on a 17 m hop under fire meant setting off sideways or backwards; on D-Day only when it's
+  // nearly as short, DD_SAFE_DETOUR)
+  const D=MAPID==='dd'?DD_SAFE_DETOUR:SAFE_DETOUR;
+  return safe&&pathTime(safe,sx,sy)<=pathTime(quick,sx,sy)*D[0]+D[1]?safe:quick;
 }
 // how long a route takes, in units walked: its length plus the time the vaults cost
 function pathTime(p,sx,sy){let t=0,a={x:sx,y:sy};for(const q of p){t+=hyp(q.x-a.x,q.y-a.y)+(q.vault?VAULT_EXTRA*CS:0);a=q;}return t;}

@@ -632,3 +632,6 @@ button.ddm-sr{position:relative;padding:9px 9px;min-height:58px;border-radius:9p
 .ddm-opt>i{width:60px;flex:none}.ddm-opt svg{width:100%;height:28px;display:block}.ddm-opt b{font-size:14px;display:block}.ddm-opt small{display:block;font-size:10px;color:#9aa6b0}.ddm-opt.gold b{color:#ffd76a}
 .ddm-opt em{margin-left:auto;font-style:normal;font-weight:800;font-size:11px;letter-spacing:.08em;background:#2f80ed;border-radius:6px;padding:8px 10px;color:#fff;flex:none}.ddm-opt.cur{border-color:#2e9e5b!important}.ddm-opt.cur em{background:none;color:#4fd08a}
 @media (orientation:landscape) and (max-height:520px){.ddm-bar.man .ddm-kit button{min-height:54px}.ddm-bar.man .ddm-kit svg{display:none}.ddm-bar.man{left:auto;width:54%;}.ddm-opts{max-height:34vh}.ddm-fav{top:76px;right:172px}.ddm-stats.low.r{top:76px}.ddm-arr{top:36%}.ddm-arr.r{right:340px}}
+
+/* Version 219: more room between the men's names and the tools under them, so a thumb aimed at a tool doesn't pick a man instead */
+body.dd #sq .sq-men{margin-bottom:7px}

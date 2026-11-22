@@ -148,7 +148,7 @@ function ddObjects(){
   o('ddmast',676,-742,8,8,{});
   // the beach: obstacles, wire, the holes' forward lips (cover from up the hill), two wrecks
   for(const[x,y]of[[150,640],[330,650],[520,660],[700,640],[880,655],[240,560],[450,600],[760,585],[120,430],[690,405],[930,540],[60,520],[470,470]])o('ddhog',x,y,14,14,{cover:1});
-  for(const h of DD_HOLES)o('ddrim',h.x-h.r,h.y-h.r-3,h.r*2,6,{cover:h.c});
+  for(const h of DD_HOLES)o('ddrim',h.x-h.r,h.y-h.r-3,h.r*2,6,{cover:h.c,walk:1});   // (walk, Version 219, Bryan: "the units go left or right out of the hole instead of straight": the lip was a wall to the nav grid, so every way north out of a hole went round one of its ends)
   o('ddwreck',296,488,46,26,{full:true});o('ddwreck',838,596,24,56,{full:true,lc:1});
   // the edges: mirror images of the rock that reaches them, so the cliffs carry on (nobody fights there)
   for(const q of L.slice()){if(q.kind!=='drop')continue;const dx=q.x-DDX;

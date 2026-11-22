@@ -1088,11 +1088,19 @@ function ddBar(){
   // what's in hand, said plainly above the bar: whose it is, what a tap does, how to put it away (Bryan: "Throwing and using items isn't clear")
   {const a=box.querySelector('.sq-aim'),T=dd.toolK?DD_TOOLS.find(t=>t.k===dd.toolK):null;
     if(a){if(a.hidden===!!T)a.hidden=!T;if(T){const verb={rgl:'Tap where to fire it',nade:'Tap where to throw it',smoke:'Tap where the smoke should land',rpg:'Tap the target to fire at',build:'Tap where to put the barricade',medkit:'Tap the man to treat'}[T.k],left=ddSquad().reduce((n,u)=>n+(alive(u)?T.n(u):0),0),h=`${T.label} · ${dd.toolU?dd.toolU.name:''} · ${left} left<small>${mode?verb:'getting ready'} · tap here to cancel</small>`;if(a.dataset.h!==h){a.dataset.h=h;a.innerHTML=h;a.style.setProperty('--c',T.col);}}}}
-  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}if(A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}{const bar=tools+fpB;if(B.dataset.h!==bar){B.dataset.h=bar;B.innerHTML=bar;}}   // (Version 213: the first-person button is back on the bar, now that Bryan wants first person improved; it was off since Version 163: Bryan, "remove the control button for now")
+  const A=box.querySelector('.sq-men'),B=box.querySelector('.sq-tools');{const gc=`repeat(${Math.max(4,sq.length)},minmax(0,1fr))`;if(A.style.gridTemplateColumns!==gc)A.style.gridTemplateColumns=gc;}const held=ddBar.down&&performance.now()-ddBar.down.t<1500;   /* (a finger on the bar: its buttons stay as they are until it lifts) */
+  if(!held&&A.dataset.h!==men){A.dataset.h=men;A.innerHTML=men;}{const bar=tools+fpB;if(!held&&B.dataset.h!==bar){B.dataset.h=bar;B.innerHTML=bar;}}   // (Version 213: the first-person button is back on the bar, now that Bryan wants first person improved; it was off since Version 163: Bryan, "remove the control button for now")
 }
 function ddBarBind(){
   const box=$('#sq');if(!box||box.dataset.bound)return;box.dataset.bound=1;
-  box.addEventListener('click',ev=>{const t=ev.target.closest('.sq-tool'),mn=ev.target.closest('.sq-man');
+  // (Version 219, Bryan: "sometimes when I click a tool it doesn't go to it": the bar's buttons are rebuilt whenever their words change, which in a fight is
+  // often; rebuilt between the finger going down and coming up, the click landed on no button. Now nothing is rebuilt under a finger (ddBar.down), and a
+  // click that finds no button uses the tool the finger went down on)
+  const up=()=>setTimeout(()=>{ddBar.down=null;},80);
+  box.addEventListener('pointerdown',ev=>{const t=ev.target.closest('.sq-tool');ddBar.down={t:performance.now(),k:t&&!t.disabled?t.dataset.k:null,x:ev.clientX,y:ev.clientY};},true);
+  for(const n of['pointerup','pointercancel'])addEventListener(n,up,true);
+  box.addEventListener('click',ev=>{let t=ev.target.closest('.sq-tool');const mn=ev.target.closest('.sq-man'),D=ddBar.down;
+    if(!t&&!mn&&!ev.target.closest('.sq-aim')&&D&&D.k&&performance.now()-D.t<900&&hyp(ev.clientX-D.x,ev.clientY-D.y)<18)t=box.querySelector(`.sq-tool[data-k="${D.k}"]`);
     if(ev.target.closest('.sq-aim')){ddToolEnd();}
     else if(t&&t.dataset.k==='fp'){ddToolEnd();fpEnter();return;}
     else if(t&&!t.disabled)ddToolUse(t.dataset.k);   // (in hand, then a tap on the map: Version 173 dropped Versions 168-172's dragging, Bryan: "I am clicking")
