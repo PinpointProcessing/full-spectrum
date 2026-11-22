@@ -54,6 +54,7 @@ A zombie survival level on a new third-person engine (not the Warehouse Yard tac
   - Rescued survivors follow and fight on their own. They can die for good.
   - The TV must be on and audible. An EMERGENCY BROADCAST bubble opens the broadcast: two anchors warn of the virus, then get attacked on air.
   - The street is loud and busy (fires, wrecks, fleeing people, helicopter, car crash, explosion). The escape is a large storm-drain pipe that becomes the first shelter.
+  - Characters are made in code, never imported (Bryan: no Mixamo). `50-figures.js` builds each one as a smooth skinned body lofted from vertex rings on a 14-bone skeleton, plus a sculpted head with face and hair. Clothing, blood and tears are painted into vertex colours. `hi:1` in a spec gives the dense mesh (You and the named survivors); zombies and bystanders use a lighter one.
 - Three.js r128 from cdnjs, plus the r128 bloom scripts from jsdelivr (optional: the game runs without them). All art, textures and sound are generated in code.
 - Quality steps down automatically if frames are slow (bloom off, then smaller shadows and resolution, then no shadows).
 

@@ -58,8 +58,13 @@ function mkZed(type,x,y,extra){
 let corpseMeshes=[];
 function mkCorpse(x,y,ang){
   const u=Object.assign(base('prop',x,y,ang,makeFig(civSpec())),{dead:true,deadT:9,fallDir:Math.random()<.5?1:-1}),f=u.fig;
-  figAnim(f,u,1,0);figAnim(f,u,1,0);f.g.updateMatrixWorld(true);
-  const items=[];f.g.traverse(o=>{if(o.isMesh){const g=o.geometry.clone();g.applyMatrix4(o.matrixWorld);items.push({g,keep:1});}});
+  figAnim(f,u,1,0);figAnim(f,u,1,0);f.g.updateMatrixWorld(true);f.skel.update();
+  const items=[];
+  f.g.traverse(o=>{
+    if(!o.isMesh)return;const g=o.geometry.clone();
+    if(o.isSkinnedMesh){const p=g.attributes.position;for(let i=0;i<p.count;i++){o.boneTransform(i,_v);p.setXYZ(i,_v.x,_v.y,_v.z);}g.computeVertexNormals();}
+    g.applyMatrix4(o.matrixWorld);items.push({g,keep:1});
+  });
   const m=new T.Mesh(merge(items),vmat({roughness:.85}));m.receiveShadow=true;scene.add(m);corpseMeshes.push(m);removeFig(f);
   decal(x,y,rand(16,24),1);
 }
@@ -99,15 +104,15 @@ function killZ(z,src,ang,crit){
   z.kx*=1.5;z.ky*=1.5;z.z=0;
   decal(z.x,z.y,rand(14,22),1);
   if(z.fig.eyes)z.fig.eyes.visible=false;
-  if(crit&&z.fig.j.head.parent){ // head comes off
-    const h=z.fig.j.head;scene.attach(h);
+  if(crit&&z.fig.headG.parent!==scene){ // head comes off
+    const h=z.fig.headG;scene.attach(h);
     debris.push({o:h,vx:Math.cos(ang)*rand(60,120),vy:Math.sin(ang)*rand(60,120),vz:rand(70,120),sx:rand(-9,9),sz:rand(-9,9),t:0});
     for(let i=0;i<3;i++)fxBlood(z.x,z.y,16,rand(-1,1),rand(-1,1),8,true);
     sfx('pop',z.x,z.y,1);if(src===L)floatText(z,pick(['POP','OUT OF THE PARK','CLEAN OFF']),'#ffd24a');
   }
   if(z.boss){bigText('Big Earl is down',2400);shake(4);}
   corpses.push(z);
-  if(corpses.length>16){const c=corpses.shift();c.gone=true;removeFig(c.fig);}
+  if(corpses.length>12){const c=corpses.shift();c.gone=true;removeFig(c.fig);}
 }
 function hurt(h,dmg,z){
   if(h.dead)return false;

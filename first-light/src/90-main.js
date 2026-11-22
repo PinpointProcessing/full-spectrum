@@ -80,7 +80,7 @@ function frame(nowMs){
       if(u.gone||!u.fig)continue;
       const du=hyp(u.x-cam.x,u.y-cam.y),vis=!(u.kind==='z'&&u.far)&&!u.hidden&&du<(Q.level<=1?440:580);
       const sh=du<(Q.level>=2?250:150)&&u.kind!=='you'||u.kind==='you';
-      if(u.fig.sh!==sh){u.fig.sh=sh;u.fig.g.traverse(o=>{if(o.isMesh&&o.material===u.fig.mat)o.castShadow=sh;});}
+      if(u.fig.sh!==sh){u.fig.sh=sh;u.fig.g.traverse(o=>{if(o.isMesh&&(o.material===u.fig.mat||o.material===u.fig.hmat))o.castShadow=sh;});}
       if(u.fig.g.visible!==vis)u.fig.g.visible=vis;
       if(!vis||(u.dead&&u.deadT>1.4&&!u.fig.flash))continue;
       if(adt>0||camSnap)figAnim(u.fig,u,adt||.016,now);

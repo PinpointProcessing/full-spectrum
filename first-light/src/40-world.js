@@ -27,6 +27,7 @@ function buildLights(){
   sun=new T.DirectionalLight(0xffb27a,1.15);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
   Object.assign(sun.shadow.camera,{left:-300,right:300,top:300,bottom:-300,near:50,far:1500});sun.shadow.bias=-0.0006;sun.shadow.normalBias=.6;
   scene.add(sun,sun.target);
+  const fill=new T.DirectionalLight(0xc4d2ff,.4);fill.position.set(-.5,.75,1);scene.add(fill);
   for(let i=0;i<POOLN;i++){const l=new T.PointLight(0xffffff,0,200,1.5);scene.add(l);pool.push({l,e:null,k:0});}
   flashL=new T.PointLight(0xffd9a0,0,160,1.8);scene.add(flashL);
   tvLight=new T.PointLight(0x8fb4ff,0,150,1.6);tvLight.position.set(TVPOS.x,TVPOS.h,TVPOS.y+10);scene.add(tvLight);
@@ -153,7 +154,7 @@ function buildDecals(){
 function decal(x,y,size,a,col){
   _dq.setFromAxisAngle(_v.set(0,1,0),Math.random()*TAU);
   _dm.compose(_p.set(x,.25+decI*.0006,y),_dq,_v.set(size,1,size*rand(.7,1.1)));
-  decMesh.setMatrixAt(decI,_dm);decMesh.setColorAt(decI,_dc.setHex(col||0x5e0705).multiplyScalar(rand(.6,1)));
+  decMesh.setMatrixAt(decI,_dm);decMesh.setColorAt(decI,_dc.setHex(col||0x4c0605).multiplyScalar(rand(.6,1)));
   decMesh.instanceMatrix.needsUpdate=true;decMesh.instanceColor.needsUpdate=true;decI=(decI+1)%DECN;
 }
 
