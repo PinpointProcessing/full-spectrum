@@ -54,16 +54,16 @@ button.on{border-color:var(--accent);color:#ffd2ae;background:rgba(60,32,16,.85)
   <canvas id="ov"></canvas>
   <div id="nogl" hidden>This page needs WebGL, which this browser has turned off.</div>
   <div id="top">
-    <div class="head"><h1>Character Lab</h1><span>Five ways to build the main character. Drag to turn them.</span></div>
-    <div id="tabs"></div>
+    <div class="head"><h1>Character Lab</h1><span>The main character, Grounded design. Drag to turn, pinch or scroll to zoom.</span></div>
   </div>
-  <div id="info"><div class="n" id="infoN"></div><h2 id="infoH"></h2><p id="infoP"></p></div>
+  <div id="info"><div class="n">Main character · draft 2</div><h2>Grounded</h2><p>Hands now have fingers that close into a fist round anything held. Swings are two-handed: both arms follow the bat.</p></div>
   <div id="poses">
-    <button data-pose="stand" class="on">Stand</button><button data-pose="walk">Walk</button>
-    <button data-pose="run">Run</button><button data-pose="swing">Swing</button>
-    <button id="gameBtn">Game view</button><button id="spinBtn" class="on">Spin</button>
+    <button data-pose="stand" class="on">Stand</button><button data-pose="ready">Ready</button>
+    <button data-pose="walk">Walk</button><button data-pose="run">Run</button>
+    <button data-pose="swing">Swing</button><button data-pose="smash">Smash</button>
+    <button id="batBtn" class="on">Bat</button><button id="slowBtn">Slow-mo</button>
+    <button id="gameBtn">Game view</button><button id="spinBtn">Spin</button>
   </div>
-  <div id="labels"></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
