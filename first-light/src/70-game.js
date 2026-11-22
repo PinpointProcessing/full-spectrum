@@ -168,6 +168,7 @@ function meleeResolve(a){
   const u=L,W=MELEE[u.melee],smash=a.type===2&&u.melee!=='fists';
   const range=W.range+(smash?4:0),arc=smash?.75:W.arc;let hits=0,crits=0;
   fxArc(u.x,u.y,smash?4:12,u.ang-arc,u.ang+arc,range-10,range+2,u.melee==='fists'?0xcfd8e0:0xfff1d0,.15);
+  for(const p of PORTALS)if(!p.open&&!p.door&&hyp(p.cx-u.x,p.cy-u.y)<range+10&&Math.abs(angDiff(u.ang,Math.atan2(p.cy-u.y,p.cx-u.x)))<1.2)breakPortal(p);      // a swing at a window breaks it
   for(const z of zeds){
     if(z.dead||z.far)continue;const d=hyp(z.x-u.x,z.y-u.y);if(d>range+5)continue;
     const dir=Math.atan2(z.y-u.y,z.x-u.x);if(d>8&&Math.abs(angDiff(u.ang,dir))>arc)continue;
@@ -231,6 +232,7 @@ function useAid(){
   for(let i=0;i<10;i++)emit(pFire,L.x+rand(-5,5),L.y+rand(-5,5),rand(2,14),0,0,rand(10,30),3,.7,.4,1,.6,.9,0,0,0);
 }
 function youUpdate(dt){
+  if(L.vault){vaultStep(L,dt);L.atk=null;return;}      // halfway through a window: nothing else until you are over the sill
   const u=L;if(u.dead){u.deadT+=dt;return;}
   u.inv=Math.max(0,u.inv-dt);u.hurtT=Math.max(0,u.hurtT-dt);u.shootT+=dt;u.shootCD-=dt;u.dashCD-=dt;u.comboT-=dt;u.wantAtk-=dt;
   if(u.lying){u.spd=0;if(hyp(input.mx,input.my)>.3||input.atkP||input.dashP)getUp();return;}
@@ -270,6 +272,10 @@ function youUpdate(dt){
   let mx=u.vx+u.kx,my=u.vy+u.ky;
   if(u.lungeT>0){u.lungeT-=dt;mx+=u.lvx;my+=u.lvy;}
   slide(u,mx*dt,my*dt,5.5);
+  // push into a broken window and you climb through it
+  if(moving&&!u.atk&&u.dashT<=0){const m=hyp(input.mx,input.my)||1,uin=inHouse(u.x,u.y);
+    for(const p of PORTALS){if(p.door||!p.open)continue;const n=uin?p.in:p.out,f=uin?p.out:p.in;
+      if(Math.abs(p.hz?u.x-p.cx:u.y-p.cy)<(p.hz?p.o.w:p.o.h)/2-3&&Math.abs(p.hz?u.y-p.cy:u.x-p.cx)<14&&((f.x-n.x)*input.mx+(f.y-n.y)*input.my)/m>12){u.vault={t:0,dur:.75,ax:u.x,ay:u.y,bx:f.x,by:f.y,h:7};sfx('step');break;}}}
   const kk=Math.exp(-8*dt);u.kx*=kk;u.ky*=kk;
   u.spd=hyp(u.vx,u.vy);
   if(!u.atk&&u.shootT>.35&&moving&&u.anim!=='crank')u.ang=turn(u.ang,Math.atan2(input.my,input.mx),dt*14);
@@ -330,6 +336,8 @@ function zUpdate(z,dt){
   if(z.stag>0){z.spd=0;return;}
   z.senseT-=dt;if(z.senseT<=0&&!z.script){z.senseT=.3;zSense(z);}
   if(z.script&&z.script(z,dt)!==true)return;
+  if(z.vault){vaultStep(z,dt);return;}
+  if(z.state==='chase'&&z.tgt&&!z.tgt.dead&&!z.tgt.safe&&!z.as&&breach(z,z.tgt,dt,z.speed,true))return;
   // attack: wind up (you can see it coming), strike, recover
   if(z.as){
     z.at+=dt;z.spd=0;const t=z.tgt,Z=ZT[z.ztype];
@@ -379,6 +387,60 @@ function zUpdate(z,dt){
     const sp=Math.min(speed,d/dt);
     slide(z,Math.cos(z.ang)*sp*dt,Math.sin(z.ang)*sp*dt,5);z.spd=sp;
   }else z.spd=0;
+}
+/* ---- the shell of your house: walls stop everyone. The front door and the windows are the only ways through.
+   A window has to be broken first and is then climbed through; a shut door gets pounded on until it gives. ---- */
+let PORTALS=[];
+const portalOf=o=>PORTALS.find(p=>p.o===o);
+function setupPortals(){
+  if(!PORTALS.length)for(const o of objs)if(o.home&&(o.kind==='window'||o.kind==='fwin'||o.kind==='door')){
+    const hz=o.w>o.h,cx=o.x+o.w/2,cy=o.y+o.h/2,s=hz?(cy<(HS.y0+HS.y1)/2?1:-1):(cx<(HS.x0+HS.x1)/2?1:-1);
+    PORTALS.push({o,door:o.kind==='door',cx,cy,hz,gi:hz?{x:cx,y:cy+s*13}:{x:cx+s*13,y:cy},go:hz?{x:cx,y:cy-s*13}:{x:cx-s*13,y:cy}});
+  }
+  // where you land on each side: the nearest clear floor that is still on that side of the wall
+  const land=(g,inside)=>{for(let r=0;r<=44;r+=6){const n=Math.max(1,Math.round(r*.9));for(let k=0;k<n;k++){const a=k/n*TAU,x=g.x+Math.cos(a)*r,y=g.y+Math.sin(a)*r;if(inHouse(x,y)===inside&&isFree(x,y,7))return{x,y};}}return g;};
+  for(const p of PORTALS){p.open=false;p.hp=p.door?130:30;p.rattle=0;p.in=land(p.gi,true);p.out=land(p.go,false);if(p.o.glass)p.o.glass.visible=true;}
+}
+function breakPortal(p,quiet){
+  if(!p||p.open)return;p.open=true;p.hp=0;
+  if(p.door){EV.doorOpen=true;removeObj(fdoor);if(!quiet){sfx('crash',p.cx,p.cy,1);shake(2);caption('The front door gives way.',null,2600);makeNoise(p.cx,p.cy,160);}}
+  else{if(p.o.glass)p.o.glass.visible=false;
+    if(!quiet){sfx('glass',p.cx,p.cy,1,700);makeNoise(p.cx,p.cy,200);
+      for(let i=0;i<22;i++)emit(pDrop,p.cx+rand(-16,16)*(p.hz?1:.15),p.cy+rand(-16,16)*(p.hz?.15:1),rand(10,20),rand(-30,30),rand(-30,30),rand(0,40),rand(1.2,2.4),rand(.5,1),.8,.9,1,.9,260,0,0,1);
+      for(let i=0;i<5;i++)decal(p.in.x+rand(-10,10),p.in.y+rand(-8,8),rand(2,4),.5,0xbfd8e6);}}
+}
+function hitPortal(p,dmg){if(p.open)return;p.hp-=dmg;p.rattle=.25;sfx('bang',p.cx,p.cy,.8);if(p.hp<=0)breakPortal(p);}
+/* walk to a point, round corners if the straight line is blocked */
+function goTo(u,x,y,speed,dt){
+  let tx=x,ty=y;
+  if(!clearLine(u.x,u.y,x,y)){
+    if(!u.bp||u.bpT<simT||hyp(u.bpx-x,u.bpy-y)>12){u.bp=findPath(u.x,u.y,x,y);u.bpT=simT+1.5;u.bpx=x;u.bpy=y;u.bi=0;}
+    const P=u.bp;if(P&&P.length){while(u.bi<P.length-1&&hyp(P[u.bi].x-u.x,P[u.bi].y-u.y)<8)u.bi++;tx=P[u.bi].x;ty=P[u.bi].y;}
+  }
+  const dx=tx-u.x,dy=ty-u.y,d=hyp(dx,dy)||1,sp=Math.min(speed,d/dt);
+  u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);slide(u,dx/d*sp*dt,dy/d*sp*dt,5);u.spd=sp;
+}
+function vaultStep(u,dt){
+  const v=u.vault;v.t+=dt;const k=clamp(v.t/v.dur,0,1),e=ease(k);
+  u.x=lerp(v.ax,v.bx,e);u.y=lerp(v.ay,v.by,e);u.z=Math.sin(PI*k)*v.h;u.ang=Math.atan2(v.by-v.ay,v.bx-v.ax);u.spd=0;u.vx=u.vy=0;
+  if(k>=1){u.z=0;u.vault=null;}
+}
+/* u wants to reach t on the other side of the house wall. Returns true while it is busy getting through. */
+function breach(u,t,dt,speed,bang){
+  const uin=inHouse(u.x,u.y),tin=inHouse(t.x,t.y);
+  if(uin===tin){if(u.port){u.port=null;if(u.anim==='bang')u.anim=null;}return false;}
+  let p=u.port;
+  if(!p||(u.portT||0)<simT){let bc=1e9,was=p;p=null;
+    for(const q of PORTALS){if(u.doorOnly&&!q.door)continue;if(!bang&&!q.open)continue;
+      const n=uin?q.in:q.out,f=uin?q.out:q.in,c=hyp(n.x-u.x,n.y-u.y)+hyp(f.x-t.x,f.y-t.y)+(q.open?0:q.door?q.hp*1.6:55)+(q===was?-25:0);if(c<bc){bc=c;p=q;}}
+    u.port=p;u.portT=simT+2;}
+  if(!p)return false;
+  const n=uin?p.in:p.out,f=uin?p.out:p.in,d=hyp(n.x-u.x,n.y-u.y);
+  if(d>6){if(u.anim==='bang')u.anim=null;goTo(u,n.x,n.y,speed,dt);return true;}
+  u.ang=turn(u.ang,Math.atan2(f.y-n.y,f.x-n.x),dt*10);u.spd=0;
+  if(p.open){if(u.anim==='bang')u.anim=null;u.vault={t:0,dur:p.door?.5:u.kind==='z'?(u.ztype==='runner'?.8:1.5):.75,ax:u.x,ay:u.y,bx:f.x,by:f.y,h:p.door?0:7};u.port=null;}
+  else{u.anim='bang';u.bangT=(u.bangT||0)-dt;if(u.bangT<=0){u.bangT=u.ztype==='brute'?.7:rand(.55,.9);hitPortal(p,u.ztype==='brute'?45:u.ztype==='runner'?9:7);}}
+  return true;
 }
 function separate(){
   const zs=zeds.filter(z=>!z.dead&&!z.far&&z.anim!=='tramp');
@@ -469,6 +531,8 @@ function moveTo(a,tx,ty,speed,dt){
 }
 const SLOTS=[[-22,13],[-22,-13],[-40,26],[-40,-26],[-56,0]];
 function allyUpdate(a,dt,i){
+  if(a.vault){vaultStep(a,dt);return;}
+  if(a.recruited&&!a.dead&&!a.safe&&!a.hold&&breach(a,L,dt,a.speed,false))return;      // follow you through an open door or a broken window
   if(a.dead){a.deadT+=dt;return;}
   a.hurtT=Math.max(0,a.hurtT-dt);
   if(a.kx||a.ky){slide(a,a.kx*dt,a.ky*dt,5);const k=Math.exp(-8*dt);a.kx*=k;a.ky*=k;}

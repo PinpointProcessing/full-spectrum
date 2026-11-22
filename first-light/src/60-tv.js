@@ -18,7 +18,7 @@ function tvTick(dt,audible){
   tv.t+=dt;tv.sub=null;
   if(tv.mode==='morning'){
     tv.chat-=dt;
-    if(tv.chat<=0){tv.chat=rand(2.6,3.6);tv.who=tv.who?0:1;tv.talkUntil=tv.t+2.1;if(audible)babble(2.1,tv.who?215:118,.2);}
+    if(tv.chat<=0){tv.chat=rand(2.6,3.6);tv.who=tv.who?0:1;tv.talkUntil=tv.t+2.1;if(audible)babble(2.1,tv.who?200:120,.06);}
     tvOnce('sting',.3,()=>audible&&tvSfx('sting',1));
     if(tv.t>5){tv.mode='alert';tv.t=0;tv.fired={};}
   }else if(tv.mode==='alert'){
@@ -31,10 +31,10 @@ function tvTick(dt,audible){
     tvOnce('thud',22.3,()=>audible&&tvSfx('bang',1));
     tvOnce('thud2',23.2,()=>audible&&tvSfx('bang',1.2));
     tvOnce('crash',CAST_IN-.3,()=>{shutUp();if(audible){tvSfx('crash',.8);tvSfx('snarl',1);}});
-    tvOnce('scream',CAST_IN+.9,()=>{if(audible){tvSfx('scream',1);tvSfx('snarl',1);}});
+    tvOnce('scream',CAST_IN+.9,()=>{if(audible){tvSfx('gurgleM',1);tvSfx('snarl',.8);}});      // Hal goes first
     tvOnce('s1',CAST_IN+1.5,()=>{if(audible)tvSfx('bite',1);tv.splats.push({x:.12,y:.24,r:.06});});
-    tvOnce('s2',CAST_IN+2.3,()=>{if(audible){tvSfx('bite',1);tvSfx('scream',.9);}tv.splats.push({x:.5,y:.16,r:.085});});
-    tvOnce('s3',CAST_IN+3.1,()=>{if(audible){tvSfx('scream',1);tvSfx('roar',.8);}tv.splats.push({x:.9,y:.3,r:.07});});
+    tvOnce('s2',CAST_IN+2.3,()=>{if(audible){tvSfx('bite',1);tvSfx('gurgleF',1);}tv.splats.push({x:.5,y:.16,r:.085});});      // then Denise
+    tvOnce('s3',CAST_IN+3.1,()=>{if(audible){tvSfx('gurgleM',.7);tvSfx('roar',.7);}tv.splats.push({x:.9,y:.3,r:.07});});
     tvOnce('s4',CAST_IN+3.7,()=>{tv.splats.push({x:.4,y:.6,r:.14});});
     tvOnce('fall',CAST_IN+3.7,()=>audible&&tvSfx('crash',1));
     tvOnce('static',CAST_STATIC,()=>audible&&tvSfx('static',1));

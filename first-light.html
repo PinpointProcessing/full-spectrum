@@ -336,6 +336,7 @@ function voiceF(f0,f1,dur,vol,dest,t,formants,vib){
   g.connect(dest);o.start(t);o.stop(t+dur+.02);
 }
 const SFX={
+  gurgleM:(t,v,d)=>gurgle(t,v,d,118),gurgleF:(t,v,d)=>gurgle(t,v,d,205),
   swing(t,v,d){burst(500,2800,.9,.13,.45*v,d,t);},
   hit(t,v,d){tone('sine',150,45,.11,.9*v,d,t);burst(1800,500,.7,.06,.5*v,d,t,'lowpass');},
   crack(t,v,d){tone('square',880,180,.05,.2*v,d,t);tone('sine',190,45,.17,1*v,d,t);burst(3200,700,.5,.09,.6*v,d,t,'lowpass');},
@@ -386,21 +387,46 @@ function babble(dur,pitch,vol){
   while(t<end){const d=rand(.07,.15),f=pitch*rand(.88,1.14);voiceF(f,f*rand(.92,1.07),d,vol,AU.tv,t,pick(VOWELS));t+=d+(Math.random()<.14?rand(.12,.24):rand(.01,.04));}
 }
 function tvSfx(name,vol){if(!AU.ctx||AU.muted)return;try{SFX[name](AU.ctx.currentTime+.002,vol===undefined?1:vol,AU.tv);}catch(e){}}
-/* Real speech when the browser offers it. Falls back to babble if the voice never starts. */
-let ttsOK=null;
+/* The broadcast is read in the device's own speech voices, flat and even like a newsreader: the best-sounding male and
+   female English voices it has, at normal speed and pitch. If the device has no speech at all, a quiet murmur stands in. */
+let ttsOK=null,newsV=null;
+function newsVoices(){
+  const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));if(!vs.length)return null;
+  const score=v=>(/natural|neural|enhanced|premium|siri/i.test(v.name)?4:0)+(/google|microsoft|samantha|daniel|alex|karen|moira/i.test(v.name)?2:0)+(/^en[-_](US|GB)/i.test(v.lang)?1:0);
+  const fem=/female|woman|samantha|karen|moira|zira|aria|jenny|susan|victoria|serena|tessa|fiona|allison|ava|sonia|libby|emma|olivia|michelle/i,mal=/\bmale|\bman\b|daniel|alex|david|guy|mark|george|ryan|fred|tom|aaron|arthur|oliver|brian|eric|christopher|roger|james/i;
+  const by=vs.slice().sort((a,b)=>score(b)-score(a)),m=by.find(v=>mal.test(v.name)&&!fem.test(v.name))||by[0],f=by.find(v=>fem.test(v.name))||by.find(v=>v!==m)||by[0];
+  return{m,f,same:m===f};
+}
 function say(text,high,dur){
-  const miss=()=>{babble(dur,high?215:118,.22);};
+  const miss=()=>{babble(dur,high?200:120,.07);};
   if(AU.muted)return;
   try{
     if(ttsOK===false||!('speechSynthesis' in window)||!window.SpeechSynthesisUtterance)return miss();
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text),vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
-    if(vs.length)u.voice=vs[high?Math.min(1,vs.length-1):0];
-    u.pitch=high?1.25:.8;u.rate=1.12;u.volume=clamp(AU.tvVol===undefined?.9:AU.tvVol,.05,1);
+    const u=new SpeechSynthesisUtterance(text);newsV=newsV||newsVoices();
+    if(newsV)u.voice=high?newsV.f:newsV.m;
+    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
     let started=false;u.onstart=()=>{started=true;ttsOK=true;};u.onerror=()=>{if(!started){ttsOK=false;}};
     speechSynthesis.speak(u);
     setTimeout(()=>{if(!started){ttsOK=false;try{speechSynthesis.cancel();}catch(e){}miss();}},650);
   }catch(e){ttsOK=false;miss();}
+}
+/* someone screaming while their throat fills: a cry that climbs, cracks and sags, fluttering faster and wetter as it goes,
+   with bubbling underneath and a choke at the end. f0 is the speaking pitch (about 120 for him, 210 for her). */
+function gurgle(t,vol,dest,f0){
+  const c=AU.ctx,dur=2.1,wet=c.createGain(),l=c.createOscillator(),lg=c.createGain();
+  wet.gain.value=.6;wet.connect(dest);
+  l.type='sawtooth';l.frequency.setValueAtTime(9,t);l.frequency.linearRampToValueAtTime(27,t+dur*.6);l.frequency.linearRampToValueAtTime(7,t+dur);
+  lg.gain.setValueAtTime(.04,t);lg.gain.linearRampToValueAtTime(.55,t+.6);l.connect(lg);lg.connect(wet.gain);l.start(t);l.stop(t+dur+.1);
+  voiceF(f0*2.3,f0*3.3,.36,.55*vol,wet,t,[950,1500,2700],6);
+  voiceF(f0*3.3,f0*2.5,.6,.6*vol,wet,t+.34,[900,1400,2600],9);
+  voiceF(f0*2.5,f0*1.5,.55,.5*vol,wet,t+.9,[700,1150],14);
+  voiceF(f0*1.5,f0*.8,.7,.4*vol,wet,t+1.4,[520,900],18);
+  burst(1800,900,1.2,.9,.12*vol,dest,t,'bandpass');                                             // breath in the scream
+  for(let i=0;i<22;i++){const tt=t+.4+Math.random()*1.6,k=(tt-t)/dur;                             // bubbles: more of them, and lower, toward the end
+    burst(rand(260,620)*(1.2-k*.5),rand(120,240),6,rand(.05,.09),.4*vol*(.5+k),dest,tt,'bandpass');
+    tone('sine',rand(90,170),rand(45,80),rand(.06,.11),.22*vol*(.5+k),dest,tt+.01);}
+  burst(520,110,2,.45,.45*vol,dest,t+dur-.25,'lowpass');                                           // the choke
 }
 function shutUp(){try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
 
@@ -1017,7 +1043,7 @@ function buildHome(){
       add(merge(it),m,0,0,0);
       const gl=new T.Mesh(hz?new T.BoxGeometry(o.w,11,.6):new T.BoxGeometry(.6,11,o.h),new T.MeshStandardMaterial({color:0x9fc4e0,transparent:true,opacity:.2,roughness:.05,metalness:.3,depthWrite:false}));
       gl.position.set(cx,15,cz);scene.add(gl);
-      if(o.kind==='fwin')fwinGlass=gl;
+      o.glass=gl;if(o.kind==='fwin')fwinGlass=gl;
       fadeable(o,[m]);
     }else if(o.kind==='door'){
       const m=vmat();add(merge([bx(o.w,5,o.h,cx,WALLH-2.5,cz,0xbfb5a2),bx(o.w+.4,1,o.h+.4,cx,WALLH+.5,cz,0x4a433c)]),m,0,0,0);
@@ -1746,6 +1772,7 @@ function figAnim(f,u,dt,now){
     if(u.hurtT>0){p.lean+=.35;p.hz=-.35;}
     if(u.lying){for(const k of PK)p[k]=0;p.sLx=-.25;p.sRx=.25;rate=40;}
   }
+  if(u.vault&&u.vault.h&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-1.25*q;p.sLz=p.sRz=1.9;p.eL=p.eR=.5;p.hL=.9*q;p.hR=.2*q;p.kL=-1.3*q;p.kR=-.5*q;p.hz=.5*q;p.by=0;p.twist=0;rate=30;}      // climbing over a window sill
   const k=1-Math.exp(-rate*dt),cu=f.cur;
   for(const key of PK)cu[key]+=(p[key]-cu[key])*k;
   J.body.position.y=cu.by;J.body.rotation.x=cu.br;
@@ -1788,7 +1815,7 @@ function tvTick(dt,audible){
   tv.t+=dt;tv.sub=null;
   if(tv.mode==='morning'){
     tv.chat-=dt;
-    if(tv.chat<=0){tv.chat=rand(2.6,3.6);tv.who=tv.who?0:1;tv.talkUntil=tv.t+2.1;if(audible)babble(2.1,tv.who?215:118,.2);}
+    if(tv.chat<=0){tv.chat=rand(2.6,3.6);tv.who=tv.who?0:1;tv.talkUntil=tv.t+2.1;if(audible)babble(2.1,tv.who?200:120,.06);}
     tvOnce('sting',.3,()=>audible&&tvSfx('sting',1));
     if(tv.t>5){tv.mode='alert';tv.t=0;tv.fired={};}
   }else if(tv.mode==='alert'){
@@ -1801,10 +1828,10 @@ function tvTick(dt,audible){
     tvOnce('thud',22.3,()=>audible&&tvSfx('bang',1));
     tvOnce('thud2',23.2,()=>audible&&tvSfx('bang',1.2));
     tvOnce('crash',CAST_IN-.3,()=>{shutUp();if(audible){tvSfx('crash',.8);tvSfx('snarl',1);}});
-    tvOnce('scream',CAST_IN+.9,()=>{if(audible){tvSfx('scream',1);tvSfx('snarl',1);}});
+    tvOnce('scream',CAST_IN+.9,()=>{if(audible){tvSfx('gurgleM',1);tvSfx('snarl',.8);}});      // Hal goes first
     tvOnce('s1',CAST_IN+1.5,()=>{if(audible)tvSfx('bite',1);tv.splats.push({x:.12,y:.24,r:.06});});
-    tvOnce('s2',CAST_IN+2.3,()=>{if(audible){tvSfx('bite',1);tvSfx('scream',.9);}tv.splats.push({x:.5,y:.16,r:.085});});
-    tvOnce('s3',CAST_IN+3.1,()=>{if(audible){tvSfx('scream',1);tvSfx('roar',.8);}tv.splats.push({x:.9,y:.3,r:.07});});
+    tvOnce('s2',CAST_IN+2.3,()=>{if(audible){tvSfx('bite',1);tvSfx('gurgleF',1);}tv.splats.push({x:.5,y:.16,r:.085});});      // then Denise
+    tvOnce('s3',CAST_IN+3.1,()=>{if(audible){tvSfx('gurgleM',.7);tvSfx('roar',.7);}tv.splats.push({x:.9,y:.3,r:.07});});
     tvOnce('s4',CAST_IN+3.7,()=>{tv.splats.push({x:.4,y:.6,r:.14});});
     tvOnce('fall',CAST_IN+3.7,()=>audible&&tvSfx('crash',1));
     tvOnce('static',CAST_STATIC,()=>audible&&tvSfx('static',1));
@@ -2098,6 +2125,7 @@ function meleeResolve(a){
   const u=L,W=MELEE[u.melee],smash=a.type===2&&u.melee!=='fists';
   const range=W.range+(smash?4:0),arc=smash?.75:W.arc;let hits=0,crits=0;
   fxArc(u.x,u.y,smash?4:12,u.ang-arc,u.ang+arc,range-10,range+2,u.melee==='fists'?0xcfd8e0:0xfff1d0,.15);
+  for(const p of PORTALS)if(!p.open&&!p.door&&hyp(p.cx-u.x,p.cy-u.y)<range+10&&Math.abs(angDiff(u.ang,Math.atan2(p.cy-u.y,p.cx-u.x)))<1.2)breakPortal(p);      // a swing at a window breaks it
   for(const z of zeds){
     if(z.dead||z.far)continue;const d=hyp(z.x-u.x,z.y-u.y);if(d>range+5)continue;
     const dir=Math.atan2(z.y-u.y,z.x-u.x);if(d>8&&Math.abs(angDiff(u.ang,dir))>arc)continue;
@@ -2161,6 +2189,7 @@ function useAid(){
   for(let i=0;i<10;i++)emit(pFire,L.x+rand(-5,5),L.y+rand(-5,5),rand(2,14),0,0,rand(10,30),3,.7,.4,1,.6,.9,0,0,0);
 }
 function youUpdate(dt){
+  if(L.vault){vaultStep(L,dt);L.atk=null;return;}      // halfway through a window: nothing else until you are over the sill
   const u=L;if(u.dead){u.deadT+=dt;return;}
   u.inv=Math.max(0,u.inv-dt);u.hurtT=Math.max(0,u.hurtT-dt);u.shootT+=dt;u.shootCD-=dt;u.dashCD-=dt;u.comboT-=dt;u.wantAtk-=dt;
   if(u.lying){u.spd=0;if(hyp(input.mx,input.my)>.3||input.atkP||input.dashP)getUp();return;}
@@ -2200,6 +2229,10 @@ function youUpdate(dt){
   let mx=u.vx+u.kx,my=u.vy+u.ky;
   if(u.lungeT>0){u.lungeT-=dt;mx+=u.lvx;my+=u.lvy;}
   slide(u,mx*dt,my*dt,5.5);
+  // push into a broken window and you climb through it
+  if(moving&&!u.atk&&u.dashT<=0){const m=hyp(input.mx,input.my)||1,uin=inHouse(u.x,u.y);
+    for(const p of PORTALS){if(p.door||!p.open)continue;const n=uin?p.in:p.out,f=uin?p.out:p.in;
+      if(Math.abs(p.hz?u.x-p.cx:u.y-p.cy)<(p.hz?p.o.w:p.o.h)/2-3&&Math.abs(p.hz?u.y-p.cy:u.x-p.cx)<14&&((f.x-n.x)*input.mx+(f.y-n.y)*input.my)/m>12){u.vault={t:0,dur:.75,ax:u.x,ay:u.y,bx:f.x,by:f.y,h:7};sfx('step');break;}}}
   const kk=Math.exp(-8*dt);u.kx*=kk;u.ky*=kk;
   u.spd=hyp(u.vx,u.vy);
   if(!u.atk&&u.shootT>.35&&moving&&u.anim!=='crank')u.ang=turn(u.ang,Math.atan2(input.my,input.mx),dt*14);
@@ -2260,6 +2293,8 @@ function zUpdate(z,dt){
   if(z.stag>0){z.spd=0;return;}
   z.senseT-=dt;if(z.senseT<=0&&!z.script){z.senseT=.3;zSense(z);}
   if(z.script&&z.script(z,dt)!==true)return;
+  if(z.vault){vaultStep(z,dt);return;}
+  if(z.state==='chase'&&z.tgt&&!z.tgt.dead&&!z.tgt.safe&&!z.as&&breach(z,z.tgt,dt,z.speed,true))return;
   // attack: wind up (you can see it coming), strike, recover
   if(z.as){
     z.at+=dt;z.spd=0;const t=z.tgt,Z=ZT[z.ztype];
@@ -2309,6 +2344,60 @@ function zUpdate(z,dt){
     const sp=Math.min(speed,d/dt);
     slide(z,Math.cos(z.ang)*sp*dt,Math.sin(z.ang)*sp*dt,5);z.spd=sp;
   }else z.spd=0;
+}
+/* ---- the shell of your house: walls stop everyone. The front door and the windows are the only ways through.
+   A window has to be broken first and is then climbed through; a shut door gets pounded on until it gives. ---- */
+let PORTALS=[];
+const portalOf=o=>PORTALS.find(p=>p.o===o);
+function setupPortals(){
+  if(!PORTALS.length)for(const o of objs)if(o.home&&(o.kind==='window'||o.kind==='fwin'||o.kind==='door')){
+    const hz=o.w>o.h,cx=o.x+o.w/2,cy=o.y+o.h/2,s=hz?(cy<(HS.y0+HS.y1)/2?1:-1):(cx<(HS.x0+HS.x1)/2?1:-1);
+    PORTALS.push({o,door:o.kind==='door',cx,cy,hz,gi:hz?{x:cx,y:cy+s*13}:{x:cx+s*13,y:cy},go:hz?{x:cx,y:cy-s*13}:{x:cx-s*13,y:cy}});
+  }
+  // where you land on each side: the nearest clear floor that is still on that side of the wall
+  const land=(g,inside)=>{for(let r=0;r<=44;r+=6){const n=Math.max(1,Math.round(r*.9));for(let k=0;k<n;k++){const a=k/n*TAU,x=g.x+Math.cos(a)*r,y=g.y+Math.sin(a)*r;if(inHouse(x,y)===inside&&isFree(x,y,7))return{x,y};}}return g;};
+  for(const p of PORTALS){p.open=false;p.hp=p.door?130:30;p.rattle=0;p.in=land(p.gi,true);p.out=land(p.go,false);if(p.o.glass)p.o.glass.visible=true;}
+}
+function breakPortal(p,quiet){
+  if(!p||p.open)return;p.open=true;p.hp=0;
+  if(p.door){EV.doorOpen=true;removeObj(fdoor);if(!quiet){sfx('crash',p.cx,p.cy,1);shake(2);caption('The front door gives way.',null,2600);makeNoise(p.cx,p.cy,160);}}
+  else{if(p.o.glass)p.o.glass.visible=false;
+    if(!quiet){sfx('glass',p.cx,p.cy,1,700);makeNoise(p.cx,p.cy,200);
+      for(let i=0;i<22;i++)emit(pDrop,p.cx+rand(-16,16)*(p.hz?1:.15),p.cy+rand(-16,16)*(p.hz?.15:1),rand(10,20),rand(-30,30),rand(-30,30),rand(0,40),rand(1.2,2.4),rand(.5,1),.8,.9,1,.9,260,0,0,1);
+      for(let i=0;i<5;i++)decal(p.in.x+rand(-10,10),p.in.y+rand(-8,8),rand(2,4),.5,0xbfd8e6);}}
+}
+function hitPortal(p,dmg){if(p.open)return;p.hp-=dmg;p.rattle=.25;sfx('bang',p.cx,p.cy,.8);if(p.hp<=0)breakPortal(p);}
+/* walk to a point, round corners if the straight line is blocked */
+function goTo(u,x,y,speed,dt){
+  let tx=x,ty=y;
+  if(!clearLine(u.x,u.y,x,y)){
+    if(!u.bp||u.bpT<simT||hyp(u.bpx-x,u.bpy-y)>12){u.bp=findPath(u.x,u.y,x,y);u.bpT=simT+1.5;u.bpx=x;u.bpy=y;u.bi=0;}
+    const P=u.bp;if(P&&P.length){while(u.bi<P.length-1&&hyp(P[u.bi].x-u.x,P[u.bi].y-u.y)<8)u.bi++;tx=P[u.bi].x;ty=P[u.bi].y;}
+  }
+  const dx=tx-u.x,dy=ty-u.y,d=hyp(dx,dy)||1,sp=Math.min(speed,d/dt);
+  u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);slide(u,dx/d*sp*dt,dy/d*sp*dt,5);u.spd=sp;
+}
+function vaultStep(u,dt){
+  const v=u.vault;v.t+=dt;const k=clamp(v.t/v.dur,0,1),e=ease(k);
+  u.x=lerp(v.ax,v.bx,e);u.y=lerp(v.ay,v.by,e);u.z=Math.sin(PI*k)*v.h;u.ang=Math.atan2(v.by-v.ay,v.bx-v.ax);u.spd=0;u.vx=u.vy=0;
+  if(k>=1){u.z=0;u.vault=null;}
+}
+/* u wants to reach t on the other side of the house wall. Returns true while it is busy getting through. */
+function breach(u,t,dt,speed,bang){
+  const uin=inHouse(u.x,u.y),tin=inHouse(t.x,t.y);
+  if(uin===tin){if(u.port){u.port=null;if(u.anim==='bang')u.anim=null;}return false;}
+  let p=u.port;
+  if(!p||(u.portT||0)<simT){let bc=1e9,was=p;p=null;
+    for(const q of PORTALS){if(u.doorOnly&&!q.door)continue;if(!bang&&!q.open)continue;
+      const n=uin?q.in:q.out,f=uin?q.out:q.in,c=hyp(n.x-u.x,n.y-u.y)+hyp(f.x-t.x,f.y-t.y)+(q.open?0:q.door?q.hp*1.6:55)+(q===was?-25:0);if(c<bc){bc=c;p=q;}}
+    u.port=p;u.portT=simT+2;}
+  if(!p)return false;
+  const n=uin?p.in:p.out,f=uin?p.out:p.in,d=hyp(n.x-u.x,n.y-u.y);
+  if(d>6){if(u.anim==='bang')u.anim=null;goTo(u,n.x,n.y,speed,dt);return true;}
+  u.ang=turn(u.ang,Math.atan2(f.y-n.y,f.x-n.x),dt*10);u.spd=0;
+  if(p.open){if(u.anim==='bang')u.anim=null;u.vault={t:0,dur:p.door?.5:u.kind==='z'?(u.ztype==='runner'?.8:1.5):.75,ax:u.x,ay:u.y,bx:f.x,by:f.y,h:p.door?0:7};u.port=null;}
+  else{u.anim='bang';u.bangT=(u.bangT||0)-dt;if(u.bangT<=0){u.bangT=u.ztype==='brute'?.7:rand(.55,.9);hitPortal(p,u.ztype==='brute'?45:u.ztype==='runner'?9:7);}}
+  return true;
 }
 function separate(){
   const zs=zeds.filter(z=>!z.dead&&!z.far&&z.anim!=='tramp');
@@ -2399,6 +2488,8 @@ function moveTo(a,tx,ty,speed,dt){
 }
 const SLOTS=[[-22,13],[-22,-13],[-40,26],[-40,-26],[-56,0]];
 function allyUpdate(a,dt,i){
+  if(a.vault){vaultStep(a,dt);return;}
+  if(a.recruited&&!a.dead&&!a.safe&&!a.hold&&breach(a,L,dt,a.speed,false))return;      // follow you through an open door or a broken window
   if(a.dead){a.deadT+=dt;return;}
   a.hurtT=Math.max(0,a.hurtT-dt);
   if(a.kx||a.ky){slide(a,a.kx*dt,a.ky*dt,5);const k=Math.exp(-8*dt);a.kx*=k;a.ky*=k;}
@@ -2460,7 +2551,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  fwinGlass.visible=true;doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -2500,7 +2591,7 @@ function reset(fromDoor){
   Z('shambler',300,200);Z('shambler',440,170);Z('shambler',250,150);
   if(fromDoor){
     tv.mode='dead';tv.done=true;EV.tvSeen=true;EV.up=true;EV.armed=true;EV.breakIn=true;EV.z0={dead:true};
-    removeObj(fwin);fwinGlass.visible=false;removeObj(fdoor);EV.doorOpen=true;EV.doorK=1;doorPivot.rotation.y=1.9;
+    breakPortal(portalOf(fwin),true);breakPortal(portalOf(fdoor),true);EV.doorK=1;doorPivot.rotation.y=1.9;
     L.lying=false;L.lyingH=0;L.x=361;L.y=1236;L.melee='bat';L.has.pistol=true;L.ammo.pistol=8;L.aid=1;setWeapon(L.fig,'bat');
     for(const it of items.slice(0,3)){it.taken=true;scene.remove(it.m);scene.remove(it.g);}
     if(bedBlanket)bedBlanket.position.set(0,-1.4,6);
@@ -2542,7 +2633,7 @@ function script(dt){
   if(EV.breakT>=0&&!EV.breakIn){
     EV.breakT-=dt;
     if(EV.breakT<=0){
-      EV.breakIn=true;removeObj(fwin);fwinGlass.visible=false;sfx('glass',310,1222,1,700);makeNoise(310,1222,200);
+      EV.breakIn=true;breakPortal(portalOf(fwin));EV.knockT=5;
       for(let i=0;i<26;i++)emit(pDrop,310+rand(-18,18),1224,rand(10,20),rand(-30,30),rand(10,70),rand(0,40),rand(1.2,2.4),rand(.5,1),.8,.9,1,.9,260,0,0,1);
       for(let i=0;i<6;i++)decal(310+rand(-16,16),1234+rand(0,14),rand(2,4),.5,0xbfd8e6);
       const z=mkZed('runner',310,1208,{look:0});
@@ -2553,9 +2644,12 @@ function script(dt){
   }
   /* 2. the front door */
   if(!EV.doorOpen&&EV.breakIn&&L.y<1262&&hyp(L.x-361,L.y-1232)<26&&(!EV.z0||EV.z0.dead||simT>EV.z0.track-78)){
-    EV.doorOpen=true;removeObj(fdoor);sfx('bang',361,1223,.8);
-    const z=mkZed('shambler',361,1205,{look:2});if(z){z.state='chase';z.tgt=L;z.ang=PI/2;z.atkCD=.6;}
+    breakPortal(portalOf(fdoor),true);sfx('bang',361,1223,.8);      // you open it yourself
+    if(!EV.knock||EV.knock.dead){const z=mkZed('shambler',361,1205,{look:2});if(z){z.state='chase';z.tgt=L;z.ang=PI/2;z.atkCD=.6;}}
   }
+  // something comes to the front door and pounds on it until it gives
+  if(EV.knockT>0&&!EV.doorOpen){EV.knockT-=dt;if(EV.knockT<=0){const z=mkZed('shambler',361,1200,{look:2});if(z){z.state='chase';z.tgt=L;z.track=simT+150;z.doorOnly=true;z.ang=PI/2;EV.knock=z;caption('Something is pounding on the front door.',null,3200);}}}
+  if(!EV.doorOpen){const pd=portalOf(fdoor);if(pd&&pd.rattle>0){pd.rattle-=dt;doorPivot.rotation.y=Math.sin(simT*70)*.05*pd.rattle/.25;}else doorPivot.rotation.y=0;}
   if(EV.doorOpen&&EV.doorK<1){EV.doorK=Math.min(1,EV.doorK+dt*3);doorPivot.rotation.y=ease(EV.doorK)*1.9;}
   /* 3. outside */
   if(!EV.out&&L.y<1216&&!inHouse(L.x,L.y)){

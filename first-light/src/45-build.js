@@ -129,7 +129,7 @@ function buildHome(){
       add(merge(it),m,0,0,0);
       const gl=new T.Mesh(hz?new T.BoxGeometry(o.w,11,.6):new T.BoxGeometry(.6,11,o.h),new T.MeshStandardMaterial({color:0x9fc4e0,transparent:true,opacity:.2,roughness:.05,metalness:.3,depthWrite:false}));
       gl.position.set(cx,15,cz);scene.add(gl);
-      if(o.kind==='fwin')fwinGlass=gl;
+      o.glass=gl;if(o.kind==='fwin')fwinGlass=gl;
       fadeable(o,[m]);
     }else if(o.kind==='door'){
       const m=vmat();add(merge([bx(o.w,5,o.h,cx,WALLH-2.5,cz,0xbfb5a2),bx(o.w+.4,1,o.h+.4,cx,WALLH+.5,cz,0x4a433c)]),m,0,0,0);

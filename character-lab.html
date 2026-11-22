@@ -728,6 +728,7 @@ function figAnim(f,u,dt,now){
     if(u.hurtT>0){p.lean+=.35;p.hz=-.35;}
     if(u.lying){for(const k of PK)p[k]=0;p.sLx=-.25;p.sRx=.25;rate=40;}
   }
+  if(u.vault&&u.vault.h&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-1.25*q;p.sLz=p.sRz=1.9;p.eL=p.eR=.5;p.hL=.9*q;p.hR=.2*q;p.kL=-1.3*q;p.kR=-.5*q;p.hz=.5*q;p.by=0;p.twist=0;rate=30;}      // climbing over a window sill
   const k=1-Math.exp(-rate*dt),cu=f.cur;
   for(const key of PK)cu[key]+=(p[key]-cu[key])*k;
   J.body.position.y=cu.by;J.body.rotation.x=cu.br;

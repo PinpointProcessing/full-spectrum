@@ -39,6 +39,7 @@ function voiceF(f0,f1,dur,vol,dest,t,formants,vib){
   g.connect(dest);o.start(t);o.stop(t+dur+.02);
 }
 const SFX={
+  gurgleM:(t,v,d)=>gurgle(t,v,d,118),gurgleF:(t,v,d)=>gurgle(t,v,d,205),
   swing(t,v,d){burst(500,2800,.9,.13,.45*v,d,t);},
   hit(t,v,d){tone('sine',150,45,.11,.9*v,d,t);burst(1800,500,.7,.06,.5*v,d,t,'lowpass');},
   crack(t,v,d){tone('square',880,180,.05,.2*v,d,t);tone('sine',190,45,.17,1*v,d,t);burst(3200,700,.5,.09,.6*v,d,t,'lowpass');},
@@ -89,21 +90,46 @@ function babble(dur,pitch,vol){
   while(t<end){const d=rand(.07,.15),f=pitch*rand(.88,1.14);voiceF(f,f*rand(.92,1.07),d,vol,AU.tv,t,pick(VOWELS));t+=d+(Math.random()<.14?rand(.12,.24):rand(.01,.04));}
 }
 function tvSfx(name,vol){if(!AU.ctx||AU.muted)return;try{SFX[name](AU.ctx.currentTime+.002,vol===undefined?1:vol,AU.tv);}catch(e){}}
-/* Real speech when the browser offers it. Falls back to babble if the voice never starts. */
-let ttsOK=null;
+/* The broadcast is read in the device's own speech voices, flat and even like a newsreader: the best-sounding male and
+   female English voices it has, at normal speed and pitch. If the device has no speech at all, a quiet murmur stands in. */
+let ttsOK=null,newsV=null;
+function newsVoices(){
+  const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));if(!vs.length)return null;
+  const score=v=>(/natural|neural|enhanced|premium|siri/i.test(v.name)?4:0)+(/google|microsoft|samantha|daniel|alex|karen|moira/i.test(v.name)?2:0)+(/^en[-_](US|GB)/i.test(v.lang)?1:0);
+  const fem=/female|woman|samantha|karen|moira|zira|aria|jenny|susan|victoria|serena|tessa|fiona|allison|ava|sonia|libby|emma|olivia|michelle/i,mal=/\bmale|\bman\b|daniel|alex|david|guy|mark|george|ryan|fred|tom|aaron|arthur|oliver|brian|eric|christopher|roger|james/i;
+  const by=vs.slice().sort((a,b)=>score(b)-score(a)),m=by.find(v=>mal.test(v.name)&&!fem.test(v.name))||by[0],f=by.find(v=>fem.test(v.name))||by.find(v=>v!==m)||by[0];
+  return{m,f,same:m===f};
+}
 function say(text,high,dur){
-  const miss=()=>{babble(dur,high?215:118,.22);};
+  const miss=()=>{babble(dur,high?200:120,.07);};
   if(AU.muted)return;
   try{
     if(ttsOK===false||!('speechSynthesis' in window)||!window.SpeechSynthesisUtterance)return miss();
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text),vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
-    if(vs.length)u.voice=vs[high?Math.min(1,vs.length-1):0];
-    u.pitch=high?1.25:.8;u.rate=1.12;u.volume=clamp(AU.tvVol===undefined?.9:AU.tvVol,.05,1);
+    const u=new SpeechSynthesisUtterance(text);newsV=newsV||newsVoices();
+    if(newsV)u.voice=high?newsV.f:newsV.m;
+    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
     let started=false;u.onstart=()=>{started=true;ttsOK=true;};u.onerror=()=>{if(!started){ttsOK=false;}};
     speechSynthesis.speak(u);
     setTimeout(()=>{if(!started){ttsOK=false;try{speechSynthesis.cancel();}catch(e){}miss();}},650);
   }catch(e){ttsOK=false;miss();}
+}
+/* someone screaming while their throat fills: a cry that climbs, cracks and sags, fluttering faster and wetter as it goes,
+   with bubbling underneath and a choke at the end. f0 is the speaking pitch (about 120 for him, 210 for her). */
+function gurgle(t,vol,dest,f0){
+  const c=AU.ctx,dur=2.1,wet=c.createGain(),l=c.createOscillator(),lg=c.createGain();
+  wet.gain.value=.6;wet.connect(dest);
+  l.type='sawtooth';l.frequency.setValueAtTime(9,t);l.frequency.linearRampToValueAtTime(27,t+dur*.6);l.frequency.linearRampToValueAtTime(7,t+dur);
+  lg.gain.setValueAtTime(.04,t);lg.gain.linearRampToValueAtTime(.55,t+.6);l.connect(lg);lg.connect(wet.gain);l.start(t);l.stop(t+dur+.1);
+  voiceF(f0*2.3,f0*3.3,.36,.55*vol,wet,t,[950,1500,2700],6);
+  voiceF(f0*3.3,f0*2.5,.6,.6*vol,wet,t+.34,[900,1400,2600],9);
+  voiceF(f0*2.5,f0*1.5,.55,.5*vol,wet,t+.9,[700,1150],14);
+  voiceF(f0*1.5,f0*.8,.7,.4*vol,wet,t+1.4,[520,900],18);
+  burst(1800,900,1.2,.9,.12*vol,dest,t,'bandpass');                                             // breath in the scream
+  for(let i=0;i<22;i++){const tt=t+.4+Math.random()*1.6,k=(tt-t)/dur;                             // bubbles: more of them, and lower, toward the end
+    burst(rand(260,620)*(1.2-k*.5),rand(120,240),6,rand(.05,.09),.4*vol*(.5+k),dest,tt,'bandpass');
+    tone('sine',rand(90,170),rand(45,80),rand(.06,.11),.22*vol*(.5+k),dest,tt+.01);}
+  burst(520,110,2,.45,.45*vol,dest,t+dur-.25,'lowpass');                                           // the choke
 }
 function shutUp(){try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
 

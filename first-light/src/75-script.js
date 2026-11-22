@@ -22,7 +22,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  fwinGlass.visible=true;doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -62,7 +62,7 @@ function reset(fromDoor){
   Z('shambler',300,200);Z('shambler',440,170);Z('shambler',250,150);
   if(fromDoor){
     tv.mode='dead';tv.done=true;EV.tvSeen=true;EV.up=true;EV.armed=true;EV.breakIn=true;EV.z0={dead:true};
-    removeObj(fwin);fwinGlass.visible=false;removeObj(fdoor);EV.doorOpen=true;EV.doorK=1;doorPivot.rotation.y=1.9;
+    breakPortal(portalOf(fwin),true);breakPortal(portalOf(fdoor),true);EV.doorK=1;doorPivot.rotation.y=1.9;
     L.lying=false;L.lyingH=0;L.x=361;L.y=1236;L.melee='bat';L.has.pistol=true;L.ammo.pistol=8;L.aid=1;setWeapon(L.fig,'bat');
     for(const it of items.slice(0,3)){it.taken=true;scene.remove(it.m);scene.remove(it.g);}
     if(bedBlanket)bedBlanket.position.set(0,-1.4,6);
@@ -104,7 +104,7 @@ function script(dt){
   if(EV.breakT>=0&&!EV.breakIn){
     EV.breakT-=dt;
     if(EV.breakT<=0){
-      EV.breakIn=true;removeObj(fwin);fwinGlass.visible=false;sfx('glass',310,1222,1,700);makeNoise(310,1222,200);
+      EV.breakIn=true;breakPortal(portalOf(fwin));EV.knockT=5;
       for(let i=0;i<26;i++)emit(pDrop,310+rand(-18,18),1224,rand(10,20),rand(-30,30),rand(10,70),rand(0,40),rand(1.2,2.4),rand(.5,1),.8,.9,1,.9,260,0,0,1);
       for(let i=0;i<6;i++)decal(310+rand(-16,16),1234+rand(0,14),rand(2,4),.5,0xbfd8e6);
       const z=mkZed('runner',310,1208,{look:0});
@@ -115,9 +115,12 @@ function script(dt){
   }
   /* 2. the front door */
   if(!EV.doorOpen&&EV.breakIn&&L.y<1262&&hyp(L.x-361,L.y-1232)<26&&(!EV.z0||EV.z0.dead||simT>EV.z0.track-78)){
-    EV.doorOpen=true;removeObj(fdoor);sfx('bang',361,1223,.8);
-    const z=mkZed('shambler',361,1205,{look:2});if(z){z.state='chase';z.tgt=L;z.ang=PI/2;z.atkCD=.6;}
+    breakPortal(portalOf(fdoor),true);sfx('bang',361,1223,.8);      // you open it yourself
+    if(!EV.knock||EV.knock.dead){const z=mkZed('shambler',361,1205,{look:2});if(z){z.state='chase';z.tgt=L;z.ang=PI/2;z.atkCD=.6;}}
   }
+  // something comes to the front door and pounds on it until it gives
+  if(EV.knockT>0&&!EV.doorOpen){EV.knockT-=dt;if(EV.knockT<=0){const z=mkZed('shambler',361,1200,{look:2});if(z){z.state='chase';z.tgt=L;z.track=simT+150;z.doorOnly=true;z.ang=PI/2;EV.knock=z;caption('Something is pounding on the front door.',null,3200);}}}
+  if(!EV.doorOpen){const pd=portalOf(fdoor);if(pd&&pd.rattle>0){pd.rattle-=dt;doorPivot.rotation.y=Math.sin(simT*70)*.05*pd.rattle/.25;}else doorPivot.rotation.y=0;}
   if(EV.doorOpen&&EV.doorK<1){EV.doorK=Math.min(1,EV.doorK+dt*3);doorPivot.rotation.y=ease(EV.doorK)*1.9;}
   /* 3. outside */
   if(!EV.out&&L.y<1216&&!inHouse(L.x,L.y)){
