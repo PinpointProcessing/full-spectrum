@@ -70,7 +70,7 @@ const tg=(g,sx,sy,sz,x,y,z,rx,ry,rz)=>{g.scale(sx,sy,sz);if(rx)g.rotateX(rx);if(
 const STYLES=[
   {id:'grounded',name:'Grounded',heads:6.85,wSh:1.04,wChest:1.03,wWaist:1,wHip:1,depth:1,neck:1.05,thArm:1.04,thFore:1.04,thLeg:1,hand:1.04,foot:1.03,head:{jaw:1.03,chin:1.08,cran:1,eye:1,nose:1}},
 ];
-const LOOK={skin:0xd6a47e,tee:0xd8d5cc,trim:0x9a2f2a,pants:0x2f3b55,pstripe:0x46557c,shoe:0xe9e5db,sole:0x6f6b62,toe:0xcfcbc0,sock:0xcfcfcf,hair:0x2e2118,brow:0x1f1711,iris:0x47698c,lip:0xa8675a,stubble:0x5e4a40,watch:0x1c1c20};
+const LOOK={skin:0xd6a47e,tee:0xd8d5cc,trim:0x9a2f2a,pants:0x2f3b55,pstripe:0x46557c,shoe:0xe9e5db,sole:0x6f6b62,toe:0xcfcbc0,sock:0xcfcfcf,hair:0x2e2118,brow:0x2b1f17,iris:0x47698c,lip:0xa8675a,stubble:0x5e4a40,watch:0x1c1c20};
 
 function painter(S,L,seed){
   const out=new T.Color(),flat=S.shade==='toon'||S.flat;
@@ -208,21 +208,19 @@ function buildHead(S,L,seed,Hh){
   for(const s of[1,-1]){
     if(simple)el(.014,.05*eS*.72,.024*eS*.72,ex+.004,eyeY,s*eyeZ,0x121214,s*-yaw);
     else{
-      const lid=new T.Color(L.skin).multiplyScalar(.9).getHex();
-      el(.02,.03*eS*tall,.054*eS,ex-.004,eyeY,s*eyeZ,0xf2efe8,s*-yaw);                    // white
-      el(.012,.022*eS*tall,.022*eS,ex+.011,eyeY-.002,s*(eyeZ-.004),L.iris,s*-yaw);        // iris
-      el(.008,.011*eS*tall,.011*eS,ex+.018,eyeY-.002,s*(eyeZ-.004),0x0a0a0c);             // pupil
-      el(.025,.018*eS*tall,.062*eS,ex-.005,eyeY+.03*eS*tall,s*eyeZ,lid,s*-yaw);           // upper lid
-      el(.02,.01*eS,.056*eS,ex-.008,eyeY-.034*eS*tall,s*eyeZ,lid,s*-yaw);                 // lower lid
+      el(.02,.027*eS*tall,.052*eS,ex-.012,eyeY,s*eyeZ,0xf2efe8,s*-yaw);                   // white, set into the socket
+      el(.012,.021*eS*tall,.021*eS,ex+.004,eyeY-.001,s*(eyeZ-.003),L.iris,s*-yaw);        // iris
+      el(.008,.0105*eS*tall,.0105*eS,ex+.011,eyeY-.001,s*(eyeZ-.003),0x0a0a0c);           // pupil
+      el(.015,.007*eS,.058*eS,ex+.001,eyeY+.024*eS*tall,s*eyeZ,0x1a120e,s*-yaw);          // upper lid line
     }
-    box(.03,.022*(simple?.8:1),.15*(simple?.8:1),bx0+(simple?.004:.014),browY,s*eyeZ,L.brow,s*-.1,s*-yaw);
+    box(.022,.017*(simple?.8:1),.15*(simple?.8:1),bx0+(simple?.004:.012),browY,s*eyeZ,L.brow,s*-.1,s*-yaw);
   }
   // nose: bridge, tip and nostrils as soft shapes, so it reads through shading and not as a dark patch
   if(hd.nose){
     const nS=hd.nose,sc=new T.Color(L.skin).multiplyScalar(.985).getHex();
-    el(.03*nS,.095,.026*nS,frontX(.45)+.002*nS,.455,0,sc);
-    el(.04*nS,.034*nS,.038*nS,frontX(.372)+.022*nS,.376,0,sc);
-    for(const s of[1,-1])el(.022*nS,.02*nS,.022*nS,frontX(.356)+.002,.358,s*.034*nS,new T.Color(L.skin).multiplyScalar(.95).getHex());
+    el(.024*nS,.09,.022*nS,frontX(.45)-.006,.455,0,sc);
+    el(.034*nS,.03*nS,.034*nS,frontX(.372)+.015*nS,.376,0,sc);
+    for(const s of[1,-1])el(.018*nS,.016*nS,.02*nS,frontX(.356)-.003,.36,s*.03*nS,new T.Color(L.skin).multiplyScalar(.95).getHex());
   }
   // mouth: two soft lips with a dark line between them
   const my=rd>.4?.2:.215,mx=frontX(my);
@@ -240,7 +238,7 @@ function buildHead(S,L,seed,Hh){
     const yn=.14+(.992-.14)*(i/HR),p=hp(yn),cx=(p[1]+p[2])/2,rr=(p[1]-p[2])/2;
     hs.push({c:[(cx-PX)*Hh,(yn-PY)*Hh,0],rf:rr*Hh,rb:rr*Hh,rz:p[3]*Hh,n:p[4],w:[0,0,0],yn,
       mod:(a,x,y,z)=>{const A=a>PI?TAU-a:a,inn=yn>hl(A),ox=x-(-.02-PX)*Hh,oy=y-(.52-PY)*Hh,d=Math.hypot(ox,oy,z)||1;
-        const full=.034+.04*sstep(.72,.95,yn)+.018*sstep(1.9,1,A)*sstep(.7,.85,yn)+(flat?0:(vnoise(a*3,yn*9,seed)-.5)*.02),t=lerp(-.014,full,sstep(hl(A)-.015,hl(A)+.075,yn))*Hh;
+        const full=.034+.04*sstep(.72,.95,yn)+.018*sstep(1.9,1,A)*sstep(.7,.85,yn)+(flat?0:(vnoise(a*3,yn*9,seed)-.5)*.02),t=lerp(-.07,full,sstep(hl(A)-.05,hl(A)+.07,yn))*Hh;
         return[x+ox/d*t+(inn&&A<1?.02*Hh*sstep(.76,.86,yn)*(1-sstep(.9,1,yn)):0),y+oy/d*t,z+z/d*t];}});
   }
   mb.loft(hs,S.flat?16:32,(r,a,x,y,z)=>{tmp.copy(hair);if(!flat)tmp.multiplyScalar(.8+vnoise(a*5,r.yn*3+seed,seed)*.4);return tmp;},'y',false,true);
