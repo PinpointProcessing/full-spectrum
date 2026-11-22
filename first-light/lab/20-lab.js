@@ -1,34 +1,37 @@
-/* The lab stage: the drafts side by side, or one at a time on a turntable. */
+/* The lab stage: the cast or the zombies side by side, or one figure at a time on a turntable. Figures are sculpted one per frame so the page stays alive while they build. */
 scene.fog=null;scene.background=new T.Color(0x24272e);
 renderer.toneMappingExposure=1.0;
-let pose='stand',spin=-.45,spinOn=false,gameView=false,slow=false,bat=true,camPitch=.1,zoomK=1,swingT=0,focus=-1;
+let pose='stand',spin=-.45,spinOn=false,gameView=false,slow=false,bat=true,camPitch=.1,zoomK=1,swingT=0,focus='cast';
 {
   const floor=new T.Mesh(new T.CircleGeometry(500,64),new T.ShadowMaterial({opacity:.4}));floor.rotation.x=-PI/2;floor.receiveShadow=true;scene.add(floor);
   const disc=new T.Mesh(new T.CircleGeometry(500,64),new T.MeshBasicMaterial({color:0x2d3139}));disc.rotation.x=-PI/2;disc.position.y=-.05;scene.add(disc);
   scene.add(new T.HemisphereLight(0xe6ecff,0x3a332d,.78));
   const key=new T.DirectionalLight(0xfff3e4,.9);key.position.set(70,130,110);key.castShadow=true;key.shadow.mapSize.set(2048,2048);
-  Object.assign(key.shadow.camera,{left:-42,right:42,top:40,bottom:-25,near:20,far:400});key.shadow.bias=-.0008;key.shadow.normalBias=.3;key.shadow.radius=3;scene.add(key);
+  Object.assign(key.shadow.camera,{left:-46,right:46,top:44,bottom:-25,near:20,far:400});key.shadow.bias=-.0008;key.shadow.normalBias=.3;key.shadow.radius=3;scene.add(key);
   const fill=new T.DirectionalLight(0xb4c8ff,.34);fill.position.set(-90,40,70);scene.add(fill);
   const rim=new T.DirectionalLight(0xffd0a0,.5);rim.position.set(-30,70,-120);scene.add(rim);
 }
-const figs=STYLES.map(S=>makeFig({style:S})),units=figs.map(()=>({x:0,y:0,ang:PI/2,spd:0,atk:null,ready:false})),GAP=11.5;
-for(const f of figs)setWeapon(f,'bat');
-$('#busy').hidden=true;
-const mkLbl=(n,t)=>{const d=document.createElement('div');d.className='lbl';d.innerHTML=(n?'<b>'+n+'</b>':'')+'<span>'+t+'</span>';stage.appendChild(d);return d;};
-const lbls=figs.map((f,i)=>mkLbl(i+1,f.S.name));
-const tabs=$('#tabs'),mkTab=(i,html)=>{const b=document.createElement('button');b.innerHTML=html;b.addEventListener('click',()=>setFocus(i));tabs.appendChild(b);return b;};
-const tabB=[mkTab(-1,'All')].concat(figs.map((f,i)=>mkTab(i,'<b>'+(i+1)+'</b>'+f.S.name)));
-function setFocus(i){
-  focus=i;tabB.forEach((b,k)=>b.classList.toggle('on',k===i+1));
-  $('#info .n').textContent=i<0?'Round 4 · four drafts':'Draft '+(i+1)+' of '+figs.length;
-  $('#info h2').textContent=i<0?'Line-up':figs[i].S.name;
-  $('#info p').textContent=i<0?'Four body and head types for the main character, all in plain clothes. 1 and 2 are big-headed cartoon builds, 3 and 4 are the smooth mannequin build. Pick a number to see one up close.':figs[i].S.blurb;
-  figs.forEach((f,k)=>{f.g.visible=i<0||k===i;units[k].x=i<0?(k-(figs.length-1)/2)*GAP:0;});
+const GAP=12,GROUPS={cast:'The cast',zed:'Zombies'},figs=STYLES.map(()=>null),units=STYLES.map(()=>({x:0,y:0,ang:PI/2,spd:0,atk:null,ready:false}));
+const members=g=>STYLES.map((S,i)=>i).filter(i=>STYLES[i].group===g);
+const mkLbl=(n,t)=>{const d=document.createElement('div');d.className='lbl';d.innerHTML='<b>'+n+'</b><span>'+t+'</span>';stage.appendChild(d);return d;};
+const lbls=STYLES.map((S,i)=>mkLbl(i+1,S.name));
+const tabs=$('#tabs'),tabB={};
+const mkTab=(key,html)=>{const b=document.createElement('button');b.innerHTML=html;b.addEventListener('click',()=>setFocus(key));tabs.appendChild(b);tabB[key]=b;};
+for(const g in GROUPS)mkTab(g,GROUPS[g]);
+STYLES.forEach((S,i)=>mkTab(i,'<b>'+(i+1)+'</b>'+S.name));
+function setFocus(k){
+  focus=k;for(const key in tabB)tabB[key].classList.toggle('on',String(key)===String(k));
+  const grp=typeof k==='string',ids=grp?members(k):[k];
+  $('#info .n').textContent=grp?'Round 5 · your two picks as the cast':(STYLES[k].group==='zed'?'Zombie':'Survivor')+' · '+(STYLES[k].build==='brawler'?'Brawler build':'round-head build');
+  $('#info h2').textContent=grp?GROUPS[k]:STYLES[k].name;
+  $('#info p').textContent=grp?(k==='cast'?'You, Walt and Officer Dunn are on the Brawler build. Jules and Marisol are on the slimmer round-headed build. Pick a number to see one up close.':'A shambler on the round-headed build, a runner on a leaner Brawler, and Big Earl, the Brawler scaled up.'):STYLES[k].blurb;
+  STYLES.forEach((S,i)=>{const on=ids.includes(i);if(figs[i])figs[i].g.visible=on;units[i].x=on?(ids.indexOf(i)-(ids.length-1)/2)*GAP:0;units[i].on=on;});
 }
 function setPose(p){pose=p;swingT=0;for(const o of document.querySelectorAll('#poses [data-pose]'))o.classList.toggle('on',o.dataset.pose===p);}
 for(const b of document.querySelectorAll('#poses [data-pose]'))b.addEventListener('click',()=>setPose(b.dataset.pose));
 const tog=(id,fn)=>$(id).addEventListener('click',()=>{$(id).classList.toggle('on',fn());});
-tog('#batBtn',()=>{bat=!bat;for(const f of figs)setWeapon(f,bat?'bat':null);return bat;});
+const arm=f=>{if(f&&!f.S.zed)setWeapon(f,bat?'bat':null);};
+tog('#batBtn',()=>{bat=!bat;figs.forEach(arm);return bat;});
 tog('#slowBtn',()=>slow=!slow);tog('#gameBtn',()=>gameView=!gameView);tog('#spinBtn',()=>spinOn=!spinOn);
 const ptrs=new Map();let pinch0=0;
 ov.addEventListener('pointerdown',e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});try{ov.setPointerCapture(e.pointerId);}catch(_){}if(ptrs.size===2){const p=[...ptrs.values()];pinch0=hyp(p[0].x-p[1].x,p[0].y-p[1].y)/zoomK;}});
@@ -48,6 +51,13 @@ function place(el,x,show){
   if(!show){el.style.display='none';return;}
   _lp.set(x,-1.1,0).project(camera);el.style.display='';el.style.left=((_lp.x*.5+.5)*cw)+'px';el.style.top=((-_lp.y*.5+.5)*ch)+'px';
 }
+/* sculpt the figures one at a time, the ones on show first */
+let built=0;const order=members('cast').concat(members('zed'));
+function buildNext(){
+  if(built>=order.length){$('#busy').hidden=true;window.__ready=true;return;}
+  const i=order[built];$('#busy').textContent='Sculpting '+STYLES[i].name+' ('+(built+1)+' of '+order.length+')';
+  setTimeout(()=>{const f=figs[i]=makeFig({style:STYLES[i]});arm(f);f.g.visible=!!units[i].on;built++;buildNext();},30);
+}
 let last=performance.now(),simNow=0;
 function frame(ms){
   requestAnimationFrame(frame);
@@ -58,18 +68,20 @@ function frame(ms){
   let atk=null,ready=pose==='ready';
   if(pose==='swing'||pose==='smash'){const per=1.25,cyc=swingT%per,n=Math.floor(swingT/per),dur=pose==='smash'?.56:.48;ready=true;if(cyc<dur)atk={t:cyc,dur,type:pose==='smash'?2:n%2};}
   if(window.__atk){atk=window.__atk;ready=true;}
-  figs.forEach((f,i)=>{const u=units[i];u.ang=ang;u.spd=pose==='walk'?26:pose==='run'?62:0;u.ready=ready;u.atk=atk;if(f.g.visible)figAnim(f,u,dt,simNow);});
-  const tanH=Math.tan(camera.fov*PI/360),tanW=tanH*camera.aspect,all=focus<0;
-  const narrow=cw<700;      // on a phone the name sits above the figure and the buttons run along the bottom, so leave room for both
-  let ty=all?8.6:narrow?11.3:10.2,td=(all?Math.max((1.5*GAP+9)/tanW,16.5/tanH):Math.max(9.5/tanW,(narrow?19:14)/tanH))/zoomK,tp=camPitch;
+  let hMax=1,n=0;
+  figs.forEach((f,i)=>{const u=units[i];if(!f||!u.on)return;n++;hMax=Math.max(hMax,f.S.h||1);const z=f.S.zed;u.ang=ang;u.spd=pose==='walk'?(z?14:26):pose==='run'?(z===2?62:z?20:62):0;u.ready=ready&&!z;u.atk=z?null:atk;figAnim(f,u,dt,simNow);});
+  const tanH=Math.tan(camera.fov*PI/360),tanW=tanH*camera.aspect,all=typeof focus==='string',narrow=cw<700,cnt=all?members(focus).length:1;
+  // on a phone the name sits above the figure and the buttons run along the bottom, so leave room for both
+  let ty=(all?8.6:narrow?11.3:10.2)*hMax,td=(all?Math.max(((cnt-1)/2*GAP+9)/tanW,16.5*hMax/tanH):Math.max(9.5*hMax/tanW,(narrow?19:14)*hMax/tanH))/zoomK,tp=camPitch;
   if(gameView){td=all?190:150;tp=.42;ty=8;}
   const k=1-Math.exp(-rdt*6);cam.y+=(ty-cam.y)*k;cam.d+=(td-cam.d)*k;cam.p+=(tp-cam.p)*k;
   camera.position.set(0,cam.y+Math.sin(cam.p)*cam.d,Math.cos(cam.p)*cam.d);camera.lookAt(0,cam.y,0);
   if(window.__cam){const c=window.__cam;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);}
   camera.updateMatrixWorld();
-  const lab=all&&!gameView&&!window.__cam;lbls.forEach((l,i)=>place(l,units[i].x,lab));
+  const lab=all&&!gameView&&!window.__cam;lbls.forEach((l,i)=>place(l,units[i].x,lab&&units[i].on));
   renderer.render(scene,camera);
 }
 new ResizeObserver(resize).observe(stage);resize();
-setFocus(cw<720?0:-1);
+setFocus(cw<720?0:'cast');
+buildNext();
 requestAnimationFrame(frame);

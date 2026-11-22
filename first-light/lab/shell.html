@@ -28,7 +28,7 @@ body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-b
 #cv,#ov{position:absolute;inset:0;width:100%;height:100%;display:block}
 #cv{pointer-events:none}
 #ov{touch-action:none;cursor:grab}
-#busy{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-hud);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);z-index:1;pointer-events:none}
+#busy{position:absolute;left:0;right:0;top:46%;display:grid;place-items:center;font-family:var(--font-hud);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);z-index:1;pointer-events:none}
 #nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--dim);z-index:9}
 button{font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;min-height:36px;padding:0 11px;cursor:pointer;white-space:nowrap}
 button:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
@@ -57,10 +57,10 @@ button.on{border-color:var(--accent);color:#ffd2ae;background:rgba(60,32,16,.85)
   <div id="nogl" hidden>This page needs WebGL, which this browser has turned off.</div>
   <div id="busy">Sculpting the drafts…</div>
   <div id="top">
-    <div class="head"><h1>Character Lab</h1><span>Main character, round 4. Drag to turn, pinch or scroll to zoom.</span></div>
+    <div class="head"><h1>Character Lab</h1><span>Round 5: the cast and the zombies on your two picks. Drag to turn, pinch or scroll to zoom.</span></div>
     <div id="tabs"></div>
   </div>
-  <div id="info"><div class="n">Round 4 · four drafts</div><h2>Line-up</h2><p></p></div>
+  <div id="info"><div class="n">Round 5 · your two picks as the cast</div><h2>The cast</h2><p></p></div>
   <div id="poses">
     <button data-pose="stand" class="on">Stand</button><button data-pose="ready">Ready</button>
     <button data-pose="walk">Walk</button><button data-pose="run">Run</button>
