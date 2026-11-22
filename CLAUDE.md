@@ -44,5 +44,8 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Bryan plans to add a second squad of 4 once the one-squad mechanics feel right.
 - File should be split into modules (map data, pathfinding, combat/AI, 3D scene, overlay, input, HUD).
 
+## Second prototype: Day One (day-one.html)
+A zombie survival level on the same engine. Bryan's notes and the tuning numbers are in `ideas/zombie-apocalypse.md`. Riley wakes up in a suburban house with the TV news on. The neighbor (Gary) breaks in through the back slider. Then the cul-de-sac: rescue Dale off his minivan (optional) and reach Route 9. Noise is the core rule: guns and the car alarm pull zombies. Shamblers and runners. Dead stays dead.
+
 ### Testing note
 Headless browsers here have no GPU, so WebGL runs in software at ~3 fps: fine for screenshots and checking layout, useless for judging pacing. For local tests without network, install `three@0.128.0` from npm and inline `build/three.min.js` in place of the CDN tag.
