@@ -1,0 +1,73 @@
+<title>Character Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: a turntable stage fills the screen. Design tabs across the top, the chosen design's name and notes bottom-left, pose buttons bottom-right. Single dark studio look by design. */
+  --bg:#15171c;
+  --panel:rgba(14,16,21,.82);
+  --line:rgba(255,255,255,.15);
+  --text:#e6e9ee;
+  --dim:#9aa2ae;
+  --accent:#ff9a52;
+  --pick:#7fd4ff;
+  --font-hud:"Chakra Petch","Rajdhani",ui-sans-serif,system-ui,sans-serif;
+  --font-body:"Barlow",ui-sans-serif,system-ui,sans-serif;
+  --font-news:"Oswald","Arial Narrow",ui-sans-serif,system-ui,sans-serif;
+  --gut-l:max(16px,env(safe-area-inset-left,0px));
+  --gut-r:max(16px,env(safe-area-inset-right,0px));
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box;background:var(--bg)}
+*,*::before,*::after{box-sizing:border-box}
+body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% 38%,#2b2f38,#121318 75%)}
+#cv,#ov{position:absolute;inset:0;width:100%;height:100%;display:block}
+#cv{pointer-events:none}
+#ov{touch-action:none;cursor:grab}
+#nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--dim);z-index:9}
+button{font-family:var(--font-hud);font-weight:600;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;min-height:36px;padding:0 11px;cursor:pointer;white-space:nowrap}
+button:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+button.on{border-color:var(--accent);color:#ffd2ae;background:rgba(60,32,16,.85)}
+#top{position:absolute;left:var(--gut-l);right:var(--gut-r);top:10px;display:grid;gap:8px;z-index:3;pointer-events:none}
+#top>*{pointer-events:auto}
+.head{display:flex;align-items:baseline;gap:10px;pointer-events:none!important}
+.head h1{margin:0;font-family:var(--font-news);font-weight:700;font-size:20px;letter-spacing:.08em;text-transform:uppercase}
+.head span{font-size:12.5px;color:var(--dim)}
+#tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+#tabs::-webkit-scrollbar{display:none}
+#tabs button b{font-family:var(--font-news);color:var(--accent);margin-right:5px}
+#info{position:absolute;left:var(--gut-l);bottom:max(14px,env(safe-area-inset-bottom,0px));width:min(360px,calc(100% - 32px));z-index:3;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 13px 12px;display:grid;gap:5px;pointer-events:none}
+#info .n{font-family:var(--font-hud);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+#info h2{margin:0;font-family:var(--font-news);font-weight:600;font-size:24px;letter-spacing:.05em;text-transform:uppercase;line-height:1.05}
+#info p{margin:0;font-size:13.5px;line-height:1.4;color:#c9d0d9}
+#poses{position:absolute;right:var(--gut-r);bottom:max(14px,env(safe-area-inset-bottom,0px));z-index:3;display:grid;grid-template-columns:repeat(2,auto);gap:6px;justify-content:end}
+.lbl{position:absolute;z-index:2;transform:translate(-50%,0);font-family:var(--font-hud);font-weight:600;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#d9dee6;text-shadow:0 1px 3px #000;pointer-events:none;white-space:nowrap;text-align:center}
+.lbl b{display:block;font-family:var(--font-news);font-size:18px;color:var(--accent);line-height:1}
+@media (max-width:700px){#info{bottom:auto;top:104px;width:min(300px,calc(100% - 32px));padding:9px 11px}#info h2{font-size:20px}#info p{font-size:12.5px}.head span{display:none}}
+</style>
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <canvas id="ov"></canvas>
+  <div id="nogl" hidden>This page needs WebGL, which this browser has turned off.</div>
+  <div id="top">
+    <div class="head"><h1>Character Lab</h1><span>Five ways to build the main character. Drag to turn them.</span></div>
+    <div id="tabs"></div>
+  </div>
+  <div id="info"><div class="n" id="infoN"></div><h2 id="infoH"></h2><p id="infoP"></p></div>
+  <div id="poses">
+    <button data-pose="stand" class="on">Stand</button><button data-pose="walk">Walk</button>
+    <button data-pose="run">Run</button><button data-pose="swing">Swing</button>
+    <button id="gameBtn">Game view</button><button id="spinBtn" class="on">Spin</button>
+  </div>
+  <div id="labels"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{
+/*@@SRC@@*/
+})();
+</script>
