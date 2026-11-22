@@ -20,7 +20,7 @@ const c=await ev(()=>{for(const e of enemies){e.hp=0;e.dead=true;if(e.m&&e.m.g)e
   const r=ddPostSend(H[0]);RUN(8);const F=dd.fp,m=H[0].man;return{before,held,r,fp:!!F,me:!!(F&&F.u===m),a:F&&+F.a.toFixed(2),arc:m&&m.onGun&&m.onGun.arc,hid:objs.filter(o=>o.bk==='hv').every(o=>(o.meshes||[]).every(q=>!q.visible))};});
 await ev(()=>{drawOverlay(.03,simT);});
 const c2=await ev(()=>({hid:objs.filter(o=>o.bk==='hv').every(o=>(o.meshes||[]).every(q=>!q.visible))}));
-console.log(JSON.stringify(c),JSON.stringify(c2));ok(!c.before&&c.held,'the heavy gun is ours once its men are down and yours are in it');ok(c.r&&c.fp&&c.me&&Math.abs(c.a-.1)<.01&&c.arc===1,'one tap: behind one of its machine guns, facing along the top');ok(c2.hid,'from behind it the bunker itself is not drawn');
+console.log(JSON.stringify(c),JSON.stringify(c2));ok(c.held,'the heavy gun is ours once its men are down and yours are in it (its machine guns as soon as their crew is down, Version 217)');ok(c.r&&c.fp&&c.me&&Math.abs(c.a-.1)<.01&&c.arc===1,'one tap: behind one of its machine guns, facing along the top');ok(c2.hid,'from behind it the bunker itself is not drawn');
 // the counterattack's men along the top: in the swing, and hit
 const d=await ev(()=>{const L=[];for(const[x,y]of[[520,-470],[560,-520],[480,-430]]){const e=ddFoe('counter',x,y,{ang:Math.PI});e.hp=1e6;e.stunT=9999;enemies.push(e);L.push(e);}RUN(.3);const F=dd.fp,u=F.u,P=fpPose(),e=L[0];
   F.a=Math.atan2(e.y-P.O.z,e.x-P.O.x);F.p=Math.atan2(gndH(e.x,e.y)+12-P.O.y,Math.hypot(e.x-P.O.x,e.y-P.O.z));const off=Math.atan2(Math.sin(F.a-u.onGun.ang),Math.cos(F.a-u.onGun.ang));DM=0;for(let i=0;i<60;i++){F.clip=60;F.reloadT=0;fpShoot();}

@@ -77,7 +77,7 @@ function ddPostBuild(G,add,M){
     const bm=new T.MeshStandardMaterial({map:ddgTex('burlap'),color:0xd8c9a0,roughness:1}),bg=new T.SphereGeometry(1,7,5);for(let k=0;k<6;k++){const b=hb(bg,bm,-22+k*8.8,32,H.w/2+2);b.scale.set(4.6,2.1,2.9);}}
   // the flag: theirs red, ours blue once it's taken (ddPostTick)
   {const[fx,fy]=P.flag,f0=gh(fx,fy);add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),X(fx),f0+23,fy);
-    const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,X(fx)+7,f0+39,fy+7,-Math.PI/4);DD.postFlag=fm;}
+    const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});const fl=add(new T.PlaneGeometry(20,12),fm,X(fx)+7,f0+39,fy+7,-Math.PI/4);DD.postFlag=fm;DD.postFlagM={m:fl,y:f0+39,mat:fm};}
   ddCapBuild(add,M);   // (the left bunker's flag)
   // the two guns on their tripods, pointing down the path; turned up the hill once they're ours
   DD.postGuns=P.mg.map(sp=>{const g=new T.Group(),gm=steel.clone();g.userData.mat=gm;   // (its own material: it glows once it's yours to take, ddPostDraw)
@@ -95,23 +95,39 @@ function ddPostBuild(G,add,M){
 const DD_CAPS=[{k:'left',f:[342,274],up:25,own:1,r:[236,204,468,344]},{k:'outpost',f:DD_POST.flag,up:0,r:[692,-64,822,30]},{k:'crest',f:[225,-405],up:0,own:1,r:[190,-468,376,-350]},
   // (Version 216, Bryan: "The checkpoint zones are the only things that need to be taken": the barracks and the command post are gold areas like the rest, ours once nobody of theirs is near and one man stands inside; on: only shown then)
   {k:'base',f:[520,-622],up:0,own:1,r:[420,-652,620,-556]},{k:'cp',f:[1466,-600],up:0,own:1,r:[1352,-668,1496,-532],on:()=>!!(dd.base&&dd.base.open)}];
+/* Version 217, Bryan: "make capturing a section a small wait period, so not immediately. Let the enemy flag be lowered and the allied flag be raised,
+   then it is captured. It can show a circle being depleted by the enemies color and filled by the allied color too. (Like in Battlefield)": a flagged
+   place takes DD_CAP_T seconds with a man inside and nobody of theirs left (dd.capP[k] 0..1, back down at the same rate when he leaves): the first half
+   their flag comes down, the second ours goes up; a ring over it empties of red, then fills blue (ddCapDraw). */
+let DD_CAP_T=5;
+const ddCapOf=k=>DD_CAPS.find(c=>c.k===k);
+function ddCapStep(k,ok,dt){const P=dd.capP||(dd.capP={}),p=clamp((P[k]||0)+(ok?dt:-dt)/Math.max(.01,DD_CAP_T),0,1);P[k]=p;return p>=.999;}
 const ddCapIn=(k,p)=>{const C=DD_CAPS.find(c=>c.k===k),r=C.r;return p.x>r[0]+DDX&&p.x<r[2]+DDX&&p.y>r[1]&&p.y<r[3];};   // (r: the ground lit in gold; the checkpoint's is its flat yard and the ground before its wall, not its whole zone: over the slopes behind it looked wrong, Bryan);
 let DD_CAP_HL=1;   // (Version 205: A, Bryan's pick)
 function ddCapBuild(add,M){
   const T=THREE;DD.capFlags={};
   for(const C of DD_CAPS){if(!C.own)continue;const[fx,fy]=C.f,f0=ddH(fx+DDX,fy)+C.up;add(new T.CylinderGeometry(.5,.5,46,6),M(0x3c3226,.9,0),fx+DDX,f0+23,fy);
-    const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});add(new T.PlaneGeometry(20,12),fm,fx+DDX+7,f0+39,fy+7,-Math.PI/4);DD.capFlags[C.k]=fm;}
+    const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});const fl=add(new T.PlaneGeometry(20,12),fm,fx+DDX+7,f0+39,fy+7,-Math.PI/4);DD.capFlags[C.k]=fm;(DD.capFlagM||(DD.capFlagM={}))[C.k]={m:fl,y:f0+39,mat:fm};}
 }
 function ddCapDraw(now){
   if(!dd||!dd.land||!dd.land.done||dd.fp||dd.counter||dd.vil||!dd.post)return;const H=dd.held||{},pu=.5+.5*Math.sin(now*4);
-  for(const k in DD.capFlags||{}){const c=H[k]?0x2f6fd0:0xb02222,m=DD.capFlags[k];m.color.setHex(c);m.emissive.setHex(c);}
+  // each flag: red at the top, down the pole over the first half of the capture, then blue back up it
+  const FM=Object.assign({},DD.capFlagM||{});if(DD.postFlagM)FM.outpost=DD.postFlagM;const V=ddCapDraw.v||(ddCapDraw.v={}),dtR=clamp(now-(ddCapDraw.t||now),0,.2);ddCapDraw.t=now;
+  for(const k in FM){const F=FM[k],tg=H[k]?1:((dd.capP||{})[k]||0),v=V[k]=H[k]&&V[k]==null?1:clamp(tg,(V[k]||0)-dtR/Math.max(.01,DD_CAP_T)*1.5,(V[k]||0)+dtR/Math.max(.01,DD_CAP_T)*1.5);
+    if(!F.m)continue;const blue=v>=.5,c=blue?0x2f6fd0:0xb02222,up=blue?(v-.5)*2:1-v*2;F.mat.color.setHex(c);F.mat.emissive.setHex(c);F.m.position.y=F.y-30*(1-up);}
   for(const C of DD_CAPS){if(H[C.k]||(C.on&&!C.on()))continue;const x=C.f[0]+DDX,y=C.f[1];
     if(DD_CAP_HL===1){const[x0,y0,x1,y1]=C.r,P=[];let bad=false;const ad=(px,py)=>{toSBack=false;const q=toS(px+DDX,py,1.5);if(toSBack)bad=true;P.push(q);};
       for(let px=x0;px<x1;px+=24)ad(px,y0);for(let py=y0;py<y1;py+=24)ad(x1,py);for(let px=x1;px>x0;px-=24)ad(px,y1);for(let py=y1;py>y0;py-=24)ad(x0,py);
       if(!bad){ox.beginPath();ox.moveTo(P[0][0],P[0][1]);for(const q of P)ox.lineTo(q[0],q[1]);ox.closePath();ox.fillStyle=`rgba(255,206,96,${.1+pu*.08})`;ox.fill();ox.strokeStyle='rgba(255,214,120,.85)';ox.lineWidth=2.4;ox.stroke();}}
     if(DD_CAP_HL===2){gPath(x,y,74);if(!toSBack){ox.fillStyle=`rgba(255,206,96,${.12+pu*.1})`;ox.fill();ox.save();ox.setLineDash([10,7]);ox.lineDashOffset=-now*14;ox.strokeStyle='rgba(255,214,120,.9)';ox.lineWidth=2.6;ox.stroke();ox.restore();}}
     toSBack=false;const q=toS(x,y,C.up+58);if(toSBack)continue;if(q[0]<-140||q[0]>cw+140||q[1]<-140||q[1]>ch+140)continue;q[0]=clamp(q[0],46,cw-46);const yy=Math.max(150,q[1])-pu*4;   // (kept whole at the screen's edge and clear of the top bar)
-    label('CAPTURE',q[0],yy-12,'rgb(255,206,96)',15,800);
+    const v=V[C.k]||0;
+    if(v>0.004){const cx=q[0],cy=yy-44,R=19,a0=-Math.PI/2;   // the ring: their red emptying, then our blue filling
+      ox.beginPath();ox.arc(cx,cy,R,0,7);ox.fillStyle='rgba(8,12,16,.72)';ox.fill();ox.lineWidth=6;ox.strokeStyle='rgba(255,255,255,.14)';ox.stroke();
+      ox.beginPath();if(v<.5)ox.arc(cx,cy,R,a0,a0+Math.PI*2*(1-v*2));else ox.arc(cx,cy,R,a0,a0+Math.PI*2*((v-.5)*2));ox.strokeStyle=v<.5?'rgb(226,62,48)':'rgb(74,150,240)';ox.lineWidth=6;ox.stroke();
+      ox.fillStyle=v<.5?'rgb(226,62,48)':'rgb(74,150,240)';ox.beginPath();ox.moveTo(cx-5,cy-8);ox.lineTo(cx-5,cy+9);ox.lineTo(cx-3,cy+9);ox.lineTo(cx-3,cy+1);ox.lineTo(cx+8,cy-3.5);ox.closePath();ox.fill();
+      label('CAPTURING',q[0],yy-12,v<.5?'rgb(255,206,96)':'rgb(140,196,255)',15,800);}
+    else label('CAPTURE',q[0],yy-12,'rgb(255,206,96)',15,800);
     ox.beginPath();ox.moveTo(q[0],yy+8);ox.lineTo(q[0]-7,yy-2);ox.lineTo(q[0]+7,yy-2);ox.closePath();ox.fillStyle='rgb(255,206,96)';ox.fill();ox.lineWidth=2;ox.strokeStyle='rgba(8,12,16,.75)';ox.stroke();}
 }
 /* ---------- the fight for it ---------- */
@@ -125,7 +141,8 @@ function ddPostSpawn(){
 }
 // (Version 207: each gun has its own `up`, DD_POST_UP plus its mg entry's `up`: the second points .3 left of the first's line. The wall runs
 // nearly the way they fire, so pointing straight up the hill the second fired into the first gun and its man)
-const ddPostHeld=g=>!!(dd.held||{})[g.z];
+// (Version 217: the hilltop bunker's guns are yours as soon as their crew is down and the top of the hill is held, without first standing in the bunker)
+const ddPostHeld=g=>{const H=dd.held||{};if(H[g.z])return true;if(g.z!=='heavy'||!H.crest)return false;if(simT-(ddPostHeld.t||-9)>.5){ddPostHeld.t=simT;ddPostHeld.v=!enemies.some(e=>e.tag==='heavy'&&!beaten(e));}return ddPostHeld.v;};
 const DD_POST_UP=-Math.PI/2-.35;   // (up the hill and onto the draw's gun: north, a little west)
 // twice a second, with the other troops' thinking (ddplay.js)
 function ddPostTick(){

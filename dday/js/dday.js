@@ -132,7 +132,8 @@ function ddObjects(){
   // (Version 212, Bryan: "the bunker should have a larger opening so the MGs can turn down the hill and towards the tank. The large gun won't be
   // useful because it shoots out toward the water"; "two MG nests in the pill box, not on top of it": the big gun looks out to sea through its south
   // front again; the whole east side is a second opening with two machine guns in it, DD_SPOT.heavyMGs; the north wall solid, the west open: the way in)
-  o('ddpb',30,-372,120,8,{cover:2,bk:'hv'});o('ddpb',142,-432,8,60,{cover:2,bk:'hv',front:1});o('ddpb',30,-440,120,8,{cover:2,full:true,bk:'hv',front:0});
+  // (Version 217, Bryan: "The MGs should be more accessible to the player to enter after killing them and reaching the top": a doorway in the south wall right behind the machine guns, x 112-142, on the side you come up; the west end is still open)
+  o('ddpb',30,-372,82,8,{cover:2,bk:'hv'});o('ddpb',142,-372,8,8,{cover:2,bk:'hv'});o('ddpb',142,-432,8,60,{cover:2,bk:'hv',front:1});o('ddpb',30,-440,120,8,{cover:2,full:true,bk:'hv',front:0});
   o('ddgun',78,-402,24,22,{cover:1,hp:200,tag:'heavy'});   // (Version 212: 0.6 m further south, so there's a way past it along the north wall to the machine guns)
   o('ddpb',90,-572,300,8,{cover:2,bk:'tp'});o('ddpb',90,-620,8,48,{cover:2,full:true,bk:'tp'});o('ddpb',382,-620,8,48,{cover:2,full:true,bk:'tp'});   // the highest bunker: closed in like the others since Version 139
   o('sandbag',262,-410,58,10);o('sandbag',256,-440,10,34);o('sandbag',322,-440,10,34);   // the light machine gun's nest at the top of the way up, in front of it

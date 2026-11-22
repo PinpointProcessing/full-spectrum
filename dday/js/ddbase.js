@@ -142,8 +142,8 @@ function ddBaseTick(dt){
   if(!b.open)return;
   const d=DB.cp.door,near=up.filter(p=>ddCapIn('cp',p)).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-d.x,e.y-d.y)<240).length+ddTanksUp().filter(K=>hyp(K.x-d.x,K.y-d.y)<340).length;
   b.holdN=near;b.holdFoes=foes;
-  if(near>=1&&!foes){b.holdT=(b.holdT||0)+.5;if(b.holdT>=1){(dd.held||(dd.held={})).cp=true;dd.won=true;bigText('Base taken','complete');endAt=performance.now()+4200;updateObjUI();}}
-  else b.holdT=0;
+  if(ddCapStep('cp',near>=1&&!foes,.5)){{(dd.held||(dd.held={})).cp=true;dd.won=true;bigText('Base taken','complete');endAt=performance.now()+4200;updateObjUI();}}
+  
 }
 // the fuel dump goes up: everyone of theirs near it, and a tank beside it
 function ddFuelBlast(o,by){

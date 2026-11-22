@@ -842,10 +842,12 @@ function ddZones(){
   const H=dd.held||(dd.held={});
   for(const Z of DD_ZONES){if(H[Z.k])continue;const[x0,y0,x1,y1]=Z.r;
     if(Z.k==='base'){if(dd.won)H.base=true;continue;}
-    if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e)))continue;
+    const cz=!!ddCapOf(Z.k);   // (Version 217: a flagged place takes DD_CAP_T s, ddpost.js's ddCapStep)
+    if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e))){if(cz)ddCapStep(Z.k,false,.5);continue;}
     // (Version 214, near: the checkpoint and the top of the hill are ours once their men are down and one of ours is within 30 m or 24 m of the middle,
     // not only inside. Cleared from the path below, the checkpoint stayed theirs until someone walked in, and nothing that waits on it happened)
-    if(!dd.allies.some(u=>!u.inBoat&&!u.dead&&(u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1||Z.near&&hyp(u.x-(x0+x1)/2-DDX,u.y-(y0+y1)/2)<Z.near)))continue;
+    if(!dd.allies.some(u=>!u.inBoat&&!u.dead&&(u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1||Z.near&&hyp(u.x-(x0+x1)/2-DDX,u.y-(y0+y1)/2)<Z.near))){if(cz)ddCapStep(Z.k,false,.5);continue;}
+    if(cz&&!ddCapStep(Z.k,true,.5))continue;
     H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);
     if((Z.k==='left'||Z.k==='outpost'||Z.k==='crest')&&dd.active){if(!dd.fp)dd.track={team:dd.active};const C=dd.cam||(dd.cam={k:1,p:null,q:null});C.heldT=0;C.go=null;C.offA=null;C.yaw=yaw;C.cap={k:Z.k,t:null};}   // (Version 209: C.cap, a turn the camera makes whatever else: ddTurnWant)   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
 if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were taken in: ddSpawnAt)
@@ -854,8 +856,8 @@ if(Z.k!=='beach')banner(`${Z.n} is yours.`,2400);   // (the order they were take
   // the barracks: ours once nobody of theirs is left near it and two of ours have stood at its door for four seconds
   if(dd.won||dd.blown.barracks)return;const d=DD_SPOT.door,B=DD_SPOT.barracks,near=players.filter(p=>alive(p)&&ddCapIn('base',p)).length,foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-(B.x+B.w/2+DDX),e.y-(B.y+B.h))<200).length+ddTanksUp().filter(K=>hyp(K.x-(B.x+B.w/2+DDX),K.y-(B.y+B.h))<300).length;
   dd.holdN=near;dd.holdFoes=foes;
-  if(near>=1&&!foes){dd.holdT=(dd.holdT||0)+.5;if(dd.holdT>=1){H.base=true;dd.blown.barracks=true;ddBaseOpen();updateObjUI();}}   // (since Version 148 the battle goes on: their base down the road, ddbase.js)
-  else dd.holdT=0;
+  if(ddCapStep('base',near>=1&&!foes,.5)){{H.base=true;dd.blown.barracks=true;ddBaseOpen();updateObjUI();}}   // (since Version 148 the battle goes on: their base down the road, ddbase.js)
+  
 }
 // where a tool is going (Bryan: "When the player selects a location for a tool it should be a filled in circle. Orange for the to the rocket shows and
 // orange area of intended impact. Same with grenades and when they land. Smoke could be a grey circle. Medic would be a deep green around the player
