@@ -44,5 +44,18 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Bryan plans to add a second squad of 4 once the one-squad mechanics feel right.
 - File should be split into modules (map data, pathfinding, combat/AI, 3D scene, overlay, input, HUD).
 
+## Second prototype: First Light (first-light.html)
+A zombie survival level on a new third-person engine (not the Warehouse Yard tactics code). An earlier top-down version ("Day One") was scrapped: Bryan didn't like it. Design notes and numbers are in `ideas/zombie-apocalypse.md`.
+
+- **Source is split into modules** in `first-light/src/*.js` (core, audio, map, textures, world, build, figures, tv, game, script, hud, main). `python3 first-light/build.py` concatenates them into `first-light/shell.html` and writes the single-file `first-light.html`. Edit the modules, never the built file.
+- **Decisions made (keep unless Bryan changes them):**
+  - Third-person follow camera with direct control (stick/WASD, Attack, Fire, Dash). Not tap-to-move. Cam button switches to over-the-shoulder or high.
+  - The first character is "You": best stats, the leader, and the only one whose death ends the game. You name them on the shelter screen after the level.
+  - Rescued survivors follow and fight on their own. They can die for good.
+  - The TV must be on and audible. An EMERGENCY BROADCAST bubble opens the broadcast: two anchors warn of the virus, then get attacked on air.
+  - The street is loud and busy (fires, wrecks, fleeing people, helicopter, car crash, explosion). The escape is a large storm-drain pipe that becomes the first shelter.
+- Three.js r128 from cdnjs, plus the r128 bloom scripts from jsdelivr (optional: the game runs without them). All art, textures and sound are generated in code.
+- Quality steps down automatically if frames are slow (bloom off, then smaller shadows and resolution, then no shadows).
+
 ### Testing note
-Headless browsers here have no GPU, so WebGL runs in software at ~3 fps: fine for screenshots and checking layout, useless for judging pacing. For local tests without network, install `three@0.128.0` from npm and inline `build/three.min.js` in place of the CDN tag.
+Headless browsers here have no GPU, so WebGL runs in software at ~3 fps: fine for screenshots and checking layout, useless for judging pacing. For local tests without network, install `three@0.128.0` from npm and inline `build/three.min.js` in place of the CDN tag (for First Light, also inline the six `examples/js` bloom scripts). To test First Light logic, add `window.__ev=c=>eval(c)` after `boot();` in a test copy, set `paused=true`, then step `update(1/30)` yourself and drive `input.mx/my/atkP`.
