@@ -114,9 +114,14 @@ function frame(nowMs){
 function boot(){
   buildWorld();buildActors();setupFX();
   new ResizeObserver(resize).observe(stage);resize();
-  reset(false);
-  // a still frame behind the title card
-  camSnap=true;tvTick(0,false);
-  requestAnimationFrame(frame);
+  // everyone in the level is sculpted before it starts, one figure per tick so the title card stays alive
+  const btn=$('#startBtn'),label=btn.textContent;btn.disabled=true;
+  preloadFigs(STYLES,(i,n)=>{btn.textContent='Sculpting the cast '+(i+1)+' / '+n;},()=>{
+    btn.disabled=false;btn.textContent=label;
+    reset(false);
+    // a still frame behind the title card
+    camSnap=true;tvTick(0,false);
+    requestAnimationFrame(frame);
+  });
 }
 boot();

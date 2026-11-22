@@ -15,7 +15,7 @@ function clearAll(){
   for(const u of ents)if(u.fig&&!u.gone)removeFig(u.fig);
   for(const d of debris)scene.remove(d.o);
   for(const it of items){scene.remove(it.m);scene.remove(it.g);}
-  for(const m of corpseMeshes){scene.remove(m);m.geometry.dispose();m.material.dispose();}corpseMeshes=[];
+  for(const f of corpseFigs)removeFig(f);corpseFigs=[];
   ents=[];zeds=[];allies=[];survs=[];civs=[];items=[];corpses=[];debris=[];humans=[];floats.length=0;
 }
 function reset(fromDoor){
@@ -34,6 +34,8 @@ function reset(fromDoor){
   // things to find
   mkItem('bat',263,1331);mkItem('pistol',267,1371);mkItem('aid',446,1372);
   mkItem('ammo',240,848);mkItem('aid',618,846);mkItem('ammo',320,914);mkItem('shotgun',352,578);mkItem('aid',410,506);mkItem('shells',300,296);mkItem('ammo',396,618);
+  // household weapons lying about: each is snapped to the nearest open floor
+  for(const[k,x,y]of[['knife',300,1352],['pan',430,1345],['ciron',252,872],['hammer',604,866],['iron',334,934]]){const s=openSpot(x,y,items);if(s)mkItem(k,s.x,s.y);}
   // the dead
   for(const[x,y]of[[352,1076],[398,968],[340,838],[398,514],[374,366],[300,1146],[452,1128],[244,856],[360,232],[346,150],[330,640],[112,1128]])mkCorpse(x,y,Math.random()*TAU);
   // people to rescue

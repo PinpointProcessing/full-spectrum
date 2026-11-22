@@ -57,15 +57,15 @@ button.on{border-color:var(--accent);color:#ffd2ae;background:rgba(60,32,16,.85)
   <div id="nogl" hidden>This page needs WebGL, which this browser has turned off.</div>
   <div id="busy">Sculpting the drafts…</div>
   <div id="top">
-    <div class="head"><h1>Character Lab</h1><span>Round 5: the cast and the zombies on your two picks. Drag to turn, pinch or scroll to zoom.</span></div>
+    <div class="head"><h1>Character Lab</h1><span>The First Light cast and zombies, as they are in the game. Drag to turn, pinch or scroll to zoom.</span></div>
     <div id="tabs"></div>
   </div>
-  <div id="info"><div class="n">Round 5 · your two picks as the cast</div><h2>The cast</h2><p></p></div>
+  <div id="info"><div class="n">As they are in the game</div><h2>The cast</h2><p></p></div>
   <div id="poses">
     <button data-pose="stand" class="on">Stand</button><button data-pose="ready">Ready</button>
     <button data-pose="walk">Walk</button><button data-pose="run">Run</button>
     <button data-pose="swing">Swing</button><button data-pose="smash">Smash</button>
-    <button id="batBtn" class="on">Bat</button><button id="slowBtn">Slow-mo</button>
+    <button id="batBtn" class="on">Own weapon</button><button id="slowBtn">Slow-mo</button>
     <button id="gameBtn">Game view</button><button id="spinBtn">Spin</button>
   </div>
 </div>
@@ -150,13 +150,14 @@ function canvasTex(w,h,draw,norepeat){
   const t=new T.CanvasTexture(c);if(!norepeat)t.wrapS=t.wrapT=T.RepeatWrapping;t.encoding=T.sRGBEncoding;t.anisotropy=4;return t;
 }
 
-/* ===== 10-figures.js ===== */
-/* Character lab, round 4: big-headed cartoon people.
+/* ===== 50-figures.js ===== */
+/* Figures: every person and zombie in the game, sculpted in code.
    A body is described as one solid (trunk, limbs, hands and head blended into each other like clay) and a surface is
    wrapped round that solid, so shoulders, hips, neck and wrists flow together with no seams. Clothes and the face are
-   painted on afterwards as a texture, which keeps every colour edge crisp. A draft is a set of proportions: how many heads
-   tall, the head's shape, how wide the trunk is, how thick the limbs are. All drafts share one skeleton and one set of
-   animations, including the two-handed swing and the closing fist. */
+   painted on afterwards as a texture. There are two builds (Bryan picked them in the character lab): "brawler" and "slim".
+   Everyone is one of those with their own sizes, head, outfit and colours. The named cast gets a fine wrap; zombies and
+   bystanders come from a small pool of coarse ones, sculpted once and shared between look-alikes.
+   The character lab (first-light/lab) is built from this same file. */
 const PK=['by','br','lean','twist','hz','hy','sLz','sLx','sRz','sRx','eL','eR','wR','hL','hR','kL','kR'];
 const BONE={body:0,hips:1,chest:2,head:3,sL:4,eL:5,haL:6,sR:7,eR:8,haR:9,hL:10,kL:11,hR:12,kR:13,faL:14,fbL:15,thL:16,faR:17,fbR:18,thR:19};
 function vmat(o){return new T.MeshStandardMaterial(Object.assign({vertexColors:true,roughness:.86,metalness:0},o||{}));}
@@ -359,43 +360,75 @@ function figTexture(L,P,hd,HD,size){
   const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.anisotropy=4;return t;
 }
 
-/* ================= 4. the cast ================= */
-/* Two builds, both picked by Bryan from the round 4 drafts. heads = how many head-heights tall. head = shape and face.
-   body = sizes in model units (a figure is 20 tall before its own height scale): cr crotch height, neck = gap from shoulder line
-   to chin, half widths of hips/waist/chest, depth as a share of width, arm and leg radii, upper arm and forearm lengths,
-   hand [length, half width, half thickness], foot [length, half width, height]. */
+/* ================= 4. who looks like what ================= */
+/* heads = how many head-heights tall. head = shape and face. body = sizes in model units (a figure is 20 tall before its own
+   height scale): cr crotch height, neck = gap from shoulder line to chin, half widths of hips/waist/chest, depth as a share of
+   width, arm and leg radii, upper arm and forearm lengths, hand [length, half width, half thickness], foot [length, half width, height]. */
 const BUILD={
   brawler:{heads:3.6,head:{round:.42,wide:1.14,deep:1,jaw:1.12,chin:1.25,eye:.92,white:1,brow:1.5,angry:1,mouth:.9,smile:-.5,nose:.9,ears:1.1,hairT:.022,hairline:.86},
     body:{cr:5.5,neck:.62,hipW:2.15,waistW:2.1,chestW:2.5,depth:.68,neckR:.98,armR:.95,wristR:.82,la:2.9,lf:2.65,hand:[1.95,.94,.76],legR:[1.12,1.05,.96],hz:1.28,knee:3.3,foot:[3.5,1.26,1.35]}},
   slim:{heads:4,head:{round:.92,wide:1.1,deep:1.04,eye:1.2,brow:1.1,angry:.2,mouth:.8,smile:.8,nose:0,ears:.95,hairT:.05},
     body:{cr:6.1,neck:.52,hipW:1.95,waistW:1.85,chestW:2.2,depth:.7,neckR:.8,armR:.8,wristR:.72,la:3,lf:2.8,hand:[1.7,.82,.7],legR:[1.05,.98,.9],hz:1.2,knee:3.6,foot:[3.3,1.18,1.3]}},
 };
+const FEM={chestW:2,waistW:1.72,hipW:2,armR:.7,wristR:.64,neckR:.72,legR:[1,.92,.84]},LEAN={chestW:2.25,waistW:1.82,hipW:1.92,armR:.8,wristR:.7,legR:[1,.92,.84]};
 const LOOK={skin:0xdcab86,tee:0xdedbd2,trim:0xa8332c,pants:0x303c58,shoe:0xe9e6dd,sole:0x5f5b54,sock:0xd8d8d8,hair:0x30231a,brow:0x231a14,eye:0x15171b,lip:0x7a3f36,belt:0x2a2420,tie:0x8a1a16,badge:0xe0c24a,pstripe:0xdfe5ee};
-const person=(id,name,group,build,blurb,o)=>{const b=BUILD[build];return Object.assign({id,name,group,build,blurb,heads:b.heads,h:1,cell:.135,tex:2048},o,{head:Object.assign({},b.head,o.head),body:Object.assign({},b.body,o.body),out:o.out||{},look:o.look||{}});};
-const STYLES=[
-  person('you','You','cast','brawler','The Brawler build as picked: egg-shaped head with a jaw, heavy brows, broad chest, thick arms, big fists.',
-    {out:{sleeve:.5,belt:.3},look:{tee:0x8a2e2a,trim:0x6a211e,pants:0x2b2f3a,shoe:0x5a4030,sole:0x2a211b,hair:0x1d1a18,belt:0x1c1a19}}),
-  person('walt','Walt','cast','brawler','Brawler build, older and heavier: belly, bathrobe over pyjama trousers, grey hair, moustache, glasses.',
-    {h:.97,body:{fat:.75,chestW:2.4,waistW:2.4,hipW:2.25,armR:.9},head:{round:.55,jaw:1.06,chin:1.2,eye:.86,brow:1.2,angry:.15,smile:.5,glasses:1,stache:1,hairT:.032,hairline:.88},
-     out:{sleeve:1,robe:1,pstripe:1,belt:.34,beltAt:.36,vee:.55},look:{skin:0xdcae90,tee:0x6d2a34,trim:0x54202a,pants:0x8a9cb4,shoe:0x7a5a3e,sole:0x3a2a1e,hair:0xdcdcdc,brow:0xb9b9b9,stache:0xe4e4e4,belt:0x4a1a22}}),
-  person('dunn','Officer Dunn','cast','brawler','Brawler build in uniform: peaked cap, long sleeves, badge, belt.',
-    {head:{angry:.6,smile:-.2,cap:1,stubble:1,hairT:.06},out:{sleeve:1,belt:.34,badge:1},
-     look:{skin:0x7a5035,tee:0x1f2a44,trim:0x18223a,pants:0x161d30,shoe:0x0c0c0e,sole:0x050506,hair:0x1a2338,brow:0x0e0b0a,belt:0x0c0c0e,lip:0x4a2a22}}),
-  person('jules','Jules','cast','slim','The slimmer round-headed build, small: hoodie and beanie.',
-    {h:.9,head:{eye:1.25,angry:0,smile:.6,beanie:1,hairT:.075},out:{sleeve:1},look:{skin:0xa9744f,tee:0x3f7a5a,trim:0x2f5f46,pants:0x26282e,shoe:0xd84a3a,sole:0xf0ece0,hair:0xd9a03a,brow:0x1c1412,lip:0x6a3a30}}),
-  person('marisol','Marisol','cast','slim','The slimmer round-headed build as a woman: narrower shoulders and waist, ponytail, scrubs.',
-    {h:.93,body:{chestW:2,waistW:1.72,hipW:2,armR:.7,wristR:.64,neckR:.72,legR:[1,.92,.84]},head:{eye:1.25,brow:.85,angry:0,smile:.9,ears:.85,pony:1,lash:1},
-     out:{sleeve:.45,vee:.4,tag:1},look:{skin:0xcf9670,tee:0x3fa39a,trim:0x2f837b,pants:0x3a968e,shoe:0xe6e6e6,sole:0xb8b8b8,hair:0x1c1412,brow:0x1c1412}}),
-  person('shambler','Shambler','zed','slim','A zombie on the slimmer build: office shirt and tie, one sleeve torn off, arms out.',
-    {zed:1,cell:.17,tex:1024,head:{zed:1,brow:1.3,angry:.8},out:{sleeve:1,sleeveL:.42,tie:1,belt:.3,blood:1,torn:1,zed:1},
-     look:{skin:0x9aa58a,tee:0xd4d8dc,trim:0xb4bbc2,pants:0x3d4558,shoe:0x1c1614,sole:0x0c0a09,hair:0x3a2f28,brow:0x2a221c,belt:0x1a1a1c}}),
-  person('runner','Runner','zed','brawler','A fast zombie on a leaner Brawler build: jogging vest and shorts.',
-    {zed:2,cell:.17,tex:1024,body:{chestW:2.25,waistW:1.82,hipW:1.92,armR:.8,wristR:.7,legR:[1,.92,.84]},head:{zed:1,nose:.7},out:{sleeve:.14,shorts:1,blood:1,zed:1},
-     look:{skin:0x8a968c,tee:0xe8e04a,trim:0xc9c23a,pants:0x18181c,shoe:0xe85a2a,sole:0xf0f0f0,hair:0x2a2018,sock:0xf0f0f0}}),
-  person('earl','Big Earl','zed','brawler','The brute: the Brawler build scaled up and fattened. Vest and boxer shorts.',
-    {zed:3,h:1.3,cell:.15,tex:1024,body:{fat:1.3,chestW:2.75,waistW:2.85,hipW:2.6,armR:1.1,wristR:.95,legR:[1.25,1.15,1.05],hz:1.45,hand:[2.1,1.02,.84],neckR:1.2},head:{zed:1,round:.5,jaw:1.2,chin:1.35,hairline:.95,hairT:.02},
-     out:{sleeve:.14,shorts:1,blood:1,torn:1,zed:1},look:{skin:0xa69f8e,tee:0xdedad0,trim:0xc9c5ba,pants:0x7a94b8,shoe:0x6a5a4a,sole:0x3a3028,hair:0x4a4038}}),
-];
+const STYLES=[],BYID={};
+/* group: 'cast' (fine wrap), 'zed' and 'civ' (coarse wrap, small texture). lab = shown in the character lab. */
+function person(id,name,group,build,blurb,o){
+  const b=BUILD[build],fine=group==='cast';
+  const S=Object.assign({id,name,group,build,blurb,heads:b.heads,h:1,cell:fine?.19:.46,tex:fine?1024:512},o,{head:Object.assign({},b.head,o.head),body:Object.assign({},b.body,o.body),out:o.out||{},look:o.look||{}});
+  STYLES.push(S);BYID[id]=S;return S;
+}
+person('you','You','cast','brawler','The Brawler build as picked: egg-shaped head with a jaw, heavy brows, broad chest, thick arms, big fists.',
+  {lab:1,cell:.16,tex:2048,weapon:'bat',out:{sleeve:.5,belt:.3},look:{tee:0x8a2e2a,trim:0x6a211e,pants:0x2b2f3a,shoe:0x5a4030,sole:0x2a211b,hair:0x1d1a18,belt:0x1c1a19}});
+person('walt','Walt','cast','brawler','Brawler build, older and heavier: belly, bathrobe over pyjama trousers, grey hair, moustache, glasses. Carries his 7-iron.',
+  {lab:1,h:.97,weapon:'club',body:{fat:.75,chestW:2.4,waistW:2.4,hipW:2.25,armR:.9},head:{round:.55,jaw:1.06,chin:1.2,eye:.86,brow:1.2,angry:.15,smile:.5,glasses:1,stache:1,hairT:.032,hairline:.88},
+   out:{sleeve:1,robe:1,pstripe:1,belt:.34,beltAt:.36,vee:.55},look:{skin:0xdcae90,tee:0x6d2a34,trim:0x54202a,pants:0x8a9cb4,shoe:0x7a5a3e,sole:0x3a2a1e,hair:0xdcdcdc,brow:0xb9b9b9,stache:0xe4e4e4,belt:0x4a1a22}});
+person('dunn','Officer Dunn','cast','brawler','Brawler build in uniform: peaked cap, long sleeves, badge, belt. Carries his pistol, with a baton for when it runs dry.',
+  {lab:1,weapon:'pistol',head:{angry:.6,smile:-.2,cap:1,stubble:1,hairT:.06},out:{sleeve:1,belt:.34,badge:1},
+   look:{skin:0x7a5035,tee:0x1f2a44,trim:0x18223a,pants:0x161d30,shoe:0x0c0c0e,sole:0x050506,hair:0x1a2338,brow:0x0e0b0a,belt:0x0c0c0e,lip:0x4a2a22}});
+person('jules','Jules','cast','slim','The slimmer round-headed build, small: hoodie and beanie. Swings a skateboard.',
+  {lab:1,h:.9,weapon:'board',head:{eye:1.25,angry:0,smile:.6,beanie:1,hairT:.075},out:{sleeve:1},look:{skin:0xa9744f,tee:0x3f7a5a,trim:0x2f5f46,pants:0x26282e,shoe:0xd84a3a,sole:0xf0ece0,hair:0xd9a03a,brow:0x1c1412,lip:0x6a3a30}});
+person('marisol','Marisol','cast','slim','The slimmer round-headed build as a woman: narrower shoulders and waist, ponytail, scrubs. Carries a butcher knife.',
+  {lab:1,h:.93,weapon:'knife',body:FEM,head:{eye:1.25,brow:.85,angry:0,smile:.9,ears:.85,pony:1,lash:1},
+   out:{sleeve:.45,vee:.4,tag:1},look:{skin:0xcf9670,tee:0x3fa39a,trim:0x2f837b,pants:0x3a968e,shoe:0xe6e6e6,sole:0xb8b8b8,hair:0x1c1412,brow:0x1c1412}});
+/* zombies: grey-green skin, sunken eyes, blood, torn clothes. Each is one outfit on one of the two builds. */
+const ZH={zed:1,brow:1.3,angry:.8},ZO={blood:1,zed:1};
+const zed=(id,name,build,o)=>person(id,name,'zed',build,o.blurb||'',Object.assign({zed:1},o,{head:Object.assign({},ZH,o.head),out:Object.assign({},ZO,o.out)}));
+zed('z_office','Shambler','slim',{lab:1,blurb:'A zombie on the slimmer build: office shirt and tie, one sleeve torn off, arms out.',out:{sleeve:1,sleeveL:.42,tie:1,belt:.3,torn:1},look:{skin:0x9aa58a,tee:0xd4d8dc,trim:0xb4bbc2,pants:0x3d4558,shoe:0x1c1614,sole:0x0c0a09,hair:0x3a2f28,brow:0x2a221c,belt:0x1a1a1c}});
+zed('z_robe','Shambler','slim',{body:FEM,head:{long:1,hairT:.06},out:{sleeve:1,robe:1,belt:.3,beltAt:.4,vee:.4},look:{skin:0x8a968c,tee:0xd97fa8,trim:0xb85a86,pants:0x8a968c,shoe:0xe6a8c4,sole:0xb87a98,hair:0x8a8a8a,belt:0xb85a86}});
+zed('z_mail','Shambler','slim',{head:{cap:1,hairT:.06},out:{sleeve:.4,shorts:1,torn:1},look:{skin:0xa69f8e,tee:0x4a78b0,trim:0x30405a,pants:0x30405a,shoe:0x1a1a1c,sole:0x0a0a0c,hair:0x30405a}});
+zed('z_tank','Shambler','brawler',{body:{fat:.9,waistW:2.4,hipW:2.3},head:{hairline:.95},out:{sleeve:.14,shorts:1,torn:1},look:{skin:0x9aa58a,tee:0xdedad0,trim:0xc9c5ba,pants:0x7a94b8,shoe:0x6a5a4a,sole:0x3a3028,hair:0x4a4038}});
+zed('z_green','Shambler','slim',{body:FEM,head:{long:1,hairT:.06},out:{sleeve:1,sleeveR:.5,stripe:1},look:{skin:0x7f8a78,tee:0x5a6e52,trim:0x3f5238,pants:0x3a3a40,shoe:0x3a2a20,sole:0x1a1410,hair:0x5a3a22}});
+zed('z_hoodie','Shambler','slim',{out:{sleeve:1,torn:1},look:{skin:0x8a968c,tee:0x6b4636,trim:0x543628,pants:0x2a2c30,shoe:0x24201c,sole:0x100e0c,hair:0x6a5a3a}});
+zed('z_scrubs','Shambler','slim',{body:FEM,head:{pony:1},out:{sleeve:.45,vee:.4,tag:1},look:{skin:0xa69f8e,tee:0x2f6f88,trim:0x255a6e,pants:0x2a6278,shoe:0xe0e0e0,sole:0xa8a8a8,hair:0x1c1412}});
+zed('z_suit','Shambler','brawler',{out:{sleeve:1,tie:1,belt:.3,torn:1},look:{skin:0x7f8a78,tee:0x2c2f38,trim:0x1e2028,pants:0x2c2f38,shoe:0x141210,sole:0x050505,hair:0x8a8a8a,tie:0x24406a,belt:0x101012}});
+zed('z_jogger','Runner','brawler',{lab:1,zed:2,blurb:'A fast zombie on a leaner Brawler build: jogging vest and shorts.',body:LEAN,head:{nose:.7},out:{sleeve:.14,shorts:1},look:{skin:0x8a968c,tee:0xe8e04a,trim:0xc9c23a,pants:0x18181c,shoe:0xe85a2a,sole:0xf0f0f0,hair:0x2a2018,sock:0xf0f0f0}});
+zed('z_sprint','Runner','slim',{zed:2,out:{sleeve:.4,shorts:1,torn:1},look:{skin:0x9aa58a,tee:0xb04a3a,trim:0x8a382c,pants:0x26282e,shoe:0xe6e2d8,sole:0x8a8a8a,hair:0x1c1412}});
+zed('z_dash','Runner','slim',{zed:2,body:FEM,head:{pony:1},out:{sleeve:.14,shorts:1},look:{skin:0x7f8a78,tee:0x6a4a8a,trim:0x52386c,pants:0x1c1c20,shoe:0x3ac0d8,sole:0xf0f0f0,hair:0x7a2a18}});
+zed('earl','Big Earl','brawler',{lab:1,zed:3,h:1.3,cell:.34,tex:1024,blurb:'The brute: the Brawler build scaled up and fattened. Vest and boxer shorts.',body:{fat:1.3,chestW:2.75,waistW:2.85,hipW:2.6,armR:1.1,wristR:.95,legR:[1.25,1.15,1.05],hz:1.45,hand:[2.1,1.02,.84],neckR:1.2},head:{round:.5,jaw:1.2,chin:1.35,hairline:.95,hairT:.02},
+  out:{sleeve:.14,shorts:1,torn:1},look:{skin:0xa69f8e,tee:0xdedad0,trim:0xc9c5ba,pants:0x7a94b8,shoe:0x6a5a4a,sole:0x3a3028,hair:0x4a4038}});
+/* bystanders: the people running down the street, and the bodies already lying in it */
+const civ=(id,build,o)=>person(id,'Bystander','civ',build,'',o);
+civ('c_tee','brawler',{head:{angry:0,smile:-.6,brow:1.1},out:{sleeve:.5},look:{tee:0x3a6ea5,trim:0x2c5682,pants:0x44506a,shoe:0x1c1c1e,sole:0x0a0a0a,hair:0x3a2618}});
+civ('c_hood','slim',{head:{angry:.4,smile:-.6},out:{sleeve:1},look:{skin:0xa9744f,tee:0x4a4a4a,trim:0x383838,pants:0x2b3348,shoe:0xe6e2d8,sole:0x8a8a8a,hair:0x1c1412}});
+civ('c_jacket','slim',{body:FEM,head:{long:1,hairT:.06,angry:.3,smile:-.7,lash:1},out:{sleeve:1,belt:.28},look:{skin:0xecc19c,tee:0xb86aa0,trim:0x94527e,pants:0x3a3a3a,shoe:0x7a3a2a,sole:0x3a1c14,hair:0x9a7a4a,belt:0x2a2a2a}});
+civ('c_tank','brawler',{body:{fat:.5},head:{angry:.2,smile:-.6,hairline:.95},out:{sleeve:.14,shorts:1},look:{skin:0x8f5f3f,tee:0xd9c34a,trim:0xb8a43a,pants:0x5a4a3a,shoe:0xe6e2d8,sole:0x8a8a8a,hair:0x2a2a2e,brow:0x141010}});
+civ('c_pony','slim',{body:FEM,head:{pony:1,angry:.3,smile:-.7,lash:1},out:{sleeve:.45},look:{skin:0xcf9670,tee:0x6a8a4a,trim:0x526c38,pants:0x44506a,shoe:0x1c1c1e,sole:0x0a0a0a,hair:0x6a4a2a}});
+/* the game asks for people by these names */
+const SPEC={you:BYID.you,walt:BYID.walt,jules:BYID.jules,marisol:BYID.marisol,dunn:BYID.dunn};
+const stylesOf=(g,z)=>STYLES.filter(S=>S.group===g&&(z===undefined||S.zed===z));
+const ZPOOL={shambler:stylesOf("zed",1),runner:stylesOf("zed",2),brute:stylesOf("zed",3)},CPOOL=stylesOf("civ");
+const ZLOOKS=['z_office','z_robe','z_mail','z_jogger','z_tank','z_green','z_hoodie','z_scrubs','z_suit','z_robe'];
+function civSpec(){return{style:pick(CPOOL),h:rand(.92,1.03),tint:1};}
+function zSpec(type,look){
+  // scripted zombies ask for an outfit by number (office, robe, mail carrier, jogger, vest, green top, hoodie, scrubs, suit)
+  const P=ZPOOL[type]||ZPOOL.shambler,sp={style:typeof look!=='number'?pick(P):type==='shambler'?BYID[ZLOOKS[look%ZLOOKS.length]]:P[look%P.length],tint:1};
+  if(type==='runner'){sp.glow=0xff3a20;sp.h=rand(.95,1.03);}
+  else if(type==='brute')sp.glow=0xffb020;
+  else{sp.h=rand(.92,1.04);if(Math.random()<.14)sp.noArm=Math.random()<.5?'L':'R';}
+  return sp;
+}
 const handBones=(K,L)=>L?{e:K.eL,h:K.haL,fa:K.faL,fb:K.fbL,th:K.thL}:{e:K.eR,h:K.haR,fa:K.faR,fb:K.fbR,th:K.thR};
 
 /* a mitten: palm and fingers as one shape with a thumb. Two finger bones curl it into a fist. The palm faces the leg. */
@@ -431,11 +464,12 @@ function sculptHead(F,hd,Hh,chinY,cx0,K){
     /* hair: a layer over the skull, then the face, the ears and the neck are cut out of it */
     shell();
     HS.cut(ell(cx0+.45*deep*Hh,chinY+lerp(.33,.3,rd)*Hh,0,.5*deep*Hh,(hd.hairline||.83)*lerp(.6,.57,rd)*Hh,.6*wide*Hh),.04*Hh);
-    for(const s of[1,-1])HS.cut(ell(cx0-.05*Hh,chinY+ey*Hh,s*hw(ey),.09*Hh,.135*Hh,.22*Hh),.035*Hh);
-    {const bX=cx0+hp(.17)[2]*Hh,bY=chinY+.17*Hh,eX=cx0-.1*Hh,eY=chinY+.32*Hh,l=Math.hypot(eX-bX,eY-bY);HS.cut(half(bX,bY,(eY-bY)/l,-(eX-bX)/l),.04*Hh);}
+    if(hd.long)HS.cut(half(0,chinY+.04*Hh,0,-1),.04*Hh);      // long hair: down over the ears to the jaw
+    else for(const s of[1,-1])HS.cut(ell(cx0-.05*Hh,chinY+ey*Hh,s*hw(ey),.09*Hh,.135*Hh,.22*Hh),.035*Hh);
+    if(!hd.long){const bX=cx0+hp(.17)[2]*Hh,bY=chinY+.17*Hh,eX=cx0-.1*Hh,eY=chinY+.32*Hh,l=Math.hypot(eX-bX,eY-bY);HS.cut(half(bX,bY,(eY-bY)/l,-(eX-bX)/l),.04*Hh);}
     if(hd.pony)HS.add(cone(cx0+hp(.66)[2]*Hh+.04*Hh,chinY+.68*Hh,0,cx0+hp(.66)[2]*Hh-.2*Hh,chinY+.2*Hh,0,.12*Hh,.065*Hh),.06*Hh,K.head);      // added after the cuts so it hangs past the hairline
   }
-  return{hp,eyeY,eyeZ,hair:HS.P.length?HS:null};
+  return{hp,eyeY,eyeZ,eyeP:[fx(eyeY)-.06*Hh,chinY+eyeY*Hh,eyeZ*Hh],hair:HS.P.length?HS:null};
 }
 /* wrap the solid: one pass for the body and head, finer passes for the hands, then the hair, then paint */
 function finish(F,HD,rig,L,S,P,boxes,ext){
@@ -449,12 +483,12 @@ function finish(F,HD,rig,L,S,P,boxes,ext){
   const sink=(x,y,z)=>{let o=0;for(const b of boxes){const dp=Math.min(x-b[0],b[3]-x,y-b[1],b[4]-y,z-b[2],b[5]-z)-b[6]*1.5;if(dp>0)o=Math.max(o,Math.min(.045,dp*.6));}return o;};
   polygonize(F,[ext[0],-.3,-ext[1],ext[2],chinY+1.08*Hh,ext[1]],hc,skip,uv,A,sink);
   for(const b of boxes)polygonize(F,b,b[6],null,uv,A);
-  if(HD.hair)polygonize(HD.hair,[cx0-.72*Hh,chinY,-.72*Hh,cx0+1.05*Hh,chinY+1.2*Hh,.72*Hh],hc,null,(x,y,z,nx,cyc,o)=>{o[0]=1300/TEX;o[1]=1-1750/TEX;},A);
+  if(HD.hair)polygonize(HD.hair,[cx0-.72*Hh,chinY,-.72*Hh,cx0+1.05*Hh,chinY+1.2*Hh,.72*Hh],Math.min(hc,.21),null,(x,y,z,nx,cyc,o)=>{o[0]=1300/TEX;o[1]=1-1750/TEX;},A);
   return{geo:accGeo(A),rig,tex:figTexture(L,P,S.head,HD,S.tex||TEX),tris:A.pos.length/9};
 }
 function sculpt(S,L){
   const K=BONE,T0=20,Hh=T0/S.heads,chinY=T0-Hh,b=S.body,o=S.out||{},F=new Solid(),cr=b.cr,shTop=chinY-b.neck,headCx=.03*Hh;
-  const fat=b.fat||0,wMax=Math.max(b.chestW,b.hipW,b.hz+b.legR[0],b.waistW*(1+.1*fat)+.08),sh=wMax+Math.max(b.armR+.25,b.hand[2]+.35),shY=shTop-b.armR-.3,hipY=cr+.45,chestY=lerp(cr,shTop,.45),wy=shY-b.la-b.lf,D=b.depth;
+  const cell=S.cell||.125,coarse=cell>.25,hz=b.hz+(coarse?.16:0),fat=b.fat||0,wMax=Math.max(b.chestW,b.hipW,hz+b.legR[0],b.waistW*(1+.1*fat)+.08),sh=wMax+Math.max(b.armR+.25,b.hand[2]+.35)+(coarse?.22:0),shY=shTop-b.armR-.3,hipY=cr+.45,chestY=lerp(cr,shTop,.45),wy=shY-b.la-b.lf,D=b.depth;
   /* trunk: a chest and a pelvis, two deeply overlapping rounded masses melted together, so there is no edge anywhere on it */
   const Ht=shTop-cr,hC=Ht*.43,hP=Ht*.3,wT=(x,y)=>[K.hips,K.chest,sstep(cr+.9,chestY+1,y)];
   F.add(ell(0,cr-.3+hP,0,b.hipW*D,hP,b.hipW),0,wT);
@@ -465,14 +499,14 @@ function sculpt(S,L){
   // shoulders: a round bar from the base of the neck out to each shoulder joint, so the arm grows out of the trunk
   for(const s of[1,-1])F.add(cone(0,shTop-.55,s*b.chestW*.4,0,shY,s*sh,b.armR*.9,b.armR*.98),.45,K.chest);
   const HD=sculptHead(F,S.head,Hh,chinY,headCx,K);
-  const B=(shY-chestY)/1.55,rig={hips:[0,cr+.6],chest:[0,chestY],sh,shY,la:b.la,lf:b.lf,hz:b.hz,hipY,lt:hipY-b.knee,B,Hh,chinY,headCx,headPivot:[headCx-.04*Hh,chinY+.08*Hh],hand:{},front:Math.max(b.chestW*D,b.waistW*D*(1+.52*fat))+b.hand[2]+.45},boxes=[],cell=S.cell||.125;
+  const B=(shY-chestY)/1.55,rig={hips:[0,cr+.6],chest:[0,chestY],sh,shY,la:b.la,lf:b.lf,hz,hipY,lt:hipY-b.knee,B,Hh,chinY,headCx,headPivot:[headCx-.04*Hh,chinY+.08*Hh],hand:{},front:Math.max(b.chestW*D,b.waistW*D*(1+.52*fat))+b.hand[2]+.45,eyeP:HD.eyeP},boxes=[];
   const[Lh,Wh,Th]=b.hand,[fl,fw,fh]=b.foot,aR=b.armR,eR=lerp(b.armR,b.wristR,.5);
   for(const s of[1,-1]){
-    const Lf=s<0,bn=handBones(K,Lf),sB=Lf?K.sL:K.sR,tB=Lf?K.hL:K.hR,kB=Lf?K.kL:K.kR,zs=s*sh,zl=s*b.hz;
+    const Lf=s<0,bn=handBones(K,Lf),sB=Lf?K.sL:K.sR,tB=Lf?K.hL:K.hR,kB=Lf?K.kL:K.kR,zs=s*sh,zl=s*hz;
     F.add(loft('y',[[shY+.22*aR,.9*aR],[shY-.4*aR,aR],[shY-b.la,eR],[wy,b.wristR],[wy-.25,b.wristR*.75]].map(r=>[r[0],0,r[1],r[1],r[1],2]),zs),
       (x,y)=>.6*sstep(shY-aR*1.7,shY-aR*.5,y),(x,y)=>[sB,bn.e,1-sstep(shY-b.la-.55,shY-b.la+.55,y)]);
     mitt(F,s,wy,zs,[b.wristR,b.wristR],Lh,Wh,Th,bn,rig.hand);
-    boxes.push([-.85*Wh-.32,wy-Lh-.32,zs-Th-.32,1.98*Wh+.32,wy+.45,zs+Th+.32,Wh*.085*cell/.125]);
+    if(!coarse)boxes.push([-.85*Wh-.32,wy-Lh-.32,zs-Th-.32,1.98*Wh+.32,wy+.45,zs+Th+.32,Wh*.085*cell/.125]);
     F.add(loft('y',[[cr+1.3,b.legR[0]*.5],[cr+.9,b.legR[0]*.92],[cr+.3,b.legR[0]],[b.knee,b.legR[1]],[fh*.8,b.legR[2]],[fh*.4,b.legR[2]*.96]].map(r=>[r[0],0,r[1],r[1],r[1],2]),zl),
       (x,y)=>.5*sstep(cr-.9,cr+.1,y),(x,y)=>[tB,kB,1-sstep(b.knee-.55,b.knee+.55,y)]);
     // shoe: lofted heel to toe, flat underneath
@@ -486,14 +520,24 @@ function sculpt(S,L){
   return finish(F,HD,rig,L,S,P,boxes,[-Math.max(fl*.36,b.chestW*D,.48*hdp)-.6,Math.max(sh+aR+.7,.62*hwd),Math.max(fl*.64,headCx+.6*hdp)+.6]);
 }
 
-/* ---- put one together ---- */
+/* ---- sculpted once per look, then shared by everyone who wears it ---- */
+const ARCH={};
+function archetype(S){
+  let a=ARCH[S.id];
+  if(!a){const L=Object.assign({},LOOK,S.look),t0=performance.now();a=ARCH[S.id]=sculpt(S,L);a.L=L;a.ms=performance.now()-t0;}
+  return a;
+}
+/* sculpt everything the level will need, one per tick so the page stays alive. progress(done,total,name) */
+function preloadFigs(list,progress,done){
+  let i=0;const step=()=>{if(i>=list.length){done();return;}progress(i,list.length,list[i].name);setTimeout(()=>{archetype(list[i++]);step();},20);};step();
+}
 function makeFig(sp){
-  const S=sp.style||STYLES[0],L=Object.assign({},LOOK,S.look||{},sp.look||{}),t0=performance.now();
-  const body=sculpt(S,L),r=body.rig,mat=new T.MeshStandardMaterial({map:body.tex,skinning:true,roughness:.78,metalness:0});
-  const f={sp,S,mat,g:new T.Group(),j:{},cur:{},tgt:{},ph:0,seed:3.3,weap:{},wname:null,two:0,gR:.3,gL:.3,rig:r,tris:body.tris};
+  const S=sp.style||sp,A=archetype(S),r=A.rig,mat=new T.MeshStandardMaterial({map:A.tex,skinning:true,roughness:.78,metalness:0});
+  if(sp.tint){const v=rand(.86,1);mat.color.setRGB(v*rand(.95,1),v,v*rand(.94,1));}
+  const f={sp,S,mat,hmat:mat,g:new T.Group(),j:{},cur:{},tgt:{},ph:Math.random()*TAU,seed:Math.random()*10,flash:0,weap:{},wname:null,two:0,gR:.3,gL:.3,rig:r,tris:A.tris,ms:A.ms,eyes:null,sh:undefined,headOff:false};
   for(const k of PK){f.cur[k]=0;f.tgt[k]=0;}
   const J=f.j,bones=[],hn=r.hand;
-  f.scale=(sp.h||S.h||1)*.975;f.g.scale.setScalar(f.scale);
+  f.scale=(sp.style?sp.h||1:1)*(S.h||1)*.85;f.g.scale.setScalar(f.scale);
   const bone=(name,par,x,y,z)=>{const b=new T.Bone();b.position.set(x,y,z);if(par)par.add(b);J[name]=b;bones[BONE[name]]=b;return b;};
   bone('body',null,0,0,0);bone('hips',J.body,0,r.hips[1],0);bone('chest',J.hips,0,r.chest[1]-r.hips[1],0);
   bone('head',J.chest,r.headPivot[0],r.headPivot[1]-r.chest[1],0);
@@ -506,27 +550,64 @@ function makeFig(sp){
   f.reach=clamp((r.la+r.lf)/(2.6*r.B),.55,1);
   const d0=new T.Vector3(hn.d0[0],hn.d0[1],0).normalize();
   f.thQ={R:new T.Quaternion().setFromUnitVectors(d0,new T.Vector3(-.72,-.34,-.6).normalize()),L:new T.Quaternion().setFromUnitVectors(d0,new T.Vector3(-.72,-.34,.6).normalize())};
-  const mesh=new T.SkinnedMesh(body.geo,mat);mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
+  const mesh=new T.SkinnedMesh(A.geo,mat);mesh.castShadow=mesh.receiveShadow=true;mesh.frustumCulled=false;
   f.skel=new T.Skeleton(bones);mesh.add(J.body);mesh.bind(f.skel);f.g.add(mesh);f.mesh=mesh;
-  f.ms=performance.now()-t0;
+  if(sp.noArm)J[sp.noArm==='L'?'sL':'sR'].scale.setScalar(.001);      // a missing arm: the whole arm shrinks into the shoulder
+  if(sp.glow){      // runners and brutes: eyes that glow
+    const e=new T.Group(),m=new T.MeshBasicMaterial({color:sp.glow}),p=r.eyeP,q=r.headPivot,k=r.Hh*.045;
+    for(const s of[1,-1]){const o=new T.Mesh(EYEG,m);o.position.set(p[0]-q[0],p[1]-q[1],s*p[2]);o.scale.set(k*.7,k*1.15,k);e.add(o);}
+    J.head.add(e);f.eyes=e;f.eyeMat=m;}
   scene.add(f.g);return f;
 }
-/* a bat turned on a lathe, to real size */
+const EYEG=new T.SphereGeometry(1,8,6);
+function removeFig(f){scene.remove(f.g);f.mat.dispose();f.skel.dispose();if(f.eyeMat)f.eyeMat.dispose();}
+/* a clean hit takes the head off: the head on the body shrinks to nothing and a loose one is handed back to be thrown */
+function popHead(f){
+  if(f.headOff)return null;f.headOff=true;f.j.head.scale.setScalar(.001);if(f.eyes)f.eyes.visible=false;
+  const A=archetype(f.S),R=f.rig.Hh*.46*f.scale,g=new T.Group();
+  const h=new T.Mesh(HEADG,new T.MeshStandardMaterial({color:A.L.skin,roughness:.8})),c=new T.Mesh(CAPG,new T.MeshStandardMaterial({color:A.L.hair,roughness:.85}));
+  h.castShadow=true;g.add(h,c);g.scale.setScalar(R);f.j.head.getWorldPosition(g.position);g.position.y+=R;scene.add(g);return g;
+}
+const HEADG=new T.SphereGeometry(1,14,10),CAPG=new T.SphereGeometry(1.06,14,7,0,TAU,0,PI*.45);
+
+/* ---- weapons: built once each, lying along +x from the butt so a fist closes round the handle ---- */
+const tg=(g,sx,sy,sz,x,y,z,rx,ry,rz)=>{g.scale(sx,sy,sz);if(rx)g.rotateX(rx);if(ry)g.rotateY(ry);if(rz)g.rotateZ(rz);g.translate(x,y,z);return g;};
 function batGeo(){
   const pts=[[0,0],[.25,.03],[.27,.14],[.17,.24],[.155,.6],[.155,2.9],[.19,3.8],[.27,5.1],[.37,6.4],[.42,7.6],[.42,9],[.37,9.3],[0,9.4]].map(p=>new T.Vector2(p[0],p[1]));
-  const g=new T.LatheGeometry(pts,24),p=g.attributes.position,k=new Float32Array(p.count*3),c=new T.Color();
+  const g=new T.LatheGeometry(pts,16),p=g.attributes.position,k=new Float32Array(p.count*3),c=new T.Color();
   for(let i=0;i<p.count;i++){lin(p.getY(i)>.25&&p.getY(i)<2.95?0x1b1b1f:0xc49c6a,c);k[i*3]=c.r;k[i*3+1]=c.g;k[i*3+2]=c.b;}
   g.setAttribute('color',new T.BufferAttribute(k,3));g.rotateZ(-PI/2);g.computeVertexNormals();return g;
 }
-const WEAP={bat:{geo:batGeo,two:1}};
+const X=PI/2;      // turns a cylinder to lie along x
+/* two = both hands (butt = knob length, handle = room for two hands). one-handed: hold = where the fist sits along the handle.
+   gun = held like a pistol grip with the barrel running along the forearm; these are built round the grip itself. */
+const WEAP={
+  bat:{two:1,butt:.27,handle:2.7,geo:batGeo},
+  club:{two:1,butt:.05,handle:3.3,parts:()=>[cy(.13,.15,10.4,6,5.2,0,0,0xb4bac2,0,0,X),cy(.21,.19,3.3,8,1.65,0,0,0x1c1c1e,0,0,X),bx(.55,1.5,.95,10.3,-.6,0,0x8e949c,0,0,.25),bx(.2,1.35,.8,10.62,-.62,0,0xd0d4da,0,0,.25)]},
+  board:{two:1,butt:.15,handle:3.2,parts:()=>[bx(8.8,.3,2.3,4.4,0,0,0x7a3fb0),bx(2.4,.32,2.32,4.6,0,0,0xe8c84a),cy(1.15,1.15,.3,10,.2,0,0,0x7a3fb0),cy(1.15,1.15,.3,10,8.7,0,0,0x7a3fb0),
+    bx(.5,.35,1.9,2,-.3,0,0x9aa0a8),bx(.5,.35,1.9,7,-.3,0,0x9aa0a8),cy(.36,.36,.5,8,2,-.55,1,0xe8e2c8,X),cy(.36,.36,.5,8,2,-.55,-1,0xe8e2c8,X),cy(.36,.36,.5,8,7,-.55,1,0xe8e2c8,X),cy(.36,.36,.5,8,7,-.55,-1,0xe8e2c8,X)]},
+  iron:{hold:.9,parts:()=>[cy(.17,.17,5.4,6,2.7,0,0,0x30343a,0,0,X),bx(.55,1.4,.55,5.35,-.45,0,0x30343a),bx(.9,.14,.5,-.2,0,0,0x30343a)]},
+  baton:{hold:.9,parts:()=>[cy(.2,.2,6.4,8,3.2,0,0,0x15171a,0,0,X),cy(.17,.17,1.4,6,1.7,-.7,0,0x15171a)]},
+  knife:{hold:.85,parts:()=>[cy(.2,.22,1.8,8,.9,0,0,0x2a1c14,0,0,X),bx(.3,.5,.34,1.75,0,0,0x8a8e94),bx(3.5,1.8,.09,3.6,-.5,0,0xcdd2d8),bx(3.5,.18,.13,3.6,.34,0,0x8a8e94)]},
+  pan:{hold:.9,parts:()=>[cy(.17,.19,3,8,1.5,0,0,0x18181a,0,0,X),cy(1.8,1.55,.5,16,4.6,0,0,0x26282c,X),cy(1.52,1.52,.08,16,4.6,0,.24,0x44484e,X)]},
+  ciron:{hold:2.1,parts:()=>[cy(.2,.2,2.3,8,2.1,0,0,0x3a78c2,0,0,X),bx(.32,.7,.42,1.15,-.42,0,0x3a78c2),bx(.32,.7,.42,3.05,-.42,0,0x3a78c2),bx(2.7,.95,1.5,2.2,-1.2,0,0xdfe3e8),bx(1.05,.95,1.05,3.55,-1.2,0,0xdfe3e8,0,PI/4,0),
+    bx(2.9,.16,1.62,2.25,-1.74,0,0xaab0b8),bx(1.14,.16,1.14,3.6,-1.74,0,0xaab0b8,0,PI/4,0),cy(.3,.3,.1,8,1.6,-.7,0,0xd2332a)]},
+  hammer:{hold:.8,parts:()=>[cy(.17,.2,3.8,8,1.9,0,0,0x8a6a42,0,0,X),bx(.85,2,.85,3.85,.05,0,0x3a3d42),bx(.5,.5,.5,3.85,1.1,0,0x2a2c30)]},
+  pistol:{gun:1,parts:()=>[bx(1.8,.9,.62,-.1,.05,0,0x24262b),bx(.78,3.3,.66,1.05,-1.15,0,0x1c1e22),bx(.3,.9,.3,.5,-.8,0,0x15171a),bx(.2,.3,.2,1.5,-2.6,0,0x0c0c0e)]},
+  shotgun:{gun:1,parts:()=>[bx(1.5,.85,.62,-.1,.05,0,0x5a4030),bx(.7,9.6,.62,1,-3.6,0,0x1a1816),bx(.5,6,.5,.45,-5.2,0,0x1a1816),bx(.95,2.6,.9,.6,-4.4,0,0x5a4030),bx(1.2,3.4,.72,.5,2.4,0,0x5a4030,0,0,-.12),bx(.9,2,.7,.8,.2,0,0x26221e)]},
+};
+const WGEO={};
+function weapGeo(name){return WGEO[name]||(WGEO[name]=WEAP[name].geo?WEAP[name].geo():merge(WEAP[name].parts()));}
+const WMAT=vmat({roughness:.5,metalness:.25});
 function setWeapon(f,name){
   if(f.wname===name)return;f.wname=name;
   for(const k in f.weap)f.weap[k].visible=false;
   if(!name||!WEAP[name])return;
   if(!f.weap[name]){
-    // big-handed bodies get a bigger bat, so there is always room on the handle for two hands
-    const W=WEAP[name],m=new T.Mesh(W.geo(),vmat({roughness:.55})),G=f.grip,ws=Math.max(f.rig.B/2.63,(2*G.gap+.1)/2.7),hold=.27*ws+G.gap*1.5+.08;m.castShadow=true;
-    m.scale.setScalar(ws);m.position.set(G.x-hold,G.y,-G.z);f.j.haR.add(m);f.weap[name]=m;
+    const W=WEAP[name],m=new T.Mesh(weapGeo(name),WMAT),G=f.grip;m.castShadow=true;
+    if(W.two){const ws=Math.max(f.rig.B/2.63,(2*G.gap+.1)/W.handle);m.scale.setScalar(ws);m.position.set(G.x-(W.butt*ws+G.gap*1.5+.08),G.y,-G.z);}      // big hands get a bigger one, so two always fit on the handle
+    else{const ws=clamp(G.gap/1.75,.95,1.3);m.scale.setScalar(ws);m.position.set(G.x-(W.gun?0:W.hold*ws),G.y,-G.z);}
+    f.j.haR.add(m);f.weap[name]=m;
   }
   f.weap[name].visible=true;
 }
@@ -584,26 +665,68 @@ function twoHand(f,u,w){
   armIK(f,-1,_Wr,w);setHand(f,-1,_qh,w);
 }
 
-/* ---- animation ---- */
+/* ---- animation: work out target joint angles from what the unit is doing, ease toward them, then solve two-handed grips ---- */
 function figAnim(f,u,dt,now){
-  const p=f.tgt,J=f.j,S=f.S,bk=f.rig.B/2.6;for(const k of PK)p[k]=0;
-  f.g.position.set(u.x,0,u.y);f.g.rotation.set(0,-u.ang,0);
-  const sp=u.spd||0;let rate=22;
-  f.ph+=sp*dt*.15;
-  const s=Math.sin(f.ph),c=Math.cos(f.ph),A=clamp(sp/52,0,1),run=clamp((sp-30)/30,0,1);
-  p.hL=s*(.62+.3*run)*A;p.hR=-s*(.62+.3*run)*A;p.kL=-(Math.max(0,c)*(.9+.45*run)+.1)*A;p.kR=-(Math.max(0,-c)*(.9+.45*run)+.1)*A;
-  p.sLz=-s*(.5+.4*run)*A+.03;p.sRz=s*(.5+.4*run)*A+.03;p.sLx=.1;p.sRx=-.1;p.eL=p.eR=.18+(.3+.5*run)*A;p.lean=-(.07+.14*run)*A;
-  p.by=(Math.abs(c)*(.45+.45*run)*A-.2*A+Math.sin(now*2+f.seed)*.07*(1-A))*bk;p.twist=s*.12*A;
-  if(A<.1)p.hy=Math.sin(now*.7+f.seed)*.2;
-  if(S.zed){const w=Math.sin(now*1.3+f.seed);p.sLz=1.3+w*.07-s*.1*A;p.sRz=1.08-w*.06+s*.1*A;p.eL=.22;p.eR=.42;p.sLx=.04;p.sRx=-.04;p.lean=-(.14+.12*A)-(S.zed===2?.1:0);p.hz=-.1;p.hy=Math.sin(now*.9+f.seed)*.3;p.twist=s*.16*A+w*.04;}
-  const armed=!!f.wname,twoW=armed&&WEAP[f.wname].two;
-  if(armed){p.sRz=.2+s*.15*A;p.sRx=-.14;p.eR=1.95;p.wR=.15;}
-  if(u.atk){
-    rate=40;
-    if(twoW){const k=swingAt(u.atk),m=u.atk.type===1?-1:1,st=sstep(.3,.46,u.atk.t/u.atk.dur)*(1-sstep(.62,.95,u.atk.t/u.atk.dur));
-      p.twist=lerp(k.A.tw*(k.A===SW.ready?1:m),k.B.tw*(k.B===SW.ready?1:m),k.t);p.lean=lerp(k.A.ln,k.B.ln,k.t);p.by=lerp(k.A.by,k.B.by,k.t)*bk;
-      p.hy=-p.twist*.55;p.hL=.5*st*m;p.hR=-.42*st*m;p.kL=-.3*st;p.kR=-.3*st;}
-    else{const k=u.atk.t/u.atk.dur,R=u.atk.type!==1,a=Math.sin(Math.min(1,k/.45)*PI);p[R?'sRz':'sLz']=.4+1.2*a;p[R?'eR':'eL']=1.4-1.3*a;p.twist=(R?1:-1)*.5*a;p[R?'sLz':'sRz']=.5;p[R?'eL':'eR']=1.6;p.lean=-.18;p.hL=.4;p.hR=-.3;}
+  const p=f.tgt,J=f.j,S=f.S,r=f.rig,bk=r.B/2.6,ck=r.hipY/10;for(const k of PK)p[k]=0;
+  const sp=u.spd||0,W=f.wname?WEAP[f.wname]:null,melee=!!W&&!W.gun;let rate=22,twoW=false,gR=melee||W?1:.14,gL=.14;
+  if(u.dead){
+    p.sLz=.5;p.sRz=-.35;p.sLx=-.9;p.sRx=.9;p.hL=.3;p.hR=-.15;p.kR=-.5;p.hz=.3;p.eL=.5;rate=9;gR=gL=.3;
+  }else if(u.kind==='z'){
+    const t=u.ztype,run=t==='runner';gR=gL=.34;
+    f.ph+=sp*dt*(run?.14:.22);
+    const s=Math.sin(f.ph),c=Math.cos(f.ph);
+    if(run){const A=clamp(sp/50,0,1);
+      p.hL=s*1.05*A;p.hR=-s*1.05*A;p.kL=-(Math.max(0,c)*1.3+.15)*A;p.kR=-(Math.max(0,-c)*1.3+.15)*A;
+      p.lean=-.2-.42*A;p.sLz=.7-s*1.05*A;p.sRz=.7+s*1.05*A;p.eL=p.eR=1.1;p.hz=.3;p.by=Math.abs(c)*1.1*A*bk;p.hy=Math.sin(now*9+f.seed)*.15;
+    }else{const A=clamp(sp/15,0,1),br=t==='brute';
+      p.hL=s*.5*A;p.hR=-s*.3*A;p.kL=-Math.max(0,c)*.7*A;p.kR=-.12;p.by=Math.abs(c)*.5*A*bk;p.br=s*.13*A+(f.seed>5?.09:-.07);
+      p.lean=-.26+Math.sin(now*1.3+f.seed)*.05;
+      p.sLz=1.28+Math.sin(now*1.7+f.seed)*.14;p.sRz=(f.seed%2>1?1.1:.35)+Math.sin(now*1.3+f.seed*2)*.16;p.eL=.25;p.eR=.4;p.hz=.12;p.hy=Math.sin(now*.9+f.seed)*.3+(f.seed-5)*.06;
+      if(br){p.sLx=.55;p.sRx=-.55;p.sLz=.9;p.sRz=.9;p.lean=-.18;}
+    }
+    if(u.anim==='feed'){p.by=-6.6*ck;p.hL=p.hR=1.65;p.kL=p.kR=-2.5;p.lean=-.95+Math.sin(now*5+f.seed)*.08;p.sLz=p.sRz=.9;p.eL=.6+Math.sin(now*7)*.3;p.eR=.6+Math.cos(now*7)*.3;p.hz=-.25;}
+    else if(u.anim==='bang'){p.sLz=1.75+Math.sin(now*9+f.seed)*.55;p.sRz=1.75+Math.sin(now*9+f.seed+PI)*.55;p.eL=p.eR=.4;p.lean=-.32;}
+    else if(u.anim==='tramp'){p.sLz=2.6+Math.sin(now*6)*.5;p.sRz=2.6+Math.cos(now*6)*.5;p.hL=.3;p.hR=-.3;}
+    if(u.burning){p.sLz=2.4+Math.sin(now*11+f.seed)*.6;p.sRz=2.4+Math.cos(now*10)*.6;}
+    if(u.as==='wind'){const w=clamp(u.at/u.windDur,0,1);p.lean=-.05+.3*w;p.sLz=p.sRz=1.4+1*w;p.eL=p.eR=.7;p.hz=-.15;rate=18;}
+    else if(u.as==='strike'){p.lean=-.8;p.sLz=p.sRz=1.25;p.eL=p.eR=.1;p.by=-.9*bk;p.hz=.4;p.hL=.6;p.hR=-.5;rate=34;}
+    if(u.stag>0){const k=Math.min(1,u.stag/.25);p.lean=.55*k;p.sLz=p.sRz=1.9;p.hz=-.5*k;p.hL=.45*k;p.hR=.1;p.by=-.3*bk;rate=30;}
+  }else{
+    f.ph+=sp*dt*.15;
+    const s=Math.sin(f.ph),c=Math.cos(f.ph),A=clamp(sp/52,0,1);
+    p.hL=s*.9*A;p.hR=-s*.9*A;p.kL=-(Math.max(0,c)*1.25+.12)*A;p.kR=-(Math.max(0,-c)*1.25+.12)*A;
+    p.sLz=-s*.85*A+.03;p.sRz=s*.85*A+.03;p.sLx=.1;p.sRx=-.1;p.eL=p.eR=.2+.75*A;p.lean=-.2*A;p.by=(Math.abs(c)*.9*A-.2*A+Math.sin(now*2+f.seed)*.1*(1-A))*bk;p.twist=s*.12*A;
+    if(A<.1)p.hy=Math.sin(now*.7+f.seed)*.22;
+    if(melee){p.sRz=.2+s*.15*A;p.sRx=-.14;p.eR=1.95;p.wR=.15;}
+    else if(W){p.sRz=.12+s*.3*A;p.eR=.35;}      // a gun not being fired hangs at the side
+    if(u.anim==='wave'){p.sLz=2.9+Math.sin(now*9)*.25;p.sLx=Math.sin(now*9)*.3;p.sRz=melee?2.5+Math.sin(now*4)*.2:2.9+Math.cos(now*9)*.25;p.sRx=0;p.eR=.3;p.eL=.2;p.wR=-.9;}
+    else if(u.anim==='panic'){p.sLz=2.7+s*.45;p.sRz=2.7-s*.45;p.eL=p.eR=.35;p.sLx=-.3;p.sRx=.3;}
+    else if(u.anim==='cower'){p.by=-5.8*ck;p.hL=p.hR=1.5;p.kL=p.kR=-2.3;p.lean=-.6;p.sLz=p.sRz=2.4;p.eL=p.eR=2;p.hz=-.4;}
+    else if(u.anim==='crank'){p.sRz=1.25+Math.sin(now*7)*.45;p.sLz=1.25+Math.sin(now*7+PI)*.45;p.eR=p.eL=.7;p.lean=-.22;p.wR=0;gL=1;}
+    if(u.shootT!==undefined&&u.shootT<.9){
+      const rc=u.shootT<.13?1-u.shootT/.13:0;
+      p.sRz=1.5+rc*.5;p.sRx=.28;p.eR=.06;p.wR=0;p.sLz=1.45+rc*.4;p.sLx=-.5;p.eL=.25;p.lean=.14*rc;p.twist=0;gL=.8;
+    }
+    if(u.atk){
+      const k=u.atk.t/u.atk.dur,ty=u.atk.type,w=clamp(k/.22,0,1),st=clamp((k-.22)/.26,0,1),rc=clamp((k-.55)/.45,0,1);
+      rate=40;
+      if(!melee){ // fists
+        const R=ty!==1,a=Math.sin(Math.min(1,k/.45)*PI);p[R?'sRz':'sLz']=.4+1.2*a;p[R?'eR':'eL']=1.4-1.3*a;p.twist=(R?1:-1)*.5*Math.sin(Math.min(1,k/.5)*PI);p[R?'sLz':'sRz']=.5;p[R?'eL':'eR']=1.6;p.lean=-.18;p.hL=.4;p.hR=-.3;gR=gL=1;
+      }else if(W.two){ // both hands: the body turns and steps, the arms are solved to the grip afterwards
+        const q=swingAt(u.atk),m=ty===1?-1:1,stp=sstep(.3,.46,k)*(1-sstep(.62,.95,k));twoW=true;
+        p.twist=lerp(q.A.tw*(q.A===SW.ready?1:m),q.B.tw*(q.B===SW.ready?1:m),q.t);p.lean=lerp(q.A.ln,q.B.ln,q.t);p.by=lerp(q.A.by,q.B.by,q.t)*bk;
+        p.hy=-p.twist*.55;p.hL=.5*stp*m;p.hR=-.42*stp*m;p.kL=-.3*stp;p.kR=-.3*stp;
+      }else if(ty===2){ // one-handed overhead smash
+        const up=1-st;p.sRz=.75+2.25*up*w;p.sLz=.3;p.sRx=.35;p.sLx=-.3;p.eR=.45*up;p.eL=.9;p.wR=-.9*st-.2;p.lean=.28*w*up-.6*st*(1-rc);p.by=-1.4*st*(1-rc)*bk;p.hL=.55*st;p.hR=-.45*st;
+      }else{ // one-handed swipe, forehand then backhand
+        const dir=ty===0?1:-1,tw=(-.95*w+1.95*st)*(1-rc);
+        p.twist=dir*tw;p.sRz=1.35;p.sRx=dir>0?(-.95*w+1.7*st)*(1-rc*.6):(.85*w-1.75*st)*(1-rc*.6);p.eR=.3;p.wR=-1.25;
+        p.sLz=.25;p.sLx=-.35;p.eL=1;p.lean=-.16;p.hL=.5*st;p.hR=-.4*st;
+      }
+    }else if(u.ready&&W&&W.two)twoW=true;
+    if(u.dashT>0){p.lean=-.75;p.hL=.95;p.hR=-.85;p.kR=-1.3;p.sLz=-1;p.sRz=melee?.3:-1;p.by=-1*bk;rate=40;}
+    if(u.hurtT>0){p.lean+=.35;p.hz=-.35;}
+    if(u.lying){for(const k of PK)p[k]=0;p.sLx=-.25;p.sRx=.25;rate=40;}
   }
   const k=1-Math.exp(-rate*dt),cu=f.cur;
   for(const key of PK)cu[key]+=(p[key]-cu[key])*k;
@@ -612,19 +735,25 @@ function figAnim(f,u,dt,now){
   J.sL.rotation.set(cu.sLx,0,cu.sLz);J.sR.rotation.set(cu.sRx,0,cu.sRz);J.eL.rotation.set(0,0,cu.eL);J.eR.rotation.set(0,0,cu.eR);
   J.haR.rotation.set(0,0,cu.wR);J.haL.rotation.set(0,0,0);
   J.hL.rotation.z=cu.hL;J.hR.rotation.z=cu.hR;J.kL.rotation.z=cu.kL;J.kR.rotation.z=cu.kR;
-  f.two=damp(f.two,twoW&&(u.atk||u.ready)?1:0,u.atk?30:9,dt);
-  if(f.two>.003){f.g.updateMatrixWorld(true);twoHand(f,u,ease(f.two));}
-  const rest=S.zed?.34:.14,fistR=armed||(u.atk&&!armed)?1:rest,fistL=Math.max(f.two,u.atk&&!armed?1:0,rest);
-  f.gR=damp(f.gR,fistR,16,dt);f.gL=damp(f.gL,fistL,16,dt);
+  // root: position, facing, falling over
+  let fall=0,lift=0;
+  if(u.dead){const kk=ease(Math.min(1,u.deadT/.42));fall=(u.fallDir||1)*kk*PI/2;lift=2*kk;}
+  else if(u.lying){fall=PI/2;lift=u.lyingH||0;}
+  else if(u.upT>0){const kk=ease(u.upT/.9);fall=kk*PI/2;lift=(u.lyingH||0)*kk;}
+  f.g.position.set(u.x,(u.z||0)+lift,u.y);f.g.rotation.set(0,-u.ang,fall);
+  f.two=damp(f.two,twoW?1:0,u.atk?30:9,dt);
+  if(f.two>.003){f.g.updateMatrixWorld(true);twoHand(f,u,ease(f.two));gL=Math.max(gL,f.two);}
+  f.gR=damp(f.gR,gR,16,dt);f.gL=damp(f.gL,gL,16,dt);
   J.faR.rotation.x=.12+1.36*f.gR;J.fbR.rotation.x=.2+1.5*f.gR;J.thR.quaternion.identity().slerp(f.thQ.R,f.gR);
   J.faL.rotation.x=-(.12+1.36*f.gL);J.fbL.rotation.x=-(.2+1.5*f.gL);J.thL.quaternion.identity().slerp(f.thQ.L,f.gL);
+  if(f.flash>0){f.flash=Math.max(0,f.flash-dt*7);f.mat.emissive.setScalar(f.flash*.9);}
 }
 
 /* ===== 20-lab.js ===== */
 /* The lab stage: the cast or the zombies side by side, or one figure at a time on a turntable. Figures are sculpted one per frame so the page stays alive while they build. */
 scene.fog=null;scene.background=new T.Color(0x24272e);
 renderer.toneMappingExposure=1.0;
-let pose='stand',spin=-.45,spinOn=false,gameView=false,slow=false,bat=true,camPitch=.1,zoomK=1,swingT=0,focus='cast';
+let pose='stand',spin=-.45,spinOn=false,gameView=false,slow=false,camPitch=.1,zoomK=1,swingT=0,focus='cast';
 {
   const floor=new T.Mesh(new T.CircleGeometry(500,64),new T.ShadowMaterial({opacity:.4}));floor.rotation.x=-PI/2;floor.receiveShadow=true;scene.add(floor);
   const disc=new T.Mesh(new T.CircleGeometry(500,64),new T.MeshBasicMaterial({color:0x2d3139}));disc.rotation.x=-PI/2;disc.position.y=-.05;scene.add(disc);
@@ -634,27 +763,32 @@ let pose='stand',spin=-.45,spinOn=false,gameView=false,slow=false,bat=true,camPi
   const fill=new T.DirectionalLight(0xb4c8ff,.34);fill.position.set(-90,40,70);scene.add(fill);
   const rim=new T.DirectionalLight(0xffd0a0,.5);rim.position.set(-30,70,-120);scene.add(rim);
 }
-const GAP=12,GROUPS={cast:'The cast',zed:'Zombies'},figs=STYLES.map(()=>null),units=STYLES.map(()=>({x:0,y:0,ang:PI/2,spd:0,atk:null,ready:false}));
-const members=g=>STYLES.map((S,i)=>i).filter(i=>STYLES[i].group===g);
+const SHOW=STYLES.filter(S=>S.lab),GAP=12,GROUPS={cast:'The cast',zed:'Zombies'},figs=SHOW.map(()=>null),units=SHOW.map(S=>({x:0,y:0,ang:PI/2,spd:0,atk:null,ready:false,kind:S.zed?'z':'surv',ztype:S.zed===2?'runner':S.zed===3?'brute':'shambler'}));
+const members=g=>SHOW.map((S,i)=>i).filter(i=>SHOW[i].group===g);
 const mkLbl=(n,t)=>{const d=document.createElement('div');d.className='lbl';d.innerHTML='<b>'+n+'</b><span>'+t+'</span>';stage.appendChild(d);return d;};
-const lbls=STYLES.map((S,i)=>mkLbl(i+1,S.name));
+const lbls=SHOW.map((S,i)=>mkLbl(i+1,S.name));
 const tabs=$('#tabs'),tabB={};
 const mkTab=(key,html)=>{const b=document.createElement('button');b.innerHTML=html;b.addEventListener('click',()=>setFocus(key));tabs.appendChild(b);tabB[key]=b;};
 for(const g in GROUPS)mkTab(g,GROUPS[g]);
-STYLES.forEach((S,i)=>mkTab(i,'<b>'+(i+1)+'</b>'+S.name));
+SHOW.forEach((S,i)=>mkTab(i,'<b>'+(i+1)+'</b>'+S.name));
 function setFocus(k){
   focus=k;for(const key in tabB)tabB[key].classList.toggle('on',String(key)===String(k));
   const grp=typeof k==='string',ids=grp?members(k):[k];
-  $('#info .n').textContent=grp?'Round 5 · your two picks as the cast':(STYLES[k].group==='zed'?'Zombie':'Survivor')+' · '+(STYLES[k].build==='brawler'?'Brawler build':'round-head build');
-  $('#info h2').textContent=grp?GROUPS[k]:STYLES[k].name;
-  $('#info p').textContent=grp?(k==='cast'?'You, Walt and Officer Dunn are on the Brawler build. Jules and Marisol are on the slimmer round-headed build. Pick a number to see one up close.':'A shambler on the round-headed build, a runner on a leaner Brawler, and Big Earl, the Brawler scaled up.'):STYLES[k].blurb;
-  STYLES.forEach((S,i)=>{const on=ids.includes(i);if(figs[i])figs[i].g.visible=on;units[i].x=on?(ids.indexOf(i)-(ids.length-1)/2)*GAP:0;units[i].on=on;});
+  $('#info .n').textContent=grp?'As they are in the game':(SHOW[k].group==='zed'?'Zombie':'Survivor')+' · '+(SHOW[k].build==='brawler'?'Brawler build':'round-head build')+(SHOW[k].weapon?' · '+({bat:'bat',club:'golf club',board:'skateboard',knife:'butcher knife',pistol:'pistol'})[SHOW[k].weapon]:'');
+  $('#info h2').textContent=grp?GROUPS[k]:SHOW[k].name;
+  $('#info p').textContent=grp?(k==='cast'?'You, Walt and Officer Dunn are on the Brawler build. Jules and Marisol are on the slimmer round-headed build. Pick a number to see one up close.':'A shambler on the round-headed build, a runner on a leaner Brawler, and Big Earl, the Brawler scaled up.'):SHOW[k].blurb;
+  SHOW.forEach((S,i)=>{const on=ids.includes(i);if(figs[i])figs[i].g.visible=on;units[i].x=on?(ids.indexOf(i)-(ids.length-1)/2)*GAP:0;units[i].on=on;});
 }
 function setPose(p){pose=p;swingT=0;for(const o of document.querySelectorAll('#poses [data-pose]'))o.classList.toggle('on',o.dataset.pose===p);}
 for(const b of document.querySelectorAll('#poses [data-pose]'))b.addEventListener('click',()=>setPose(b.dataset.pose));
 const tog=(id,fn)=>$(id).addEventListener('click',()=>{$(id).classList.toggle('on',fn());});
-const arm=f=>{if(f&&!f.S.zed)setWeapon(f,bat?'bat':null);};
-tog('#batBtn',()=>{bat=!bat;figs.forEach(arm);return bat;});
+/* the weapon button steps through everything a survivor can carry, starting with each person's own */
+const WLIST=['own','bat','club','board','knife','pan','ciron','hammer','iron','baton','pistol','shotgun','none'];
+const WNAME={own:'Own weapon',bat:'Bat',club:'Golf club',board:'Skateboard',knife:'Butcher knife',pan:'Frying pan',ciron:'Clothes iron',hammer:'Hammer',iron:'Tire iron',baton:'Baton',pistol:'Pistol',shotgun:'Shotgun',none:'Empty hands'};
+let wi=0;
+const arm=f=>{if(f&&!f.S.zed){const w=WLIST[wi];setWeapon(f,w==='own'?f.S.weapon:w==='none'?null:w);}};
+const setW=i=>{wi=(i+WLIST.length)%WLIST.length;figs.forEach(arm);$('#batBtn').textContent=WNAME[WLIST[wi]];$('#batBtn').classList.toggle('on',WLIST[wi]!=='none');};
+$('#batBtn').addEventListener('click',()=>setW(wi+1));
 tog('#slowBtn',()=>slow=!slow);tog('#gameBtn',()=>gameView=!gameView);tog('#spinBtn',()=>spinOn=!spinOn);
 const ptrs=new Map();let pinch0=0;
 ov.addEventListener('pointerdown',e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});try{ov.setPointerCapture(e.pointerId);}catch(_){}if(ptrs.size===2){const p=[...ptrs.values()];pinch0=hyp(p[0].x-p[1].x,p[0].y-p[1].y)/zoomK;}});
@@ -678,8 +812,8 @@ function place(el,x,show){
 let built=0;const order=members('cast').concat(members('zed'));
 function buildNext(){
   if(built>=order.length){$('#busy').hidden=true;window.__ready=true;return;}
-  const i=order[built];$('#busy').textContent='Sculpting '+STYLES[i].name+' ('+(built+1)+' of '+order.length+')';
-  setTimeout(()=>{const f=figs[i]=makeFig({style:STYLES[i]});arm(f);f.g.visible=!!units[i].on;built++;buildNext();},30);
+  const i=order[built];$('#busy').textContent='Sculpting '+SHOW[i].name+' ('+(built+1)+' of '+order.length+')';
+  setTimeout(()=>{const f=figs[i]=makeFig(SHOW[i]);arm(f);f.g.visible=!!units[i].on;built++;buildNext();},30);
 }
 let last=performance.now(),simNow=0;
 function frame(ms){
@@ -692,7 +826,7 @@ function frame(ms){
   if(pose==='swing'||pose==='smash'){const per=1.25,cyc=swingT%per,n=Math.floor(swingT/per),dur=pose==='smash'?.56:.48;ready=true;if(cyc<dur)atk={t:cyc,dur,type:pose==='smash'?2:n%2};}
   if(window.__atk){atk=window.__atk;ready=true;}
   let hMax=1,n=0;
-  figs.forEach((f,i)=>{const u=units[i];if(!f||!u.on)return;n++;hMax=Math.max(hMax,f.S.h||1);const z=f.S.zed;u.ang=ang;u.spd=pose==='walk'?(z?14:26):pose==='run'?(z===2?62:z?20:62):0;u.ready=ready&&!z;u.atk=z?null:atk;figAnim(f,u,dt,simNow);});
+  figs.forEach((f,i)=>{const u=units[i];if(!f||!u.on)return;n++;hMax=Math.max(hMax,(f.S.h||1)*.87);const z=f.S.zed;const gun=f.wname&&WEAP[f.wname].gun;u.ang=ang;u.spd=pose==='walk'?(z?14:26):pose==='run'?(z===2?62:z?20:62):0;u.ready=ready&&!z;u.atk=z||gun?null:atk;u.shootT=gun&&(ready||atk)?.5:9;figAnim(f,u,dt,simNow);});
   const tanH=Math.tan(camera.fov*PI/360),tanW=tanH*camera.aspect,all=typeof focus==='string',narrow=cw<700,cnt=all?members(focus).length:1;
   // on a phone the name sits above the figure and the buttons run along the bottom, so leave room for both
   let ty=(all?8.6:narrow?11.3:10.2)*hMax,td=(all?Math.max(((cnt-1)/2*GAP+9)/tanW,16.5*hMax/tanH):Math.max(9.5*hMax/tanW,(narrow?19:14)*hMax/tanH))/zoomK,tp=camPitch;

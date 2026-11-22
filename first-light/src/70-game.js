@@ -11,6 +11,10 @@ const MELEE={
   board:{name:'Skateboard',dmg:[11,15],range:19,arc:.9,dur:.32,kb:60},
   iron:{name:'Tire iron',dmg:[14,18],range:19,arc:.9,dur:.4,kb:70},
   baton:{name:'Baton',dmg:[14,18],range:19,arc:.9,dur:.38,kb:65},
+  knife:{name:'Butcher knife',dmg:[15,20],range:16,arc:.8,dur:.25,kb:35},
+  pan:{name:'Frying pan',dmg:[16,21],range:18,arc:1.05,dur:.36,kb:130},
+  ciron:{name:'Clothes iron',dmg:[26,34],range:15,arc:.8,dur:.46,kb:90},
+  hammer:{name:'Hammer',dmg:[20,26],range:17,arc:.85,dur:.34,kb:75},
 };
 /* start = how far away it begins an attack, lunge = how fast it comes at you during the strike */
 const ZT={shambler:{hp:[58,76],speed:[18,24],dmg:[10,14],wind:.42,rec:.75,sight:170,start:24,lunge:95},runner:{hp:[36,44],speed:[72,80],dmg:[7,10],wind:.24,rec:.6,sight:250,start:27,lunge:210},brute:{hp:[330,330],speed:[26,26],dmg:[22,28],wind:.6,rec:.9,sight:220,start:32,lunge:140}};
@@ -35,7 +39,7 @@ function mkYou(x,y){
 const SURV={
   walt:{name:'Walt',role:'keeps watch',weapon:'club',hp:115,speed:60,rate:.95,line:'About time! I’ve been up here since the six o’clock news.',help:['HEY! Up here!','I’ve got a 7-iron and nothing to lose!','Somebody! Anybody!']},
   jules:{name:'Jules',role:'scout',weapon:'board',hp:85,speed:72,rate:.6,line:'You’re real? Okay. Okay. I’m coming with you.',help:['Help! They can climb!','Get them off me!']},
-  marisol:{name:'Marisol',role:'medic',weapon:'iron',hp:100,speed:63,rate:.8,medic:1,line:'I’m a nurse. Keep them off me and I’ll keep you standing.',help:['']},
+  marisol:{name:'Marisol',role:'medic',weapon:'knife',hp:100,speed:63,rate:.8,medic:1,line:'I’m a nurse. Keep them off me and I’ll keep you standing.',help:['']},
   dunn:{name:'Dunn',role:'guard',weapon:'baton',gun:1,ammo:14,hp:125,speed:62,rate:.8,line:'Officer Dunn. Whatever your plan is, it beats mine.',help:['Stay back! Get off the street!']},
 };
 function mkSurv(key,x,y,ang,extra){
@@ -54,24 +58,19 @@ function mkZed(type,x,y,extra){
     state:'idle',tgt:null,goal:null,path:null,repath:0,lost:0,direct:false,track:0,as:null,at:0,atkCD:rand(0,.4),struck:false,senseT:Math.random()*.3,wt:rand(1,5),far:false,burning:false,groanT:rand(2,9)},extra||{});
   u.maxhp=u.hp;ents.push(u);zeds.push(u);return u;
 }
-/* bodies already lying in the street: posed once, then baked into a single mesh each so they cost almost nothing */
-let corpseMeshes=[];
+/* bodies already lying in the street: posed once and never animated again, so they cost one draw each */
+let corpseFigs=[];
 function mkCorpse(x,y,ang){
   const u=Object.assign(base('prop',x,y,ang,makeFig(civSpec())),{dead:true,deadT:9,fallDir:Math.random()<.5?1:-1}),f=u.fig;
-  figAnim(f,u,1,0);figAnim(f,u,1,0);f.g.updateMatrixWorld(true);f.skel.update();
-  const items=[];
-  f.g.traverse(o=>{
-    if(!o.isMesh)return;const g=o.geometry.clone();
-    if(o.isSkinnedMesh){const p=g.attributes.position;for(let i=0;i<p.count;i++){o.boneTransform(i,_v);p.setXYZ(i,_v.x,_v.y,_v.z);}g.computeVertexNormals();}
-    g.applyMatrix4(o.matrixWorld);items.push({g,keep:1});
-  });
-  const m=new T.Mesh(merge(items),vmat({roughness:.85}));m.receiveShadow=true;scene.add(m);corpseMeshes.push(m);removeFig(f);
+  figAnim(f,u,1,0);figAnim(f,u,1,0);f.mesh.castShadow=false;corpseFigs.push(f);
   decal(x,y,rand(16,24),1);
 }
-const ITEMG={bat:()=>WEAPG.bat(),pistol:()=>WEAPG.pistol(),shotgun:()=>WEAPG.shotgun(),aid:()=>[bx(6,4,4,0,0,0,0xe8e8e8),bx(2.4,.9,4.1,0,0,0,0xd2332a),bx(.9,2.4,4.1,0,0,0,0xd2332a)],ammo:()=>[bx(5,3,3.4,0,0,0,0x3a4a36),bx(5.1,.8,3.5,0,.6,0,0xd0b040)],shells:()=>[bx(5,3,3.4,0,0,0,0x8a2a1e),bx(5.1,.8,3.5,0,.6,0,0xd0b040)]};
-const ITEMN={bat:'Baseball bat',pistol:'Pistol',shotgun:'Shotgun',aid:'First aid',ammo:'9mm rounds',shells:'Shells'};
+const ITEMG={aid:()=>[bx(6,4,4,0,0,0,0xe8e8e8),bx(2.4,.9,4.1,0,0,0,0xd2332a),bx(.9,2.4,4.1,0,0,0,0xd2332a)],ammo:()=>[bx(5,3,3.4,0,0,0,0x3a4a36),bx(5.1,.8,3.5,0,.6,0,0xd0b040)],shells:()=>[bx(5,3,3.4,0,0,0,0x8a2a1e),bx(5.1,.8,3.5,0,.6,0,0xd0b040)]};
+const ITEMN={bat:'Baseball bat',pistol:'Pistol',shotgun:'Shotgun',aid:'First aid',ammo:'9mm rounds',shells:'Shells',club:'7-iron',board:'Skateboard',iron:'Tire iron',baton:'Baton',knife:'Butcher knife',pan:'Frying pan',ciron:'Clothes iron',hammer:'Hammer'};
 function mkItem(kind,x,y){
-  const m=new T.Mesh(merge(ITEMG[kind]()),vmat({roughness:.5,metalness:.2}));m.castShadow=true;m.position.set(x,9,y);if(kind==='bat')m.rotation.z=1.1;scene.add(m);
+  // weapons lie in the world as the same model you end up holding
+  const W=WEAP[kind],m=new T.Mesh(W?weapGeo(kind):merge(ITEMG[kind]()),W?WMAT:vmat({roughness:.5,metalness:.2}));m.castShadow=true;m.position.set(x,9,y);
+  if(W){m.scale.setScalar(W.gun?1.4:W.two?1.15:1.5);if(!W.gun)m.rotation.z=1.1;}scene.add(m);
   const g=glowAt(x,6,y,kind==='aid'?0x7dffb0:0xffd98a,26);
   const it={kind,x,y,m,g,taken:false};items.push(it);return it;
 }
@@ -104,8 +103,8 @@ function killZ(z,src,ang,crit){
   z.kx*=1.5;z.ky*=1.5;z.z=0;
   decal(z.x,z.y,rand(14,22),1);
   if(z.fig.eyes)z.fig.eyes.visible=false;
-  if(crit&&z.fig.headG.parent!==scene){ // head comes off
-    const h=z.fig.headG;scene.attach(h);
+  const h=crit&&popHead(z.fig);
+  if(h){ // head comes off
     debris.push({o:h,vx:Math.cos(ang)*rand(60,120),vy:Math.sin(ang)*rand(60,120),vz:rand(70,120),sx:rand(-9,9),sz:rand(-9,9),t:0});
     for(let i=0;i<3;i++)fxBlood(z.x,z.y,16,rand(-1,1),rand(-1,1),8,true);
     sfx('pop',z.x,z.y,1);if(src===L)floatText(z,pick(['POP','OUT OF THE PARK','CLEAN OFF']),'#ffd24a');
@@ -277,9 +276,14 @@ function youUpdate(dt){
   u.stepAcc+=u.spd*dt;if(u.stepAcc>19){u.stepAcc=0;sfx('step');if(u.y>176&&u.y<204&&u.y<262){sfx('splash',undefined,undefined,.5);for(let i=0;i<4;i++)emit(pDrop,u.x,u.y,1,rand(-20,20),rand(-20,20),rand(20,40),1.5,.4,.7,.8,.9,.7,200,0,0,2);}}
   // pick things up by walking over them
   for(const it of items){
-    if(it.taken||hyp(it.x-u.x,it.y-u.y)>15)continue;
+    if(it.taken)continue;const near=hyp(it.x-u.x,it.y-u.y)<=15;
+    if(it.hold){if(!near)it.hold=false;continue;}      // something you just put down: step away before it can be picked up again
+    if(!near)continue;
     it.taken=true;scene.remove(it.m);scene.remove(it.g);sfx('pickup');
-    if(it.kind==='bat'){u.melee='bat';setWeapon(u.fig,'bat');floatText(u,'BASEBALL BAT',COL.good);EV.armed=true;}
+    if(MELEE[it.kind]){      // a melee weapon: take it, and leave the one you were carrying in its place
+      const old=u.melee;u.melee=it.kind;setWeapon(u.fig,it.kind);floatText(u,MELEE[it.kind].name.toUpperCase(),COL.good);EV.armed=true;
+      if(old!=='fists')mkItem(old,it.x,it.y).hold=true;
+    }
     else if(it.kind==='pistol'){u.has.pistol=true;u.ammo.pistol+=8;floatText(u,'PISTOL · 8 ROUNDS',COL.good);}
     else if(it.kind==='ammo'){u.ammo.pistol+=8;floatText(u,'+8 ROUNDS',COL.good);}
     else if(it.kind==='shotgun'){u.has.shotgun=true;u.ammo.shotgun+=5;floatText(u,'SHOTGUN · 5 SHELLS',COL.good);}
