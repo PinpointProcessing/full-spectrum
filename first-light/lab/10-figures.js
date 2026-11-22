@@ -1,10 +1,9 @@
-/* Character lab, round 3: sculpted figures.
-   A body is no longer assembled from separate tubes. It is described as one solid (trunk, limbs, hands and head blended
-   into each other like clay) and a surface is wrapped round that solid, so shoulders, hips, neck and wrists flow together
-   with no seams. Clothes and the face are painted on afterwards as a texture, which keeps every colour edge crisp.
-   Two body families share one skeleton and one set of animations:
-     "anat"  - human proportions measured in head units (the Grounded design), with a softness dial
-     "troop" - the Full Spectrum trooper body (leg column or stout legs, barrel torso, ball head), given arms and hands */
+/* Character lab, round 4: big-headed cartoon people.
+   A body is described as one solid (trunk, limbs, hands and head blended into each other like clay) and a surface is
+   wrapped round that solid, so shoulders, hips, neck and wrists flow together with no seams. Clothes and the face are
+   painted on afterwards as a texture, which keeps every colour edge crisp. A draft is a set of proportions: how many heads
+   tall, the head's shape, how wide the trunk is, how thick the limbs are. All drafts share one skeleton and one set of
+   animations, including the two-handed swing and the closing fist. */
 const PK=['by','br','lean','twist','hz','hy','sLz','sLx','sRz','sRx','eL','eR','wR','hL','hR','kL','kR'];
 const BONE={body:0,hips:1,chest:2,head:3,sL:4,eL:5,haL:6,sR:7,eR:8,haR:9,hL:10,kL:11,hR:12,kR:13,faL:14,fbL:15,thL:16,faR:17,fbR:18,thR:19};
 function vmat(o){return new T.MeshStandardMaterial(Object.assign({vertexColors:true,roughness:.86,metalness:0},o||{}));}
@@ -153,6 +152,7 @@ function paintBody(g,L,P){
     R(-zd,zd,P.shoeTop,P.hem,css(L.pants));
     R(-zd,zd,P.hem,P.ySide,css(L.tee));R(-WW,WW,P.sleeve,P.ySide,css(L.tee));
     if(P.stripe)R(-zd,zd,P.stripe[0],P.stripe[1],css(L.trim));
+    if(P.belt)R(-zd,zd,P.hem-P.belt,P.hem,css(L.belt));
     if(P.sleeveTrim){R(-WW,-zd,P.sleeve,P.sleeve+P.sleeveTrim,css(L.trim));R(zd,WW,P.sleeve,P.sleeve+P.sleeveTrim,css(L.trim));}
     const gr=g.createLinearGradient(0,Yp(P.hem),0,Yp(P.hem-.45));gr.addColorStop(0,'rgba(0,0,0,.3)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(X(-zd),Yp(P.hem),2*zd*sb,.45*sb);
     const dip=front?P.ySide-P.yFront:0,wd=P.nw*.8,cy_=z=>P.ySide-(Math.abs(z)<wd?dip*Math.pow(Math.cos(PI*z/(2*wd)),2):0);
@@ -163,151 +163,136 @@ function paintBody(g,L,P){
   }
 }
 function paintFace(g,L,hd,eyeY,eyeZ){
-  const X=zn=>420+zn*400,Yp=yn=>1940-yn*400,eS=hd.eye||1,rd=hd.round||0;
-  for(const s of[1,-1]){const ccx=X(s*(eyeZ+.05)),ccy=Yp(eyeY-.13),gr=g.createRadialGradient(ccx,ccy,0,ccx,ccy,50);gr.addColorStop(0,'rgba(214,104,84,.2)');gr.addColorStop(1,'rgba(214,104,84,0)');g.fillStyle=gr;g.fillRect(ccx-52,ccy-52,104,104);}
+  const X=zn=>420+zn*400,Yp=yn=>1940-yn*400,eS=hd.eye||1,rd=hd.round||0,el=(x,y,rx,ry,col)=>{g.fillStyle=col;g.beginPath();g.ellipse(X(x),Yp(y),rx*400,ry*400,0,0,TAU);g.fill();};
+  for(const s of[1,-1]){const ccx=X(s*(eyeZ+.06)),ccy=Yp(eyeY-.15),gr=g.createRadialGradient(ccx,ccy,0,ccx,ccy,56);gr.addColorStop(0,'rgba(214,104,84,.2)');gr.addColorStop(1,'rgba(214,104,84,0)');g.fillStyle=gr;g.fillRect(ccx-58,ccy-58,116,116);}
   for(const s of[1,-1]){
-    g.fillStyle=css(L.eye);g.beginPath();g.ellipse(X(s*eyeZ),Yp(eyeY),.027*eS*400,.041*eS*400,0,0,TAU);g.fill();
-    g.fillStyle='#ffffff';g.beginPath();g.ellipse(X(s*eyeZ-.009*eS),Yp(eyeY+.015*eS),.008*eS*400,.011*eS*400,0,0,TAU);g.fill();
-    if(hd.brow){const yb=eyeY+.05*eS+.035,bw=hd.brow*Math.max(1,eS*.8);g.strokeStyle=css(L.brow);g.lineWidth=.017*400;g.lineCap='round';g.beginPath();
-      g.moveTo(X(s*(eyeZ-.052*bw)),Yp(yb-.004));g.quadraticCurveTo(X(s*eyeZ),Yp(yb+.018),X(s*(eyeZ+.06*bw)),Yp(yb-.012));g.stroke();}
+    if(hd.white){el(s*eyeZ,eyeY,.056*eS,.064*eS,css(L.eye));el(s*eyeZ,eyeY,.048*eS,.056*eS,'#f6f4ee');el(s*(eyeZ-.008*eS),eyeY-.004*eS,.031*eS,.035*eS,css(L.eye));el(s*(eyeZ-.008*eS)-.011*eS,eyeY+.01*eS,.009*eS,.01*eS,'#ffffff');}
+    else{el(s*eyeZ,eyeY,.03*eS,.044*eS,css(L.eye));el(s*eyeZ-.009*eS,eyeY+.016*eS,.009*eS,.012*eS,'#ffffff');}
+    if(hd.brow){const yb=eyeY+(hd.white?.07:.058)*eS+.012,bw=hd.brow,an=(hd.angry||0)*.03;g.strokeStyle=css(L.brow);g.lineWidth=(hd.white?.03:.02)*400*Math.sqrt(bw);g.lineCap='round';g.beginPath();
+      g.moveTo(X(s*(eyeZ-.06*bw)),Yp(yb-an));g.quadraticCurveTo(X(s*eyeZ),Yp(yb+.014),X(s*(eyeZ+.068*bw)),Yp(yb+an*.5-.004));g.stroke();}
   }
-  if(hd.mouth){const m=hd.mouth,my=lerp(.2,.19,rd);g.strokeStyle=css(L.lip);g.lineWidth=.012*400;g.lineCap='round';g.beginPath();g.moveTo(X(-.055*m),Yp(my+.008));g.quadraticCurveTo(X(0),Yp(my-.014),X(.055*m),Yp(my+.008));g.stroke();}
+  if(hd.mouth){const m=hd.mouth,my=lerp(.2,.17,rd),sm=hd.smile===undefined?1:hd.smile;g.strokeStyle=css(L.lip);g.lineWidth=.016*400;g.lineCap='round';g.beginPath();g.moveTo(X(-.06*m),Yp(my+.008*sm));g.quadraticCurveTo(X(0),Yp(my-.016*sm),X(.06*m),Yp(my+.008*sm));g.stroke();}
 }
 function figTexture(L,P,hd,HD){
   const c=document.createElement('canvas');c.width=c.height=TEX;const g=c.getContext('2d');
   g.fillStyle=css(L.skin);g.fillRect(0,0,TEX,TEX);
-  paintBody(g,L,P);paintFace(g,L,hd,HD.eyeY,HD.eyeZ);
+  paintBody(g,L,P);if(hd.face!==0)paintFace(g,L,hd,HD.eyeY,HD.eyeZ);
   g.fillStyle=css(L.hair);g.fillRect(1150,1600,300,300);
   const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.anisotropy=4;return t;
 }
 
 /* ================= 4. the drafts ================= */
+/* Each draft: heads = how many head-heights tall. head = shape and face. body = sizes in model units (the figure is 20 tall):
+   cr crotch height, neck = gap from shoulder line to chin, half widths of hips/waist/chest, depth as a share of width,
+   arm and leg radii, upper arm and forearm lengths, hand [length, half width, half thickness], foot [length, half width, height]. */
 const STYLES=[
-  {id:'smooth',name:'Grounded, smoothed',family:'anat',blurb:'The Grounded build as one continuous sculpt: rounded shoulders that run into the arms, mitten hands, a simple clean face.',
-    heads:6.6,wSh:1.02,wChest:1.03,wWaist:1.13,wHip:.96,depth:1.08,neck:1.06,thArm:1.12,thFore:1.14,thLeg:1.18,hand:1.05,foot:1.16,soft:.3,head:{jaw:.9,chin:1,cran:1,round:.12,eye:1.05,nose:.9,mouth:1,brow:1,ears:1}},
-  {id:'soft',name:'Soft',family:'anat',blurb:'Shorter and rounder, about 5 heads tall. Thicker limbs, bigger head, almost no waist. Halfway between a person and the trooper.',
-    heads:5.1,legK:.94,armK:.95,wSh:.93,wChest:1.06,wWaist:1.2,wHip:1.06,depth:1.08,neck:1.2,thArm:1.3,thFore:1.42,thLeg:1.28,hand:1.2,foot:1.25,soft:.7,head:{jaw:1.02,chin:1.2,cran:1.02,round:.5,eye:1.25,nose:.6,mouth:.8,brow:1,ears:.9}},
-  {id:'troop',name:'Trooper',family:'troop',blurb:'The Full Spectrum trooper body: barrel torso, stout legs, ball head, team band round the chest. Given arms and mitten hands so it can hold and swing.',
-    head:{round:.93,eye:1.5,nose:0,mouth:.7,brow:.9,ears:0}},
-  {id:'pawn',name:'Pawn',family:'troop',column:true,float:true,blurb:'Closest to the Full Spectrum piece: one leg column, barrel body, ball head, no arms. Two floating hands carry the bat. It hops instead of walking.',
-    head:{round:.95,eye:1.5,nose:0,mouth:0,brow:0,ears:0}},
+  {id:'bighead',name:'Big head',blurb:'Under three heads tall. A wide head with round ears, big eyes and heavy brows on a small compact body with short thick limbs.',heads:2.7,
+    head:{round:.82,wide:1.2,deep:1.02,eye:1.1,white:1,brow:1.25,angry:.5,mouth:.8,smile:.4,nose:0,ears:1.15,hairT:.05},
+    body:{cr:4.3,neck:.6,hipW:1.95,waistW:1.88,chestW:2.02,depth:.72,neckR:.9,armR:.7,wristR:.63,la:2.25,lf:2.05,hand:[1.65,.78,.64],legR:[1,.96,.88],hz:1.12,knee:2.65,foot:[3.2,1.15,1.2]},
+    out:{stripe:1,sleeve:.55}},
+  {id:'brawler',name:'Brawler',blurb:'Three and a half heads. Egg-shaped head with a jaw, heavy brows and a short crop on a broad chest with thick arms and big fists.',heads:3.6,
+    head:{round:.42,wide:1.14,deep:1,jaw:1.12,chin:1.25,eye:.92,white:1,brow:1.5,angry:1,mouth:.9,smile:-.5,nose:.9,ears:1.1,hairT:.022,hairline:.86},
+    body:{cr:5.5,neck:.62,hipW:2.15,waistW:2.1,chestW:2.5,depth:.68,neckR:.98,armR:.95,wristR:.82,la:2.9,lf:2.65,hand:[1.95,.94,.76],legR:[1.12,1.05,.96],hz:1.28,knee:3.3,foot:[3.5,1.26,1.35]},
+    out:{sleeve:.5,belt:.3},look:{tee:0x8a2e2a,trim:0x6a211e,pants:0x2b2f3a,shoe:0x5a4030,sole:0x2a211b,hair:0x1d1a18,belt:0x1c1a19}},
+  {id:'mannequin',name:'Mannequin',blurb:'A bit over four heads. Smooth blank figure: ball head with no face, thick tube limbs, ball fists, boots. A cap and clothes are what tell people apart.',heads:4.2,
+    head:{round:1,wide:1.1,deep:1.1,face:0,nose:0,ears:0,cap:1,hairT:.06},
+    body:{cr:6.3,neck:.5,hipW:2.1,waistW:2,chestW:2.4,depth:.72,neckR:.76,armR:.9,wristR:.84,la:3.1,lf:2.9,hand:[1.75,.9,.8],legR:[1.15,1.08,1],hz:1.3,knee:3.7,foot:[3.4,1.25,1.4]},
+    out:{sleeve:1,belt:.3},look:{skin:0xeeeeea,tee:0x2f7d86,trim:0x225e66,pants:0x4a4f58,shoe:0x3a3a3e,sole:0x1e1e20,hair:0xb5432f,belt:0x26282c}},
+  {id:'everyman',name:'Mannequin with a face',blurb:'The mannequin build, a little slimmer, with a round head that has simple eyes, brows, ears and hair. Four heads tall.',heads:4,
+    head:{round:.92,wide:1.1,deep:1.04,eye:1.2,brow:1.1,angry:.2,mouth:.8,smile:.8,nose:0,ears:.95,hairT:.05},
+    body:{cr:6.1,neck:.52,hipW:1.95,waistW:1.85,chestW:2.2,depth:.7,neckR:.8,armR:.8,wristR:.72,la:3,lf:2.8,hand:[1.7,.82,.7],legR:[1.05,.98,.9],hz:1.2,knee:3.6,foot:[3.3,1.18,1.3]},
+    out:{sleeve:.5,stripe:0},look:{tee:0xd7a233,trim:0x8a5a1c,pants:0x33405c,hair:0x5a3a22,brow:0x4a2f1c}},
 ];
-const LOOK={skin:0xdcab86,tee:0xdedbd2,trim:0xa8332c,pants:0x303c58,shoe:0xe9e6dd,sole:0x5f5b54,sock:0xcfcfcf,hair:0x30231a,brow:0x2b1f17,eye:0x15171b,lip:0x8a4a40};
+const LOOK={skin:0xdcab86,tee:0xdedbd2,trim:0xa8332c,pants:0x303c58,shoe:0xe9e6dd,sole:0x5f5b54,sock:0xcfcfcf,hair:0x30231a,brow:0x231a14,eye:0x15171b,lip:0x7a3f36,belt:0x2a2420};
 const handBones=(K,L)=>L?{e:K.eL,h:K.haL,fa:K.faL,fb:K.fbL,th:K.thL}:{e:K.eR,h:K.haR,fa:K.faR,fb:K.fbR,th:K.thR};
 
 /* a mitten: palm and fingers as one shape with a thumb. Two finger bones curl it into a fist. The palm faces the leg. */
-function mitt(F,s,wy,zs,wr,Lh,Wh,Th,bn,out,closed){
-  const M=[[-.12,(closed?.3:.8)*wr[0]/Wh,(closed?.4:.8)*wr[1]/Th,0],[0,wr[0]/Wh,wr[1]/Th,0],[.1,.78,1.12,.04],[.28,.95,1.06,.1],[.48,1,1,.15],[.62,.98,.95,.2],[.76,.9,.88,.26],[.88,.74,.76,.31],[.96,.5,.56,.34],[1,.2,.26,.35]];
-  F.add(loft('y',M.map(p=>[wy-p[0]*Lh,p[3]*Wh,p[1]*Wh,p[1]*Wh*.94,p[2]*Th,lerp(2,2.5,sstep(0,.3,p[0]))]),zs,.9),.06,
+function mitt(F,s,wy,zs,wr,Lh,Wh,Th,bn,out){
+  const M=[[-.12,.8*wr[0]/Wh,.8*wr[1]/Th,0],[0,wr[0]/Wh,wr[1]/Th,0],[.1,.82,1.1,.04],[.28,.96,1.06,.1],[.48,1,1,.15],[.62,.98,.97,.2],[.76,.92,.93,.26],[.88,.8,.84,.31],[.96,.58,.66,.34],[1,.26,.34,.35]];
+  F.add(loft('y',M.map(p=>[wy-p[0]*Lh,p[3]*Wh,p[1]*Wh,p[1]*Wh*.94,p[2]*Th,lerp(2,2.4,sstep(0,.3,p[0]))]),zs,.9),.06,
     (x,y)=>{const t=(wy-y)/Lh;return t<.4?[bn.e,bn.h,sstep(-.04,.1,t)]:t<.62?[bn.h,bn.fa,sstep(.4,.56,t)]:[bn.fa,bn.fb,sstep(.68,.82,t)];});
   const TH=[[.1,.5,.36],[.2,.8,.38],[.3,1.12,.34],[.4,1.38,.29],[.48,1.52,.24],[.54,1.6,.16]];
   F.add(loft('y',TH.map(p=>[wy-p[0]*Lh,p[1]*Wh,p[2]*Wh,p[2]*Wh,p[2]*Wh*.9,2]),zs-s*Th*.3,.9),.08,(x,y)=>[bn.h,bn.th,sstep(.1,.22,(wy-y)/Lh)]);
   Object.assign(out,{fa:[.15*Wh,-.48*Lh],fbDy:-.26*Lh,th:[.55*Wh,-.13*Lh,Th*.3],grip:{x:.15*Wh,y:-.32*Lh,z:Th+.07},gap:2.15*Wh,d0:[1.03*Wh,-.4*Lh]});
 }
-/* the head, added to the body's solid so the neck runs into it. Returns the hair as a solid of its own. */
+/* the head, added to the body's solid so the neck runs into it. Returns the hair (or cap) as a solid of its own. */
 function sculptHead(F,hd,Hh,chinY,cx0,K){
-  const rd=hd.round||0,jaw=hd.jaw||1,chin=hd.chin||1,cran=hd.cran||1;
-  // profile: height (0 chin, 1 crown), front, back, half width, boxiness
+  const rd=hd.round||0,jaw=hd.jaw||1,chin=hd.chin||1,cran=hd.cran||1,wide=hd.wide||1,deep=hd.deep||1;
+  // profile: height (0 chin, 1 crown), front, back, half width, boxiness. "round" pulls it toward a ball.
   const HP=[[0,.31,.19,.07,2],[.035,.395,.05,.15*chin,2.2],[.11,.42,-.12,.215*jaw,2.4],[.21,.43,-.25,.25*jaw,2.5],[.31,.435,-.35,lerp(.285,.285*jaw,.6),2.4],[.43,.43,-.42,.31,2.3],
     [.55,.43,-.455,.33*cran,2.25],[.68,.42,-.46,.34*cran,2.2],[.8,.37,-.44,.325*cran,2.1],[.9,.27,-.36,.27*cran,2],[.97,.13,-.2,.16*cran,2],[1,.03,-.07,.04,2]];
-  const hp=yn=>{const p=tabS(HP,yn).slice();if(rd){const q=Math.sqrt(Math.max(.0004,1-Math.pow(2*yn-1,2)));p[1]=lerp(p[1],.45*q,rd);p[2]=lerp(p[2],-.45*q,rd);p[3]=lerp(p[3],.42*q,rd);p[4]=lerp(p[4],2,rd);}return p;};
+  const hp=yn=>{const p=tabS(HP,yn).slice();if(rd){const q=Math.sqrt(Math.max(.0004,1-Math.pow(2*yn-1,2)));p[1]=lerp(p[1],.45*q,rd);p[2]=lerp(p[2],-.45*q,rd);p[3]=lerp(p[3],.42*q,rd);p[4]=lerp(p[4],2,rd);}p[1]*=deep;p[2]*=deep;p[3]*=wide;return p;};
   const rows=[];for(let i=0;i<=28;i++){const yn=.5-.5*Math.cos(PI*i/28),p=hp(yn),r=Math.max(.012,(p[1]-p[2])/2);rows.push([chinY+yn*Hh,cx0+(p[1]+p[2])/2*Hh,r*Hh,r*Hh,Math.max(.012,p[3])*Hh,p[4]]);}
-  const skull=loft('y',rows,0,.9),eyeY=lerp(.5,.46,rd),eyeZ=.15*(1+.26*rd),fx=yn=>cx0+hp(yn)[1]*Hh,hw=yn=>hp(yn)[3]*Hh;
-  F.add(skull,.09*Hh,K.head);
+  const skull=loft('y',rows,0,.9),eyeY=lerp(.5,.45,rd),eyeZ=.15*(1+.26*rd)*lerp(1,wide,.8),fx=yn=>cx0+hp(yn)[1]*Hh,hw=yn=>hp(yn)[3]*Hh,ey=eyeY-.05;
+  F.add(skull,.035*Hh,K.head);
   if(hd.nose)F.add(cone(fx(.47)-.035*Hh,chinY+.47*Hh,0,fx(.375)+.03*hd.nose*Hh,chinY+.375*Hh,0,.028*Hh,.043*hd.nose*Hh),.055*Hh,K.head);
-  if(hd.ears)for(const s of[1,-1]){const ey=eyeY-.06;F.add(ell(cx0-.04*Hh,chinY+ey*Hh,s*(hw(ey)+.004*Hh),.043*hd.ears*Hh,.078*hd.ears*Hh,.026*Hh,.2,s*-.25),.035*Hh,K.head);}
-  /* hair: a layer over the skull with some lift at the front, then the face, the ears and the neck are cut out of it */
-  const HS=new Solid(),th=(hd.hairT||.046)*Hh,ey=eyeY-.06;
-  {const ym=chinY+.52*Hh,xm=cx0-.02*Hh,sc=1+th/(.42*Hh),sv=sc+.035;HS.add(loft('y',rows.map(r=>[ym+(r[0]-ym)*sv,xm+(r[1]-xm)*sc,r[2]*sc,r[3]*sc,r[4]*sc,r[5]]),0,.9),0,K.head);}
-  HS.cut(ell(cx0+.45*Hh,chinY+lerp(.33,.3,rd)*Hh,0,.5*Hh,lerp(.5,.47,rd)*Hh,.6*Hh),.04*Hh);
-  for(const s of[1,-1])HS.cut(ell(cx0-.05*Hh,chinY+ey*Hh,s*hw(ey),.085*Hh,.125*Hh,.2*Hh),.035*Hh);
-  {const bX=cx0+hp(.17)[2]*Hh,bY=chinY+.17*Hh,eX=cx0-.1*Hh,eY=chinY+.32*Hh,l=Math.hypot(eX-bX,eY-bY);HS.cut(half(bX,bY,(eY-bY)/l,-(eX-bX)/l),.04*Hh);}
-  return{hp,eyeY,eyeZ,hair:HS};
+  if(hd.ears)for(const s of[1,-1])F.add(ell(cx0-.03*Hh,chinY+ey*Hh,s*(hw(ey)+.03*hd.ears*Hh),.036*Hh,.095*hd.ears*Hh,.062*hd.ears*Hh,.12,s*-.3),.03*Hh,K.head);   // round ears that stand out from the head
+  const HS=new Solid(),th=(hd.hairT||.046)*Hh,ym=chinY+.52*Hh,xm=cx0-.02*Hh,sc=1+th/(.42*Hh),sv=sc+.03;
+  const shell=()=>HS.add(loft('y',rows.map(r=>[ym+(r[0]-ym)*sv,xm+(r[1]-xm)*sc,r[2]*sc,r[3]*sc,r[4]*sc,r[5]]),0,.9),0,K.head);
+  if(hd.cap){
+    // a cap: a shell over the top of the head with a peak at the front
+    shell();HS.add(ell(fx(.62)+.13*Hh,chinY+.625*Hh,0,.25*Hh,.05*Hh,.29*Hh,-.1),.045*Hh,K.head);HS.cut(half(0,chinY+.59*Hh,0,-1),.035*Hh);
+  }else if(hd.hair!==0){
+    /* hair: a layer over the skull, then the face, the ears and the neck are cut out of it */
+    shell();
+    HS.cut(ell(cx0+.45*deep*Hh,chinY+lerp(.33,.3,rd)*Hh,0,.5*deep*Hh,(hd.hairline||.83)*lerp(.6,.57,rd)*Hh,.6*wide*Hh),.04*Hh);
+    for(const s of[1,-1])HS.cut(ell(cx0-.05*Hh,chinY+ey*Hh,s*hw(ey),.09*Hh,.135*Hh,.22*Hh),.035*Hh);
+    {const bX=cx0+hp(.17)[2]*Hh,bY=chinY+.17*Hh,eX=cx0-.1*Hh,eY=chinY+.32*Hh,l=Math.hypot(eX-bX,eY-bY);HS.cut(half(bX,bY,(eY-bY)/l,-(eX-bX)/l),.04*Hh);}
+  }
+  return{hp,eyeY,eyeZ,hair:HS.P.length?HS:null};
 }
-/* wrap the solid: a coarse pass for the body, finer passes for the head and hands, then the hair, then paint */
+/* wrap the solid: one pass for the body and head, finer passes for the hands, then the hair, then paint */
 function finish(F,HD,rig,L,S,P,boxes,ext){
-  const Hh=rig.Hh,chinY=rig.chinY,cx0=rig.headCx,A=newAcc(),hc=.14,m=.15,splitY=chinY-.02*Hh;
-  const hb=[cx0-.68*Hh,rig.hbY,-.58*Hh,cx0+.8*Hh,chinY+1.17*Hh,.58*Hh,Hh*.019],fine=boxes.concat([hb]);
-  const skip=(x,y,z)=>{for(const b of fine)if(x>b[0]+m&&x<b[3]-m&&y>b[1]+m&&y<b[4]-m&&z>b[2]+m&&z<b[5]-m)return true;return false;};
+  const Hh=rig.Hh,chinY=rig.chinY,cx0=rig.headCx,A=newAcc(),hc=.125,m=.15,splitY=chinY-.02*Hh;
+  const skip=(x,y,z)=>{for(const b of boxes)if(x>b[0]+m&&x<b[3]-m&&y>b[1]+m&&y<b[4]-m&&z>b[2]+m&&z<b[5]-m)return true;return false;};
   P.nw=0;for(let x=-2.5;x<=2.5;x+=.1){let z=0;while(z<6&&F.d(x,P.ySide,z)<0)z+=.02;if(z>P.nw)P.nw=z;}      // real half width of the neck where the collar crosses its side
   const uv=(x,y,z,nx,cyc,o)=>{
     if(cyc>splitY){if(nx>-.35){o[0]=(420+z/Hh*400)/TEX;o[1]=1-(1940-(y-chinY)/Hh*400)/TEX;}else{o[0]=1000/TEX;o[1]=1-1750/TEX;}}
     else{o[0]=((nx>=0?512:1536)+z*P.sb)/TEX;o[1]=1-(1410-y*P.sb)/TEX;}
   };
-  const sink=(x,y,z)=>{let o=0;for(const b of fine){const dp=Math.min(x-b[0],b[3]-x,y-b[1],b[4]-y,z-b[2],b[5]-z)-b[6]*1.5;if(dp>0)o=Math.max(o,Math.min(.045,dp*.6));}return o;};
-  polygonize(F,[ext[0],-.3,ext[1],ext[2],hb[1]+3*hc,-ext[1]],hc,skip,uv,A,sink);
-  for(const b of fine)polygonize(F,b,b[6],null,uv,A);
-  polygonize(HD.hair,hb,hb[6],null,(x,y,z,nx,cyc,o)=>{o[0]=1300/TEX;o[1]=1-1750/TEX;},A);
+  const sink=(x,y,z)=>{let o=0;for(const b of boxes){const dp=Math.min(x-b[0],b[3]-x,y-b[1],b[4]-y,z-b[2],b[5]-z)-b[6]*1.5;if(dp>0)o=Math.max(o,Math.min(.045,dp*.6));}return o;};
+  polygonize(F,[ext[0],-.3,-ext[1],ext[2],chinY+1.08*Hh,ext[1]],hc,skip,uv,A,sink);
+  for(const b of boxes)polygonize(F,b,b[6],null,uv,A);
+  if(HD.hair)polygonize(HD.hair,[cx0-.72*Hh,chinY,-.72*Hh,cx0+1.05*Hh,chinY+1.2*Hh,.72*Hh],hc,null,(x,y,z,nx,cyc,o)=>{o[0]=1300/TEX;o[1]=1-1750/TEX;},A);
   return{geo:accGeo(A),rig,tex:figTexture(L,P,S.head,HD),tris:A.pos.length/9,F};
 }
-
-/* ---- family 1: human proportions, in head units ---- */
-function sculptAnat(S,L){
-  const K=BONE,T0=20,Hh=T0/S.heads,B=(T0-Hh)/6.5,HF=3.95,legK=S.legK||1,armK=S.armK||1,hipY=HF*B*legK,chinY=T0-Hh,soft=S.soft||0;
-  const Y=f=>f>=HF?hipY+(f-HF)/(6.5-HF)*(chinY-hipY):f/HF*hipY;
-  const wC=S.wChest,wW=S.wWaist,wH=S.wHip,dK=S.depth||1,nK=S.neck||1,nn=n=>lerp(n,2.1,soft),headCx=.1*B;
-  /* arm: height against radius. It starts inside the shoulder and must hang clear of the trunk below the sleeve. */
-  const AP=[[6.31,.05],[6.27,.15],[6.15,.225],[5.95,.235],[5.7,.22],[5.3,.2],[5.02,.178],[4.8,.17],[4.68,.168],[4.52,.186],[4.3,.184],[3.95,.156],[3.7,.128],[3.55,.118],[3.47,.09]];
-  const aR=f=>{const up=f>4.74,th=up?S.thArm:S.thFore;let r=tabS(AP,f)[1]*th;if(f<6.1)r=lerp(r,(up?.205:.165)*th,soft*.6);return r*B;};
-  const trunkW=Math.max(.72*wH,.745*wC)*B,sh=Math.max((.98*S.wSh+.03)*B,trunkW+aR(5.3)*1.05+.06*B),wS=sh/B,shY=Y(6.15),hz=.36*wH*B;
-  /* torso: height, centre x, front, back, half width, boxiness. The last row is the neck running up into the skull. */
-  const TP=[[3.58,0,.16,.2,.2,2],[3.68,0,.33*dK,.38*dK,.5*wH,nn(2.2)],[3.95,0,.4*dK,.47*dK,.72*wH,nn(2.3)],[4.25,0,.41*dK,.43*dK,.68*wH,nn(2.3)],[4.55,.02,.39*dK,.36*dK,.58*wW,nn(2.2)],
-    [4.95,.03,.43*dK,.4*dK,.64*wC,nn(2.3)],[5.4,.04,.5*dK,.43*dK,.73*wC,nn(2.4)],[5.75,.03,.49*dK,.46*dK,.79*wC,nn(2.4)],[5.98,.02,.46*dK,.46*dK,.77*wC,nn(2.3)],
-    [6.15,0,.4*dK,.43*dK,.67*wC,2.2],[6.27,-.01,.33*dK,.38*dK,.52*wC,2.1],[6.38,-.03,.27*nK,.32*nK,.38*nK,2],[6.47,-.03,.25*nK,.27*nK,.3*nK,2],[6.6,0,.225*nK,.235*nK,.235*nK,2]]
-    .map(r=>[Y(r[0]),r[1]*B,r[2]*B,r[3]*B,r[4]*B,r[5]]);
-  TP.push([chinY+.34*Hh,headCx-.07*Hh,.2*B*nK,.2*B*nK,.2*B*nK,2]);
-  const F=new Solid(),yA=Y(4.3),yB=Y(4.95),yN=Y(6.42);
-  F.add(loft('y',TP,0),0,(x,y)=>y<yB?[K.hips,K.chest,sstep(yA,yB,y)]:[K.chest,K.head,sstep(yN,chinY+.28*Hh,y)*.85]);
-  for(const s of[1,-1])F.add(cone(-.04*B,Y(6.41),s*.2*B,-.01*B,shY+.01*B,s*(sh-.03*B),.25*B*nK,.215*B*S.thArm),.22*B,K.chest);
+function sculpt(S,L){
+  const K=BONE,T0=20,Hh=T0/S.heads,chinY=T0-Hh,b=S.body,o=S.out||{},F=new Solid(),cr=b.cr,shTop=chinY-b.neck,headCx=.03*Hh;
+  const wMax=Math.max(b.chestW,b.hipW,b.hz+b.legR[0]),sh=wMax+Math.max(b.armR+.25,b.hand[2]+.35),shY=shTop-b.armR-.3,hipY=cr+.45,chestY=lerp(cr,shTop,.45),wy=shY-b.la-b.lf,D=b.depth;
+  /* trunk: a chest and a pelvis, two deeply overlapping rounded masses melted together, so there is no edge anywhere on it */
+  const Ht=shTop-cr,hC=Ht*.43,hP=Ht*.3,wT=(x,y)=>[K.hips,K.chest,sstep(cr+.9,chestY+1,y)];
+  F.add(ell(0,cr-.3+hP,0,b.hipW*D,hP,b.hipW),0,wT);
+  F.add(ell(0,shTop+.05-hC,0,b.chestW*D,hC,b.chestW),.6,wT);
+  F.add(ell(0,lerp(cr,shTop,.42),0,b.waistW*D*.97,Ht*.3,b.waistW*.97),.5,wT);
+  F.add(cone(0,shTop-.45,0,headCx,chinY+.3*Hh,0,b.neckR*1.06,b.neckR*.95),.22,(x,y)=>[K.chest,K.head,sstep(shTop,chinY+.25*Hh,y)*.85]);
+  // shoulders: a round bar from the base of the neck out to each shoulder joint, so the arm grows out of the trunk
+  for(const s of[1,-1])F.add(cone(0,shTop-.55,s*b.chestW*.4,0,shY,s*sh,b.armR*.9,b.armR*.98),.45,K.chest);
   const HD=sculptHead(F,S.head,Hh,chinY,headCx,K);
-  const la=1.47*B*armK,lf=1.13*B*armK,rig={hips:[0,Y(4.15)],chest:[0,Y(4.6)],sh,shY,la,lf,hz,hipY:Y(HF),lt:Y(HF)-Y(2.1),B,Hh,chinY,headCx,headPivot:[headCx-.06*Hh,chinY+.1*Hh],hand:{},front:0,hbY:chinY-.09};
-  const aY=f=>shY-(6.15-f)*B*armK,kS=.3*B,kH=.2*B,yP0=Y(5.45),yP1=Y(5.95),yC0=Y(3.4),yC1=Y(3.75),U=B*S.hand,Lh=.74*U,Wh=.185*U,Th=.092*U,wy=aY(3.55),ft=S.foot*B,boxes=[];
-  const LP=[[4.12,.1,.1,0],[4,.33,.28,0],[3.8,.36,.31,0],[3.6,.375,.345,0],[3.3,.345,.31,.01],[2.85,.295,.265,.02],[2.4,.25,.228,.02],[2.15,.232,.218,.03],[2.02,.225,.212,.02],[1.75,.235,.215,-.03],[1.5,.245,.22,-.05],[1.1,.2,.185,-.02],[.6,.17,.16,0],[.3,.165,.155,0]];
-  const FP=[[-.3,.13,.05,.07,.06],[-.26,.15,.15,.15,.14],[-.1,.17,.2,.17,.17],[.12,.165,.19,.165,.185],[.38,.13,.13,.13,.195],[.6,.1,.1,.1,.18],[.76,.085,.07,.085,.12],[.81,.07,.03,.05,.05]];
+  const B=(shY-chestY)/1.55,rig={hips:[0,cr+.6],chest:[0,chestY],sh,shY,la:b.la,lf:b.lf,hz:b.hz,hipY,lt:hipY-b.knee,B,Hh,chinY,headCx,headPivot:[headCx-.04*Hh,chinY+.08*Hh],hand:{},front:b.chestW*D+b.hand[2]+.45},boxes=[];
+  const[Lh,Wh,Th]=b.hand,[fl,fw,fh]=b.foot,aR=b.armR,eR=lerp(b.armR,b.wristR,.5);
   for(const s of[1,-1]){
-    const Lf=s<0,bn=handBones(K,Lf),sB=Lf?K.sL:K.sR,tB=Lf?K.hL:K.hR,kB=Lf?K.kL:K.kR,zs=s*sh,zl=s*hz;
-    F.add(loft('y',AP.map(r=>{const q=aR(r[0]);return[aY(r[0]),0,q*1.05,q*1.05,q*.97,2];}),zs),(x,y)=>kS*sstep(yP0,yP1,y),(x,y)=>[sB,bn.e,1-sstep(aY(4.42),aY(4.96),y)]);
-    mitt(F,s,wy,zs,[aR(3.55)*1.05,aR(3.55)*.97],Lh,Wh,Th,bn,rig.hand,0);
-    boxes.push([-.85*Wh-.32,wy-Lh-.32,zs-Th-.32,1.98*Wh+.32,wy+.45,zs+Th+.32,Wh*.11]);
-    F.add(loft('y',LP.map(p=>{const t=S.thLeg*B;let rx=p[1]*t,rz=p[2]*t;if(p[0]<3.7){const mm=(p[0]>2.1?.27:.2)*t;rx=lerp(rx,mm*1.04,soft*.55);rz=lerp(rz,mm*.96,soft*.55);}return[Y(p[0]),p[3]*B*(1-soft),rx,rx,rz,2];}),zl),
-      (x,y)=>kH*sstep(yC0,yC1,y),(x,y)=>[tB,kB,1-sstep(Y(1.85),Y(2.4),y)]);
-    F.add(loft('x',FP.map(p=>[p[0]*ft,p[1]*ft,p[2]*ft,p[3]*ft,p[4]*ft,2.4]),zl),.14,kB);
+    const Lf=s<0,bn=handBones(K,Lf),sB=Lf?K.sL:K.sR,tB=Lf?K.hL:K.hR,kB=Lf?K.kL:K.kR,zs=s*sh,zl=s*b.hz;
+    F.add(loft('y',[[shY+.22*aR,.9*aR],[shY-.4*aR,aR],[shY-b.la,eR],[wy,b.wristR],[wy-.25,b.wristR*.75]].map(r=>[r[0],0,r[1],r[1],r[1],2]),zs),
+      (x,y)=>.6*sstep(shY-aR*1.7,shY-aR*.5,y),(x,y)=>[sB,bn.e,1-sstep(shY-b.la-.55,shY-b.la+.55,y)]);
+    mitt(F,s,wy,zs,[b.wristR,b.wristR],Lh,Wh,Th,bn,rig.hand);
+    boxes.push([-.85*Wh-.32,wy-Lh-.32,zs-Th-.32,1.98*Wh+.32,wy+.45,zs+Th+.32,Wh*.085]);
+    F.add(loft('y',[[cr+1.3,b.legR[0]*.5],[cr+.9,b.legR[0]*.92],[cr+.3,b.legR[0]],[b.knee,b.legR[1]],[fh*.8,b.legR[2]],[fh*.4,b.legR[2]*.96]].map(r=>[r[0],0,r[1],r[1],r[1],2]),zl),
+      (x,y)=>.5*sstep(cr-.9,cr+.1,y),(x,y)=>[tB,kB,1-sstep(b.knee-.55,b.knee+.55,y)]);
+    // shoe: lofted heel to toe, flat underneath
+    F.add(loft('x',[[-.36,.5,.2,.3,.35],[-.3,.52,.45,.48,.8],[-.12,.54,.5,.5,.97],[.12,.5,.47,.46,1],[.36,.42,.4,.38,.97],[.54,.36,.3,.32,.8],[.64,.3,.14,.2,.35]].map(p=>[p[0]*fl,p[1]*fh,p[2]*fh,p[3]*fh,p[4]*fw,2.4]),zl),.2,kB);
   }
-  const P={sb:80,zDiv:trunkW+.03*B,hem:Y(3.8),ySide:Y(6.43),yFront:Y(6.31),rib:.024*B,stripe:[Y(5.2),Y(5.44)],sleeve:aY(5.3),sleeveTrim:.075*B,shoeTop:1.05,cuff:1.05,sole:.24,top:chinY+.2};
-  return finish(F,HD,rig,L,S,P,boxes,[-2.4,-(sh+1.3),3.2]);
-}
-
-/* ---- family 2: the Full Spectrum trooper body. Model units, 20 tall. ---- */
-function sculptTroop(S,L){
-  const K=BONE,B=3.03,Hh=5.3,chinY=14.62,headCx=.12,shY=12.75,sh=4.4,la=3.2,lf=3,hz=1.55,F=new Solid();
-  // barrel torso: height, half depth, half width. The top rows are the neck.
-  const TP=[[5.5,.8,.9],[5.72,2.05,2.3],[6.2,2.5,2.8],[7.5,2.66,2.96],[10,2.8,3.1],[12.2,2.92,3.25],[13.5,2.84,3.16],[14.2,2.55,2.84],[14.62,1.95,2.12],[14.95,1.42,1.48],[15.4,1.22,1.24],[16.5,1.15,1.15]].map(r=>[r[0],0,r[1],r[1],r[2],2.12]);
-  F.add(loft('y',TP,0),0,(x,y)=>y<9.8?[K.hips,K.chest,sstep(7.4,9.8,y)]:[K.chest,K.head,sstep(14.7,16,y)*.85]);
-  const HD=sculptHead(F,S.head,Hh,chinY,headCx,K);
-  const rig={hips:[0,6.4],chest:[0,8.6],sh,shY,la,lf,hz,hipY:6,lt:2.7,B,Hh,chinY,headCx,headPivot:[headCx-.06*Hh,chinY+.1*Hh],hand:{},front:4.1,hbY:chinY+.2},wy=shY-la-lf,boxes=[];
-  if(S.column){const CP=[[6.3,1.4],[5.9,2.5],[5.2,2.66],[3,2.6],[1.2,2.52],[.5,2.5],[.14,2.36],[0,1.9]];F.add(loft('y',CP.map(r=>[r[0],0,r[1]*.92,r[1]*.92,r[1],2.12]),0),.4,K.hips);}
-  for(const s of[1,-1]){
-    const Lf=s<0,bn=handBones(K,Lf),sB=Lf?K.sL:K.sR,tB=Lf?K.hL:K.hR,kB=Lf?K.kL:K.kR,zs=s*sh,zl=s*hz;
-    if(!S.float){const AR=[[-.97,.04],[-.9,.36],[-.72,.69],[-.3,.94],[0,.99],[1.6,.97],[3.2,.93],[4.8,.86],[6.2,.8],[6.45,.6]];
-      F.add(loft('y',AR.map(r=>[shY-r[0],0,r[1],r[1],r[1],2]),zs),(x,y)=>.95*sstep(10.4,11.9,y),(x,y)=>[sB,bn.e,1-sstep(shY-la-.6,shY-la+.6,y)]);}
-    mitt(F,s,wy,zs,[.8,.8],1.75,.82,.62,bn,rig.hand,S.float);
-    boxes.push([-1.02,wy-2.07,zs-.94,1.95,wy+.5,zs+.94,.09]);
-    if(!S.column){
-      const LG=[[6.7,.5],[6.4,1.15],[5.9,1.4],[4.5,1.44],[3.3,1.4],[2,1.32],[1.05,1.28],[.7,1.26]];
-      F.add(loft('y',LG.map(r=>[r[0],0,r[1],r[1],r[1],2]),zl),(x,y)=>.6*sstep(4.3,5.3,y),(x,y)=>[tB,kB,1-sstep(2.7,3.9,y)]);
-      const FT=[[-1.5,.75,.3,.45,.5],[-1.25,.85,.75,.8,1.15],[-.5,.9,.88,.86,1.34],[.5,.86,.84,.82,1.38],[1.5,.7,.66,.66,1.3],[2.25,.55,.45,.5,1],[2.6,.45,.2,.3,.4]];
-      F.add(loft('x',FT.map(p=>[p[0],p[1],p[2],p[3],p[4],2.3]),zl),.2,kB);
-    }
-  }
-  const P={sb:80,zDiv:3.34,hem:7.1,ySide:14.48,yFront:14.12,rib:.09,stripe:[11.2,12.5],sleeve:11.2,sleeveTrim:.5,shoeTop:S.column?1.05:1.2,cuff:0,sole:.24,top:14.9};
-  return finish(F,HD,rig,L,S,P,boxes,[-3.4,-(sh+1.4),3.6]);
+  const slv=o.sleeve===undefined?.5:o.sleeve,sleeveY=slv>=1?wy+.12:shY-b.la*slv;
+  const P={sb:80,zDiv:wMax+.2,hem:cr+1,belt:o.belt||0,ySide:shTop+.14,yFront:shTop-.06,rib:.08,stripe:o.stripe?[lerp(cr,shTop,.6),lerp(cr,shTop,.76)]:null,
+    sleeve:sleeveY,sleeveTrim:.24,shoeTop:fh,cuff:0,sole:fh*.2,top:chinY+.2};
+  const hdp=(S.head.deep||1)*Hh,hwd=(S.head.wide||1)*Hh;
+  return finish(F,HD,rig,L,S,P,boxes,[-Math.max(fl*.36,b.chestW*D,.48*hdp)-.6,Math.max(sh+aR+.7,.62*hwd),Math.max(fl*.64,headCx+.6*hdp)+.6]);
 }
 
 /* ---- put one together ---- */
 function makeFig(sp){
   const S=sp.style||STYLES[0],L=Object.assign({},LOOK,S.look||{},sp.look||{}),t0=performance.now();
-  const body=(S.family==='troop'?sculptTroop:sculptAnat)(S,L),r=body.rig,mat=new T.MeshStandardMaterial({map:body.tex,skinning:true,roughness:.8,metalness:0});
-  const f={sp,S,mat,g:new T.Group(),j:{},cur:{},tgt:{},ph:0,seed:3.3,weap:{},wname:null,two:0,gR:.1,gL:.1,rig:r,tris:body.tris,F:body.F};
+  const body=sculpt(S,L),r=body.rig,mat=new T.MeshStandardMaterial({map:body.tex,skinning:true,roughness:.78,metalness:0});
+  const f={sp,S,mat,g:new T.Group(),j:{},cur:{},tgt:{},ph:0,seed:3.3,weap:{},wname:null,two:0,gR:.3,gL:.3,rig:r,tris:body.tris,F:body.F};
   for(const k of PK){f.cur[k]=0;f.tgt[k]=0;}
   const J=f.j,bones=[],hn=r.hand;
   f.scale=(sp.h||1)*.975;f.g.scale.setScalar(f.scale);
@@ -327,13 +312,6 @@ function makeFig(sp){
   f.skel=new T.Skeleton(bones);mesh.add(J.body);mesh.bind(f.skel);f.g.add(mesh);f.mesh=mesh;
   f.ms=performance.now()-t0;
   scene.add(f.g);return f;
-}
-/* the Full Spectrum trooper exactly as it is in warehouse-yard.html, for comparison */
-function makeTrooperRef(){
-  const g=new T.Group(),cloth=new T.MeshStandardMaterial({color:0x485a5f,roughness:.9}),gear=new T.MeshStandardMaterial({color:0x262d30,roughness:.75}),band=new T.MeshStandardMaterial({color:0x5ec8ff,emissive:0x5ec8ff,emissiveIntensity:.5,roughness:.6});
-  for(const[geo,mat,x,y,z]of[[new T.CylinderGeometry(2.5,2.3,6,8),gear,0,3,0],[new T.CylinderGeometry(3.3,2.9,8,8),cloth,0,10,0],[new T.CylinderGeometry(3.45,3.45,1.8,8),band,0,12.3,0],[new T.SphereGeometry(2.3,10,8),gear,.3,16.2,0],
-    [new T.SphereGeometry(2.8,10,6,0,TAU,0,PI/2),gear,.2,16.6,0],[new T.BoxGeometry(3,5.5,5),gear,-3.5,10.5,0],[new T.BoxGeometry(11,1.3,1.4),gear,5,11.5,2.2]]){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;g.add(m);}
-  scene.add(g);return g;
 }
 /* a bat turned on a lathe, to real size */
 function batGeo(){
@@ -416,9 +394,8 @@ function figAnim(f,u,dt,now){
   f.ph+=sp*dt*.15;
   const s=Math.sin(f.ph),c=Math.cos(f.ph),A=clamp(sp/52,0,1),run=clamp((sp-30)/30,0,1);
   p.hL=s*(.62+.3*run)*A;p.hR=-s*(.62+.3*run)*A;p.kL=-(Math.max(0,c)*(.9+.45*run)+.1)*A;p.kR=-(Math.max(0,-c)*(.9+.45*run)+.1)*A;
-  p.sLz=-s*(.5+.4*run)*A+.03;p.sRz=s*(.5+.4*run)*A+.03;p.sLx=.07;p.sRx=-.07;p.eL=p.eR=.18+(.3+.5*run)*A;p.lean=-(.07+.14*run)*A;
+  p.sLz=-s*(.5+.4*run)*A+.03;p.sRz=s*(.5+.4*run)*A+.03;p.sLx=.1;p.sRx=-.1;p.eL=p.eR=.18+(.3+.5*run)*A;p.lean=-(.07+.14*run)*A;
   p.by=(Math.abs(c)*(.45+.45*run)*A-.2*A+Math.sin(now*2+f.seed)*.07*(1-A))*bk;p.twist=s*.12*A;
-  if(S.column){p.by=Math.abs(Math.sin(f.ph))*(1.3+.9*run)*A;p.lean=-(.12+.2*run)*A;p.br=s*.1*A;p.twist=0;}      // the pawn hops
   if(A<.1)p.hy=Math.sin(now*.7+f.seed)*.2;
   const armed=!!f.wname,twoW=armed&&WEAP[f.wname].two;
   if(armed){p.sRz=.2+s*.15*A;p.sRx=-.14;p.eR=1.95;p.wR=.15;}
@@ -438,7 +415,7 @@ function figAnim(f,u,dt,now){
   J.hL.rotation.z=cu.hL;J.hR.rotation.z=cu.hR;J.kL.rotation.z=cu.kL;J.kR.rotation.z=cu.kR;
   f.two=damp(f.two,twoW&&(u.atk||u.ready)?1:0,u.atk?30:9,dt);
   if(f.two>.003){f.g.updateMatrixWorld(true);twoHand(f,u,ease(f.two));}
-  const fistR=armed||(u.atk&&!armed)?1:.08,fistL=Math.max(f.two,u.atk&&!armed?1:0,.08);
+  const fistR=armed||(u.atk&&!armed)?1:.14,fistL=Math.max(f.two,u.atk&&!armed?1:0,.14);
   f.gR=damp(f.gR,fistR,16,dt);f.gL=damp(f.gL,fistL,16,dt);
   J.faR.rotation.x=.12+1.36*f.gR;J.fbR.rotation.x=.2+1.5*f.gR;J.thR.quaternion.identity().slerp(f.thQ.R,f.gR);
   J.faL.rotation.x=-(.12+1.36*f.gL);J.fbL.rotation.x=-(.2+1.5*f.gL);J.thL.quaternion.identity().slerp(f.thQ.L,f.gL);

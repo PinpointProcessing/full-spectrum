@@ -48,7 +48,8 @@ button.on{border-color:var(--accent);color:#ffd2ae;background:rgba(60,32,16,.85)
 #poses{position:absolute;right:var(--gut-r);bottom:max(14px,env(safe-area-inset-bottom,0px));z-index:3;display:grid;grid-template-columns:repeat(2,auto);gap:6px;justify-content:end}
 .lbl{position:absolute;z-index:2;transform:translate(-50%,0);font-family:var(--font-hud);font-weight:600;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#d9dee6;text-shadow:0 1px 3px #000;pointer-events:none;white-space:nowrap;text-align:center}
 .lbl b{display:block;margin-bottom:3px;font-family:var(--font-news);font-size:18px;color:var(--accent);line-height:1}
-@media (max-width:700px){#info{bottom:auto;top:104px;width:min(300px,calc(100% - 32px));padding:9px 11px}#info h2{font-size:20px}#info p{font-size:12.5px}.head span{display:none}}
+@media (max-width:700px){#info{bottom:auto;top:104px;width:auto;max-width:calc(100% - 32px);padding:8px 11px}#info h2{font-size:19px}#info p{display:none}.head span{display:none}
+  #poses{left:var(--gut-l);right:var(--gut-r);grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:max-content;justify-content:start;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}#poses::-webkit-scrollbar{display:none}.lbl span{display:none}}
 </style>
 <div id="stage">
   <canvas id="cv"></canvas>
@@ -56,10 +57,10 @@ button.on{border-color:var(--accent);color:#ffd2ae;background:rgba(60,32,16,.85)
   <div id="nogl" hidden>This page needs WebGL, which this browser has turned off.</div>
   <div id="busy">Sculpting the drafts…</div>
   <div id="top">
-    <div class="head"><h1>Character Lab</h1><span>Main character, round 3. Drag to turn, pinch or scroll to zoom.</span></div>
+    <div class="head"><h1>Character Lab</h1><span>Main character, round 4. Drag to turn, pinch or scroll to zoom.</span></div>
     <div id="tabs"></div>
   </div>
-  <div id="info"><div class="n">Round 3 · four drafts</div><h2>Line-up</h2><p></p></div>
+  <div id="info"><div class="n">Round 4 · four drafts</div><h2>Line-up</h2><p></p></div>
   <div id="poses">
     <button data-pose="stand" class="on">Stand</button><button data-pose="ready">Ready</button>
     <button data-pose="walk">Walk</button><button data-pose="run">Run</button>

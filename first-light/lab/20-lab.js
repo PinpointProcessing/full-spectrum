@@ -1,4 +1,4 @@
-/* The lab stage: the drafts side by side with the Full Spectrum trooper, or one at a time on a turntable. */
+/* The lab stage: the drafts side by side, or one at a time on a turntable. */
 scene.fog=null;scene.background=new T.Color(0x24272e);
 renderer.toneMappingExposure=1.0;
 let pose='stand',spin=-.45,spinOn=false,gameView=false,slow=false,bat=true,camPitch=.1,zoomK=1,swingT=0,focus=-1;
@@ -11,20 +11,19 @@ let pose='stand',spin=-.45,spinOn=false,gameView=false,slow=false,bat=true,camPi
   const fill=new T.DirectionalLight(0xb4c8ff,.34);fill.position.set(-90,40,70);scene.add(fill);
   const rim=new T.DirectionalLight(0xffd0a0,.5);rim.position.set(-30,70,-120);scene.add(rim);
 }
-const figs=STYLES.map(S=>makeFig({style:S})),units=figs.map(()=>({x:0,y:0,ang:PI/2,spd:0,atk:null,ready:false})),ref=makeTrooperRef(),GAP=11.5;
+const figs=STYLES.map(S=>makeFig({style:S})),units=figs.map(()=>({x:0,y:0,ang:PI/2,spd:0,atk:null,ready:false})),GAP=11.5;
 for(const f of figs)setWeapon(f,'bat');
 $('#busy').hidden=true;
-const mkLbl=(n,t)=>{const d=document.createElement('div');d.className='lbl';d.innerHTML=(n?'<b>'+n+'</b>':'')+t;stage.appendChild(d);return d;};
-const refLbl=mkLbl('','Full Spectrum trooper'),lbls=figs.map((f,i)=>mkLbl(i+1,f.S.name));
+const mkLbl=(n,t)=>{const d=document.createElement('div');d.className='lbl';d.innerHTML=(n?'<b>'+n+'</b>':'')+'<span>'+t+'</span>';stage.appendChild(d);return d;};
+const lbls=figs.map((f,i)=>mkLbl(i+1,f.S.name));
 const tabs=$('#tabs'),mkTab=(i,html)=>{const b=document.createElement('button');b.innerHTML=html;b.addEventListener('click',()=>setFocus(i));tabs.appendChild(b);return b;};
 const tabB=[mkTab(-1,'All')].concat(figs.map((f,i)=>mkTab(i,'<b>'+(i+1)+'</b>'+f.S.name)));
 function setFocus(i){
   focus=i;tabB.forEach((b,k)=>b.classList.toggle('on',k===i+1));
-  $('#info .n').textContent=i<0?'Round 3 · four drafts':'Draft '+(i+1)+' of '+figs.length;
+  $('#info .n').textContent=i<0?'Round 4 · four drafts':'Draft '+(i+1)+' of '+figs.length;
   $('#info h2').textContent=i<0?'Line-up':figs[i].S.name;
-  $('#info p').textContent=i<0?'Left to right: the Full Spectrum trooper as it is now, then four takes on the main character. 1 and 2 are people, 3 and 4 are built on the trooper’s body. Pick a number to see one up close.':figs[i].S.blurb;
-  figs.forEach((f,k)=>{f.g.visible=i<0||k===i;units[k].x=i<0?(k-1)*GAP:0;});
-  ref.visible=i<0;ref.position.x=-2*GAP;
+  $('#info p').textContent=i<0?'Four body and head types for the main character, all in plain clothes. 1 and 2 are big-headed cartoon builds, 3 and 4 are the smooth mannequin build. Pick a number to see one up close.':figs[i].S.blurb;
+  figs.forEach((f,k)=>{f.g.visible=i<0||k===i;units[k].x=i<0?(k-(figs.length-1)/2)*GAP:0;});
 }
 function setPose(p){pose=p;swingT=0;for(const o of document.querySelectorAll('#poses [data-pose]'))o.classList.toggle('on',o.dataset.pose===p);}
 for(const b of document.querySelectorAll('#poses [data-pose]'))b.addEventListener('click',()=>setPose(b.dataset.pose));
@@ -60,15 +59,15 @@ function frame(ms){
   if(pose==='swing'||pose==='smash'){const per=1.25,cyc=swingT%per,n=Math.floor(swingT/per),dur=pose==='smash'?.56:.48;ready=true;if(cyc<dur)atk={t:cyc,dur,type:pose==='smash'?2:n%2};}
   if(window.__atk){atk=window.__atk;ready=true;}
   figs.forEach((f,i)=>{const u=units[i];u.ang=ang;u.spd=pose==='walk'?26:pose==='run'?62:0;u.ready=ready;u.atk=atk;if(f.g.visible)figAnim(f,u,dt,simNow);});
-  ref.rotation.y=-ang;
   const tanH=Math.tan(camera.fov*PI/360),tanW=tanH*camera.aspect,all=focus<0;
-  let ty=all?8.6:10.2,td=(all?Math.max((2*GAP+9)/tanW,16.5/tanH):Math.max(9.5/tanW,14/tanH))/zoomK,tp=camPitch;
+  const narrow=cw<700;      // on a phone the name sits above the figure and the buttons run along the bottom, so leave room for both
+  let ty=all?8.6:narrow?11.3:10.2,td=(all?Math.max((1.5*GAP+9)/tanW,16.5/tanH):Math.max(9.5/tanW,(narrow?19:14)/tanH))/zoomK,tp=camPitch;
   if(gameView){td=all?190:150;tp=.42;ty=8;}
   const k=1-Math.exp(-rdt*6);cam.y+=(ty-cam.y)*k;cam.d+=(td-cam.d)*k;cam.p+=(tp-cam.p)*k;
   camera.position.set(0,cam.y+Math.sin(cam.p)*cam.d,Math.cos(cam.p)*cam.d);camera.lookAt(0,cam.y,0);
   if(window.__cam){const c=window.__cam;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);}
   camera.updateMatrixWorld();
-  const lab=all&&!gameView&&!window.__cam;place(refLbl,-2*GAP,lab);lbls.forEach((l,i)=>place(l,units[i].x,lab));
+  const lab=all&&!gameView&&!window.__cam;lbls.forEach((l,i)=>place(l,units[i].x,lab));
   renderer.render(scene,camera);
 }
 new ResizeObserver(resize).observe(stage);resize();
