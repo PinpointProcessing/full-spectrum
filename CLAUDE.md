@@ -43,6 +43,7 @@ Scenario: rainy night, 600x900 map (units ≈ 10 cm). 4 soldiers start in the SW
 - Phone performance of the 3D lighting is unverified. If it stutters: drop the 4 flashlight spotlights first, then shadow map size (2048 → 1024).
 - Bryan plans to add a second squad of 4 once the one-squad mechanics feel right.
 - File should be split into modules (map data, pathfinding, combat/AI, 3D scene, overlay, input, HUD).
+- Bryan has mentioned a WW2 version of this squad game, and may want its soldiers in the cartoon character style from the First Light character lab (see "Character redesign" below). The soldiers here are still the simple pawn shapes.
 
 ## Second prototype: First Light (first-light.html)
 A zombie survival level on a new third-person engine (not the Warehouse Yard tactics code). An earlier top-down version ("Day One") was scrapped: Bryan didn't like it. Design notes and numbers are in `ideas/zombie-apocalypse.md`.
@@ -61,6 +62,7 @@ A zombie survival level on a new third-person engine (not the Warehouse Yard tac
   - Keep arms hanging clear of the trunk and thighs in the rest pose: the paint is projected from the front and back, and hands that sit within a cell of the leg get webbed to it.
   - Cost today: cast figures use a 0.135 cell (about 75k triangles, 2048 texture, 0.6–0.9 s to build); zombies use 0.17 (about 46k triangles, 1024 texture, 0.3 s). The game will need zombies much lighter than that, and shared between look-alikes.
   - The game still uses the older `50-figures.js`; the lab version replaces it once Bryan signs off. Build the lab with `python3 first-light/lab/build.py`.
+  - **Possible second use (Bryan, 2026-11-22):** he asked to keep this character style in mind for a WW2 version of the Full Spectrum squad game, "maybe we'll use it". Nothing else about that game is written down in this repo yet. If it goes ahead, the soldiers would be new `person()` entries on the same two builds (uniform, helmet and gear as outfit and head options), and squads would need the lighter wrap that zombies also need.
 - Three.js r128 from cdnjs, plus the r128 bloom scripts from jsdelivr (optional: the game runs without them). All art, textures and sound are generated in code.
 - Quality steps down automatically if frames are slow (bloom off, then smaller shadows and resolution, then no shadows).
 
