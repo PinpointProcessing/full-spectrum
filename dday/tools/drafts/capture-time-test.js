@@ -18,7 +18,7 @@ const a=await ev(()=>{for(const e of enemies){e.stunT=999;if(e.y>-330&&e.tag!=='
 console.log(JSON.stringify(a));ok(!a.held&&a.p>.25&&a.p<.5&&a.dy>12&&a.col==='b02222','2 s in: not ours yet, their flag part way down');await ev(()=>{dd.track=null;camT.x=DDX+250;camT.z=-380;});await shot('t1-red');
 const b2=await ev(()=>{RUN(1.6);DRAW();const F=DD.capFlagM.crest;return{p:dd.capP.crest,held:!!dd.held.crest,dy:+(F.y-F.m.position.y).toFixed(1),col:F.mat.color.getHexString()};});
 console.log(JSON.stringify(b2));ok(!b2.held&&b2.p>.5&&b2.col==='2f6fd0'&&b2.dy>3,'3.6 s in: ours going up, blue');await ev(()=>{dd.track=null;camT.x=DDX+250;camT.z=-380;});await shot('t2-blue');
-const c=await ev(()=>{PUT('A',300,-300);RUN(1.5);const p1=dd.capP.crest,h1=!!dd.held.crest;PUT('A',290,-400);RUN(6);DRAW();const F=DD.capFlagM.crest;return{p1,h1,held:!!dd.held.crest,dy:+(F.y-F.m.position.y).toFixed(1),col:F.mat.color.getHexString()};});
+const c=await ev(()=>{PUT('A',300,-300);PUT('B',340,-290);RUN(1.5);const p1=dd.capP.crest,h1=!!dd.held.crest;PUT('A',290,-400);RUN(6);DRAW();const F=DD.capFlagM.crest;return{p1,h1,held:!!dd.held.crest,dy:+(F.y-F.m.position.y).toFixed(1),col:F.mat.color.getHexString()};});
 console.log(JSON.stringify(c));ok(!c.h1&&c.p1<b2.p,'the man leaves: it runs back down');ok(c.held&&c.dy<1&&c.col==='2f6fd0','back in and held 5 s: the top of the hill is ours, the blue flag at the top');
 // the hilltop bunker's guns
 const g=await ev(()=>{const G=dd.post.guns.filter(q=>q.z==='heavy'),h0=G.map(q=>ddPostHeld(q));for(const e of enemies)if(e.tag==='heavy'){e.hp=0;e.dead=true;}RUN(1);const h1=G.map(q=>ddPostHeld(q)),held=!!dd.held.heavy;
