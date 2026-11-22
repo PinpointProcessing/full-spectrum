@@ -23,7 +23,7 @@ await ev(()=>{const d0=damage;damage=(t,d,s)=>t.side==='P'?undefined:d0(t,d,s);l
       for(const[x,y]of[[106,-438],[148,-438],[106,-366],[148,-366]])add(new T.CylinderGeometry(1.2,1.2,44,6),new T.MeshStandardMaterial({color:0x4a3a28,roughness:.9}),X(x),g0+22,y);}
   };});
 await ev(()=>{PUT('A',240,-400);PUT('B',300,-380);selectTeam('A');dd.active='A';dd.track={team:'A'};ddGoSquad('A');RUN(5);window.Y0=yaw;dd.track=null;});
-for(const v of ['now','A','B','C'])for(const vw of [0,1,2]){
+for(const v of (process.env.ONLY||'now,A,B,C').split(','))for(const vw of [0,1,2]){
   await ev(([v,vw])=>{VAR(v);dd.track=null;camPan=null;camT.x=DDX+120;camT.z=-395;yaw=vw===0?Y0:vw===1?Math.PI/2:-Math.PI/2;if(typeof updateCamera==='function')updateCamera();},[v,vw]);
   await shot(`${v}-${vw}`);}
 console.log('errors',errors.length,errors.slice(0,3));await b.close();srv.close();process.exit(0);})();

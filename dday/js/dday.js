@@ -133,7 +133,7 @@ function ddObjects(){
   // useful because it shoots out toward the water"; "two MG nests in the pill box, not on top of it": the big gun looks out to sea through its south
   // front again; the whole east side is a second opening with two machine guns in it, DD_SPOT.heavyMGs; the north wall solid, the west open: the way in)
   // (Version 217, Bryan: "The MGs should be more accessible to the player to enter after killing them and reaching the top": a doorway in the south wall right behind the machine guns, x 112-142, on the side you come up; the west end is still open)
-  o('ddpb',30,-372,82,8,{cover:2,bk:'hv'});o('ddpb',142,-372,8,8,{cover:2,bk:'hv'});o('ddpb',142,-432,8,60,{cover:2,bk:'hv',front:1});o('ddpb',30,-440,120,8,{cover:2,full:true,bk:'hv',front:0});
+  o('ddpb',30,-372,82,8,{cover:2,bk:'hv'});o('ddpb',142,-372,8,8,{cover:2,bk:'hv'});o('ddpb',142,-432,8,60,{cover:2,bk:'hv',front:1,open:1});o('ddpb',30,-440,120,8,{cover:2,full:true,bk:'hv',front:0});
   o('ddgun',78,-402,24,22,{cover:1,hp:200,tag:'heavy'});   // (Version 212: 0.6 m further south, so there's a way past it along the north wall to the machine guns)
   o('ddpb',90,-572,300,8,{cover:2,bk:'tp'});o('ddpb',90,-620,8,48,{cover:2,full:true,bk:'tp'});o('ddpb',382,-620,8,48,{cover:2,full:true,bk:'tp'});   // the highest bunker: closed in like the others since Version 139
   o('sandbag',262,-410,58,10);o('sandbag',256,-440,10,34);o('sandbag',322,-440,10,34);   // the light machine gun's nest at the top of the way up, in front of it
@@ -350,8 +350,10 @@ function ddProps(sc,objsL){
       else{const m=bkM(o.bk),md=bkM(o.bk,1),me=bkM(o.bk,2);o.meshes=o.meshes||[];const P=(geo,mat,x,y,z,ry,rx,rz)=>{const q=add(geo,mat,x,y,z,ry,rx,rz);o.meshes.push(q);return q;};
         const front=o.front!=null?!!o.front:o.w>o.h;
         if(front&&o.h>o.w){   // (Version 210) a front that runs north-south, facing east: the low wall, the lintel and its drip edge, a pier at each end
-          P(new T.BoxGeometry(o.w+5,6.5,o.h+6),m,cx+1,g0+3.25,cy);P(new T.BoxGeometry(o.w+2,5.5,o.h+12),m,cx,g0+21.8,cy);P(new T.BoxGeometry(o.w+7,1.4,o.h+14),md,cx+1,g0+18.6,cy);
-          for(const fy of[0,1])P(new T.BoxGeometry(o.w+2,12.6,6),m,cx,g0+12.6,o.y-1+fy*(o.h+2));
+          P(new T.BoxGeometry(o.w+5,6.5,o.h+6),m,cx+1,g0+3.25,cy);
+          // (Version 218, Bryan picked draft B, "but you can get rid of the top banister above the MGs": open: no roof over the machine guns, so no lintel, drip edge or piers either, just the low wall)
+          if(!o.open){P(new T.BoxGeometry(o.w+2,5.5,o.h+12),m,cx,g0+21.8,cy);P(new T.BoxGeometry(o.w+7,1.4,o.h+14),md,cx+1,g0+18.6,cy);}
+          if(!o.open)for(const fy of[0,1])P(new T.BoxGeometry(o.w+2,12.6,6),m,cx,g0+12.6,o.y-1+fy*(o.h+2));
         }else if(!front&&o.w>o.h){P(new T.BoxGeometry(o.w+4,24.5,o.h+2),m,cx,g0+12.2,cy);   // (Version 210) a solid side wall that runs east-west, earth banked against it outside
           const out=cy<-406?-1:1,be=P(new T.SphereGeometry(1,10,7),me,cx-10,g0+1,cy+out*9);be.scale.set(o.w*.5,14,12);
         }else if(o.w>o.h){   // the front: a battered lower wall, the slit, a heavy lintel, piers at the ends and the middle
@@ -417,7 +419,7 @@ function ddProps(sc,objsL){
     for(let k=0;k<5;k++){const b=add(bagG,bkM(bk,2),x-w/2+6+k*8.5,g0+hh+6.4,y+d/2+1);b.scale.set(4.4,2.2,3);parts.push(b);}
     parts.push(add(new T.CylinderGeometry(1.1,1.1,7,7),bkM(bk,1),x+w*.3,g0+hh+7,y-d*.25));m.userData.parts=parts;m.userData.bk=bk;
     m.userData.b={x0:dx0+DDX,x1:dx0+DDX+w,y0,y1:y0+d};m.userData.top=g0+hh+8;m.userData.walls=BK[bk]||null;return m;};
-  DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,120,76,25,'hv')];
+  DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,74,76,25,'hv')];
   for(const m of DD.roofs)m.castShadow=true;
   // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
   {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.leftMG,...DD_SPOT.leftMGs,DD_SPOT.pill,...DD_SPOT.pillMGs,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG,DD_SPOT.hillMG,DD_SPOT.hillMG2,DD_SPOT.hillMG3,DD_SPOT.pathMG,...DD_SPOT.heavyMGs]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y)+(sp.elev||0),g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;sp.g=g;

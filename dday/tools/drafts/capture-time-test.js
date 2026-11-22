@@ -13,7 +13,7 @@ await ev(()=>{window.SAFE=1;const d0=damage;damage=(t,d,s)=>SAFE&&t.side==='P'?u
   window.DRAW=()=>{let t=performance.now()/1000;for(let i=0;i<60;i++){t+=.15;ddCapDraw.t=t-.15;ddCapDraw(t);}};});
 ok(await ev(()=>DD_CAP_T)===5,'a capture takes 5 s');
 const a=await ev(()=>{for(const e of enemies){e.stunT=999;if(e.y>-330&&e.tag!=='crest'){e.hp=0;e.dead=true;}}for(const k of['beach','left','nest','outpost','draw'])dd.held[k]=true;
-  for(const e of enemies)if(e.tag==='crest'){e.hp=0;e.dead=true;}for(const u of dd.npcs){u.hp=0;u.dead=true;}PUT('B',300,-300);PUT('A',290,-400);selectTeam('A');dd.active='A';dd.track={team:'A'};RUN(2);DRAW();const F=DD.capFlagM.crest;
+  for(const e of enemies)if(e.tag==='crest'){e.hp=0;e.dead=true;}ddWaves=()=>{};for(const u of dd.allies)if(u.npc||!players.includes(u)){u.hp=0;u.dead=true;}for(const u of dd.npcs){u.hp=0;u.dead=true;}PUT('B',300,-300);PUT('A',290,-400);selectTeam('A');dd.active='A';dd.track={team:'A'};RUN(2);DRAW();const F=DD.capFlagM.crest;
   return{p:dd.capP.crest,held:!!dd.held.crest,dy:+(F.y-F.m.position.y).toFixed(1),col:F.mat.color.getHexString()};});
 console.log(JSON.stringify(a));ok(!a.held&&a.p>.25&&a.p<.5&&a.dy>12&&a.col==='b02222','2 s in: not ours yet, their flag part way down');await ev(()=>{dd.track=null;camT.x=DDX+250;camT.z=-380;});await shot('t1-red');
 const b2=await ev(()=>{RUN(1.6);DRAW();const F=DD.capFlagM.crest;return{p:dd.capP.crest,held:!!dd.held.crest,dy:+(F.y-F.m.position.y).toFixed(1),col:F.mat.color.getHexString()};});
@@ -26,6 +26,6 @@ const g=await ev(()=>{const G=dd.post.guns.filter(q=>q.z==='heavy'),h0=G.map(q=>
   return{h0,h1,held,P,str:G.map(q=>Math.round(hyp(u.x-q.x,u.y-q.y))),door:isFree(DDX+127,-368)};});
 console.log(JSON.stringify(g));ok(g.h1.every(Boolean)&&!g.held,'their crew down: the guns are yours to take before anyone stands in the bunker');
 ok(g.door&&g.P.every((L,i)=>L&&L<g.str[i]*1.5+60),'a doorway behind the guns: the way in is short ('+g.P+' against '+g.str+' straight)');
-const s=await ev(()=>{const G=dd.post.guns.find(q=>q.z==='heavy');DD_POST.noAuto=1;ddPostSend(G);RUN(14);return{on:!!(G.man&&G.man.onGun),who:G.man&&G.man.name};});
+const s=await ev(()=>{const G=dd.post.guns.find(q=>q.z==='heavy');DD_POST.noAuto=1;ddPostSend(G);let on=false,who=null,t=0;for(;t<20&&!on;t++){RUN(1);if(G.man&&G.man.onGun){on=true;who=G.man.name;}}return{on,who,t};   // (checked the moment he's on it: a shell or his squad moving on takes him off again, ddPostMen)});
 console.log(JSON.stringify(s));ok(s.on,'sent to a gun, your man gets on it');await ev(()=>{const u=players.find(p=>p.onGun);camT.x=u.x;camT.z=u.y;});await shot('t3-bunker');
 console.log('errors',errors.length,errors.slice(0,3));console.log('fails:',fails);await b.close();srv.close();process.exit(0);})();
