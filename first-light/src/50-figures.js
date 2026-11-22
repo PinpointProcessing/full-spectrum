@@ -441,7 +441,7 @@ const WEAP={
     bx(2.9,.16,1.62,2.25,-1.74,0,0xaab0b8),bx(1.14,.16,1.14,3.6,-1.74,0,0xaab0b8,0,PI/4,0),cy(.3,.3,.1,8,1.6,-.7,0,0xd2332a)]},
   hammer:{hold:.8,parts:()=>[cy(.17,.2,3.8,8,1.9,0,0,0x8a6a42,0,0,X),bx(.85,2,.85,3.85,.05,0,0x3a3d42),bx(.5,.5,.5,3.85,1.1,0,0x2a2c30)]},
   pistol:{gun:1,parts:()=>[bx(1.8,.9,.62,-.1,.05,0,0x24262b),bx(.78,3.3,.66,1.05,-1.15,0,0x1c1e22),bx(.3,.9,.3,.5,-.8,0,0x15171a),bx(.2,.3,.2,1.5,-2.6,0,0x0c0c0e)]},
-  shotgun:{gun:1,parts:()=>[bx(1.5,.85,.62,-.1,.05,0,0x5a4030),bx(.7,9.6,.62,1,-3.6,0,0x1a1816),bx(.5,6,.5,.45,-5.2,0,0x1a1816),bx(.95,2.6,.9,.6,-4.4,0,0x5a4030),bx(1.2,3.4,.72,.5,2.4,0,0x5a4030,0,0,-.12),bx(.9,2,.7,.8,.2,0,0x26221e)]},
+  shotgun:{gun:1,parts:()=>[bx(1.5,.85,.62,-.1,.05,0,0x5a4030),bx(.7,7,.62,1,-2.4,0,0x1a1816),bx(.5,4.4,.5,.45,-3.6,0,0x1a1816),bx(.95,2.2,.9,.6,-3.4,0,0x5a4030),bx(1.2,3.4,.72,.5,2.4,0,0x5a4030,0,0,-.12),bx(.9,2,.7,.8,.2,0,0x26221e)]},
 };
 const WGEO={};
 function weapGeo(name){return WGEO[name]||(WGEO[name]=WEAP[name].geo?WEAP[name].geo():merge(WEAP[name].parts()));}
@@ -550,9 +550,9 @@ function figAnim(f,u,dt,now){
     else if(u.anim==='panic'){p.sLz=2.7+s*.45;p.sRz=2.7-s*.45;p.eL=p.eR=.35;p.sLx=-.3;p.sRx=.3;}
     else if(u.anim==='cower'){p.by=-5.8*ck;p.hL=p.hR=1.5;p.kL=p.kR=-2.3;p.lean=-.6;p.sLz=p.sRz=2.4;p.eL=p.eR=2;p.hz=-.4;}
     else if(u.anim==='crank'){p.sRz=1.25+Math.sin(now*7)*.45;p.sLz=1.25+Math.sin(now*7+PI)*.45;p.eR=p.eL=.7;p.lean=-.22;p.wR=0;gL=1;}
-    if(u.shootT!==undefined&&u.shootT<.9){
-      const rc=u.shootT<.13?1-u.shootT/.13:0;
-      p.sRz=1.5+rc*.5;p.sRx=.28;p.eR=.06;p.wR=0;p.sLz=1.45+rc*.4;p.sLx=-.5;p.eL=.25;p.lean=.14*rc;p.twist=0;gL=.8;
+    if(u.shootT!==undefined&&u.shootT<.9){      // firing: only the gun arm comes up (Bryan); the other stays down and swings back a little with the kick
+      const rc=u.shootT<.13?1-u.shootT/.13:0,kick=f.wname==='shotgun'?1.6:1;
+      p.sRz=1.5+rc*.45*kick;p.sRx=.16;p.eR=.06+rc*.25*kick;p.wR=0;p.sLz=-.16-rc*.22*kick;p.sLx=.14;p.eL=.4;p.lean=.12*rc*kick;p.twist=0;
     }
     if(u.atk){
       const k=u.atk.t/u.atk.dur,ty=u.atk.type,w=clamp(k/.22,0,1),st=clamp((k-.22)/.26,0,1),rc=clamp((k-.55)/.45,0,1);
