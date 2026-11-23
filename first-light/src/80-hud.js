@@ -157,7 +157,7 @@ function drawOverlay(now){
     if(near){const p=toS(near.x+near.w/2,near.y+near.h/2,near.mh||(near.tall?26:14));
       ox.lineWidth=4;ox.strokeStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();
       if(L.search){ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],11,-PI/2,-PI/2+clamp(L.search.t/L.search.dur,0,1)*TAU);ox.stroke();}
-      else{ox.lineWidth=2;ox.strokeStyle='rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label(ac.label.toUpperCase(),p[0],p[1]-20,'#ffecbe',10,700);}}
+      else{ox.lineWidth=2;ox.strokeStyle=ac.col||'rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label(ac.tag||ac.label.toUpperCase(),p[0],p[1]-20,ac.col||'#ffecbe',ac.tag?12:10,700);}}
   }
   // valve progress and fuse
   if(EV.channel&&!EV.open&&EV.crank>0){const p=toS(VALVE.x,VALVE.y,30);ox.lineWidth=5;ox.strokeStyle='rgba(0,0,0,.6)';ox.beginPath();ox.arc(p[0],p[1],16,0,TAU);ox.stroke();ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],16,-PI/2,-PI/2+EV.crank*TAU);ox.stroke();label(Math.round(EV.crank*100)+'%',p[0],p[1],'#fff',10,700);}

@@ -62,9 +62,9 @@ const SFX={
   shotgun(t,v,d){burst(6000,1200,.5,.04,1.4*v,d,t,'highpass');burst(1900,180,.45,.3,1.35*v,d,t+.004,'lowpass');thud(t,1.4*v,d,62,.28);burst(600,140,.5,.9,.3*v,d,t+.08,'lowpass');
     tone('square',900,500,.03,.12*v,d,t+.42);burst(2400,1200,3,.05,.2*v,d,t+.42);tone('square',700,420,.03,.12*v,d,t+.55);},      // and the pump
   dry(t,v,d){burst(3000,1800,4,.02,.3*v,d,t,'bandpass');tone('square',1400,900,.015,.08*v,d,t);},
-  groan(t,v,d){const f=rand(62,98);growl(t,v,d,f,rand(.8,1.5),false);},
-  snarl(t,v,d){const f=rand(105,150);growl(t,1.1*v,d,f,.32,true);burst(2200,1200,1.2,.22,.14*v,d,t,'bandpass');},
-  roar(t,v,d){growl(t,1.5*v,d,54,1.3,true);thud(t,.5*v,d,50,.5);},
+  groan(t,v,d){if(zVoice('groan',t,v,d)){return;}const f=rand(62,98);growl(t,v,d,f,rand(.8,1.5),false);},
+  snarl(t,v,d){if(zVoice('snarl',t,v,d)){return;}const f=rand(105,150);growl(t,1.1*v,d,f,.32,true);burst(2200,1200,1.2,.22,.14*v,d,t,'bandpass');},
+  roar(t,v,d){if(zVoice('roar',t,v,d)){thud(t,.5*v,d,50,.5);return;}growl(t,1.5*v,d,54,1.3,true);thud(t,.5*v,d,50,.5);},
   scream(t,v,d){const f=rand(430,600);voiceF(f,f*1.5,.2,.3*v,d,t,[1000,2300,3200],0);voiceF(f*1.5,f*1.25,.5,.36*v,d,t+.18,[1150,2500,3300],rand(8,13));burst(2800,1600,1,.6,.08*v,d,t,'bandpass');},
   hurt(t,v,d){voiceF(175,112,.2,.5*v,d,t,[650,1150,2500]);burst(1400,600,1,.12,.12*v,d,t,'bandpass');thud(t,.5*v,d,80,.09);},
   bite(t,v,d){wet(t,1*v,d,6);thud(t,.6*v,d,70,.1);burst(900,260,1.4,.14,.4*v,d,t+.03,'bandpass');},
@@ -89,11 +89,26 @@ const SFX={
   join(t,v,d){burst(1200,600,1,.12,.12*v,d,t,'bandpass');},
 };
 function atten(x,y,range){if(x===undefined||x===null)return 1;const d=hyp(x-earX,y-earY);return Math.pow(clamp(1-d/(range||460),0,1),1.6);}
+/* Recorded zombie voices (see sounds/CREDITS.md). Decoded once the audio context exists; until then, and wherever decoding fails,
+   the made-in-code voices below stand in. Each play picks a clip and shifts its pitch a little so twenty zombies are not one zombie. */
+const ZCLIPS={groan:[1,2,8,9,12,15,19,20,23],snarl:[3,4,5,6,7,10,11,13,14,22,24],roar:[16,17,18,21]},ZBUF={};
+function sndLoad(){
+  if(!AU.ctx||sndLoad.done||typeof SND_B64==='undefined')return;sndLoad.done=true;
+  for(const k in SND_B64){try{const bin=atob(SND_B64[k]),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+    const done=b=>{ZBUF[k]=b;},p=AU.ctx.decodeAudioData(u8.buffer,done,()=>{});if(p&&p.catch)p.catch(()=>{});}catch(e){}}
+}
+function zVoice(kind,t,v,d){
+  const ok=ZCLIPS[kind].filter(i=>ZBUF['z'+i]);if(!ok.length)return false;
+  const s=AU.ctx.createBufferSource(),g=AU.ctx.createGain();s.buffer=ZBUF['z'+pick(ok)];
+  s.playbackRate.value=kind==='roar'?rand(.72,.86):kind==='groan'?rand(.8,1.02):rand(.9,1.1);
+  g.gain.value=v*(kind==='roar'?1.5:kind==='groan'?.9:1.05);s.connect(g);g.connect(d);s.start(t);return true;
+}
 function sfx(name,x,y,vol,range){
   if(!AU.ctx||AU.muted)return;
   const a=atten(x,y,range)*(vol===undefined?1:vol);if(a<.012)return;
   let dest=AU.sfx;
   if(x!==undefined&&x!==null&&AU.ctx.createStereoPanner){const p=AU.ctx.createStereoPanner();p.pan.value=clamp((x-earX)/260,-1,1)*.75;p.connect(AU.sfx);dest=p;}
+  sndLoad();
   try{SFX[name](AU.ctx.currentTime+.002,a,dest);}catch(e){}
 }
 /* TV speech stand-in: a run of nonsense syllables at a speaker's pitch. Goes through the TV channel so it gets quieter as you walk away. */

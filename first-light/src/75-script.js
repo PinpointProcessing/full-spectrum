@@ -112,6 +112,7 @@ function script(dt){
     EV.breakT-=dt;
     if(EV.breakT<=0){
       EV.breakIn=true;breakPortal(portalOf(fwin));EV.knockT=5;
+      setTimeout(()=>{if(state==='play')bloodText('Find shelter',4600);},1300);
       for(let i=0;i<26;i++)emit(pDrop,310+rand(-18,18),1224,rand(10,20),rand(-30,30),rand(10,70),rand(0,40),rand(1.2,2.4),rand(.5,1),.8,.9,1,.9,260,0,0,1);
       for(let i=0;i<6;i++)decal(310+rand(-16,16),1234+rand(0,14),rand(2,4),.5,0xbfd8e6);
       const z=mkZed('runner',310,1208,{look:0});

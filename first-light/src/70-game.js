@@ -39,6 +39,12 @@ const turn=(a,b,k)=>a+angDiff(a,b)*Math.min(1,k);
 let capTimer=0;
 function caption(text,who,ms){const c=$('#cap');c.innerHTML=(who?`<b>${who}</b>`:'')+text;c.classList.add('show');clearTimeout(capTimer);capTimer=setTimeout(()=>c.classList.remove('show'),ms||3200);}
 let bigTimer=0;
+/* the objective, once, in blood across the top of the screen */
+function bloodText(text,ms){
+  const b=$('#blood');b.innerHTML='<span>'+text+'</span>';const sp=b.firstChild;
+  for(let i=0;i<9;i++){const d=document.createElement('i');d.style.left=(4+Math.random()*92)+'%';d.style.width=(3+Math.random()*5)+'px';d.style.setProperty('--len',(18+Math.random()*60)+'px');d.style.animationDelay=(.2+Math.random()*.9)+'s';sp.appendChild(d);}
+  b.classList.remove('gone');b.classList.add('show');clearTimeout(bloodText.t);bloodText.t=setTimeout(()=>{b.classList.add('gone');b.classList.remove('show');},ms||4200);
+}
 function bigText(text,ms){const b=$('#big');b.textContent=text;b.classList.add('show');clearTimeout(bigTimer);bigTimer=setTimeout(()=>b.classList.remove('show'),ms||2200);}
 const floats=[];
 function floatText(u,text,col){floats.push({x:u.x,y:u.y,h:(u.z||0)+26,text,col:col||'#fff',t:0});}
@@ -295,6 +301,10 @@ function actionFor(){
   if(L.search)return{label:'Looking',go(){}};
   // the TV only when you are standing at it, in the bedroom: from anywhere else the button is for what is in front of you
   if(!$('#bubble').hidden&&hyp(L.x-TVPOS.x,L.y-TVPOS.y)<48&&los(L.x,L.y,TVPOS.x,TVPOS.y+8))return{label:'Watch',o:TVMARK,go:openTV};
+  // a weapon at your feet that you have no hand free for: trade the one you are holding for it
+  if(L.bag.length>=2){let it=null,bd=16;for(const q of items){if(q.taken||!MELEE[q.kind])continue;const d=hyp(q.x-L.x,q.y-L.y);if(d<bd){bd=d;it=q;}}
+    if(it)return{label:'Trade',tag:'FULL',col:COL.bad,o:{x:it.x-1,y:it.y-1,w:2,h:2,mh:13},go(){
+      it.taken=true;scene.remove(it.m);scene.remove(it.g);sfx('pickup');const old=giveMelee(it.kind,it.left);floatText(L,MELEE[it.kind].name.toUpperCase(),COL.good);if(old)mkItem(old.kind,it.x,it.y,old.left);}};}
   const o=searchNear();
   if(o)return{label:'Search',o,go(){L.search={o,t:0,dur:o.kind==='car'?2:1.5};L.atk=null;}};
   return null;
@@ -304,7 +314,7 @@ function searchDone(o){
   if(!k){floatText(L,'NOTHING',COL.dim||'#aab');sfx('dry',L.x,L.y,.5);return;}
   sfx('pickup');
   const it=mkItem(k,L.x,L.y);
-  if(MELEE[k]&&L.bag.length>=2){it.hold=true;caption('In the '+nm+': a '+MELEE[k].name.toLowerCase()+'. Your hands are full. Step away and back to trade for it.',null,4200);}
+  if(MELEE[k]&&L.bag.length>=2){caption('In the '+nm+': a '+MELEE[k].name.toLowerCase()+'. Your hands are full. Action trades it for the one you are holding.',null,4200);}
 }
 function youUpdate(dt){
   if(L.vault){vaultStep(L,dt);L.atk=null;return;}      // halfway through a window: nothing else until you are over the sill
@@ -362,10 +372,10 @@ function youUpdate(dt){
     if(it.taken)continue;const near=hyp(it.x-u.x,it.y-u.y)<=15;
     if(it.hold){if(!near)it.hold=false;continue;}      // something you just put down: step away before it can be picked up again
     if(!near)continue;
+    if(MELEE[it.kind]&&u.bag.length>=2)continue;      // both hands spoken for: it stays where it is and reads FULL. The Action button trades for it
     it.taken=true;scene.remove(it.m);scene.remove(it.g);sfx('pickup');
-    if(MELEE[it.kind]){      // a melee weapon: you carry two. A third replaces the one in your hand, which is left where this one lay
-      const full=u.bag.length>=2,old=giveMelee(it.kind,it.left);floatText(u,MELEE[it.kind].name.toUpperCase(),COL.good);EV.armed=true;
-      if(old)mkItem(old.kind,it.x,it.y,old.left).hold=true;
+    if(MELEE[it.kind]){      // a melee weapon: you carry two
+      giveMelee(it.kind,it.left);floatText(u,MELEE[it.kind].name.toUpperCase(),COL.good);EV.armed=true;
       if(u.bag.length===2&&!EV.swapTip){EV.swapTip=true;caption('You carry two weapons. SWAP (or Q) changes which is in your hand. They wear out.',null,5200);}
     }
     else if(it.kind==='pistol'){u.has.pistol=true;u.ammo.pistol+=8;floatText(u,'PISTOL · 8 ROUNDS',COL.good);}

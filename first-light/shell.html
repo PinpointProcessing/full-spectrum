@@ -70,6 +70,14 @@ button:disabled{opacity:.4;cursor:default}
 #cap.show{opacity:1}
 #cap b{font-family:var(--font-hud);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);display:block}
 #big{position:absolute;left:50%;top:24%;transform:translate(-50%,-50%) scale(.9);font-family:var(--font-news);font-weight:700;font-size:clamp(26px,7vw,54px);letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 0 #000,0 0 26px rgba(255,120,60,.7);opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .25s,transform .25s}
+#blood{position:absolute;left:0;right:0;top:15%;text-align:center;pointer-events:none;opacity:0;z-index:4;transition:opacity .25s}
+#blood.show{opacity:1}
+#blood.gone{opacity:0;transition:opacity 1.8s}
+#blood span{position:relative;display:inline-block;font-family:var(--font-news);font-weight:800;font-size:clamp(38px,11.5vw,88px);line-height:1;letter-spacing:.02em;text-transform:uppercase;color:#a30d0d;transform:rotate(-2deg) skewX(-4deg);
+  text-shadow:0 0 1px #5a0000,2px 3px 0 #4a0303,-1px 1px 0 #c21818,0 0 22px rgba(160,0,0,.75),0 6px 14px rgba(0,0,0,.8);filter:url(#rough)}
+#blood span i{position:absolute;top:82%;height:0;border-radius:0 0 4px 4px;background:linear-gradient(#a30d0d,#6e0505);animation:drip 2.6s ease-in forwards}
+@keyframes drip{to{height:var(--len)}}
+@media (prefers-reduced-motion: reduce){#blood span i{animation:none;height:var(--len)}}
 #big.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #pad{position:absolute;right:var(--gut-r);bottom:max(14px,env(safe-area-inset-bottom,0px));width:200px;height:170px;pointer-events:none}
 #pad button{position:absolute;border-radius:50%;padding:0;display:grid;place-items:center;align-content:center;line-height:1.1;pointer-events:auto;touch-action:none;background:rgba(14,16,22,.62);border:1.5px solid rgba(255,255,255,.3);backdrop-filter:blur(2px)}
@@ -152,6 +160,8 @@ button:disabled{opacity:.4;cursor:default}
       </div>
       <div id="cap"></div>
       <div id="big"></div>
+      <div id="blood"></div>
+      <svg width="0" height="0" style="position:absolute"><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="9"/></filter></svg>
       <div id="pad">
         <button id="healBtn">Aid<small>0</small></button>
         <button id="swapBtn" hidden>Swap</button>
