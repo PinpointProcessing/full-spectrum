@@ -111,7 +111,7 @@ function say(text,high,dur,voice){
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);newsV=newsV||newsVoices();
     if(newsV)u.voice=high?newsV.f:newsV.m;
-    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=voice?.9:clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
+    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=say.full?.9:clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
     let started=false;u.onstart=()=>{started=true;ttsOK=true;};u.onerror=()=>{if(!started){ttsOK=false;}};
     speechSynthesis.speak(u);
     setTimeout(()=>{if(!started){ttsOK=false;try{speechSynthesis.cancel();}catch(e){}miss();}},650);

@@ -26,7 +26,7 @@ function tvTick(dt,audible){
     if(tv.t>16&&!tv.watch)tvStartCast();
   }else if(tv.mode==='cast'){
     for(let i=0;i<CAST.length;i++){const L=CAST[i];
-      if(tv.t>=L.t&&tv.line<i){tv.line=i;if(audible)say(L.text,L.who===1,L.d);}
+      if(tv.t>=L.t&&tv.line<i){tv.line=i;if(audible)speak(L.who===1?'denise':'hal',L.text,L.d);}
       if(tv.t>=L.t&&tv.t<L.t+L.d+.5)tv.sub={who:ANCH[L.who].name,text:L.text,talk:tv.t<L.t+L.d?L.who:-1};}
     tvOnce('thud',22.3,()=>audible&&tvSfx('bang',1));
     tvOnce('thud2',23.2,()=>audible&&tvSfx('bang',1.2));

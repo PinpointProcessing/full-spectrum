@@ -128,7 +128,7 @@ function script(dt){
   if(EV.knockT>0&&!EV.doorOpen){EV.knockT-=dt;if(EV.knockT<=0){const z=mkZed('shambler',361,1200,{look:2});if(z){z.state='chase';z.tgt=L;z.track=simT+150;z.doorOnly=true;z.ang=PI/2;EV.knock=z;caption('Something is pounding on the front door.',null,3200);}}}
   if(!EV.doorOpen){const pd=portalOf(fdoor);if(pd&&pd.rattle>0){pd.rattle-=dt;doorPivot.rotation.y=Math.sin(simT*70)*.05*pd.rattle/.25;}else doorPivot.rotation.y=0;}
   if(EV.doorOpen&&EV.doorK<1){EV.doorK=Math.min(1,EV.doorK+dt*3);doorPivot.rotation.y=ease(EV.doorK)*1.9;}
-  safeTick(dt);allyTalk(dt);
+  safeTick(dt);
   /* 3. outside */
   if(!EV.out&&L.y<1216&&!inHouse(L.x,L.y)){
     EV.out=true;bigText('Sycamore Court',2600);EV.heliT=0;spawnT=14;
@@ -295,7 +295,7 @@ function safeTick(dt){
     if(!SF.open&&dd<24&&!inside)safeDoorSet(true);
     if(SF.open&&inside&&L.x<SAFE.x1-8){      // you are in: bring your people in, bar the door
       const spots=[[262,556],[266,528],[246,528],[252,558]];allies.forEach((a,i)=>{if(a.dead)return;a.x=spots[i%4][0];a.y=spots[i%4][1];a.safe=true;a.vault=null;a.foe=null;});
-      safeDoorSet(false);SF.in=true;SF.t=0;SF.i=0;L.safe=true;SF.lines=RUTH_LINES.slice();aiRuth();
+      safeDoorSet(false);SF.in=true;SF.t=0;SF.i=0;L.safe=true;SF.lines=RUTH_LINES.slice();
       for(const z of zeds)if(inSafe(z.x,z.y)&&!z.dead)z.x=SAFE.dx+30;
     }
     if(SF.open&&!inside&&dd>60)safeDoorSet(false);
@@ -303,7 +303,7 @@ function safeTick(dt){
   if(SF.in){
     SF.t+=dt;
     for(const h of[L,...allies])if(!h.dead)h.hp=Math.min(h.maxhp,h.hp+9*dt);
-    if(!SF.chatDone&&SF.t>1+SF.i*4.4){if(SF.i<SF.lines.length){const t=SF.lines[SF.i++];caption(t,'Ruth',4200);say(t,true,4,'glassy');}else SF.chatDone=true;}
+    if(!SF.chatDone&&SF.t>1+SF.i*4.4){if(SF.i<SF.lines.length){const t=SF.lines[SF.i++];caption(t,'Ruth',4200);speak('ruth',t,4);}else SF.chatDone=true;}
     // out again: walk into the door from the inside once she has said her piece (or you have been here a few seconds)
     if(SF.t>4&&L.x>SAFE.x1-10&&Math.abs(L.y-SAFE.dy)<12&&input.mx>.3){
       safeDoorSet(true);SF.in=false;SF.done=true;L.safe=false;for(const a of allies)a.safe=false;shutUp();

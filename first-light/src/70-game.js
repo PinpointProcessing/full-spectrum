@@ -486,7 +486,7 @@ function recruit(s){
   if(s.exit){s.x=s.exit.x;s.y=s.exit.y;}
   const sp=isFree(s.x,s.y,6)?s:openSpot(s.x,s.y,null,60);if(sp){s.x=sp.x;s.y=sp.y;}
   allies.push(s);rebuildHumans();hudAllies();
-  sfx('join');caption(aiLine(s.key,'join')||SURV[s.key].line,s.name,4200);floatText(s,`${s.name.toUpperCase()} JOINED`,COL.ally);
+  sfx('join');caption(SURV[s.key].line,s.name,4200);speak(s.key,SURV[s.key].line,4);floatText(s,`${s.name.toUpperCase()} JOINED`,COL.ally);
   EV.joinT=simT+9;EV.joinWho=s.name;
   if(!EV.joinTip){EV.joinTip=true;setTimeout(()=>{if(state==='play')caption(`${s.name} follows you and fights on their own. Just keep moving. Their health is under yours.`,null,5600);},4400);}
   for(const z of zeds)if(z.tgt===s)z.anim=null;

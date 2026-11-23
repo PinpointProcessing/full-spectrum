@@ -204,7 +204,7 @@ $('#nameForm').addEventListener('submit',e=>{
   $('#nameForm').hidden=true;$('#roster').hidden=false;$('#againBtn').hidden=false;sfx('join');
 });
 function startGame(fromDoor){
-  auInit();aiBrief();
+  auInit();
   for(const id of['#intro','#dead','#end'])$(id).hidden=true;
   reset(fromDoor);state='play';$('#hud').hidden=false;camSnap=true;
 }
