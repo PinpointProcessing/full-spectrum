@@ -574,7 +574,7 @@ function ddSquadAI(t){
    `kill`, and from `sup` being shot at is enough (ddSurgeTick); his aim falls by up to `aim` over `aimPer`. They no longer wait on the squads (ddLine), more
    of them keep coming (ddWaves: up to `cap`, a boat or, off the beach, five men from the place held before the last, every `every` s), and they don't
    take places: only the squads do, and the men sent for a bunker the squads went past (ddZones). */
-const DD_SURGE={k:80,kill:250,sup:400,aimPer:250,aim:.65,cap:28,every:[6,9]};
+const DD_SURGE={k:80,kill:250,sup:400,aimPer:250,aim:.65,cap:28,every:[6,9],topN:9,topCap:18,gap:26};   // (topN, topCap, gap: Version 221, ddTopHold)
 function ddLead(u){
   if(!dd||!dd.land||!dd.land.done||dd.counter||dd.vil)return 0;
   if(dd.base&&dd.base.open&&u.y<-430){const L=players.filter(p=>alive(p)&&!p.inBoat&&!p.joining);return L.length?Math.max(0,u.x-Math.max(...L.map(p=>p.x))):0;}   // (on the top, on the road east to their base)
@@ -584,6 +584,26 @@ const ddWeak=u=>{const L=ddLead(u);return L<=0?1:L>=DD_SURGE.kill?60:1+L/DD_SURG
 function ddSurgeTick(){
   for(const u of dd.npcs){if(u.dead||u.inBoat)continue;const L=ddLead(u);u.aimK=-.1-clamp(L/DD_SURGE.aimPer,0,DD_SURGE.aim);
     if(L>=DD_SURGE.sup&&(u.sup||0)>.45)ddDamage(u,999,null);}   // (that far ahead, being shot at is enough)
+}
+// Version 221 (Bryan, from the hilltop bunker's gun: "a crap ton of troops were conglomerating. Way to many and it looked weird and congested"): until the
+// barracks falls the top is a dead end, and all of them ended up at the top of the way up (25 of 28 within a few metres of each other). Now at most `topN`
+// are on the top at once, each with a place of his own along it (u.post2) and the nearest free cover to that; the rest hold on the way up, each once he's
+// above a height of his own (u.holdY), so they're strung out from the hill to the draw; and fewer are sent while it lasts (`topCap`, ddWaves)
+const ddTopShut=()=>!!DD_SURGE&&!(dd.base&&dd.base.open)&&!dd.counter&&!dd.vil;
+function ddTopHold(u){
+  if(!ddTopShut()||u.raid)return false;
+  if(u.y>=-300){   // below the top: up only while there's room up there, else hold once above his own height
+    if(u.holdY==null)u.holdY=-270+Math.random()*440;
+    if(u.y>u.holdY)return false;
+    const n=dd.npcs.filter(o=>o!==u&&!o.dead&&!o.inBoat&&(o.y<-300||o.path.length&&o.path[o.path.length-1].y<-300)).length;
+    if(n<DD_SURGE.topN)return false;u.hopT=simT+3+Math.random()*2;return true;}
+  if(!u.post2)u.post2={x:DDX+150+Math.random()*640,y:-452+Math.random()*100};
+  if(hyp(u.x-u.post2.x,u.y-u.post2.y)<45){u.hopT=simT+5;return true;}
+  let best=null,bs=1e9;const taken=dd.allies.filter(o=>o!==u&&!o.dead).map(destOf);
+  for(const c of coverPts){if(c.y>-330||c.y<-470)continue;const d=hyp(c.x-u.post2.x,c.y-u.post2.y);if(d>120||d>=bs)continue;if(taken.some(o=>hyp(o.x-c.x,o.y-c.y)<DD_SURGE.gap))continue;bs=d;best=c;}
+  const t=best||openSpot(u.post2.x,u.post2.y,taken)||u.post2,p=findPath(u.x,u.y,t.x,t.y);
+  if(p&&p.length){u.path=p;u.hopT=simT+3;}else{u.post2=null;u.hopT=simT+2;}
+  return true;
 }
 function ddLine(){   // how far up they may go: behind the squads, and no further than what's been opened
   if(DD_SURGE)return DD_LINES[DD_LINES.length-1];   // (Version 220: as far as the way goes)
@@ -604,6 +624,7 @@ function ddNpcThink(u,line){
   if(u.postGun)return;   // (on one of the checkpoint's guns, or on his way to it: ddpost.js)
   if(u.raid&&ddRaidThink(u))return;   // (one of those sent for a bunker the squads went past: below)
   if(dd.base&&dd.base.open&&u.y<-430){ddNpcEast(u);return;}   // (on the top, once the barracks is ours: east to their base, ddbase.js)
+  if(ddTopHold(u))return;   // (Version 221: the top is a dead end until the barracks falls)
   if(u.y<=line+24){u.hopT=simT+3;return;}
   if(u.eng&&!u.dug&&u.y>360&&u.y<690&&u.sup>.3&&(dd.npcForts||0)<7){   // an engineer among them, under fire on the sand: a barricade, and the others use it
     if(!u.bT){u.bT=simT+2.4;u.hopT=simT+2.6;callout(u,'Digging in',C.warn);return;}
@@ -614,7 +635,7 @@ function ddNpcThink(u,line){
   const off=u.y<330,lane=off?ddRouteX(Math.max(line,u.y-120))+(u.side2||(u.side2=(Math.random()-.5)*90)):u.lane,wide=off?110:150;   // (off the sand: up the squads' way)
   for(const c of coverPts){
     if(c.y<line||c.y>u.y-24||c.y<u.y-190||Math.abs(c.x-lane)>wide)continue;
-    if(dd.allies.some(o=>o!==u&&hyp(destOf(o).x-c.x,destOf(o).y-c.y)<14))continue;
+    if(dd.allies.some(o=>o!==u&&hyp(destOf(o).x-c.x,destOf(o).y-c.y)<(DD_SURGE?DD_SURGE.gap:14)))continue;   // (Version 221: 2.6 m apart, was 1.4)
     const s=th.length?protStats(c,th).prot/th.length:0,sc=s*3-(u.y-c.y>150?.5:0)-Math.abs(c.x-lane)/160+Math.random()*.6;
     if(sc>bs){bs=sc;best=c;}
   }
@@ -653,6 +674,7 @@ function ddDodge(n){
   const R=n.R||ENADE.r;
   for(const p of players){
     if(!alive(p)||p.offMap||p.inBoat||p.fp||hyp(p.x-n.x1,p.y-n.y1)>R+6||simT-p.lastOrder<1)continue;
+    if(typeof DDC!=='undefined'&&DDC.dodge===false&&p.team===dd.active)continue;   // (Version 221: the setting Auto cover from grenades, off: the squad you play stays until you move it, ddctl.js)
     if(DD_HOLE_RIDE){const h=ddHoleOf(p.x,p.y);if(h&&ddHoleOf(n.x1,n.y1)!==h)continue;}   // (down in a shell hole and it lands outside: he rides it out, ddHoleBlast)
     const others=players.filter(o=>o!==p&&!o.dead).map(destOf),K=[];
     for(const c of coverPts){const d=hyp(c.x-p.x,c.y-p.y);if(d>140||hyp(c.x-n.x1,c.y-n.y1)<R+14)continue;if(others.some(o=>hyp(o.x-c.x,o.y-c.y)<SPACE_COVER))continue;K.push({x:c.x,y:c.y,d});}
@@ -705,7 +727,7 @@ function ddRaidThink(u){
 }
 function ddWaves(){
   const live=dd.npcs.filter(u=>!u.dead).length;
-  if(simT>dd.spawnT&&live<DD_SURGE.cap&&!dd.won){dd.spawnT=simT+DD_SURGE.every[0]+Math.random()*(DD_SURGE.every[1]-DD_SURGE.every[0]);
+  if(simT>dd.spawnT&&live<(ddTopShut()&&dd.front<-380?DD_SURGE.topCap:DD_SURGE.cap)&&!dd.won){dd.spawnT=simT+DD_SURGE.every[0]+Math.random()*(DD_SURGE.every[1]-DD_SURGE.every[0]);
     // (Version 220: they die faster out in front, so more keep coming: a boat, two while few are left; once the squads are off the beach, five men on foot
     // from the place held before the last, where the squads' own replacements come from)
     const from=dd.front<150?ddSpawnAt():null;

@@ -16,7 +16,7 @@
    any of them who can't see him, while his ring is up and for 4 s after the order (ddcLines). Versions 168 to 172 had the bar's tools dragged onto the
    map; since Version 173 (Bryan: "No finger dragging. I am clicking") a tool is tapped into hand and the map tapped, as before, and while it's in hand
    the ground the man holding it can reach is filled orange (ddcReach, below). */
-const DDC=(()=>{const o={lead:true,ring:true};try{const s=JSON.parse(localStorage.getItem('warehouseYard.ddctl.v1')||'null');if(s&&typeof s==='object'){if(typeof s.ring==='boolean')o.ring=s.ring;}}catch(e){}return o;})();   // (lead: since Version 180 always, the start card's switch gone; ring: Tap an enemy for actions)
+const DDC=(()=>{const o={lead:true,ring:true,dodge:true};try{const s=JSON.parse(localStorage.getItem('warehouseYard.ddctl.v1')||'null');if(s&&typeof s==='object'){if(typeof s.ring==='boolean')o.ring=s.ring;if(typeof s.dodge==='boolean')o.dodge=s.dodge;}}catch(e){}return o;})();   // (lead: since Version 180 always, the start card's switch gone; ring: Tap an enemy for actions)
 function ddcSave(){try{localStorage.setItem('warehouseYard.ddctl.v1',JSON.stringify(DDC));}catch(e){}}
 const ddcOn=()=>MAPID==='dd'&&!!dd&&state==='play'&&!!dd.land&&dd.land.done&&!dd.seq;
 const ddcLead=()=>ddcOn()&&DDC.lead&&!dd.fp;
@@ -441,4 +441,11 @@ function ddcFrame(now){
 function ddcBind(){
   const b=$('#ddCtlRing');
   if(b){b.checked=DDC.ring;b.addEventListener('change',()=>{DDC.ring=b.checked;ddcSave();});}
+  // Version 221, Bryan: "in the setting, we should allow the user to toggle auto cover on and off when a grenade encircles the player's units": DDC.dodge, read by
+  // ddplay.js's ddDodge for the squad you play (the squad that runs itself always dodges); on the start card and, in a battle, on a small panel while paused
+  const d=$('#ddCtlDodge'),st=$('#stage');
+  if(st&&!$('#ddSet')){const el=document.createElement('div');el.id='ddSet';el.hidden=true;el.innerHTML='<b>PAUSED</b><label><input type="checkbox" id="ddSetDodge"><span>Auto cover from grenades<small>Off: your men stay in the circle until you move them</small></span></label>';st.appendChild(el);}
+  const d2=$('#ddSetDodge'),set=v=>{DDC.dodge=v;ddcSave();if(d)d.checked=v;if(d2)d2.checked=v;};
+  if(d){d.checked=DDC.dodge;d.addEventListener('change',()=>set(d.checked));}if(d2){d2.checked=DDC.dodge;d2.addEventListener('change',()=>set(d2.checked));}
 }
+function ddcPausePanel(){const el=$('#ddSet');if(!el)return;const on=MAPID==='dd'&&!!dd&&state==='play'&&paused&&!dd.seq&&!dd.fp;if(el.hidden===on)el.hidden=!on;}

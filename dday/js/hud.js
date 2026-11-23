@@ -48,6 +48,7 @@ function hud(){
   updateCards();
   const act=sel.filter(alive);
   $('#pauseBtn').textContent=paused?'Resume':'Pause';
+  if(typeof ddcPausePanel==='function')ddcPausePanel();   // (D-Day: the settings while paused, ddctl.js)
   {const gb=$('#gaitBtn'),forced=act.some(u=>u.gaitForce),g=act.length?gaitOf(act.find(u=>u.gaitForce)||act[0]):'sneak';
    gb.disabled=!act.length;gb.classList.toggle('on',forced);gb.setAttribute('aria-pressed',forced);
    gb.querySelector('span').textContent=g==='sneak'?'Sneak':'Run';gb.querySelector('small').textContent=forced?'Manual':'Auto';

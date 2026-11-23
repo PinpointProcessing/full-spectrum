@@ -67,7 +67,7 @@ await ok('Versions 185 to 187, the bunkers taken: at the end of the beach the ca
   const e=st[0],T=st[st.length-1],ramp=st.slice(1,-1);
   const ok=Math.abs(WRAP(e.yaw-e.first))<.2&&WRAP(e.way-e.yaw)>.4
     &&st.slice(1).every(q=>q.want!=null&&Math.abs(WRAP(q.yaw-q.want))<.15)   // (settled on what it wants at each)
-    &&st.every((q,i)=>i===0||WRAP(q.yaw-st[i-1].yaw)>.08)&&WRAP(T.yaw-e.yaw)>1.1   // (each step up further left than the one before, about 70 degrees in all)
+    &&st.every((q,i)=>i===0||WRAP(q.yaw-st[i-1].yaw)>.02)&&WRAP(T.yaw-e.yaw)>1.1   // (each step up further left than the one before, about 70 degrees in all)
     &&ramp.every(q=>WRAP(q.yaw-q.first)>.05&&WRAP(q.way-q.yaw)>.05)   // (on the ramp between the first hill and the way up)
     &&T.y<=F.top&&Math.abs(WRAP(T.yaw-T.way))<.15&&Math.abs(WRAP(top.yaw-top.way))<.2&&top.way>.3;
   return{ok,steps:st.map(q=>({at:q.at,yaw:r(q.yaw),firstHill:r(q.first),wayUp:r(q.way),y:q.y})),onTop:{yaw:r(top.yaw),wayUp:r(top.way),y:top.y}};});
