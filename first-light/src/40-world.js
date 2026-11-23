@@ -186,7 +186,7 @@ function fadeTick(dt,cx,cy,fx,fy,inside){
   for(const f of world.fade){
     let hit=segHitsRect(sx,sy,cx,cy,f.o,f.fr);
     if(!hit&&inside&&f.o.home){const ox=f.o.x+f.o.w/2-fx,oy=f.o.y+f.o.h/2-fy,al=ox*bx0+oy*by0,lat=Math.abs(ox*by0-oy*bx0);hit=al>4&&al<d&&lat<95+Math.max(f.o.w,f.o.h)/2;}
-    f.cur=damp(f.cur,hit?.1:1,hit?14:7,dt);
+    f.cur=damp(f.cur,hit?(f.o.home?.34:.1):1,hit?14:7,dt);      // house walls stay a little more solid, so the rooms still read (Bryan)
     const tr=f.cur<.985;
     for(const m of f.mats){m.opacity=f.cur;if(m.transparent!==tr){m.transparent=tr;m.needsUpdate=true;}m.depthWrite=f.cur>.5;}
   }

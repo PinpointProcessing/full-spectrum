@@ -973,7 +973,7 @@ function fadeTick(dt,cx,cy,fx,fy,inside){
   for(const f of world.fade){
     let hit=segHitsRect(sx,sy,cx,cy,f.o,f.fr);
     if(!hit&&inside&&f.o.home){const ox=f.o.x+f.o.w/2-fx,oy=f.o.y+f.o.h/2-fy,al=ox*bx0+oy*by0,lat=Math.abs(ox*by0-oy*bx0);hit=al>4&&al<d&&lat<95+Math.max(f.o.w,f.o.h)/2;}
-    f.cur=damp(f.cur,hit?.1:1,hit?14:7,dt);
+    f.cur=damp(f.cur,hit?(f.o.home?.34:.1):1,hit?14:7,dt);      // house walls stay a little more solid, so the rooms still read (Bryan)
     const tr=f.cur<.985;
     for(const m of f.mats){m.opacity=f.cur;if(m.transparent!==tr){m.transparent=tr;m.needsUpdate=true;}m.depthWrite=f.cur>.5;}
   }
@@ -2367,11 +2367,12 @@ function searchNear(){
   for(const o of SEARCH){if(o.searched)continue;const d=rectDist(L.x,L.y,o);if(d<bd){bd=d;best=o;}}
   return best;
 }
+const TVMARK={x:TVPOS.x-1,y:TVPOS.y-1,w:2,h:2,mh:TVPOS.h+1};
 function actionFor(){
   if(!L||L.dead||L.lying||L.upT>0||L.vault)return null;
   if(L.search)return{label:'Looking',go(){}};
   // the TV only when you are standing at it, in the bedroom: from anywhere else the button is for what is in front of you
-  if(!$('#bubble').hidden&&hyp(L.x-TVPOS.x,L.y-TVPOS.y)<48&&los(L.x,L.y,TVPOS.x,TVPOS.y+8))return{label:'Watch',go:openTV};
+  if(!$('#bubble').hidden&&hyp(L.x-TVPOS.x,L.y-TVPOS.y)<48&&los(L.x,L.y,TVPOS.x,TVPOS.y+8))return{label:'Watch',o:TVMARK,go:openTV};
   const o=searchNear();
   if(o)return{label:'Search',o,go(){L.search={o,t:0,dur:o.kind==='car'?2:1.5};L.atk=null;}};
   return null;
@@ -3142,7 +3143,7 @@ ov.addEventListener('pointerdown',e=>{
   const[sx,sy]=localXY(e);
   try{ov.setPointerCapture(e.pointerId);}catch(_){}
   // tapping the thing itself does what the Action button would do with it
-  { const ac=actionFor();if(ac&&ac.o){const o=ac.o,q=toS(o.x+o.w/2,o.y+o.h/2,o.tall?26:14);if(hyp(q[0]-sx,q[1]-sy)<34){input.actP=true;return;}} }
+  { const ac=actionFor();if(ac&&ac.o){const o=ac.o,q=toS(o.x+o.w/2,o.y+o.h/2,o.mh||(o.tall?26:14));if(hyp(q[0]-sx,q[1]-sy)<34){input.actP=true;return;}} }
   if(e.pointerType==='mouse'){
     const w=toW(sx,sy);if(w){input.aimX=w[0];input.aimY=w[1];aimHold=.6;}
     if(e.button===2){input.shootP=true;input.shootH=true;}else{input.atkP=true;input.atkH=true;}
@@ -3260,12 +3261,12 @@ function drawOverlay(now){
   }
   // things within reach that have not been gone through yet, and the search in progress
   if(state==='play'&&!L.dead){
-    const near=L.search?L.search.o:searchNear();
+    const ac=actionFor(),near=L.search?L.search.o:ac&&ac.o||null;
     for(const o of SEARCH){if(o.searched||o===near)continue;const cx=o.x+o.w/2,cy=o.y+o.h/2;if(hyp(cx-L.x,cy-L.y)>70)continue;const p=toS(cx,cy,o.tall?24:12);if(!onScreen(p))continue;ox.beginPath();ox.arc(p[0],p[1],3,0,TAU);ox.fillStyle='rgba(255,236,190,.55)';ox.fill();}
-    if(near){const p=toS(near.x+near.w/2,near.y+near.h/2,near.tall?26:14);
+    if(near){const p=toS(near.x+near.w/2,near.y+near.h/2,near.mh||(near.tall?26:14));
       ox.lineWidth=4;ox.strokeStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();
       if(L.search){ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],11,-PI/2,-PI/2+clamp(L.search.t/L.search.dur,0,1)*TAU);ox.stroke();}
-      else{ox.lineWidth=2;ox.strokeStyle='rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label('SEARCH',p[0],p[1]-20,'#ffecbe',10,700);}}
+      else{ox.lineWidth=2;ox.strokeStyle='rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label(ac.label.toUpperCase(),p[0],p[1]-20,'#ffecbe',10,700);}}
   }
   // valve progress and fuse
   if(EV.channel&&!EV.open&&EV.crank>0){const p=toS(VALVE.x,VALVE.y,30);ox.lineWidth=5;ox.strokeStyle='rgba(0,0,0,.6)';ox.beginPath();ox.arc(p[0],p[1],16,0,TAU);ox.stroke();ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],16,-PI/2,-PI/2+EV.crank*TAU);ox.stroke();label(Math.round(EV.crank*100)+'%',p[0],p[1],'#fff',10,700);}
@@ -3446,7 +3447,7 @@ function frame(nowMs){
   if(composer&&Q.level>=3)composer.render();else renderer.render(scene,camera);
   drawOverlay(now);
   // the bubble follows the TV on screen
-  if(L&&!$('#bubble').hidden){const p=toS(TVPOS.x,TVPOS.y,TVPOS.h+11);const b=$('#bubble');b.style.left=clamp(p[0],90,cw-90)+'px';b.style.top=clamp(p[1],60,ch-215)+'px';}
+  if(L&&!$('#bubble').hidden){const p=toS(TVPOS.x,TVPOS.y,TVPOS.h+11);const b=$('#bubble');b.style.left=clamp(p[0],90,cw-90)+'px';b.style.top=clamp(p[1],60,ch-300)+'px';}
   hudT-=rdt;if(hudT<=0){hudT=.1;hud();}
   // drop quality if the device can't keep up
   if(Q.auto&&state==='play'&&!paused){

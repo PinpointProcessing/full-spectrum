@@ -34,7 +34,7 @@ ov.addEventListener('pointerdown',e=>{
   const[sx,sy]=localXY(e);
   try{ov.setPointerCapture(e.pointerId);}catch(_){}
   // tapping the thing itself does what the Action button would do with it
-  { const ac=actionFor();if(ac&&ac.o){const o=ac.o,q=toS(o.x+o.w/2,o.y+o.h/2,o.tall?26:14);if(hyp(q[0]-sx,q[1]-sy)<34){input.actP=true;return;}} }
+  { const ac=actionFor();if(ac&&ac.o){const o=ac.o,q=toS(o.x+o.w/2,o.y+o.h/2,o.mh||(o.tall?26:14));if(hyp(q[0]-sx,q[1]-sy)<34){input.actP=true;return;}} }
   if(e.pointerType==='mouse'){
     const w=toW(sx,sy);if(w){input.aimX=w[0];input.aimY=w[1];aimHold=.6;}
     if(e.button===2){input.shootP=true;input.shootH=true;}else{input.atkP=true;input.atkH=true;}
@@ -152,12 +152,12 @@ function drawOverlay(now){
   }
   // things within reach that have not been gone through yet, and the search in progress
   if(state==='play'&&!L.dead){
-    const near=L.search?L.search.o:searchNear();
+    const ac=actionFor(),near=L.search?L.search.o:ac&&ac.o||null;
     for(const o of SEARCH){if(o.searched||o===near)continue;const cx=o.x+o.w/2,cy=o.y+o.h/2;if(hyp(cx-L.x,cy-L.y)>70)continue;const p=toS(cx,cy,o.tall?24:12);if(!onScreen(p))continue;ox.beginPath();ox.arc(p[0],p[1],3,0,TAU);ox.fillStyle='rgba(255,236,190,.55)';ox.fill();}
-    if(near){const p=toS(near.x+near.w/2,near.y+near.h/2,near.tall?26:14);
+    if(near){const p=toS(near.x+near.w/2,near.y+near.h/2,near.mh||(near.tall?26:14));
       ox.lineWidth=4;ox.strokeStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();
       if(L.search){ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],11,-PI/2,-PI/2+clamp(L.search.t/L.search.dur,0,1)*TAU);ox.stroke();}
-      else{ox.lineWidth=2;ox.strokeStyle='rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label('SEARCH',p[0],p[1]-20,'#ffecbe',10,700);}}
+      else{ox.lineWidth=2;ox.strokeStyle='rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label(ac.label.toUpperCase(),p[0],p[1]-20,'#ffecbe',10,700);}}
   }
   // valve progress and fuse
   if(EV.channel&&!EV.open&&EV.crank>0){const p=toS(VALVE.x,VALVE.y,30);ox.lineWidth=5;ox.strokeStyle='rgba(0,0,0,.6)';ox.beginPath();ox.arc(p[0],p[1],16,0,TAU);ox.stroke();ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],16,-PI/2,-PI/2+EV.crank*TAU);ox.stroke();label(Math.round(EV.crank*100)+'%',p[0],p[1],'#fff',10,700);}
