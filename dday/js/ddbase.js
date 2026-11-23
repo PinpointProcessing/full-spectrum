@@ -163,7 +163,7 @@ function ddSquadEast(t,m,cx,cy){
   dd.hop[t]=simT+16+Math.random()*8;
 }
 function ddNpcEast(u){
-  const lead=players.filter(p=>alive(p)&&!p.inBoat&&!p.joining),lx=lead.length?Math.max(...lead.map(p=>p.x)):u.x,lim=Math.min(DB.x1-40,lx+50);
+  const lead=players.filter(p=>alive(p)&&!p.inBoat&&!p.joining),lx=lead.length?Math.max(...lead.map(p=>p.x)):u.x,lim=typeof DD_SURGE!=='undefined'&&DD_SURGE?DB.x1-40:Math.min(DB.x1-40,lx+50);   // (Version 220: they don't wait on the squads; ahead of them they're weaker, ddplay.js's ddLead)
   if(u.sup>.8){u.hopT=simT+1.5;return;}
   if(u.x>=lim-20){u.hopT=simT+3;return;}
   if(u.laneY==null)u.laneY=-725+Math.random()*245;

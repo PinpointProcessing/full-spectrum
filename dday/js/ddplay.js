@@ -305,7 +305,7 @@ function ddGore(t,big){
 function ddDamage(t,dmg,src){
   if(t.side==='E'){if(dmg>=55&&dmg*(t.dmgIn||1)>=t.hp&&!t.veh)ddGore(t,true);else if(dmg*(t.dmgIn||1)>=t.hp&&Math.random()<.3)ddGore(t,false);return false;}
   if(t.npc){
-    t.hp-=dmg*1.15;t.hitFlash=.25;
+    t.hp-=dmg*1.15*ddWeak(t);t.hitFlash=.25;
     if(t.hp<=0){t.hp=0;t.dead=true;t.path=[];t.deadT=simT;dd.npcLost++;
       if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);const r=Math.random();if(r<.4)sfxScream(t,.8);else if(r<.7)sfxGrunt(t,true);}
       if(dmg>=55)ddGore(t,true);else{paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});if(Math.random()<.25)ddGore(t,false);}}
@@ -563,7 +563,30 @@ function ddSquadAI(t){
   dd.wp[t]=i;dd.hop[t]=simT+16+Math.random()*8;
 }
 /* ---------- the other troops ---------- */
+/* ---------- Version 220: the other troops keep advancing, and are weaker the further ahead of the squads they get ----------
+   Bryan, after Version 219: "Can we have all the ai troops advance continuously, let them get progressively weaker as they advance, so much so that they
+   die with just one bullet or even suppressive fire the farther they venture ahead. It just would look better to see troops moving everywhere instead of
+   just stopping mid way and waiting for the player. They can even help slightly so the enemy just doesn't focus on the player's position constantly. (It
+   should still stay relatively hard - it's mostly for the visual effect)"; on the draft (tools/drafts/troops-surge-draft.js, docs/drafts/v220-troops-advance.mp4):
+   "I think that works for now. Yes they are not allowed to take places. The troops kill less, but doesn't need to be zero. Keep them as helpful as they
+   are today until they advance forward".
+   Level with the squads' front or behind it a man is as he was. Ahead of it (ddLead, in units of 10 cm) a hit does x(1 + lead/k) to him, any hit kills from
+   `kill`, and from `sup` being shot at is enough (ddSurgeTick); his aim falls by up to `aim` over `aimPer`. They no longer wait on the squads (ddLine), more
+   of them keep coming (ddWaves: up to `cap`, a boat or, off the beach, five men from the place held before the last, every `every` s), and they don't
+   take places: only the squads do, and the men sent for a bunker the squads went past (ddZones). */
+const DD_SURGE={k:80,kill:250,sup:400,aimPer:250,aim:.65,cap:28,every:[6,9]};
+function ddLead(u){
+  if(!dd||!dd.land||!dd.land.done||dd.counter||dd.vil)return 0;
+  if(dd.base&&dd.base.open&&u.y<-430){const L=players.filter(p=>alive(p)&&!p.inBoat&&!p.joining);return L.length?Math.max(0,u.x-Math.max(...L.map(p=>p.x))):0;}   // (on the top, on the road east to their base)
+  return Math.max(0,dd.front-u.y);
+}
+const ddWeak=u=>{const L=ddLead(u);return L<=0?1:L>=DD_SURGE.kill?60:1+L/DD_SURGE.k;};
+function ddSurgeTick(){
+  for(const u of dd.npcs){if(u.dead||u.inBoat)continue;const L=ddLead(u);u.aimK=-.1-clamp(L/DD_SURGE.aimPer,0,DD_SURGE.aim);
+    if(L>=DD_SURGE.sup&&(u.sup||0)>.45)ddDamage(u,999,null);}   // (that far ahead, being shot at is enough)
+}
 function ddLine(){   // how far up they may go: behind the squads, and no further than what's been opened
+  if(DD_SURGE)return DD_LINES[DD_LINES.length-1];   // (Version 220: as far as the way goes)
   let k=0;const dead=tag=>!enemies.some(e=>e.tag===tag&&!beaten(e));
   if(dd.front<330&&(dead('pill')||dd.blown.wire||dd.front<250))k=1;
   if(k===1&&dead('nest')&&dd.front<140)k=2;
@@ -682,8 +705,12 @@ function ddRaidThink(u){
 }
 function ddWaves(){
   const live=dd.npcs.filter(u=>!u.dead).length;
-  if(simT>dd.spawnT&&live<24&&!dd.won){dd.spawnT=simT+9+Math.random()*6;
-    const lanes=[90,200,300,400,600,700,800,910].filter(x=>!dd.boats.some(b=>Math.abs(b.x-DDX-x)<70));for(let k=0;k<2&&lanes.length;k++){const i=(Math.random()*lanes.length)|0,x=lanes.splice(i,1)[0];ddBoat(x+(Math.random()-.5)*40,ddCrew(6+((Math.random()*3)|0)));}}
+  if(simT>dd.spawnT&&live<DD_SURGE.cap&&!dd.won){dd.spawnT=simT+DD_SURGE.every[0]+Math.random()*(DD_SURGE.every[1]-DD_SURGE.every[0]);
+    // (Version 220: they die faster out in front, so more keep coming: a boat, two while few are left; once the squads are off the beach, five men on foot
+    // from the place held before the last, where the squads' own replacements come from)
+    const from=dd.front<150?ddSpawnAt():null;
+    if(from){for(let k=0;k<5;k++){const sp=openSpot(from.x+(Math.random()-.5)*60,from.y+(Math.random()-.5)*40,dd.allies.map(destOf))||from,u=ddNpc(sp.x,sp.y);u.seen=true;}}
+    else{const lanes=[90,200,300,400,600,700,800,910].filter(x=>!dd.boats.some(b=>Math.abs(b.x-DDX-x)<70));for(let k=0;k<(live<14?2:1)&&lanes.length;k++){const i=(Math.random()*lanes.length)|0,x=lanes.splice(i,1)[0];ddBoat(x+(Math.random()-.5)*40,ddCrew(6+((Math.random()*3)|0)));}}}
   // replacements due: each lands in a boat of his own with a few others, and makes for his squad
   for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}   // (the medic's at him: wait)
     dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;
@@ -846,7 +873,7 @@ function ddZones(){
     if(enemies.some(e=>Z.tags.includes(e.tag)&&!beaten(e))){if(cz)ddCapStep(Z.k,false,.5);continue;}
     // (Version 214, near: the checkpoint and the top of the hill are ours once their men are down and one of ours is within 30 m or 24 m of the middle,
     // not only inside. Cleared from the path below, the checkpoint stayed theirs until someone walked in, and nothing that waits on it happened)
-    if(!dd.allies.some(u=>!u.inBoat&&!u.dead&&(u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1||Z.near&&hyp(u.x-(x0+x1)/2-DDX,u.y-(y0+y1)/2)<Z.near))){if(cz)ddCapStep(Z.k,false,.5);continue;}
+    if(!dd.allies.some(u=>!u.inBoat&&!u.dead&&(!u.npc||u.raid===Z.k)&&(u.x>x0+DDX&&u.x<x1+DDX&&u.y>y0&&u.y<y1||Z.near&&hyp(u.x-(x0+x1)/2-DDX,u.y-(y0+y1)/2)<Z.near))){if(cz)ddCapStep(Z.k,false,.5);continue;}
     if(cz&&!ddCapStep(Z.k,true,.5))continue;
     H[Z.k]=true;(dd.heldOrder||(dd.heldOrder=[])).push(Z.k);
     if((Z.k==='left'||Z.k==='outpost'||Z.k==='crest')&&dd.active){if(!dd.fp)dd.track={team:dd.active};const C=dd.cam||(dd.cam={k:1,p:null,q:null});C.heldT=0;C.go=null;C.offA=null;C.yaw=yaw;C.cap={k:Z.k,t:null};}   // (Version 209: C.cap, a turn the camera makes whatever else: ddTurnWant)   // (Version 206, Bryan: "the camera didn't turn up the hills when I entered either checkpoint": a drag of the map lets the camera go, and then it never turned; a place taken takes it back to your squad, so it turns to what's next)
@@ -999,7 +1026,7 @@ function ddTick(dt){
   ddHot();
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();dd.idle[other]+=1;if(typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}else ddSquadAI(other);if(dd.fp&&dd.fp.u&&dd.fp.u.postGun&&players.some(p=>p.team===dd.active&&alive(p)&&!p.postGun))ddSquadAI(dd.active);   // (Version 206, Bryan: "the players should advance when I man a gun (if the objective is to advance)": you're behind a gun, so your own squad goes on by itself, as the other does)
     if(!players.some(p=>p.team===dd.active&&alive(p)))ddSquadAI(dd.active);}   // (Version 168: with Lead one squad on, the other backs you up, ddctl.js)
-  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();if(typeof ddPostTick==='function')ddPostTick();ddRaids();ddHelpers();ddTidy();updateObjUI();}
+  if((dd.npcT-=dt)<=0){dd.npcT=.5;const line=ddLine();ddSurgeTick();for(const u of dd.npcs)ddNpcThink(u,line);ddWaves();ddShelling();ddBarracks();ddZones();if(typeof ddPostTick==='function')ddPostTick();ddRaids();ddHelpers();ddTidy();updateObjUI();}
   // the battle next door: tracers and shell bursts off to both sides, splashes out at sea
   if((dd.ambT-=dt)<=0){dd.ambT=.12+Math.random()*.2;const side=Math.random()<.5?-1:1,x=side<0?-80-Math.random()*700:DDB.x1+80+Math.random()*700,y=-300+Math.random()*900;
     tracers.push({x1:x,y1:y,x2:x+(Math.random()-.5)*200,y2:y+(Math.random()<.5?260:-260)*(.5+Math.random()),t:0,col:Math.random()<.5?'255,231,163':'255,140,100'});
