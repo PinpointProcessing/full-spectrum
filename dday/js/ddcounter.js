@@ -157,7 +157,7 @@ function enterCounter(){
     land:{t:0,done:true},boats:[],waveT:0,spawnT:1e9,aiT:0,npcT:0,shellT:{},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{},tanks:[],held:{},wires:[],
     dc:{ph:'intro',t:0,wave:0,cpT:0,guns:DCA.guns.map(g=>({...g,man:null,going:null,fireT:0,orderT:-99,aim:null,hits:0,dead:false,smokeT:0})),art:null,col:[],shells:[]}};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
-  dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;
+  dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;ddBaz(1);
   // the squads on the parade square, the other troops along the wall
   ['A','B'].forEach((t,ti)=>[0,1,2,3].forEach(i=>{const rm=ddmSlotMan(t,i);if(!rm)return;const u=ddNewMan(t,t+(i+1),rm.role,DCA.square.x+(ti?26:-74)+i*16,DCA.square.y+(ti?14:-6),rm);u.inBoat=false;u.seen=true;}));
   players=units.filter(u=>u.side==='P'&&!u.npc);

@@ -420,7 +420,7 @@ function rocketTick(dt){
 }
 function rpgBlast(x,y,by,spec=RPG){
   const jv=jeepOf();if(jv&&jv.state!=='wreck'&&hyp(jv.x-x,jv.y-y)<30)vehDestroy(jv,'rpg');
-  booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});tankBlast(x,y,by);
+  booms.push({x,y,t:0});paintDecal({k:'scorch',x,y,r:Math.random()});if(MAPID==='dd'&&dd)dd.rkt=by&&by.side==='P'?1:0;tankBlast(x,y,by);if(MAPID==='dd'&&dd)dd.rkt=0;   // (D-Day: one of our rockets does more to a tank or a gun than a grenade does, ddplay.js's DD_BAZ)
   for(const v of units){
     if(v.dead||v.seat==='driver')continue;const d=hyp(v.x-x,v.y-y);if(d>spec.blast||!los(x,y,v.x,v.y))continue;
     v.sup=Math.min(1.2,v.sup+0.9);if(!v.downed)damage(v,spec.dmg*(1-d/(spec.blast+4)),by);

@@ -93,7 +93,7 @@ function enterDDay(){
   dd={t0:simT,pool:DD_POOL,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
     land:{t:0,done:false},boats:[],waveT:0,spawnT:simT+30,aiT:0,npcT:0,shellT:{heavy:simT+19,cannon:simT+26,art:simT+22},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{}};
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
-  dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;   // (the Bazooka is shouldered and aimed long enough to be seen)
+  dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;ddBaz(1);   // (the Bazooka is shouldered and aimed long enough to be seen)
  
   const B=DD_SPOT.boat;
   ['A','B'].forEach(t=>DD_CORE[t].forEach((r,i)=>{const rm=typeof ddmSlotMan==='function'?ddmSlotMan(t,i):null;if(rm===false)return;ddNewMan(t,t+(i+1),rm?rm.role:r,B.x+DDX,B.y+60,rm);}));   // (the roster's men, where there are any: ddmeta.js)
@@ -118,7 +118,7 @@ function leaveDDayNow(){
   DD_MODE='beach';
   if(typeof ddmEnd==='function')ddmEnd();
   if(MAPID!=='dd')return;const out=STASH.out;
-  for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;PRPG.aim=dd.rpgA;
+  for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;PRPG.aim=dd.rpgA;ddBaz(0);
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
   document.body.classList.remove('dd','ddlead');{const q=$('#sq');if(q)q.hidden=true;const w=$('#ddSwap');if(w)w.hidden=true;}if(typeof ddcClose==='function')ddcClose();{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
   groundH=null;MAXZ=6;camShift=0;zoom=Math.min(zoom,6);useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';LEVEL=3;
@@ -327,10 +327,10 @@ function ddKill(t,how,big){
 /* ---------- blasts (mission.js's tankBlast): the gates, the wire, the guns, the barracks ---------- */
 function ddBlast(x,y,by){
   if(!dd||(by&&by.side==='E'))return;
-  ddTankHit(x,y);if(typeof vgBlast==='function')vgBlast(x,y);   // (Chapter 3's trucks: ddvillage.js)
+  const rk=dd.rkt?1:0;ddTankHit(x,y,1,rk?DD_BAZ.tank:1);if(typeof vgBlast==='function')vgBlast(x,y);   // (Chapter 3's trucks: ddvillage.js)
   for(const o of objs.slice()){
     if(o.hp==null||o.gone)continue;const d=rectDist(x,y,o);if(d>46)continue;
-    o.hp-=110*(1-d/52);
+    o.hp-=110*(rk?DD_BAZ.obj:1)*(1-d/52);
     if(o.hp<=0)ddWreck(o,by);else if(o.tag==='barracks')banner(`Barracks hit · ${Math.max(1,Math.round(o.hp/380*100))}% left`,2200);
   }
 }
@@ -574,6 +574,12 @@ function ddSquadAI(t){
    `kill`, and from `sup` being shot at is enough (ddSurgeTick); his aim falls by up to `aim` over `aimPer`. They no longer wait on the squads (ddLine), more
    of them keep coming (ddWaves: up to `cap`, a boat or, off the beach, five men from the place held before the last, every `every` s), and they don't
    take places: only the squads do, and the men sent for a bunker the squads went past (ddZones). */
+// Version 223 (Bryan: "Give me power and accuracy to bazookas"). Until now a rocket could not kill a defender it landed on (120 at the middle, and they
+// take .72 of it), and it strayed from 24 m out, 11 m wide of the mark at its full reach. blast, dmg: its blast against men (combat.js's PRPG while a
+// chapter runs, ddBaz); true0, stray: dead on out to true0, then this much off for each unit further (combat.js's fireRPG, ddRocketClear below);
+// tank, obj: what a rocket does to a tank and to a gun, a barracks or the wire, against what a grenade does (ddTankHit, ddBlast; dd.rkt from mission.js's rpgBlast)
+const DD_BAZ={blast:75,dmg:260,true0:450,stray:.08,tank:1.5,obj:1.9};
+function ddBaz(on){if(on){if(!ddBaz.o)ddBaz.o={blast:PRPG.blast,dmg:PRPG.dmg};PRPG.blast=DD_BAZ.blast;PRPG.dmg=DD_BAZ.dmg;}else if(ddBaz.o){PRPG.blast=ddBaz.o.blast;PRPG.dmg=ddBaz.o.dmg;ddBaz.o=null;}}
 const DD_SURGE={k:80,kill:250,sup:400,aimPer:250,aim:.65,cap:28,every:[6,9],topN:9,topCap:18,gap:26};   // (topN, topCap, gap: Version 221, ddTopHold)
 function ddLead(u){
   if(!dd||!dd.land||!dd.land.done||dd.counter||dd.vil)return 0;
@@ -782,8 +788,8 @@ function ddJoin(u){   // a replacement on his way up to his squad
 /* ---------- the shelling: mortars, the heavy gun, the cannon (while they're crewed) ---------- */
 // how far an enemy shoots on D-Day (ddPick; ddhud.js's cover shield uses the same)
 const ddFireR=u=>wRange(u)*(u.gunner?1.45:1.12);
-// is it safe for one of ours to fire a rocket at (x,y) from d away? Nobody of ours within its blast and how far it can stray (combat.js's fireRPG: past 24 m)
-function ddRocketClear(x,y,d){const R=(PRPG.blast||55)+15+Math.max(0,(d-240)*.17);return!(dd.allies||[]).some(q=>!q.inBoat&&!q.dead&&hyp(q.x-x,q.y-y)<R);}
+// is it safe for one of ours to fire a rocket at (x,y) from d away? Nobody of ours within its blast and how far it can stray (combat.js's fireRPG: past DD_BAZ.true0)
+function ddRocketClear(x,y,d){const R=(PRPG.blast||55)+15+Math.max(0,(d-DD_BAZ.true0)*DD_BAZ.stray);return!(dd.allies||[]).some(q=>!q.inBoat&&!q.dead&&hyp(q.x-x,q.y-y)<R);}
 // a shell: where and when it lands, kept on whoever fired it (ddhud.js's ddShooters marks him from firing till 3 s after it lands); one fired from off the map (the counterattack's mortars) is kept in dd.offShells with where it came from
 function ddShell(by,x,y,R,D,dur){if(by&&by.side==='E'&&dd){const L={x,y,R,t:simT+dur};by.shells=(by.shells||[]).filter(s=>simT<s.t+3);by.shells.push(L);if(!enemies.includes(by)&&!(dd.tanks||[]).includes(by))(dd.offShells||(dd.offShells=[])).push(Object.assign({fx:by.x,fy:by.y},L));}nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,by,enemy:true,R,D});if(dd&&dd.counter&&by&&by.way)dd.dc.shells.push({x,y,at:simT+dur});}   // (a tank's shell: where and when it lands, for the guns it can knock out, ddcounter.js)
 function ddShelling(){
@@ -859,9 +865,9 @@ function ddTankTick(dt){
     K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;K.tur.rotation.y=-(K.ta-K.ang);
   }
 }
-function ddTankHit(x,y,k=1){
+function ddTankHit(x,y,k=1,pw=1){
   for(const K of dd.tanks||[]){if(K.hp<=0)continue;const d=hyp(x-K.x,y-K.y);if(d>58*k)continue;
-    K.hp-=170*k*(1-d/(75*k));
+    K.hp-=170*k*pw*(1-d/(75*k));
     if(K.hp>0)continue;   // (hit: the bar over it says how much is left, Version 167)
     K.hp=0;if(typeof ddgTankBurn==='function')ddgTankBurn(K);else for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;   // (Version 190: burnt paint, rust and a scorch, not black)
     for(let q=0;q<5;q++)booms.push({x:K.x+(Math.random()-.5)*40,y:K.y+(Math.random()-.5)*26,t:-q*.12,size:1.3});
