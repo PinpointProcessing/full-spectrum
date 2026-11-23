@@ -142,7 +142,11 @@ function ddPostSpawn(){
 // (Version 207: each gun has its own `up`, DD_POST_UP plus its mg entry's `up`: the second points .3 left of the first's line. The wall runs
 // nearly the way they fire, so pointing straight up the hill the second fired into the first gun and its man)
 // (Version 217: the hilltop bunker's guns are yours as soon as their crew is down and the top of the hill is held, without first standing in the bunker)
-const ddPostHeld=g=>{const H=dd.held||{};if(H[g.z])return true;if(g.z!=='heavy'||!H.crest)return false;if(simT-(ddPostHeld.t||-9)>.5){ddPostHeld.t=simT;ddPostHeld.v=!enemies.some(e=>e.tag==='heavy'&&!beaten(e));}return ddPostHeld.v;};
+// (Version 222, Bryan: "going up the hill, the circles should appear immediately when the enemy is killed that was occupying them. No arrows": a gun is yours to
+// take, with its gold circle, the moment the man of theirs on it is down, whether or not its place is taken yet. ddPostOurs: its place is ours, the old rule,
+// which is still what lets one of the other troops man it by himself)
+const ddPostOurs=g=>{const H=dd.held||{};if(H[g.z])return true;if(g.z!=='heavy'||!H.crest)return false;if(simT-(ddPostOurs.t||-9)>.5){ddPostOurs.t=simT;ddPostOurs.v=!enemies.some(e=>e.tag==='heavy'&&!beaten(e));}return ddPostOurs.v;};
+const ddPostHeld=g=>{if(ddPostOurs(g))return true;if(simT-(g.chkT??-9)>.3){g.chkT=simT;g.free=!enemies.some(e=>e.gunner&&e.onGun&&!beaten(e)&&hyp(e.onGun.x-g.gx,e.onGun.y-g.gy)<16);}return g.free;};
 const DD_POST_UP=-Math.PI/2-.35;   // (up the hill and onto the draw's gun: north, a little west)
 // twice a second, with the other troops' thinking (ddplay.js)
 function ddPostTick(){
@@ -164,7 +168,7 @@ function ddPostTick(){
       else if(!u.path.length){g.going=null;if(hyp(u.x-g.x,u.y-g.y)<20&&!g.man){g.man=u;g.idleT=simT;g.manT=simT;u.x=g.x;u.y=g.y;u.ang=g.up;u.aimT=simT;u.onGun={x:g.gx,y:g.gy,ang:g.up,arc:g.arc};u.gunner=true;if(g.spot&&g.spot.g)g.spot.g.rotation.y=-g.up;if(g.auto&&ddPostMine(u)){g.auto=false;ddPostControl(g);}}else if(g.man||(u.lastOrder??-99)>g.goT+.01)u.postGun=null;   // (taken meanwhile, or you've sent him somewhere else)
         else{const p=findPath(u.x,u.y,g.x,g.y);if(p&&p.length){u.path=p;g.going=u;}else u.postGun=null;}}   // (stopped short of it: on again)
       continue;}
-    if(g.man)continue;
+    if(g.man||!ddPostOurs(g))continue;   // (Version 222: the other troops take a gun by themselves only once its place is ours)
     const c=dd.npcs.filter(q=>alive(q)&&!q.inBoat&&!q.onGun&&!q.postGun&&!q.raid&&hyp(q.x-g.x,q.y-g.y)<420).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(!c)continue;
     const p=findPath(c.x,c.y,g.x,g.y);if(!p)continue;c.path=p;c.postGun=g;g.going=c;g.goT=simT;}
 }
@@ -245,7 +249,7 @@ function ddPostSend(g){
 // the circles round the guns once the checkpoint is ours: grey and ENTER while none of the squads' men holds it, blue and CONTROL once one does
 function ddPostDraw(now){
   const S=dd&&dd.post;if(!S||dd.fp||dd.counter||dd.vil)return;
-  S.guns.forEach((g,i)=>{const m=DD.postGuns&&DD.postGuns[i]&&DD.postGuns[i].userData.mat;if(!m)return;if(!ddPostHeld(g)){m.emissiveIntensity=0;return;}const mine=ddPostMine(g.man),k=mine?.55:.5+.5*Math.sin(now*5);m.emissive.setHex(mine?0x2f8fe0:0xffc24a);m.emissiveIntensity=mine?.8:.35+k*1.3;});   // the guns themselves glow: gold and pulsing while one's yours to take, blue once your man is on it
+  S.guns.forEach((g,i)=>{const m=DD.postGuns&&DD.postGuns[i]&&DD.postGuns[i].userData.mat;if(!m)return;if(!ddPostHeld(g)){m.emissiveIntensity=0;return;}const mine=ddPostMine(g.man);if(mine&&g.z==='outpost'&&!S.done)DD.postGuns[i].rotation.y=-g.up;   /* (taken before the checkpoint is: the gun itself turned the way he fires) */const k=mine?.55:.5+.5*Math.sin(now*5);m.emissive.setHex(mine?0x2f8fe0:0xffc24a);m.emissiveIntensity=mine?.8:.35+k*1.3;});   // the guns themselves glow: gold and pulsing while one's yours to take, blue once your man is on it
   for(const g of S.guns){if(!ddPostHeld(g))continue;const mine=ddPostMine(g.man),going=ddPostMine(g.going),pu=.5+.5*Math.sin(now*4);
     const col=mine?'88,196,246':'255,206,96',a=mine?.95:.6+pu*.4;   // (gold while it's yours to take, Version 202: grey didn't read as something to tap)
     gPath(g.gx,g.gy,14);if(toSBack)continue;const q0=toS(g.gx,g.gy),q1=toS(g.gx+14,g.gy),R=Math.max(14,Math.hypot(q1[0]-q0[0],q1[1]-q0[1])),seg=R*Math.PI*2/6;   // a thick ring in six pieces that turns, nothing filled

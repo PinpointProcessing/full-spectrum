@@ -1039,7 +1039,7 @@ const DASH={r:250,order:1.5,recent:2,near:100,crowd:60};
 const shootersOf=p=>enemies.filter(e=>!beaten(e)&&!e.mon&&e.target===p&&simT-(e.shotAtT??-99)<DASH.recent);
 const helperOf=d=>{const hs=players.filter(o=>alive(o)&&!o.path.length&&!o.inVeh&&!o.carry&&hyp(o.x-d.x,o.y-d.y)<24&&o.sup<=PINNED);return hs.find(o=>isCls(o,'medic'))||hs[0]||null;};   // who's getting a downed man up (update, below)
 const gettingUp=p=>players.some(d=>d!==p&&d.downed&&!d.dead&&!d.critical&&!d.carriedBy&&!d.offMap&&helperOf(d)===p);   // (he's the one getting a downed man up; figure.js has its own reviving() for the pose)
-const onJob=p=>(typeof zipOf==='function'&&zipOf(p))||(typeof useOf==='function'&&useOf(p))||p.carryGo||p.throwGo||p.rpgAim||p.tk||p.silent||p.doorGo||p.skillGo||p.manGo||p.climbGo||(!pinnedNow(p)&&(p.medGo||gettingUp(p)));
+const onJob=p=>(typeof zipOf==='function'&&zipOf(p))||(typeof useOf==='function'&&useOf(p))||p.carryGo||p.throwGo||p.rpgAim||p.tk||p.silent||p.doorGo||p.skillGo||p.manGo||p.postGun||p.climbGo||(!pinnedNow(p)&&(p.medGo||gettingUp(p)));   // (postGun, Version 222: on his way to one of D-Day's guns, or on it: he doesn't run for cover instead, ddpost.js)
 function dashToCover(p,sh){
   const vis=enemies.filter(e=>!beaten(e)&&!e.mon&&e.alerted&&hyp(e.x-p.x,e.y-p.y)<=380&&los(p.x,p.y,e.x,e.y));
   const foes=enemies.filter(e=>!beaten(e)&&e.alerted&&!e.dormant);
