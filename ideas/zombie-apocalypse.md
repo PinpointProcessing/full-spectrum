@@ -44,3 +44,9 @@ An end-of-the-world zombie game. You start alone at home in the suburbs, waking 
 - Base building in the drain, scavenging runs, more levels.
 - Orders for followers (they only follow and fight).
 - A save: the name is remembered on the device, nothing else.
+
+## Jump, search, interiors (2026-11-23, first guesses)
+- Dash is gone. Jump: hop up to 30 ahead in 0.34 s; climb over low things up to 70 deep in 0.5 s plus; 0.5 s between jumps. You can be hit all the way through.
+- Search: 1.5 s (a car 2 s), within 17 of the thing. Indoors 58% of things hold something (ammo 18%, shells 10%, first aid 16%, a household weapon 14%); cars and bins 34%. Ammo finds are still the full 8 rounds / 4 shells, which is probably too generous.
+- Close camera: 118 back in portrait (102 landscape), was 178 (150). Indoors it looks down at about 53 degrees from 132 back.
+

@@ -71,18 +71,28 @@ const SAFE={x0:222,y0:518,x1:278,y1:566,dx:281,dy:542};
 const safeDoor=O('bdoor',278,532,6,20,{full:true,tall:true,home:2});
 const inSafe=(x,y)=>x>SAFE.x0&&x<SAFE.x1&&y>SAFE.y0&&y<SAFE.y1;
 /* ---- houses you can go into: the box is taken out of the map and replaced by four walls and a door ---- */
-const ROOMS=[];
+const ROOMS=[],RUGS=[];
+/* A house you can go into. It is laid out from the front door: a front room (sofa, low table, kitchen counter and fridge along the inner wall)
+   and a back room behind an inner wall with its own doorway (bed, drawers, shelves). a runs along the door wall, d is depth from the far wall. */
 function enterable(H,side,loot){
   objs.splice(objs.indexOf(H),1);
-  const a=objs.length,x=H.x,y=H.y,w=H.w,h=H.h,t=6,g=26,cx=x+w/2,cy=y+h/2;let door;
+  const n0=objs.length,x=H.x,y=H.y,w=H.w,h=H.h,t=6,g=26,cx=x+w/2,cy=y+h/2;let door;
   const sides={n:[x,y,w,t,1],s:[x,y+h-t,w,t,1],w:[x,y+t,t,h-2*t,0],e:[x+w-t,y+t,t,h-2*t,0]};
   for(const k in sides){const[X,Y,Wd,Ht,hz]=sides[k];if(k!==side){O('wall',X,Y,Wd,Ht);continue;}
     if(hz){O('wall',X,Y,Wd/2-g/2,t);O('wall',cx+g/2,Y,Wd/2-g/2,t);door=O('bdoor',cx-g/2,Y,g,t,{full:true,tall:true});}
     else{O('wall',X,Y,t,Ht/2-g/2);O('wall',X,cy+g/2,t,Ht/2-g/2);door=O('bdoor',X,cy-g/2,t,g,{full:true,tall:true});}}
   const out=side==='s'?{x:cx,y:y+h+15}:side==='w'?{x:x-15,y:cy}:{x:x+w+15,y:cy},inn=side==='s'?{x:cx,y:y+h-22}:side==='w'?{x:x+22,y:cy}:{x:x+w-22,y:cy};
-  O('furn',x+w-30,y+14,16,50,{f:'sofa'});O('furn',x+18,y+12,44,11,{f:'counter'});O('furn',x+w/2-14,y+h/2-9,28,18,{f:'table'});
-  for(let i=a;i<objs.length;i++)objs[i].home=2;
-  ROOMS.push({H,side,loot,door,out,inn,x0:x+t,y0:y+t,x1:x+w-t,y1:y+h-t});
+  const A=side==='s'?w:h,D=side==='s'?h:w;
+  const R=(a,d,la,ld)=>side==='s'?[x+a,y+d,la,ld]:side==='w'?[x+w-d-ld,y+a,ld,la]:[x+d,y+a,ld,la];
+  const put=(kind,a,d,la,ld,ex)=>{const q=R(a,d,la,ld);return O(kind,q[0],q[1],q[2],q[3],ex);};
+  put('wall',6,46,14,6);put('wall',46,46,A-52,6);                       // the inner wall, doorway from a=20 to 46
+  put('furn',A-46,6,40,30,{f:'cot'});put('furn',26,6,24,10,{f:'chest'});put('furn',6,6,12,24,{f:'shelf',tall:true});      // back room
+  put('fridge',A-22,52,16,14);put('furn',A-76,52,54,11,{f:'counter'});                                                       // kitchen side of the front room
+  put('furn',A-20,72,14,40,{f:'sofa'});put('furn',A-52,78,16,20,{f:'table'});
+  RUGS.push(R(A-58,72,34,34).concat(0x5a3d3a),R(36,20,34,22).concat(0x3d5066));
+  for(let i=n0;i<objs.length;i++)objs[i].home=2;
+  const lamp=[R(A/2-6,31,0,0),R(A/2,D-36,0,0)];
+  ROOMS.push({H,side,loot,door,out,inn,lamp,x0:x+t,y0:y+t,x1:x+w-t,y1:y+h-t});
 }
 const inRoom=(R,x,y)=>x>R.x0&&x<R.x1&&y>R.y0&&y<R.y1;
 enterable(objs.find(o=>o.kind==='house'&&o.x===60&&o.y===930),'s',['pan','aid']);
@@ -234,8 +244,21 @@ function openSpot(x,y,taken,maxR){
   }
   return null;
 }
-/* move a circle, sliding along anything solid */
+/* move a circle, sliding along anything solid. You also round the corner of whatever you clip instead of stopping dead on it. */
 function slide(u,dx,dy,r){
-  if(dx&&isFree(u.x+dx,u.y,r))u.x+=dx;else if(dx){u.vx=0;}
-  if(dy&&isFree(u.x,u.y+dy,r))u.y+=dy;else if(dy){u.vy=0;}
+  const bx0=dx&&!isFree(u.x+dx,u.y,r),by0=dy&&!isFree(u.x,u.y+dy,r);
+  if(dx&&!bx0)u.x+=dx;else if(dx)u.vx=0;
+  if(dy&&!by0&&isFree(u.x,u.y+dy,r))u.y+=dy;else if(dy)u.vy=0;
+  if(u.kind!=='you'||bx0===by0)return;
+  const m=Math.abs(bx0?dx:dy)*.7;
+  if(bx0&&Math.abs(dy)<Math.abs(dx)*.6){for(const q of[1,-1])if(isFree(u.x+dx,u.y+q*5,r)&&isFree(u.x,u.y+q*m,r)){u.y+=q*m;break;}}
+  else if(by0&&Math.abs(dx)<Math.abs(dy)*.6){for(const q of[1,-1])if(isFree(u.x+q*5,u.y+dy,r)&&isFree(u.x+q*m,u.y,r)){u.x+=q*m;break;}}
+}
+/* anyone who ends up closer to something solid than they can walk (shoved, set down, stood up) is put on the nearest clear floor */
+function unstick(u,r){
+  if(isFree(u.x,u.y,r))return false;
+  const side=inHouse(u.x,u.y);
+  for(let d=2;d<=60;d+=2){const n=Math.max(6,Math.round(d*1.2));
+    for(let k=0;k<n;k++){const a=k/n*TAU,px=u.x+Math.cos(a)*d,py=u.y+Math.sin(a)*d;if(isFree(px,py,r+.4)&&inHouse(px,py)===side){u.x=px;u.y=py;return true;}}}
+  return false;
 }

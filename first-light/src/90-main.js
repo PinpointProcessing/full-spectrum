@@ -1,5 +1,5 @@
 /* Camera, quality scaling, and the frame loop. */
-let composer=null,bloom=null,camSnap=true;
+let composer=null,bloom=null,camSnap=true,insideNow=false,inK=0;
 const cam={x:296,y:1362,h:12,yaw:-PI/2,pitch:.5,dist:150};
 function setupFX(){
   if(!T.EffectComposer||!T.UnrealBloomPass||!T.RenderPass)return;
@@ -37,9 +37,11 @@ function camTick(dt){
   }
   const portrait=cw/ch<1,inside=inHouse(L.x,L.y);
   let tp,td,th=12,lead=.2;
+  const indoors=insideNow;
   if(camMode===1){tp=.3;td=84;th=16;lead=.1;}
-  else if(camMode===2){tp=1.02;td=portrait?300:250;}
-  else{tp=portrait?.5:.4;td=portrait?178:150;if(inside){tp+=.16;td*=.74;}}
+  else if(camMode===3){tp=1.02;td=portrait?300:250;}
+  else if(camMode===2){tp=portrait?.5:.4;td=portrait?178:150;if(indoors){tp+=.16;td*=.74;}}
+  else{tp=portrait?.46:.36;td=portrait?118:102;th=14;lead=.3;if(indoors){tp=.92;td=portrait?132:104;th=8;lead=.15;}}      // close: the default
   td*=camZoom;
   let fx=L.x+L.vx*lead,fy=L.y+L.vy*lead;
   if(state==='tv'){fx=TVPOS.x;fy=TVPOS.y+18;tp=.16;td=58;th=17;}
@@ -55,7 +57,7 @@ function camTick(dt){
   camera.lookAt(cam.x+Math.cos(cam.yaw)*18,cam.h,cam.y+Math.sin(cam.yaw)*18);camera.updateMatrixWorld();
   cam.cx=cx;cam.cy=cy;
 }
-let last=performance.now(),hudT=0,fireSnd=0;
+let inLight=null,last=performance.now(),hudT=0,fireSnd=0;
 function frame(nowMs){
   requestAnimationFrame(frame);
   const rdt=Math.min(.05,(nowMs-last)/1000),now=nowMs/1000;last=nowMs;
@@ -71,7 +73,7 @@ function frame(nowMs){
       tvc.drawImage(tvCan,0,0,480,270);$('#tvsub').innerHTML=tvSubHTML();
       if(tv.done&&!EV.tvEnd){EV.tvEnd=true;setTimeout(closeTV,1400);}
     }
-    input.atkP=input.shootP=input.dashP=false;
+    input.atkP=input.shootP=input.jumpP=input.actP=false;
     // in-world TV subtitles when you're in the house but not watching
     if(state==='play'&&tv.mode==='cast'&&tv.sub&&inHouse(L.x,L.y)){const c=$('#cap');c.innerHTML=`<b>TV${tv.sub.who?' · '+tv.sub.who:''}</b>`+tv.sub.text;c.classList.add('show');clearTimeout(capTimer);capTimer=setTimeout(()=>c.classList.remove('show'),700);}
     // figures
@@ -85,6 +87,11 @@ function frame(nowMs){
       if(!vis||(u.dead&&u.deadT>1.4&&!u.fig.flash))continue;
       if(adt>0||camSnap)figAnim(u.fig,u,adt||.016,now);
     }
+    // indoors is its own place: the daylight drops away, the lamps carry the room, the street goes dim and quiet
+    insideNow=state==='tv'||inHouse(L.x,L.y)||inSafe(L.x,L.y)||ROOMS.some(R=>inRoom(R,L.x,L.y));
+    inK+=((insideNow?1:0)-inK)*(1-Math.exp(-rdt*3));
+    if(state==='play'||state==='tv'||state==='dying'){sun.intensity=lerp(1.15,.22,inK);hemi.intensity=lerp(.56,.3,inK);scene.fog.density=lerp(.00135,.0034,inK);inLight.intensity=1.5*inK;inLight.position.set(L.x,21,L.y);}
+    else inLight.intensity=0;
     camTick(rdt);
     const wdt=paused?0:rdt;
     lightsTick(wdt,now,cam.x,cam.y);
@@ -114,6 +121,7 @@ function frame(nowMs){
 function boot(){
   aiInit();
   buildWorld();buildActors();setupFX();
+  inLight=new T.PointLight(0xffcf9a,0,190,1.4);scene.add(inLight);
   new ResizeObserver(resize).observe(stage);resize();
   // everyone in the level is sculpted before it starts, one figure per tick so the title card stays alive
   const btn=$('#startBtn'),label=btn.textContent;btn.disabled=true;

@@ -18,9 +18,9 @@ addEventListener('keydown',e=>{
   if(state!=='play')return;
   if(e.code==='Space'||e.code==='KeyJ')input.atkP=true;
   else if(e.code==='KeyF'||e.code==='KeyK')input.shootP=true;
-  else if(e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL')input.dashP=true;
-  else if(e.code==='KeyE'||e.code==='Enter'){if(!$('#bubble').hidden)openTV();}
-  else if(e.code==='KeyQ'||e.code==='KeyH')useAid();
+  else if(e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL')input.jumpP=true;
+  else if(e.code==='KeyE'||e.code==='Enter')input.actP=true;
+  else if(e.code==='KeyH')useAid();
   else if(e.code==='KeyC')$('#camBtn').click();
   else if(e.code==='KeyQ')swapMelee();
   else if(e.code==='KeyM')$('#muteBtn').click();
@@ -59,10 +59,11 @@ function holdBtn(sel,down,up){
 }
 holdBtn('#atkBtn',()=>{input.atkP=true;input.atkH=true;input.aimX=null;},()=>{input.atkH=false;});
 holdBtn('#shootBtn',()=>{input.shootP=true;input.shootH=true;input.aimX=null;},()=>{input.shootH=false;});
-holdBtn('#dashBtn',()=>{input.dashP=true;});
+holdBtn('#jumpBtn',()=>{input.jumpP=true;});
+holdBtn('#actBtn',()=>{input.actP=true;});
 $('#swapBtn').addEventListener('click',swapMelee);
 holdBtn('#healBtn',()=>useAid());
-$('#camBtn').addEventListener('click',()=>{camMode=(camMode+1)%3;caption(['Camera: follow','Camera: over the shoulder','Camera: high'][camMode],null,1400);});
+$('#camBtn').addEventListener('click',()=>{camMode=(camMode+1)%4;caption(['Camera: close','Camera: over the shoulder','Camera: wide','Camera: high'][camMode],null,1400);});
 $('#muteBtn').addEventListener('click',()=>{muted=!muted;auMute(muted);$('#muteBtn').textContent=muted?'Unmute':'Mute';});
 $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;$('#pauseBtn').textContent=paused?'Resume':'Pause';});
 $('#bubble').addEventListener('click',()=>openTV());
@@ -113,7 +114,7 @@ function hud(){
   const sb=$('#shootBtn'),gun=L.has.pistol||L.has.shotgun;sb.hidden=!gun;
   if(gun)sb.lastElementChild.textContent=L.has.shotgun&&L.ammo.shotgun?`${L.ammo.pistol} + ${L.ammo.shotgun}`:L.ammo.pistol;
   const hb=$('#healBtn');hb.hidden=!L.aid;hb.lastElementChild.textContent='×'+L.aid;
-  $('#dashBtn').classList.toggle('cool',L.dashCD>0);
+  { const ac=state==='play'?actionFor():null,b=$('#actBtn');b.textContent=ac?ac.label:'Action';b.classList.toggle('cool',!ac);b.classList.toggle('hot',!!ac&&ac.label!=='Looking'); }
   $('#atkBtn').textContent=L.anim==='crank'?'Turning':'Attack';
   // the bubble over the TV
   const showB=state==='play'&&!tv.done&&(tv.mode==='alert'||tv.mode==='cast')&&inHouse(L.x,L.y);
@@ -146,6 +147,15 @@ function drawOverlay(now){
     const p=toS(g[0],g[1],EV.channel&&!EV.open?16:10),d=Math.round(hyp(g[0]-L.x,g[1]-L.y)/10);
     if(onScreen(p)){if(EV.channel){ox.beginPath();ox.arc(p[0],p[1],10+pulse*4,0,TAU);ox.strokeStyle=COL.warn;ox.lineWidth=2;ox.stroke();label(EV.open?'INSIDE':'TURN THE WHEEL',p[0],p[1]-22,COL.warn,11,700);}}
     else edgeArrow(p[0],p[1],p[2]>1,'#ffd9a0',(EV.channel?'':'DRAIN ')+d+' m');
+  }
+  // things within reach that have not been gone through yet, and the search in progress
+  if(state==='play'&&!L.dead){
+    const near=L.search?L.search.o:searchNear();
+    for(const o of SEARCH){if(o.searched||o===near)continue;const cx=o.x+o.w/2,cy=o.y+o.h/2;if(hyp(cx-L.x,cy-L.y)>70)continue;const p=toS(cx,cy,o.tall?24:12);if(!onScreen(p))continue;ox.beginPath();ox.arc(p[0],p[1],3,0,TAU);ox.fillStyle='rgba(255,236,190,.55)';ox.fill();}
+    if(near){const p=toS(near.x+near.w/2,near.y+near.h/2,near.tall?26:14);
+      ox.lineWidth=4;ox.strokeStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();
+      if(L.search){ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],11,-PI/2,-PI/2+clamp(L.search.t/L.search.dur,0,1)*TAU);ox.stroke();}
+      else{ox.lineWidth=2;ox.strokeStyle='rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label('SEARCH',p[0],p[1]-20,'#ffecbe',10,700);}}
   }
   // valve progress and fuse
   if(EV.channel&&!EV.open&&EV.crank>0){const p=toS(VALVE.x,VALVE.y,30);ox.lineWidth=5;ox.strokeStyle='rgba(0,0,0,.6)';ox.beginPath();ox.arc(p[0],p[1],16,0,TAU);ox.stroke();ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],16,-PI/2,-PI/2+EV.crank*TAU);ox.stroke();label(Math.round(EV.crank*100)+'%',p[0],p[1],'#fff',10,700);}

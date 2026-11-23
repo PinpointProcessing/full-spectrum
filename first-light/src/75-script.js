@@ -22,7 +22,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  setupPortals();safeReset();roomsReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();safeReset();roomsReset();searchReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -241,7 +241,7 @@ function script(dt){
 function ambTick(){
   if(!AU.ctx)return;
   let nf=1e9;for(const f of world.fires)if(f.on&&f.rate>0){const d=hyp(f.x-L.x,f.y-L.y);if(d<nf)nf=d;}
-  const out=EV.out?1:.25;
+  const out=insideNow?.22:1;
   ambSet('fire',clamp(1-nf/330,0,1)*.16);
   ambSet('wind',.05*out);ambSet('siren',.022*out+(EV.out?0:.004));
   ambSet('water',Math.max(EV.geyser?clamp(1-hyp(538-L.x,1092-L.y)/300,0,1)*.07:0,clamp(1-Math.abs(L.y-190)/160,0,1)*.035));
@@ -321,7 +321,6 @@ function roomsReset(){
     addObj(R.door);R.open=false;R.grp.visible=true;R.hp=240;R.t=0;R.broken=false;R.told=false;R.roof.visible=true;
     const spot=()=>{for(let i=0;i<40;i++){const x=rand(R.x0+14,R.x1-14),y=rand(R.y0+14,R.y1-14);if(isFree(x,y,8))return{x,y};}return{x:(R.x0+R.x1)/2,y:(R.y0+R.y1)/2+24};};
     for(let i=0;i<2;i++){const p=spot(),z=mkZed('shambler',p.x,p.y,{});if(z)z.sight=110;}
-    for(const k of R.loot){const p=spot();mkItem(k,p.x,p.y);}
   }
 }
 function roomsTick(dt){
@@ -357,7 +356,7 @@ function shelter(){
   // the grate is shut behind you. Everyone who made it stands in the pipe; whatever followed claws at the bars.
   const saved=allies.filter(a=>!a.dead);
   addObj(grate);grateGrp.position.y=0;pipeLamp.on=true;pipeLamp.i=1.1;pipeLamp.x=360;pipeLamp.y=40;pipeLamp.h=9;
-  L.x=360;L.y=66;L.ang=-PI/2;L.spd=0;L.atk=null;L.anim=null;L.vx=L.vy=0;L.dashT=0;setWeapon(L.fig,L.melee==='fists'?null:L.melee);
+  L.x=360;L.y=66;L.ang=-PI/2;L.spd=0;L.atk=null;L.anim=null;L.vx=L.vy=0;setWeapon(L.fig,L.melee==='fists'?null:L.melee);
   const spots=[[346,48,-.3],[375,52,PI+.3],[350,32,.5],[371,34,PI-.5]];
   saved.forEach((a,i)=>{const s=spots[i%4];a.x=s[0];a.y=s[1];a.ang=s[2];a.spd=0;a.atk=null;a.foe=null;a.anim=null;});
   let n=0;

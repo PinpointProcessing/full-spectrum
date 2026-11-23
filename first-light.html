@@ -71,13 +71,15 @@ button:disabled{opacity:.4;cursor:default}
 #cap b{font-family:var(--font-hud);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);display:block}
 #big{position:absolute;left:50%;top:24%;transform:translate(-50%,-50%) scale(.9);font-family:var(--font-news);font-weight:700;font-size:clamp(26px,7vw,54px);letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 0 #000,0 0 26px rgba(255,120,60,.7);opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .25s,transform .25s}
 #big.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-#pad{position:absolute;right:var(--gut-r);bottom:max(14px,env(safe-area-inset-bottom,0px));width:190px;height:170px;pointer-events:none}
+#pad{position:absolute;right:var(--gut-r);bottom:max(14px,env(safe-area-inset-bottom,0px));width:200px;height:170px;pointer-events:none}
 #pad button{position:absolute;border-radius:50%;padding:0;display:grid;place-items:center;align-content:center;line-height:1.1;pointer-events:auto;touch-action:none;background:rgba(14,16,22,.62);border:1.5px solid rgba(255,255,255,.3);backdrop-filter:blur(2px)}
 #pad button small{display:block;font-size:10px;color:var(--dim);letter-spacing:.04em;font-variant-numeric:tabular-nums}
 #pad button.held{background:rgba(255,255,255,.22);transform:scale(.95)}
 #atkBtn{right:0;bottom:0;width:88px;height:88px;font-size:14px;border-color:rgba(255,154,82,.9)!important;color:#ffd9bd}
 #shootBtn{right:96px;bottom:6px;width:64px;height:64px}
-#dashBtn{right:76px;bottom:80px;width:58px;height:58px}
+#jumpBtn{right:76px;bottom:80px;width:58px;height:58px}
+#actBtn{right:140px;bottom:74px;width:58px;height:58px;font-size:11.5px}
+#pad button.hot{border-color:rgba(255,236,190,.95);color:#fff3d6;background:rgba(70,58,30,.72)}
 #swapBtn{right:168px;bottom:10px;width:54px;height:54px;font-size:11px}
 #healBtn{right:6px;bottom:98px;width:54px;height:54px;font-size:10.5px}
 #pad button.cool{opacity:.45}
@@ -153,7 +155,8 @@ button:disabled{opacity:.4;cursor:default}
       <div id="pad">
         <button id="healBtn">Aid<small>0</small></button>
         <button id="swapBtn" hidden>Swap</button>
-        <button id="dashBtn">Dash</button>
+        <button id="actBtn">Action</button>
+        <button id="jumpBtn">Jump</button>
         <button id="shootBtn">Fire<small>0</small></button>
         <button id="atkBtn">Attack</button>
       </div>
@@ -175,7 +178,8 @@ button:disabled{opacity:.4;cursor:default}
       <b>Move</b><span>Left thumb anywhere, or WASD</span>
       <b>Attack</b><span>Attack button, Space or left click. Press again to chain three swings.</span>
       <b>Fire</b><span>Fire button, F or right click. Loud: it draws them in.</span>
-      <b>Dash</b><span>Dash button or Shift. Nothing can hit you mid-dash.</span>
+      <b>Jump</b><span>Jump button or Shift. Hops, and climbs over furniture, cars and broken windows.</span>
+      <b>Action</b><span>Action button or E. Search furniture, fridges, cars and bins. It takes a moment.</span>
     </div>
     <ul>
       <li><b>You are the leader.</b> If you die, it's over. Anyone you rescue follows you and fights.</li>
@@ -544,18 +548,28 @@ const SAFE={x0:222,y0:518,x1:278,y1:566,dx:281,dy:542};
 const safeDoor=O('bdoor',278,532,6,20,{full:true,tall:true,home:2});
 const inSafe=(x,y)=>x>SAFE.x0&&x<SAFE.x1&&y>SAFE.y0&&y<SAFE.y1;
 /* ---- houses you can go into: the box is taken out of the map and replaced by four walls and a door ---- */
-const ROOMS=[];
+const ROOMS=[],RUGS=[];
+/* A house you can go into. It is laid out from the front door: a front room (sofa, low table, kitchen counter and fridge along the inner wall)
+   and a back room behind an inner wall with its own doorway (bed, drawers, shelves). a runs along the door wall, d is depth from the far wall. */
 function enterable(H,side,loot){
   objs.splice(objs.indexOf(H),1);
-  const a=objs.length,x=H.x,y=H.y,w=H.w,h=H.h,t=6,g=26,cx=x+w/2,cy=y+h/2;let door;
+  const n0=objs.length,x=H.x,y=H.y,w=H.w,h=H.h,t=6,g=26,cx=x+w/2,cy=y+h/2;let door;
   const sides={n:[x,y,w,t,1],s:[x,y+h-t,w,t,1],w:[x,y+t,t,h-2*t,0],e:[x+w-t,y+t,t,h-2*t,0]};
   for(const k in sides){const[X,Y,Wd,Ht,hz]=sides[k];if(k!==side){O('wall',X,Y,Wd,Ht);continue;}
     if(hz){O('wall',X,Y,Wd/2-g/2,t);O('wall',cx+g/2,Y,Wd/2-g/2,t);door=O('bdoor',cx-g/2,Y,g,t,{full:true,tall:true});}
     else{O('wall',X,Y,t,Ht/2-g/2);O('wall',X,cy+g/2,t,Ht/2-g/2);door=O('bdoor',X,cy-g/2,t,g,{full:true,tall:true});}}
   const out=side==='s'?{x:cx,y:y+h+15}:side==='w'?{x:x-15,y:cy}:{x:x+w+15,y:cy},inn=side==='s'?{x:cx,y:y+h-22}:side==='w'?{x:x+22,y:cy}:{x:x+w-22,y:cy};
-  O('furn',x+w-30,y+14,16,50,{f:'sofa'});O('furn',x+18,y+12,44,11,{f:'counter'});O('furn',x+w/2-14,y+h/2-9,28,18,{f:'table'});
-  for(let i=a;i<objs.length;i++)objs[i].home=2;
-  ROOMS.push({H,side,loot,door,out,inn,x0:x+t,y0:y+t,x1:x+w-t,y1:y+h-t});
+  const A=side==='s'?w:h,D=side==='s'?h:w;
+  const R=(a,d,la,ld)=>side==='s'?[x+a,y+d,la,ld]:side==='w'?[x+w-d-ld,y+a,ld,la]:[x+d,y+a,ld,la];
+  const put=(kind,a,d,la,ld,ex)=>{const q=R(a,d,la,ld);return O(kind,q[0],q[1],q[2],q[3],ex);};
+  put('wall',6,46,14,6);put('wall',46,46,A-52,6);                       // the inner wall, doorway from a=20 to 46
+  put('furn',A-46,6,40,30,{f:'cot'});put('furn',26,6,24,10,{f:'chest'});put('furn',6,6,12,24,{f:'shelf',tall:true});      // back room
+  put('fridge',A-22,52,16,14);put('furn',A-76,52,54,11,{f:'counter'});                                                       // kitchen side of the front room
+  put('furn',A-20,72,14,40,{f:'sofa'});put('furn',A-52,78,16,20,{f:'table'});
+  RUGS.push(R(A-58,72,34,34).concat(0x5a3d3a),R(36,20,34,22).concat(0x3d5066));
+  for(let i=n0;i<objs.length;i++)objs[i].home=2;
+  const lamp=[R(A/2-6,31,0,0),R(A/2,D-36,0,0)];
+  ROOMS.push({H,side,loot,door,out,inn,lamp,x0:x+t,y0:y+t,x1:x+w-t,y1:y+h-t});
 }
 const inRoom=(R,x,y)=>x>R.x0&&x<R.x1&&y>R.y0&&y<R.y1;
 enterable(objs.find(o=>o.kind==='house'&&o.x===60&&o.y===930),'s',['pan','aid']);
@@ -707,10 +721,23 @@ function openSpot(x,y,taken,maxR){
   }
   return null;
 }
-/* move a circle, sliding along anything solid */
+/* move a circle, sliding along anything solid. You also round the corner of whatever you clip instead of stopping dead on it. */
 function slide(u,dx,dy,r){
-  if(dx&&isFree(u.x+dx,u.y,r))u.x+=dx;else if(dx){u.vx=0;}
-  if(dy&&isFree(u.x,u.y+dy,r))u.y+=dy;else if(dy){u.vy=0;}
+  const bx0=dx&&!isFree(u.x+dx,u.y,r),by0=dy&&!isFree(u.x,u.y+dy,r);
+  if(dx&&!bx0)u.x+=dx;else if(dx)u.vx=0;
+  if(dy&&!by0&&isFree(u.x,u.y+dy,r))u.y+=dy;else if(dy)u.vy=0;
+  if(u.kind!=='you'||bx0===by0)return;
+  const m=Math.abs(bx0?dx:dy)*.7;
+  if(bx0&&Math.abs(dy)<Math.abs(dx)*.6){for(const q of[1,-1])if(isFree(u.x+dx,u.y+q*5,r)&&isFree(u.x,u.y+q*m,r)){u.y+=q*m;break;}}
+  else if(by0&&Math.abs(dx)<Math.abs(dy)*.6){for(const q of[1,-1])if(isFree(u.x+q*5,u.y+dy,r)&&isFree(u.x+q*m,u.y,r)){u.x+=q*m;break;}}
+}
+/* anyone who ends up closer to something solid than they can walk (shoved, set down, stood up) is put on the nearest clear floor */
+function unstick(u,r){
+  if(isFree(u.x,u.y,r))return false;
+  const side=inHouse(u.x,u.y);
+  for(let d=2;d<=60;d+=2){const n=Math.max(6,Math.round(d*1.2));
+    for(let k=0;k<n;k++){const a=k/n*TAU,px=u.x+Math.cos(a)*d,py=u.y+Math.sin(a)*d;if(isFree(px,py,r+.4)&&inHouse(px,py)===side){u.x=px;u.y=py;return true;}}}
+  return false;
 }
 
 /* ===== 30-textures.js ===== */
@@ -1107,7 +1134,11 @@ function buildHome(){
         tvScreen=new T.Mesh(new T.PlaneGeometry(25,14.1),new T.MeshBasicMaterial({map:tvTex,toneMapped:false}));tvScreen.position.set(cx,19,cz-.1);scene.add(tvScreen);}
       else if(f==='tub')it.push(bx(o.w,7,o.h,cx,3.5,cz,0xe6e8e8),bx(o.w-5,1,o.h-5,cx,7,cz,0x9fc2cc));
       else if(f==='sink')it.push(bx(o.w,9,o.h,cx,4.5,cz,0xcfd3d2),bx(o.w,10,1,cx,18,o.y+o.h-.6,0x9fb7c8));
-      else if(f==='sofa')it.push(bx(o.w,5,o.h,cx,3.5,cz,0x54657a),bx(4,7,o.h,o.x+2,8.5,cz,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+2,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+o.h-2,0x4a5a6e));
+      else if(f==='sofa'){if(o.w<o.h)it.push(bx(o.w,5,o.h,cx,3.5,cz,0x54657a),bx(4,7,o.h,o.x+2,8.5,cz,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+2,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+o.h-2,0x4a5a6e));
+        else it.push(bx(o.w,5,o.h,cx,3.5,cz,0x6a5a4a),bx(o.w,7,4,cx,8.5,o.y+2,0x5a4b3d),bx(4,4,o.h,o.x+2,7,cz,0x5a4b3d),bx(4,4,o.h,o.x+o.w-2,7,cz,0x5a4b3d));}
+      else if(f==='cot'){const lw=o.w>o.h;it.push(bx(o.w,4,o.h,cx,2.4,cz,0x4a3326),bx(o.w-1.5,3,o.h-1.5,cx,5.6,cz,0xa9a69e),lw?bx(o.w*.6,2.2,o.h-.6,cx+o.w*.18,7,cz,0x6a4a52):bx(o.w-.6,2.2,o.h*.6,cx,7,cz+o.h*.18,0x6a4a52),lw?bx(7,2,o.h-10,o.x+6,7.6,cz,0xc4c1b8):bx(o.w-10,2,7,cx,7.6,o.y+6,0xc4c1b8));}
+      else if(f==='chest')it.push(bx(o.w,11,o.h,cx,5.5,cz,0x5c4232),bx(o.w+.6,.6,o.h+.6,cx,7.6,cz,0x3f2c20),bx(o.w+.6,.6,o.h+.6,cx,3.8,cz,0x3f2c20),bx(o.w+1,.8,o.h+1,cx,11.2,cz,0x6e5140),bx(4,5,3,cx-o.w*.2,14,cz,0x8a9aa4));
+      else if(f==='shelf'){it.push(bx(o.w,21,o.h,cx,10.5,cz,0x4a3828));for(let k=0;k<4;k++)it.push(bx(o.w+.5,.7,o.h+.5,cx,2+k*5.4,cz,0x2e2218),bx(o.w>o.h?o.w*.7:o.w+.7,3.4,o.w>o.h?o.h+.7:o.h*.7,cx,4.2+k*5.4,cz,[0x7a3b32,0x3d5a6e,0x8a7d4a,0x4d6a48][k]));}
       else if(f==='table')it.push(bx(o.w,1.2,o.h,cx,5,cz,0x6a4a36),bx(o.w-4,4,o.h-4,cx,2.2,cz,0x4a3326),bx(5,1,7,cx-2,6,cz+3,0xd8d2c0));
       else it.push(bx(o.w,9.5,o.h,cx,4.75,cz,0x494540),bx(o.w+1,1,o.h+1,cx,10,cz,0xd4cec2));
       add(merge(it),vmat(),0,0,0);
@@ -1140,7 +1171,10 @@ function buildWorld(){
     R.roof=new T.Mesh(merge([bx(H.w+10,3,H.h+10,cx,WALLH+2.5,cz,H.roof),bx(H.w*.72,7,H.h*.72,cx,WALLH+7,cz,H.roof),bx(H.w*.4,6,H.h*.4,cx,WALLH+13,cz,H.roof)]),vmat({roughness:.95}));R.roof.castShadow=true;scene.add(R.roof);
     const d=R.door,dx=d.x+d.w/2,dz=d.y+d.h/2;R.grp=new T.Mesh(merge([bx(hz?d.w:2,21,hz?2:d.h,dx,10.5,dz,0x6a3d2b),bx(hz?8:2.4,6,hz?2.4:8,dx,16,dz,0x7b4a35)]),vmat({roughness:.6}));R.grp.castShadow=true;scene.add(R.grp);
     ring(R.out.x,R.out.y);
+    for(const q of R.lamp){emitter(q[0],q[1],19,0xffc98a,1.25,150,0,0);}
   }
+  { const it=[];for(const[x,y,w,h,c]of RUGS)it.push(bx(w,.3,h,x+w/2,.7,y+h/2,c),bx(w-5,.34,h-5,x+w/2,.72,y+h/2,(c&0xfefefe)>>1));
+    const m=new T.Mesh(merge(it),vmat({roughness:1}));m.receiveShadow=true;scene.add(m); }
   { // road flares
     const it=[];for(const[x,y]of FLARES){it.push(cy(.5,.5,5,6,x,.6,y,0xb3261e,0,0,PI/2));glowAt(x+2.5,2.5,y,0xff4a30,20);}
     scene.add(new T.Mesh(merge(it),vmat({roughness:.7})));
@@ -1820,6 +1854,7 @@ function figAnim(f,u,dt,now){
     if(u.anim==='wave'){p.sLz=2.9+Math.sin(now*9)*.25;p.sLx=Math.sin(now*9)*.3;p.sRz=melee?2.5+Math.sin(now*4)*.2:2.9+Math.cos(now*9)*.25;p.sRx=0;p.eR=.3;p.eL=.2;p.wR=-.9;}
     else if(u.anim==='panic'){p.sLz=2.7+s*.45;p.sRz=2.7-s*.45;p.eL=p.eR=.35;p.sLx=-.3;p.sRx=.3;}
     else if(u.anim==='cower'){p.by=-5.8*ck;p.hL=p.hR=1.5;p.kL=p.kR=-2.3;p.lean=-.6;p.sLz=p.sRz=2.4;p.eL=p.eR=2;p.hz=-.4;}
+    else if(u.anim==='search'){p.sRz=1.05+Math.sin(now*9)*.3;p.sLz=1.05+Math.sin(now*9+2)*.3;p.eR=.6+Math.sin(now*6)*.3;p.eL=.6+Math.cos(now*6)*.3;p.lean=-.5;p.hL=p.hR=.25;p.kL=p.kR=-.3;p.by=-.6;}
     else if(u.anim==='crank'){p.sRz=1.25+Math.sin(now*7)*.45;p.sLz=1.25+Math.sin(now*7+PI)*.45;p.eR=p.eL=.7;p.lean=-.22;p.wR=0;gL=1;}
     if(u.shootT!==undefined&&u.shootT<.9){      // firing: only the gun arm comes up (Bryan); the other stays down and swings back a little with the kick
       const rc=u.shootT<.13?1-u.shootT/.13:0,kick=f.wname==='shotgun'?1.6:1;
@@ -1842,11 +1877,11 @@ function figAnim(f,u,dt,now){
         p.sLz=.25;p.sLx=-.35;p.eL=1;p.lean=-.16;p.hL=.5*st;p.hR=-.4*st;
       }
     }else if(u.ready&&W&&W.two)twoW=true;
-    if(u.dashT>0){p.lean=-.75;p.hL=.95;p.hR=-.85;p.kR=-1.3;p.sLz=-1;p.sRz=melee?.3:-1;p.by=-1*bk;rate=40;}
     if(u.hurtT>0){p.lean+=.35;p.hz=-.35;}
     if(u.lying){for(const k of PK)p[k]=0;p.sLx=-.25;p.sRx=.25;rate=40;}
   }
-  if(u.vault&&u.vault.h&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-1.25*q;p.sLz=p.sRz=1.9;p.eL=p.eR=.5;p.hL=.9*q;p.hR=.2*q;p.kL=-1.3*q;p.kR=-.5*q;p.hz=.5*q;p.by=0;p.twist=0;rate=30;}      // climbing over a window sill
+  if(u.vault&&u.vault.hop&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-.3*q;p.hL=.9*q;p.hR=.5*q;p.kL=-1.2*q;p.kR=-.9*q;p.sLz=.5*q;p.sRz=-.4*q;rate=30;}
+  else if(u.vault&&u.vault.h&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-1.25*q;p.sLz=p.sRz=1.9;p.eL=p.eR=.5;p.hL=.9*q;p.hR=.2*q;p.kL=-1.3*q;p.kR=-.5*q;p.hz=.5*q;p.by=0;p.twist=0;rate=30;}      // climbing over a window sill
   const k=1-Math.exp(-rate*dt),cu=f.cur;
   for(const key of PK)cu[key]+=(p[key]-cu[key])*k;
   J.body.position.y=cu.by;J.body.rotation.x=cu.br;
@@ -2045,7 +2080,7 @@ function speak(who,text,dur){const v=VOICE[who]||VOICE.hal;say.full=who!=='hal'&
 let state='intro',paused=false,simT=0,hitStop=0,slowT=0,shakeAmt=0,hurtFlash=0;
 let L=null,ents=[],zeds=[],allies=[],survs=[],civs=[],items=[],corpses=[],debris=[],humans=[];
 let EV={},stats={kills:0,shots:0};
-const input={mx:0,my:0,atkP:false,shootP:false,shootH:false,dashP:false,aimX:null,aimY:null};
+const input={mx:0,my:0,atkP:false,shootP:false,shootH:false,jumpP:false,actP:false,aimX:null,aimY:null};
 const _fs={x:0,y:0};
 const MELEE={
   fists:{name:'Fists',dmg:[9,13],range:15,arc:.95,dur:.24,kb:55},
@@ -2091,7 +2126,7 @@ function shake(a){shakeAmt=Math.min(9,shakeAmt+a);}
 function base(kind,x,y,ang,fig){return{kind,x,y,z:0,ang:ang||0,kx:0,ky:0,vx:0,vy:0,spd:0,dead:false,deadT:0,fig,anim:null,stag:0};}
 function mkYou(x,y){
   const u=Object.assign(base('you',x,y,-PI/2,makeFig(SPEC.you)),{name:'You',hp:160,maxhp:160,speed:61,slowT:0,melee:'fists',bag:[],hand:0,has:{pistol:false,shotgun:false},ammo:{pistol:0,shotgun:0},aid:0,
-    atk:null,combo:0,comboT:0,wantAtk:0,dashT:0,dashCD:0,dvx:0,dvy:0,inv:0,hurtT:0,shootT:9,shootCD:0,lying:false,upT:0,lyingH:0,stepAcc:0,lungeT:0,lvx:0,lvy:0});
+    atk:null,combo:0,comboT:0,wantAtk:0,jumpCD:0,search:null,inv:0,hurtT:0,shootT:9,shootCD:0,lying:false,upT:0,lyingH:0,stepAcc:0,lungeT:0,lvx:0,lvy:0});
   ents.push(u);return u;
 }
 const SURV={
@@ -2165,7 +2200,7 @@ function killZ(z,src,ang,crit){
   if(h){ // head comes off
     debris.push({o:h,vx:Math.cos(ang)*rand(60,120),vy:Math.sin(ang)*rand(60,120),vz:rand(70,120),sx:rand(-9,9),sz:rand(-9,9),t:0});
     for(let i=0;i<3;i++)fxBlood(z.x,z.y,16,rand(-1,1),rand(-1,1),8,true);
-    sfx('pop',z.x,z.y,1);if(src===L)floatText(z,pick(['POP','OUT OF THE PARK','CLEAN OFF']),'#ffd24a');
+    sfx('pop',z.x,z.y,1);
   }
   if(z.boss){bigText('Big Earl is down',2400);shake(4);}
   corpses.push(z);
@@ -2173,7 +2208,7 @@ function killZ(z,src,ang,crit){
 }
 function hurt(h,dmg,z){
   if(h.dead)return false;
-  if(h===L&&(L.inv>0||L.dashT>0||state!=='play'))return false;
+  if(h===L&&(L.inv>0||state!=='play'))return false;
   if(h.kind==='surv'){if((h.safeT||0)>simT)return false;dmg*=.4;h.safeT=simT+.7;}   // followers can't be chewed down by a pile-on
   h.hp-=dmg;h.fig.flash=.8;h.hurtT=.25;
   const a=z?Math.atan2(h.y-z.y,h.x-z.x):0;
@@ -2290,23 +2325,82 @@ function useAid(){
   L.aid--;L.hp=Math.min(L.maxhp,L.hp+70);sfx('heal');floatText(L,'+70',COL.good);
   for(let i=0;i<10;i++)emit(pFire,L.x+rand(-5,5),L.y+rand(-5,5),rand(2,14),0,0,rand(10,30),3,.7,.4,1,.6,.9,0,0,0);
 }
+/* ---- jump and climb: one button. Clear ground ahead is a short hop. Something low in the way (furniture, a car, a barrier, a broken window)
+   is climbed over, as long as there is floor on the far side. Walls, fences, shelves and unbroken glass are too high. */
+function climbable(o){
+  if(o.tall||o.full)return false;
+  if(o.kind==='window'||o.kind==='fwin'){const p=PORTALS.find(q=>q.o===o);return!!(p&&p.open);}
+  return true;
+}
+function tryJump(u){
+  const mag=hyp(input.mx,input.my),a=mag>.15?Math.atan2(input.my,input.mx):u.ang,c=Math.cos(a),s=Math.sin(a);
+  let d0=-1;for(let d=2;d<=16;d+=2)if(!isFree(u.x+c*d,u.y+s*d,5.5)){d0=d;break;}
+  if(d0<0){      // nothing in the way: a hop
+    let d=0;while(d<30&&isFree(u.x+c*(d+3),u.y+s*(d+3),5.5))d+=3;
+    if(d<9)return false;
+    u.vault={t:0,dur:.34,ax:u.x,ay:u.y,bx:u.x+c*d,by:u.y+s*d,h:6,hop:1};u.jumpCD=.55;u.ang=a;sfx('swing',u.x,u.y,.4);return true;
+  }
+  for(let d=d0;d<=d0+70;d+=2){
+    const px=u.x+c*d,py=u.y+s*d;
+    if(isFree(px,py,6.2)){u.vault={t:0,dur:.5+(d-d0)*.007,ax:u.x,ay:u.y,bx:px,by:py,h:9};u.jumpCD=.5;u.ang=a;sfx('step');fxDust(u.x,u.y,3);return true;}
+    if(!inBounds(px,py,0))break;
+    for(const o of objs)if(rectDist(px,py,o)<5.5&&!climbable(o)){u.jumpCD=.25;return false;}
+  }
+  u.jumpCD=.25;return false;
+}
+/* ---- searching: furniture, fridges, cars and bins can each be gone through once. It takes a moment standing still. ---- */
+const SNAME={night:'nightstand',dresser:'dresser',sink:'cabinet',counter:'cupboards',island:'drawers',chest:'drawers',shelf:'shelves',sofa:'sofa',cot:'bed'};
+function searchName(o){return o.kind==='fridge'?'fridge':o.kind==='car'?(o.burn?null:'car'):o.kind==='bin'?'bin':o.kind==='furn'?SNAME[o.f]||null:null;}
+let SEARCH=[];
+function searchReset(){
+  SEARCH=objs.filter(o=>searchName(o));
+  const FIND=['pan','hammer','ciron','knife','iron'];
+  for(const o of SEARCH){
+    o.searched=false;const r=Math.random(),ind=!!o.home;
+    o.loot=ind?(r<.42?null:r<.6?'ammo':r<.7?'shells':r<.86?'aid':pick(FIND)):(r<.66?null:r<.82?'ammo':r<.9?'shells':r<.96?'aid':pick(FIND));
+  }
+  // what each house is known to hold is in its furniture, not on the floor
+  for(const R of ROOMS){const fs=SEARCH.filter(o=>o.home&&o.x>R.x0-8&&o.x<R.x1&&o.y>R.y0-8&&o.y<R.y1).sort(()=>Math.random()-.5);R.loot.forEach((k,i)=>{if(fs[i])fs[i].loot=k;});}
+}
+function searchNear(){
+  let best=null,bd=17;
+  for(const o of SEARCH){if(o.searched)continue;const d=rectDist(L.x,L.y,o);if(d<bd){bd=d;best=o;}}
+  return best;
+}
+function actionFor(){
+  if(!L||L.dead||L.lying||L.upT>0||L.vault)return null;
+  if(!$('#bubble').hidden)return{label:'Watch',go:openTV};
+  if(L.search)return{label:'Looking',go(){}};
+  const o=searchNear();
+  if(o)return{label:'Search',o,go(){L.search={o,t:0,dur:o.kind==='car'?2:1.5};L.atk=null;}};
+  return null;
+}
+function searchDone(o){
+  o.searched=true;const k=o.loot,nm=searchName(o);
+  if(!k){floatText(L,'NOTHING',COL.dim||'#aab');sfx('dry',L.x,L.y,.5);return;}
+  sfx('pickup');
+  const it=mkItem(k,L.x,L.y);
+  if(MELEE[k]&&L.bag.length>=2){it.hold=true;caption('In the '+nm+': a '+MELEE[k].name.toLowerCase()+'. Your hands are full. Step away and back to trade for it.',null,4200);}
+}
 function youUpdate(dt){
   if(L.vault){vaultStep(L,dt);L.atk=null;return;}      // halfway through a window: nothing else until you are over the sill
   const u=L;if(u.dead){u.deadT+=dt;return;}
-  u.inv=Math.max(0,u.inv-dt);u.hurtT=Math.max(0,u.hurtT-dt);u.shootT+=dt;u.shootCD-=dt;u.dashCD-=dt;u.comboT-=dt;u.wantAtk-=dt;
-  if(u.lying){u.spd=0;if(hyp(input.mx,input.my)>.3||input.atkP||input.dashP)getUp();return;}
+  u.inv=Math.max(0,u.inv-dt);u.hurtT=Math.max(0,u.hurtT-dt);u.shootT+=dt;u.shootCD-=dt;u.jumpCD-=dt;u.comboT-=dt;u.wantAtk-=dt;
+  if(u.lying){u.spd=0;if(hyp(input.mx,input.my)>.3||input.atkP||input.jumpP||input.actP)getUp();return;}
   if(u.upT>0){u.upT-=dt;const k=ease(1-Math.max(0,u.upT)/.9);u.x=lerp(u.upFrom.x,u.upTo.x,k);u.y=lerp(u.upFrom.y,u.upTo.y,k);u.ang=lerp(-PI/2,-PI/2+.5,k);u.spd=0;if(u.upT<=0){u.upT=0;u.lyingH=0;caption('…what time is it?','You',2200);}return;}
   const mag=Math.min(1,hyp(input.mx,input.my)),moving=mag>.15;
-  // dash
-  if(input.dashP&&u.dashCD<=0){
-    const a=moving?Math.atan2(input.my,input.mx):u.ang;
-    u.dashT=.2;u.dashCD=.8;u.dvx=Math.cos(a)*235;u.dvy=Math.sin(a)*235;u.inv=Math.max(u.inv,.3);u.atk=null;u.ang=a;
-    sfx('dash');fxDust(u.x,u.y,5);
-  }
-  if(u.dashT>0){
-    u.dashT-=dt;slide(u,u.dvx*dt,u.dvy*dt,5.5);u.spd=235;u.vx=u.dvx*.3;u.vy=u.dvy*.3;
-    if(Math.random()<.5)emit(pSmoke,u.x,u.y,2,rand(-8,8),rand(-8,8),6,6,.4,.5,.5,.5,.3,0,2,12);
-    return;
+  unstick(u,5.5);
+  // jump, or climb over whatever low thing is in the way
+  if(input.jumpP&&u.jumpCD<=0&&!u.atk&&tryJump(u)){u.search=null;return;}
+  // the action button: watch the TV, go through what is in front of you
+  if(input.actP){const ac=actionFor();if(ac)ac.go();}
+  if(u.search){
+    const q=u.search;
+    if(moving||u.atk||u.hurtT>0||input.atkP){u.search=null;}
+    else{q.t+=dt;u.anim='search';u.spd=0;u.vx=u.vy=0;u.ang=turn(u.ang,Math.atan2(clamp(u.y,q.o.y,q.o.y+q.o.h)-u.y,clamp(u.x,q.o.x,q.o.x+q.o.w)-u.x),dt*10);
+      if(Math.random()<dt*5)sfx('click',u.x,u.y,.25);
+      if(q.t>=q.dur){u.search=null;searchDone(q.o);}
+      return;}
   }
   // cranking the valve
   u.anim=null;
@@ -2332,7 +2426,7 @@ function youUpdate(dt){
   if(u.lungeT>0){u.lungeT-=dt;mx+=u.lvx;my+=u.lvy;}
   slide(u,mx*dt,my*dt,5.5);
   // push into a broken window and you climb through it
-  if(moving&&!u.atk&&u.dashT<=0){const m=hyp(input.mx,input.my)||1,uin=inHouse(u.x,u.y);
+  if(moving&&!u.atk){const m=hyp(input.mx,input.my)||1,uin=inHouse(u.x,u.y);
     for(const p of PORTALS){if(p.door||!p.open)continue;const n=uin?p.in:p.out,f=uin?p.out:p.in;
       if(Math.abs(p.hz?u.x-p.cx:u.y-p.cy)<(p.hz?p.o.w:p.o.h)/2-3&&Math.abs(p.hz?u.y-p.cy:u.x-p.cx)<14&&((f.x-n.x)*input.mx+(f.y-n.y)*input.my)/m>12){u.vault={t:0,dur:.75,ax:u.x,ay:u.y,bx:f.x,by:f.y,h:7};sfx('step');break;}}}
   const kk=Math.exp(-8*dt);u.kx*=kk;u.ky*=kk;
@@ -2516,7 +2610,7 @@ function separate(){
       if(d>0&&d<min){const k=(min-d)/2/d,ax=a.x-dx*k,ay=a.y-dy*k,bx2=b.x+dx*k,by2=b.y+dy*k;if(isFree(ax,ay,4.5)){a.x=ax;a.y=ay;}if(isFree(bx2,by2,4.5)){b.x=bx2;b.y=by2;}}
     }
     for(const h of humans){
-      if(h.dead||h.safe||(h===L&&(L.dashT>0||L.lying||L.upT>0)))continue;
+      if(h.dead||h.safe||(h===L&&(L.lying||L.upT>0)))continue;
       const dx=a.x-h.x,dy=a.y-h.y,d=hyp(dx,dy),min=ra+5.5;
       if(d>0&&d<min){const k=(min-d)/d,ax=a.x+dx*k,ay=a.y+dy*k;if(isFree(ax,ay,4.5)){a.x=ax;a.y=ay;}}
     }
@@ -2601,6 +2695,7 @@ function allyUpdate(a,dt,i){
   if(a.vault){vaultStep(a,dt);return;}
   if(a.recruited&&!a.dead&&!a.safe&&!a.hold&&breach(a,L,dt,a.speed,false))return;      // follow you through an open door or a broken window
   if(a.dead){a.deadT+=dt;return;}
+  if(!a.safe)unstick(a,5.5);
   a.hurtT=Math.max(0,a.hurtT-dt);
   if(a.kx||a.ky){slide(a,a.kx*dt,a.ky*dt,5);const k=Math.exp(-8*dt);a.kx*=k;a.ky*=k;}
   const dL=hyp(L.x-a.x,L.y-a.y);
@@ -2661,7 +2756,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  setupPortals();safeReset();roomsReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();safeReset();roomsReset();searchReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -2880,7 +2975,7 @@ function script(dt){
 function ambTick(){
   if(!AU.ctx)return;
   let nf=1e9;for(const f of world.fires)if(f.on&&f.rate>0){const d=hyp(f.x-L.x,f.y-L.y);if(d<nf)nf=d;}
-  const out=EV.out?1:.25;
+  const out=insideNow?.22:1;
   ambSet('fire',clamp(1-nf/330,0,1)*.16);
   ambSet('wind',.05*out);ambSet('siren',.022*out+(EV.out?0:.004));
   ambSet('water',Math.max(EV.geyser?clamp(1-hyp(538-L.x,1092-L.y)/300,0,1)*.07:0,clamp(1-Math.abs(L.y-190)/160,0,1)*.035));
@@ -2960,7 +3055,6 @@ function roomsReset(){
     addObj(R.door);R.open=false;R.grp.visible=true;R.hp=240;R.t=0;R.broken=false;R.told=false;R.roof.visible=true;
     const spot=()=>{for(let i=0;i<40;i++){const x=rand(R.x0+14,R.x1-14),y=rand(R.y0+14,R.y1-14);if(isFree(x,y,8))return{x,y};}return{x:(R.x0+R.x1)/2,y:(R.y0+R.y1)/2+24};};
     for(let i=0;i<2;i++){const p=spot(),z=mkZed('shambler',p.x,p.y,{});if(z)z.sight=110;}
-    for(const k of R.loot){const p=spot();mkItem(k,p.x,p.y);}
   }
 }
 function roomsTick(dt){
@@ -2996,7 +3090,7 @@ function shelter(){
   // the grate is shut behind you. Everyone who made it stands in the pipe; whatever followed claws at the bars.
   const saved=allies.filter(a=>!a.dead);
   addObj(grate);grateGrp.position.y=0;pipeLamp.on=true;pipeLamp.i=1.1;pipeLamp.x=360;pipeLamp.y=40;pipeLamp.h=9;
-  L.x=360;L.y=66;L.ang=-PI/2;L.spd=0;L.atk=null;L.anim=null;L.vx=L.vy=0;L.dashT=0;setWeapon(L.fig,L.melee==='fists'?null:L.melee);
+  L.x=360;L.y=66;L.ang=-PI/2;L.spd=0;L.atk=null;L.anim=null;L.vx=L.vy=0;setWeapon(L.fig,L.melee==='fists'?null:L.melee);
   const spots=[[346,48,-.3],[375,52,PI+.3],[350,32,.5],[371,34,PI-.5]];
   saved.forEach((a,i)=>{const s=spots[i%4];a.x=s[0];a.y=s[1];a.ang=s[2];a.spd=0;a.atk=null;a.foe=null;a.anim=null;});
   let n=0;
@@ -3031,9 +3125,9 @@ addEventListener('keydown',e=>{
   if(state!=='play')return;
   if(e.code==='Space'||e.code==='KeyJ')input.atkP=true;
   else if(e.code==='KeyF'||e.code==='KeyK')input.shootP=true;
-  else if(e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL')input.dashP=true;
-  else if(e.code==='KeyE'||e.code==='Enter'){if(!$('#bubble').hidden)openTV();}
-  else if(e.code==='KeyQ'||e.code==='KeyH')useAid();
+  else if(e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL')input.jumpP=true;
+  else if(e.code==='KeyE'||e.code==='Enter')input.actP=true;
+  else if(e.code==='KeyH')useAid();
   else if(e.code==='KeyC')$('#camBtn').click();
   else if(e.code==='KeyQ')swapMelee();
   else if(e.code==='KeyM')$('#muteBtn').click();
@@ -3072,10 +3166,11 @@ function holdBtn(sel,down,up){
 }
 holdBtn('#atkBtn',()=>{input.atkP=true;input.atkH=true;input.aimX=null;},()=>{input.atkH=false;});
 holdBtn('#shootBtn',()=>{input.shootP=true;input.shootH=true;input.aimX=null;},()=>{input.shootH=false;});
-holdBtn('#dashBtn',()=>{input.dashP=true;});
+holdBtn('#jumpBtn',()=>{input.jumpP=true;});
+holdBtn('#actBtn',()=>{input.actP=true;});
 $('#swapBtn').addEventListener('click',swapMelee);
 holdBtn('#healBtn',()=>useAid());
-$('#camBtn').addEventListener('click',()=>{camMode=(camMode+1)%3;caption(['Camera: follow','Camera: over the shoulder','Camera: high'][camMode],null,1400);});
+$('#camBtn').addEventListener('click',()=>{camMode=(camMode+1)%4;caption(['Camera: close','Camera: over the shoulder','Camera: wide','Camera: high'][camMode],null,1400);});
 $('#muteBtn').addEventListener('click',()=>{muted=!muted;auMute(muted);$('#muteBtn').textContent=muted?'Unmute':'Mute';});
 $('#pauseBtn').addEventListener('click',()=>{if(state!=='play')return;paused=!paused;$('#pauseBtn').textContent=paused?'Resume':'Pause';});
 $('#bubble').addEventListener('click',()=>openTV());
@@ -3126,7 +3221,7 @@ function hud(){
   const sb=$('#shootBtn'),gun=L.has.pistol||L.has.shotgun;sb.hidden=!gun;
   if(gun)sb.lastElementChild.textContent=L.has.shotgun&&L.ammo.shotgun?`${L.ammo.pistol} + ${L.ammo.shotgun}`:L.ammo.pistol;
   const hb=$('#healBtn');hb.hidden=!L.aid;hb.lastElementChild.textContent='×'+L.aid;
-  $('#dashBtn').classList.toggle('cool',L.dashCD>0);
+  { const ac=state==='play'?actionFor():null,b=$('#actBtn');b.textContent=ac?ac.label:'Action';b.classList.toggle('cool',!ac);b.classList.toggle('hot',!!ac&&ac.label!=='Looking'); }
   $('#atkBtn').textContent=L.anim==='crank'?'Turning':'Attack';
   // the bubble over the TV
   const showB=state==='play'&&!tv.done&&(tv.mode==='alert'||tv.mode==='cast')&&inHouse(L.x,L.y);
@@ -3159,6 +3254,15 @@ function drawOverlay(now){
     const p=toS(g[0],g[1],EV.channel&&!EV.open?16:10),d=Math.round(hyp(g[0]-L.x,g[1]-L.y)/10);
     if(onScreen(p)){if(EV.channel){ox.beginPath();ox.arc(p[0],p[1],10+pulse*4,0,TAU);ox.strokeStyle=COL.warn;ox.lineWidth=2;ox.stroke();label(EV.open?'INSIDE':'TURN THE WHEEL',p[0],p[1]-22,COL.warn,11,700);}}
     else edgeArrow(p[0],p[1],p[2]>1,'#ffd9a0',(EV.channel?'':'DRAIN ')+d+' m');
+  }
+  // things within reach that have not been gone through yet, and the search in progress
+  if(state==='play'&&!L.dead){
+    const near=L.search?L.search.o:searchNear();
+    for(const o of SEARCH){if(o.searched||o===near)continue;const cx=o.x+o.w/2,cy=o.y+o.h/2;if(hyp(cx-L.x,cy-L.y)>70)continue;const p=toS(cx,cy,o.tall?24:12);if(!onScreen(p))continue;ox.beginPath();ox.arc(p[0],p[1],3,0,TAU);ox.fillStyle='rgba(255,236,190,.55)';ox.fill();}
+    if(near){const p=toS(near.x+near.w/2,near.y+near.h/2,near.tall?26:14);
+      ox.lineWidth=4;ox.strokeStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();
+      if(L.search){ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],11,-PI/2,-PI/2+clamp(L.search.t/L.search.dur,0,1)*TAU);ox.stroke();}
+      else{ox.lineWidth=2;ox.strokeStyle='rgba(255,236,190,'+(.55+pulse*.4).toFixed(2)+')';ox.beginPath();ox.arc(p[0],p[1],11,0,TAU);ox.stroke();label('SEARCH',p[0],p[1]-20,'#ffecbe',10,700);}}
   }
   // valve progress and fuse
   if(EV.channel&&!EV.open&&EV.crank>0){const p=toS(VALVE.x,VALVE.y,30);ox.lineWidth=5;ox.strokeStyle='rgba(0,0,0,.6)';ox.beginPath();ox.arc(p[0],p[1],16,0,TAU);ox.stroke();ox.strokeStyle=COL.good;ox.beginPath();ox.arc(p[0],p[1],16,-PI/2,-PI/2+EV.crank*TAU);ox.stroke();label(Math.round(EV.crank*100)+'%',p[0],p[1],'#fff',10,700);}
@@ -3228,7 +3332,7 @@ $('#againBtn').addEventListener('click',()=>startGame(false));
 
 /* ===== 90-main.js ===== */
 /* Camera, quality scaling, and the frame loop. */
-let composer=null,bloom=null,camSnap=true;
+let composer=null,bloom=null,camSnap=true,insideNow=false,inK=0;
 const cam={x:296,y:1362,h:12,yaw:-PI/2,pitch:.5,dist:150};
 function setupFX(){
   if(!T.EffectComposer||!T.UnrealBloomPass||!T.RenderPass)return;
@@ -3266,9 +3370,11 @@ function camTick(dt){
   }
   const portrait=cw/ch<1,inside=inHouse(L.x,L.y);
   let tp,td,th=12,lead=.2;
+  const indoors=insideNow;
   if(camMode===1){tp=.3;td=84;th=16;lead=.1;}
-  else if(camMode===2){tp=1.02;td=portrait?300:250;}
-  else{tp=portrait?.5:.4;td=portrait?178:150;if(inside){tp+=.16;td*=.74;}}
+  else if(camMode===3){tp=1.02;td=portrait?300:250;}
+  else if(camMode===2){tp=portrait?.5:.4;td=portrait?178:150;if(indoors){tp+=.16;td*=.74;}}
+  else{tp=portrait?.46:.36;td=portrait?118:102;th=14;lead=.3;if(indoors){tp=.92;td=portrait?132:104;th=8;lead=.15;}}      // close: the default
   td*=camZoom;
   let fx=L.x+L.vx*lead,fy=L.y+L.vy*lead;
   if(state==='tv'){fx=TVPOS.x;fy=TVPOS.y+18;tp=.16;td=58;th=17;}
@@ -3284,7 +3390,7 @@ function camTick(dt){
   camera.lookAt(cam.x+Math.cos(cam.yaw)*18,cam.h,cam.y+Math.sin(cam.yaw)*18);camera.updateMatrixWorld();
   cam.cx=cx;cam.cy=cy;
 }
-let last=performance.now(),hudT=0,fireSnd=0;
+let inLight=null,last=performance.now(),hudT=0,fireSnd=0;
 function frame(nowMs){
   requestAnimationFrame(frame);
   const rdt=Math.min(.05,(nowMs-last)/1000),now=nowMs/1000;last=nowMs;
@@ -3300,7 +3406,7 @@ function frame(nowMs){
       tvc.drawImage(tvCan,0,0,480,270);$('#tvsub').innerHTML=tvSubHTML();
       if(tv.done&&!EV.tvEnd){EV.tvEnd=true;setTimeout(closeTV,1400);}
     }
-    input.atkP=input.shootP=input.dashP=false;
+    input.atkP=input.shootP=input.jumpP=input.actP=false;
     // in-world TV subtitles when you're in the house but not watching
     if(state==='play'&&tv.mode==='cast'&&tv.sub&&inHouse(L.x,L.y)){const c=$('#cap');c.innerHTML=`<b>TV${tv.sub.who?' · '+tv.sub.who:''}</b>`+tv.sub.text;c.classList.add('show');clearTimeout(capTimer);capTimer=setTimeout(()=>c.classList.remove('show'),700);}
     // figures
@@ -3314,6 +3420,11 @@ function frame(nowMs){
       if(!vis||(u.dead&&u.deadT>1.4&&!u.fig.flash))continue;
       if(adt>0||camSnap)figAnim(u.fig,u,adt||.016,now);
     }
+    // indoors is its own place: the daylight drops away, the lamps carry the room, the street goes dim and quiet
+    insideNow=state==='tv'||inHouse(L.x,L.y)||inSafe(L.x,L.y)||ROOMS.some(R=>inRoom(R,L.x,L.y));
+    inK+=((insideNow?1:0)-inK)*(1-Math.exp(-rdt*3));
+    if(state==='play'||state==='tv'||state==='dying'){sun.intensity=lerp(1.15,.22,inK);hemi.intensity=lerp(.56,.3,inK);scene.fog.density=lerp(.00135,.0034,inK);inLight.intensity=1.5*inK;inLight.position.set(L.x,21,L.y);}
+    else inLight.intensity=0;
     camTick(rdt);
     const wdt=paused?0:rdt;
     lightsTick(wdt,now,cam.x,cam.y);
@@ -3343,6 +3454,7 @@ function frame(nowMs){
 function boot(){
   aiInit();
   buildWorld();buildActors();setupFX();
+  inLight=new T.PointLight(0xffcf9a,0,190,1.4);scene.add(inLight);
   new ResizeObserver(resize).observe(stage);resize();
   // everyone in the level is sculpted before it starts, one figure per tick so the title card stays alive
   const btn=$('#startBtn'),label=btn.textContent;btn.disabled=true;

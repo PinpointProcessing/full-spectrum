@@ -148,7 +148,11 @@ function buildHome(){
         tvScreen=new T.Mesh(new T.PlaneGeometry(25,14.1),new T.MeshBasicMaterial({map:tvTex,toneMapped:false}));tvScreen.position.set(cx,19,cz-.1);scene.add(tvScreen);}
       else if(f==='tub')it.push(bx(o.w,7,o.h,cx,3.5,cz,0xe6e8e8),bx(o.w-5,1,o.h-5,cx,7,cz,0x9fc2cc));
       else if(f==='sink')it.push(bx(o.w,9,o.h,cx,4.5,cz,0xcfd3d2),bx(o.w,10,1,cx,18,o.y+o.h-.6,0x9fb7c8));
-      else if(f==='sofa')it.push(bx(o.w,5,o.h,cx,3.5,cz,0x54657a),bx(4,7,o.h,o.x+2,8.5,cz,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+2,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+o.h-2,0x4a5a6e));
+      else if(f==='sofa'){if(o.w<o.h)it.push(bx(o.w,5,o.h,cx,3.5,cz,0x54657a),bx(4,7,o.h,o.x+2,8.5,cz,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+2,0x4a5a6e),bx(o.w,4,4,cx,7,o.y+o.h-2,0x4a5a6e));
+        else it.push(bx(o.w,5,o.h,cx,3.5,cz,0x6a5a4a),bx(o.w,7,4,cx,8.5,o.y+2,0x5a4b3d),bx(4,4,o.h,o.x+2,7,cz,0x5a4b3d),bx(4,4,o.h,o.x+o.w-2,7,cz,0x5a4b3d));}
+      else if(f==='cot'){const lw=o.w>o.h;it.push(bx(o.w,4,o.h,cx,2.4,cz,0x4a3326),bx(o.w-1.5,3,o.h-1.5,cx,5.6,cz,0xa9a69e),lw?bx(o.w*.6,2.2,o.h-.6,cx+o.w*.18,7,cz,0x6a4a52):bx(o.w-.6,2.2,o.h*.6,cx,7,cz+o.h*.18,0x6a4a52),lw?bx(7,2,o.h-10,o.x+6,7.6,cz,0xc4c1b8):bx(o.w-10,2,7,cx,7.6,o.y+6,0xc4c1b8));}
+      else if(f==='chest')it.push(bx(o.w,11,o.h,cx,5.5,cz,0x5c4232),bx(o.w+.6,.6,o.h+.6,cx,7.6,cz,0x3f2c20),bx(o.w+.6,.6,o.h+.6,cx,3.8,cz,0x3f2c20),bx(o.w+1,.8,o.h+1,cx,11.2,cz,0x6e5140),bx(4,5,3,cx-o.w*.2,14,cz,0x8a9aa4));
+      else if(f==='shelf'){it.push(bx(o.w,21,o.h,cx,10.5,cz,0x4a3828));for(let k=0;k<4;k++)it.push(bx(o.w+.5,.7,o.h+.5,cx,2+k*5.4,cz,0x2e2218),bx(o.w>o.h?o.w*.7:o.w+.7,3.4,o.w>o.h?o.h+.7:o.h*.7,cx,4.2+k*5.4,cz,[0x7a3b32,0x3d5a6e,0x8a7d4a,0x4d6a48][k]));}
       else if(f==='table')it.push(bx(o.w,1.2,o.h,cx,5,cz,0x6a4a36),bx(o.w-4,4,o.h-4,cx,2.2,cz,0x4a3326),bx(5,1,7,cx-2,6,cz+3,0xd8d2c0));
       else it.push(bx(o.w,9.5,o.h,cx,4.75,cz,0x494540),bx(o.w+1,1,o.h+1,cx,10,cz,0xd4cec2));
       add(merge(it),vmat(),0,0,0);
@@ -181,7 +185,10 @@ function buildWorld(){
     R.roof=new T.Mesh(merge([bx(H.w+10,3,H.h+10,cx,WALLH+2.5,cz,H.roof),bx(H.w*.72,7,H.h*.72,cx,WALLH+7,cz,H.roof),bx(H.w*.4,6,H.h*.4,cx,WALLH+13,cz,H.roof)]),vmat({roughness:.95}));R.roof.castShadow=true;scene.add(R.roof);
     const d=R.door,dx=d.x+d.w/2,dz=d.y+d.h/2;R.grp=new T.Mesh(merge([bx(hz?d.w:2,21,hz?2:d.h,dx,10.5,dz,0x6a3d2b),bx(hz?8:2.4,6,hz?2.4:8,dx,16,dz,0x7b4a35)]),vmat({roughness:.6}));R.grp.castShadow=true;scene.add(R.grp);
     ring(R.out.x,R.out.y);
+    for(const q of R.lamp){emitter(q[0],q[1],19,0xffc98a,1.25,150,0,0);}
   }
+  { const it=[];for(const[x,y,w,h,c]of RUGS)it.push(bx(w,.3,h,x+w/2,.7,y+h/2,c),bx(w-5,.34,h-5,x+w/2,.72,y+h/2,(c&0xfefefe)>>1));
+    const m=new T.Mesh(merge(it),vmat({roughness:1}));m.receiveShadow=true;scene.add(m); }
   { // road flares
     const it=[];for(const[x,y]of FLARES){it.push(cy(.5,.5,5,6,x,.6,y,0xb3261e,0,0,PI/2));glowAt(x+2.5,2.5,y,0xff4a30,20);}
     scene.add(new T.Mesh(merge(it),vmat({roughness:.7})));

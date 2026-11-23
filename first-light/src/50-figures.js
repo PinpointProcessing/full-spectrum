@@ -552,6 +552,7 @@ function figAnim(f,u,dt,now){
     if(u.anim==='wave'){p.sLz=2.9+Math.sin(now*9)*.25;p.sLx=Math.sin(now*9)*.3;p.sRz=melee?2.5+Math.sin(now*4)*.2:2.9+Math.cos(now*9)*.25;p.sRx=0;p.eR=.3;p.eL=.2;p.wR=-.9;}
     else if(u.anim==='panic'){p.sLz=2.7+s*.45;p.sRz=2.7-s*.45;p.eL=p.eR=.35;p.sLx=-.3;p.sRx=.3;}
     else if(u.anim==='cower'){p.by=-5.8*ck;p.hL=p.hR=1.5;p.kL=p.kR=-2.3;p.lean=-.6;p.sLz=p.sRz=2.4;p.eL=p.eR=2;p.hz=-.4;}
+    else if(u.anim==='search'){p.sRz=1.05+Math.sin(now*9)*.3;p.sLz=1.05+Math.sin(now*9+2)*.3;p.eR=.6+Math.sin(now*6)*.3;p.eL=.6+Math.cos(now*6)*.3;p.lean=-.5;p.hL=p.hR=.25;p.kL=p.kR=-.3;p.by=-.6;}
     else if(u.anim==='crank'){p.sRz=1.25+Math.sin(now*7)*.45;p.sLz=1.25+Math.sin(now*7+PI)*.45;p.eR=p.eL=.7;p.lean=-.22;p.wR=0;gL=1;}
     if(u.shootT!==undefined&&u.shootT<.9){      // firing: only the gun arm comes up (Bryan); the other stays down and swings back a little with the kick
       const rc=u.shootT<.13?1-u.shootT/.13:0,kick=f.wname==='shotgun'?1.6:1;
@@ -574,11 +575,11 @@ function figAnim(f,u,dt,now){
         p.sLz=.25;p.sLx=-.35;p.eL=1;p.lean=-.16;p.hL=.5*st;p.hR=-.4*st;
       }
     }else if(u.ready&&W&&W.two)twoW=true;
-    if(u.dashT>0){p.lean=-.75;p.hL=.95;p.hR=-.85;p.kR=-1.3;p.sLz=-1;p.sRz=melee?.3:-1;p.by=-1*bk;rate=40;}
     if(u.hurtT>0){p.lean+=.35;p.hz=-.35;}
     if(u.lying){for(const k of PK)p[k]=0;p.sLx=-.25;p.sRx=.25;rate=40;}
   }
-  if(u.vault&&u.vault.h&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-1.25*q;p.sLz=p.sRz=1.9;p.eL=p.eR=.5;p.hL=.9*q;p.hR=.2*q;p.kL=-1.3*q;p.kR=-.5*q;p.hz=.5*q;p.by=0;p.twist=0;rate=30;}      // climbing over a window sill
+  if(u.vault&&u.vault.hop&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-.3*q;p.hL=.9*q;p.hR=.5*q;p.kL=-1.2*q;p.kR=-.9*q;p.sLz=.5*q;p.sRz=-.4*q;rate=30;}
+  else if(u.vault&&u.vault.h&&!u.dead){const q=Math.sin(PI*clamp(u.vault.t/u.vault.dur,0,1));p.lean=-1.25*q;p.sLz=p.sRz=1.9;p.eL=p.eR=.5;p.hL=.9*q;p.hR=.2*q;p.kL=-1.3*q;p.kR=-.5*q;p.hz=.5*q;p.by=0;p.twist=0;rate=30;}      // climbing over a window sill
   const k=1-Math.exp(-rate*dt),cu=f.cur;
   for(const key of PK)cu[key]+=(p[key]-cu[key])*k;
   J.body.position.y=cu.by;J.body.rotation.x=cu.br;
