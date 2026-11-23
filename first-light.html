@@ -78,6 +78,7 @@ button:disabled{opacity:.4;cursor:default}
 #atkBtn{right:0;bottom:0;width:88px;height:88px;font-size:14px;border-color:rgba(255,154,82,.9)!important;color:#ffd9bd}
 #shootBtn{right:96px;bottom:6px;width:64px;height:64px}
 #dashBtn{right:76px;bottom:80px;width:58px;height:58px}
+#swapBtn{right:168px;bottom:10px;width:54px;height:54px;font-size:11px}
 #healBtn{right:6px;bottom:98px;width:54px;height:54px;font-size:10.5px}
 #pad button.cool{opacity:.45}
 
@@ -151,6 +152,7 @@ button:disabled{opacity:.4;cursor:default}
       <div id="big"></div>
       <div id="pad">
         <button id="healBtn">Aid<small>0</small></button>
+        <button id="swapBtn" hidden>Swap</button>
         <button id="dashBtn">Dash</button>
         <button id="shootBtn">Fire<small>0</small></button>
         <button id="atkBtn">Attack</button>
@@ -397,15 +399,18 @@ function newsVoices(){
   const by=vs.slice().sort((a,b)=>score(b)-score(a)),m=by.find(v=>mal.test(v.name)&&!fem.test(v.name))||by[0],f=by.find(v=>fem.test(v.name))||by.find(v=>v!==m)||by[0];
   return{m,f,same:m===f};
 }
-function say(text,high,dur){
+function say(text,high,dur,voice){
   const miss=()=>{babble(dur,high?200:120,.07);};
   if(AU.muted)return;
+  if(AI.tts&&!say.noAI){      // a Claude voice when the app offers one; any refusal drops back to the device's speech for good
+    try{AI.tts.speak(text,{voice:voice||(high?'airy':'rounded'),rate:1}).catch(e=>{const c=e&&e.code;if(c&&c!=='replaced'&&c!=='cancelled'&&c!=='stopped'&&c!=='viewer_stopped'){say.noAI=true;}});return;}catch(e){say.noAI=true;}
+  }
   try{
     if(ttsOK===false||!('speechSynthesis' in window)||!window.SpeechSynthesisUtterance)return miss();
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);newsV=newsV||newsVoices();
     if(newsV)u.voice=high?newsV.f:newsV.m;
-    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
+    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=voice?.9:clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
     let started=false;u.onstart=()=>{started=true;ttsOK=true;};u.onerror=()=>{if(!started){ttsOK=false;}};
     speechSynthesis.speak(u);
     setTimeout(()=>{if(!started){ttsOK=false;try{speechSynthesis.cancel();}catch(e){}miss();}},650);
@@ -428,7 +433,7 @@ function gurgle(t,vol,dest,f0){
     tone('sine',rand(90,170),rand(45,80),rand(.06,.11),.22*vol*(.5+k),dest,tt+.01);}
   burst(520,110,2,.45,.45*vol,dest,t+dur-.25,'lowpass');                                           // the choke
 }
-function shutUp(){try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
+function shutUp(){try{if(AI.tts)AI.tts.stop();}catch(e){}try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
 
 /* looping beds: far sirens, wind, fire, helicopter, water, and a low drone that swells with danger */
 function startAmbience(){
@@ -519,6 +524,14 @@ const cruiser=O('car',336,520,24,46,{col:0xe9e9e9,police:1,rot:.3});
 const ambo=O('ambo',380,430,28,62,{col:0xf0f0ec});
 O('car',306,410,24,46,{col:0x6b4a58,style:'sedan'});
 O('fence',30,392,258,8);O('fence',432,392,258,8);
+/* ---- Ruth's garage: a barricaded room half way up the street, a place to stop and breathe ---- */
+const SAFE={x0:222,y0:518,x1:278,y1:566,dx:281,dy:542};
+{const a=objs.length;O('wall',216,512,68,6);O('wall',216,566,68,6);O('wall',216,518,6,48);O('wall',278,518,6,14);O('wall',278,552,6,14);O('furn',224,520,30,9,{f:'counter'});for(let i=a;i<objs.length;i++)objs[i].home=2;}
+const safeDoor=O('bdoor',278,532,6,20,{full:true,tall:true,home:2});
+const inSafe=(x,y)=>x>SAFE.x0&&x<SAFE.x1&&y>SAFE.y0&&y<SAFE.y1;
+/* flares someone dropped on the way to the drain, and the signs the county put up: the way through, without anyone saying it */
+const FLARES=[[360,1150],[352,1068],[300,962],[250,902],[244,846],[272,790],[356,706],[362,604],[300,548],[362,470],[362,400],[366,338],[366,272],[366,196]];
+const SIGNS=[[396,1178,0],[268,908,-1],[396,612,0],[404,300,0]];
 /* ---- street end, bank, channel, pipe ---- */
 O('rail',250,334,95,6);O('rail',385,334,85,6);
 O('car',314,276,24,46,{col:0x4b5d3f,wreck:1,rot:-.35});
@@ -915,7 +928,7 @@ function fadeTick(dt,cx,cy,fx,fy,inside){
 /* Builds the 3D neighborhood from the map objects, plus scenery that has no collision. */
 const tvCan=document.createElement('canvas');tvCan.width=384;tvCan.height=216;
 const tvTex=new T.CanvasTexture(tvCan);tvTex.encoding=T.sRGBEncoding;
-let doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
+let safeDoorGrp,doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
 
 function vehicle(o){
   const hz=o.w>=o.h,L=hz?o.w:o.h,Wd=hz?o.h:o.w,g=new T.Group(),it=[],lit=[];
@@ -1080,6 +1093,22 @@ function buildHome(){
 }
 
 function buildWorld(){
+  { // the barricade on Ruth's garage: planks nailed across the doorway
+    safeDoorGrp=new T.Group();const cx=safeDoor.x+3,cz=safeDoor.y+10,it=[bx(2.4,21,20,cx,10.5,cz,0x5a4030)];
+    for(let i=0;i<4;i++)it.push(bx(3.6,2.6,24,cx+.4,4+i*4.6,cz,0x8a6a42,rand(-.12,.12),0,0));
+    const m=new T.Mesh(merge(it),vmat({roughness:.9}));m.castShadow=true;safeDoorGrp.add(m);scene.add(safeDoorGrp);
+    glowAt(SAFE.dx+6,16,SAFE.dy,0xffd98a,22);
+  }
+  { // road flares
+    const it=[];for(const[x,y]of FLARES){it.push(cy(.5,.5,5,6,x,.6,y,0xb3261e,0,0,PI/2));glowAt(x+2.5,2.5,y,0xff4a30,20);}
+    scene.add(new T.Mesh(merge(it),vmat({roughness:.7})));
+  }
+  for(const[x,y,dir]of SIGNS){ // evacuation signs
+    const tex=canvasTex(256,128,(g,w,h)=>{g.fillStyle='#e8791c';g.fillRect(0,0,w,h);g.strokeStyle='#1a1410';g.lineWidth=8;g.strokeRect(6,6,w-12,h-12);g.fillStyle='#1a1410';g.textAlign='center';g.font='bold 30px sans-serif';g.fillText('EVACUATION',w/2,46);
+      g.font='bold 24px sans-serif';g.fillText('STORM DRAIN',w/2,80);g.font='bold 34px sans-serif';g.fillText(dir<0?'\u2190':'\u2191',w/2,116);},true);
+    const p=new T.Mesh(new T.PlaneGeometry(24,12),new T.MeshBasicMaterial({map:tex}));p.position.set(x,17,y);scene.add(p);
+    scene.add(new T.Mesh(merge([bx(1,22,1,x-8,11,y-.4,0x4a4a4a),bx(1,22,1,x+8,11,y-.4,0x4a4a4a)]),vmat()));
+  }
   buildLights();buildParts();buildDecals();buildStreaks();
   /* ground */
   ground(-900,-700,2520,2900,TX.grass,64,0xffffff,-.2);
@@ -1436,6 +1465,9 @@ person('jules','Jules','cast','slim','The slimmer round-headed build, small: hoo
 person('marisol','Marisol','cast','slim','The slimmer round-headed build as a woman: narrower shoulders and waist, ponytail, scrubs. Carries a butcher knife.',
   {lab:1,h:.93,weapon:'knife',body:FEM,head:{eye:1.25,brow:.85,angry:0,smile:.9,ears:.85,pony:1,lash:1},
    out:{sleeve:.45,vee:.4,tag:1},look:{skin:0xcf9670,tee:0x3fa39a,trim:0x2f837b,pants:0x3a968e,shoe:0xe6e6e6,sole:0xb8b8b8,hair:0x1c1412,brow:0x1c1412}});
+person('ruth','Ruth','cast','slim','The slimmer build, older: long grey hair, glasses, cardigan. She waits in the boarded-up garage.',
+  {lab:1,h:.92,body:Object.assign({},FEM,{waistW:1.9,hipW:2.05}),head:{eye:1.1,brow:.8,angry:0,smile:.4,long:1,hairT:.055,glasses:1},
+   out:{sleeve:1,belt:0,vee:.35},look:{skin:0xe3b99a,tee:0x6a5a8a,trim:0x52456c,pants:0x4a4f58,shoe:0x5a4030,sole:0x2a211b,hair:0xcfcfcf,brow:0xa8a8a8}});
 /* zombies: grey-green skin, sunken eyes, blood, torn clothes. Each is one outfit on one of the two builds. */
 const ZH={zed:1,brow:1.3,angry:.8},ZO={blood:1,zed:1};
 const zed=(id,name,build,o)=>person(id,name,'zed',build,o.blurb||'',Object.assign({zed:1},o,{head:Object.assign({},ZH,o.head),out:Object.assign({},ZO,o.out)}));
@@ -1954,6 +1986,55 @@ function tvDraw(){
 }
 function tvSubHTML(){return tv.sub?(tv.sub.who?`<b>${tv.sub.who}</b>`:'')+tv.sub.text:'';}
 
+/* ===== 62-ai.js ===== */
+/* Claude in the game, when the page can reach it (as in Ashvale): it writes what people say, and it reads the broadcast aloud.
+   Everything here is optional. With no Claude the set lines and the device's own speech are used and nothing else changes. */
+const AI={sample:null,tts:null,asked:false,banter:null,used:{},talkT:22};
+function aiInit(){
+  try{if(!window.claude||typeof window.claude.use!=='function')return;
+    window.claude.use('sample').then(s=>{AI.sample=s||null;}).catch(()=>{});
+    window.claude.use('tts').then(t=>{AI.tts=t||null;}).catch(()=>{});}catch(e){}
+}
+const aiOff=e=>{const c=e&&e.code;if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(c))AI.sample=null;};
+const clean=(t,n)=>typeof t==='string'?t.replace(/\s+/g,' ').trim().slice(0,n):'';
+/* once, when the game is started: tonight's wording of the broadcast, and a few lines for each survivor */
+function aiBrief(){
+  if(!AI.sample||AI.asked)return;AI.asked=true;
+  const P=['You are writing dialogue for a small zombie-survival game set in an American suburb at dawn. Tone: played straight, a little dry, never jokey.',
+    'PART 1, a local TV emergency broadcast read by two anchors, Hal Brenner and Denise Carroway. Calm, flat newsreader voices. Exactly 6 lines, alternating Hal, Denise, Hal, Denise, Hal, Denise:',
+    '1 Hal: interrupting for an emergency broadcast (max 10 words). 2 Denise: a highly contagious virus is spreading locally (max 16 words). 3 Hal: the infected lose their minds and attack people (max 15 words). 4 Denise: do not approach them or try to help them, even people you know (max 15 words). 5 Hal: begins advice for anyone bitten, then breaks off because of a noise; must end with the words "what was that?" (max 11 words). 6 Denise: alarmed, to Hal, about the studio door (max 7 words).',
+    'PART 2, four survivors the player rescues. For each, 4 short lines (max 14 words each) in their own voice: "join" (just rescued), "fight" (zombies close), "hurt" (wounded), "calm" (a quiet moment walking).',
+    'Walt: 70s, bathrobe, golf club, was on his van roof all night, gruff and wry. Jules: teenager, skateboard, scared but quick. Marisol: nurse in scrubs, butcher knife, practical, heals the group. Dunn: police officer, tired, dutiful, low on ammunition.',
+    'Reply with only JSON: {"news":["…",6 strings],"banter":{"walt":{"join":"…","fight":"…","hurt":"…","calm":"…"},"jules":{…},"marisol":{…},"dunn":{…}}}'].join('\n');
+  AI.sample.json(P,{modelTier:'quick'}).then(r=>{
+    if(!r||typeof r!=='object')return;
+    if(Array.isArray(r.news)&&r.news.length===6&&tv.mode!=='cast'&&!tv.done)r.news.forEach((t,i)=>{t=clean(t,150);if(t&&t.split(' ').length<=CAST[i].d*3.2+2)CAST[i].text=t;});
+    if(r.banter&&typeof r.banter==='object')AI.banter=r.banter;
+  }).catch(aiOff);
+}
+function aiLine(key,kind){
+  const b=AI.banter&&AI.banter[key],t=b&&clean(b[kind],110);if(!t||AI.used[key+kind])return '';AI.used[key+kind]=1;return t;
+}
+/* now and then one of the people with you says something that fits the moment */
+function allyTalk(dt){
+  if(!AI.banter||SF.in)return;AI.talkT-=dt;if(AI.talkT>0)return;AI.talkT=rand(16,26);
+  const a=pick(allies.filter(x=>!x.dead));if(!a)return;
+  const close=zeds.some(z=>!z.dead&&!z.far&&hyp(z.x-a.x,z.y-a.y)<70),t=aiLine(a.key,a.hp<a.maxhp*.5?'hurt':close?'fight':'calm');
+  if(t){floatText(a,t,COL.ally);}
+}
+/* Ruth, in her garage, talks about what she can actually see: who you came in with and what state you are in */
+function aiRuth(){
+  if(!AI.sample)return;
+  const who=allies.filter(a=>!a.dead).map(a=>a.name),P=['You are Ruth, 68, a retired school bus driver hiding in her boarded-up garage on Sycamore Court during the first morning of a zombie outbreak. A stranger has just come in off the street and you have barred the door behind them.',
+    `What you can see: the stranger is ${L.hp<L.maxhp*.5?'badly hurt':L.hp<L.maxhp*.85?'scratched up':'unhurt'}, carrying ${L.melee==='fists'?'nothing':'a '+MELEE[L.melee].name.toLowerCase()}. ${who.length?'With them: '+who.join(', ')+'.':'They are alone.'} They have put down ${stats.kills} of the infected so far.`,
+    'Say four short things, one at a time (max 22 words each), plain and warm and unsentimental: 1) a greeting that reacts to what you see; 2) something you have learned: they follow noise; 3) where to go: the storm drain at the north end, the red wheel by the grate takes a minute to turn, hold them off while it turns; 4) why you are staying (your knees) and a goodbye telling them to bar the door.',
+    'Reply with only JSON: {"lines":["…","…","…","…"]}'].join('\n');
+  AI.sample.json(P,{modelTier:'quick',cache:false}).then(r=>{
+    const ls=r&&Array.isArray(r.lines)?r.lines.map(t=>clean(t,170)).filter(Boolean):[];
+    if(ls.length>=3&&SF.in)for(let i=SF.i;i<Math.min(ls.length,SF.lines.length);i++)SF.lines[i]=ls[i];      // lines she has not said yet are replaced
+  }).catch(aiOff);
+}
+
 /* ===== 70-game.js ===== */
 /* Game rules: you, the zombies, the people who follow you, and how fights resolve. */
 let state='intro',paused=false,simT=0,hitStop=0,slowT=0,shakeAmt=0,hurtFlash=0;
@@ -1963,16 +2044,31 @@ const input={mx:0,my:0,atkP:false,shootP:false,shootH:false,dashP:false,aimX:nul
 const _fs={x:0,y:0};
 const MELEE={
   fists:{name:'Fists',dmg:[9,13],range:15,arc:.95,dur:.24,kb:55},
-  bat:{name:'Bat',dmg:[24,32],range:23,arc:1.1,dur:.36,kb:110},
-  club:{name:'7-iron',dmg:[17,23],range:21,arc:.9,dur:.44,kb:80},
-  board:{name:'Skateboard',dmg:[11,15],range:19,arc:.9,dur:.32,kb:60},
-  iron:{name:'Tire iron',dmg:[14,18],range:19,arc:.9,dur:.4,kb:70},
-  baton:{name:'Baton',dmg:[14,18],range:19,arc:.9,dur:.38,kb:65},
-  knife:{name:'Butcher knife',dmg:[15,20],range:16,arc:.8,dur:.25,kb:35},
-  pan:{name:'Frying pan',dmg:[16,21],range:18,arc:1.05,dur:.36,kb:130},
-  ciron:{name:'Clothes iron',dmg:[26,34],range:15,arc:.8,dur:.46,kb:90},
-  hammer:{name:'Hammer',dmg:[20,26],range:17,arc:.85,dur:.34,kb:75},
+  bat:{name:'Bat',dmg:[24,32],range:23,arc:1.1,dur:.36,kb:110,uses:60},
+  club:{name:'7-iron',dmg:[17,23],range:21,arc:.9,dur:.44,kb:80,uses:45},
+  board:{name:'Skateboard',dmg:[11,15],range:19,arc:.9,dur:.32,kb:60,uses:30},
+  iron:{name:'Tire iron',dmg:[14,18],range:19,arc:.9,dur:.4,kb:70,uses:55},
+  baton:{name:'Baton',dmg:[14,18],range:19,arc:.9,dur:.38,kb:65,uses:50},
+  knife:{name:'Butcher knife',dmg:[15,20],range:16,arc:.8,dur:.25,kb:35,uses:50},
+  pan:{name:'Frying pan',dmg:[16,21],range:18,arc:1.05,dur:.36,kb:130,uses:40},
+  ciron:{name:'Clothes iron',dmg:[26,34],range:15,arc:.8,dur:.46,kb:90,uses:35},
+  hammer:{name:'Hammer',dmg:[20,26],range:17,arc:.85,dur:.34,kb:75,uses:55},
 };
+/* ---- what You carry: up to two melee weapons, one in hand. They wear out with every hit that lands and then break. ---- */
+function giveMelee(kind,left){
+  const u=L,W={kind,left:left===undefined?MELEE[kind].uses:left};let dropped=null;
+  if(u.bag.length<2)u.bag.push(W);else{dropped=u.bag[u.hand];u.bag[u.hand]=W;}
+  u.hand=u.bag.indexOf(W);u.melee=kind;setWeapon(u.fig,kind);return dropped;
+}
+function swapMelee(){
+  const u=L;if(!u||u.dead||u.atk||u.bag.length<2)return;
+  u.hand=1-u.hand;u.melee=u.bag[u.hand].kind;setWeapon(u.fig,u.melee);sfx('pickup');floatText(u,MELEE[u.melee].name.toUpperCase(),'#fff');
+}
+function wearMelee(n){
+  const u=L,W=u.bag[u.hand];if(!W)return;W.left-=n;if(W.left>0)return;
+  const name=MELEE[W.kind].name;u.bag.splice(u.hand,1);u.hand=0;u.melee=u.bag.length?u.bag[0].kind:'fists';setWeapon(u.fig,u.melee==='fists'?null:u.melee);
+  sfx('crash',u.x,u.y,.7);floatText(u,name.toUpperCase()+' BROKE',COL.bad);caption(u.bag.length?`The ${name.toLowerCase()} breaks. You pull out the ${MELEE[u.melee].name.toLowerCase()}.`:`The ${name.toLowerCase()} breaks. You are down to your fists.`,null,3200);
+}
 /* start = how far away it begins an attack, lunge = how fast it comes at you during the strike */
 const ZT={shambler:{hp:[58,76],speed:[18,24],dmg:[10,14],wind:.42,rec:.75,sight:170,start:24,lunge:95},runner:{hp:[36,44],speed:[72,80],dmg:[7,10],wind:.24,rec:.6,sight:250,start:27,lunge:210},brute:{hp:[330,330],speed:[26,26],dmg:[22,28],wind:.6,rec:.9,sight:220,start:32,lunge:140}};
 const turn=(a,b,k)=>a+angDiff(a,b)*Math.min(1,k);
@@ -1989,7 +2085,7 @@ function shake(a){shakeAmt=Math.min(9,shakeAmt+a);}
 /* ---- making things ---- */
 function base(kind,x,y,ang,fig){return{kind,x,y,z:0,ang:ang||0,kx:0,ky:0,vx:0,vy:0,spd:0,dead:false,deadT:0,fig,anim:null,stag:0};}
 function mkYou(x,y){
-  const u=Object.assign(base('you',x,y,-PI/2,makeFig(SPEC.you)),{name:'You',hp:160,maxhp:160,speed:61,slowT:0,melee:'fists',has:{pistol:false,shotgun:false},ammo:{pistol:0,shotgun:0},aid:0,
+  const u=Object.assign(base('you',x,y,-PI/2,makeFig(SPEC.you)),{name:'You',hp:160,maxhp:160,speed:61,slowT:0,melee:'fists',bag:[],hand:0,has:{pistol:false,shotgun:false},ammo:{pistol:0,shotgun:0},aid:0,
     atk:null,combo:0,comboT:0,wantAtk:0,dashT:0,dashCD:0,dvx:0,dvy:0,inv:0,hurtT:0,shootT:9,shootCD:0,lying:false,upT:0,lyingH:0,stepAcc:0,lungeT:0,lvx:0,lvy:0});
   ents.push(u);return u;
 }
@@ -2024,12 +2120,12 @@ function mkCorpse(x,y,ang){
 }
 const ITEMG={aid:()=>[bx(6,4,4,0,0,0,0xe8e8e8),bx(2.4,.9,4.1,0,0,0,0xd2332a),bx(.9,2.4,4.1,0,0,0,0xd2332a)],ammo:()=>[bx(5,3,3.4,0,0,0,0x3a4a36),bx(5.1,.8,3.5,0,.6,0,0xd0b040)],shells:()=>[bx(5,3,3.4,0,0,0,0x8a2a1e),bx(5.1,.8,3.5,0,.6,0,0xd0b040)]};
 const ITEMN={bat:'Baseball bat',pistol:'Pistol',shotgun:'Shotgun',aid:'First aid',ammo:'9mm rounds',shells:'Shells',club:'7-iron',board:'Skateboard',iron:'Tire iron',baton:'Baton',knife:'Butcher knife',pan:'Frying pan',ciron:'Clothes iron',hammer:'Hammer'};
-function mkItem(kind,x,y){
+function mkItem(kind,x,y,left){
   // weapons lie in the world as the same model you end up holding
   const W=WEAP[kind],m=new T.Mesh(W?weapGeo(kind):merge(ITEMG[kind]()),W?WMAT:vmat({roughness:.5,metalness:.2}));m.castShadow=true;m.position.set(x,9,y);
   if(W){m.scale.setScalar(W.gun?1.4:W.two?1.15:1.5);if(!W.gun)m.rotation.z=1.1;}scene.add(m);
   const g=glowAt(x,6,y,kind==='aid'?0x7dffb0:0xffd98a,26);
-  const it={kind,x,y,m,g,taken:false};items.push(it);return it;
+  const it={kind,x,y,m,g,taken:false,left};items.push(it);return it;
 }
 
 /* ---- noise: gunfire, alarms and breaking glass pull in anything that isn't already chasing someone ---- */
@@ -2135,6 +2231,7 @@ function meleeResolve(a){
     hits++;if(crit)crits++;
   }
   if(smash){fxDust(u.x+Math.cos(u.ang)*range*.7,u.y+Math.sin(u.ang)*range*.7,6);shake(1.2);}
+  if(hits&&u.melee!=='fists')wearMelee(smash?2:1);
   if(hits){
     hitStop=crits?.12:smash?.09:.055;shake(crits?4:smash?3:1.6);
     sfx(u.melee==='fists'?'punch':crits||smash?'crack':'hit');makeNoise(u.x,u.y,60);
@@ -2243,9 +2340,10 @@ function youUpdate(dt){
     if(it.hold){if(!near)it.hold=false;continue;}      // something you just put down: step away before it can be picked up again
     if(!near)continue;
     it.taken=true;scene.remove(it.m);scene.remove(it.g);sfx('pickup');
-    if(MELEE[it.kind]){      // a melee weapon: take it, and leave the one you were carrying in its place
-      const old=u.melee;u.melee=it.kind;setWeapon(u.fig,it.kind);floatText(u,MELEE[it.kind].name.toUpperCase(),COL.good);EV.armed=true;
-      if(old!=='fists')mkItem(old,it.x,it.y).hold=true;
+    if(MELEE[it.kind]){      // a melee weapon: you carry two. A third replaces the one in your hand, which is left where this one lay
+      const full=u.bag.length>=2,old=giveMelee(it.kind,it.left);floatText(u,MELEE[it.kind].name.toUpperCase(),COL.good);EV.armed=true;
+      if(old)mkItem(old.kind,it.x,it.y,old.left).hold=true;
+      if(u.bag.length===2&&!EV.swapTip){EV.swapTip=true;caption('You carry two weapons. SWAP (or Q) changes which is in your hand. They wear out.',null,5200);}
     }
     else if(it.kind==='pistol'){u.has.pistol=true;u.ammo.pistol+=8;floatText(u,'PISTOL · 8 ROUNDS',COL.good);}
     else if(it.kind==='ammo'){u.ammo.pistol+=8;floatText(u,'+8 ROUNDS',COL.good);}
@@ -2426,7 +2524,9 @@ function recruit(s){
   if(s.exit){s.x=s.exit.x;s.y=s.exit.y;}
   const sp=isFree(s.x,s.y,6)?s:openSpot(s.x,s.y,null,60);if(sp){s.x=sp.x;s.y=sp.y;}
   allies.push(s);rebuildHumans();hudAllies();
-  sfx('join');caption(SURV[s.key].line,s.name,4200);floatText(s,`${s.name.toUpperCase()} JOINED`,COL.ally);
+  sfx('join');caption(aiLine(s.key,'join')||SURV[s.key].line,s.name,4200);floatText(s,`${s.name.toUpperCase()} JOINED`,COL.ally);
+  EV.joinT=simT+9;EV.joinWho=s.name;
+  if(!EV.joinTip){EV.joinTip=true;setTimeout(()=>{if(state==='play')caption(`${s.name} follows you and fights on their own. Just keep moving. Their health is under yours.`,null,5600);},4400);}
   for(const z of zeds)if(z.tgt===s)z.anim=null;
 }
 function survIdle(s,dt){
@@ -2551,7 +2651,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  setupPortals();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();safeReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -2592,7 +2692,7 @@ function reset(fromDoor){
   if(fromDoor){
     tv.mode='dead';tv.done=true;EV.tvSeen=true;EV.up=true;EV.armed=true;EV.breakIn=true;EV.z0={dead:true};
     breakPortal(portalOf(fwin),true);breakPortal(portalOf(fdoor),true);EV.doorK=1;doorPivot.rotation.y=1.9;
-    L.lying=false;L.lyingH=0;L.x=361;L.y=1236;L.melee='bat';L.has.pistol=true;L.ammo.pistol=8;L.aid=1;setWeapon(L.fig,'bat');
+    L.lying=false;L.lyingH=0;L.x=361;L.y=1236;giveMelee('bat');L.has.pistol=true;L.ammo.pistol=8;L.aid=1;
     for(const it of items.slice(0,3)){it.taken=true;scene.remove(it.m);scene.remove(it.g);}
     if(bedBlanket)bedBlanket.position.set(0,-1.4,6);
   }
@@ -2604,7 +2704,13 @@ function setGoal(){
   else if(!EV.armed&&!EV.breakIn){g='Find something to fight with';s='There’s a bat by the bedroom window';}
   else if(EV.breakIn&&EV.z0&&!EV.z0.dead){g='Something is in the house';s=L.melee==='fists'?'Grab the bat':'Put it down';}
   else if(!EV.out){g='Get out the front door';}
-  else if(!EV.channel){g='Head north to the storm drain';s=allies.length<4&&survs.some(x=>!x.recruited&&!x.dead)?'People are calling for help':'';}
+  else if(SF.in){g='Catch your breath';s=SF.chatDone?'Step to the door when you are ready':'Ruth has the door';}
+  else if(!EV.channel){g='Follow the flares north';
+    const near=survs.filter(x=>!x.recruited&&!x.dead&&!x.hidden&&hyp(x.x-L.x,x.y-L.y)<170).sort((a,b)=>hyp(a.x-L.x,a.y-L.y)-hyp(b.x-L.x,b.y-L.y))[0];
+    if(EV.joinT>simT)s=`${EV.joinWho} is with you now`;
+    else if(near)s=`${near.name} needs help: clear the zombies around them`;
+    else if(!SF.done&&hyp(SAFE.dx-L.x,SAFE.dy-L.y)<190)s='A light in the boarded-up garage';
+    else if(allies.length<4&&survs.some(x=>!x.recruited&&!x.dead))s='People are calling for help';}
   else if(!EV.open){g='Open the grate';s='Stand at the red wheel and hold your ground';}
   else{g='Get inside the pipe';}
   const key=g+'|'+s;if(key!==EV.goal){EV.goal=key;$('#goal').innerHTML=g+(s?`<small>${s}</small>`:'');}
@@ -2651,6 +2757,7 @@ function script(dt){
   if(EV.knockT>0&&!EV.doorOpen){EV.knockT-=dt;if(EV.knockT<=0){const z=mkZed('shambler',361,1200,{look:2});if(z){z.state='chase';z.tgt=L;z.track=simT+150;z.doorOnly=true;z.ang=PI/2;EV.knock=z;caption('Something is pounding on the front door.',null,3200);}}}
   if(!EV.doorOpen){const pd=portalOf(fdoor);if(pd&&pd.rattle>0){pd.rattle-=dt;doorPivot.rotation.y=Math.sin(simT*70)*.05*pd.rattle/.25;}else doorPivot.rotation.y=0;}
   if(EV.doorOpen&&EV.doorK<1){EV.doorK=Math.min(1,EV.doorK+dt*3);doorPivot.rotation.y=ease(EV.doorK)*1.9;}
+  safeTick(dt);allyTalk(dt);
   /* 3. outside */
   if(!EV.out&&L.y<1216&&!inHouse(L.x,L.y)){
     EV.out=true;bigText('Sycamore Court',2600);EV.heliT=0;spawnT=14;
@@ -2677,7 +2784,7 @@ function script(dt){
   }
   if(EV.alarmT>0){
     const b=Math.floor(EV.alarmT/1.5);EV.alarmT-=dt;
-    if(Math.floor(EV.alarmT/1.5)!==b){sfx('alarm',585,1119,1,800);makeNoise(585,1119,430);floats.push({x:585,y:1119,h:24,text:'WEE-OO WEE-OO',col:COL.warn,t:0});}
+    if(Math.floor(EV.alarmT/1.5)!==b){sfx('alarm',585,1119,1,800);makeNoise(585,1119,430);}
   }
   if(EV.geyser){
     for(let i=0;i<3;i++)emit(pDrop,538+rand(-1,1),1092+rand(-1,1),8,rand(-16,16),rand(-16,16),rand(120,190),rand(1.6,3),rand(.8,1.4),.7,.82,.95,.6,260,.3,0,2);
@@ -2800,6 +2907,39 @@ function gameOver(){
   $('#deadText').textContent=left?`Without you, ${left===1?allies.find(a=>!a.dead).name+' doesn’t last the hour':'the others scatter'}. Nobody reaches the drain.`:'The street takes one more.';
   setTimeout(()=>{if(state==='dying'){state='dead';$('#dead').hidden=false;$('#hud').hidden=true;}},2100);
 }
+/* ---- Ruth's garage: knock, get let in, the door is barred behind you, a short talk and a breather, then out again ---- */
+const SF={in:false,done:false,open:false,t:0,i:0,lines:null,chatDone:false,ruth:null,away:0};
+const RUTH_LINES=['Sit. Breathe. Nothing gets through that door, I nailed it myself.','They follow noise. Glass, gunshots, that car alarm. Quiet feet live longer.','The county signs say storm drain. There is a red wheel by the grate, it takes a minute to turn. Do not let them crowd you while you turn it.','My knees will not make that walk. Go on. Bar the door behind you.'];
+function safeDoorSet(open){SF.open=open;if(open)removeObj(safeDoor);else addObj(safeDoor);safeDoorGrp.visible=!open;sfx('bang',SAFE.dx,SAFE.dy,.6);}
+function safeReset(){
+  SF.in=false;SF.done=false;SF.t=0;SF.i=0;SF.lines=null;SF.chatDone=false;SF.called=false;addObj(safeDoor);SF.open=false;safeDoorGrp.visible=true;
+  SF.ruth=Object.assign(base('prop',236,548,0,makeFig(BYID.ruth)),{name:'Ruth'});ents.push(SF.ruth);
+  mkItem('aid',262,526);
+}
+function safeTick(dt){
+  const dd=hyp(SAFE.dx-L.x,SAFE.dy-L.y),inside=inSafe(L.x,L.y),r=SF.ruth;
+  if(r){const a=Math.atan2(L.y-r.y,L.x-r.x);r.ang=turn(r.ang,a,dt*4);}
+  if(!SF.done&&!SF.in){
+    if(!SF.called&&dd<150){SF.called=true;floatText({x:SAFE.dx,y:SAFE.dy,z:0},'In here! Quick!',COL.ally);}
+    if(!SF.open&&dd<24&&!inside)safeDoorSet(true);
+    if(SF.open&&inside&&L.x<SAFE.x1-8){      // you are in: bring your people in, bar the door
+      const spots=[[262,556],[266,528],[246,528],[252,558]];allies.forEach((a,i)=>{if(a.dead)return;a.x=spots[i%4][0];a.y=spots[i%4][1];a.safe=true;a.vault=null;a.foe=null;});
+      safeDoorSet(false);SF.in=true;SF.t=0;SF.i=0;L.safe=true;SF.lines=RUTH_LINES.slice();aiRuth();
+      for(const z of zeds)if(inSafe(z.x,z.y)&&!z.dead)z.x=SAFE.dx+30;
+    }
+    if(SF.open&&!inside&&dd>60)safeDoorSet(false);
+  }
+  if(SF.in){
+    SF.t+=dt;
+    for(const h of[L,...allies])if(!h.dead)h.hp=Math.min(h.maxhp,h.hp+9*dt);
+    if(!SF.chatDone&&SF.t>1+SF.i*4.4){if(SF.i<SF.lines.length){const t=SF.lines[SF.i++];caption(t,'Ruth',4200);say(t,true,4,'glassy');}else SF.chatDone=true;}
+    // out again: walk into the door from the inside once she has said her piece (or you have been here a few seconds)
+    if(SF.t>4&&L.x>SAFE.x1-10&&Math.abs(L.y-SAFE.dy)<12&&input.mx>.3){
+      safeDoorSet(true);SF.in=false;SF.done=true;L.safe=false;for(const a of allies)a.safe=false;shutUp();
+    }
+  }
+  if(SF.done&&SF.open&&!inside&&dd>46){safeDoorSet(false);caption('The bar drops back across the door behind you.',null,2600);}
+}
 function escape(){
   if(state!=='play')return;
   state='escape';sfx('clang');$('#fade').classList.add('on');$('#hud').hidden=true;$('#bubble').hidden=true;
@@ -2848,6 +2988,7 @@ addEventListener('keydown',e=>{
   else if(e.code==='KeyE'||e.code==='Enter'){if(!$('#bubble').hidden)openTV();}
   else if(e.code==='KeyQ'||e.code==='KeyH')useAid();
   else if(e.code==='KeyC')$('#camBtn').click();
+  else if(e.code==='KeyQ')swapMelee();
   else if(e.code==='KeyM')$('#muteBtn').click();
   else if(e.code==='KeyP'||e.code==='Escape')$('#pauseBtn').click();
 });
@@ -2885,6 +3026,7 @@ function holdBtn(sel,down,up){
 holdBtn('#atkBtn',()=>{input.atkP=true;input.atkH=true;input.aimX=null;},()=>{input.atkH=false;});
 holdBtn('#shootBtn',()=>{input.shootP=true;input.shootH=true;input.aimX=null;},()=>{input.shootH=false;});
 holdBtn('#dashBtn',()=>{input.dashP=true;});
+$('#swapBtn').addEventListener('click',swapMelee);
 holdBtn('#healBtn',()=>useAid());
 $('#camBtn').addEventListener('click',()=>{camMode=(camMode+1)%3;caption(['Camera: follow','Camera: over the shoulder','Camera: high'][camMode],null,1400);});
 $('#muteBtn').addEventListener('click',()=>{muted=!muted;auMute(muted);$('#muteBtn').textContent=muted?'Unmute':'Mute';});
@@ -2931,7 +3073,7 @@ let hudTgt=null;
 function hud(){
   if(!L)return;
   $('#youHp').firstElementChild.style.width=clamp(L.hp/L.maxhp*100,0,100)+'%';
-  const kit=[MELEE[L.melee].name];if(L.has.pistol)kit.push('Pistol '+L.ammo.pistol);if(L.has.shotgun)kit.push('Shotgun '+L.ammo.shotgun);
+  const kit=L.bag.length?L.bag.map((w,i)=>(i===L.hand?'':'(')+MELEE[w.kind].name+' '+Math.ceil(w.left/MELEE[w.kind].uses*100)+'%'+(i===L.hand?'':')')):[MELEE[L.melee].name];$('#swapBtn').hidden=L.bag.length<2;if(L.has.pistol)kit.push('Pistol '+L.ammo.pistol);if(L.has.shotgun)kit.push('Shotgun '+L.ammo.shotgun);
   $('#youKit').textContent=kit.join(' · ');
   for(const s of survs)if(s.row){s.row.classList.toggle('dead',s.dead);s.row.querySelector('i').style.width=clamp(s.hp/s.maxhp*100,0,100)+'%';}
   const sb=$('#shootBtn'),gun=L.has.pistol||L.has.shotgun;sb.hidden=!gun;
@@ -3028,7 +3170,7 @@ $('#nameForm').addEventListener('submit',e=>{
   $('#nameForm').hidden=true;$('#roster').hidden=false;$('#againBtn').hidden=false;sfx('join');
 });
 function startGame(fromDoor){
-  auInit();
+  auInit();aiBrief();
   for(const id of['#intro','#dead','#end'])$(id).hidden=true;
   reset(fromDoor);state='play';$('#hud').hidden=false;camSnap=true;
 }
@@ -3130,7 +3272,7 @@ function frame(nowMs){
     lightsTick(wdt,now,cam.x,cam.y);
     if(wdt>0){fireTick(wdt,cam.x,cam.y);partsTick(pFire,wdt);partsTick(pSmoke,wdt);partsTick(pDrop,wdt);streaksTick(wdt);for(const f of world.tick)f(wdt,now);}
     const cpx=camera.position.x,cpz=camera.position.z;
-    fadeTick(rdt,cpx,cpz,L.x,L.y,inHouse(L.x,L.y)||state==='tv'||(cpx>HS.x0-40&&cpx<HS.x1+40&&cpz>HS.y0-20&&cpz<HS.y1+90));
+    fadeTick(rdt,cpx,cpz,L.x,L.y,inHouse(L.x,L.y)||inSafe(L.x,L.y)||state==='tv'||(cpx>HS.x0-40&&cpx<HS.x1+40&&cpz>HS.y0-20&&cpz<HS.y1+90));
     // screen glow from the TV, cop lights
     const tvOn=tv.mode!=='dead'||Math.floor(now*2)%2;tvLight.intensity=(tvOn?1.5:.7)+Math.sin(now*11)*.25+Math.random()*.2;
     tvLight.color.setHex(tv.mode==='morning'?0xffc890:tv.mode==='cast'&&tv.t<CAST_STATIC?0x8fb4ff:tv.mode==='cast'&&tv.t<CAST_CARD?0xdddddd:0xff5a48);
@@ -3152,6 +3294,7 @@ function frame(nowMs){
   }
 }
 function boot(){
+  aiInit();
   buildWorld();buildActors();setupFX();
   new ResizeObserver(resize).observe(stage);resize();
   // everyone in the level is sculpted before it starts, one figure per tick so the title card stays alive

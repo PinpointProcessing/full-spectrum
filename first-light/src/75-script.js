@@ -22,7 +22,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  setupPortals();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();safeReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -63,7 +63,7 @@ function reset(fromDoor){
   if(fromDoor){
     tv.mode='dead';tv.done=true;EV.tvSeen=true;EV.up=true;EV.armed=true;EV.breakIn=true;EV.z0={dead:true};
     breakPortal(portalOf(fwin),true);breakPortal(portalOf(fdoor),true);EV.doorK=1;doorPivot.rotation.y=1.9;
-    L.lying=false;L.lyingH=0;L.x=361;L.y=1236;L.melee='bat';L.has.pistol=true;L.ammo.pistol=8;L.aid=1;setWeapon(L.fig,'bat');
+    L.lying=false;L.lyingH=0;L.x=361;L.y=1236;giveMelee('bat');L.has.pistol=true;L.ammo.pistol=8;L.aid=1;
     for(const it of items.slice(0,3)){it.taken=true;scene.remove(it.m);scene.remove(it.g);}
     if(bedBlanket)bedBlanket.position.set(0,-1.4,6);
   }
@@ -75,7 +75,13 @@ function setGoal(){
   else if(!EV.armed&&!EV.breakIn){g='Find something to fight with';s='There’s a bat by the bedroom window';}
   else if(EV.breakIn&&EV.z0&&!EV.z0.dead){g='Something is in the house';s=L.melee==='fists'?'Grab the bat':'Put it down';}
   else if(!EV.out){g='Get out the front door';}
-  else if(!EV.channel){g='Head north to the storm drain';s=allies.length<4&&survs.some(x=>!x.recruited&&!x.dead)?'People are calling for help':'';}
+  else if(SF.in){g='Catch your breath';s=SF.chatDone?'Step to the door when you are ready':'Ruth has the door';}
+  else if(!EV.channel){g='Follow the flares north';
+    const near=survs.filter(x=>!x.recruited&&!x.dead&&!x.hidden&&hyp(x.x-L.x,x.y-L.y)<170).sort((a,b)=>hyp(a.x-L.x,a.y-L.y)-hyp(b.x-L.x,b.y-L.y))[0];
+    if(EV.joinT>simT)s=`${EV.joinWho} is with you now`;
+    else if(near)s=`${near.name} needs help: clear the zombies around them`;
+    else if(!SF.done&&hyp(SAFE.dx-L.x,SAFE.dy-L.y)<190)s='A light in the boarded-up garage';
+    else if(allies.length<4&&survs.some(x=>!x.recruited&&!x.dead))s='People are calling for help';}
   else if(!EV.open){g='Open the grate';s='Stand at the red wheel and hold your ground';}
   else{g='Get inside the pipe';}
   const key=g+'|'+s;if(key!==EV.goal){EV.goal=key;$('#goal').innerHTML=g+(s?`<small>${s}</small>`:'');}
@@ -122,6 +128,7 @@ function script(dt){
   if(EV.knockT>0&&!EV.doorOpen){EV.knockT-=dt;if(EV.knockT<=0){const z=mkZed('shambler',361,1200,{look:2});if(z){z.state='chase';z.tgt=L;z.track=simT+150;z.doorOnly=true;z.ang=PI/2;EV.knock=z;caption('Something is pounding on the front door.',null,3200);}}}
   if(!EV.doorOpen){const pd=portalOf(fdoor);if(pd&&pd.rattle>0){pd.rattle-=dt;doorPivot.rotation.y=Math.sin(simT*70)*.05*pd.rattle/.25;}else doorPivot.rotation.y=0;}
   if(EV.doorOpen&&EV.doorK<1){EV.doorK=Math.min(1,EV.doorK+dt*3);doorPivot.rotation.y=ease(EV.doorK)*1.9;}
+  safeTick(dt);allyTalk(dt);
   /* 3. outside */
   if(!EV.out&&L.y<1216&&!inHouse(L.x,L.y)){
     EV.out=true;bigText('Sycamore Court',2600);EV.heliT=0;spawnT=14;
@@ -148,7 +155,7 @@ function script(dt){
   }
   if(EV.alarmT>0){
     const b=Math.floor(EV.alarmT/1.5);EV.alarmT-=dt;
-    if(Math.floor(EV.alarmT/1.5)!==b){sfx('alarm',585,1119,1,800);makeNoise(585,1119,430);floats.push({x:585,y:1119,h:24,text:'WEE-OO WEE-OO',col:COL.warn,t:0});}
+    if(Math.floor(EV.alarmT/1.5)!==b){sfx('alarm',585,1119,1,800);makeNoise(585,1119,430);}
   }
   if(EV.geyser){
     for(let i=0;i<3;i++)emit(pDrop,538+rand(-1,1),1092+rand(-1,1),8,rand(-16,16),rand(-16,16),rand(120,190),rand(1.6,3),rand(.8,1.4),.7,.82,.95,.6,260,.3,0,2);
@@ -270,6 +277,39 @@ function gameOver(){
   const left=allies.filter(a=>!a.dead).length;
   $('#deadText').textContent=left?`Without you, ${left===1?allies.find(a=>!a.dead).name+' doesn’t last the hour':'the others scatter'}. Nobody reaches the drain.`:'The street takes one more.';
   setTimeout(()=>{if(state==='dying'){state='dead';$('#dead').hidden=false;$('#hud').hidden=true;}},2100);
+}
+/* ---- Ruth's garage: knock, get let in, the door is barred behind you, a short talk and a breather, then out again ---- */
+const SF={in:false,done:false,open:false,t:0,i:0,lines:null,chatDone:false,ruth:null,away:0};
+const RUTH_LINES=['Sit. Breathe. Nothing gets through that door, I nailed it myself.','They follow noise. Glass, gunshots, that car alarm. Quiet feet live longer.','The county signs say storm drain. There is a red wheel by the grate, it takes a minute to turn. Do not let them crowd you while you turn it.','My knees will not make that walk. Go on. Bar the door behind you.'];
+function safeDoorSet(open){SF.open=open;if(open)removeObj(safeDoor);else addObj(safeDoor);safeDoorGrp.visible=!open;sfx('bang',SAFE.dx,SAFE.dy,.6);}
+function safeReset(){
+  SF.in=false;SF.done=false;SF.t=0;SF.i=0;SF.lines=null;SF.chatDone=false;SF.called=false;addObj(safeDoor);SF.open=false;safeDoorGrp.visible=true;
+  SF.ruth=Object.assign(base('prop',236,548,0,makeFig(BYID.ruth)),{name:'Ruth'});ents.push(SF.ruth);
+  mkItem('aid',262,526);
+}
+function safeTick(dt){
+  const dd=hyp(SAFE.dx-L.x,SAFE.dy-L.y),inside=inSafe(L.x,L.y),r=SF.ruth;
+  if(r){const a=Math.atan2(L.y-r.y,L.x-r.x);r.ang=turn(r.ang,a,dt*4);}
+  if(!SF.done&&!SF.in){
+    if(!SF.called&&dd<150){SF.called=true;floatText({x:SAFE.dx,y:SAFE.dy,z:0},'In here! Quick!',COL.ally);}
+    if(!SF.open&&dd<24&&!inside)safeDoorSet(true);
+    if(SF.open&&inside&&L.x<SAFE.x1-8){      // you are in: bring your people in, bar the door
+      const spots=[[262,556],[266,528],[246,528],[252,558]];allies.forEach((a,i)=>{if(a.dead)return;a.x=spots[i%4][0];a.y=spots[i%4][1];a.safe=true;a.vault=null;a.foe=null;});
+      safeDoorSet(false);SF.in=true;SF.t=0;SF.i=0;L.safe=true;SF.lines=RUTH_LINES.slice();aiRuth();
+      for(const z of zeds)if(inSafe(z.x,z.y)&&!z.dead)z.x=SAFE.dx+30;
+    }
+    if(SF.open&&!inside&&dd>60)safeDoorSet(false);
+  }
+  if(SF.in){
+    SF.t+=dt;
+    for(const h of[L,...allies])if(!h.dead)h.hp=Math.min(h.maxhp,h.hp+9*dt);
+    if(!SF.chatDone&&SF.t>1+SF.i*4.4){if(SF.i<SF.lines.length){const t=SF.lines[SF.i++];caption(t,'Ruth',4200);say(t,true,4,'glassy');}else SF.chatDone=true;}
+    // out again: walk into the door from the inside once she has said her piece (or you have been here a few seconds)
+    if(SF.t>4&&L.x>SAFE.x1-10&&Math.abs(L.y-SAFE.dy)<12&&input.mx>.3){
+      safeDoorSet(true);SF.in=false;SF.done=true;L.safe=false;for(const a of allies)a.safe=false;shutUp();
+    }
+  }
+  if(SF.done&&SF.open&&!inside&&dd>46){safeDoorSet(false);caption('The bar drops back across the door behind you.',null,2600);}
 }
 function escape(){
   if(state!=='play')return;

@@ -6,16 +6,31 @@ const input={mx:0,my:0,atkP:false,shootP:false,shootH:false,dashP:false,aimX:nul
 const _fs={x:0,y:0};
 const MELEE={
   fists:{name:'Fists',dmg:[9,13],range:15,arc:.95,dur:.24,kb:55},
-  bat:{name:'Bat',dmg:[24,32],range:23,arc:1.1,dur:.36,kb:110},
-  club:{name:'7-iron',dmg:[17,23],range:21,arc:.9,dur:.44,kb:80},
-  board:{name:'Skateboard',dmg:[11,15],range:19,arc:.9,dur:.32,kb:60},
-  iron:{name:'Tire iron',dmg:[14,18],range:19,arc:.9,dur:.4,kb:70},
-  baton:{name:'Baton',dmg:[14,18],range:19,arc:.9,dur:.38,kb:65},
-  knife:{name:'Butcher knife',dmg:[15,20],range:16,arc:.8,dur:.25,kb:35},
-  pan:{name:'Frying pan',dmg:[16,21],range:18,arc:1.05,dur:.36,kb:130},
-  ciron:{name:'Clothes iron',dmg:[26,34],range:15,arc:.8,dur:.46,kb:90},
-  hammer:{name:'Hammer',dmg:[20,26],range:17,arc:.85,dur:.34,kb:75},
+  bat:{name:'Bat',dmg:[24,32],range:23,arc:1.1,dur:.36,kb:110,uses:60},
+  club:{name:'7-iron',dmg:[17,23],range:21,arc:.9,dur:.44,kb:80,uses:45},
+  board:{name:'Skateboard',dmg:[11,15],range:19,arc:.9,dur:.32,kb:60,uses:30},
+  iron:{name:'Tire iron',dmg:[14,18],range:19,arc:.9,dur:.4,kb:70,uses:55},
+  baton:{name:'Baton',dmg:[14,18],range:19,arc:.9,dur:.38,kb:65,uses:50},
+  knife:{name:'Butcher knife',dmg:[15,20],range:16,arc:.8,dur:.25,kb:35,uses:50},
+  pan:{name:'Frying pan',dmg:[16,21],range:18,arc:1.05,dur:.36,kb:130,uses:40},
+  ciron:{name:'Clothes iron',dmg:[26,34],range:15,arc:.8,dur:.46,kb:90,uses:35},
+  hammer:{name:'Hammer',dmg:[20,26],range:17,arc:.85,dur:.34,kb:75,uses:55},
 };
+/* ---- what You carry: up to two melee weapons, one in hand. They wear out with every hit that lands and then break. ---- */
+function giveMelee(kind,left){
+  const u=L,W={kind,left:left===undefined?MELEE[kind].uses:left};let dropped=null;
+  if(u.bag.length<2)u.bag.push(W);else{dropped=u.bag[u.hand];u.bag[u.hand]=W;}
+  u.hand=u.bag.indexOf(W);u.melee=kind;setWeapon(u.fig,kind);return dropped;
+}
+function swapMelee(){
+  const u=L;if(!u||u.dead||u.atk||u.bag.length<2)return;
+  u.hand=1-u.hand;u.melee=u.bag[u.hand].kind;setWeapon(u.fig,u.melee);sfx('pickup');floatText(u,MELEE[u.melee].name.toUpperCase(),'#fff');
+}
+function wearMelee(n){
+  const u=L,W=u.bag[u.hand];if(!W)return;W.left-=n;if(W.left>0)return;
+  const name=MELEE[W.kind].name;u.bag.splice(u.hand,1);u.hand=0;u.melee=u.bag.length?u.bag[0].kind:'fists';setWeapon(u.fig,u.melee==='fists'?null:u.melee);
+  sfx('crash',u.x,u.y,.7);floatText(u,name.toUpperCase()+' BROKE',COL.bad);caption(u.bag.length?`The ${name.toLowerCase()} breaks. You pull out the ${MELEE[u.melee].name.toLowerCase()}.`:`The ${name.toLowerCase()} breaks. You are down to your fists.`,null,3200);
+}
 /* start = how far away it begins an attack, lunge = how fast it comes at you during the strike */
 const ZT={shambler:{hp:[58,76],speed:[18,24],dmg:[10,14],wind:.42,rec:.75,sight:170,start:24,lunge:95},runner:{hp:[36,44],speed:[72,80],dmg:[7,10],wind:.24,rec:.6,sight:250,start:27,lunge:210},brute:{hp:[330,330],speed:[26,26],dmg:[22,28],wind:.6,rec:.9,sight:220,start:32,lunge:140}};
 const turn=(a,b,k)=>a+angDiff(a,b)*Math.min(1,k);
@@ -32,7 +47,7 @@ function shake(a){shakeAmt=Math.min(9,shakeAmt+a);}
 /* ---- making things ---- */
 function base(kind,x,y,ang,fig){return{kind,x,y,z:0,ang:ang||0,kx:0,ky:0,vx:0,vy:0,spd:0,dead:false,deadT:0,fig,anim:null,stag:0};}
 function mkYou(x,y){
-  const u=Object.assign(base('you',x,y,-PI/2,makeFig(SPEC.you)),{name:'You',hp:160,maxhp:160,speed:61,slowT:0,melee:'fists',has:{pistol:false,shotgun:false},ammo:{pistol:0,shotgun:0},aid:0,
+  const u=Object.assign(base('you',x,y,-PI/2,makeFig(SPEC.you)),{name:'You',hp:160,maxhp:160,speed:61,slowT:0,melee:'fists',bag:[],hand:0,has:{pistol:false,shotgun:false},ammo:{pistol:0,shotgun:0},aid:0,
     atk:null,combo:0,comboT:0,wantAtk:0,dashT:0,dashCD:0,dvx:0,dvy:0,inv:0,hurtT:0,shootT:9,shootCD:0,lying:false,upT:0,lyingH:0,stepAcc:0,lungeT:0,lvx:0,lvy:0});
   ents.push(u);return u;
 }
@@ -67,12 +82,12 @@ function mkCorpse(x,y,ang){
 }
 const ITEMG={aid:()=>[bx(6,4,4,0,0,0,0xe8e8e8),bx(2.4,.9,4.1,0,0,0,0xd2332a),bx(.9,2.4,4.1,0,0,0,0xd2332a)],ammo:()=>[bx(5,3,3.4,0,0,0,0x3a4a36),bx(5.1,.8,3.5,0,.6,0,0xd0b040)],shells:()=>[bx(5,3,3.4,0,0,0,0x8a2a1e),bx(5.1,.8,3.5,0,.6,0,0xd0b040)]};
 const ITEMN={bat:'Baseball bat',pistol:'Pistol',shotgun:'Shotgun',aid:'First aid',ammo:'9mm rounds',shells:'Shells',club:'7-iron',board:'Skateboard',iron:'Tire iron',baton:'Baton',knife:'Butcher knife',pan:'Frying pan',ciron:'Clothes iron',hammer:'Hammer'};
-function mkItem(kind,x,y){
+function mkItem(kind,x,y,left){
   // weapons lie in the world as the same model you end up holding
   const W=WEAP[kind],m=new T.Mesh(W?weapGeo(kind):merge(ITEMG[kind]()),W?WMAT:vmat({roughness:.5,metalness:.2}));m.castShadow=true;m.position.set(x,9,y);
   if(W){m.scale.setScalar(W.gun?1.4:W.two?1.15:1.5);if(!W.gun)m.rotation.z=1.1;}scene.add(m);
   const g=glowAt(x,6,y,kind==='aid'?0x7dffb0:0xffd98a,26);
-  const it={kind,x,y,m,g,taken:false};items.push(it);return it;
+  const it={kind,x,y,m,g,taken:false,left};items.push(it);return it;
 }
 
 /* ---- noise: gunfire, alarms and breaking glass pull in anything that isn't already chasing someone ---- */
@@ -178,6 +193,7 @@ function meleeResolve(a){
     hits++;if(crit)crits++;
   }
   if(smash){fxDust(u.x+Math.cos(u.ang)*range*.7,u.y+Math.sin(u.ang)*range*.7,6);shake(1.2);}
+  if(hits&&u.melee!=='fists')wearMelee(smash?2:1);
   if(hits){
     hitStop=crits?.12:smash?.09:.055;shake(crits?4:smash?3:1.6);
     sfx(u.melee==='fists'?'punch':crits||smash?'crack':'hit');makeNoise(u.x,u.y,60);
@@ -286,9 +302,10 @@ function youUpdate(dt){
     if(it.hold){if(!near)it.hold=false;continue;}      // something you just put down: step away before it can be picked up again
     if(!near)continue;
     it.taken=true;scene.remove(it.m);scene.remove(it.g);sfx('pickup');
-    if(MELEE[it.kind]){      // a melee weapon: take it, and leave the one you were carrying in its place
-      const old=u.melee;u.melee=it.kind;setWeapon(u.fig,it.kind);floatText(u,MELEE[it.kind].name.toUpperCase(),COL.good);EV.armed=true;
-      if(old!=='fists')mkItem(old,it.x,it.y).hold=true;
+    if(MELEE[it.kind]){      // a melee weapon: you carry two. A third replaces the one in your hand, which is left where this one lay
+      const full=u.bag.length>=2,old=giveMelee(it.kind,it.left);floatText(u,MELEE[it.kind].name.toUpperCase(),COL.good);EV.armed=true;
+      if(old)mkItem(old.kind,it.x,it.y,old.left).hold=true;
+      if(u.bag.length===2&&!EV.swapTip){EV.swapTip=true;caption('You carry two weapons. SWAP (or Q) changes which is in your hand. They wear out.',null,5200);}
     }
     else if(it.kind==='pistol'){u.has.pistol=true;u.ammo.pistol+=8;floatText(u,'PISTOL · 8 ROUNDS',COL.good);}
     else if(it.kind==='ammo'){u.ammo.pistol+=8;floatText(u,'+8 ROUNDS',COL.good);}
@@ -469,7 +486,9 @@ function recruit(s){
   if(s.exit){s.x=s.exit.x;s.y=s.exit.y;}
   const sp=isFree(s.x,s.y,6)?s:openSpot(s.x,s.y,null,60);if(sp){s.x=sp.x;s.y=sp.y;}
   allies.push(s);rebuildHumans();hudAllies();
-  sfx('join');caption(SURV[s.key].line,s.name,4200);floatText(s,`${s.name.toUpperCase()} JOINED`,COL.ally);
+  sfx('join');caption(aiLine(s.key,'join')||SURV[s.key].line,s.name,4200);floatText(s,`${s.name.toUpperCase()} JOINED`,COL.ally);
+  EV.joinT=simT+9;EV.joinWho=s.name;
+  if(!EV.joinTip){EV.joinTip=true;setTimeout(()=>{if(state==='play')caption(`${s.name} follows you and fights on their own. Just keep moving. Their health is under yours.`,null,5600);},4400);}
   for(const z of zeds)if(z.tgt===s)z.anim=null;
 }
 function survIdle(s,dt){

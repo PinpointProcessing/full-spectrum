@@ -1,7 +1,7 @@
 /* Builds the 3D neighborhood from the map objects, plus scenery that has no collision. */
 const tvCan=document.createElement('canvas');tvCan.width=384;tvCan.height=216;
 const tvTex=new T.CanvasTexture(tvCan);tvTex.encoding=T.sRGBEncoding;
-let doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
+let safeDoorGrp,doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
 
 function vehicle(o){
   const hz=o.w>=o.h,L=hz?o.w:o.h,Wd=hz?o.h:o.w,g=new T.Group(),it=[],lit=[];
@@ -166,6 +166,22 @@ function buildHome(){
 }
 
 function buildWorld(){
+  { // the barricade on Ruth's garage: planks nailed across the doorway
+    safeDoorGrp=new T.Group();const cx=safeDoor.x+3,cz=safeDoor.y+10,it=[bx(2.4,21,20,cx,10.5,cz,0x5a4030)];
+    for(let i=0;i<4;i++)it.push(bx(3.6,2.6,24,cx+.4,4+i*4.6,cz,0x8a6a42,rand(-.12,.12),0,0));
+    const m=new T.Mesh(merge(it),vmat({roughness:.9}));m.castShadow=true;safeDoorGrp.add(m);scene.add(safeDoorGrp);
+    glowAt(SAFE.dx+6,16,SAFE.dy,0xffd98a,22);
+  }
+  { // road flares
+    const it=[];for(const[x,y]of FLARES){it.push(cy(.5,.5,5,6,x,.6,y,0xb3261e,0,0,PI/2));glowAt(x+2.5,2.5,y,0xff4a30,20);}
+    scene.add(new T.Mesh(merge(it),vmat({roughness:.7})));
+  }
+  for(const[x,y,dir]of SIGNS){ // evacuation signs
+    const tex=canvasTex(256,128,(g,w,h)=>{g.fillStyle='#e8791c';g.fillRect(0,0,w,h);g.strokeStyle='#1a1410';g.lineWidth=8;g.strokeRect(6,6,w-12,h-12);g.fillStyle='#1a1410';g.textAlign='center';g.font='bold 30px sans-serif';g.fillText('EVACUATION',w/2,46);
+      g.font='bold 24px sans-serif';g.fillText('STORM DRAIN',w/2,80);g.font='bold 34px sans-serif';g.fillText(dir<0?'\u2190':'\u2191',w/2,116);},true);
+    const p=new T.Mesh(new T.PlaneGeometry(24,12),new T.MeshBasicMaterial({map:tex}));p.position.set(x,17,y);scene.add(p);
+    scene.add(new T.Mesh(merge([bx(1,22,1,x-8,11,y-.4,0x4a4a4a),bx(1,22,1,x+8,11,y-.4,0x4a4a4a)]),vmat()));
+  }
   buildLights();buildParts();buildDecals();buildStreaks();
   /* ground */
   ground(-900,-700,2520,2900,TX.grass,64,0xffffff,-.2);

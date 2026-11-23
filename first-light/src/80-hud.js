@@ -22,6 +22,7 @@ addEventListener('keydown',e=>{
   else if(e.code==='KeyE'||e.code==='Enter'){if(!$('#bubble').hidden)openTV();}
   else if(e.code==='KeyQ'||e.code==='KeyH')useAid();
   else if(e.code==='KeyC')$('#camBtn').click();
+  else if(e.code==='KeyQ')swapMelee();
   else if(e.code==='KeyM')$('#muteBtn').click();
   else if(e.code==='KeyP'||e.code==='Escape')$('#pauseBtn').click();
 });
@@ -59,6 +60,7 @@ function holdBtn(sel,down,up){
 holdBtn('#atkBtn',()=>{input.atkP=true;input.atkH=true;input.aimX=null;},()=>{input.atkH=false;});
 holdBtn('#shootBtn',()=>{input.shootP=true;input.shootH=true;input.aimX=null;},()=>{input.shootH=false;});
 holdBtn('#dashBtn',()=>{input.dashP=true;});
+$('#swapBtn').addEventListener('click',swapMelee);
 holdBtn('#healBtn',()=>useAid());
 $('#camBtn').addEventListener('click',()=>{camMode=(camMode+1)%3;caption(['Camera: follow','Camera: over the shoulder','Camera: high'][camMode],null,1400);});
 $('#muteBtn').addEventListener('click',()=>{muted=!muted;auMute(muted);$('#muteBtn').textContent=muted?'Unmute':'Mute';});
@@ -105,7 +107,7 @@ let hudTgt=null;
 function hud(){
   if(!L)return;
   $('#youHp').firstElementChild.style.width=clamp(L.hp/L.maxhp*100,0,100)+'%';
-  const kit=[MELEE[L.melee].name];if(L.has.pistol)kit.push('Pistol '+L.ammo.pistol);if(L.has.shotgun)kit.push('Shotgun '+L.ammo.shotgun);
+  const kit=L.bag.length?L.bag.map((w,i)=>(i===L.hand?'':'(')+MELEE[w.kind].name+' '+Math.ceil(w.left/MELEE[w.kind].uses*100)+'%'+(i===L.hand?'':')')):[MELEE[L.melee].name];$('#swapBtn').hidden=L.bag.length<2;if(L.has.pistol)kit.push('Pistol '+L.ammo.pistol);if(L.has.shotgun)kit.push('Shotgun '+L.ammo.shotgun);
   $('#youKit').textContent=kit.join(' · ');
   for(const s of survs)if(s.row){s.row.classList.toggle('dead',s.dead);s.row.querySelector('i').style.width=clamp(s.hp/s.maxhp*100,0,100)+'%';}
   const sb=$('#shootBtn'),gun=L.has.pistol||L.has.shotgun;sb.hidden=!gun;
@@ -202,7 +204,7 @@ $('#nameForm').addEventListener('submit',e=>{
   $('#nameForm').hidden=true;$('#roster').hidden=false;$('#againBtn').hidden=false;sfx('join');
 });
 function startGame(fromDoor){
-  auInit();
+  auInit();aiBrief();
   for(const id of['#intro','#dead','#end'])$(id).hidden=true;
   reset(fromDoor);state='play';$('#hud').hidden=false;camSnap=true;
 }

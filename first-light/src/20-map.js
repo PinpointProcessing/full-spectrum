@@ -65,6 +65,14 @@ const cruiser=O('car',336,520,24,46,{col:0xe9e9e9,police:1,rot:.3});
 const ambo=O('ambo',380,430,28,62,{col:0xf0f0ec});
 O('car',306,410,24,46,{col:0x6b4a58,style:'sedan'});
 O('fence',30,392,258,8);O('fence',432,392,258,8);
+/* ---- Ruth's garage: a barricaded room half way up the street, a place to stop and breathe ---- */
+const SAFE={x0:222,y0:518,x1:278,y1:566,dx:281,dy:542};
+{const a=objs.length;O('wall',216,512,68,6);O('wall',216,566,68,6);O('wall',216,518,6,48);O('wall',278,518,6,14);O('wall',278,552,6,14);O('furn',224,520,30,9,{f:'counter'});for(let i=a;i<objs.length;i++)objs[i].home=2;}
+const safeDoor=O('bdoor',278,532,6,20,{full:true,tall:true,home:2});
+const inSafe=(x,y)=>x>SAFE.x0&&x<SAFE.x1&&y>SAFE.y0&&y<SAFE.y1;
+/* flares someone dropped on the way to the drain, and the signs the county put up: the way through, without anyone saying it */
+const FLARES=[[360,1150],[352,1068],[300,962],[250,902],[244,846],[272,790],[356,706],[362,604],[300,548],[362,470],[362,400],[366,338],[366,272],[366,196]];
+const SIGNS=[[396,1178,0],[268,908,-1],[396,612,0],[404,300,0]];
 /* ---- street end, bank, channel, pipe ---- */
 O('rail',250,334,95,6);O('rail',385,334,85,6);
 O('car',314,276,24,46,{col:0x4b5d3f,wreck:1,rot:-.35});

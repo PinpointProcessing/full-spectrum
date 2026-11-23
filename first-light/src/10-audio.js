@@ -100,15 +100,18 @@ function newsVoices(){
   const by=vs.slice().sort((a,b)=>score(b)-score(a)),m=by.find(v=>mal.test(v.name)&&!fem.test(v.name))||by[0],f=by.find(v=>fem.test(v.name))||by.find(v=>v!==m)||by[0];
   return{m,f,same:m===f};
 }
-function say(text,high,dur){
+function say(text,high,dur,voice){
   const miss=()=>{babble(dur,high?200:120,.07);};
   if(AU.muted)return;
+  if(AI.tts&&!say.noAI){      // a Claude voice when the app offers one; any refusal drops back to the device's speech for good
+    try{AI.tts.speak(text,{voice:voice||(high?'airy':'rounded'),rate:1}).catch(e=>{const c=e&&e.code;if(c&&c!=='replaced'&&c!=='cancelled'&&c!=='stopped'&&c!=='viewer_stopped'){say.noAI=true;}});return;}catch(e){say.noAI=true;}
+  }
   try{
     if(ttsOK===false||!('speechSynthesis' in window)||!window.SpeechSynthesisUtterance)return miss();
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text);newsV=newsV||newsVoices();
     if(newsV)u.voice=high?newsV.f:newsV.m;
-    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
+    u.pitch=newsV&&!newsV.same?1:high?1.15:.85;u.rate=1;u.volume=voice?.9:clamp((AU.tvVol===undefined?.9:AU.tvVol)*.85,.05,1);      // only shift the pitch when one voice has to play both anchors
     let started=false;u.onstart=()=>{started=true;ttsOK=true;};u.onerror=()=>{if(!started){ttsOK=false;}};
     speechSynthesis.speak(u);
     setTimeout(()=>{if(!started){ttsOK=false;try{speechSynthesis.cancel();}catch(e){}miss();}},650);
@@ -131,7 +134,7 @@ function gurgle(t,vol,dest,f0){
     tone('sine',rand(90,170),rand(45,80),rand(.06,.11),.22*vol*(.5+k),dest,tt+.01);}
   burst(520,110,2,.45,.45*vol,dest,t+dur-.25,'lowpass');                                           // the choke
 }
-function shutUp(){try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
+function shutUp(){try{if(AI.tts)AI.tts.stop();}catch(e){}try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
 
 /* looping beds: far sirens, wind, fire, helicopter, water, and a low drone that swells with danger */
 function startAmbience(){

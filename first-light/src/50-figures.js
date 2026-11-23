@@ -239,6 +239,9 @@ person('jules','Jules','cast','slim','The slimmer round-headed build, small: hoo
 person('marisol','Marisol','cast','slim','The slimmer round-headed build as a woman: narrower shoulders and waist, ponytail, scrubs. Carries a butcher knife.',
   {lab:1,h:.93,weapon:'knife',body:FEM,head:{eye:1.25,brow:.85,angry:0,smile:.9,ears:.85,pony:1,lash:1},
    out:{sleeve:.45,vee:.4,tag:1},look:{skin:0xcf9670,tee:0x3fa39a,trim:0x2f837b,pants:0x3a968e,shoe:0xe6e6e6,sole:0xb8b8b8,hair:0x1c1412,brow:0x1c1412}});
+person('ruth','Ruth','cast','slim','The slimmer build, older: long grey hair, glasses, cardigan. She waits in the boarded-up garage.',
+  {lab:1,h:.92,body:Object.assign({},FEM,{waistW:1.9,hipW:2.05}),head:{eye:1.1,brow:.8,angry:0,smile:.4,long:1,hairT:.055,glasses:1},
+   out:{sleeve:1,belt:0,vee:.35},look:{skin:0xe3b99a,tee:0x6a5a8a,trim:0x52456c,pants:0x4a4f58,shoe:0x5a4030,sole:0x2a211b,hair:0xcfcfcf,brow:0xa8a8a8}});
 /* zombies: grey-green skin, sunken eyes, blood, torn clothes. Each is one outfit on one of the two builds. */
 const ZH={zed:1,brow:1.3,angry:.8},ZO={blood:1,zed:1};
 const zed=(id,name,build,o)=>person(id,name,'zed',build,o.blurb||'',Object.assign({zed:1},o,{head:Object.assign({},ZH,o.head),out:Object.assign({},ZO,o.out)}));
