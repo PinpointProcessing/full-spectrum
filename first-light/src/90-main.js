@@ -90,7 +90,7 @@ function frame(nowMs){
     lightsTick(wdt,now,cam.x,cam.y);
     if(wdt>0){fireTick(wdt,cam.x,cam.y);partsTick(pFire,wdt);partsTick(pSmoke,wdt);partsTick(pDrop,wdt);streaksTick(wdt);for(const f of world.tick)f(wdt,now);}
     const cpx=camera.position.x,cpz=camera.position.z;
-    fadeTick(rdt,cpx,cpz,L.x,L.y,inHouse(L.x,L.y)||inSafe(L.x,L.y)||state==='tv'||(cpx>HS.x0-40&&cpx<HS.x1+40&&cpz>HS.y0-20&&cpz<HS.y1+90));
+    fadeTick(rdt,cpx,cpz,L.x,L.y,inHouse(L.x,L.y)||inSafe(L.x,L.y)||ROOMS.some(R=>inRoom(R,L.x,L.y))||state==='tv'||(cpx>HS.x0-40&&cpx<HS.x1+40&&cpz>HS.y0-20&&cpz<HS.y1+90));
     // screen glow from the TV, cop lights
     const tvOn=tv.mode!=='dead'||Math.floor(now*2)%2;tvLight.intensity=(tvOn?1.5:.7)+Math.sin(now*11)*.25+Math.random()*.2;
     tvLight.color.setHex(tv.mode==='morning'?0xffc890:tv.mode==='cast'&&tv.t<CAST_STATIC?0x8fb4ff:tv.mode==='cast'&&tv.t<CAST_CARD?0xdddddd:0xff5a48);

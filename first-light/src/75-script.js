@@ -22,7 +22,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  setupPortals();safeReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();safeReset();roomsReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -75,6 +75,7 @@ function setGoal(){
   else if(!EV.armed&&!EV.breakIn){g='Find something to fight with';s='There’s a bat by the bedroom window';}
   else if(EV.breakIn&&EV.z0&&!EV.z0.dead){g='Something is in the house';s=L.melee==='fists'?'Grab the bat':'Put it down';}
   else if(!EV.out){g='Get out the front door';}
+  else if(REST){g='Catch your breath';s=`The door is holding (${Math.max(0,Math.round(REST.hp/240*100))}%)`;}
   else if(SF.in){g='Catch your breath';s=SF.chatDone?'Step to the door when you are ready':'Ruth has the door';}
   else if(!EV.channel){g='Follow the flares north';
     const near=survs.filter(x=>!x.recruited&&!x.dead&&!x.hidden&&hyp(x.x-L.x,x.y-L.y)<170).sort((a,b)=>hyp(a.x-L.x,a.y-L.y)-hyp(b.x-L.x,b.y-L.y))[0];
@@ -128,7 +129,7 @@ function script(dt){
   if(EV.knockT>0&&!EV.doorOpen){EV.knockT-=dt;if(EV.knockT<=0){const z=mkZed('shambler',361,1200,{look:2});if(z){z.state='chase';z.tgt=L;z.track=simT+150;z.doorOnly=true;z.ang=PI/2;EV.knock=z;caption('Something is pounding on the front door.',null,3200);}}}
   if(!EV.doorOpen){const pd=portalOf(fdoor);if(pd&&pd.rattle>0){pd.rattle-=dt;doorPivot.rotation.y=Math.sin(simT*70)*.05*pd.rattle/.25;}else doorPivot.rotation.y=0;}
   if(EV.doorOpen&&EV.doorK<1){EV.doorK=Math.min(1,EV.doorK+dt*3);doorPivot.rotation.y=ease(EV.doorK)*1.9;}
-  safeTick(dt);
+  safeTick(dt);roomsTick(dt);
   /* 3. outside */
   if(!EV.out&&L.y<1216&&!inHouse(L.x,L.y)){
     EV.out=true;bigText('Sycamore Court',2600);EV.heliT=0;spawnT=14;
@@ -310,6 +311,42 @@ function safeTick(dt){
     }
   }
   if(SF.done&&SF.open&&!inside&&dd>46){safeDoorSet(false);caption('The bar drops back across the door behind you.',null,2600);}
+}
+/* ---- houses: the red ring marks the door. Something is usually inside, and so is something worth having. Once the house is
+   clear and you are in it, the door shuts: you heal, and whatever followed you has to beat the door down first. ---- */
+function roomDoor(R,open){R.open=open;if(open)removeObj(R.door);else addObj(R.door);R.grp.visible=!open;sfx('bang',R.out.x,R.out.y,.6);}
+function roomsReset(){
+  REST=null;
+  for(const R of ROOMS){
+    addObj(R.door);R.open=false;R.grp.visible=true;R.hp=240;R.t=0;R.broken=false;R.told=false;R.roof.visible=true;
+    const spot=()=>{for(let i=0;i<40;i++){const x=rand(R.x0+14,R.x1-14),y=rand(R.y0+14,R.y1-14);if(isFree(x,y,8))return{x,y};}return{x:(R.x0+R.x1)/2,y:(R.y0+R.y1)/2+24};};
+    for(let i=0;i<2;i++){const p=spot(),z=mkZed('shambler',p.x,p.y,{});if(z)z.sight=110;}
+    for(const k of R.loot){const p=spot();mkItem(k,p.x,p.y);}
+  }
+}
+function roomsTick(dt){
+  for(const m of MARKS)m.rotation.z+=dt*2.4;
+  for(const R of ROOMS){
+    const inside=inRoom(R,L.x,L.y),dOut=hyp(R.out.x-L.x,R.out.y-L.y),dIn=hyp(R.inn.x-L.x,R.inn.y-L.y);
+    R.roof.visible=!inside;
+    if(R.broken)continue;
+    const zin=zeds.some(z=>!z.dead&&inRoom(R,z.x,z.y));
+    if(!R.open){
+      const ox=R.out.x-R.inn.x,oy=R.out.y-R.inn.y,push=(ox*input.mx+oy*input.my)/(hyp(ox,oy)||1);
+      if(!inside&&dOut<20)roomDoor(R,true);
+      else if(inside&&dIn<16&&push>.3){roomDoor(R,true);if(REST===R)REST=null;}
+    }else if(inside&&!zin&&dIn>26){      // clear, and you are well inside: shut it and rest
+      allies.forEach((a,i)=>{if(a.dead||inRoom(R,a.x,a.y))return;a.x=clamp(L.x+(i%2?14:-14),R.x0+10,R.x1-10);a.y=clamp(L.y+(i<2?14:-14),R.y0+10,R.y1-10);a.vault=null;});
+      roomDoor(R,false);REST=R;R.t=0;if(!R.told){R.told=true;caption('The house is quiet. You shut the door and get your breath back.',null,4200);}
+    }else if(!inside&&dOut>80)roomDoor(R,false);
+    if(REST===R){
+      if(!inside){REST=null;continue;}
+      R.t+=dt;
+      for(const h of[L,...allies])if(!h.dead&&inRoom(R,h.x,h.y))h.hp=Math.min(h.maxhp,h.hp+5*dt);
+      if(R.hp<=0){R.broken=true;REST=null;roomDoor(R,true);sfx('crash',R.out.x,R.out.y,1);shake(2);caption('The door comes off its hinges.',null,2800);}
+    }
+  }
+  if(!REST)for(const z of zeds)if(z.anim==='bang'&&!z.port&&!z.script&&!z.dead)z.anim=null;
 }
 function escape(){
   if(state!=='play')return;

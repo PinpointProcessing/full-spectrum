@@ -1,7 +1,7 @@
 /* Builds the 3D neighborhood from the map objects, plus scenery that has no collision. */
 const tvCan=document.createElement('canvas');tvCan.width=384;tvCan.height=216;
 const tvTex=new T.CanvasTexture(tvCan);tvTex.encoding=T.sRGBEncoding;
-let safeDoorGrp,doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
+let MARKS=[],safeDoorGrp,doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
 
 function vehicle(o){
   const hz=o.w>=o.h,L=hz?o.w:o.h,Wd=hz?o.h:o.w,g=new T.Group(),it=[],lit=[];
@@ -171,6 +171,16 @@ function buildWorld(){
     for(let i=0;i<4;i++)it.push(bx(3.6,2.6,24,cx+.4,4+i*4.6,cz,0x8a6a42,rand(-.12,.12),0,0));
     const m=new T.Mesh(merge(it),vmat({roughness:.9}));m.castShadow=true;safeDoorGrp.add(m);scene.add(safeDoorGrp);
     glowAt(SAFE.dx+6,16,SAFE.dy,0xffd98a,22);
+  }
+  // a red ring turning on the ground wherever there is a way in
+  const ring=(x,y)=>{const m=new T.Mesh(new T.RingGeometry(7,9.2,28,1,0,PI*1.55),new T.MeshBasicMaterial({color:0xff3324,transparent:true,opacity:.9,side:T.DoubleSide,depthWrite:false}));m.rotation.x=-PI/2;m.position.set(x,.7,y);scene.add(m);MARKS.push(m);glowAt(x,3,y,0xff3324,26);return m;};
+  ring(SAFE.dx+12,SAFE.dy);
+  for(const R of ROOMS){
+    const H=R.H,cx=H.x+H.w/2,cz=H.y+H.h/2,hz=R.side==='s';
+    const fl=new T.Mesh(merge([bx(H.w-8,.5,H.h-8,cx,.3,cz,0x6a5138)]),vmat({roughness:.9}));fl.receiveShadow=true;scene.add(fl);
+    R.roof=new T.Mesh(merge([bx(H.w+10,3,H.h+10,cx,WALLH+2.5,cz,H.roof),bx(H.w*.72,7,H.h*.72,cx,WALLH+7,cz,H.roof),bx(H.w*.4,6,H.h*.4,cx,WALLH+13,cz,H.roof)]),vmat({roughness:.95}));R.roof.castShadow=true;scene.add(R.roof);
+    const d=R.door,dx=d.x+d.w/2,dz=d.y+d.h/2;R.grp=new T.Mesh(merge([bx(hz?d.w:2,21,hz?2:d.h,dx,10.5,dz,0x6a3d2b),bx(hz?8:2.4,6,hz?2.4:8,dx,16,dz,0x7b4a35)]),vmat({roughness:.6}));R.grp.castShadow=true;scene.add(R.grp);
+    ring(R.out.x,R.out.y);
   }
   { // road flares
     const it=[];for(const[x,y]of FLARES){it.push(cy(.5,.5,5,6,x,.6,y,0xb3261e,0,0,PI/2));glowAt(x+2.5,2.5,y,0xff4a30,20);}

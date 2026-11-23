@@ -70,6 +70,24 @@ const SAFE={x0:222,y0:518,x1:278,y1:566,dx:281,dy:542};
 {const a=objs.length;O('wall',216,512,68,6);O('wall',216,566,68,6);O('wall',216,518,6,48);O('wall',278,518,6,14);O('wall',278,552,6,14);O('furn',224,520,30,9,{f:'counter'});for(let i=a;i<objs.length;i++)objs[i].home=2;}
 const safeDoor=O('bdoor',278,532,6,20,{full:true,tall:true,home:2});
 const inSafe=(x,y)=>x>SAFE.x0&&x<SAFE.x1&&y>SAFE.y0&&y<SAFE.y1;
+/* ---- houses you can go into: the box is taken out of the map and replaced by four walls and a door ---- */
+const ROOMS=[];
+function enterable(H,side,loot){
+  objs.splice(objs.indexOf(H),1);
+  const a=objs.length,x=H.x,y=H.y,w=H.w,h=H.h,t=6,g=26,cx=x+w/2,cy=y+h/2;let door;
+  const sides={n:[x,y,w,t,1],s:[x,y+h-t,w,t,1],w:[x,y+t,t,h-2*t,0],e:[x+w-t,y+t,t,h-2*t,0]};
+  for(const k in sides){const[X,Y,Wd,Ht,hz]=sides[k];if(k!==side){O('wall',X,Y,Wd,Ht);continue;}
+    if(hz){O('wall',X,Y,Wd/2-g/2,t);O('wall',cx+g/2,Y,Wd/2-g/2,t);door=O('bdoor',cx-g/2,Y,g,t,{full:true,tall:true});}
+    else{O('wall',X,Y,t,Ht/2-g/2);O('wall',X,cy+g/2,t,Ht/2-g/2);door=O('bdoor',X,cy-g/2,t,g,{full:true,tall:true});}}
+  const out=side==='s'?{x:cx,y:y+h+15}:side==='w'?{x:x-15,y:cy}:{x:x+w+15,y:cy},inn=side==='s'?{x:cx,y:y+h-22}:side==='w'?{x:x+22,y:cy}:{x:x+w-22,y:cy};
+  O('furn',x+w-30,y+14,16,50,{f:'sofa'});O('furn',x+18,y+12,44,11,{f:'counter'});O('furn',x+w/2-14,y+h/2-9,28,18,{f:'table'});
+  for(let i=a;i<objs.length;i++)objs[i].home=2;
+  ROOMS.push({H,side,loot,door,out,inn,x0:x+t,y0:y+t,x1:x+w-t,y1:y+h-t});
+}
+const inRoom=(R,x,y)=>x>R.x0&&x<R.x1&&y>R.y0&&y<R.y1;
+enterable(objs.find(o=>o.kind==='house'&&o.x===60&&o.y===930),'s',['pan','aid']);
+enterable(objs.find(o=>o.kind==='house'&&o.x===540&&o.y===680),'w',['hammer','ammo']);
+enterable(objs.find(o=>o.kind==='house'&&o.x===500&&o.y===450),'w',['ciron','shells','aid']);
 /* flares someone dropped on the way to the drain, and the signs the county put up: the way through, without anyone saying it */
 const FLARES=[[360,1150],[352,1068],[300,962],[250,902],[244,846],[272,790],[356,706],[362,604],[300,548],[362,470],[362,400],[366,338],[366,272],[366,196]];
 const SIGNS=[[396,1178,0],[268,908,-1],[396,612,0],[404,300,0]];

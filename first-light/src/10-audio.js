@@ -9,7 +9,12 @@ function auInit(){
     const comp=c.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=7;comp.connect(c.destination);
     AU.out=c.createGain();AU.out.gain.value=.9;AU.out.connect(comp);
     AU.sfx=c.createGain();AU.sfx.gain.value=.8;AU.sfx.connect(AU.out);
-    AU.tv=c.createGain();AU.tv.gain.value=0;AU.tv.connect(AU.out);
+    // the street has air in it: everything in the world also goes through a short outdoor echo
+    {const n=Math.floor(c.sampleRate*1.3),ir=c.createBuffer(2,n,c.sampleRate);for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);let lp=0;for(let i=0;i<n;i++){const k=i/n;lp+=((Math.random()*2-1)-lp)*(.5-.42*k);d[i]=lp*Math.pow(1-k,2.6)*(i<c.sampleRate*.012?i/(c.sampleRate*.012):1);}}
+     const cv=c.createConvolver(),wet=c.createGain();cv.buffer=ir;wet.gain.value=.3;AU.sfx.connect(cv);cv.connect(wet);wet.connect(AU.out);}
+    // the TV is a small speaker: no bass, no sparkle, a little grit
+    {const hp=c.createBiquadFilter(),lp=c.createBiquadFilter(),ws=c.createWaveShaper(),k=new Float32Array(257);for(let i=0;i<257;i++){const x=i/128-1;k[i]=Math.tanh(x*2.2)/Math.tanh(2.2);}
+     hp.type='highpass';hp.frequency.value=320;lp.type='lowpass';lp.frequency.value=3100;ws.curve=k;AU.tv=c.createGain();AU.tv.gain.value=0;AU.tv.connect(hp);hp.connect(ws);ws.connect(lp);lp.connect(AU.out);}
     const len=c.sampleRate*2,b=c.createBuffer(1,len,c.sampleRate),d=b.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
     AU.noise=b;startAmbience();
@@ -38,41 +43,50 @@ function voiceF(f0,f1,dur,vol,dest,t,formants,vib){
   for(const fq of formants){const b=c.createBiquadFilter();b.type='bandpass';b.frequency.value=fq;b.Q.value=6;o.connect(b);b.connect(g);}
   g.connect(dest);o.start(t);o.stop(t+dur+.02);
 }
+/* Sounds are built from layers the way a foley track is: a low body, a noisy middle, a sharp edge. Bare beeps are kept for
+   machines only (the TV alert, the car alarm). */
+const thud=(t,v,d,f,dur)=>{tone('sine',f*1.9,f*.5,dur,v,d,t,.003);burst(f*5,f*1.5,.7,dur*.6,v*.5,d,t,'lowpass');};
+const wet=(t,v,d,n)=>{for(let i=0;i<n;i++){const tt=t+Math.random()*.12;burst(rand(500,1400),rand(200,500),4,rand(.03,.07),v*.5,d,tt,'bandpass');}};
+function growl(t,v,d,f,dur,open){      // a throat: two rough voices a little apart, breath, and a slow wobble
+  voiceF(f,f*rand(.78,.95),dur,.34*v,d,t,[open?620:420,open?1250:980,2400],rand(5,8));voiceF(f*1.012,f*.84,dur,.24*v,d,t+.015,[open?700:480,1100],rand(22,30));
+  burst(open?1500:800,open?700:350,1.1,dur*.9,.16*v,d,t+.03,'bandpass');
+}
 const SFX={
   gurgleM:(t,v,d)=>gurgle(t,v,d,118),gurgleF:(t,v,d)=>gurgle(t,v,d,205),
-  swing(t,v,d){burst(500,2800,.9,.13,.45*v,d,t);},
-  hit(t,v,d){tone('sine',150,45,.11,.9*v,d,t);burst(1800,500,.7,.06,.5*v,d,t,'lowpass');},
-  crack(t,v,d){tone('square',880,180,.05,.2*v,d,t);tone('sine',190,45,.17,1*v,d,t);burst(3200,700,.5,.09,.6*v,d,t,'lowpass');},
-  pop(t,v,d){tone('sine',430,60,.15,.9*v,d,t);burst(2400,2400,2,.05,.4*v,d,t);burst(900,200,.6,.2,.3*v,d,t+.03,'lowpass');},
-  punch(t,v,d){tone('sine',120,50,.08,.7*v,d,t);burst(1200,400,.7,.05,.35*v,d,t,'lowpass');},
-  gun(t,v,d){burst(5200,500,.4,.16,1.2*v,d,t,'lowpass');tone('sine',170,40,.13,1.1*v,d,t);burst(900,300,.5,.4,.22*v,d,t+.05,'lowpass');},
-  shotgun(t,v,d){burst(4200,280,.4,.28,1.4*v,d,t,'lowpass');tone('sine',120,30,.22,1.3*v,d,t);burst(700,180,.5,.7,.3*v,d,t+.06,'lowpass');},
-  dry(t,v,d){tone('square',1500,1200,.025,.15*v,d,t);},
-  groan(t,v,d){const f=rand(68,105);voiceF(f,f*rand(.8,1.15),rand(.6,1.1),.4*v,d,t,[rand(450,700),rand(900,1300)],rand(4,7));},
-  snarl(t,v,d){const f=rand(110,160);voiceF(f,f*1.5,.26,.5*v,d,t,[800,1700]);burst(1400,900,1,.2,.12*v,d,t);},
-  roar(t,v,d){voiceF(62,48,1.1,.8*v,d,t,[380,820],9);burst(500,200,.7,.9,.3*v,d,t,'lowpass');},
-  scream(t,v,d){const f=rand(470,640);voiceF(f,f*1.6,.55,.38*v,d,t,[1100,2600],11);},
-  hurt(t,v,d){voiceF(185,120,.17,.55*v,d,t,[700,1200]);tone('sine',110,55,.1,.6*v,d,t);},
-  bite(t,v,d){burst(900,300,1.2,.12,.6*v,d,t,'lowpass');tone('sine',95,50,.1,.7*v,d,t);},
-  step(t,v,d){burst(rand(500,900),200,.8,.045,.1*v,d,t,'lowpass');},
-  glass(t,v,d){for(let i=0;i<8;i++){const tt=t+i*.03+Math.random()*.03;burst(rand(4000,9000),rand(4000,9000),6,.1,.35*v,d,tt);tone('sine',rand(2500,6000),rand(2000,5000),.12,.07*v,d,tt);}burst(6000,1500,.5,.38,.5*v,d,t,'highpass');},
-  pickup(t,v,d){tone('triangle',660,660,.07,.28*v,d,t);tone('triangle',990,990,.13,.28*v,d,t+.07);},
-  heal(t,v,d){tone('sine',520,780,.25,.25*v,d,t);tone('sine',780,1040,.3,.2*v,d,t+.12);},
-  boom(t,v,d){burst(1600,45,.3,1.5,1.7*v,d,t,'lowpass');tone('sine',72,22,1,1.7*v,d,t);burst(4500,400,.5,.25,.9*v,d,t,'lowpass');},
-  bang(t,v,d){tone('sine',95,48,.13,.9*v,d,t);burst(600,150,.6,.08,.5*v,d,t,'lowpass');},
-  crash(t,v,d){burst(2500,120,.4,.7,1.2*v,d,t,'lowpass');tone('sine',90,30,.4,1.1*v,d,t);for(let i=0;i<5;i++)burst(rand(3000,8000),rand(3000,8000),5,.12,.3*v,d,t+.05+i*.05);},
-  skid(t,v,d){voiceF(900,700,.9,.25*v,d,t,[1400,2300],30);},
-  dash(t,v,d){burst(800,2200,.8,.16,.3*v,d,t);},
-  click(t,v,d){tone('square',1200,900,.03,.1*v,d,t);},
-  crank(t,v,d){tone('square',240,170,.035,.2*v,d,t);burst(2400,1200,2,.03,.2*v,d,t);},
-  clang(t,v,d){tone('triangle',520,505,.7,.5*v,d,t);tone('triangle',783,770,.5,.3*v,d,t);burst(3000,600,.6,.14,.7*v,d,t,'lowpass');},
-  beep(t,v,d){for(let i=0;i<3;i++){tone('square',700,700,.2,.1*v,d,t+i*.3,.01);tone('square',1050,1050,.2,.07*v,d,t+i*.3,.01);}},
-  alarm(t,v,d){for(let i=0;i<4;i++){tone('square',880,880,.16,.12*v,d,t+i*.36,.01);tone('square',660,660,.16,.12*v,d,t+i*.36+.18,.01);}},
-  sting(t,v,d){[392,494,587,784].forEach((f,i)=>{tone('sawtooth',f,f,.5-i*.05,.07*v,d,t+i*.09,.02);tone('triangle',f*2,f*2,.4,.05*v,d,t+i*.09,.02);});},
-  spark(t,v,d){burst(7000,3000,3,.05,.3*v,d,t);},
-  splash(t,v,d){burst(1800,600,.6,.25,.3*v,d,t);},
+  swing(t,v,d){burst(300,1900,1.4,.16,.34*v,d,t,'bandpass');burst(2600,900,.8,.1,.12*v,d,t+.04,'bandpass');},
+  hit(t,v,d){thud(t,.95*v,d,82,.14);burst(2600,700,.8,.045,.45*v,d,t,'bandpass');wet(t+.01,.5*v,d,2);},
+  crack(t,v,d){thud(t,1.05*v,d,74,.2);burst(4200,1200,1,.035,.6*v,d,t,'bandpass');burst(1500,500,2,.07,.5*v,d,t+.012,'bandpass');wet(t+.02,.7*v,d,4);},
+  pop(t,v,d){thud(t,1*v,d,110,.16);burst(3200,800,1.5,.05,.55*v,d,t,'bandpass');wet(t+.02,.9*v,d,7);burst(700,160,.7,.3,.3*v,d,t+.05,'lowpass');},
+  punch(t,v,d){thud(t,.75*v,d,95,.09);burst(1700,500,.9,.04,.3*v,d,t,'bandpass');},
+  gun(t,v,d){burst(7000,1800,.5,.03,1.3*v,d,t,'highpass');burst(2600,300,.5,.14,1.1*v,d,t+.004,'lowpass');thud(t,1.1*v,d,90,.16);burst(900,200,.5,.5,.2*v,d,t+.06,'lowpass');},
+  shotgun(t,v,d){burst(6000,1200,.5,.04,1.4*v,d,t,'highpass');burst(1900,180,.45,.3,1.35*v,d,t+.004,'lowpass');thud(t,1.4*v,d,62,.28);burst(600,140,.5,.9,.3*v,d,t+.08,'lowpass');
+    tone('square',900,500,.03,.12*v,d,t+.42);burst(2400,1200,3,.05,.2*v,d,t+.42);tone('square',700,420,.03,.12*v,d,t+.55);},      // and the pump
+  dry(t,v,d){burst(3000,1800,4,.02,.3*v,d,t,'bandpass');tone('square',1400,900,.015,.08*v,d,t);},
+  groan(t,v,d){const f=rand(62,98);growl(t,v,d,f,rand(.8,1.5),false);},
+  snarl(t,v,d){const f=rand(105,150);growl(t,1.1*v,d,f,.32,true);burst(2200,1200,1.2,.22,.14*v,d,t,'bandpass');},
+  roar(t,v,d){growl(t,1.5*v,d,54,1.3,true);thud(t,.5*v,d,50,.5);},
+  scream(t,v,d){const f=rand(430,600);voiceF(f,f*1.5,.2,.3*v,d,t,[1000,2300,3200],0);voiceF(f*1.5,f*1.25,.5,.36*v,d,t+.18,[1150,2500,3300],rand(8,13));burst(2800,1600,1,.6,.08*v,d,t,'bandpass');},
+  hurt(t,v,d){voiceF(175,112,.2,.5*v,d,t,[650,1150,2500]);burst(1400,600,1,.12,.12*v,d,t,'bandpass');thud(t,.5*v,d,80,.09);},
+  bite(t,v,d){wet(t,1*v,d,6);thud(t,.6*v,d,70,.1);burst(900,260,1.4,.14,.4*v,d,t+.03,'bandpass');},
+  step(t,v,d){burst(rand(240,420),120,.9,.05,.16*v,d,t,'lowpass');burst(rand(1800,3000),900,1.5,.025,.05*v,d,t+.012,'bandpass');},
+  glass(t,v,d){burst(5200,2400,.6,.06,.7*v,d,t,'highpass');for(let i=0;i<14;i++){const tt=t+.02+Math.pow(Math.random(),1.6)*.55;burst(rand(3500,9500),rand(3000,8000),9,rand(.03,.09),.3*v,d,tt,'bandpass');}thud(t,.4*v,d,120,.08);},
+  pickup(t,v,d){burst(1600,700,1.2,.07,.22*v,d,t,'bandpass');thud(t+.05,.25*v,d,150,.06);},
+  heal(t,v,d){burst(2400,900,1,.22,.16*v,d,t,'bandpass');burst(900,500,1.5,.3,.12*v,d,t+.18,'bandpass');},
+  boom(t,v,d){burst(1400,40,.3,1.8,1.8*v,d,t,'lowpass');thud(t,1.8*v,d,48,1.1);burst(5200,500,.5,.22,.9*v,d,t,'lowpass');for(let i=0;i<6;i++)burst(rand(600,2400),rand(200,600),2,.2,.2*v,d,t+.3+Math.random()*.9,'bandpass');},
+  bang(t,v,d){thud(t,.95*v,d,70,.16);burst(900,220,.8,.07,.45*v,d,t,'lowpass');burst(2600,1400,2,.03,.14*v,d,t,'bandpass');},
+  crash(t,v,d){thud(t,1.1*v,d,60,.4);burst(2200,120,.4,.75,1.1*v,d,t,'lowpass');for(let i=0;i<9;i++)burst(rand(1200,7000),rand(800,5000),5,rand(.05,.14),.28*v,d,t+.04+Math.random()*.45,'bandpass');},
+  skid(t,v,d){voiceF(1150,820,.9,.16*v,d,t,[1500,2600,3400],34);burst(2600,1700,2,.9,.16*v,d,t,'bandpass');},
+  dash(t,v,d){burst(500,2000,1,.17,.26*v,d,t,'bandpass');},
+  click(t,v,d){burst(2600,1500,5,.018,.2*v,d,t,'bandpass');},
+  crank(t,v,d){burst(1700,800,3,.04,.3*v,d,t,'bandpass');tone('triangle',210,150,.05,.2*v,d,t);burst(4200,2600,6,.02,.12*v,d,t+.03,'bandpass');},
+  clang(t,v,d){for(const[f,g,l]of[[412,.4,1.1],[623,.3,.8],[987,.2,.6],[1431,.12,.4]])tone('sine',f,f*.99,l,g*v,d,t,.002);burst(3400,700,.7,.1,.6*v,d,t,'bandpass');thud(t,.5*v,d,90,.12);},
+  beep(t,v,d){for(let i=0;i<3;i++){tone('sine',853,853,.22,.16*v,d,t+i*.3,.01);tone('sine',960,960,.22,.16*v,d,t+i*.3,.01);}},      // the two-tone emergency alert
+  alarm(t,v,d){for(let i=0;i<4;i++){tone('triangle',1050,1050,.15,.16*v,d,t+i*.36,.008);tone('triangle',790,790,.15,.16*v,d,t+i*.36+.18,.008);}},
+  sting(t,v,d){[294,370,440,587].forEach((f,i)=>{for(const m of[1,2,3])tone('triangle',f*m,f*m,.7-i*.08,.07*v/m,d,t+i*.13,.03);});thud(t,.3*v,d,70,.3);},
+  spark(t,v,d){burst(7000,3000,3,.05,.3*v,d,t);burst(4000,2000,6,.03,.2*v,d,t+.04);},
+  splash(t,v,d){burst(1500,500,.7,.28,.3*v,d,t,'bandpass');wet(t,.4*v,d,3);},
   static(t,v,d){burst(4000,4000,.2,1.2,.16*v,d,t,'highpass');},
-  join(t,v,d){[523,659,784].forEach((f,i)=>tone('triangle',f,f,.22,.2*v,d,t+i*.09,.01));},
+  join(t,v,d){burst(1200,600,1,.12,.12*v,d,t,'bandpass');},
 };
 function atten(x,y,range){if(x===undefined||x===null)return 1;const d=hyp(x-earX,y-earY);return Math.pow(clamp(1-d/(range||460),0,1),1.6);}
 function sfx(name,x,y,vol,range){
@@ -87,7 +101,7 @@ const VOWELS=[[730,1090],[270,2290],[570,840],[440,1020],[300,870],[660,1720],[5
 function babble(dur,pitch,vol){
   if(!AU.ctx||AU.muted)return;
   let t=AU.ctx.currentTime+.02;const end=t+dur;
-  while(t<end){const d=rand(.07,.15),f=pitch*rand(.88,1.14);voiceF(f,f*rand(.92,1.07),d,vol,AU.tv,t,pick(VOWELS));t+=d+(Math.random()<.14?rand(.12,.24):rand(.01,.04));}
+  while(t<end){const d=rand(.12,.24),f=pitch*rand(.95,1.06);voiceF(f,f*rand(.96,1.03),d,vol,AU.tv,t,pick(VOWELS),0);t+=d+(Math.random()<.2?rand(.18,.4):rand(.02,.06));}
 }
 function tvSfx(name,vol){if(!AU.ctx||AU.muted)return;try{SFX[name](AU.ctx.currentTime+.002,vol===undefined?1:vol,AU.tv);}catch(e){}}
 /* The broadcast is read in the device's own speech voices, flat and even like a newsreader: the best-sounding male and

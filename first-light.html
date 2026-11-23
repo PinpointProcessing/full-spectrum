@@ -308,7 +308,12 @@ function auInit(){
     const comp=c.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=7;comp.connect(c.destination);
     AU.out=c.createGain();AU.out.gain.value=.9;AU.out.connect(comp);
     AU.sfx=c.createGain();AU.sfx.gain.value=.8;AU.sfx.connect(AU.out);
-    AU.tv=c.createGain();AU.tv.gain.value=0;AU.tv.connect(AU.out);
+    // the street has air in it: everything in the world also goes through a short outdoor echo
+    {const n=Math.floor(c.sampleRate*1.3),ir=c.createBuffer(2,n,c.sampleRate);for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);let lp=0;for(let i=0;i<n;i++){const k=i/n;lp+=((Math.random()*2-1)-lp)*(.5-.42*k);d[i]=lp*Math.pow(1-k,2.6)*(i<c.sampleRate*.012?i/(c.sampleRate*.012):1);}}
+     const cv=c.createConvolver(),wet=c.createGain();cv.buffer=ir;wet.gain.value=.3;AU.sfx.connect(cv);cv.connect(wet);wet.connect(AU.out);}
+    // the TV is a small speaker: no bass, no sparkle, a little grit
+    {const hp=c.createBiquadFilter(),lp=c.createBiquadFilter(),ws=c.createWaveShaper(),k=new Float32Array(257);for(let i=0;i<257;i++){const x=i/128-1;k[i]=Math.tanh(x*2.2)/Math.tanh(2.2);}
+     hp.type='highpass';hp.frequency.value=320;lp.type='lowpass';lp.frequency.value=3100;ws.curve=k;AU.tv=c.createGain();AU.tv.gain.value=0;AU.tv.connect(hp);hp.connect(ws);ws.connect(lp);lp.connect(AU.out);}
     const len=c.sampleRate*2,b=c.createBuffer(1,len,c.sampleRate),d=b.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
     AU.noise=b;startAmbience();
@@ -337,41 +342,50 @@ function voiceF(f0,f1,dur,vol,dest,t,formants,vib){
   for(const fq of formants){const b=c.createBiquadFilter();b.type='bandpass';b.frequency.value=fq;b.Q.value=6;o.connect(b);b.connect(g);}
   g.connect(dest);o.start(t);o.stop(t+dur+.02);
 }
+/* Sounds are built from layers the way a foley track is: a low body, a noisy middle, a sharp edge. Bare beeps are kept for
+   machines only (the TV alert, the car alarm). */
+const thud=(t,v,d,f,dur)=>{tone('sine',f*1.9,f*.5,dur,v,d,t,.003);burst(f*5,f*1.5,.7,dur*.6,v*.5,d,t,'lowpass');};
+const wet=(t,v,d,n)=>{for(let i=0;i<n;i++){const tt=t+Math.random()*.12;burst(rand(500,1400),rand(200,500),4,rand(.03,.07),v*.5,d,tt,'bandpass');}};
+function growl(t,v,d,f,dur,open){      // a throat: two rough voices a little apart, breath, and a slow wobble
+  voiceF(f,f*rand(.78,.95),dur,.34*v,d,t,[open?620:420,open?1250:980,2400],rand(5,8));voiceF(f*1.012,f*.84,dur,.24*v,d,t+.015,[open?700:480,1100],rand(22,30));
+  burst(open?1500:800,open?700:350,1.1,dur*.9,.16*v,d,t+.03,'bandpass');
+}
 const SFX={
   gurgleM:(t,v,d)=>gurgle(t,v,d,118),gurgleF:(t,v,d)=>gurgle(t,v,d,205),
-  swing(t,v,d){burst(500,2800,.9,.13,.45*v,d,t);},
-  hit(t,v,d){tone('sine',150,45,.11,.9*v,d,t);burst(1800,500,.7,.06,.5*v,d,t,'lowpass');},
-  crack(t,v,d){tone('square',880,180,.05,.2*v,d,t);tone('sine',190,45,.17,1*v,d,t);burst(3200,700,.5,.09,.6*v,d,t,'lowpass');},
-  pop(t,v,d){tone('sine',430,60,.15,.9*v,d,t);burst(2400,2400,2,.05,.4*v,d,t);burst(900,200,.6,.2,.3*v,d,t+.03,'lowpass');},
-  punch(t,v,d){tone('sine',120,50,.08,.7*v,d,t);burst(1200,400,.7,.05,.35*v,d,t,'lowpass');},
-  gun(t,v,d){burst(5200,500,.4,.16,1.2*v,d,t,'lowpass');tone('sine',170,40,.13,1.1*v,d,t);burst(900,300,.5,.4,.22*v,d,t+.05,'lowpass');},
-  shotgun(t,v,d){burst(4200,280,.4,.28,1.4*v,d,t,'lowpass');tone('sine',120,30,.22,1.3*v,d,t);burst(700,180,.5,.7,.3*v,d,t+.06,'lowpass');},
-  dry(t,v,d){tone('square',1500,1200,.025,.15*v,d,t);},
-  groan(t,v,d){const f=rand(68,105);voiceF(f,f*rand(.8,1.15),rand(.6,1.1),.4*v,d,t,[rand(450,700),rand(900,1300)],rand(4,7));},
-  snarl(t,v,d){const f=rand(110,160);voiceF(f,f*1.5,.26,.5*v,d,t,[800,1700]);burst(1400,900,1,.2,.12*v,d,t);},
-  roar(t,v,d){voiceF(62,48,1.1,.8*v,d,t,[380,820],9);burst(500,200,.7,.9,.3*v,d,t,'lowpass');},
-  scream(t,v,d){const f=rand(470,640);voiceF(f,f*1.6,.55,.38*v,d,t,[1100,2600],11);},
-  hurt(t,v,d){voiceF(185,120,.17,.55*v,d,t,[700,1200]);tone('sine',110,55,.1,.6*v,d,t);},
-  bite(t,v,d){burst(900,300,1.2,.12,.6*v,d,t,'lowpass');tone('sine',95,50,.1,.7*v,d,t);},
-  step(t,v,d){burst(rand(500,900),200,.8,.045,.1*v,d,t,'lowpass');},
-  glass(t,v,d){for(let i=0;i<8;i++){const tt=t+i*.03+Math.random()*.03;burst(rand(4000,9000),rand(4000,9000),6,.1,.35*v,d,tt);tone('sine',rand(2500,6000),rand(2000,5000),.12,.07*v,d,tt);}burst(6000,1500,.5,.38,.5*v,d,t,'highpass');},
-  pickup(t,v,d){tone('triangle',660,660,.07,.28*v,d,t);tone('triangle',990,990,.13,.28*v,d,t+.07);},
-  heal(t,v,d){tone('sine',520,780,.25,.25*v,d,t);tone('sine',780,1040,.3,.2*v,d,t+.12);},
-  boom(t,v,d){burst(1600,45,.3,1.5,1.7*v,d,t,'lowpass');tone('sine',72,22,1,1.7*v,d,t);burst(4500,400,.5,.25,.9*v,d,t,'lowpass');},
-  bang(t,v,d){tone('sine',95,48,.13,.9*v,d,t);burst(600,150,.6,.08,.5*v,d,t,'lowpass');},
-  crash(t,v,d){burst(2500,120,.4,.7,1.2*v,d,t,'lowpass');tone('sine',90,30,.4,1.1*v,d,t);for(let i=0;i<5;i++)burst(rand(3000,8000),rand(3000,8000),5,.12,.3*v,d,t+.05+i*.05);},
-  skid(t,v,d){voiceF(900,700,.9,.25*v,d,t,[1400,2300],30);},
-  dash(t,v,d){burst(800,2200,.8,.16,.3*v,d,t);},
-  click(t,v,d){tone('square',1200,900,.03,.1*v,d,t);},
-  crank(t,v,d){tone('square',240,170,.035,.2*v,d,t);burst(2400,1200,2,.03,.2*v,d,t);},
-  clang(t,v,d){tone('triangle',520,505,.7,.5*v,d,t);tone('triangle',783,770,.5,.3*v,d,t);burst(3000,600,.6,.14,.7*v,d,t,'lowpass');},
-  beep(t,v,d){for(let i=0;i<3;i++){tone('square',700,700,.2,.1*v,d,t+i*.3,.01);tone('square',1050,1050,.2,.07*v,d,t+i*.3,.01);}},
-  alarm(t,v,d){for(let i=0;i<4;i++){tone('square',880,880,.16,.12*v,d,t+i*.36,.01);tone('square',660,660,.16,.12*v,d,t+i*.36+.18,.01);}},
-  sting(t,v,d){[392,494,587,784].forEach((f,i)=>{tone('sawtooth',f,f,.5-i*.05,.07*v,d,t+i*.09,.02);tone('triangle',f*2,f*2,.4,.05*v,d,t+i*.09,.02);});},
-  spark(t,v,d){burst(7000,3000,3,.05,.3*v,d,t);},
-  splash(t,v,d){burst(1800,600,.6,.25,.3*v,d,t);},
+  swing(t,v,d){burst(300,1900,1.4,.16,.34*v,d,t,'bandpass');burst(2600,900,.8,.1,.12*v,d,t+.04,'bandpass');},
+  hit(t,v,d){thud(t,.95*v,d,82,.14);burst(2600,700,.8,.045,.45*v,d,t,'bandpass');wet(t+.01,.5*v,d,2);},
+  crack(t,v,d){thud(t,1.05*v,d,74,.2);burst(4200,1200,1,.035,.6*v,d,t,'bandpass');burst(1500,500,2,.07,.5*v,d,t+.012,'bandpass');wet(t+.02,.7*v,d,4);},
+  pop(t,v,d){thud(t,1*v,d,110,.16);burst(3200,800,1.5,.05,.55*v,d,t,'bandpass');wet(t+.02,.9*v,d,7);burst(700,160,.7,.3,.3*v,d,t+.05,'lowpass');},
+  punch(t,v,d){thud(t,.75*v,d,95,.09);burst(1700,500,.9,.04,.3*v,d,t,'bandpass');},
+  gun(t,v,d){burst(7000,1800,.5,.03,1.3*v,d,t,'highpass');burst(2600,300,.5,.14,1.1*v,d,t+.004,'lowpass');thud(t,1.1*v,d,90,.16);burst(900,200,.5,.5,.2*v,d,t+.06,'lowpass');},
+  shotgun(t,v,d){burst(6000,1200,.5,.04,1.4*v,d,t,'highpass');burst(1900,180,.45,.3,1.35*v,d,t+.004,'lowpass');thud(t,1.4*v,d,62,.28);burst(600,140,.5,.9,.3*v,d,t+.08,'lowpass');
+    tone('square',900,500,.03,.12*v,d,t+.42);burst(2400,1200,3,.05,.2*v,d,t+.42);tone('square',700,420,.03,.12*v,d,t+.55);},      // and the pump
+  dry(t,v,d){burst(3000,1800,4,.02,.3*v,d,t,'bandpass');tone('square',1400,900,.015,.08*v,d,t);},
+  groan(t,v,d){const f=rand(62,98);growl(t,v,d,f,rand(.8,1.5),false);},
+  snarl(t,v,d){const f=rand(105,150);growl(t,1.1*v,d,f,.32,true);burst(2200,1200,1.2,.22,.14*v,d,t,'bandpass');},
+  roar(t,v,d){growl(t,1.5*v,d,54,1.3,true);thud(t,.5*v,d,50,.5);},
+  scream(t,v,d){const f=rand(430,600);voiceF(f,f*1.5,.2,.3*v,d,t,[1000,2300,3200],0);voiceF(f*1.5,f*1.25,.5,.36*v,d,t+.18,[1150,2500,3300],rand(8,13));burst(2800,1600,1,.6,.08*v,d,t,'bandpass');},
+  hurt(t,v,d){voiceF(175,112,.2,.5*v,d,t,[650,1150,2500]);burst(1400,600,1,.12,.12*v,d,t,'bandpass');thud(t,.5*v,d,80,.09);},
+  bite(t,v,d){wet(t,1*v,d,6);thud(t,.6*v,d,70,.1);burst(900,260,1.4,.14,.4*v,d,t+.03,'bandpass');},
+  step(t,v,d){burst(rand(240,420),120,.9,.05,.16*v,d,t,'lowpass');burst(rand(1800,3000),900,1.5,.025,.05*v,d,t+.012,'bandpass');},
+  glass(t,v,d){burst(5200,2400,.6,.06,.7*v,d,t,'highpass');for(let i=0;i<14;i++){const tt=t+.02+Math.pow(Math.random(),1.6)*.55;burst(rand(3500,9500),rand(3000,8000),9,rand(.03,.09),.3*v,d,tt,'bandpass');}thud(t,.4*v,d,120,.08);},
+  pickup(t,v,d){burst(1600,700,1.2,.07,.22*v,d,t,'bandpass');thud(t+.05,.25*v,d,150,.06);},
+  heal(t,v,d){burst(2400,900,1,.22,.16*v,d,t,'bandpass');burst(900,500,1.5,.3,.12*v,d,t+.18,'bandpass');},
+  boom(t,v,d){burst(1400,40,.3,1.8,1.8*v,d,t,'lowpass');thud(t,1.8*v,d,48,1.1);burst(5200,500,.5,.22,.9*v,d,t,'lowpass');for(let i=0;i<6;i++)burst(rand(600,2400),rand(200,600),2,.2,.2*v,d,t+.3+Math.random()*.9,'bandpass');},
+  bang(t,v,d){thud(t,.95*v,d,70,.16);burst(900,220,.8,.07,.45*v,d,t,'lowpass');burst(2600,1400,2,.03,.14*v,d,t,'bandpass');},
+  crash(t,v,d){thud(t,1.1*v,d,60,.4);burst(2200,120,.4,.75,1.1*v,d,t,'lowpass');for(let i=0;i<9;i++)burst(rand(1200,7000),rand(800,5000),5,rand(.05,.14),.28*v,d,t+.04+Math.random()*.45,'bandpass');},
+  skid(t,v,d){voiceF(1150,820,.9,.16*v,d,t,[1500,2600,3400],34);burst(2600,1700,2,.9,.16*v,d,t,'bandpass');},
+  dash(t,v,d){burst(500,2000,1,.17,.26*v,d,t,'bandpass');},
+  click(t,v,d){burst(2600,1500,5,.018,.2*v,d,t,'bandpass');},
+  crank(t,v,d){burst(1700,800,3,.04,.3*v,d,t,'bandpass');tone('triangle',210,150,.05,.2*v,d,t);burst(4200,2600,6,.02,.12*v,d,t+.03,'bandpass');},
+  clang(t,v,d){for(const[f,g,l]of[[412,.4,1.1],[623,.3,.8],[987,.2,.6],[1431,.12,.4]])tone('sine',f,f*.99,l,g*v,d,t,.002);burst(3400,700,.7,.1,.6*v,d,t,'bandpass');thud(t,.5*v,d,90,.12);},
+  beep(t,v,d){for(let i=0;i<3;i++){tone('sine',853,853,.22,.16*v,d,t+i*.3,.01);tone('sine',960,960,.22,.16*v,d,t+i*.3,.01);}},      // the two-tone emergency alert
+  alarm(t,v,d){for(let i=0;i<4;i++){tone('triangle',1050,1050,.15,.16*v,d,t+i*.36,.008);tone('triangle',790,790,.15,.16*v,d,t+i*.36+.18,.008);}},
+  sting(t,v,d){[294,370,440,587].forEach((f,i)=>{for(const m of[1,2,3])tone('triangle',f*m,f*m,.7-i*.08,.07*v/m,d,t+i*.13,.03);});thud(t,.3*v,d,70,.3);},
+  spark(t,v,d){burst(7000,3000,3,.05,.3*v,d,t);burst(4000,2000,6,.03,.2*v,d,t+.04);},
+  splash(t,v,d){burst(1500,500,.7,.28,.3*v,d,t,'bandpass');wet(t,.4*v,d,3);},
   static(t,v,d){burst(4000,4000,.2,1.2,.16*v,d,t,'highpass');},
-  join(t,v,d){[523,659,784].forEach((f,i)=>tone('triangle',f,f,.22,.2*v,d,t+i*.09,.01));},
+  join(t,v,d){burst(1200,600,1,.12,.12*v,d,t,'bandpass');},
 };
 function atten(x,y,range){if(x===undefined||x===null)return 1;const d=hyp(x-earX,y-earY);return Math.pow(clamp(1-d/(range||460),0,1),1.6);}
 function sfx(name,x,y,vol,range){
@@ -386,7 +400,7 @@ const VOWELS=[[730,1090],[270,2290],[570,840],[440,1020],[300,870],[660,1720],[5
 function babble(dur,pitch,vol){
   if(!AU.ctx||AU.muted)return;
   let t=AU.ctx.currentTime+.02;const end=t+dur;
-  while(t<end){const d=rand(.07,.15),f=pitch*rand(.88,1.14);voiceF(f,f*rand(.92,1.07),d,vol,AU.tv,t,pick(VOWELS));t+=d+(Math.random()<.14?rand(.12,.24):rand(.01,.04));}
+  while(t<end){const d=rand(.12,.24),f=pitch*rand(.95,1.06);voiceF(f,f*rand(.96,1.03),d,vol,AU.tv,t,pick(VOWELS),0);t+=d+(Math.random()<.2?rand(.18,.4):rand(.02,.06));}
 }
 function tvSfx(name,vol){if(!AU.ctx||AU.muted)return;try{SFX[name](AU.ctx.currentTime+.002,vol===undefined?1:vol,AU.tv);}catch(e){}}
 /* The broadcast is read in the device's own speech voices, flat and even like a newsreader: the best-sounding male and
@@ -529,6 +543,24 @@ const SAFE={x0:222,y0:518,x1:278,y1:566,dx:281,dy:542};
 {const a=objs.length;O('wall',216,512,68,6);O('wall',216,566,68,6);O('wall',216,518,6,48);O('wall',278,518,6,14);O('wall',278,552,6,14);O('furn',224,520,30,9,{f:'counter'});for(let i=a;i<objs.length;i++)objs[i].home=2;}
 const safeDoor=O('bdoor',278,532,6,20,{full:true,tall:true,home:2});
 const inSafe=(x,y)=>x>SAFE.x0&&x<SAFE.x1&&y>SAFE.y0&&y<SAFE.y1;
+/* ---- houses you can go into: the box is taken out of the map and replaced by four walls and a door ---- */
+const ROOMS=[];
+function enterable(H,side,loot){
+  objs.splice(objs.indexOf(H),1);
+  const a=objs.length,x=H.x,y=H.y,w=H.w,h=H.h,t=6,g=26,cx=x+w/2,cy=y+h/2;let door;
+  const sides={n:[x,y,w,t,1],s:[x,y+h-t,w,t,1],w:[x,y+t,t,h-2*t,0],e:[x+w-t,y+t,t,h-2*t,0]};
+  for(const k in sides){const[X,Y,Wd,Ht,hz]=sides[k];if(k!==side){O('wall',X,Y,Wd,Ht);continue;}
+    if(hz){O('wall',X,Y,Wd/2-g/2,t);O('wall',cx+g/2,Y,Wd/2-g/2,t);door=O('bdoor',cx-g/2,Y,g,t,{full:true,tall:true});}
+    else{O('wall',X,Y,t,Ht/2-g/2);O('wall',X,cy+g/2,t,Ht/2-g/2);door=O('bdoor',X,cy-g/2,t,g,{full:true,tall:true});}}
+  const out=side==='s'?{x:cx,y:y+h+15}:side==='w'?{x:x-15,y:cy}:{x:x+w+15,y:cy},inn=side==='s'?{x:cx,y:y+h-22}:side==='w'?{x:x+22,y:cy}:{x:x+w-22,y:cy};
+  O('furn',x+w-30,y+14,16,50,{f:'sofa'});O('furn',x+18,y+12,44,11,{f:'counter'});O('furn',x+w/2-14,y+h/2-9,28,18,{f:'table'});
+  for(let i=a;i<objs.length;i++)objs[i].home=2;
+  ROOMS.push({H,side,loot,door,out,inn,x0:x+t,y0:y+t,x1:x+w-t,y1:y+h-t});
+}
+const inRoom=(R,x,y)=>x>R.x0&&x<R.x1&&y>R.y0&&y<R.y1;
+enterable(objs.find(o=>o.kind==='house'&&o.x===60&&o.y===930),'s',['pan','aid']);
+enterable(objs.find(o=>o.kind==='house'&&o.x===540&&o.y===680),'w',['hammer','ammo']);
+enterable(objs.find(o=>o.kind==='house'&&o.x===500&&o.y===450),'w',['ciron','shells','aid']);
 /* flares someone dropped on the way to the drain, and the signs the county put up: the way through, without anyone saying it */
 const FLARES=[[360,1150],[352,1068],[300,962],[250,902],[244,846],[272,790],[356,706],[362,604],[300,548],[362,470],[362,400],[366,338],[366,272],[366,196]];
 const SIGNS=[[396,1178,0],[268,908,-1],[396,612,0],[404,300,0]];
@@ -928,7 +960,7 @@ function fadeTick(dt,cx,cy,fx,fy,inside){
 /* Builds the 3D neighborhood from the map objects, plus scenery that has no collision. */
 const tvCan=document.createElement('canvas');tvCan.width=384;tvCan.height=216;
 const tvTex=new T.CanvasTexture(tvCan);tvTex.encoding=T.sRGBEncoding;
-let safeDoorGrp,doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
+let MARKS=[],safeDoorGrp,doorPivot,fwinGlass,grateGrp,valveWheel,hydrantFx=null,tvScreen,bedBlanket,copBars=[],pipeLamp;
 
 function vehicle(o){
   const hz=o.w>=o.h,L=hz?o.w:o.h,Wd=hz?o.h:o.w,g=new T.Group(),it=[],lit=[];
@@ -1098,6 +1130,16 @@ function buildWorld(){
     for(let i=0;i<4;i++)it.push(bx(3.6,2.6,24,cx+.4,4+i*4.6,cz,0x8a6a42,rand(-.12,.12),0,0));
     const m=new T.Mesh(merge(it),vmat({roughness:.9}));m.castShadow=true;safeDoorGrp.add(m);scene.add(safeDoorGrp);
     glowAt(SAFE.dx+6,16,SAFE.dy,0xffd98a,22);
+  }
+  // a red ring turning on the ground wherever there is a way in
+  const ring=(x,y)=>{const m=new T.Mesh(new T.RingGeometry(7,9.2,28,1,0,PI*1.55),new T.MeshBasicMaterial({color:0xff3324,transparent:true,opacity:.9,side:T.DoubleSide,depthWrite:false}));m.rotation.x=-PI/2;m.position.set(x,.7,y);scene.add(m);MARKS.push(m);glowAt(x,3,y,0xff3324,26);return m;};
+  ring(SAFE.dx+12,SAFE.dy);
+  for(const R of ROOMS){
+    const H=R.H,cx=H.x+H.w/2,cz=H.y+H.h/2,hz=R.side==='s';
+    const fl=new T.Mesh(merge([bx(H.w-8,.5,H.h-8,cx,.3,cz,0x6a5138)]),vmat({roughness:.9}));fl.receiveShadow=true;scene.add(fl);
+    R.roof=new T.Mesh(merge([bx(H.w+10,3,H.h+10,cx,WALLH+2.5,cz,H.roof),bx(H.w*.72,7,H.h*.72,cx,WALLH+7,cz,H.roof),bx(H.w*.4,6,H.h*.4,cx,WALLH+13,cz,H.roof)]),vmat({roughness:.95}));R.roof.castShadow=true;scene.add(R.roof);
+    const d=R.door,dx=d.x+d.w/2,dz=d.y+d.h/2;R.grp=new T.Mesh(merge([bx(hz?d.w:2,21,hz?2:d.h,dx,10.5,dz,0x6a3d2b),bx(hz?8:2.4,6,hz?2.4:8,dx,16,dz,0x7b4a35)]),vmat({roughness:.6}));R.grp.castShadow=true;scene.add(R.grp);
+    ring(R.out.x,R.out.y);
   }
   { // road flares
     const it=[];for(const[x,y]of FLARES){it.push(cy(.5,.5,5,6,x,.6,y,0xb3261e,0,0,PI/2));glowAt(x+2.5,2.5,y,0xff4a30,20);}
@@ -2356,6 +2398,11 @@ function zUpdate(z,dt){
   if(z.script&&z.script(z,dt)!==true)return;
   if(z.vault){vaultStep(z,dt);return;}
   if(z.state==='chase'&&z.tgt&&!z.tgt.dead&&!z.tgt.safe&&!z.as&&breach(z,z.tgt,dt,z.speed,true))return;
+  if(REST&&z.state==='chase'&&!z.as&&!inRoom(REST,z.x,z.y)){      // you are shut in a house: it goes to the door and pounds on it
+    const o=REST.out;if(hyp(o.x-z.x,o.y-z.y)>10){z.anim=null;goTo(z,o.x,o.y,z.speed,dt);}
+    else{z.spd=0;z.anim='bang';z.ang=turn(z.ang,Math.atan2(REST.inn.y-o.y,REST.inn.x-o.x),dt*8);z.bangT=(z.bangT||0)-dt;if(z.bangT<=0){z.bangT=rand(.6,.9);if(REST.t>10)REST.hp-=z.ztype==='brute'?45:6;sfx('bang',o.x,o.y,.9);}}      /* the first ten seconds are yours whatever is outside */
+    return;
+  }
   // attack: wind up (you can see it coming), strike, recover
   if(z.as){
     z.at+=dt;z.spd=0;const t=z.tgt,Z=ZT[z.ztype];
@@ -2408,7 +2455,7 @@ function zUpdate(z,dt){
 }
 /* ---- the shell of your house: walls stop everyone. The front door and the windows are the only ways through.
    A window has to be broken first and is then climbed through; a shut door gets pounded on until it gives. ---- */
-let PORTALS=[];
+let PORTALS=[],REST=null;
 const portalOf=o=>PORTALS.find(p=>p.o===o);
 function setupPortals(){
   if(!PORTALS.length)for(const o of objs)if(o.home&&(o.kind==='window'||o.kind==='fwin'||o.kind==='door')){
@@ -2614,7 +2661,7 @@ function reset(fromDoor){
   clearAll();
   // put the world back
   addObj(fwin);addObj(fdoor);addObj(grate);addObj(bombCar);if(husk){removeObj(husk);husk=null;}removeObj(crashO);
-  setupPortals();safeReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
+  setupPortals();safeReset();roomsReset();doorPivot.rotation.y=0;grateGrp.position.y=0;valveWheel.rotation.z=0;
   bombCar.grp.visible=true;bombCar.grp.position.set(bombCar.x+bombCar.w/2,0,bombCar.y+bombCar.h/2);bombCar.grp.rotation.set(0,0,.04);if(bombCar.fx){bombCar.fx.on=true;bombCar.fx.rate=24;bombCar.fx.x=bombCar.x+31;bombCar.fx.y=bombCar.y+11;if(bombCar.fx.e){bombCar.fx.e.on=true;bombCar.fx.e.x=bombCar.fx.x;bombCar.fx.e.y=bombCar.fx.y;if(bombCar.fx.e.sprite)bombCar.fx.e.sprite.position.set(bombCar.fx.x,19,bombCar.fx.y);}}
   crashCar.visible=false;heli.visible=false;heliSpot.intensity=0;heli.glow.visible=false;pipeLamp.on=false;
   if(bedBlanket)bedBlanket.position.set(0,0,0);
@@ -2667,6 +2714,7 @@ function setGoal(){
   else if(!EV.armed&&!EV.breakIn){g='Find something to fight with';s='There’s a bat by the bedroom window';}
   else if(EV.breakIn&&EV.z0&&!EV.z0.dead){g='Something is in the house';s=L.melee==='fists'?'Grab the bat':'Put it down';}
   else if(!EV.out){g='Get out the front door';}
+  else if(REST){g='Catch your breath';s=`The door is holding (${Math.max(0,Math.round(REST.hp/240*100))}%)`;}
   else if(SF.in){g='Catch your breath';s=SF.chatDone?'Step to the door when you are ready':'Ruth has the door';}
   else if(!EV.channel){g='Follow the flares north';
     const near=survs.filter(x=>!x.recruited&&!x.dead&&!x.hidden&&hyp(x.x-L.x,x.y-L.y)<170).sort((a,b)=>hyp(a.x-L.x,a.y-L.y)-hyp(b.x-L.x,b.y-L.y))[0];
@@ -2720,7 +2768,7 @@ function script(dt){
   if(EV.knockT>0&&!EV.doorOpen){EV.knockT-=dt;if(EV.knockT<=0){const z=mkZed('shambler',361,1200,{look:2});if(z){z.state='chase';z.tgt=L;z.track=simT+150;z.doorOnly=true;z.ang=PI/2;EV.knock=z;caption('Something is pounding on the front door.',null,3200);}}}
   if(!EV.doorOpen){const pd=portalOf(fdoor);if(pd&&pd.rattle>0){pd.rattle-=dt;doorPivot.rotation.y=Math.sin(simT*70)*.05*pd.rattle/.25;}else doorPivot.rotation.y=0;}
   if(EV.doorOpen&&EV.doorK<1){EV.doorK=Math.min(1,EV.doorK+dt*3);doorPivot.rotation.y=ease(EV.doorK)*1.9;}
-  safeTick(dt);
+  safeTick(dt);roomsTick(dt);
   /* 3. outside */
   if(!EV.out&&L.y<1216&&!inHouse(L.x,L.y)){
     EV.out=true;bigText('Sycamore Court',2600);EV.heliT=0;spawnT=14;
@@ -2902,6 +2950,42 @@ function safeTick(dt){
     }
   }
   if(SF.done&&SF.open&&!inside&&dd>46){safeDoorSet(false);caption('The bar drops back across the door behind you.',null,2600);}
+}
+/* ---- houses: the red ring marks the door. Something is usually inside, and so is something worth having. Once the house is
+   clear and you are in it, the door shuts: you heal, and whatever followed you has to beat the door down first. ---- */
+function roomDoor(R,open){R.open=open;if(open)removeObj(R.door);else addObj(R.door);R.grp.visible=!open;sfx('bang',R.out.x,R.out.y,.6);}
+function roomsReset(){
+  REST=null;
+  for(const R of ROOMS){
+    addObj(R.door);R.open=false;R.grp.visible=true;R.hp=240;R.t=0;R.broken=false;R.told=false;R.roof.visible=true;
+    const spot=()=>{for(let i=0;i<40;i++){const x=rand(R.x0+14,R.x1-14),y=rand(R.y0+14,R.y1-14);if(isFree(x,y,8))return{x,y};}return{x:(R.x0+R.x1)/2,y:(R.y0+R.y1)/2+24};};
+    for(let i=0;i<2;i++){const p=spot(),z=mkZed('shambler',p.x,p.y,{});if(z)z.sight=110;}
+    for(const k of R.loot){const p=spot();mkItem(k,p.x,p.y);}
+  }
+}
+function roomsTick(dt){
+  for(const m of MARKS)m.rotation.z+=dt*2.4;
+  for(const R of ROOMS){
+    const inside=inRoom(R,L.x,L.y),dOut=hyp(R.out.x-L.x,R.out.y-L.y),dIn=hyp(R.inn.x-L.x,R.inn.y-L.y);
+    R.roof.visible=!inside;
+    if(R.broken)continue;
+    const zin=zeds.some(z=>!z.dead&&inRoom(R,z.x,z.y));
+    if(!R.open){
+      const ox=R.out.x-R.inn.x,oy=R.out.y-R.inn.y,push=(ox*input.mx+oy*input.my)/(hyp(ox,oy)||1);
+      if(!inside&&dOut<20)roomDoor(R,true);
+      else if(inside&&dIn<16&&push>.3){roomDoor(R,true);if(REST===R)REST=null;}
+    }else if(inside&&!zin&&dIn>26){      // clear, and you are well inside: shut it and rest
+      allies.forEach((a,i)=>{if(a.dead||inRoom(R,a.x,a.y))return;a.x=clamp(L.x+(i%2?14:-14),R.x0+10,R.x1-10);a.y=clamp(L.y+(i<2?14:-14),R.y0+10,R.y1-10);a.vault=null;});
+      roomDoor(R,false);REST=R;R.t=0;if(!R.told){R.told=true;caption('The house is quiet. You shut the door and get your breath back.',null,4200);}
+    }else if(!inside&&dOut>80)roomDoor(R,false);
+    if(REST===R){
+      if(!inside){REST=null;continue;}
+      R.t+=dt;
+      for(const h of[L,...allies])if(!h.dead&&inRoom(R,h.x,h.y))h.hp=Math.min(h.maxhp,h.hp+5*dt);
+      if(R.hp<=0){R.broken=true;REST=null;roomDoor(R,true);sfx('crash',R.out.x,R.out.y,1);shake(2);caption('The door comes off its hinges.',null,2800);}
+    }
+  }
+  if(!REST)for(const z of zeds)if(z.anim==='bang'&&!z.port&&!z.script&&!z.dead)z.anim=null;
 }
 function escape(){
   if(state!=='play')return;
@@ -3235,7 +3319,7 @@ function frame(nowMs){
     lightsTick(wdt,now,cam.x,cam.y);
     if(wdt>0){fireTick(wdt,cam.x,cam.y);partsTick(pFire,wdt);partsTick(pSmoke,wdt);partsTick(pDrop,wdt);streaksTick(wdt);for(const f of world.tick)f(wdt,now);}
     const cpx=camera.position.x,cpz=camera.position.z;
-    fadeTick(rdt,cpx,cpz,L.x,L.y,inHouse(L.x,L.y)||inSafe(L.x,L.y)||state==='tv'||(cpx>HS.x0-40&&cpx<HS.x1+40&&cpz>HS.y0-20&&cpz<HS.y1+90));
+    fadeTick(rdt,cpx,cpz,L.x,L.y,inHouse(L.x,L.y)||inSafe(L.x,L.y)||ROOMS.some(R=>inRoom(R,L.x,L.y))||state==='tv'||(cpx>HS.x0-40&&cpx<HS.x1+40&&cpz>HS.y0-20&&cpz<HS.y1+90));
     // screen glow from the TV, cop lights
     const tvOn=tv.mode!=='dead'||Math.floor(now*2)%2;tvLight.intensity=(tvOn?1.5:.7)+Math.sin(now*11)*.25+Math.random()*.2;
     tvLight.color.setHex(tv.mode==='morning'?0xffc890:tv.mode==='cast'&&tv.t<CAST_STATIC?0x8fb4ff:tv.mode==='cast'&&tv.t<CAST_CARD?0xdddddd:0xff5a48);
