@@ -78,10 +78,10 @@ button:disabled{opacity:.4;cursor:default}
 #atkBtn{right:0;bottom:0;width:88px;height:88px;font-size:14px;border-color:rgba(255,154,82,.9)!important;color:#ffd9bd}
 #shootBtn{right:96px;bottom:6px;width:64px;height:64px}
 #jumpBtn{right:76px;bottom:80px;width:58px;height:58px}
-#actBtn{right:140px;bottom:74px;width:58px;height:58px;font-size:11.5px}
+#actBtn{right:8px;bottom:96px;width:60px;height:60px;font-size:11.5px}
 #pad button.hot{border-color:rgba(255,236,190,.95);color:#fff3d6;background:rgba(70,58,30,.72)}
 #swapBtn{right:168px;bottom:10px;width:54px;height:54px;font-size:11px}
-#healBtn{right:6px;bottom:98px;width:54px;height:54px;font-size:10.5px}
+#healBtn{right:142px;bottom:76px;width:54px;height:54px;font-size:10.5px}
 #pad button.cool{opacity:.45}
 
 /* the bubble over the TV */
@@ -2369,8 +2369,9 @@ function searchNear(){
 }
 function actionFor(){
   if(!L||L.dead||L.lying||L.upT>0||L.vault)return null;
-  if(!$('#bubble').hidden)return{label:'Watch',go:openTV};
   if(L.search)return{label:'Looking',go(){}};
+  // the TV only when you are standing at it, in the bedroom: from anywhere else the button is for what is in front of you
+  if(!$('#bubble').hidden&&hyp(L.x-TVPOS.x,L.y-TVPOS.y)<48&&los(L.x,L.y,TVPOS.x,TVPOS.y+8))return{label:'Watch',go:openTV};
   const o=searchNear();
   if(o)return{label:'Search',o,go(){L.search={o,t:0,dur:o.kind==='car'?2:1.5};L.atk=null;}};
   return null;
@@ -3140,6 +3141,8 @@ ov.addEventListener('pointerdown',e=>{
   if(state!=='play')return;
   const[sx,sy]=localXY(e);
   try{ov.setPointerCapture(e.pointerId);}catch(_){}
+  // tapping the thing itself does what the Action button would do with it
+  { const ac=actionFor();if(ac&&ac.o){const o=ac.o,q=toS(o.x+o.w/2,o.y+o.h/2,o.tall?26:14);if(hyp(q[0]-sx,q[1]-sy)<34){input.actP=true;return;}} }
   if(e.pointerType==='mouse'){
     const w=toW(sx,sy);if(w){input.aimX=w[0];input.aimY=w[1];aimHold=.6;}
     if(e.button===2){input.shootP=true;input.shootH=true;}else{input.atkP=true;input.atkH=true;}
@@ -3443,7 +3446,7 @@ function frame(nowMs){
   if(composer&&Q.level>=3)composer.render();else renderer.render(scene,camera);
   drawOverlay(now);
   // the bubble follows the TV on screen
-  if(L&&!$('#bubble').hidden){const p=toS(TVPOS.x,TVPOS.y,TVPOS.h+11);const b=$('#bubble');b.style.left=clamp(p[0],90,cw-90)+'px';b.style.top=clamp(p[1],60,ch-40)+'px';}
+  if(L&&!$('#bubble').hidden){const p=toS(TVPOS.x,TVPOS.y,TVPOS.h+11);const b=$('#bubble');b.style.left=clamp(p[0],90,cw-90)+'px';b.style.top=clamp(p[1],60,ch-215)+'px';}
   hudT-=rdt;if(hudT<=0){hudT=.1;hud();}
   // drop quality if the device can't keep up
   if(Q.auto&&state==='play'&&!paused){

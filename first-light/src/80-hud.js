@@ -33,6 +33,8 @@ ov.addEventListener('pointerdown',e=>{
   if(state!=='play')return;
   const[sx,sy]=localXY(e);
   try{ov.setPointerCapture(e.pointerId);}catch(_){}
+  // tapping the thing itself does what the Action button would do with it
+  { const ac=actionFor();if(ac&&ac.o){const o=ac.o,q=toS(o.x+o.w/2,o.y+o.h/2,o.tall?26:14);if(hyp(q[0]-sx,q[1]-sy)<34){input.actP=true;return;}} }
   if(e.pointerType==='mouse'){
     const w=toW(sx,sy);if(w){input.aimX=w[0];input.aimY=w[1];aimHold=.6;}
     if(e.button===2){input.shootP=true;input.shootH=true;}else{input.atkP=true;input.atkH=true;}

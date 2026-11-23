@@ -110,7 +110,7 @@ function frame(nowMs){
   if(composer&&Q.level>=3)composer.render();else renderer.render(scene,camera);
   drawOverlay(now);
   // the bubble follows the TV on screen
-  if(L&&!$('#bubble').hidden){const p=toS(TVPOS.x,TVPOS.y,TVPOS.h+11);const b=$('#bubble');b.style.left=clamp(p[0],90,cw-90)+'px';b.style.top=clamp(p[1],60,ch-40)+'px';}
+  if(L&&!$('#bubble').hidden){const p=toS(TVPOS.x,TVPOS.y,TVPOS.h+11);const b=$('#bubble');b.style.left=clamp(p[0],90,cw-90)+'px';b.style.top=clamp(p[1],60,ch-215)+'px';}
   hudT-=rdt;if(hudT<=0){hudT=.1;hud();}
   // drop quality if the device can't keep up
   if(Q.auto&&state==='play'&&!paused){

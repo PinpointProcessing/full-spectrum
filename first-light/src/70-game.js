@@ -291,8 +291,9 @@ function searchNear(){
 }
 function actionFor(){
   if(!L||L.dead||L.lying||L.upT>0||L.vault)return null;
-  if(!$('#bubble').hidden)return{label:'Watch',go:openTV};
   if(L.search)return{label:'Looking',go(){}};
+  // the TV only when you are standing at it, in the bedroom: from anywhere else the button is for what is in front of you
+  if(!$('#bubble').hidden&&hyp(L.x-TVPOS.x,L.y-TVPOS.y)<48&&los(L.x,L.y,TVPOS.x,TVPOS.y+8))return{label:'Watch',go:openTV};
   const o=searchNear();
   if(o)return{label:'Search',o,go(){L.search={o,t:0,dur:o.kind==='car'?2:1.5};L.atk=null;}};
   return null;
