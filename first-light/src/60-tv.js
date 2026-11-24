@@ -10,20 +10,24 @@ const CAST=[
   {t:20.4,who:0,d:3.2,text:'If you have been bitten, you must... what was that?'},
   {t:23.8,who:1,d:2,text:'Hal? Hal, the studio door!'},
 ];
+const MORNING=[
+  {t:0.5,who:1,d:3.7,text:'So take a jacket this morning, but you can leave the umbrella at home.'},
+  {t:4.4,who:0,d:4.2,text:'Thanks, Denise. Still to come this hour, the county fair'},
+];
 const CAST_IN=25.4,CAST_STATIC=30,CAST_CARD=32,CAST_END=34;
 function tvReset(){tv.mode='morning';tv.t=0;tv.line=-1;tv.watch=false;tv.done=false;tv.splats=[];tv.sub=null;tv.chat=1.2;tv.beep=0;tv.fired={};shutUp();}
 function tvStartCast(){if(tv.mode==='cast'||tv.done)return;tv.mode='cast';tv.t=0;tv.line=-1;tv.fired={};tv.splats=[];}
 function tvOnce(key,at,fn){if(tv.t>=at&&!tv.fired[key]){tv.fired[key]=1;fn();}}
 function tvTick(dt,audible){
   tv.t+=dt;tv.sub=null;
-  if(tv.mode==='morning'){
-    tv.chat-=dt;
-    if(tv.chat<=0){tv.chat=rand(2.6,3.6);tv.who=tv.who?0:1;tv.talkUntil=tv.t+2.1;if(audible)babble(2.1,tv.who?200:120,.06);}
-    tvOnce('sting',.3,()=>audible&&tvSfx('sting',1));
-    if(tv.t>5){tv.mode='alert';tv.t=0;tv.fired={};}
-  }else if(tv.mode==='alert'){
-    tv.beep-=dt;if(tv.beep<=0){tv.beep=1.5;if(audible)tvSfx('beep',1);}
-    if(tv.t>16&&!tv.watch)tvStartCast();
+  if(tv.mode==='morning'){      // the morning show, mid-sentence when the alert cuts across it
+    for(let i=0;i<MORNING.length;i++){const M=MORNING[i];if(tv.t>=M.t&&!tv.fired['m'+i]){tv.fired['m'+i]=1;tv.who=M.who;tv.talkUntil=M.t+Math.min(M.d,3.6);if(audible)speak(M.who===1?'denise':'hal',M.text,M.d);}}
+    if(tv.t>6.1){shutUp();tv.mode='alert';tv.t=0;tv.fired={};}
+  }else if(tv.mode==='alert'){   // one alert tone, the news ident, and the broadcast starts by itself (Bryan): no waiting on the player, no repeated beeping
+    tvOnce('cut',0,()=>audible&&tvSfx('static',.5));
+    tvOnce('tone',.25,()=>audible&&tvSfx('beep',.55));
+    tvOnce('ident',1.2,()=>{if(audible){tvClip('s_sting',1.2)||tvSfx('sting',1);}});
+    if(tv.t>4.7)tvStartCast();
   }else if(tv.mode==='cast'){
     for(let i=0;i<CAST.length;i++){const L=CAST[i];
       if(tv.t>=L.t&&tv.line<i){tv.line=i;if(audible)speak(L.who===1?'denise':'hal',L.text,L.d);}
@@ -50,10 +54,10 @@ function tvTick(dt,audible){
     tvOnce('static',CAST_STATIC,()=>audible&&tvSfx('static',1));
     tvOnce('static2',CAST_STATIC+1,()=>audible&&tvSfx('static',1));
     if(tv.t>=CAST_IN+.6&&tv.t<CAST_STATIC)tv.sub={who:'',text:tv.t<CAST_IN+3.7?'[screaming]':'[the camera falls over]',talk:-1};
-    tvOnce('card',CAST_CARD,()=>audible&&tvSfx('beep',1));
+    tvOnce('card',CAST_CARD,()=>audible&&tvSfx('beep',.5));
     if(tv.t>=CAST_END){tv.mode='dead';tv.t=0;tv.done=true;tv.fired={};}
   }else{
-    tv.beep-=dt;if(tv.beep<=0){tv.beep=4;if(audible)tvSfx('beep',.6);}
+    tv.beep-=dt;if(tv.beep<=0){tv.beep=rand(5,9);if(audible)tvSfx('static',.25);}      // off the air: a little hiss now and then, no tone
   }
   tv.drawT-=dt;
   if(tv.drawT<=0||tv.watch){tv.drawT=1/14;tvDraw();tvTex.needsUpdate=true;}

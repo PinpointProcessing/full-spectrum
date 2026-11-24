@@ -17,3 +17,5 @@ Recorded screams and gore for the broadcast attack, all CC0 from OpenGameArt, cu
 - `s_f2`: "Female Scream 1" by NocturnalVanguard (https://opengameart.org/content/female-scream-1).
 - `s_wet1`, `s_wet4`, `s_wet8`: from "Fleshy Bone Break/Snap SFX" by Zane Little Music (https://opengameart.org/content/fleshy-bone-breaksnap-sfx).
 These were picked by length, loudness and pitch measurements, not by ear.
+
+`s_sting.mp3`: the news ident, synthesized by `make_sting.py` in this repo. Nothing borrowed.
