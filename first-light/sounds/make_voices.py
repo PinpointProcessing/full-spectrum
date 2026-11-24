@@ -11,9 +11,7 @@ rd = lambda f: open(os.path.join(src, f), encoding='utf-8').read()
 VOICE = {'hal': ('am_michael', 1.0), 'denise': ('af_bella', 1.0), 'ruth': ('bf_emma', .95), 'walt': ('bm_george', 1.0), 'dunn': ('am_onyx', 1.0), 'jules': ('af_sky', 1.08), 'marisol': ('af_nicole', 1.0)}
 lines = []
 for m in re.finditer(r"\{t:[\d.]+,who:(\d),d:([\d.]+),text:'([^']*)'\}", rd('60-tv.js')): lines.append((('hal', 'denise')[int(m.group(1))], m.group(3), float(m.group(2))))
-ruth = re.search(r"const RUTH_LINES=\[(.*?)\];", rd('75-script.js'), re.S).group(1)
-for t in re.findall(r"'([^']*)'", ruth): lines.append(('ruth', t, None))
-for m in re.finditer(r"^\s+(\w+):\{name:'[^']*'.*?line:'([^']*)'", rd('70-game.js'), re.M): lines.append((m.group(1), m.group(2), None))
+# Only the two anchors are voiced. Ruth and the survivors are text on screen (Bryan found their voices annoying, 2026-11-24).
 # lines that break off or are shouted: read in pieces (text, speed factor, pause after in seconds, pitch factor), since one flat reading sounded robotic (Bryan)
 PIECES = {
  # Bryan's wording (2026-11-24). The '@' pieces are finished takes kept in sounds/takes/ (made with the Chatterbox model, see CREDITS.md):

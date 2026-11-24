@@ -150,14 +150,14 @@ function script(dt){
     if(hyp(L.x-x,L.y-y)<13){L.inv=0;hurt(L,25,{x:x-Math.cos(a)*10,y});L.kx+=Math.cos(a)*200;}
     if(!EV.geyser&&x>516){EV.geyser=true;sfx('crash',538,1092,.8,900);fxSpark(538,1092,6,14);}
     if(k>=1){
-      EV.crash=2;EV.alarmT=16;crashO.x=562;crashO.y=1108;addObj(crashO);
+      EV.crash=2;EV.alarmT=6;crashO.x=562;crashO.y=1108;addObj(crashO);
       sfx('crash',585,1119,1.2,1000);shake(3);fxSpark(606,1120,10,26);fxDust(600,1120,8);
       crashCar.rotation.z=.05;
     }
   }
   if(EV.alarmT>0){
     const b=Math.floor(EV.alarmT/1.5);EV.alarmT-=dt;
-    if(Math.floor(EV.alarmT/1.5)!==b){sfx('alarm',585,1119,1,800);makeNoise(585,1119,430);}
+    if(Math.floor(EV.alarmT/1.5)!==b){sfx('alarm',585,1119,.5,420);makeNoise(585,1119,430);}
   }
   if(EV.geyser){
     for(let i=0;i<3;i++)emit(pDrop,538+rand(-1,1),1092+rand(-1,1),8,rand(-16,16),rand(-16,16),rand(120,190),rand(1.6,3),rand(.8,1.4),.7,.82,.95,.6,260,.3,0,2);
@@ -244,7 +244,7 @@ function ambTick(){
   let nf=1e9;for(const f of world.fires)if(f.on&&f.rate>0){const d=hyp(f.x-L.x,f.y-L.y);if(d<nf)nf=d;}
   const out=insideNow?.22:1;
   ambSet('fire',clamp(1-nf/330,0,1)*.16);
-  ambSet('wind',.05*out);ambSet('siren',.022*out+(EV.out?0:.004));
+  ambSet('wind',.05*out);ambSet('siren',0);      // no siren bed: the constant wail was annoying (Bryan, 2026-11-24)
   ambSet('water',Math.max(EV.geyser?clamp(1-hyp(538-L.x,1092-L.y)/300,0,1)*.07:0,clamp(1-Math.abs(L.y-190)/160,0,1)*.035));
   const chasers=zeds.filter(z=>!z.dead&&!z.far&&z.state==='chase'&&z.tgt&&z.tgt.kind!=='civ'&&!z.tgt.safe).length;
   ambSet('drone',state==='play'?clamp(.02+chasers*.016,0,.13):.02);
