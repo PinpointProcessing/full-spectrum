@@ -19,3 +19,9 @@ Recorded screams and gore for the broadcast attack, all CC0 from OpenGameArt, cu
 These were picked by length, loudness and pitch measurements, not by ear.
 
 `s_sting.mp3`: the news ident, synthesized by `make_sting.py` in this repo. Nothing borrowed.
+
+`takes/hal_huh.wav`, `takes/denise_door.wav`: the two frightened anchor lines, generated with Chatterbox (Resemble AI, MIT licence;
+its output carries Resemble's inaudible watermark) using the Kokoro anchor clips as the voice reference: "Huh? ... What was that?"
+at exaggeration 0.9, and "Hal? Hal! The studio door!" at exaggeration 1.2 (seed 300). Denise's take has two recorded shrieks mixed in:
+"Female Scream 1" by NocturnalVanguard and one from "Female high-pitched scream SFX" by wuxiascrub
+(https://opengameart.org/content/female-high-pitched-scream-sfx), both CC0.

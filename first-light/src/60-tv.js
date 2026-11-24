@@ -7,14 +7,14 @@ const CAST=[
   {t:4.4,who:1,d:5.4,text:'Health officials confirm a highly contagious virus is spreading across the tri-county area.'},
   {t:10.2,who:0,d:4.8,text:'The infected lose their minds. They turn violent and attack anyone within reach.'},
   {t:15.4,who:1,d:4.6,text:'Do not approach them. Do not try to help them. That includes people you know.'},
-  {t:20.4,who:0,d:3.2,text:'If you have been bitten, you must... what was that?'},
-  {t:23.8,who:1,d:2,text:'Hal? Hal, the studio door!'},
+  {t:20.4,who:0,d:3.8,text:'If you have been bitten, you must... Huh? What was that?'},
+  {t:24.6,who:1,d:3.6,text:'Hal? HAL! THE STUDIO DOOR!'},
 ];
 const MORNING=[
   {t:0.5,who:1,d:3.7,text:'So take a jacket this morning, but you can leave the umbrella at home.'},
   {t:4.4,who:0,d:4.2,text:'Thanks, Denise. Still to come this hour, the county fair'},
 ];
-const CAST_IN=25.4,CAST_STATIC=30,CAST_CARD=32,CAST_END=34;
+const CAST_IN=28.3,CAST_STATIC=32.9,CAST_CARD=34.9,CAST_END=36.9;
 function tvReset(){tv.mode='morning';tv.t=0;tv.line=-1;tv.watch=false;tv.done=false;tv.splats=[];tv.sub=null;tv.chat=1.2;tv.beep=0;tv.fired={};shutUp();}
 function tvStartCast(){if(tv.mode==='cast'||tv.done)return;tv.mode='cast';tv.t=0;tv.line=-1;tv.fired={};tv.splats=[];}
 function tvOnce(key,at,fn){if(tv.t>=at&&!tv.fired[key]){tv.fired[key]=1;fn();}}
@@ -33,10 +33,10 @@ function tvTick(dt,audible){
       if(tv.t>=L.t&&tv.line<i){tv.line=i;if(audible)speak(L.who===1?'denise':'hal',L.text,L.d);}
       if(tv.t>=L.t&&tv.t<L.t+L.d+.5)tv.sub={who:ANCH[L.who].name,text:L.text,talk:tv.t<L.t+L.d?L.who:-1};}
     tvOnce('thud',22.3,()=>audible&&tvSfx('bang',1));
-    tvOnce('thud2',23.2,()=>audible&&tvSfx('bang',1.2));
+    tvOnce('thud2',24.3,()=>audible&&tvSfx('bang',1.2));
     // the attack: recorded screams, zombie voices and wet hits (Bryan found the made-in-code ones fake). Each falls back to the old sound if its clip is missing.
     const A=(key,at,fn)=>tvOnce(key,CAST_IN+at,()=>{if(audible)fn();});
-    tvOnce('crash',CAST_IN-.3,()=>{shutUp();if(audible){tvSfx('crash',.8);tvClip('z17',1.5,.8)||tvSfx('snarl',1);}});
+    tvOnce('crash',CAST_IN-.3,()=>{if(audible){tvSfx('crash',.8);tvClip('z17',1.5,.8)||tvSfx('snarl',1);}});
     A('zr1',.25,()=>tvClip('z10',1.3,.95));
     A('scream',.5,()=>{tvClip('s_m1',1.5)||tvSfx('gurgleM',1);});                       // Hal goes first
     A('zr2',.9,()=>tvClip('z4',1.2,.9));

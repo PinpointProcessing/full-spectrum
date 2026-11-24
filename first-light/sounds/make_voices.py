@@ -16,8 +16,10 @@ for t in re.findall(r"'([^']*)'", ruth): lines.append(('ruth', t, None))
 for m in re.finditer(r"^\s+(\w+):\{name:'[^']*'.*?line:'([^']*)'", rd('70-game.js'), re.M): lines.append((m.group(1), m.group(2), None))
 # lines that break off or are shouted: read in pieces (text, speed factor, pause after in seconds, pitch factor), since one flat reading sounded robotic (Bryan)
 PIECES = {
- 'If you have been bitten, you must... what was that?': [('If you have been bitten, you must', 1.0, .55, 1.0), ('What was that?', 1.22, 0, 1.03)],
- 'Hal? Hal, the studio door!': [('Hal?', 1.1, .12, 1.05), ('Hal! The studio door!', 1.3, 0, 1.07)],
+ # Bryan's wording (2026-11-24). The '@' pieces are finished takes kept in sounds/takes/ (made with the Chatterbox model, see CREDITS.md):
+ # Kokoro cannot do fright, so only the calm first half of Hal's line is read here.
+ 'If you have been bitten, you must... Huh? What was that?': [('If you have been bitten, you must', 1.0, .5, 1.0), ('@takes/hal_huh.wav', 1, 0, 1)],
+ 'Hal? HAL! THE STUDIO DOOR!': [('@takes/denise_door.wav', 1, 0, 1)],
 }
 import numpy as np
 k = Kokoro(os.path.join(md, 'kokoro-v1.0.onnx'), os.path.join(md, 'voices-v1.0.bin'))
@@ -31,13 +33,17 @@ for i, (who, text, limit) in enumerate(lines):
         if text in PIECES:
             parts = []
             for t, f, gap, pitch in PIECES[text]:
-                b, sr = k.create(t, voice=voice, speed=speed * f * pitch, lang=lang)      # read a touch slower, then played faster: that raises the pitch
-                b = np.interp(np.arange(0, len(b), pitch), np.arange(len(b)), b).astype('float32')
-                nz = np.nonzero(np.abs(b) > .01)[0]; b = b[max(0, nz[0] - 200):nz[-1] + 800] if len(nz) else b
+                if t[0] == '@':
+                    b, fsr = sf.read(os.path.join(here, t[1:]), dtype='float32'); sr = 24000
+                    assert fsr == sr, 'takes are 24 kHz mono'
+                else:
+                    b, sr = k.create(t, voice=voice, speed=speed * f * pitch, lang=lang)      # read a touch slower, then played faster: that raises the pitch
+                    b = np.interp(np.arange(0, len(b), pitch), np.arange(len(b)), b).astype('float32')
+                    nz = np.nonzero(np.abs(b) > .01)[0]; b = b[max(0, nz[0] - 200):nz[-1] + 800] if len(nz) else b
                 parts += [b, np.zeros(int(sr * gap), 'float32')]
             a = np.concatenate(parts)
         else: a, sr = k.create(text.replace('’', "'"), voice=voice, speed=speed, lang=lang)
-        if limit is None or len(a) / sr <= limit + .25 or speed > 1.5: break
+        if limit is None or len(a) / sr <= limit + .25 or speed > 1.5 or text in PIECES: break
         speed += .06
     key = 'v_%s%d' % (who, i)
     with tempfile.NamedTemporaryFile(suffix='.wav') as w:
