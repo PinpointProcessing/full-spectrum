@@ -7,8 +7,10 @@
    dd.seq={dc:true,...} while it plays (the battle goes on ticking under it: ddplay.js's ddTick and ddCam ask for .dc). Phases by game time:
    camp -> shells -> run (to the barracks' back door) -> hut (a small set of its own, drawn in place of the map: dcSeqRender from scene.js's render)
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
-const DCS={camp:{x:700,y:756},T:{inc:3.1,shell:4.7,fire:5.1,run:5.7,hutMax:3.4,hutDur:3.6,outDur:3.9},   // (the whistle and INCOMING!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out)
+const DCS={camp:{x:700,y:756},T:{inc:8.2,shell:9.9,fire:10.3,run:10.9,hutMax:3.4,hutDur:3.6,outDur:3.9},   // (the whistle and INCOMING!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out)
   // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
+  // (Version 237, Bryan: "Make the rest a little longer. Maybe they can chat via text bubble for a couple of seconds") who says what, and when: [the man's place in spots, from, to, the words]
+  chat:[[0,1.0,3.2,"Coffee's nearly hot."],[1,2.7,5.0,"First hot thing since England."],[3,4.6,6.8,"Think they'll send us home now?"],[5,6.2,8.1,"Not a chance."]],
   spots:[[14,2,Math.PI,0,'sit',1],[-13,4,0,0,'sit',1],[1,-15,Math.PI/2,0,'kneel',0],[21,18,-2.4,0,'smoke',0],[-37,14,Math.PI/2-.35,0,'sit',2],[-24,14,Math.PI/2+.35,0,'sit',2],[35,-9,-2.6,0,'kneel',0],[-31,-13,.6,0,'smoke',0]]};
 function dcSeqStart(){
   if(startCounter.noSeq||/[?&]noseq\b/.test(location.search))return false;   // (?noseq in the address: the tests that start in the fight)
@@ -27,7 +29,8 @@ function dcSeqStart(){
   for(const[x,y,w,h]of[[c.x+44,c.y-10,10,6],[c.x-62,c.y-4,10,7],[c.x+60,c.y+16,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
   // the bunch of other troops off to one side: the shells land on them
   [[0,0],[13,4],[25,-2],[6,13],[19,15],[31,10]].forEach(([dx,dy],i)=>{const u=ddNpc(c.x-236+dx,c.y-112+dy);Object.assign(u,{inBoat:false,seen:true,post:null,ang:Math.PI+.25*(i%3-1),atEase:i%2===0,work:i%2?'stand':null,cool:99});S.doom.push(u);});
-  dcHutBuild(S);dcSpawnWave(1);banner('',1);S.warm=3;try{renderer.compile(S.hut.sc,S.hut.cam);}catch(e){}   // (warm: the inside is drawn once, unseen, while the camp is on screen, so going in doesn't hitch)   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)
+  dcHutBuild(S);banner('',1);S.warm=3;for(const u of players){u.seqD=u.dmgIn;u.dmgIn=.0001;}   // (nothing hurts the squad until the opening hands over)
+  try{renderer.compile(S.hut.sc,S.hut.cam);}catch(e){}   // (warm: the inside is drawn once, unseen, while the camp is on screen, so going in doesn't hitch)   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)
   return true;
 }
 // the hut: a small set of its own, crossed the short way from its back door to its front door; four of the other troops at its front windows
@@ -75,7 +78,8 @@ function dcSeqRender(rdt,now){
 function dcSeqTick(dt){
   const S=dd.seq,C=dd.dc,T=DCS.T,c=DCS.camp,D=DCA.door,dx=c.x-234,dy=c.y-110;S.t+=dt;const t=S.t;
   // (Version 236, Bryan: "Have an artillery whistle come in and a text saying INCOMING!!! The explosion kills the group and then the bullets start firing at the base")
-  if(!S.inc&&t>=T.inc){S.inc=1;bigText('INCOMING!!!','incoming');try{if(typeof ddsWhistle==='function')ddsWhistle({dur:T.shell-T.inc,t:0,x1:c.x,y1:c.y,ddsK:'art'});}catch(e){}
+  if(!S.wave&&t>=T.inc-4.2){S.wave=1;dcSpawnWave(1);banner('',1);}   // (their first wave starts across the field while the camp is still quiet: the other troops are shooting by the time the squad comes out)
+  if(!S.inc&&t>=T.inc){S.inc=1;bigText('INCOMING!!!','incoming');dcIncomingSfx(T.shell-T.inc);
     for(const u of players){u.work=null;u.atEase=false;figRefresh(u);}}   // (they're on their feet at the sound of it)
   if(S.ph==='camp'&&t>=T.shell){S.ph='shell';bigText('');
     for(let k=0;k<5;k++){const x=dx+(k%3)*13,y=dy+((k/2)|0)*11;booms.push({x,y,t:-k*.09,size:1.3});}if(typeof sfxBoom==='function')sfxBoom(dx+14,dy+6,1.4);shake(1);
@@ -94,9 +98,28 @@ function dcSeqTick(dt){
     if(Math.random()<.35)try{sfxShotDD({x:sx,y:sy,side:'E',id:'F'+((sx/50)|0),weapon:Math.random()<.4?'mg':'rifle',gunner:false});}catch(e){}}
   if(S.ph==='run'||S.ph==='hut'||S.ph==='out')for(const u of players)u.lastOrder=simT;
 }
+// the sound of a shell coming down (Bryan: "Not an actual whistle, but the sound of an artillery shell coming down ... before explosion"): a rushing
+// roar of air that falls in pitch and swells until it lands, a thin falling tone inside it; L seconds, ending as the shells go off
+function dcIncomingSfx(L){
+  try{if(typeof AC==='undefined'||!AC||!sndOn||!sndMuffle)return;const t0=AC.currentTime,t1=t0+L,n=Math.floor(AC.sampleRate*(L+.1)),buf=AC.createBuffer(1,n,AC.sampleRate),d=buf.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+    const src=AC.createBufferSource();src.buffer=buf;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.3;bp.frequency.setValueAtTime(3400,t0);bp.frequency.exponentialRampToValueAtTime(420,t1);
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(5200,t0);lp.frequency.exponentialRampToValueAtTime(1500,t1);
+    const g=AC.createGain();g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(.12,t0+L*.45);g.gain.exponentialRampToValueAtTime(.9,t1-.03);g.gain.linearRampToValueAtTime(.0001,t1+.04);
+    src.connect(bp);bp.connect(lp);lp.connect(g);g.connect(sndMuffle);if(sndVerb){const s=AC.createGain();s.gain.value=.3;g.connect(s);s.connect(sndVerb);}
+    const o=AC.createOscillator();o.type='triangle';o.frequency.setValueAtTime(1500,t0);o.frequency.exponentialRampToValueAtTime(330,t1);const og=AC.createGain();og.gain.setValueAtTime(.0001,t0);og.gain.exponentialRampToValueAtTime(.05,t1-.05);og.gain.linearRampToValueAtTime(.0001,t1+.03);o.connect(og);og.connect(sndMuffle);
+    src.start(t0);src.stop(t1+.1);o.start(t0);o.stop(t1+.1);}catch(e){}
+}
+// the talk in the camp: a bubble over whoever is speaking (from overlay.js while the sequence plays)
+function dcSeqDraw(){
+  const S=dd.seq;if(!S||S.ph!=='camp')return;
+  for(const[i,a,b,text]of DCS.chat){if(S.t<a||S.t>b)continue;const u=players[i];if(!u)continue;toSBack=false;const[sx,sy]=toS(u.x,u.y,26);if(toSBack)continue;
+    ox.save();ox.font='600 13px system-ui,-apple-system,sans-serif';const w=ox.measureText(text).width+18,h=26,x=clamp(sx-w/2,6,cw-w-6),y=sy-h-12,k=clamp(Math.min((S.t-a)/.2,(b-S.t)/.25),0,1);ox.globalAlpha=k;
+    ox.fillStyle='rgba(250,248,240,.96)';ox.strokeStyle='rgba(20,24,30,.85)';ox.lineWidth=1.5;ox.beginPath();const r=8;ox.moveTo(x+r,y);ox.arcTo(x+w,y,x+w,y+h,r);ox.arcTo(x+w,y+h,x,y+h,r);ox.lineTo(clamp(sx+7,x+r+14,x+w-r),y+h);ox.lineTo(sx,y+h+9);ox.lineTo(clamp(sx-7,x+r,x+w-r-14),y+h);ox.arcTo(x,y+h,x,y,r);ox.arcTo(x,y,x+w,y,r);ox.closePath();ox.fill();ox.stroke();
+    ox.fillStyle='#161a20';ox.textAlign='left';ox.textBaseline='middle';ox.fillText(text,x+9,y+h/2+.5);ox.restore();}
+}
 function dcSeqEnd(){
   const S=dd.seq,C=dd.dc;if(!S||!S.dc)return;if(S.G&&S.G.parent)S.G.parent.remove(S.G);dd.seq=null;document.body.classList.remove('ddseq');
-  for(const u of players)u.cool=Math.min(u.cool,1);
+  for(const u of players){u.cool=Math.min(u.cool,1);if('seqD' in u){u.dmgIn=u.seqD;delete u.seqD;}}
   camT.x=S.end.cx;camT.z=S.end.cz;camera.position.copy(S.end.p);camera.quaternion.copy(S.end.q);camera.updateMatrixWorld();updateCamera();
   C.ph='w1';C.wave=1;C.t=0;dcAuto();dcNoRe();if(typeof hud==='function')hud();
 }
@@ -105,7 +128,7 @@ function dcSeqEnd(){
 function dcSeqCam(rdt){
   const S=dd.seq,T=THREE,c=DCS.camp,D=DCA.door,V=(x,h,y)=>new T.Vector3(x,ddH(x,y)+h,y);rdt=Math.min(rdt||0,.1);let pos,look,k=2.2;
   if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}camShift=0;
-  if(S.ph==='camp'){const a=Math.min(S.t,DCS.T.inc)*.05;pos=V(c.x+30-a*40,190-a*30,c.y+470-a*60);look=V(c.x-20,8,c.y-16);}   // (Version 236: wider, the whole square and the men about it)
+  if(S.ph==='camp'){const a=Math.min(S.t,DCS.T.inc)*.02;pos=V(c.x+30-a*40,190-a*30,c.y+470-a*60);look=V(c.x-20,8,c.y-16);}   // (Version 236: wider, the whole square and the men about it)
   else if(S.ph==='shell'){pos=V(c.x-60,190,c.y+430);look=V(c.x-130,9,c.y-70);k=4;}
   else if(S.ph==='run'){pos=V(D.x+30,110,c.y+300);look=V(D.x,12,DCA.cpIn.y-10);k=3;}
   else if(S.ph==='hut')return true;
