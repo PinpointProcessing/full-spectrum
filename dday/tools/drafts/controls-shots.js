@@ -3,7 +3,7 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 const OUT=process.argv[2]||'.',W=+process.argv[3]||390,H=+process.argv[4]||760,PO=+process.argv[5]||0;
 (async()=>{const port=9900+PO,srv=await serve('/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=1`);await page.setViewportSize({width:W,height:H});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=1`);await page.setViewportSize({width:W,height:H});
 const ev=(f,a)=>page.evaluate(f,a);
 const shot=async n=>{await ev(()=>{render(.001,simT);drawOverlay(.03,simT);});await page.waitForTimeout(700);await ev(()=>{render(.001,simT);drawOverlay(.03,simT);});await page.screenshot({path:`${OUT}/ctl-${W}x${H}-${n}.png`});console.log('shot',n);};
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');localStorage.removeItem('warehouseYard.ddctl.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=2;R.battles=2;R.minLevel=3;['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,3,false)));ddmSave();

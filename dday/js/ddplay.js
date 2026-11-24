@@ -166,7 +166,7 @@ function ddLookBind(){
 }
 function ddCam(rdt){
   if(!dd||state!=='play')return;rdt=rdt>0?Math.min(rdt,.1):0;
-  if(dd.seq){vgSeqCam(rdt);return;}   // (the sequence before Chapter 3 has its own shots: ddvillage.js)
+  if(dd.seq){(dd.seq.dc?dcSeqCam:vgSeqCam)(rdt);return;}   // (the sequence before Chapter 3 has its own shots: ddvillage.js)
   const C=dd.cam||(dd.cam={k:1,p:null,q:null});
   if(!dd.land.done){const b=dd.boats.find(q=>q.own);if(!b)return;
     // (a drag turns the view from this fixed spot: Bryan, "The camera can move around from this fixed spot so the player can look around")
@@ -1032,7 +1032,7 @@ function ddTick(dt){
   contact=true;teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   dd.allies=units.filter(ddAlly);
   if(dd.fp)fpTick(dt);   // (one man played by hand: ddfp.js)
-  if(dd.seq){vgSeqTick(dt);return;}if(dd.vil){vgTick(dt);return;}   // (Chapter 3 and the sequence before it: ddvillage.js)
+  if(dd.seq&&!dd.seq.dc){vgSeqTick(dt);return;}if(dd.vil){vgTick(dt);return;}   // (Chapter 3 and the sequence before it: ddvillage.js)
   if(dd.counter){dcTick(dt);return;}   // (the counterattack runs itself: ddcounter.js)
   ddBoatsTick(dt);stationTick(dt);
   ddCounter(dt);if(typeof ddBaseTick==='function')ddBaseTick(dt);

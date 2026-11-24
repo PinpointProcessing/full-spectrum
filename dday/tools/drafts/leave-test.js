@@ -8,7 +8,7 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 const MAP=process.argv[2]||'beach',SECS=+process.argv[3]||120,SEED=+process.argv[4]||1,PO=+process.argv[5]||0,VAR=process.argv[6]||'base';
 (async()=>{const port=9975+PO,srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=0`);await page.setViewportSize({width:390,height:760});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=0`);await page.setViewportSize({width:390,height:760});
 const ev=(f,a)=>page.evaluate(f,a);
 await ev(([SEED,VAR])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=3;R.battles=3;R.minLevel=4;
   ['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,4,false)));for(let i=0;i<8;i++)R.reserve.push(ddmNewMan('rifle',4,false));ddmSave();

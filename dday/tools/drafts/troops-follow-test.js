@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 (async()=>{const port=9921,srv=await serve('/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=0`);await page.setViewportSize({width:420,height:860});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=0`);await page.setViewportSize({width:420,height:860});
 const ev=(f,a)=>page.evaluate(f,a);const log=async(l,f)=>console.log(l+':',await ev(f));
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');window.requestAnimationFrame=()=>0;Math.random=(s=>()=>(s=(s*16807)%2147483647)/2147483647)(11);});
 await page.click('#ddBtn');await page.waitForTimeout(800);

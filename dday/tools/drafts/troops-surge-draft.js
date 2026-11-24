@@ -15,7 +15,7 @@ const THREE_SRC=fs.readFileSync(S+'/deps/node_modules/three/build/three.min.js')
 (async()=>{const port=9930+PO,srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
 const ctx=await b.newContext({viewport:{width:W,height:H},deviceScaleFactor:MODE==='film'?1.25:1});const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 await page.route('**/*',r=>{const u=r.request().url();if(u.includes('cdnjs.cloudflare.com'))return r.fulfill({body:THREE_SRC,contentType:'text/javascript'});if(u.includes('fonts.g'))return r.abort();return r.continue();});
-await page.goto(`http://localhost:${port}/index.html?gfx=${MODE==='film'?1:0}`);await page.waitForTimeout(2500);const ev=(f,a)=>page.evaluate(f,a);
+await page.goto(`http://localhost:${port}/index.html?noseq&gfx=${MODE==='film'?1:0}`);await page.waitForTimeout(2500);const ev=(f,a)=>page.evaluate(f,a);
 await ev(([MODE,VAR,SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');localStorage.removeItem('warehouseYard.ddctl.v1');
   Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(7000+SEED);window.requestAnimationFrame=()=>0;
   window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){update(1/30);panTick(1/30);ddFrame(1/30,simT);if((window.BT=(window.BT||0)+1/30)>=.5){BT=0;if(window.TICK)TICK();}}};

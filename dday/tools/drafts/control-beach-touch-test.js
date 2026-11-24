@@ -2,7 +2,7 @@ const {chromium}=require('playwright');const {serve,open}=require('./harness.js'
 const W=+process.argv[2]||844,H=+process.argv[3]||390,PO=+process.argv[4]||0;
 (async()=>{const port=9940+PO,srv=await serve('/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
 const ctx=await b.newContext({viewport:{width:W,height:H},hasTouch:true});
-const {page,errors}=await open(ctx,`http://localhost:${port}/index.html?gfx=2`);
+const {page,errors}=await open(ctx,`http://localhost:${port}/index.html?noseq&gfx=2`);
 await page.setViewportSize({width:W,height:H});
 const ev=(f,a)=>page.evaluate(f,a);const log=async(l,f,a)=>console.log(l+':',await ev(f,a));
 // the beach: land, then take a man over

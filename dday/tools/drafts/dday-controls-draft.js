@@ -6,7 +6,7 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 const OUT=process.argv[2]||'.',W=390,H=760;
 (async()=>{const port=9962,srv=await serve('/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=2`);await page.setViewportSize({width:W,height:H});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=2`);await page.setViewportSize({width:W,height:H});
 const ev=(f,a)=>page.evaluate(f,a);
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=2;R.battles=2;R.minLevel=3;
   ['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,3,false)));ddmSave();

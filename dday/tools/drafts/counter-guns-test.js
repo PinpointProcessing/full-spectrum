@@ -3,7 +3,7 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const fs=require('fs');
 const SEED=+process.argv[2]||1,PORT=+process.argv[3]||9805,OUT=process.argv[4]||'.';
 (async()=>{fs.mkdirSync(OUT,{recursive:true});const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?gfx=1`);await page.setViewportSize({width:390,height:760});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};const ev=(f,a)=>page.evaluate(f,a);
+const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=1`);await page.setViewportSize({width:390,height:760});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};const ev=(f,a)=>page.evaluate(f,a);
 const start=async(res)=>{await ev(({s,res})=>{localStorage.removeItem('warehouseYard.ddmeta.v1');Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4000+s);ddRoster=ddmRead();const R=ddRoster;R.stage=1;R.battles=1;R.minLevel=2;
     ['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,2,false)));for(let i=0;i<res;i++)R.reserve.push(ddmNewMan('rifle',2,false));ddmSave();window.requestAnimationFrame=()=>0;startCounter();
     window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){update(1/30);if(i%6==0){panTick(.2);ddFrame(.2,simT);}}};window.G=k=>dd.dc.guns.find(g=>g.k===k);},{s:SEED,res});await page.waitForTimeout(700);};

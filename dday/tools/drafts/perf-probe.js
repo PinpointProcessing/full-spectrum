@@ -4,7 +4,7 @@ const {chromium}=require('playwright');const {serve,open}=require('./harness.js'
 const PO=+process.argv[2]||0,GFX=process.argv[3]!=null?+process.argv[3]:1;
 (async()=>{const port=9790+PO,srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',port);
 const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=${GFX}`);await page.setViewportSize({width:390,height:760});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=${GFX}`);await page.setViewportSize({width:390,height:760});
 const ev=(f,a)=>page.evaluate(f,a);
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(77);window.requestAnimationFrame=()=>0;
   window.CLK=0;const pn=performance.now.bind(performance);performance.now=()=>pn()+CLK*1000;

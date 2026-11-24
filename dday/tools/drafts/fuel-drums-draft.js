@@ -1,7 +1,7 @@
 // the fuel drums: close pictures and the map's data. node drumpics.js [port]
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const fs=require('fs');const PORT=+process.argv[2]||9797,OUT=process.env.OUT||'.';
 (async()=>{const srv=await serve(process.env.DDROOT,PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?gfx=1`);await page.setViewportSize({width:390,height:760});const ev=(f,a)=>page.evaluate(f,a);
+const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=1`);await page.setViewportSize({width:390,height:760});const ev=(f,a)=>page.evaluate(f,a);
 await ev(()=>{window.requestAnimationFrame=()=>0;Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4002);localStorage.removeItem('warehouseYard.ddmeta.v1');});
 await page.click('#ddBtn');await page.waitForTimeout(600);
 const shot=async n=>{await ev(()=>{bigText('');ddFrame(1/30,simT);render(.03,simT);drawOverlay(.03,simT);hud();});await page.waitForTimeout(450);await ev(()=>{render(.03,simT);drawOverlay(.03,simT);});await page.waitForTimeout(250);await page.screenshot({path:`${OUT}/${n}.png`});};

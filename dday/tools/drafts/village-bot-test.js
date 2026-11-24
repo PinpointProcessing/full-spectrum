@@ -2,7 +2,7 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 const SEED=+process.argv[2]||1,ROUTE=process.argv[3]||'west',PO=+process.argv[4]||0,MAXT=+process.argv[5]||1200;
 (async()=>{const port=9880+PO,srv=await serve('/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=0`);await page.setViewportSize({width:420,height:860});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=0`);await page.setViewportSize({width:420,height:860});
 const ev=(f,a)=>page.evaluate(f,a);
 await ev(([SEED])=>{localStorage.removeItem('warehouseYard.ddmeta.v1');Math.random=(s=>()=>(s=(s*16807)%2147483647)/2147483647)(SEED*7919+13);ddRoster=ddmRead();const R=ddRoster;R.stage=2;R.battles=2;R.minLevel=3;['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,3,false)));for(const r of['rifle','gunner','medic','demo'])R.reserve.push(ddmNewMan(r,3,false));ddmSave();window.requestAnimationFrame=()=>0;},[SEED]);
 await ev(()=>{startVillage({skip:true});window.DMG={};const d0=damage;damage=function(t,d,src){if(t&&t.side==='P'&&!t.npc&&players.includes(t)){const k=(src?(src.tag||src.name||src.id||'?'):'blast')+(src&&src.weapon==='sniper'?'/sn':'')+(src&&src.gunner?'/mg':'');const ph=dd&&dd.vg?dd.vg.ph:'?';DMG[ph+':'+k]=(DMG[ph+':'+k]||0)+d;}return d0.apply(this,arguments);};});await page.waitForTimeout(400);

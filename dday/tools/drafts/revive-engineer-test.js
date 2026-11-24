@@ -1,7 +1,7 @@
 // After Version 224: a medal brings a fallen man back on the report; the bazooka man is the Engineer. node rev225.js [port]
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const PORT=+process.argv[2]||9815;
 (async()=>{const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?gfx=1`);await page.setViewportSize({width:390,height:760});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};const ev=(f,a)=>page.evaluate(f,a);
+const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=1`);await page.setViewportSize({width:390,height:760});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};const ev=(f,a)=>page.evaluate(f,a);
 const act=async(sel,w)=>{const r=await ev(s=>{const e=document.querySelector(s);if(!e)return 'none';ddmClick({target:e,clientX:0,clientY:0});return 'ok';},sel);await page.waitForTimeout(w||1200);return r;};
 ok(await ev(()=>DDM_ROLE.demo==='Engineer'&&DD_ROLES.demo.n==='Engineer'&&DDM_ICON.demo===DDM_ICON.eng&&DD_ROLES.demo.spec==='rpg'),'the bazooka man is the Engineer, with the wrench');
 // make one man of Alpha die at the end: wrap ddmStart

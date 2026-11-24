@@ -6,7 +6,7 @@ const PO=+process.argv[2]||9781,W=390,H=760;const THREE_SRC=fs.readFileSync(S+'/
 (async()=>{const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PO);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
 const ctx=await b.newContext({viewport:{width:W,height:H},hasTouch:true,deviceScaleFactor:1});const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 await page.route('**/*',r=>{const u=r.request().url();if(u.includes('cdnjs.cloudflare.com'))return r.fulfill({body:THREE_SRC,contentType:'text/javascript'});if(u.includes('fonts.g'))return r.abort();return r.continue();});
-await page.goto(`http://localhost:${PO}/index.html?gfx=0`);await page.waitForTimeout(2500);
+await page.goto(`http://localhost:${PO}/index.html?noseq&gfx=0`);await page.waitForTimeout(2500);
 const ev=(f,a)=>page.evaluate(f,a);let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};const cdp=await ctx.newCDPSession(page);
 const touch=(type,x,y)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x,y,id:1}]});
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4001);window.requestAnimationFrame=()=>0;});

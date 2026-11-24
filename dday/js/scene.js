@@ -792,6 +792,7 @@ function lampLights(now){   // hand the pooled lights to the lamps nearest the v
 let shakeK=0;
 function shake(k){if(!reduced)shakeK=Math.min(1.2,Math.max(shakeK,k*(timeScale()<1?.4:1)));}   // blasts and machine guns nearby (muted in slow-mo)
 function render(rdt,now){
+  if(MAPID==='dd'&&typeof dcSeqRender==='function'&&dcSeqRender(rdt,now))return;   // (D-Day Chapter 2's opening: the run through the hut is a set of its own, ddcseq.js)
   const ddTone=MAPID==='dd'&&typeof DDL_TONE!=='undefined'&&DDL_TONE.map!=null;if(ddTone){renderer.toneMapping=DDL_TONE.map;renderer.toneMappingExposure=DDL_TONE.exp;}   // (Version 188: D-Day's daylight has a tone curve and exposure of its own, ddlight.js; set for its frame only and put back after it, below)
   updateCamera();syncUnits(now);if(typeof crPoolsFrame==='function')crPoolsFrame();seeThrough(rdt);   // (monsters out of sight: their slots hidden, creatures.js)
   if(shakeK>.002){const a=shakeK*4;camera.position.x+=(Math.random()-.5)*a;camera.position.y+=(Math.random()-.5)*a*.6;camera.position.z+=(Math.random()-.5)*a;camera.updateMatrixWorld();shakeK=Math.max(0,shakeK-rdt*3);}

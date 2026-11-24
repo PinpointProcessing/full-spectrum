@@ -14,7 +14,7 @@ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swi
 const ctx=await b.newContext({viewport:{width:W,height:H},deviceScaleFactor:2});const page=await ctx.newPage();
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 await page.route('**/*',r=>{const u=r.request().url();if(u.includes('cdnjs.cloudflare.com'))return r.fulfill({body:THREE_SRC,contentType:'text/javascript'});if(u.includes('fonts.g'))return r.abort();return r.continue();});
-await page.goto(`http://localhost:${port}/index.html?gfx=2`);await page.waitForTimeout(2500);
+await page.goto(`http://localhost:${port}/index.html?noseq&gfx=2`);await page.waitForTimeout(2500);
 const ev=(f,a)=>page.evaluate(f,a);
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');localStorage.removeItem('warehouseYard.ddctl.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=2;R.battles=2;R.minLevel=3;
   ['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,3,false)));ddmSave();

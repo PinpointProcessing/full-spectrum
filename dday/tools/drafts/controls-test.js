@@ -9,7 +9,7 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 const W=+process.argv[2]||390,H=+process.argv[3]||760,PO=+process.argv[4]||0;
 (async()=>{const port=9890+PO,srv=await serve('/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=0`);await page.setViewportSize({width:W,height:H});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=0`);await page.setViewportSize({width:W,height:H});
 const ev=(f,a)=>page.evaluate(f,a);let fails=0;
 const ok=async(l,f,a)=>{let r;try{r=await ev(f,a);}catch(e){r={ok:false,err:String(e).slice(0,300)};}if(!r||r.ok===false){fails++;console.log('FAIL',l,JSON.stringify(r));}else console.log('ok',l,JSON.stringify(r));return r;};
 await ok('start card: Tap an enemy for actions there and on, no Lead one squad switch (always on)',()=>{localStorage.removeItem('warehouseYard.ddctl.v1');const a=$('#ddCtlLead'),c=$('#ddCtlRing');return{ok:!a&&!!c&&c.checked&&DDC.lead&&DDC.ring};});

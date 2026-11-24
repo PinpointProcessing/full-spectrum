@@ -1,7 +1,7 @@
 // the report's man page: pictures and checks. node rep223.js W H TAG [port]
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const W=+process.argv[2]||390,Hh=+process.argv[3]||760,T=process.argv[4]||'p',PORT=+process.argv[5]||9793;
 (async()=>{const srv=await serve(process.env.DDROOT,PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?gfx=1`);await page.setViewportSize({width:W,height:Hh});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};
+const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=1`);await page.setViewportSize({width:W,height:Hh});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};
 const ev=(f,a)=>page.evaluate(f,a);
 const act=async(sel,w)=>{const r=await page.evaluate(s=>{const e=document.querySelector(s);if(!e)return 'none';try{ddmClick({target:e,clientX:0,clientY:0});return 'ok';}catch(x){return 'ERR '+x.message;}},sel);if(r!=='ok')console.log(sel,r);await page.waitForTimeout(w||1500);return r;};
 const shot=async n=>{await page.evaluate(()=>{for(let i=0;i<5;i++)ddMetaFrame(.3,performance.now());});await page.waitForTimeout(900);await page.screenshot({path:`${process.env.OUT||'.'}/r-${T}-${n}.png`});};

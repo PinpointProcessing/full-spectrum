@@ -8,7 +8,7 @@ const THREE_SRC=fs.readFileSync(S+'/deps/node_modules/three/build/three.min.js')
 const ctx=await b.newContext({viewport:{width:W,height:H},hasTouch:true,deviceScaleFactor:1});const page=await ctx.newPage();   // (touch, not isMobile: the page's viewport tag is added when it's published, so here a mobile layout would be 980 wide)
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 await page.route('**/*',r=>{const u=r.request().url();if(u.includes('cdnjs.cloudflare.com'))return r.fulfill({body:THREE_SRC,contentType:'text/javascript'});if(u.includes('fonts.g'))return r.abort();return r.continue();});
-await page.goto(`http://localhost:${port}/index.html?gfx=0`);await page.waitForTimeout(2500);
+await page.goto(`http://localhost:${port}/index.html?noseq&gfx=0`);await page.waitForTimeout(2500);
 const ev=(f,a)=>page.evaluate(f,a);let fails=0;const cdp=await ctx.newCDPSession(page);
 const ok=async(l,f,a)=>{let r;try{r=await ev(f,a);}catch(e){r={ok:false,err:String(e).slice(0,300)};}if(!r||r.ok===false){fails++;console.log('FAIL',l,JSON.stringify(r));}else console.log('ok',l,JSON.stringify(r));return r;};
 const touch=async(type,x,y)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x,y,id:1}]});

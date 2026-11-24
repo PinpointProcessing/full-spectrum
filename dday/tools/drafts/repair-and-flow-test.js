@@ -1,7 +1,7 @@
 // Version 226: the Engineer repairs a knocked-out gun; the report goes straight to the next mission; nobody is left wounded. node v226.js [port]
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const PORT=+process.argv[2]||9830;
 (async()=>{const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?gfx=0`);await page.setViewportSize({width:390,height:760});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};const ev=(f,a)=>page.evaluate(f,a);
+const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=0`);await page.setViewportSize({width:390,height:760});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};const ev=(f,a)=>page.evaluate(f,a);
 const act=async(sel,w)=>{const r=await ev(s=>{const e=document.querySelector(s);if(!e)return 'none';ddmClick({target:e,clientX:0,clientY:0});return 'ok';},sel);await page.waitForTimeout(w||1200);return r;};
 // the report: nobody wounded, NEXT MISSION opens the briefing there, START goes into the counterattack
 await page.click('#ddAfterBtn');await page.waitForFunction(()=>typeof ddm!=='undefined'&&ddm&&ddm.ph==='report',null,{timeout:60000});await page.waitForTimeout(1500);

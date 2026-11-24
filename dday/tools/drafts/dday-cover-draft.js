@@ -20,7 +20,7 @@ await page.route('**/*',r=>{const u=r.request().url();if(u.includes('cdnjs.cloud
 const ev=(f,a)=>page.evaluate(f,a);
 // a fresh page with the beach landed (and, for the draft, the extra holes in before the map is built)
 const beach=async holes=>{
-  await page.goto(`http://localhost:${port}/index.html?gfx=${PICS?2:0}`);await page.waitForTimeout(2500);
+  await page.goto(`http://localhost:${port}/index.html?noseq&gfx=${PICS?2:0}`);await page.waitForTimeout(2500);
   await ev(holes=>{localStorage.removeItem('warehouseYard.ddmeta.v1');localStorage.removeItem('warehouseYard.ddctl.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=2;R.battles=2;R.minLevel=3;
     ['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,3,false)));ddmSave();
     Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(31);window.requestAnimationFrame=()=>0;

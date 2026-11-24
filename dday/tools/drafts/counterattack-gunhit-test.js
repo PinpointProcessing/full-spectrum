@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 (async()=>{const srv=await serve('/home/user/full-spectrum/dday',9987);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,'http://localhost:9987/index.html?gfx=2');await page.setViewportSize({width:390,height:760});
+const {page,errors}=await open(b,'http://localhost:9987/index.html?noseq&gfx=2');await page.setViewportSize({width:390,height:760});
 await page.evaluate(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=1;['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,2,false)));ddmSave();window.requestAnimationFrame=()=>0;startCounter();});
 await page.waitForTimeout(800);const ev=(f,a)=>page.evaluate(f,a);
 const shot=async n=>{await ev(()=>{updateCamera();render(.03,simT);drawOverlay(.03,simT);});await page.waitForTimeout(600);await ev(()=>{updateCamera();render(.001,simT);drawOverlay(.001,simT);});await page.screenshot({path:`ca3_${n}.png`});};

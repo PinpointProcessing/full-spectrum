@@ -1,7 +1,7 @@
 // CAPTURE flags and the highlighted-area drafts: node cap.js OUT
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const fs=require('fs');const OUT=process.argv[2]||'cap';
 (async()=>{fs.mkdirSync(OUT,{recursive:true});const srv=await serve('/home/user/full-spectrum/dday',9781);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,'http://localhost:9781/index.html?gfx=2');await page.setViewportSize({width:390,height:760});
+const {page,errors}=await open(b,'http://localhost:9781/index.html?noseq&gfx=2');await page.setViewportSize({width:390,height:760});
 await page.evaluate(()=>{window.requestAnimationFrame=()=>0;Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(77);});
 await page.click('#ddBtn');await page.waitForTimeout(600);
 await page.evaluate(()=>{damage=()=>{};let n=0;while(!dd.land.done&&n++<4000)update(1/30);for(const e of enemies)e.stunT=999;

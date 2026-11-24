@@ -7,7 +7,7 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const fs=require('fs');
 const PORT=+process.argv[2]||9787,OUT=process.argv[3]||'topguns';
 (async()=>{fs.mkdirSync(OUT,{recursive:true});const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?gfx=1`);await page.setViewportSize({width:390,height:760});const ev=(f,a)=>page.evaluate(f,a);
+const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=1`);await page.setViewportSize({width:390,height:760});const ev=(f,a)=>page.evaluate(f,a);
 await ev(()=>{window.requestAnimationFrame=()=>0;Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4003);localStorage.removeItem('warehouseYard.ddmeta.v1');});
 await page.click('#ddBtn');await page.waitForTimeout(600);
 const snap=async n=>{await page.waitForTimeout(450);await ev(()=>SHOW());await page.waitForTimeout(250);await page.screenshot({path:`${OUT}/${n}.png`});};

@@ -3,7 +3,7 @@ const {chromium}=require('playwright');const {serve,open}=require('./harness.js'
 const PO=+process.argv[2]||9,OUT=process.argv[3]||'.',W=+process.argv[4]||390,H=+process.argv[5]||760;
 (async()=>{fs.mkdirSync(OUT,{recursive:true});const port=9700+PO,srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',port);
 const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${port}/index.html?gfx=1`);await page.setViewportSize({width:W,height:H});const ev=(f,a)=>page.evaluate(f,a);
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=1`);await page.setViewportSize({width:W,height:H});const ev=(f,a)=>page.evaluate(f,a);
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};
 const snap=async n=>{await page.waitForTimeout(700);await page.screenshot({path:`${OUT}/${n}.png`});};
 await page.click('#ddAfterBtn');await page.waitForFunction(()=>typeof ddm!=='undefined'&&ddm&&ddm.ph==='report',null,{timeout:60000});

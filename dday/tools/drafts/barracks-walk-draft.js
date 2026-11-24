@@ -1,7 +1,7 @@
 // the barracks' camera dragged along the bunks: checks and pictures. node bk223.js W H TAG [port] [film]
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');const fs=require('fs');const W=+process.argv[2]||390,Hh=+process.argv[3]||760,T=process.argv[4]||'p',PORT=+process.argv[5]||9794,FILM=process.argv[6]==='film';
 (async()=>{const OUT=process.env.OUT||'.';fs.mkdirSync(OUT,{recursive:true});const srv=await serve(process.env.DDROOT,PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?gfx=1`);await page.setViewportSize({width:W,height:Hh});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};
+const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=1`);await page.setViewportSize({width:W,height:Hh});let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m);};
 const ev=(f,a)=>page.evaluate(f,a);
 const act=async(sel,w)=>{const r=await page.evaluate(s=>{const e=document.querySelector(s);if(!e)return 'none';try{ddmClick({target:e,clientX:0,clientY:0});return 'ok';}catch(x){return 'ERR '+x.message;}},sel);if(r!=='ok')console.log(sel,r);await page.waitForTimeout(w||1500);return r;};
 const settle=async()=>{await ev(()=>{for(let i=0;i<40;i++){const r=ddm.room,S=ddm.slot,to=S?ddmStopOf(S[0],S[1]):ddmStopWide();if(r.walk&&!r.walk.drag)r.walk.s=to;}ddmRoomFrame(.1);ddmPlace();});await page.waitForTimeout(700);};

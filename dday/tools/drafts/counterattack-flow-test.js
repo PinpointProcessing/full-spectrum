@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
 (async()=>{const srv=await serve('/home/user/full-spectrum/dday',9985);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
-const {page,errors}=await open(b,'http://localhost:9985/index.html?gfx=0');await page.setViewportSize({width:390,height:760});
+const {page,errors}=await open(b,'http://localhost:9985/index.html?noseq&gfx=0');await page.setViewportSize({width:390,height:760});
 await page.evaluate(()=>localStorage.removeItem('warehouseYard.ddmeta.v1'));await page.reload();await page.waitForTimeout(2500);
 const ev=(f,a)=>page.evaluate(f,a);const fr=async n=>{await ev(n=>{for(let i=0;i<n;i++)ddMetaFrame(.05,1);},n);await page.waitForTimeout(300);};
 console.log('start card: chapter 2 button hidden '+await ev(()=>document.querySelector('#ddCtrBtn').hidden));
