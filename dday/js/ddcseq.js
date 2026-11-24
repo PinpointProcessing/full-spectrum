@@ -9,7 +9,7 @@
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
 const DCS={camp:{x:700,y:858},T:{shell:4.6,run:5.5,hut:8.1,out:11.7,end:15.6},
   // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
-  spots:[[14,2,Math.PI,0,'sit',1],[-13,4,0,0,'sit',1],[1,-15,Math.PI/2,0,'kneel',0],[5,17,-Math.PI/2,0,'smoke',0],[-78,16,Math.PI/2-.35,0,'sit',2],[-62,16,Math.PI/2+.35,0,'sit',2],[70,8,-2.4,0,'kneel',0],[104,-4,2.6,0,'smoke',0]]};
+  spots:[[14,2,Math.PI,0,'sit',1],[-13,4,0,0,'sit',1],[1,-15,Math.PI/2,0,'kneel',0],[21,18,-2.4,0,'smoke',0],[-37,14,Math.PI/2-.35,0,'sit',2],[-24,14,Math.PI/2+.35,0,'sit',2],[35,-9,-2.6,0,'kneel',0],[-31,-13,.6,0,'smoke',0]]};
 function dcSeqStart(){
   if(startCounter.noSeq||/[?&]noseq\b/.test(location.search))return false;   // (?noseq in the address: the tests that start in the fight)
   const c=DCS.camp,T=THREE,g=ddH(c.x,c.y);
@@ -22,9 +22,9 @@ function dcSeqStart(){
   for(let k=0;k<4;k++)add(new T.CylinderGeometry(.9,.9,9,7),M(0x4a3524),c.x,1.2,c.y,Math.PI/2,k*.8,0);for(let k=0;k<9;k++){const a=k*.7;add(new T.DodecahedronGeometry(1.5,0),M(0x77746c),c.x+Math.cos(a)*5.4,.8,c.y+Math.sin(a)*5.4,k,k,0);}
   for(const[r,h,o]of[[3.2,4.6,.9],[2.1,6.4,.75],[1.2,7.8,.6]]){const f=add(new T.ConeGeometry(r,h,9,1,true),new T.MeshBasicMaterial({color:r>3?0xff6a1c:r>2?0xffa63c:0xffe08a,transparent:true,opacity:o,toneMapped:false,depthWrite:false}),c.x,h/2+1,c.y);f.castShadow=false;}
   for(const p of S.seat)if(p)add(new T.BoxGeometry(7,5.2,7),M(0x5f6a44,.8),p[0],2.6,p[1],0,.3,0);                                  // a crate under each man sitting at the fire
-  for(let k=0;k<7;k++)add(new T.BoxGeometry(7+((k*5)%3),5+((k*3)%2)*.4,6),M(k%3?0x8d887c:0x777267),c.x-92+k*7.4,2.5,c.y+16+((k*7)%3)*.5,0,((k*13)%7-3)*.04,0);   // the low stone wall two of them sit on
+  for(let k=0;k<5;k++)add(new T.BoxGeometry(7+((k*5)%3),5+((k*3)%2)*.4,6),M(k%3?0x8d887c:0x777267),c.x-45+k*7.4,2.5,c.y+14+((k*7)%3)*.5,0,((k*13)%7-3)*.04,0);   // the low stone wall two of them sit on
   for(const dx of[-3.2,3.2])add(new T.CylinderGeometry(.25,.25,13,5),M(0x2a2a2a,.6),c.x+dx,6,c.y,0,0,dx>0?.38:-.38);add(new T.CylinderGeometry(2.3,1.9,2.6,10),M(0x24262a,.5),c.x,9.4,c.y);   // a pot over the fire
-  for(const[x,y,w,h]of[[c.x+78,c.y+4,12,7],[c.x-118,c.y-2,10,7],[c.x+112,c.y+8,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
+  for(const[x,y,w,h]of[[c.x+44,c.y-10,10,6],[c.x-62,c.y-4,10,7],[c.x+60,c.y+16,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
   // the bunch of other troops off to one side: the shells land on them
   [[0,0],[13,4],[25,-2],[6,13],[19,15],[31,10]].forEach(([dx,dy],i)=>{const u=ddNpc(c.x+176+dx,c.y-8+dy);Object.assign(u,{inBoat:false,seen:true,post:null,ang:Math.PI+.25*(i%3-1),atEase:i%2===0,work:i%2?'stand':null,cool:99});S.doom.push(u);});
   dcHutBuild(S);dcSpawnWave(1);banner('',1);   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)
@@ -97,7 +97,7 @@ function dcSeqEnd(){
 function dcSeqCam(rdt){
   const S=dd.seq,T=THREE,c=DCS.camp,D=DCA.door,V=(x,h,y)=>new T.Vector3(x,ddH(x,y)+h,y);rdt=Math.min(rdt||0,.1);let pos,look,k=2.2;
   if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}camShift=0;
-  if(S.ph==='camp'){const a=S.t*.05;pos=V(c.x+50+a*160,150,c.y+400);look=V(c.x+6,9,c.y-6);}
+  if(S.ph==='camp'){const a=S.t*.05;pos=V(c.x+26-a*70,112-a*40,c.y+250-a*120);look=V(c.x,8,c.y);}
   else if(S.ph==='shell'){pos=V(c.x+110,160,c.y+420);look=V(c.x+120,9,c.y-4);k=4;}
   else if(S.ph==='run'){pos=V(D.x+30,110,c.y+300);look=V(D.x,12,DCA.barracks[0].y+36);k=3;}
   else if(S.ph==='hut')return true;
