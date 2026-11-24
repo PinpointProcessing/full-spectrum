@@ -30,11 +30,21 @@ function tvTick(dt,audible){
       if(tv.t>=L.t&&tv.t<L.t+L.d+.5)tv.sub={who:ANCH[L.who].name,text:L.text,talk:tv.t<L.t+L.d?L.who:-1};}
     tvOnce('thud',22.3,()=>audible&&tvSfx('bang',1));
     tvOnce('thud2',23.2,()=>audible&&tvSfx('bang',1.2));
-    tvOnce('crash',CAST_IN-.3,()=>{shutUp();if(audible){tvSfx('crash',.8);tvSfx('snarl',1);}});
-    tvOnce('scream',CAST_IN+.9,()=>{if(audible){tvSfx('gurgleM',1);tvSfx('snarl',.8);}});      // Hal goes first
-    tvOnce('s1',CAST_IN+1.5,()=>{if(audible)tvSfx('bite',1);tv.splats.push({x:.12,y:.24,r:.06});});
-    tvOnce('s2',CAST_IN+2.3,()=>{if(audible){tvSfx('bite',1);tvSfx('gurgleF',1);}tv.splats.push({x:.5,y:.16,r:.085});});      // then Denise
-    tvOnce('s3',CAST_IN+3.1,()=>{if(audible){tvSfx('gurgleM',.7);tvSfx('roar',.7);}tv.splats.push({x:.9,y:.3,r:.07});});
+    // the attack: recorded screams, zombie voices and wet hits (Bryan found the made-in-code ones fake). Each falls back to the old sound if its clip is missing.
+    const A=(key,at,fn)=>tvOnce(key,CAST_IN+at,()=>{if(audible)fn();});
+    tvOnce('crash',CAST_IN-.3,()=>{shutUp();if(audible){tvSfx('crash',.8);tvClip('z17',1.5,.8)||tvSfx('snarl',1);}});
+    A('zr1',.25,()=>tvClip('z10',1.3,.95));
+    A('scream',.5,()=>{tvClip('s_m1',1.5)||tvSfx('gurgleM',1);});                       // Hal goes first
+    A('zr2',.9,()=>tvClip('z4',1.2,.9));
+    tvOnce('s1',CAST_IN+1.3,()=>{if(audible){tvClip('s_wet1',1.3)||tvSfx('bite',1);}tv.splats.push({x:.12,y:.24,r:.06});});
+    A('screamF',1.5,()=>{tvClip('s_f1',1.35)||tvSfx('gurgleF',1);});                    // Denise sees it and does not stop
+    A('zr3',1.9,()=>tvClip('z16',1.4,.85));
+    tvOnce('s2',CAST_IN+2.3,()=>{if(audible){tvClip('s_wet4',1.3)||tvSfx('bite',1);tvClip('s_m2',1.3);}tv.splats.push({x:.5,y:.16,r:.085});});
+    A('zr4',2.7,()=>tvClip('z7',1.2));
+    tvOnce('s3',CAST_IN+3.1,()=>{if(audible){tvClip('s_m3',1.4)||tvSfx('gurgleM',.7);tvClip('z18',1.4,.8)||tvSfx('roar',.7);}tv.splats.push({x:.9,y:.3,r:.07});});
+    A('screamF2',3.3,()=>tvClip('s_f2',1.2));
+    A('wet3',3.9,()=>tvClip('s_wet8',1.3));
+    A('zr5',4.1,()=>tvClip('z21',1.2,.85));
     tvOnce('s4',CAST_IN+3.7,()=>{tv.splats.push({x:.4,y:.6,r:.14});});
     tvOnce('fall',CAST_IN+3.7,()=>audible&&tvSfx('crash',1));
     tvOnce('static',CAST_STATIC,()=>audible&&tvSfx('static',1));

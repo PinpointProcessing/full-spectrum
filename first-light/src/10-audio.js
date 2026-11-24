@@ -119,6 +119,11 @@ function babble(dur,pitch,vol){
   let t=AU.ctx.currentTime+.02;const end=t+dur;
   while(t<end){const d=rand(.12,.24),f=pitch*rand(.95,1.06);voiceF(f,f*rand(.96,1.03),d,vol,AU.tv,t,pick(VOWELS),0);t+=d+(Math.random()<.2?rand(.18,.4):rand(.02,.06));}
 }
+/* a recorded clip out of the TV's speaker (sounds/CREDITS.md). False if the page does not carry it or it has not decoded, so the caller can fall back. */
+function tvClip(key,vol,rate){
+  if(!AU.ctx||AU.muted)return true;const b=ZBUF[key];if(!b)return false;
+  const s=AU.ctx.createBufferSource(),g=AU.ctx.createGain();s.buffer=b;s.playbackRate.value=rate||1;g.gain.value=vol===undefined?1:vol;s.connect(g);g.connect(AU.tv);s.start();return true;
+}
 function tvSfx(name,vol){if(!AU.ctx||AU.muted)return;try{SFX[name](AU.ctx.currentTime+.002,vol===undefined?1:vol,AU.tv);}catch(e){}}
 /* The broadcast is read in the device's own speech voices, flat and even like a newsreader: the best-sounding male and
    female English voices it has, at normal speed and pitch. If the device has no speech at all, a quiet murmur stands in. */
