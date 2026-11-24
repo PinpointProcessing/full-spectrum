@@ -120,7 +120,7 @@ function leaveDDayNow(){
   if(MAPID!=='dd')return;const out=STASH.out;
   for(const k in dd.labels0)WEAPON[k].label=dd.labels0[k];SPECIALS.rpg.label=dd.rpg0;PRPG.range=dd.rpgR;PRPG.aim=dd.rpgA;ddBaz(0);
   for(const u of units)if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);
-  document.body.classList.remove('dd','ddlead');{const q=$('#sq');if(q)q.hidden=true;const w=$('#ddSwap');if(w)w.hidden=true;}if(typeof ddcClose==='function')ddcClose();{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
+  document.body.classList.remove('dd','ddlead','dcg');{const b=$('#dcBar');if(b)b.hidden=true;}{const q=$('#sq');if(q)q.hidden=true;const w=$('#ddSwap');if(w)w.hidden=true;}if(typeof ddcClose==='function')ddcClose();{const o=$('#oob');if(o)o.hidden=true;const c=$('#ddChip');if(c)c.hidden=true;}
   groundH=null;MAXZ=6;camShift=0;zoom=Math.min(zoom,6);useMap(out);({tankFires,rockets,charges}=out.fx);MAPID='out';LEVEL=3;
   units=[...out.units];players=[];enemies=units.filter(u=>u.side==='E');civs=[];
   VB={...out.vb};FIT.w=out.fit.w;FIT.h=out.fit.h;fitDist();dd=null;disposeDD();
@@ -791,7 +791,7 @@ const ddFireR=u=>wRange(u)*(u.gunner?1.45:1.12);
 // is it safe for one of ours to fire a rocket at (x,y) from d away? Nobody of ours within its blast and how far it can stray (combat.js's fireRPG: past DD_BAZ.true0)
 function ddRocketClear(x,y,d){const R=(PRPG.blast||55)+15+Math.max(0,(d-DD_BAZ.true0)*DD_BAZ.stray);return!(dd.allies||[]).some(q=>!q.inBoat&&!q.dead&&hyp(q.x-x,q.y-y)<R);}
 // a shell: where and when it lands, kept on whoever fired it (ddhud.js's ddShooters marks him from firing till 3 s after it lands); one fired from off the map (the counterattack's mortars) is kept in dd.offShells with where it came from
-function ddShell(by,x,y,R,D,dur){if(by&&by.side==='E'&&dd){const L={x,y,R,t:simT+dur};by.shells=(by.shells||[]).filter(s=>simT<s.t+3);by.shells.push(L);if(!enemies.includes(by)&&!(dd.tanks||[]).includes(by))(dd.offShells||(dd.offShells=[])).push(Object.assign({fx:by.x,fy:by.y},L));}nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,by,enemy:true,R,D});if(dd&&dd.counter&&by&&by.way)dd.dc.shells.push({x,y,at:simT+dur});}   // (a tank's shell: where and when it lands, for the guns it can knock out, ddcounter.js)
+function ddShell(by,x,y,R,D,dur){if(by&&by.side==='E'&&dd){const L={x,y,R,t:simT+dur};by.shells=(by.shells||[]).filter(s=>simT<s.t+3);by.shells.push(L);if(!enemies.includes(by)&&!(dd.tanks||[]).includes(by))(dd.offShells||(dd.offShells=[])).push(Object.assign({fx:by.x,fy:by.y},L));}nades.push({x0:by.x,y0:by.y,x1:x,y1:y,t:0,dur,by,enemy:true,R,D});if(dd&&dd.counter&&by&&by.way)dd.dc.shells.push({x,y,at:simT+dur,D:DCA.hv.shell});}   // (a tank's shell: where and when it lands, for the guns it can knock out, ddcounter.js)
 function ddShelling(){
   const al=dd.allies.filter(u=>!u.inBoat);if(!al.length)return;
   const pickAt=f=>{const c=al.filter(f);const u=(c.length?c:al)[(Math.random()*(c.length?c.length:al.length))|0];return{x:u.x+(Math.random()-.5)*90,y:u.y+(Math.random()-.5)*90};};
@@ -1109,7 +1109,10 @@ function ddToolKeep(){
 // A tap on the map. Right after a tool was used (2.5 s) a tap on the ground does nothing, so tapping again to be sure doesn't send the squad
 // running; a double tap there moves them (Bryan: "Maybe a press after using a tool doesn't do anything. They would double press to move towards it")
 function ddTap(wx,wy,sx,sy){if(!dd||ddBusy())return false;if(typeof ddPostTap==='function'&&ddPostTap(wx,wy,sx,sy))return true;   /* (Version 199: a gun's ENTER / CONTROL circle, ddpost.js) */
-  if(dd.counter&&dcTap(wx,wy))return true;if(dd.toolK)return true;if(typeof ddcTap==='function'){const r=ddcTap(wx,wy,sx,sy);if(r!=null)return r;}   // (Version 168: an enemy, a tank or the wire tapped brings up its ring of actions, ddctl.js)
+  if(dd.counter&&dcTap(wx,wy))return true;
+  if(dd.counter&&sx!=null&&!dd.toolK&&dd.dc.ph!=='intro'){   // (Version 224: a thumb on one of theirs, or a tank: every gun that can bear turns on it)
+    const K=ddTanksUp().find(q=>{toSBack=false;const[tx,ty]=toS(q.x,q.y,16);return!toSBack&&hyp(tx-sx,ty-sy)<46;}),e=K?null:enemyAtScreen(sx,sy);if(K||e){dcFocus(e,K);dd.dc.picked=true;if(!K)return true;}}
+  if(dd.toolK)return true;if(typeof ddcTap==='function'){const r=ddcTap(wx,wy,sx,sy);if(r!=null)return r;}   // (Version 168: an enemy, a tank or the wire tapped brings up its ring of actions, ddctl.js)
   if(!sel.length)return false;
   // the tank under the finger: the squad's own answer to armour, a rocket (a grenade if that's all there is and he's near enough). Bryan: "our
   // units use explosives only for heavily armored vehicles when targeted? Like a rocket?"
@@ -1171,7 +1174,7 @@ function ddObjUI(el){
   el.querySelector('span').textContent=!dd.land.done?'Thirty seconds to the beach':dd.blown.barracks?'The base is yours':dd.front>330?'Get off the beach: reach the wall':dd.front>-300?'Up the draw: the only way to the top':`Destroy the barracks${b&&b.hp<380?` (${Math.max(1,Math.round(b.hp/380*100))}%)`:''}`;
   const h=L.map(([t,d])=>`<li${d?' class="done"':''}>${t}</li>`).join('');const ol=el.querySelector('ol');if(ol.dataset.h!==h){ol.dataset.h=h;ol.innerHTML=h;}
   el.hidden=true;{const po=$('#ddObj');if(po&&(state!=='play'||dd.seq||!dd.land.done))po.hidden=true;}   // (the objective pill at the top, ddhud.js: hidden off the battle)   // (no objective box on this map: Bryan, "Get rid of the level name on top, it's just in the way"; the chapter's name flashes up at the start instead)
-  const c=$('#ddChip');if(c){c.hidden=state!=='play'||!!dd.seq;const t=dd.counter||dd.vil?`${dd.pool} in reserve`:`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
+  const c=$('#ddChip');if(c){c.hidden=state!=='play'||!!dd.seq||!!dd.counter;const t=dd.counter||dd.vil?`${dd.pool} in reserve`:`${dd.pool}/${DD_POOL}`;if(c.dataset.t!==t){c.dataset.t=t;c.innerHTML=`<svg viewBox="0 0 30 16" aria-hidden="true"><g fill="currentColor"><circle cx="6" cy="5" r="2.6"/><path d="M1.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="24" cy="5" r="2.6"/><path d="M19.5 15v-2.6a4.5 4.5 0 0 1 9 0V15z"/><circle cx="15" cy="4.2" r="3.1"/><path d="M9.6 15v-2.4a5.4 5.4 0 0 1 10.8 0V15z" stroke="#0b0f13" stroke-width=".8"/></g></svg><b>${t}</b>`;c.setAttribute('aria-label',`Replacements left: ${dd.pool} of ${DD_POOL}`);c.title='Replacements left';}}
 }
 function ddHint(){
   if(!dd)return'';

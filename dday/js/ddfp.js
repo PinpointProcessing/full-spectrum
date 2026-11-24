@@ -29,7 +29,7 @@ function fpEnter(u,view){
     fov:old?old.fov:camera.fov,fov0:old?old.fov0:camera.fov,near0:old?old.near0:camera.near,gun:old?old.gun:null,gunK:old?old.gunK:null,hitT:0,killT:0,msg:null};
   u.fp=true;u.path=[];u.supT=null;u.focus=null;u.watch=null;u.gaitForce=null;dd.track=null;camPan=null;
   document.body.classList.add('fp');$('#fp').hidden=false;
-  if(!old)banner(`You are ${u.name}. The squad follows you.`,2200);
+  if(dd.counter&&u.dcGun)banner(`${u.dcGun.n}: ${u.name}.`,1600);else if(!old)banner(`You are ${u.name}. The squad follows you.`,2200);
   fpHud();return true;
 }
 function fpExit(why){
@@ -87,7 +87,7 @@ function fpShoot(){
     best.sup=Math.min(1.2,best.sup+W.sup*(u.supK||1)*(best.nerveK||1));if(!best.alerted)best.alerted=true;
     if(c&&Math.random()<(c>=2?.45:.25)){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}
     else{const hs=u.weapon==='shotgun'?clamp(1-(hyp(ex-u.x,ey-u.y)-60)/200,.35,1):1;if(typeof sfxFlesh==='function')sfxFlesh(ex,ey);damage(best,(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*hs,u);F.hitT=performance.now();if(best.dead)F.killT=F.hitT;}}
-  else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');}else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);
+  else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');if(u.dcGun&&u.dcGun.hv&&typeof dcHvTank==='function'){dcHvTank(tank,.34);F.hitT=performance.now();}}   // (a heavy machine gun in your hands marks a tank: ddcounter.js)else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);
     for(const e of enemies)if(!beaten(e)&&hyp(e.x-ex,e.y-ey)<28)e.sup=Math.min(1.2,e.sup+W.sup*.7);}
   tracers.push({x1:u.x+Math.cos(F.a)*14,y1:u.y+Math.sin(F.a)*14,x2:ex,y2:ey,t:0,col:'255,231,163'});
   flashes.push({x:u.x+Math.cos(F.a)*6,y:u.y+Math.sin(F.a)*6,t:0,u});u.shotT=simT;u.aimT=simT;u.target=best||null;sfxShot(u);
@@ -141,7 +141,7 @@ function fpUnit(u,dt){
 }
 /* the rest of his squad: they keep with him and fight by themselves, and use what they carry when it's needed */
 function fpMates(){
-  if(dd.fp.u.postGun)return;   // (on one of the checkpoint's guns: his squad stays where it is, ddpost.js)
+  if(dd.fp.u.postGun||dd.counter&&dd.fp.u.dcGun)return;   // (on one of the checkpoint's guns, or the counterattack's: his squad stays where it is, ddpost.js, ddcounter.js)
   const F=dd.fp,u=F.u,m=players.filter(p=>p!==u&&p.team===u.team&&alive(p)&&!p.inBoat&&!p.joining);if(!m.length)return;
   const free=m.filter(p=>!p.medGo&&!p.throwGo&&!p.rpgAim&&!p.dcGun&&!p.onGun&&!pinnedNow(p));
   const A=F.anchor,moved=!A||hyp(u.x-A.x,u.y-A.y)>FPC.follow,far=free.filter(p=>!p.path.length&&hyp(p.x-u.x,p.y-u.y)>130),list=moved?free:far;
@@ -269,11 +269,12 @@ function fpHud(){
   set('.fp-who b',`${u.role||''} · ${u.name}`);set('.fp-who span',`${teamName(u.team)} · ${hp}${u.sup>.65?' · PINNED':''}`);
   {const b=el.querySelector('.fp-who u');b.style.width=hp+'%';b.style.background=hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff7a4a';}
   set('[data-a="view"]',mt?'On the gun':F.view==='1p'?'3rd person':'1st person');
+  {const cg=!!(dd.counter&&u.dcGun);for(const a of['back','view','next']){const n=el.querySelector(`[data-a="${a}"]`);if(n&&n.hidden!==cg)n.hidden=cg;}el.classList.toggle('dcg',cg);}   // (Version 224: on one of the counterattack's guns the row of guns has BACK and LEAVE GUN, ddcounter.js's dcBar)
   const gname=A?'Field gun':u.onGun?'Machine gun':(typeof WEAPON!=='undefined'&&WEAPON[u.weapon||'rifle']?WEAPON[u.weapon||'rifle'].label:'Rifle');
   set('.fp-ammo',A?`<b>${simT>=A.fireT?'READY':'LOADING '+Math.ceil(A.fireT-simT)}</b><span>${gname}</span>`:`<b>${F.reloadT?'RELOADING':F.clip+' / '+W.clip}</b><span>${gname}</span>`);
   const nb=set('[data-a="nade"]',`${u.gl?'Rifle grenade':'Grenade'} <b>${u.grenade||0}</b>`);nb.disabled=!(u.grenade>0)||mt;
   const sn={smoke:'Smoke',rpg:'Bazooka',medkit:'Medic kit',build:'Barricade'}[u.spec]||'Item',sb=set('[data-a="spec"]',`${sn} <b>${u.spec?u.specN||0:0}</b>`);sb.disabled=!u.spec||!(u.specN>0)||mt;sb.hidden=!u.spec;
-  const ub=el.querySelector('[data-a="use"]'),g=mt?null:fpGunNear(),ut=mt?'Leave the gun':g?'Enter':'';if(ub.hidden!==!ut)ub.hidden=!ut;if(ut&&ub.textContent!==ut)ub.textContent=ut;
+  const ub=el.querySelector('[data-a="use"]'),g=mt?null:fpGunNear(),ut=dd.counter&&u.dcGun?'':mt?'Leave the gun':g?'Enter':'';if(ub.hidden!==!ut)ub.hidden=!ut;if(ut&&ub.textContent!==ut)ub.textContent=ut;
   el.querySelector('[data-a="reload"]').hidden=!!A;el.querySelector('[data-a="aim"]').classList.toggle('on',F.aim);
   const x=el.querySelector('.fp-x');x.classList.toggle('hit',now-F.hitT<150);x.classList.toggle('kill',now-F.killT<320);x.style.setProperty('--gap',(5+Math.min(14,(F.moving?5:0)+F.kick*90+u.sup*5)).toFixed(1)+'px');
   const m=el.querySelector('.fp-msg'),on=!!F.msg&&now<F.msg.until;if(m.hidden===on)m.hidden=!on;if(on&&m.textContent!==F.msg.t)m.textContent=F.msg.t;

@@ -57,12 +57,12 @@ const at=(x,y)=>M.forEach(u=>{u.x=x;u.y=y;});
   return{ok:/bunker|pillbox|draw/.test(w.t)&&/Up the draw|MG nest/.test(up.t)&&/the barracks|machine gun/.test(a.t)&&/Stand in the gold area|Take the barracks/.test(nr.t)&&/Stand in the gold area|Take the barracks/.test(b2.t)&&(!dd.base||!dd.base.open||/command post/.test(c.t)),...r};});
 // --- the counterattack
 await ev(()=>{SEEN.clear();ddRoster.stage=1;startCounter();});await page.waitForTimeout(400);
-await ok('counter: intro then man the guns',()=>{const a=OBJ();RUN(8);const b2=OBJ();return{ok:!a.t&&/Man the guns · \d+/.test(b2.t||'')&&b2.x!=null,a,b:b2};});
-await ok('counter: a gun manned changes the target',()=>{const C=dd.dc,g0=OBJ();const u=players.find(p=>alive(p));const g=C.guns.find(q=>!q.man&&!q.dead&&Math.round(q.x)===g0.x&&Math.round(q.y)===g0.y);if(!g)return{ok:false,why:'no gun at target',g0};g.man=u;const g1=OBJ();g.man=null;return{ok:g1.x!==g0.x||g1.y!==g0.y||/They attack/.test(g1.t),g0,g1};});
+await ok('counter: intro, then the clock (the squad is on the guns by itself: Version 224)',()=>{const a=OBJ();RUN(8);const b2=OBJ();return{ok:!a.t&&/They attack in \d+/.test(b2.t||''),a,b:b2};});
+await ok('counter: an empty gun is the target while a squad mate is free',()=>{const C=dd.dc;RUN(1);const g=C.guns.find(q=>q.k==='n1'),m=g.man||g.going;if(g.man)dcLeave(g);else if(m){m.dcGun=null;m.path=[];g.going=null;}const g1=OBJ();dcTile('n1');return{ok:/A gun is empty · \d+/.test(g1.t||'')&&Math.abs(g1.x-g.x)<2,g1};});
 await ok('counter: the wave',()=>{RUN(26);const o=OBJ();return{ok:/Hold the base/.test(o.t||''),ph:dd.dc.ph,...o};});
-await ok('counter: the command post',()=>{dd.dc.cpN=2;dd.dc.cpT=5;const o=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;return{ok:/Retake the command post · 15/.test(o.t)&&o.k==='danger'&&o.x<1000,...o};});
-await ok('counter: the command post clock comes before a tank',()=>{const K=dd.tanks.find(K=>K.hp>0);const h=K.hold,x=K.x,y=K.y;K.hold=false;const u=players.find(p=>alive(p));K.x=u.x;K.y=u.y-300;dd.dc.cpN=1;dd.dc.cpT=8;const o=OBJ();K.x=1000;K.y=700;const o2=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;K.hold=h;K.x=x;K.y=y;
-  return{ok:/Retake the command post · 12/.test(o.t)&&/Tank in the command post · 12/.test(o2.t),o,o2};});
+await ok('counter: the command post',()=>{dd.dc.cpN=2;dd.dc.cpT=5;const o=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;return{ok:/They are at the flag · 5/.test(o.t)&&o.k==='danger'&&Math.abs(o.x-DCA.flag.x)<2,...o};});
+await ok('counter: the command post clock comes before a tank',()=>{const K=dd.tanks.find(K=>K.hp>0);const h=K.hold,x=K.x,y=K.y;K.hold=false;const u=players.find(p=>alive(p));K.x=u.x;K.y=u.y-300;dd.dc.cpN=1;dd.dc.cpT=8;const o=OBJ();K.x=DCA.flag.x;K.y=DCA.flag.y+20;const o2=OBJ();dd.dc.cpN=0;dd.dc.cpT=0;K.hold=h;K.x=x;K.y=y;
+  return{ok:/They are at the flag · 2/.test(o.t)&&/Tank at the flag · 2/.test(o2.t),o,o2};});
 await ok('counter: a tank comes first',()=>{const K=dd.tanks.find(K=>K.hp>0);if(!K)return{ok:false};const h=K.hold,x=K.x,y=K.y;K.hold=false;const u=players.find(p=>alive(p));K.x=u.x;K.y=u.y-300;const o=OBJ();K.hold=h;K.x=x;K.y=y;return{ok:/Tank! Field gun or bazooka/.test(o.t),...o};});
 await ok('counter: callouts only from the keep-list',()=>{RUN(10);const bad=[...SEEN].filter(t=>!DD_SAY.has(t));return{ok:!bad.length,bad};});
 // --- the village

@@ -64,6 +64,6 @@ await ok('village: everyone down, the reserves at once',()=>{BAN.length=0;const 
   return{ok:players.some(alive)&&t<3&&BAN.filter(s=>/Everyone was down/.test(s)).length===1,took:t,up:players.filter(alive).length,banners:BAN.slice(0,2)};});
 // --- the counterattack
 await ev(()=>{ddRoster.stage=1;for(let i=0;i<6;i++)ddRoster.reserve.push(ddmNewMan('rifle',3,false));ddmSave();startCounter();});await page.waitForTimeout(400);
-await ok('counterattack: everyone down, out of the barracks at once',()=>{RUN(6);BAN.length=0;DOWN(players.filter(p=>!p.dead));let t=0;while(t<6&&!players.some(alive)){RUN(.25);t+=.25;}
-  return{ok:players.some(alive)&&t<3&&BAN.some(s=>/Everyone was down\. The reserves come out of the barracks/.test(s)),took:t,up:players.filter(alive).length,banners:BAN.slice(0,2)};});
+await ok('counterattack: everyone down with six in the reserve: nobody comes, it is lost (no reinforcements since Version 224)',()=>{RUN(6);BAN.length=0;const n=players.length;DOWN(players.filter(p=>!p.dead));let t=0;while(t<6&&!dd.over){RUN(.25);t+=.25;}
+  return{ok:!players.some(alive)&&dd.over&&dd.why==='dead'&&ddRoster.reserve.length===6,took:t,up:players.filter(alive).length,over:dd.over,why:dd.why,res:ddRoster.reserve.length};});
 console.log(fails?`${fails} FAILED`:'all passed','errors',errors.length,errors.slice(0,4));await b.close();srv.close();})();

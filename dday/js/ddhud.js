@@ -137,7 +137,7 @@ function ddObjective(){
   const known=e=>!beaten(e)&&(e.seen||e.vis),Ly=Math.min(...ours.map(u=>u.y));   // (Ly: the squad's man furthest up the map)
   // the counterattack's command post: while their clock runs it comes before anything (losing it loses the base)
   if(dd.counter&&dd.dc&&dd.dc.ph!=='intro'&&dd.dc.cpN&&dd.dc.cpT>0){const C=dd.dc,K=(dd.tanks||[]).find(K=>K.hp>0&&dcIn(K,DCA.cpZone));
-    return{t:`${K?'Tank in the command post':'Retake the command post'} · ${Math.max(1,Math.ceil(20-C.cpT))}`,x:K?K.x:975,y:K?K.y:705,h:K?20:0,k:'danger'};}   // (975,705: in front of its west door, outside the building)
+    return{t:`${K?'Tank at the flag':'They are at the flag'} · ${Math.max(1,Math.ceil(DCA.flagT-C.cpT))}`,x:K?K.x:DCA.flag.x,y:K?K.y:DCA.flag.y+20,h:K?20:0,k:'danger'};}   // (Version 224: the flag, where the command post was)
   // a tank in the fight comes first (one dug in counts: it fires from its pit; one waiting to be let loose doesn't)
   const tank=near((dd.tanks||[]).filter(K=>K.hp>0&&!K.left&&!K.retreat&&!K.wreck&&(dd.counter?!K.hold:(K.range||0)>1)&&dM(K)<(K.range||520)+120));
   if(tank)return{t:dd.counter?'Tank! Field gun or bazooka':'Tank! Bazooka or grenades',x:tank.x,y:tank.y,h:20,k:'danger'};
@@ -145,7 +145,7 @@ function ddObjective(){
     if(C.ph==='setup'||C.ph==='lull'){const s=Math.max(0,Math.ceil((C.ph==='setup'?DCA.setup:DCA.lull)-C.t));
       const free=C.guns.filter(g=>!g.dead&&!(g.man&&!g.man.npc)&&!(g.going&&!g.going.npc)),g=ours.some(u=>!u.dcGun)?near(free,dcSeat):null;   // (a gun one of the other troops holds counts as free: a squad man takes it over)
       const t=C.ph==='setup'?`They attack in ${s}`:`Wave ${C.wave+1} in ${s}`;
-      if(!g)return{t};const P=dcSeat(g);return{t:`Man the guns · ${s}`,x:P.x,y:P.y,h:10};}
+      if(!g||!ours.some(u=>!u.dcGun&&!u.npc&&alive(u)))return{t};const P=dcSeat(g);return{t:`A gun is empty · ${s}`,x:P.x,y:P.y,h:10};}
     const n=enemies.filter(e=>e.tag==='w'+C.wave&&!beaten(e)).length+(dd.tanks||[]).filter(K=>K.w===C.wave&&K.hp>0).length,f=near(enemies.filter(e=>e.tag==='w'+C.wave&&known(e)));
     return f?{t:`Hold the base · ${n} left`,x:f.x,y:f.y,h:14,k:'danger'}:{t:`Hold the base · ${n} left`};}
   if(dd.vil){const V=dd.vg;if(!V)return null;
