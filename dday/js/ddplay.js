@@ -19,7 +19,7 @@ const DD_ROLES={
   gunner:{ab:'GUNNER',n:'Gunner',cls:'support',weapon:'hmg',spec:'smoke',specN:2},
   rifle:{ab:'RIFLEMAN',n:'Rifleman',cls:'assault',weapon:'rifle',spec:'smoke',specN:2},   // (Version 158, in the Sharpshooter's place to start with: rifle grenades where his frag would be, u.gl from ddmeta.js's kit, and steadier on the move, classes.js's Assault)
   sharp:{ab:'SHARPSHOOTER',n:'Sharpshooter',cls:'recon',weapon:'sniper',spec:'smoke',specN:2},
-  demo:{ab:'DEMOLITION',n:'Demolition man',cls:null,weapon:'rifle',spec:'rpg',specN:4},
+  demo:{ab:'ENGINEER',n:'Engineer',cls:null,weapon:'rifle',spec:'rpg',specN:4},
   eng:{ab:'ENGINEER',n:'Engineer',cls:'defender',weapon:'rifle',spec:'build',specN:3}};   // (Version 131, Bryan: "a new unit that builds makeshift defenses under fire": build.js's kit, a barricade where you tap)
 // who's in each squad to start, and so which types a replacement fills first: Bravo has the engineer in its sharpshooter's place for
 // now, so he can be tried (a question for Bryan: a fifth man, or in someone's place)
@@ -1211,7 +1211,7 @@ function ddFinish(){
   const t=Math.floor(simT-(dd?dd.t0:0)),mm=Math.floor(t/60),ss=String(t%60).padStart(2,'0'),kills=players.reduce((n,p)=>n+p.stats.kills,0);
   $('#endEyebrow').textContent=win?'Beach taken':'Beach lost';$('#endTitle').textContent=win?'The base is yours':'The squads are gone';
   $('#endText').textContent=win?`Their base taken in ${mm}:${ss}. ${dd.lost} of the squads' men were killed (${DD_POOL-dd.pool} replacements used), and ${dd.npcLost} of the other troops fell on the way up.`
-    :`Both squads were lost after ${mm}:${ss}, with no replacements left. ${dd?dd.npcLost:0} of the other troops fell with them. Smoke the machine guns, keep to the holes and the boulders, and let the demolition man open the bunkers.`;
+    :`Both squads were lost after ${mm}:${ss}, with no replacements left. ${dd?dd.npcLost:0} of the other troops fell with them. Smoke the machine guns, keep to the holes and the boulders, and let the engineer man open the bunkers.`;
   {const q=$('#sq');if(q)q.hidden=true;}
   $('#againBtn').textContent='Land again';$('#retryBtn').hidden=true;$('#end').hidden=false;
   const o=$('#oob');if(o)o.hidden=true;

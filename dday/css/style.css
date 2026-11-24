@@ -659,3 +659,38 @@ body.dd.dcg #sq{display:none!important}
 #dcNoRe{position:absolute;left:0;right:0;top:max(118px,22%);z-index:31;text-align:center;font:800 26px/1.1 system-ui,-apple-system,Segoe UI,Arial,sans-serif;letter-spacing:.14em;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.8);opacity:0;pointer-events:none}
 body.fp #dcNoRe{top:36%}#dcNoRe.on{animation:dcNoRe 5s ease both}@keyframes dcNoRe{0%{opacity:0}14%{opacity:1}80%{opacity:1}100%{opacity:0}}
 @media (orientation:landscape) and (max-height:520px){#dcBar .dcb-t{min-height:44px;padding:4px 2px 6px}.dcb-hd{font-size:14px;margin-bottom:4px}#dcNoRe{font-size:20px;top:64px}}
+
+/* Version 223: a man's page off the report: he stands on the left, everything about him down the right, BACK at the top and the bottom */
+.ddm-mv{position:absolute;inset:0;pointer-events:none}.ddm-mv>*{pointer-events:auto}
+.ddm-mvt{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:max(10px,env(safe-area-inset-top,0px)) 12px 8px;background:linear-gradient(#0a0f15 60%,rgba(10,15,21,0))}
+.ddm-mvt span{font-size:11px;font-weight:800;letter-spacing:.1em;color:#9aa6b0}
+button.ddm-mvb{background:#39424b!important;border-radius:10px;padding:11px 18px;font-weight:800;font-size:14px;letter-spacing:.04em;min-height:44px}
+.ddm-mvw{position:absolute;left:0;top:0;bottom:0;width:42%;display:flex;flex-direction:column;justify-content:flex-end;padding:0 6px calc(78px + env(safe-area-inset-bottom,0px)) 10px;pointer-events:none;background:linear-gradient(rgba(10,15,21,.5),rgba(10,15,21,0) 22%,rgba(10,15,21,0) 70%,rgba(10,15,21,.75))}
+.ddm-mvn b{display:block;font-size:22px;font-weight:800;line-height:1.05;overflow:hidden;text-overflow:ellipsis}.ddm-mvn span{display:block;font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--tc);margin-top:2px}
+.ddm-mvn q{quotes:none;display:inline-block;margin:5px 4px 0 0;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:800;letter-spacing:.06em}.ddm-mvn q.g{background:#ffd76a;color:#221}.ddm-mvn q.r{background:#c0392b}
+.ddm-mvr{position:absolute;right:0;top:0;bottom:0;width:58%;background:rgba(10,15,21,.94);border-left:3px solid var(--tc);padding:calc(64px + env(safe-area-inset-top,0px)) 10px calc(78px + env(safe-area-inset-bottom,0px));overflow:auto;-webkit-overflow-scrolling:touch}
+.ddm-mvr .ddm-cite{margin:0 0 6px;animation:none}.ddm-mvr .ddm-cite b{display:block;font-size:12px;letter-spacing:.06em;color:#ffd76a}.ddm-mvr .ddm-cite span{font-size:10.5px;color:#cfd6dc}
+.ddm-mvr .ddm-gl{margin:9px 0 4px}.ddm-mvr .ddm-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.ddm-mvr .ddm-chips span{font-size:7.5px;padding:5px 2px}.ddm-mvr .ddm-chips b{font-size:17px}
+.ddm-mvr .ddm-chips span.gold b{color:#ffd76a}.ddm-mvr .ddm-xpr{margin-top:6px}.ddm-mvr .ddm-xpr span{font-size:9.5px;font-weight:800;color:#9aa6b0;white-space:nowrap}.ddm-mvr .ddm-xpb{height:9px}
+.ddm-mvr .ddm-up{margin-top:6px;font-size:10px;font-weight:800;color:#ffd76a;animation:none}.ddm-mvr .ddm-pk .ddm-row{flex-direction:column;gap:5px}
+.ddm-mvk{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.ddm-mvk>div{background:#18222b;border-radius:8px;padding:5px 3px;text-align:center;min-width:0}.ddm-mvk>div.star{box-shadow:inset 0 0 0 1px #ffd76a}
+.ddm-mvk i{display:block;height:22px}.ddm-mvk svg{height:100%;max-width:90%}.ddm-mvk b{display:block;font-size:9px;line-height:1.15;margin-top:3px;overflow:hidden;text-overflow:ellipsis}
+.ddm-mvf{position:absolute;left:0;right:0;bottom:0;z-index:2;display:grid;grid-template-columns:56px 1fr 56px;gap:8px;padding:8px 12px max(10px,env(safe-area-inset-bottom,0px));background:linear-gradient(rgba(10,15,21,0),#0a0f15 40%)}
+.ddm-mvf .ddm-btn{margin:0;min-height:48px;font-size:14px}
+@media (orientation:landscape) and (max-height:520px){.ddm-mvw{width:38%}.ddm-mvr{width:62%;padding-top:56px;padding-bottom:66px;columns:2;column-gap:14px}.ddm-mvr>*{break-inside:avoid}.ddm-mvf .ddm-btn{min-height:40px}}
+
+/* draft: the man's page on one plain backdrop: the man full height on the left, his name and numbers in one quiet column on the right */
+.ddm-mvt,.ddm-mvf{background:none}
+.ddm-mvw{background:none;left:auto;right:0;top:calc(62px + env(safe-area-inset-top,0px));bottom:auto;width:48%;padding:0 12px 0 0;display:block}
+.ddm-mvn b{font-size:24px}.ddm-mvn span{font-size:10px}
+.ddm-mvr{background:none;border-left:0;width:48%;padding:calc(128px + env(safe-area-inset-top,0px)) 12px calc(78px + env(safe-area-inset-bottom,0px)) 0}
+.ddm-mvr .ddm-cite{background:none;border-left:3px solid #ffd76a;padding:2px 0 2px 9px;margin-bottom:12px}
+.ddm-mvr .ddm-gl{margin:14px 0 6px;color:#9aa6b0}
+.ddm-mvr .ddm-chips span{background:none;border-top:1px solid rgba(255,255,255,.14);border-radius:0;padding:6px 0 0}
+.ddm-mvr .ddm-unl,.ddm-mvk>div{background:none;border:0;padding-left:0;text-align:left}.ddm-mvk{grid-template-columns:1fr}.ddm-mvk i{display:none}.ddm-mvk b{font-size:11px;font-weight:600;margin:0}
+@media (orientation:landscape) and (max-height:520px){.ddm-mvw{width:56%;top:54px}.ddm-mvr{width:56%;padding-top:104px;columns:2}}
+
+/* after Version 224: the fallen on the report, a medal brings one back */
+.ddm-dead>b{display:block;margin-bottom:4px}.ddm-fl{display:flex;align-items:center;gap:8px;padding:4px 0;color:#cfd6dc}.ddm-fl i{width:16px;height:16px;flex:none;opacity:.7}.ddm-fl i svg{width:100%;height:100%}
+.ddm-fl span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ddm-fl em{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.06em;color:#6fd08c}
+.ddm-fl .ddm-btn.sm{margin:0;min-height:36px;padding:6px 10px;font-size:11px;width:auto;flex:none}.ddm-fl.back span{color:#fff}

@@ -12,7 +12,7 @@ before('js/ddmeta.js', "function ddmNomWhy(r){",
   const u=r.u;if(P.u!==u){if(P.u)moveMesh(P.u,scene);P.u=u;moveMesh(u,P.g);u.m.g.traverse(o=>{o.frustumCulled=false;});if(u.m.ring)u.m.ring.visible=false;
     u.m.g.position.set(0,0,0);u.m.g.rotation.y=-(Math.PI/2-.35);u.m.g.updateMatrixWorld(true);try{const b=new T.Box3().setFromObject(u.m.g);if(b.max.y>8)P.H=b.max.y;}catch(e){}}
   u.m.g.visible=true;u.m.g.position.set(0,0,0);u.m.g.rotation.y=-(Math.PI/2-.35);figRefresh(u);figAnimate(u,u.m);
-  const c=P.cam,tall=cw<ch,H=P.H*1.16,d=H/2/Math.tan(c.fov*Math.PI/360);c.aspect=cw/ch;c.position.set(0,P.H*.5,d);c.lookAt(0,P.H*.5,0);c.setViewOffset(cw,ch,cw*(tall?.27:.3),0,cw,ch);c.updateProjectionMatrix();c.updateMatrixWorld();
+  const c=P.cam,tall=cw<ch,H=P.H*1.5,d=H/2/Math.tan(c.fov*Math.PI/360);c.aspect=cw/ch;c.position.set(0,P.H*.5,d);c.lookAt(0,P.H*.5,0);c.setViewOffset(cw,ch,cw*(tall?.27:.3),0,cw,ch);c.updateProjectionMatrix();c.updateMatrixWorld();
   postRender(P.sc,c);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
 }
 function ddmPortraitEnd(){const P=ddm&&ddm.por;if(P&&P.u){moveMesh(P.u,scene);if(P.u.m.ring)P.u.m.ring.visible=true;P.u=null;}}

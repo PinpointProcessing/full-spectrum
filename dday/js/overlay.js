@@ -242,7 +242,7 @@ function drawOverlay(rdt,now){
         else if(u.ddRole==='gunner'){for(const x of[-4.4,-1,2.4]){ox.beginPath();ox.moveTo(x,5);ox.lineTo(x,-1.5);ox.quadraticCurveTo(x+1,-5.5,x+2,-1.5);ox.lineTo(x+2,5);ox.closePath();ox.fill();}}   // a belt of rounds
         else if(u.ddRole==='rifle'){ox.beginPath();ox.moveTo(-6.5,1);ox.lineTo(2,1);ox.lineTo(3.5,-1.5);ox.lineTo(6.5,-1.5);ox.lineTo(6.5,.6);ox.lineTo(4.5,.6);ox.lineTo(3.8,2.4);ox.lineTo(.5,2.4);ox.lineTo(-.2,5);ox.lineTo(-2,5);ox.lineTo(-1.3,2.4);ox.lineTo(-6.5,2.4);ox.closePath();ox.fill();}   // (the Rifleman: a rifle)
         else if(u.ddRole==='sharp'){ox.beginPath();ox.arc(0,0,4,0,TAU);ox.moveTo(-6.2,0);ox.lineTo(-2,0);ox.moveTo(2,0);ox.lineTo(6.2,0);ox.moveTo(0,-6.2);ox.lineTo(0,-2);ox.moveTo(0,2);ox.lineTo(0,6.2);ox.stroke();ox.beginPath();ox.arc(0,0,.9,0,TAU);ox.fill();}   // a scope
-        else if(u.ddRole==='demo'){ox.rotate(-.7);ox.beginPath();ox.moveTo(6.2,0);ox.lineTo(3,-2);ox.lineTo(-3.4,-2);ox.lineTo(-6,-4);ox.lineTo(-4.6,0);ox.lineTo(-6,4);ox.lineTo(-3.4,2);ox.lineTo(3,2);ox.closePath();ox.fill();}   // a rocket
+        else if(u.ddRole==='demo-old'){ox.rotate(-.7);ox.beginPath();ox.moveTo(6.2,0);ox.lineTo(3,-2);ox.lineTo(-3.4,-2);ox.lineTo(-6,-4);ox.lineTo(-4.6,0);ox.lineTo(-6,4);ox.lineTo(-3.4,2);ox.lineTo(3,2);ox.closePath();ox.fill();}   // a rocket
         else{ox.beginPath();ox.moveTo(-4.5,4.5);ox.lineTo(4.5,-4.5);ox.stroke();ox.beginPath();ox.arc(4,-4,2.4,0,TAU);ox.stroke();}   // (the Engineer: a spanner)
         ox.restore();ox.globalAlpha=1;
         if(mine){ddShield(bx+R+10,by,ddCover(u));if(u.sup>PINNED)label('PINNED',bx,by-R-9,C.warn,10,800);}}}   // how covered he is (ddhud.js), and pinned
