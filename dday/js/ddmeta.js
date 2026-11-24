@@ -122,7 +122,7 @@ function ddmStart(){
   for(const m of[...R.squads.A,...R.squads.B,...R.reserve])if(m&&m.hurt&&!inBattle.has(m))m.hurt=0;
     const rows=alive8.map(u=>{const rm=u.rm,lv0=rm.level,xp0=rm.xp,gain=u.stats.kills*40+(u.stats.revives||0)*50+60;
     rm.kills+=u.stats.kills;
-    const hurt=!!u.downed;rm.hurt=hurt?1:0;   // (still down when it ended: wounded)
+    const hurt=false;rm.hurt=0;   // (Version 226, Bryan: "The wounded are healed post battle")
     if(u.downed){u.downed=false;u.critical=false;u.hp=35;}
     return ddmGain({u,rm,team:u.team,kills:u.stats.kills,rev:u.stats.revives||0,gain:0,lv0,xp0,lv1:rm.level,mvp:false,sc:score(u),hurt,downs:u.stats.downs||0,items:u.stats.items||0,best:u.stats.best||0},gain);});
   ddmCite(rows);
@@ -459,7 +459,7 @@ function ddmCite(rows){
       :r.rm.role==='medic'?['STEADY HANDS','Kept the squad on its feet']
       :['DID HIS PART','Came through it with the rest'];}
 }
-const ddmStepsHTML=n=>`<div class="ddm-steps">${['REPORT','BASE','NEXT MISSION'].map((t,i)=>`<span class="${i+1<n?'ok':i+1===n?'on':''}"${n===2&&!i?' data-a="report"':''}>${i+1<n?'✓':i+1} ${t}</span>`).join('<i>›</i>')}</div>`;
+const ddmStepsHTML=n=>`<div class="ddm-steps">${['REPORT','NEXT MISSION'].map((t,i)=>`<span class="${i+1<n?'ok':i+1===n?'on':''}">${i+1<n?'✓':i+1} ${t}</span>`).join('<i>›</i>')}</div>`;
 // the one thing to do next at the base: perks left to choose, the wounded, a look at the barracks, then the briefing
 function ddmTodo(){
   const R=ddRoster,w=ddmHurt().length,p=ddmPerksDue(),N=DDM_NEXT[R.stage||1]||DDM_NEXT[1];
@@ -512,7 +512,7 @@ function ddmReportHTML(){
     ${mv?`<div class="ddm-mvl"><b>★ COMPANY'S MEDAL</b> · ${ddmEsc(mv.rm.name)}<span>+100 XP</span></div>`:''}
     <div class="ddm-srh"><span></span><span class="l">TAP A MAN TO SEE HIM</span><span>LV</span><span>KILL</span><span>REV</span><span>DOWN</span><span>GREN</span><span class="r">XP</span></div>
     <div class="ddm-sum">${ddm.rows.map(row).join('')}${ddm.dead.length?`<div class="ddm-dead"><b>FALLEN · ★ ${ddRoster.medals} medal${ddRoster.medals===1?'':'s'}</b>${ddm.dead.map((d,j)=>`<div class="ddm-fl${d.back?' back':''}"><i>${DDM_ICON[d.rm?d.rm.role:d.role]||''}</i><span>${ddmEsc(d.name)}</span>${d.back?'<em>BACK WITH THE SQUAD</em>':d.rm?`<button type="button" class="ddm-btn sm" data-a="revive" data-i="${j}"${ddRoster.medals>0?'':' disabled'}>BRING BACK ★ 1</button>`:''}</div>`).join('')}</div>`:''}</div>
-    <div class="ddm-fbot"><button type="button" class="ddm-btn" data-a="base">CONTINUE ▸</button></div></div>`;
+    <div class="ddm-fbot">${DDM_NEXT[ddRoster.stage]?'<button type="button" class="ddm-btn" data-a="go">NEXT MISSION ▸</button>':'<button type="button" class="ddm-btn" data-a="menu">BACK TO THE MENU ▸</button>'}</div>${ddm.brief?ddmBriefHTML():''}</div>`;
 }
 // Version 223 (Bryan, with a picture of the full report: "if I click a unit after the stats are read, I can back right out back to the full stat menu...
 // I select the unit and I want to see the unit to the left and all the stats on the right. I can then back out and go back to this page"): a row of

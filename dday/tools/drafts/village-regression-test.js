@@ -12,12 +12,8 @@ await page.waitForTimeout(400);await ev(()=>RUN(8));
 await log('counter',()=>`mode ${DD_MODE} counter ${!!dd.counter} ph ${dd.dc.ph} players ${players.length}`);
 await ev(()=>{dd.won=true;ddFinish();});await page.waitForTimeout(300);
 await log('counter won',()=>`state ${state} chap ${ddm.chap} stage ${ddRoster.stage}`);
-await page.evaluate(()=>ddmRollTap(true));await page.waitForTimeout(150);await page.click('#ddm [data-a="base"]');await page.waitForTimeout(200);
-await page.screenshot({path:'vg4_ctrbase_844.png'});await log('tags',()=>[...document.querySelectorAll('#ddm .ddm-tag')].map(b=>{const r=b.getBoundingClientRect();return b.dataset.b+' '+Math.round(r.left)+','+Math.round(r.top)+' '+Math.round(r.width)+'x'+Math.round(r.height);}).join(' | '));
-await log('base bar',()=>$('#ddm .ddm-bar.bot').textContent.replace(/\s+/g,' ').trim());
-await page.click('#ddm .ddm-bar [data-a="barracks"]');await page.waitForTimeout(300);
-await log('barracks out',()=>$('#ddm [data-a="out"]').textContent);
-await page.click('#ddm [data-a="out"]');await page.waitForTimeout(200);await page.click('#ddm [data-a="go"]');await page.waitForTimeout(150);await page.click('#ddm [data-a="start"]');await page.waitForTimeout(500);
+await page.evaluate(()=>ddmRollTap(true));await page.waitForTimeout(150);   // (Version 226: no base or barracks screens; the report goes straight on)
+await page.click('#ddm .ddm-fbot [data-a="go"]');await page.waitForTimeout(150);await page.click('#ddm [data-a="start"]');await page.waitForTimeout(500);
 await log('after leaving',()=>`state ${state} seq ${!!(dd&&dd.seq)} mode ${DD_MODE} talk ${talk.on} ddm ${!!ddm}`);
 await ev(()=>{for(let i=0;i<60;i++){update(1/30);ddFrame(1/30,simT);}});
 await log('talk',()=>`talk ${talk.on} line ${talk.i} ${talk.q[talk.i]&&talk.q[talk.i].who.name}`);
