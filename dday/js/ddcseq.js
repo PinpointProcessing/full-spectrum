@@ -7,7 +7,7 @@
    dd.seq={dc:true,...} while it plays (the battle goes on ticking under it: ddplay.js's ddTick and ddCam ask for .dc). Phases by game time:
    camp -> shells -> run (to the barracks' back door) -> hut (a small set of its own, drawn in place of the map: dcSeqRender from scene.js's render)
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
-const DCS={camp:{x:700,y:858},T:{shell:4.6,run:5.5,hut:8.1,out:11.7,end:15.6},
+const DCS={camp:{x:700,y:756},T:{shell:4.6,run:5.5,hut:8.1,out:11.7,end:15.6},
   // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
   spots:[[14,2,Math.PI,0,'sit',1],[-13,4,0,0,'sit',1],[1,-15,Math.PI/2,0,'kneel',0],[21,18,-2.4,0,'smoke',0],[-37,14,Math.PI/2-.35,0,'sit',2],[-24,14,Math.PI/2+.35,0,'sit',2],[35,-9,-2.6,0,'kneel',0],[-31,-13,.6,0,'smoke',0]]};
 function dcSeqStart(){
@@ -26,7 +26,7 @@ function dcSeqStart(){
   for(const dx of[-3.2,3.2])add(new T.CylinderGeometry(.25,.25,13,5),M(0x2a2a2a,.6),c.x+dx,6,c.y,0,0,dx>0?.38:-.38);add(new T.CylinderGeometry(2.3,1.9,2.6,10),M(0x24262a,.5),c.x,9.4,c.y);   // a pot over the fire
   for(const[x,y,w,h]of[[c.x+44,c.y-10,10,6],[c.x-62,c.y-4,10,7],[c.x+60,c.y+16,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
   // the bunch of other troops off to one side: the shells land on them
-  [[0,0],[13,4],[25,-2],[6,13],[19,15],[31,10]].forEach(([dx,dy],i)=>{const u=ddNpc(c.x+176+dx,c.y-8+dy);Object.assign(u,{inBoat:false,seen:true,post:null,ang:Math.PI+.25*(i%3-1),atEase:i%2===0,work:i%2?'stand':null,cool:99});S.doom.push(u);});
+  [[0,0],[13,4],[25,-2],[6,13],[19,15],[31,10]].forEach(([dx,dy],i)=>{const u=ddNpc(c.x-236+dx,c.y-112+dy);Object.assign(u,{inBoat:false,seen:true,post:null,ang:Math.PI+.25*(i%3-1),atEase:i%2===0,work:i%2?'stand':null,cool:99});S.doom.push(u);});
   dcHutBuild(S);dcSpawnWave(1);banner('',1);   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)
   return true;
 }
@@ -74,11 +74,11 @@ function dcSeqRender(rdt,now){
 function dcSeqTick(dt){
   const S=dd.seq,C=dd.dc,T=DCS.T,c=DCS.camp,D=DCA.door;S.t+=dt;const t=S.t,was=S.ph;
   if(S.ph==='camp'&&t>=T.shell){S.ph='shell';
-    for(let k=0;k<5;k++){const x=c.x+178+(k%3)*13,y=c.y-6+((k/2)|0)*11;booms.push({x,y,t:-k*.09,size:1.3});}if(typeof sfxBoom==='function')sfxBoom(c.x+190,c.y,1.4);shake(1);
+    for(let k=0;k<5;k++){const x=c.x-234+(k%3)*13,y=c.y-110+((k/2)|0)*11;booms.push({x,y,t:-k*.09,size:1.3});}if(typeof sfxBoom==='function')sfxBoom(c.x-220,c.y-104,1.4);shake(1);
     for(const u of S.doom){u.hp=0;u.dead=true;u.deadT=simT;u.downed=false;if(Math.random()<.6&&typeof ddGore==='function')ddGore(u,true);}
     for(const u of players){u.atEase=false;u.work=null;u.sup=.5;figRefresh(u);}}
-  else if(S.ph==='shell'&&t>=T.run){S.ph='run';players.forEach((u,i)=>{u.path=[{x:D.x+(i%2?5:-5),y:DCA.barracks[0].y+DCA.barracks[0].h+6+(i>>1)*3}];u.lastOrder=simT;});
-    booms.push({x:c.x-150,y:c.y+6,t:0,size:1.2},{x:c.x+60,y:c.y+34,t:-.5,size:1.1});if(typeof sfxBoom==='function')sfxBoom(c.x-150,c.y,1.2);shake(.7);}
+  else if(S.ph==='shell'&&t>=T.run){S.ph='run';players.forEach((u,i)=>{u.path=[{x:D.x+(i%2?5:-5),y:DCA.cpIn.y+(i>>1)*3}];u.lastOrder=simT;});
+    booms.push({x:DCA.cp.x+DCA.cp.w+26,y:DCA.cp.y-56,t:0,size:1.3},{x:c.x+150,y:c.y+40,t:-.5,size:1.1});if(typeof sfxBoom==='function')sfxBoom(DCA.cp.x+110,DCA.cp.y-56,1.3);shake(.7);}
   else if(S.ph==='run'&&t>=T.hut){S.ph='hut';   // (their first wave starts across the field now: the other troops are already shooting when the squad comes out)
     players.forEach((u,i)=>{u.x=D.x+(i%2?5:-5);u.y=D.y-4-(i>>1)*2;u.path=[];u.ang=-Math.PI/2;u.sup=0;});}
   else if(S.ph==='hut'&&t>=T.out){S.ph='out';S.cp=null;
@@ -98,11 +98,11 @@ function dcSeqCam(rdt){
   const S=dd.seq,T=THREE,c=DCS.camp,D=DCA.door,V=(x,h,y)=>new T.Vector3(x,ddH(x,y)+h,y);rdt=Math.min(rdt||0,.1);let pos,look,k=2.2;
   if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}camShift=0;
   if(S.ph==='camp'){const a=S.t*.05;pos=V(c.x+26-a*70,112-a*40,c.y+250-a*120);look=V(c.x,8,c.y);}
-  else if(S.ph==='shell'){pos=V(c.x+110,160,c.y+420);look=V(c.x+120,9,c.y-4);k=4;}
-  else if(S.ph==='run'){pos=V(D.x+30,110,c.y+300);look=V(D.x,12,DCA.barracks[0].y+36);k=3;}
+  else if(S.ph==='shell'){pos=V(c.x-120,170,c.y+330);look=V(c.x-210,9,c.y-100);k=4;}
+  else if(S.ph==='run'){pos=V(D.x+30,110,c.y+300);look=V(D.x,12,DCA.cpIn.y-10);k=3;}
   else if(S.ph==='hut')return true;
   else{const u=(S.t-DCS.T.out)/(DCS.T.end-DCS.T.out),e=u<.3?0:(u-.3)/.7,s=e*e*(3-2*e),m=players.filter(alive),ly=m.length?Math.min(...m.map(p=>p.y)):D.y,my=m.length?Math.max(...m.map(p=>p.y)):D.y;
-    const p0=V(D.x,0,Math.min(my+20,DCA.barracks[0].y-8));p0.y=ddH(D.x,D.y)+40;const l0=new T.Vector3(D.x,ddH(D.x,ly)+13,ly-240);
+    const p0=V(D.x,0,Math.min(my+20,DCA.cp.y-4));p0.y=ddH(D.x,D.y)+40;const l0=new T.Vector3(D.x,ddH(D.x,ly)+13,ly-240);
     const cam0=S.c0||(S.c0=new T.PerspectiveCamera());cam0.position.copy(p0);cam0.lookAt(l0);
     camera.position.lerpVectors(p0,S.end.p,s);camera.quaternion.copy(cam0.quaternion).slerp(S.end.q,s);camera.updateMatrixWorld();return true;}
   if(!S.cp){S.cp=pos.clone();S.cl=look.clone();}const q=Math.min(1,rdt*k);S.cp.lerp(pos,q);S.cl.lerp(look,q);

@@ -10,23 +10,28 @@
    and ddTick hands over to dcTick. `dd.dc` is the fight: ph 'intro' (the camera up the road to the column) -> 'setup' (DCA.setup s) ->
    'w1' -> 'lull' -> 'w2' -> 'lull' -> 'w3' -> won. DCA.guns are the mounted guns (three forward nests, two on the wall, two field guns): a
    tap on one with a squad picked sends its nearest free man (dcTap, dcMan), the other troops take what's left (dcNpc). */
-const DCA={x0:200,x1:1200,wallY:556,gate:[640,760],road:700,setup:10,fixT:8,fixN:2,lull:15,gunHit:42,flagT:14,low:5,lowY:384,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
-  cp:{x:1000,y:650,w:120,h:110},cpZone:{x0:730,y0:572,x1:872,y1:672},flag:{x:800,y:612},   // (Version 224: cpZone is the ground round the flag now: theirs for flagT s with none of ours in it and the base is lost)
-  barracks:[{x:380,y:770,w:560,h:46}],door:{x:700,y:760},   // (Version 224: one long barracks across the back, the fight all to its north; the squads come out of its door)
-  armory:{x:250,y:812,w:110,h:56},depot:{x:1004,y:812,w:150,h:56},   // (in the south corners: between the camera and the square they hid it)
-  square:{x:700,y:640},
-  trenchY:300,hedgeY:-70,treeY:-430,
-  // (Version 224, Bryan: "one field artillery on the left side. A heavy MG that can hurt a tank ... to the right of the field artillery, but still to the
-  // left of the center, a MG nest to the right side and two MG nests down a set of stairs in front of them"; then: the flag left of the right-hand one,
-  // "replace it with a heavy MG". Left to right, as the tiles are: hv a heavy machine gun; hp what it takes before it blows up)
-  guns:[{k:'a1',n:'FIELD GUN',x:330,y:612,t:'art',hp:420},{k:'h1',n:'HEAVY MG',x:520,y:596,t:'mg',hv:1,arc:1.4,hp:340},
-    {k:'n1',n:'MG NEST',x:500,y:470,t:'mg',arc:1.15,hp:260},{k:'n2',n:'MG NEST',x:900,y:470,t:'mg',arc:1.15,hp:260},{k:'h2',n:'HEAVY MG',x:960,y:596,t:'mg',hv:1,arc:1.4,hp:340}],   // (the heavy guns swing wide enough to cover the steps between them)
-  hold:[[764,604],[806,648],[846,606]],   // (where the men not on a gun stand: at the flag)
-  posts:[[450,264],[950,264],[430,318],[520,318],[632,318],[790,318],[880,318],[980,318],[590,362],[830,362]],   // (the other troops' forward posts, out in the field)
-  hv:{tank:9,every:1.1,range:560,shell:130,mortar:70,man:.5},   // (a heavy MG on a tank: tank a burst, and its next shot put back; a tank's shell and a mortar's on a gun; man: the share of what hits its man that the gun takes too)
+// Version 231 (Bryan's plan, docs/drafts/v231-base-defence-plan-2.jpg): Chapter 2 is fought from the D-Day base, looking down the road their
+// reinforcements come along, the beach down a cliff on the right. Drawn here turned a quarter: the story's east is this map's north, so the camera,
+// the waves and the guns keep working as they did. South to north: the square, the two barracks on its left, the command post in the gap of the
+// north bank with the road through it; the guns outside (two nests on the left, the field gun and the heavy MG on the right by the cliff); the
+// field; the fork (left into the woods, right down the cliffs to the beach); their checkpoint between the branches.
+const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN:2,lull:15,gunHit:42,flagT:14,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
+  cliffX:1010,beachH:-78,
+  cp:{x:658,y:562,w:84,h:80},cpZone:{x0:620,y0:462,x1:780,y1:558},flag:{x:756,y:548},   // (the ground in front of the command post: theirs for flagT s with none of ours in it and the base is lost)
+  barracks:[{x:396,y:600,w:46,h:118},{x:396,y:742,w:46,h:118}],door:{x:700,y:550},cpIn:{x:700,y:650},   // (the right-hand barracks is the first, by the command post; door: where the squad comes out of the command post)
+  armory:{x:900,y:626,w:84,h:56},depot:{x:876,y:790,w:108,h:60},
+  square:{x:700,y:756},
+  hedgeY:-70,treeY:-430,forkY:-150,
+  check:{x:712,y:-262,w:92,h:60,zone:{x0:620,y0:-330,x1:830,y1:-180}},   // (their checkpoint: the woods road runs through its left side)
+  guns:[{k:'n1',n:'MG NEST',x:540,y:516,t:'mg',arc:1.15,hp:260},{k:'n2',n:'MG NEST',x:604,y:468,t:'mg',arc:1.15,hp:260},
+    {k:'h1',n:'HEAVY MG',x:900,y:440,t:'mg',hv:1,arc:1.5,hp:340,face:0},{k:'a1',n:'FIELD GUN',x:858,y:520,t:'art',hp:420,face:0}],   // (face 0: it stands pointing at the beach until it's turned)
+  hold:[[668,520],[700,496],[736,522]],   // (where the men not on a gun stand: in front of the command post)
+  posts:[[450,264],[940,250],[430,318],[520,318],[632,318],[790,318],[880,318],[960,330],[590,362],[830,362]],   // (the other troops' forward posts, out in the field)
+  hv:{tank:9,every:1.1,range:560,shell:130,mortar:70,man:.5},
   art:{min:170,max:960,reload:7.5,auto:6,R:84,D:150},
-  waves:[{inf:18,tanks:[]},{inf:14,tanks:['road'],mortar:true},{inf:18,tanks:['west','east']}],   // (22, 16 and 20 until Version 224: five guns now and nobody to replace the fallen)
-  ways:{road:[[700,-80],[700,260],[700,540],[700,620],[790,640]],west:[[540,-430],[540,-60],[400,150],[350,300],[350,430],[660,524],[700,620],[790,640]],east:[[860,-430],[860,-60],[1020,150],[1060,300],[1060,430],[740,524],[700,620],[790,640]]}};
+  waves:[{inf:18,tanks:[]},{inf:14,tanks:['road'],mortar:true},{inf:18,tanks:['west','east']}],
+  roads:{west:[[700,-150],[672,-210],[640,-262],[560,-330],[420,-400],[250,-470],[60,-560]],east:[[700,-150],[790,-190],[900,-250],[990,-320],[1040,-380],[1120,-470],[1200,-520]]},   // (the fork's two branches, as drawn)
+  ways:{road:[[700,-80],[700,260],[700,440],[700,500]],west:[[420,-400],[560,-330],[640,-262],[690,-150],[660,150],[640,300],[690,440],[700,500]],east:[[700,-240],[740,-60],[790,150],[770,300],[712,440],[700,500]]}};
 const dcIn=(u,z)=>u.x>z.x0&&u.x<z.x1&&u.y>z.y0&&u.y<z.y1;
 
 /* ---------- the ground ---------- */
@@ -34,33 +39,34 @@ function dcHeights(){
   const{nx,ny}=DDG,a=new Float32Array(nx*ny);
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const x=i*10,y=DDB.y0+j*10;
     let h=Math.max(0,-90-y)*.036+Math.sin(x*.011+1)*Math.cos(y*.009)*1.6;                       // the land rises a little to the tree line
-    if(y>DCA.trenchY+2&&y<DCA.trenchY+26&&x>370&&x<1030&&Math.abs(x-DCA.road)>46)h-=5.5;            // the trench behind its parapet
-    if(y>DCA.lowY&&x>230&&x<1170)h-=DCA.low*clamp((y-DCA.lowY)/40,0,1)*clamp((x-230)/40,0,1)*clamp((1170-x)/40,0,1);   // (Version 224: the lower terrace, a step down from the line in front of the barracks; the gate's gap is its steps)
-    if(y>530)h=0;a[j*nx+i]=h;}
+    if(y>530)h=0;
+    if(x>DCA.cliffX){const k=clamp((x-DCA.cliffX)/46,0,1);h=h*(1-k)+(DCA.beachH+Math.min(6,(x-DCA.cliffX-46)*-.012))*k*k*(3-2*k)+Math.sin(y*.05)*3*k*(1-k)*4;}   // (Version 231: the cliff down to the beach, the sand shelving to the water)
+    a[j*nx+i]=h;}
   return a;
 }
 function dcObjects(){
   const L=[],o=(kind,x,y,w,h,ex)=>{const q=Object.assign({kind,x,y,w,h,full:false},ex||{});L.push(q);return q;};
-  o('drop',0,-760,200,1660);o('drop',1200,-760,600,1660);
-  // the base: bank and wire across the north with the gate, wire down the sides and the back
-  for(const[x0,x1]of[[240,DCA.gate[0]],[DCA.gate[1],1160]]){o('dcbank',x0,DCA.wallY,x1-x0,12,{cover:2});for(let x=x0;x<x1;x+=50)o('ddwire',x,DCA.wallY-18,Math.min(50,x1-x)-.01,8,{hp:60,tag:'wire'});}
-  for(const x of[232,1160])o('dcside',x,DCA.wallY-18,8,340,{full:false});
-  o('dcside',240,884,920,8,{ew:1});
+  o('drop',0,-760,200,1660);o('drop',DCA.cliffX,-760,800,1660);   // (the cliff: nobody goes down it)
+  // the base: bank and wire across the north either side of the command post, wire down the sides and the back
+  for(const[x0,x1]of[[384,DCA.gate[0]],[DCA.gate[1],996]]){o('dcbank',x0,DCA.wallY,x1-x0,12,{cover:2});for(let x=x0;x<x1;x+=50)o('ddwire',x,DCA.wallY-18,Math.min(50,x1-x)-.01,8,{hp:60,tag:'wire'});}
+  for(const x of[376,996])o('dcside',x,DCA.wallY-18,8,340,{full:false});
+  o('dcside',384,884,612,8,{ew:1});
   for(const b of DCA.barracks)o('ddbarr',b.x,b.y,b.w,b.h,{full:true});
   o('dcbld',DCA.armory.x,DCA.armory.y,DCA.armory.w,DCA.armory.h,{full:true,look:'store'});o('dcbld',DCA.depot.x,DCA.depot.y,DCA.depot.w,DCA.depot.h,{full:true,look:'shed'});
   o('dcbld',DCA.cp.x,DCA.cp.y,DCA.cp.w,DCA.cp.h,{full:true,look:'cp'});
-  o('sandbag',DCA.gate[0]-4,DCA.wallY+40,10,40);o('sandbag',DCA.gate[1]-6,DCA.wallY+40,10,40);o('sandbag',960,690,10,44);
-  for(const[x,y]of[[560,620],[840,646],[610,690],[742,598],[290,668],[1060,600],[780,850],[470,850],[1070,760],[330,740]])o('ddcrate',x,y,22,20,{cover:1});
-  // the forward nests, the wall guns' bags, the field guns' pits, the trench's parapet
-  for(const g of DCA.guns){if(g.t==='mg'&&g.k[0]==='n'){o('sandbag',g.x-24,g.y-20,48,10);o('sandbag',g.x-30,g.y-16,10,28);o('sandbag',g.x+20,g.y-16,10,28);}
-    else if(g.t==='art'){o('sandbag',g.x-34,g.y-36,68,10);o('sandbag',g.x-40,g.y-30,10,34);o('sandbag',g.x+30,g.y-30,10,34);}}
-  for(const[x0,x1]of[[380,560],[620,654],[746,1020]])o('sandbag',x0,DCA.trenchY-8,x1-x0,10);
-  for(const[x,y]of[[450,250],[950,250]]){o('sandbag',x-24,y-20,48,10);o('sandbag',x-30,y-16,10,28);o('sandbag',x+20,y-16,10,28);}o('sandbag',566,344,48,10);o('sandbag',806,344,48,10);   // (the forward posts: the old nests' bags, two short lines behind the trench)
-  // the field: a little cover for them, the hedgerow with its gaps, the farm's walls
-  for(const[x,y]of[[560,40],[840,80],[390,130],[1020,10],[300,-10],[1100,120],[620,170],[790,-20]])o('ddbould',x,y,18,15,{cover:1});
-  for(const[x0,x1]of[[220,520],[560,640],[760,840],[880,1180]])o('dchedge',x0,DCA.hedgeY,x1-x0,14,{full:true,cover:2});
-  o('ddconc',330,-262,104,8,{full:true,cover:2});o('ddconc',330,-254,8,66,{full:true,cover:2});o('ddconc',426,-254,8,36,{full:true,cover:2});
-  for(const[x,y]of[[300,-420],[430,-400],[560,-430],[840,-420],[960,-400],[1090,-430]])o('ddbould',x,y,20,16,{cover:1});
+  for(const[x,y]of[[560,620],[840,700],[610,690],[790,598],[470,668],[560,850],[780,850],[470,850],[850,740]])o('ddcrate',x,y,22,20,{cover:1});
+  // the guns' bags; a short line either side of the road in front of the command post
+  for(const g of DCA.guns){if(g.t==='mg'){o('sandbag',g.x-24,g.y-20,48,10);o('sandbag',g.x-30,g.y-16,10,28);o('sandbag',g.x+20,g.y-16,10,28);if(g.face===0)o('sandbag',g.x+26,g.y-6,10,30);}
+    else{o('sandbag',g.x-34,g.y-36,68,10);o('sandbag',g.x-40,g.y-30,10,34);o('sandbag',g.x+30,g.y-30,10,44);}}
+  o('sandbag',640,470,40,10);o('sandbag',722,470,40,10);
+  for(const[x,y]of[[450,250],[940,236]]){o('sandbag',x-24,y-20,48,10);o('sandbag',x-30,y-16,10,28);o('sandbag',x+20,y-16,10,28);}o('sandbag',566,344,48,10);o('sandbag',806,344,48,10);   // (the other troops' forward posts)
+  // the field: boulders, the hedgerow with its gaps
+  for(const[x,y]of[[560,40],[840,80],[390,130],[960,10],[300,-10],[930,140],[620,170],[790,-20],[480,-200],[900,-120]])o('ddbould',x,y,18,15,{cover:1});
+  for(const[x0,x1]of[[220,520],[560,640],[760,840],[880,1000]])o('dchedge',x0,DCA.hedgeY,x1-x0,14,{full:true,cover:2});
+  // their checkpoint between the fork's branches: a blockhouse, bags, a wall along its right; the woods road through its left
+  {const c=DCA.check;o('dcbld',c.x,c.y,c.w,c.h,{full:true,look:'check'});o('sandbag',c.x-6,c.y+c.h+14,70,10);o('sandbag',c.x+c.w+6,c.y-10,10,60);o('sandbag',c.x-76,c.y+c.h+8,36,10);o('sandbag',c.x-80,c.y-30,10,40);
+    o('ddconc',c.x+c.w+26,c.y-34,8,110,{full:true,cover:2});o('ddconc',c.x-10,c.y-44,c.w+44,8,{full:true,cover:2});}
+  for(const[x,y]of[[300,-420],[430,-440],[560,-450],[860,-430],[950,-410]])o('ddbould',x,y,20,16,{cover:1});
   return L;
 }
 function dcPaint(g){
@@ -69,34 +75,42 @@ function dcPaint(g){
   for(let i=0;i<420;i++){const x=r()*1400,y=DDB.y0+r()*1660,k=r();g.fillStyle=k<.4?`rgba(62,92,44,${.12+r()*.16})`:k<.75?`rgba(136,158,82,${.1+r()*.14})`:`rgba(150,146,84,${.1+r()*.14})`;g.beginPath();g.ellipse(x,y,20+r()*70,12+r()*40,r()*3,0,7);g.fill();}   // (Version 188) the meadow in patches: lusher, paler, gone to seed
   for(let i=0;i<5200;i++){const x=r()*1400,y=DDB.y0+r()*1660;g.fillStyle=`rgba(${r()<.5?'58,82,40':'150,170,96'},${.06+r()*.12})`;g.fillRect(x,y,3+r()*9,2+r()*5);}
   // plough land and pasture beyond the hedgerow
-  g.fillStyle='rgba(132,156,84,.55)';g.fillRect(230,-330,300,250);g.fillStyle='rgba(150,150,86,.5)';g.fillRect(760,-340,400,260);
+  g.fillStyle='rgba(132,156,84,.55)';g.fillRect(230,-330,300,250);g.fillStyle='rgba(150,150,86,.5)';g.fillRect(830,-130,170,50);
   g.strokeStyle='rgba(70,60,40,.18)';g.lineWidth=2;for(let x=236;x<530;x+=9){g.beginPath();g.moveTo(x,-330);g.lineTo(x,-82);g.stroke();}
   // the road in from inland, worn and rutted
-  g.fillStyle='#b4a47c';g.fillRect(DCA.road-30,DDB.y0,60,1660-300);
-  g.fillStyle='rgba(90,80,58,.45)';for(let y=DDB.y0;y<560;y+=7){g.fillRect(DCA.road-13+Math.sin(y*.05)*2,y,2,5);g.fillRect(DCA.road+11+Math.sin(y*.043)*2,y,2,5);}
+  g.fillStyle='#b4a47c';g.fillRect(DCA.road-30,DCA.forkY,60,DCA.wallY-DCA.forkY+10);
+  for(const k of['west','east']){const P=DCA.roads[k];g.strokeStyle='#b4a47c';g.lineWidth=k==='west'?54:46;g.lineJoin='round';g.lineCap='round';g.beginPath();g.moveTo(P[0][0],P[0][1]+12);for(const p of P.slice(1))g.lineTo(p[0],p[1]);g.stroke();}
+  {const gr=g.createLinearGradient(DCA.cliffX,0,DCA.cliffX+60,0);gr.addColorStop(0,'rgba(128,112,88,0)');gr.addColorStop(.35,'#857458');gr.addColorStop(1,'#d8c696');g.fillStyle=gr;g.fillRect(DCA.cliffX,DDB.y0,60,1660);g.fillStyle='#d8c696';g.fillRect(DCA.cliffX+60,DDB.y0,400,1660);
+    for(let i=0;i<2600;i++){g.fillStyle=`rgba(${r()<.5?'150,132,96':'236,222,180'},${.1+r()*.2})`;g.fillRect(DCA.cliffX+50+r()*340,DDB.y0+r()*1660,2+r()*6,1+r()*3);}
+    for(let i=0;i<70;i++){const x=DCA.cliffX+70+r()*250,y=DDB.y0+60+r()*1500;g.fillStyle='rgba(60,52,40,.5)';g.beginPath();g.ellipse(x,y,5+r()*4,2+r()*2,r()*3,0,7);g.fill();}}
+  g.fillStyle='rgba(90,80,58,.45)';for(let y=DCA.forkY;y<560;y+=7){g.fillRect(DCA.road-13+Math.sin(y*.05)*2,y,2,5);g.fillRect(DCA.road+11+Math.sin(y*.043)*2,y,2,5);}
   // trampled earth round the nests, the guns and the trench
   for(const q of DCA.guns){const gr=g.createRadialGradient(q.x,q.y,4,q.x,q.y,q.t==='art'?58:44);gr.addColorStop(0,'rgba(120,100,66,.85)');gr.addColorStop(1,'rgba(120,100,66,0)');g.fillStyle=gr;g.fillRect(q.x-60,q.y-60,120,120);}
-  g.fillStyle='rgba(74,60,40,.75)';g.fillRect(372,DCA.trenchY+2,274,24);g.fillRect(746,DCA.trenchY+2,284,24);
   // the base: hard-packed yard, the parade square
-  g.fillStyle='#a69c7e';g.fillRect(238,DCA.wallY-6,924,340);
-  for(let i=0;i<2400;i++){g.fillStyle=`rgba(${r()<.5?'70,64,48':'214,204,172'},${.05+r()*.1})`;g.fillRect(238+r()*924,DCA.wallY-6+r()*340,2+r()*5,2+r()*4);}
-  g.fillStyle='#b6ad90';g.fillRect(620,590,160,110);g.strokeStyle='rgba(240,236,220,.6)';g.lineWidth=2;g.strokeRect(624,594,152,102);
-  g.fillStyle='rgba(60,54,40,.45)';g.fillRect(240,DCA.wallY+12,400,10);g.fillRect(760,DCA.wallY+12,400,10);
+  g.fillStyle='#a69c7e';g.fillRect(382,DCA.wallY-6,616,340);
+  for(let i=0;i<2400;i++){g.fillStyle=`rgba(${r()<.5?'70,64,48':'214,204,172'},${.05+r()*.1})`;g.fillRect(382+r()*616,DCA.wallY-6+r()*340,2+r()*5,2+r()*4);}
+  g.fillStyle='#b6ad90';g.fillRect(610,690,180,130);g.strokeStyle='rgba(240,236,220,.6)';g.lineWidth=2;g.strokeRect(614,694,172,122);g.fillStyle='#b4a47c';g.fillRect(DCA.road-22,640,44,52);
+  g.fillStyle='rgba(60,54,40,.45)';g.fillRect(384,DCA.wallY+12,240,10);g.fillRect(776,DCA.wallY+12,220,10);
   // (Version 188) the yard's gravel and oil stains, wheel tracks off the road, the field churned by yesterday's shelling: craters with their
   // thrown earth, scorched grass, a few trodden paths out to the nests
-  for(let i=0;i<3000;i++){g.fillStyle=`rgba(${r()<.5?'80,74,60':'200,194,170'},${.12+r()*.2})`;g.fillRect(238+r()*924,DCA.wallY-6+r()*340,1+r()*1.6,1+r()*1.6);}
-  for(let i=0;i<14;i++){const x=260+r()*880,y=DCA.wallY+10+r()*300,gr=g.createRadialGradient(x,y,1,x,y,8+r()*14);gr.addColorStop(0,'rgba(30,28,24,.5)');gr.addColorStop(1,'rgba(30,28,24,0)');g.fillStyle=gr;g.fillRect(x-24,y-24,48,48);}
+  for(let i=0;i<3000;i++){g.fillStyle=`rgba(${r()<.5?'80,74,60':'200,194,170'},${.12+r()*.2})`;g.fillRect(382+r()*616,DCA.wallY-6+r()*340,1+r()*1.6,1+r()*1.6);}
+  for(let i=0;i<14;i++){const x=400+r()*580,y=DCA.wallY+10+r()*300,gr=g.createRadialGradient(x,y,1,x,y,8+r()*14);gr.addColorStop(0,'rgba(30,28,24,.5)');gr.addColorStop(1,'rgba(30,28,24,0)');g.fillStyle=gr;g.fillRect(x-24,y-24,48,48);}
   for(const sd of[-1,1]){g.strokeStyle='rgba(84,72,50,.3)';g.lineWidth=7;g.beginPath();g.moveTo(DCA.road+sd*44,-300);g.bezierCurveTo(DCA.road+sd*60,0,DCA.road+sd*30,300,DCA.road+sd*14,560);g.stroke();}
-  for(const[x,y]of[[450,250],[950,250],[590,345],[500,470],[900,470]]){g.strokeStyle='rgba(120,102,70,.35)';g.lineWidth=6;g.beginPath();g.moveTo(x,y+20);g.quadraticCurveTo((x+700)/2+(r()-.5)*60,(y+560)/2,700+(r()-.5)*100,DCA.wallY);g.stroke();}
-  DD.dcHoles=[];for(let i=0;i<16;i++){const x=260+r()*880,y=-60+r()*340,R=7+r()*9;if(Math.abs(x-DCA.road)<40)continue;DD.dcHoles.push({x,y,r:R});
+  for(const[x,y]of[[450,250],[940,236],[590,345],[540,516],[900,440]]){g.strokeStyle='rgba(120,102,70,.35)';g.lineWidth=6;g.beginPath();g.moveTo(x,y+20);g.quadraticCurveTo((x+700)/2+(r()-.5)*60,(y+560)/2,700+(r()-.5)*100,DCA.wallY);g.stroke();}
+  DD.dcHoles=[];for(let i=0;i<16;i++){const x=260+r()*720,y=-60+r()*340,R=7+r()*9;if(Math.abs(x-DCA.road)<40)continue;DD.dcHoles.push({x,y,r:R});
     for(let k=0;k<12;k++){const a=r()*TAU,l=R*(1.3+r());g.strokeStyle='rgba(92,76,50,.2)';g.lineWidth=2+r()*3;g.beginPath();g.moveTo(x+Math.cos(a)*R*.8,y+Math.sin(a)*R*.8);g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke();}
     const gr=g.createRadialGradient(x,y,1,x,y,R+4);gr.addColorStop(0,'rgba(40,32,22,.85)');gr.addColorStop(.6,'rgba(84,68,44,.6)');gr.addColorStop(1,'rgba(84,68,44,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,R+4,0,7);g.fill();
     for(let k=0;k<30;k++){const a=r()*TAU,d=R*(.9+r()*.6);g.fillStyle=r()<.5?'rgba(60,48,32,.5)':'rgba(140,120,84,.45)';g.fillRect(x+Math.cos(a)*d,y+Math.sin(a)*d,1.5+r()*2,1.5+r()*2);}}
-  for(let i=0;i<9000;i++){const x=r()*1400,y=DDB.y0+r()*(DCA.wallY-DDB.y0);g.fillStyle=`rgba(${r()<.6?'44,64,30':'170,176,104'},${.08+r()*.14})`;g.fillRect(x,y,1+r()*1.5,1+r()*2);}
+  for(let i=0;i<9000;i++){const x=r()*DCA.cliffX,y=DDB.y0+r()*(DCA.wallY-DDB.y0);g.fillStyle=`rgba(${r()<.6?'44,64,30':'170,176,104'},${.08+r()*.14})`;g.fillRect(x,y,1+r()*1.5,1+r()*2);}
 }
 function dcScenery(sc){
-  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),typeof ddgFarMat==='function'?ddgFarMat(9000,5000):new T.MeshStandardMaterial({color:0x6f8a4b,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(700,-1.2,0);far.receiveShadow=true;sc.add(far);   // (Version 190: bocage fading into the haze, ddground.js)
-  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),typeof ddgFarMat==='function'?ddgFarMat(9000,1800,0xe4e8dc):new T.MeshStandardMaterial({color:0x5b7340,roughness:1}));hill.rotation.x=-Math.PI/2+.06;hill.position.set(700,60,DDB.y0-880);sc.add(hill);
+  const far=new T.Mesh(new T.PlaneGeometry(9000,5000),typeof ddgFarMat==='function'?ddgFarMat(9000,5000):new T.MeshStandardMaterial({color:0x6f8a4b,roughness:1}));far.rotation.x=-Math.PI/2;far.position.set(DCA.cliffX-4500,-1.2,0);far.receiveShadow=true;sc.add(far);   // (Version 190: bocage fading into the haze, ddground.js)
+  const hill=new T.Mesh(new T.PlaneGeometry(9000,1800),typeof ddgFarMat==='function'?ddgFarMat(9000,1800,0xe4e8dc):new T.MeshStandardMaterial({color:0x5b7340,roughness:1}));hill.rotation.x=-Math.PI/2+.06;hill.position.set(DCA.cliffX-4500,60,DDB.y0-880);sc.add(hill);
+  // (Version 231) down the cliff on the right: the sand running on north and south, the sea, the cliff's face beyond the map
+  const sand=new T.Mesh(new T.PlaneGeometry(700,9000),new T.MeshStandardMaterial({color:0xd8c696,roughness:1}));sand.rotation.x=-Math.PI/2;sand.position.set(DCA.cliffX+350,DCA.beachH-1.5,0);sand.receiveShadow=true;sc.add(sand);
+  const sea=new T.Mesh(new T.PlaneGeometry(9000,9000),new T.MeshStandardMaterial({color:0x3f7f96,roughness:.35,metalness:.1}));sea.rotation.x=-Math.PI/2;sea.position.set(DCA.cliffX+330+4500,DCA.beachH+1.2,0);sc.add(sea);
+  const foam=new T.Mesh(new T.PlaneGeometry(14,9000),new T.MeshBasicMaterial({color:0xf2f6f4,transparent:true,opacity:.7}));foam.rotation.x=-Math.PI/2;foam.position.set(DCA.cliffX+332,DCA.beachH+1.4,0);sc.add(foam);
+  for(const[z,l]of[[DDB.y0-2250,4500],[900+2250,4500]]){const face=new T.Mesh(new T.PlaneGeometry(l,90),new T.MeshStandardMaterial({color:0x857458,roughness:1}));face.rotation.y=Math.PI/2;face.position.set(DCA.cliffX+10,DCA.beachH/2,z);sc.add(face);}
 }
 function dcBuild(G,sc,M,add){
   const earth=M(0x6a5c40,1),turf=M(0x7d8a4c,1),wall=M(0x9a9482,.95),roofM=M(0x55584e,.9),cpM=M(0x8d9298,.9),dark=M(0x26282a,.7,.5),wood=M(0x5d4a34,.95),steel=M(0x3a3632,.6,.7),wm=M(0x55504a,.5,.7),hedge=new T.MeshStandardMaterial({color:0x35542c,roughness:1}),leaf=new T.MeshStandardMaterial({color:0x3f6a34,roughness:1,flatShading:true}),leaf2=new T.MeshStandardMaterial({color:0x577a3a,roughness:1,flatShading:true});
@@ -105,20 +119,29 @@ function dcBuild(G,sc,M,add){
     if(o.kind==='dcbank')o.meshes=[add(ddgBoxUV(o.w,9,o.h+4,24),ddgMat('earth'),cx,g0+4.5,cy),add(ddgBoxUV(o.w-2,3,o.h-2,24),ddgMat('turf'),cx,g0+10,cy)];   // (Version 188: dug earth, turf along the top)
     else if(o.kind==='dcside'){o.meshes=[];if(o.ew){for(let x=o.x;x<=o.x+o.w;x+=25)o.meshes.push(add(new T.BoxGeometry(1,19,1),wood,x,g0+9.5,cy));for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(o.w,.35,.35),wm,cx,g0+hh,cy));}
       else{for(let y=o.y;y<=o.y+o.h;y+=25)o.meshes.push(add(new T.BoxGeometry(1,19,1),wood,cx,g0+9.5,y));for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(.35,.35,o.h),wm,cx,g0+hh,cy));}}
-    else if(o.kind==='dcbld'){const cp=o.look==='cp',h=cp?40:30;o.meshes=[add(ddgBoxUV(o.w,h,o.h,cp?24:32,[.5,.02]),ddgMat(cp?'stone':'boards'),cx,g0+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,g0+h+2,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),dark,cx,g0+1.2,cy)];   // (Version 188: weatherboards, the post in stone)
-      if(cp){o.meshes.push(add(new T.BoxGeometry(1.6,22,18),dark,o.x-.6,g0+11,cy));const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,g0+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x2b4a8a,.8),cx+8.5,g0+h+40,cy));}
+    else if(o.kind==='dcbld'){const cp=o.look==='cp'||o.look==='check',h=o.look==='check'?26:cp?40:30;o.meshes=[add(ddgBoxUV(o.w,h,o.h,cp?24:32,[.5,.02]),ddgMat(cp?'stone':'boards'),cx,g0+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,g0+h+2,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),dark,cx,g0+1.2,cy)];   // (Version 188: weatherboards, the post in stone)
+      if(o.look==='cp'){o.meshes.push(add(new T.BoxGeometry(18,22,1.6),dark,cx,g0+11,o.y-.6),add(new T.BoxGeometry(18,22,1.6),dark,cx,g0+11,o.y+o.h+.6));const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,g0+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x2b4a8a,.8),cx+8.5,g0+h+40,cy));}
+      else if(o.look==='check'){o.meshes.push(add(new T.BoxGeometry(o.w*.5,3,1.6),dark,cx,g0+19,o.y+o.h+.4),add(new T.BoxGeometry(1.6,3,o.h*.5),dark,o.x-.4,g0+19,cy));}
       else if(o.look==='shed'){for(let k=0;k<3;k++)o.meshes.push(add(new T.BoxGeometry(o.w/3-8,22,1.4),dark,o.x+o.w*(k+.5)/3,g0+11,o.y-.5));}
       else o.meshes.push(add(new T.BoxGeometry(14,18,1.4),dark,cx,g0+9,o.y-.5));}
     else if(o.kind==='dchedge'){o.meshes=[];const r=rng(Math.round(o.x));for(let x=o.x+7;x<o.x+o.w;x+=13){const m=add(DD.hedgeG||(DD.hedgeG=ddgSmooth(ddgJitter(new T.DodecahedronGeometry(9,0),1.2,31))),hedge,x,H(x,cy)+7+r()*2,cy+(r()-.5)*3,r()*6);m.scale.set(1.1,1+r()*.5,.95);o.meshes.push(m);}}
   }
   // watchtowers at the north corners, the flag on the square
-  for(const[tx,ty]of[[256,586],[1144,586]]){for(const[dx,dz]of[[-7,-7],[7,-7],[-7,7],[7,7]])add(new T.BoxGeometry(1.6,30,1.6),wood,tx+dx,15,ty+dz);
+  for(const[tx,ty]of[[400,580],[980,580]]){for(const[dx,dz]of[[-7,-7],[7,-7],[-7,7],[7,7]])add(new T.BoxGeometry(1.6,30,1.6),wood,tx+dx,15,ty+dz);
     add(new T.BoxGeometry(18,1.6,18),wood,tx,30,ty);for(const[dx,dz,w,d]of[[0,-9,18,1],[-9,0,1,18],[9,0,1,18]])add(new T.BoxGeometry(w,7,d),wood,tx+dx,34,ty+dz);add(new T.BoxGeometry(22,1.4,22),roofM,tx,50,ty);for(const[dx,dz]of[[-8,-8],[8,-8],[-8,8],[8,8]])add(new T.BoxGeometry(1,20,1),wood,tx+dx,40,ty+dz);}
   add(new T.CylinderGeometry(.7,.7,60,6),steel,DCA.flag.x,30,DCA.flag.y);DD.dcFlag=add(new T.BoxGeometry(22,12,.5),M(0x2b4a8a,.8),DCA.flag.x+12,52,DCA.flag.y);
-  for(let k=0;k<5;k++)add(new T.BoxGeometry(DCA.gate[1]-DCA.gate[0]-8,1.3,5.4),wall,(DCA.gate[0]+DCA.gate[1])/2,-DCA.low+.5+k*1.1,531+k*5.2);   // (the steps up from the lower terrace, where the gate was)
+  // (Version 231) the barrier across the woods road at their checkpoint, its sentry box; the lost landing down on the beach: craft wrecked in the
+  // surf, burnt black, and the dead on the sand and up the cliff's foot
+  {const c=DCA.check,bx=c.x-64,by=c.y+c.h-6;add(new T.BoxGeometry(1.6,9,1.6),wood,bx+30,4.5+H(bx,by),by);const bar=add(new T.BoxGeometry(46,1.4,1.4),M(0xe8e4d8,.8),bx+8,9+H(bx,by),by);bar.rotation.z=.04;
+    add(new T.BoxGeometry(9,20,9),wood,c.x-20,10+H(c.x-20,by+16),by+16);add(new T.BoxGeometry(11,1.4,11),roofM,c.x-20,21+H(c.x-20,by+16),by+16);
+    const burnt=M(0x2a2826,.95),rust=M(0x4a3a30,.95),r2=rng(231);
+    for(const[x,y,a,tilt]of[[1330,380,.4,.2],[1352,120,-.3,-.25],[1318,-160,.9,.15],[1360,-420,-.6,.3],[1300,620,1.3,-.2],[1390,-20,.2,.1]]){const g=new T.Group();g.position.set(x,DCA.beachH+2,y);g.rotation.set(tilt,a,tilt*.6);
+      for(const[w,hh,dd2,px,py,pz]of[[70,10,26,0,5,0],[70,12,1.6,0,10,13],[70,12,1.6,0,10,-13],[1.6,14,26,35,9,0],[10,9,16,-28,12,0]]){const b=new T.Mesh(new T.BoxGeometry(w,hh,dd2),px<0?rust:burnt);b.position.set(px,py,pz);b.castShadow=true;g.add(b);}G.add(g);}
+    const dead=[];for(let i=0;i<64;i++){const x=DCA.cliffX+30+r2()*290,y=DDB.y0+80+r2()*1480;dead.push({x,y,h:ddH(Math.min(x,1390),y)+.8,ry:r2()*6,sx:1,c:r2()<.8?0x5a6240:0x3a3a36});}
+    ddgInst(G,new T.BoxGeometry(11,2.2,4.4),new T.MeshLambertMaterial({color:0xffffff,vertexColors:true}),dead,true,400,false);}
   // the guns: a machine gun on its tripod, or a field gun on its carriage (its group turns to where it fires)
   const gm=M(0x2a2c2e,.5,.7),ol=M(0x4d5540,.9);DD.dcGuns={};
-  for(const q of DCA.guns){const g=new T.Group();g.position.set(q.x,H(q.x,q.y),q.y-(q.t==='art'?14:9));g.rotation.y=Math.PI/2;const P=(geo,m,x,y,z,rz,rx)=>{const b=new T.Mesh(geo,m);b.position.set(x,y,z);if(rz)b.rotation.z=rz;if(rx)b.rotation.x=rx;b.castShadow=true;g.add(b);return b;};
+  for(const q of DCA.guns){const g=new T.Group();g.position.set(q.x,H(q.x,q.y),q.y-(q.t==='art'?14:9));g.rotation.y=q.face===0?0:Math.PI/2;const P=(geo,m,x,y,z,rz,rx)=>{const b=new T.Mesh(geo,m);b.position.set(x,y,z);if(rz)b.rotation.z=rz;if(rx)b.rotation.x=rx;b.castShadow=true;g.add(b);return b;};
     if(q.t==='mg'){if(q.hv){P(new T.CylinderGeometry(1.15,1.15,22,8),gm,12,11.6,0,Math.PI/2);P(new T.BoxGeometry(.9,10,13),ol,5.5,12.4,0);P(new T.BoxGeometry(5,4,5),ol,0,10.6,-3.4);}   // (a heavy one: a longer, thicker barrel, a shield, a bigger box)
       P(new T.CylinderGeometry(.75,.75,17,7),gm,9,11.6,0,Math.PI/2);P(new T.CylinderGeometry(1.25,1.25,7,8),gm,3,11.6,0,Math.PI/2);P(new T.BoxGeometry(5,3,2.2),gm,-2,11.2,0);P(new T.BoxGeometry(3,2.4,4.6),gm,1,10.6,2.6);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}}
@@ -129,20 +152,19 @@ function dcBuild(G,sc,M,add){
   // (Version 188: instanced, a few draw calls for all of them where there were three a tree, each crown shaded darker underneath and its own shape)
   const tr=rng(77),TK=[],C1=[],C2=[],tree=(x,y,s,m)=>{const g0=H(x,y),c=m===leaf?[0x3f6a34,0x456e36,0x3a6230]:[0x577a3a,0x5e8240,0x4e7034],pc=()=>c[(tr()*3)|0];TK.push({x,y,h:g0+8*s,sx:s,ry:tr()*6});
     C1.push({x,y,h:g0+24*s,sx:13*s,sy:15.6*s,sz:13*s,ry:tr()*6,c:pc()});C2.push({x:x+5*s,y:y-3*s,h:g0+33*s,sx:9*s,ry:tr()*6,c:pc()});};
-  for(let x=-200;x<1640;x+=30){if(Math.abs(x-DCA.road)<52)continue;for(let k=0;k<2;k++)tree(x+(tr()-.5)*20,DCA.treeY-30-k*46+(tr()-.5)*30,1.2+tr()*.7,tr()<.5?leaf:leaf2);}
-  for(let i=0;i<6;i++)for(let j=0;j<3;j++)tree(800+i*56,-300+j*60,.7,leaf2);
-  for(const[x,y]of[[300,-290],[470,-230],[250,-130],[1130,-120],[640,-560],[770,-610]])tree(x,y,1,leaf);
+  const onRoad=(x,y)=>['west','east'].some(k=>{const P=DCA.roads[k];for(let i=0;i<P.length-1;i++){const[ax,ay]=P[i],[bx,by]=P[i+1],t=clamp(((x-ax)*(bx-ax)+(y-ay)*(by-ay))/((bx-ax)**2+(by-ay)**2),0,1);if(hyp(x-ax-(bx-ax)*t,y-ay-(by-ay)*t)<44)return true;}return false;});
+  for(let x=-600;x<DCA.cliffX-20;x+=30)for(let k=0;k<2;k++){const tx=x+(tr()-.5)*20,ty=DCA.treeY-30-k*46+(tr()-.5)*30;if(!onRoad(tx,ty))tree(tx,ty,1.2+tr()*.7,tr()<.5?leaf:leaf2);}
+  for(let i=0;i<260;i++){const tx=-500+tr()*1120,ty=-1250+tr()*960;if(ty>-330-(620-tx)*.12||onRoad(tx,ty)||hyp(tx-DCA.check.x-40,ty-DCA.check.y)<130)continue;tree(tx,ty,1.1+tr()*.8,tr()<.6?leaf:leaf2);}   // (the woods the left branch goes into)
+  for(const[x,y]of[[300,-290],[470,-180],[250,-130],[930,-200],[880,-40]])tree(x,y,1,leaf);
   {const lv=new T.MeshLambertMaterial({vertexColors:true});
     ddgInst(G,ddgShade(new T.CylinderGeometry(1.4,2,16,6),.5,1.05),new T.MeshLambertMaterial({color:0x5d4a34,vertexColors:true}),TK,true,350,false);
     ddgInst(G,ddgShade(ddgSmooth(ddgJitter(new T.DodecahedronGeometry(1,0),.16,11)),.48,1.12),lv,C1,true,350,false);ddgInst(G,ddgShade(ddgSmooth(ddgJitter(new T.DodecahedronGeometry(1,0),.16,12)),.55,1.12),lv,C2,true,350,false);}
   // (Version 188) grass in tufts over the fields, and banks of thrown earth round yesterday's shell holes (dcPaint's DD.dcHoles), clods about them
-  {const tr2=rng(1188),tf=[],pk=a=>a[(tr2()*a.length)|0];for(let i=0;i<4600;i++){const x=tr2()*1400,y=DDB.y0+tr2()*(DCA.wallY-DDB.y0-10);if(Math.abs(x-DCA.road)<36)continue;
+  {const tr2=rng(1188),tf=[],pk=a=>a[(tr2()*a.length)|0];for(let i=0;i<4600;i++){const x=tr2()*(DCA.cliffX-6),y=DDB.y0+tr2()*(DCA.wallY-DDB.y0-10);if(Math.abs(x-DCA.road)<36)continue;
       tf.push({x,y,h:H(x,y)-.2,ry:tr2()*6,sx:.8+tr2()*.9,sy:.7+tr2()*1.2,c:pk([0x5c8238,0x6a8c40,0x527a32,0x7e8a44,0x668a3c,0x8e8c56])});}
     ddgInst(G,ddgTuftGeo(1188),new T.MeshLambertMaterial({color:0xffffff,vertexColors:true,side:T.DoubleSide}),tf,false);
     if(DD.dcHoles&&DD.dcHoles.length){const earthC=[96,78,52],spoilC=[128,108,74];ddgCraters(G,DD.dcHoles,{seed:1945,spoil:spoilC,earth:earthC,lift:.75});
       ddgInst(G,ddgShade(ddgJitter(new T.DodecahedronGeometry(1,0),.25,9),.55,1.05),new T.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true}),ddgClods(DD.dcHoles,tr2,30,spoilC,earthC),false);}}
-  // the ruined farm's fallen roof and chimney
-  add(new T.BoxGeometry(60,3,40),M(0x7a4a36,.9),384,6,-226,.2).rotation.z=.18;add(new T.BoxGeometry(10,34,10),M(0x8a7f6e,.95),338,17,-250);
 }
 
 /* ---------- starting it ---------- */
@@ -170,10 +192,10 @@ function enterCounter(){
   // the squads on the parade square, the other troops along the wall
   ['A','B'].forEach((t,ti)=>[0,1,2,3].forEach(i=>{const rm=ddmSlotMan(t,i);if(!rm)return;const u=ddNewMan(t,t+(i+1),rm.role,DCA.square.x+(ti?26:-74)+i*16,DCA.square.y+(ti?14:-6),rm);u.inBoat=false;u.seen=true;}));
   players=units.filter(u=>u.side==='P'&&!u.npc);
-  for(let i=0;i<10;i++){const u=ddNpc(280+i*94+(i>3?60:0),DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.hopT=simT+.3+i*.25;}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
+  for(let i=0;i<10;i++){const u=ddNpc(i<5?400+i*44:790+(i-5)*40,DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.hopT=simT+.3+i*.25;}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
   dd.pool=0;dd.sup={A:'hold',B:'hold'};   // (both squads hold: nobody follows anybody off the line)
   // the column on the road: the first wave's men marching in, the tanks behind them
-  const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*900;e.cool=99;e.stage=-1;
+  const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*720;e.cool=99;e.stage=-1;
     const p=findPath(e.x,e.y,e.lane,DCA.treeY+30+((i%2)*18),FOOT);if(p)e.path=p;e.zone={x0:e.lane-80,x1:e.lane+80,y0:DCA.treeY-20,y1:DCA.treeY+90};}
   ddTankSpawn({x:DCA.road,y:-700,ang:Math.PI/2,hold:true,way:DCA.ways.road,name:'Tank'}).w=2;
   ddTankSpawn({x:DCA.road-6,y:-770,ang:Math.PI/2,hold:true,way:DCA.ways.west,name:'Tank'}).w=3;
@@ -181,7 +203,7 @@ function enterCounter(){
   enemies=units.filter(u=>u.side==='E');
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   mission.t0=simT;sel=[];cardGroup=[];
-  VB={x0:DCA.x0,z0:-720,x1:DCA.x1,z1:900};FIT.w=1040;FIT.h=1560;fitDist();
+  VB={x0:DCA.x0,z0:-720,x1:DCA.x1+150,z1:900};FIT.w=1040;FIT.h=1560;fitDist();
   MAXZ=11;camShift=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:DCA.square.x,z:DCA.wallY-10+DD_CAM.look};clampCam();updateCamera();   // (Version 224: on the line of guns, the barracks behind the camera)
   document.body.classList.add('dd');ddSky(.35);DD.day=.35;DD.dayShown=.35;
   updateObjUI();setStatus();buildCards();hud();
@@ -214,7 +236,7 @@ function dcFill(g){
 }
 // as it starts: the gunners to the heavy guns, a Demo man to the field gun, the riflemen to the nests; then whoever is left (a medic last)
 function dcAuto(){
-  const C=dd.dc,want={a1:'demo',h1:'gunner',h2:'gunner',n1:'rifle',n2:'rifle'},free=()=>players.filter(u=>alive(u)&&!u.dcGun);
+  const C=dd.dc,want={a1:'demo',h1:'gunner',n1:'rifle',n2:'rifle'},free=()=>players.filter(u=>alive(u)&&!u.dcGun);
   for(const g of C.guns){const u=free().filter(q=>q.ddRole===want[g.k]).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(u)dcMan(u,g);}
   for(const g of C.guns)if(!g.going){const u=free().sort((a,b)=>(a.ddRole==='medic')-(b.ddRole==='medic')||hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(u&&players.filter(alive).length>C.guns.filter(q=>q.going).length+2)dcMan(u,g);}
   free().forEach((u,i)=>{const s=DCA.hold[i%DCA.hold.length],p=findPath(u.x,u.y,s[0],s[1]);if(p)u.path=p;});   // (the rest at the flag: it's lost if none of ours is by it)
@@ -323,7 +345,7 @@ function dcNpc(){
 /* ---------- the enemy ---------- */
 function dcSpawnWave(n){
   const W=DCA.waves[n-1],tag='w'+n;
-  if(n>1)for(let i=0;i<W.inf;i++){const lane=n===2?560+(i/(W.inf-1))*280:(i%2?250+(i/W.inf)*260:890+(i/W.inf)*260);
+  if(n>1)for(let i=0;i<W.inf;i++){const lane=n===2?560+(i/(W.inf-1))*280:(i%2?250+(i/W.inf)*260:720+(i/W.inf)*250);
     const e=ddFoe(tag,lane-DDX+(Math.random()-.5)*30,DCA.treeY-60-Math.random()*90,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=-1;enemies.push(e);}
   for(const e of enemies)if(e.tag===tag){e.cool=Math.min(e.cool,1+Math.random()*2);e.stage=0;e.advT=simT+Math.random()*3;e.gait=null;}
   for(const K of dd.tanks)if(K.w===n&&K.hp>0){K.hold=false;K.i=0;}
@@ -405,7 +427,7 @@ function dcBar(){
   const fpU=dd.fp?dd.fp.u:null,foc=!!(C.focus||C.focusK);
   const h=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+'<div class="dcb-row">'+C.guns.map(g=>{const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
     const who=g.dead?'destroyed':you?'YOU':m?(npc?'Private':m.name):g.going?'coming':'empty',st=g.dead?(g.fix?'REPAIRING':dcFixLeft()?'TAP TO REPAIR':'KNOCKED OUT'):!m?(g.going?'ON HIS WAY':'TAP TO MAN'):g.t==='art'?(simT<g.fireT?'RELOAD '+Math.ceil(g.fireT-simT):foc?'ON TARGET':'LOADED'):foc?'ON TARGET':simT-(m.shotT||-9)<1.6||simT<g.hvT+.4?'FIRING':'READY';
-    return`<button type="button" data-k="${g.k}" class="dcb-t${you?' you':''}${g.dead?' dead':''}${!m&&!g.dead&&!g.going?' empty':''}${foc&&m&&!g.dead?' tg':''}">${npc?'<u>NPC</u>':''}<i>${g.n}${g.k==='n1'||g.k==='h1'?' L':g.k==='n2'||g.k==='h2'?' R':''}</i><b>${who}</b><span>${st}</span><em style="width:${Math.max(0,Math.round(g.hp/g.hp0*100))}%"></em></button>`;}).join('')+'</div>'
+    return`<button type="button" data-k="${g.k}" class="dcb-t${you?' you':''}${g.dead?' dead':''}${!m&&!g.dead&&!g.going?' empty':''}${foc&&m&&!g.dead?' tg':''}">${npc?'<u>NPC</u>':''}<i>${g.n}${g.k==='n1'?' 1':g.k==='n2'?' 2':''}</i><b>${who}</b><span>${st}</span><em style="width:${Math.max(0,Math.round(g.hp/g.hp0*100))}%"></em></button>`;}).join('')+'</div>'
     +(fpU&&fpU.dcGun?'<div class="dcb-row two"><button type="button" data-k="back">‹ BACK<small>he stays on the gun</small></button><button type="button" data-k="leave">LEAVE GUN<small>he gets off it</small></button></div>':'');
   if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;}
 }
