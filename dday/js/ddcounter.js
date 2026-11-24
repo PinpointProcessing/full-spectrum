@@ -10,7 +10,7 @@
    and ddTick hands over to dcTick. `dd.dc` is the fight: ph 'intro' (the camera up the road to the column) -> 'setup' (DCA.setup s) ->
    'w1' -> 'lull' -> 'w2' -> 'lull' -> 'w3' -> won. DCA.guns are the mounted guns (three forward nests, two on the wall, two field guns): a
    tap on one with a squad picked sends its nearest free man (dcTap, dcMan), the other troops take what's left (dcNpc). */
-const DCA={x0:200,x1:1200,wallY:556,gate:[640,760],road:700,setup:10,fixT:8,lull:15,gunHit:42,flagT:14,low:5,lowY:384,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
+const DCA={x0:200,x1:1200,wallY:556,gate:[640,760],road:700,setup:10,fixT:8,fixN:2,lull:15,gunHit:42,flagT:14,low:5,lowY:384,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
   cp:{x:1000,y:650,w:120,h:110},cpZone:{x0:730,y0:572,x1:872,y1:672},flag:{x:800,y:612},   // (Version 224: cpZone is the ground round the flag now: theirs for flagT s with none of ours in it and the base is lost)
   barracks:[{x:380,y:770,w:560,h:46}],door:{x:700,y:760},   // (Version 224: one long barracks across the back, the fight all to its north; the squads come out of its door)
   armory:{x:250,y:812,w:110,h:56},depot:{x:1004,y:812,w:150,h:56},   // (in the south corners: between the camera and the square they hid it)
@@ -256,11 +256,12 @@ function dcHvTank(K,k){if(!K||K.hp<=0)return;K.hp-=DCA.hv.tank*(k||1);K.fireT=Ma
 // man) standing at it DCA.fixT seconds. A tap on the gun sends the nearest one (off his own gun if need be); one with nothing to do goes by himself.
 function dcFixSend(g,say){
   if(!g.dead)return false;if(g.fix&&alive(g.fix.u)){if(say)banner(`${g.fix.u.name} is repairing the ${g.n.toLowerCase()}.`,1600);return true;}
-  const E=players.filter(u=>alive(u)&&u.ddRole==='demo'&&!u.fp&&!dd.dc.guns.some(q=>q.fix&&q.fix.u===u)).sort((a,b)=>(!!a.dcGun-!!b.dcGun)||hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y));
-  const u=say?E[0]:E.find(q=>!q.dcGun);if(!u){if(say)banner('No Engineer free to repair it.',1800);return false;}
+  const E=players.filter(u=>alive(u)&&u.ddRole==='demo'&&!u.fp&&(u.fixN||0)<DCA.fixN&&!dd.dc.guns.some(q=>q.fix&&q.fix.u===u)).sort((a,b)=>(!!a.dcGun-!!b.dcGun)||hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y));
+  const u=say?E[0]:E.find(q=>!q.dcGun);if(!u){if(say)banner(players.some(q=>alive(q)&&q.ddRole==='demo'&&(q.fixN||0)<DCA.fixN)?'No Engineer free to repair it.':'The Engineers are out of repair supplies.',2000);return false;}
   if(u.dcGun){const o=u.dcGun;if(o.man===u)dcLeave(o);else{o.going=null;u.dcGun=null;}}
   const p=findPath(u.x,u.y,g.x,g.y+16)||findPath(u.x,u.y,g.x+16,g.y+10);if(p){u.path=p;u.lastOrder=simT;}g.fix={u,t:0};
   if(say)banner(`${u.name} goes to repair the ${g.n.toLowerCase()}.`,2000);return true;}
+const dcFixLeft=()=>players.some(q=>alive(q)&&q.ddRole==='demo'&&(q.fixN||0)<DCA.fixN);
 function dcFixTick(dt){
   const C=dd.dc;C.fixT=(C.fixT||0)-dt;const look=C.fixT<=0;if(look)C.fixT=1.5;
   for(const g of C.guns){if(!g.dead){g.fix=null;continue;}const f=g.fix;
@@ -271,7 +272,7 @@ function dcFixTick(dt){
     if(f.t>=DCA.fixT){g.dead=false;g.fix=null;g.hp=Math.round(g.hp0*.6);g.hits=1;g.mhp=null;g.fireT=simT+2;
       const m=DD.dcGuns&&DD.dcGuns[g.k];if(m){m.rotation.z=0;m.rotation.x=0;m.position.y+=2;m.traverse(o=>{if(o.userData.dcM0){o.material=o.userData.dcM0;o.userData.dcM0=null;}});}
       for(let i=tankFires.length-1;i>=0;i--)if(hyp(tankFires[i].x-g.x,tankFires[i].y+8-g.y)<4)tankFires.splice(i,1);
-      banner(`${u.name} has the ${g.n.toLowerCase()} working again.`,2600);dcFill(g);}}}
+      u.fixN=(u.fixN||0)+1;banner(`${u.name} has the ${g.n.toLowerCase()} working again. ${u.fixN>=DCA.fixN?'He is out of supplies.':(DCA.fixN-u.fixN)+' repair left.'}`,3000);dcFill(g);}}}
 function dcGunsTick(dt){
   dcFixTick(dt);
   const C=dd.dc,foes=enemies.filter(e=>!beaten(e)),tanks=ddTanksUp();
@@ -381,7 +382,7 @@ function dcDraw(){
   // each gun's circle: gold and dashed for one to man, the squad's blue for one a squad mate holds, grey for one knocked out (not from behind a gun)
   if(!dd.fp)for(const g of C.guns){const m=g.man,mine=m&&!m.npc;toSBack=false;const p=toS(g.x,g.y,1);if(toSBack||p[0]<-60||p[0]>cw+60||p[1]<0||p[1]>ch)continue;
     ox.save();ox.beginPath();ox.ellipse(p[0],p[1],30,15,0,0,7);ox.lineWidth=2.5;ox.strokeStyle=g.dead?'rgba(139,148,156,.7)':mine?'rgba(88,196,246,.9)':m?'rgba(255,138,126,.9)':'rgba(255,215,106,.95)';if(!m&&!g.dead)ox.setLineDash([7,5]);ox.stroke();ox.restore();
-    lab(g.x,g.y,g.t==='art'?34:24,g.dead?(g.fix&&hyp(g.fix.u.x-g.x,g.fix.u.y-g.y)<=34?`${g.n} · REPAIRING ${Math.max(1,Math.ceil(DCA.fixT-g.fix.t))}`:g.fix?`${g.n} · ENGINEER COMING`:`${g.n} · TAP TO REPAIR`):m?(mine?`${g.n} · ${m.name.toUpperCase()}`:`${g.n} · NPC`):g.going?`${g.n} · ON HIS WAY`:`${g.n} · TAP TO MAN`,g.dead?'#8b949c':m?(mine?'#8fd0ff':'#ff8a7e'):'#ffcf4a');
+    lab(g.x,g.y,g.t==='art'?34:24,g.dead?(g.fix&&hyp(g.fix.u.x-g.x,g.fix.u.y-g.y)<=34?`${g.n} · REPAIRING ${Math.max(1,Math.ceil(DCA.fixT-g.fix.t))}`:g.fix?`${g.n} · ENGINEER COMING`:dcFixLeft()?`${g.n} · TAP TO REPAIR`:`${g.n} · KNOCKED OUT`):m?(mine?`${g.n} · ${m.name.toUpperCase()}`:`${g.n} · NPC`):g.going?`${g.n} · ON HIS WAY`:`${g.n} · TAP TO MAN`,g.dead?'#8b949c':m?(mine?'#8fd0ff':'#ff8a7e'):'#ffcf4a');
     if(!g.dead&&g.hp<g.hp0){toSBack=false;const q=toS(g.x,g.y,g.t==='art'?44:33);if(!toSBack)bar(q[0]-16,q[1],32,Math.max(0,g.hp/g.hp0),g.hp<g.hp0*.4?'#ff7a4a':'#ffcf4a');}}
   // the one every gun is on
   {const e=dd.fp?null:C.focusK||C.focus;if(e){toSBack=false;const q=toS(e.x,e.y,C.focusK?18:10);if(!toSBack){ox.save();ox.strokeStyle='rgba(255,179,107,.8)';ox.lineWidth=1.6;ox.setLineDash([7,6]);
@@ -401,7 +402,7 @@ function dcBar(){
   if(el.hidden!==!show)el.hidden=!show;document.body.classList.toggle('dcg',show);if(!show)return;   // (dcg: the squad's own bar gives way to the guns')
   const fpU=dd.fp?dd.fp.u:null,foc=!!(C.focus||C.focusK);
   const h=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+'<div class="dcb-row">'+C.guns.map(g=>{const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
-    const who=g.dead?'destroyed':you?'YOU':m?(npc?'Private':m.name):g.going?'coming':'empty',st=g.dead?(g.fix?'REPAIRING':'TAP TO REPAIR'):!m?(g.going?'ON HIS WAY':'TAP TO MAN'):g.t==='art'?(simT<g.fireT?'RELOAD '+Math.ceil(g.fireT-simT):foc?'ON TARGET':'LOADED'):foc?'ON TARGET':simT-(m.shotT||-9)<1.6||simT<g.hvT+.4?'FIRING':'READY';
+    const who=g.dead?'destroyed':you?'YOU':m?(npc?'Private':m.name):g.going?'coming':'empty',st=g.dead?(g.fix?'REPAIRING':dcFixLeft()?'TAP TO REPAIR':'KNOCKED OUT'):!m?(g.going?'ON HIS WAY':'TAP TO MAN'):g.t==='art'?(simT<g.fireT?'RELOAD '+Math.ceil(g.fireT-simT):foc?'ON TARGET':'LOADED'):foc?'ON TARGET':simT-(m.shotT||-9)<1.6||simT<g.hvT+.4?'FIRING':'READY';
     return`<button type="button" data-k="${g.k}" class="dcb-t${you?' you':''}${g.dead?' dead':''}${!m&&!g.dead&&!g.going?' empty':''}${foc&&m&&!g.dead?' tg':''}">${npc?'<u>NPC</u>':''}<i>${g.n}${g.k==='n1'||g.k==='h1'?' L':g.k==='n2'||g.k==='h2'?' R':''}</i><b>${who}</b><span>${st}</span><em style="width:${Math.max(0,Math.round(g.hp/g.hp0*100))}%"></em></button>`;}).join('')+'</div>'
     +(fpU&&fpU.dcGun?'<div class="dcb-row two"><button type="button" data-k="back">‹ BACK<small>he stays on the gun</small></button><button type="button" data-k="leave">LEAVE GUN<small>he gets off it</small></button></div>':'');
   if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;}
