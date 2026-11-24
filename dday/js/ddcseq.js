@@ -8,18 +8,23 @@
    camp -> shells -> run (to the barracks' back door) -> hut (a small set of its own, drawn in place of the map: dcSeqRender from scene.js's render)
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
 const DCS={camp:{x:700,y:858},T:{shell:4.6,run:5.5,hut:8.1,out:11.7,end:15.6},
-  spots:[[13,5,Math.PI+.3,0,'kneel'],[-12,9,-.5,0,'kneel'],[4,-17,Math.PI/2,1,null],[-70,6,.5,1,null],[-54,8,2.6,0,'stand'],[62,10,-2.2,0,'kneel'],[-110,-8,1,0,'kneel'],[96,-6,2.4,1,null]]};
+  // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
+  spots:[[14,2,Math.PI,0,'sit',1],[-13,4,0,0,'sit',1],[1,-15,Math.PI/2,0,'kneel',0],[5,17,-Math.PI/2,0,'smoke',0],[-78,16,Math.PI/2-.35,0,'sit',2],[-62,16,Math.PI/2+.35,0,'sit',2],[70,8,-2.4,0,'kneel',0],[104,-4,2.6,0,'smoke',0]]};
 function dcSeqStart(){
-  if(startCounter.noSeq||/[?&]noseq\b/.test(location.search))return false;   // (?noseq in the address: the tests that start in the fight)const c=DCS.camp,T=THREE,g=ddH(c.x,c.y);
+  if(startCounter.noSeq||/[?&]noseq\b/.test(location.search))return false;   // (?noseq in the address: the tests that start in the fight)
+  const c=DCS.camp,T=THREE,g=ddH(c.x,c.y);
   // where the battle's own camera is: the last shot ends there
   updateCamera();const end={p:camera.position.clone(),q:camera.quaternion.clone()};
-  const S=dd.seq={dc:true,t:0,ph:'camp',end,doom:[],G:new T.Group()};document.body.classList.add('ddseq');scene.add(S.G);
-  players.forEach((u,i)=>{const s=DCS.spots[i%8];u.sx=u.x;u.sy=u.y;Object.assign(u,{x:c.x+s[0],y:c.y+s[1],ang:s[2],path:[],atEase:!!s[3],work:s[4],cool:99});figRefresh(u);});
+  const S=dd.seq={dc:true,t:0,ph:'camp',end,doom:[],seat:[],G:new T.Group()};document.body.classList.add('ddseq');scene.add(S.G);
+  players.forEach((u,i)=>{const s=DCS.spots[i%8];u.sx=u.x;u.sy=u.y;Object.assign(u,{x:c.x+s[0],y:c.y+s[1],ang:s[2],path:[],atEase:!!s[3],work:s[4],cool:99});figRefresh(u);S.seat.push(s[5]===1?[u.x,u.y]:null);});
   // a fire, something to sit at
   const M=(col,r)=>new T.MeshStandardMaterial({color:col,roughness:r??.9}),add=(geo,m,x,h,y,rx,ry,rz)=>{const q=new T.Mesh(geo,m);q.position.set(x,g+h,y);q.rotation.set(rx||0,ry||0,rz||0);q.castShadow=q.receiveShadow=true;S.G.add(q);return q;};
   for(let k=0;k<4;k++)add(new T.CylinderGeometry(.9,.9,9,7),M(0x4a3524),c.x,1.2,c.y,Math.PI/2,k*.8,0);for(let k=0;k<9;k++){const a=k*.7;add(new T.DodecahedronGeometry(1.5,0),M(0x77746c),c.x+Math.cos(a)*5.4,.8,c.y+Math.sin(a)*5.4,k,k,0);}
   for(const[r,h,o]of[[3.2,4.6,.9],[2.1,6.4,.75],[1.2,7.8,.6]]){const f=add(new T.ConeGeometry(r,h,9,1,true),new T.MeshBasicMaterial({color:r>3?0xff6a1c:r>2?0xffa63c:0xffe08a,transparent:true,opacity:o,toneMapped:false,depthWrite:false}),c.x,h/2+1,c.y);f.castShadow=false;}
-  for(const[x,y,w,h]of[[c.x+70,c.y+16,12,7],[c.x-62,c.y+18,11,6],[c.x-118,c.y-2,10,7],[c.x+104,c.y+4,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
+  for(const p of S.seat)if(p)add(new T.BoxGeometry(7,5.2,7),M(0x5f6a44,.8),p[0],2.6,p[1],0,.3,0);                                  // a crate under each man sitting at the fire
+  for(let k=0;k<7;k++)add(new T.BoxGeometry(7+((k*5)%3),5+((k*3)%2)*.4,6),M(k%3?0x8d887c:0x777267),c.x-92+k*7.4,2.5,c.y+16+((k*7)%3)*.5,0,((k*13)%7-3)*.04,0);   // the low stone wall two of them sit on
+  for(const dx of[-3.2,3.2])add(new T.CylinderGeometry(.25,.25,13,5),M(0x2a2a2a,.6),c.x+dx,6,c.y,0,0,dx>0?.38:-.38);add(new T.CylinderGeometry(2.3,1.9,2.6,10),M(0x24262a,.5),c.x,9.4,c.y);   // a pot over the fire
+  for(const[x,y,w,h]of[[c.x+78,c.y+4,12,7],[c.x-118,c.y-2,10,7],[c.x+112,c.y+8,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
   // the bunch of other troops off to one side: the shells land on them
   [[0,0],[13,4],[25,-2],[6,13],[19,15],[31,10]].forEach(([dx,dy],i)=>{const u=ddNpc(c.x+176+dx,c.y-8+dy);Object.assign(u,{inBoat:false,seen:true,post:null,ang:Math.PI+.25*(i%3-1),atEase:i%2===0,work:i%2?'stand':null,cool:99});S.doom.push(u);});
   dcHutBuild(S);dcSpawnWave(1);banner('',1);   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)

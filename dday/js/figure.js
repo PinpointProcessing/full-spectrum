@@ -382,7 +382,8 @@ function figState(u){
   if(u.strapped&&!u.joined)return'strapped';
   if(u.railed&&!u.path.length)return'tied';   // (a scientist tied to the drawbridge's railings: monsters.js)
   if(u.grabbed)return'grabbed';
-  if(u.work&&!u.path.length)return u.work==='kneel'?'kneelwork':'standwork';   // (at work in the montage after the Headquarters: base.js)
+  if(u.work&&!u.path.length)return u.work==='kneel'?'kneelwork':u.work==='sit'?'sitwork':u.work==='smoke'?'smokework':'standwork';   // (sit, smoke: D-Day Chapter 2's camp, ddcseq.js)
+  if(0)return'';   // (at work in the montage after the Headquarters: base.js)
   if(u.climb)return'climb';
   if(u.crawl)return'crawl';
   if(u.inBoat)return u.driving?'drive':'boat';
@@ -568,6 +569,8 @@ function poseTorso(u,F,st,gait,P){
   if(st==='grab'){P.hipsP.set(-.6,8.3,0);P.spineE[2]=.12;P.chestE[2]=.08;P.headE[2]=-.15;slung();return;}
   if(st==='gunner'){P.hipsP.set(-.4,7.9,0);P.spineE[2]=-.2;P.chestE[2]=-.08+(simT-(u.shotT||-9)<.1?.04:0);P.headE[2]=-.08;slung();return;}
   if(st==='kneelwork'){P.hipsP.set(-.5,5.4,.1);P.spineE[2]=-.32;P.chestE[2]=-.25;P.headE[2]=-.35;P.chestE[1]=Math.sin(t*3+sd)*.05;slung();return;}
+  if(st==='sitwork'){P.hipsP.set(-.4,6.1,0);P.spineE[2]=-.16;P.chestE[2]=-.1;P.headE[2]=-.12;P.headE[1]=Math.sin(t*.6+sd)*.25;slung();return;}   // (seated on a crate or a wall)
+  if(st==='smokework'){P.hipsP.set(0,8.8,0);P.spineE[2]=-.04;P.headE[2]=-.05;P.headE[1]=Math.sin(t*.5+sd)*.3;slung();return;}
   if(st==='standwork'){P.hipsP.set(0,8.7,0);P.spineE[2]=-.15;P.chestE[2]=-.1;P.headE[2]=-.3;slung();return;}
   if(st==='rpg'){P.hipsP.set(-.2,8.4,0);P.hipsE[1]=-.3;P.chestE[1]=.1;P.chestE[2]=.02+(simT-(u.rpgT||-9)<.25?.12:0);P.headE[1]=.2;P.headE[0]=.12;P.launcher=true;slung();return;}
   if(st==='throw'){
@@ -652,6 +655,7 @@ function poseLimbs(u,F,st,gait,P){
   else if(st==='cower'){FT[0].set(.7,ANKLE,-1.4);FT[1].set(.7,ANKLE,1.4);K[0].set(1,0,-.5);K[1].set(1,0,.5);flat(0);flat(1);}
   else if(st==='kneelwork'||(st==='base'&&!gait.mv&&(u.side==='P'?(u.covered&&caught(u)):!!u.coverNow))){
     FT[0].set(1.9,ANKLE,-1.25);K[0].set(1,.25,-.2);flat(0);FT[1].set(-3.1,.72,1.2);K[1].set(1,-.6,.1);
+  }else if(st==='sitwork'){FT[0].set(3.7,ANKLE,-1.2);FT[1].set(3.4,ANKLE,1.25);K[0].set(1,.5,-.1);K[1].set(1,.5,.1);flat(0);flat(1);
   }else if(st==='strapped'){FT[0].set(.3,ANKLE,-1.3);FT[1].set(.3,ANKLE,1.3);flat(0);flat(1);}
   else if(st==='grabbed'){FT[0].set(1.8,ANKLE,-1.1);FT[1].set(2.2,ANKLE,1.1);flat(0);flat(1);}
   else if(st==='gunner'||st==='rpg'||(P.gun.aimed)){FT[0].set(1.6,ANKLE,-1.25);FT[1].set(-1.4,ANKLE,1.3);flat(0);flat(1);P.footE[0][1]=.35;P.footE[1][1]=-.5;}
@@ -667,6 +671,8 @@ function poseLimbs(u,F,st,gait,P){
   if(st==='grab'){hand(0,3.0,13.8,-.7);hand(1,3.3,14.4,.3);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
   if(st==='gunner'){const k=simT-(u.shotT||-9)<.1?-.25:0;hand(0,3.5+k,9.9,-.75);hand(1,3.5+k,9.9,.75);EL[0].set(-.4,-1,-.8);EL[1].set(-.4,-1,.8);return;}
   if(st==='kneelwork'){const w=Math.sin(t*5+sd)*.35;hand(0,3.0+w,3.0,-.8);hand(1,3.1-w,3.1,.75);EL[0].set(-.2,-1,-1);EL[1].set(-.2,-1,1);return;}
+  if(st==='sitwork'){hand(0,3.1,6.9,-.95);hand(1,3.0,6.9,.95);EL[0].set(-.2,-1,-1);EL[1].set(-.2,-1,1);return;}
+  if(st==='smokework'){const up=Math.max(0,Math.sin(t*.8+sd));hand(0,1.3+up*(headP.x+1.5-1.3),9.4+up*(headP.y-.7-9.4),-1.0+up*.75);hand(1,.9,9.2,1.05);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
   if(st==='standwork'){const w=Math.sin(t*6+sd)*.3;hand(0,3.4,10.4+w,-.8);hand(1,3.4,10.4-w,.8);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
   if(st==='rpg'){const L=F.launcher;if(L){hand(1,chestP.x+.9,chestP.y+1.75,1.6);hand(0,chestP.x+3.0,chestP.y+1.85,1.35);}EL[0].set(.2,-1,-1);EL[1].set(-.3,-.5,1);return;}
   if(st==='carry'){hand(0,1.3,15.4,-1.7);EL[0].set(.4,-1,-.4);if(!armed)fromSh(1,.3,-5.2,.3);return;}   // his left arm round the man on his shoulders; the rifle in his right hand
