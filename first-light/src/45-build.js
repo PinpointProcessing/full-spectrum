@@ -229,9 +229,6 @@ function buildWorld(){
     const rim=new T.Mesh(new T.TorusGeometry(29.6,2.4,8,30),new T.MeshStandardMaterial({color:0x5e5a54,roughness:.8}));rim.position.set(360,29.5,121.5);scene.add(rim);
     const cap=new T.Mesh(new T.CircleGeometry(29,20),new T.MeshBasicMaterial({color:0x020203}));cap.position.set(360,29.5,6);scene.add(cap);
     ground(334,6,52,116,TX.concrete,40,0x55534e,.9);
-    // rust streaks and a tag
-    const tag=canvasTex(256,64,(g,w,h)=>{g.clearRect(0,0,w,h);g.font='700 34px "Oswald","Arial Narrow",sans-serif';g.fillStyle='rgba(190,30,24,.85)';g.textBaseline='middle';g.fillText('NO HELP COMING',8,34);g.fillStyle='rgba(190,30,24,.5)';g.fillRect(20,52,3,12);g.fillRect(150,50,3,14);},1);
-    const tm=new T.Mesh(new T.PlaneGeometry(92,23),new T.MeshBasicMaterial({map:tag,transparent:true,depthWrite:false}));tm.position.set(470,34,121.3);scene.add(tm);
     // grate
     grateGrp=new T.Group();grateGrp.position.set(360,0,123);
     const gi=[];for(let x=-26;x<=26;x+=6.5)gi.push(cy(.9,.9,58,6,x,29.5,0,0x3a342c));gi.push(bx(58,2,2,0,12,0,0x3a342c),bx(58,2,2,0,46,0,0x3a342c));
