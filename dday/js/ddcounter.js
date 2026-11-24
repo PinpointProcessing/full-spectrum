@@ -22,7 +22,7 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   armory:{x:900,y:626,w:84,h:56},depot:{x:876,y:790,w:108,h:60},
   square:{x:700,y:756},
   hedgeY:-70,treeY:-430,forkY:-150,
-  check:{x:712,y:-262,w:92,h:60,zone:{x0:620,y0:-330,x1:830,y1:-180}},   // (their checkpoint: the woods road runs through its left side)
+  check:{x:694,y:-316,w:84,h:54,zone:{x0:600,y0:-360,x1:850,y1:-200}},eguns:[{x:612,y:-116},{x:578,y:-162}],   // (eguns: their light machine guns left of the fork, pointed at the beach until they're turned on us)   // (their checkpoint: the woods road runs through its left side)
   guns:[{k:'n1',n:'MG NEST',x:540,y:516,t:'mg',arc:1.15,hp:260},{k:'n2',n:'MG NEST',x:604,y:468,t:'mg',arc:1.15,hp:260},
     {k:'h1',n:'HEAVY MG',x:900,y:440,t:'mg',hv:1,arc:1.5,hp:340,face:0},{k:'a1',n:'FIELD GUN',x:858,y:520,t:'art',hp:420,face:0}],   // (face 0: it stands pointing at the beach until it's turned)
   hold:[[668,520],[700,496],[736,522]],   // (where the men not on a gun stand: in front of the command post)
@@ -64,8 +64,12 @@ function dcObjects(){
   for(const[x,y]of[[560,40],[840,80],[390,130],[960,10],[300,-10],[930,140],[620,170],[790,-20],[480,-200],[900,-120]])o('ddbould',x,y,18,15,{cover:1});
   for(const[x0,x1]of[[220,520],[560,640],[760,840],[880,1000]])o('dchedge',x0,DCA.hedgeY,x1-x0,14,{full:true,cover:2});
   // their checkpoint between the fork's branches: a blockhouse, bags, a wall along its right; the woods road through its left
-  {const c=DCA.check;o('dcbld',c.x,c.y,c.w,c.h,{full:true,look:'check'});o('sandbag',c.x-6,c.y+c.h+14,70,10);o('sandbag',c.x+c.w+6,c.y-10,10,60);o('sandbag',c.x-76,c.y+c.h+8,36,10);o('sandbag',c.x-80,c.y-30,10,40);
-    o('ddconc',c.x+c.w+26,c.y-34,8,110,{full:true,cover:2});o('ddconc',c.x-10,c.y-44,c.w+44,8,{full:true,cover:2});}
+  // (after Version 231, Bryan: "No walls blocking any roadway (it looks like it blocks beach access)": nothing of it stands on either branch)
+  {const c=DCA.check;o('dcbld',c.x,c.y,c.w,c.h,{full:true,look:'check'});
+    o('sandbag',c.x-4,c.y+c.h+16,c.w+8,10);o('sandbag',c.x-12,c.y+c.h+2,10,24);o('sandbag',c.x+c.w+2,c.y+c.h+2,10,24);   // a breastwork in front of it, facing the base
+    o('sandbag',c.x-22,c.y+6,10,40);o('sandbag',c.x+c.w+14,c.y+6,10,40);                                                  // short lines at its sides
+    for(const[x,y]of[[c.x+c.w+34,c.y+46],[c.x+c.w+40,c.y-6],[c.x-34,c.y-14]])o('ddcrate',x,y,22,20,{cover:1});
+    for(const e of DCA.eguns){o('sandbag',e.x+16,e.y-18,10,36);o('sandbag',e.x-18,e.y+16,36,10);}}                          // their light machine guns' bags: toward the beach, and toward us
   for(const[x,y]of[[300,-420],[430,-440],[560,-450],[860,-430],[950,-410]])o('ddbould',x,y,20,16,{cover:1});
   return L;
 }
@@ -121,7 +125,7 @@ function dcBuild(G,sc,M,add){
       else{for(let y=o.y;y<=o.y+o.h;y+=25)o.meshes.push(add(new T.BoxGeometry(1,19,1),wood,cx,g0+9.5,y));for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(.35,.35,o.h),wm,cx,g0+hh,cy));}}
     else if(o.kind==='dcbld'){const cp=o.look==='cp'||o.look==='check',h=o.look==='check'?26:cp?40:30;o.meshes=[add(ddgBoxUV(o.w,h,o.h,cp?24:32,[.5,.02]),ddgMat(cp?'stone':'boards'),cx,g0+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,g0+h+2,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),dark,cx,g0+1.2,cy)];   // (Version 188: weatherboards, the post in stone)
       if(o.look==='cp'){o.meshes.push(add(new T.BoxGeometry(18,22,1.6),dark,cx,g0+11,o.y-.6),add(new T.BoxGeometry(18,22,1.6),dark,cx,g0+11,o.y+o.h+.6));const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,g0+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x2b4a8a,.8),cx+8.5,g0+h+40,cy));}
-      else if(o.look==='check'){o.meshes.push(add(new T.BoxGeometry(o.w*.5,3,1.6),dark,cx,g0+19,o.y+o.h+.4),add(new T.BoxGeometry(1.6,3,o.h*.5),dark,o.x-.4,g0+19,cy));}
+      else if(o.look==='check'){o.meshes.push(add(new T.BoxGeometry(12,17,1.4),dark,cx-28,g0+8.5,o.y-.5));}
       else if(o.look==='shed'){for(let k=0;k<3;k++)o.meshes.push(add(new T.BoxGeometry(o.w/3-8,22,1.4),dark,o.x+o.w*(k+.5)/3,g0+11,o.y-.5));}
       else o.meshes.push(add(new T.BoxGeometry(14,18,1.4),dark,cx,g0+9,o.y-.5));}
     else if(o.kind==='dchedge'){o.meshes=[];const r=rng(Math.round(o.x));for(let x=o.x+7;x<o.x+o.w;x+=13){const m=add(DD.hedgeG||(DD.hedgeG=ddgSmooth(ddgJitter(new T.DodecahedronGeometry(9,0),1.2,31))),hedge,x,H(x,cy)+7+r()*2,cy+(r()-.5)*3,r()*6);m.scale.set(1.1,1+r()*.5,.95);o.meshes.push(m);}}
@@ -132,8 +136,23 @@ function dcBuild(G,sc,M,add){
   add(new T.CylinderGeometry(.7,.7,60,6),steel,DCA.flag.x,30,DCA.flag.y);DD.dcFlag=add(new T.BoxGeometry(22,12,.5),M(0x2b4a8a,.8),DCA.flag.x+12,52,DCA.flag.y);
   // (Version 231) the barrier across the woods road at their checkpoint, its sentry box; the lost landing down on the beach: craft wrecked in the
   // surf, burnt black, and the dead on the sand and up the cliff's foot
-  {const c=DCA.check,bx=c.x-64,by=c.y+c.h-6;add(new T.BoxGeometry(1.6,9,1.6),wood,bx+30,4.5+H(bx,by),by);const bar=add(new T.BoxGeometry(46,1.4,1.4),M(0xe8e4d8,.8),bx+8,9+H(bx,by),by);bar.rotation.z=.04;
-    add(new T.BoxGeometry(9,20,9),wood,c.x-20,10+H(c.x-20,by+16),by+16);add(new T.BoxGeometry(11,1.4,11),roofM,c.x-20,21+H(c.x-20,by+16),by+16);
+  {const c=DCA.check,bx=626,by=-250;
+    // the barrier across the woods road with its counterweight and sentry box, off the road's edge
+    add(new T.BoxGeometry(2,10,2),wood,bx+34,5+H(bx+34,by),by);const bar=add(new T.BoxGeometry(60,1.5,1.5),M(0xe8e4d8,.8),bx+6,9.4+H(bx,by),by);bar.rotation.z=.03;for(let k=0;k<5;k++)add(new T.BoxGeometry(6,1.6,1.6),M(0xb02a22,.8),bx-18+k*12,9.4+H(bx,by),by);
+    add(new T.BoxGeometry(5,5,5),steel,bx+38,7+H(bx,by),by);add(new T.BoxGeometry(10,22,10),wood,bx+48,11+H(bx+48,by+14),by+14);add(new T.BoxGeometry(13,1.6,13),roofM,bx+48,23+H(bx+48,by+14),by+14);
+    // the blockhouse dressed: a thick roof slab, firing slits toward the base and the roads, a lookout post on stilts behind it, their flag, an aerial, stores, wire
+    const cx=c.x+c.w/2,cy=c.y+c.h/2,g0=H(cx,cy);add(new T.BoxGeometry(c.w+14,5,c.h+14),M(0x7d8076,.95),cx,g0+29,cy);add(new T.BoxGeometry(c.w-20,6,c.h-18),M(0x6c7066,.95),cx,g0+34,cy);
+    for(const dx of[-24,0,24])add(new T.BoxGeometry(14,2.6,1.2),dark,cx+dx,g0+17,c.y+c.h+.7);for(const dz of[-12,12]){add(new T.BoxGeometry(1.2,2.6,14),dark,c.x-.7,g0+17,cy+dz);add(new T.BoxGeometry(1.2,2.6,14),dark,c.x+c.w+.7,g0+17,cy+dz);}
+    {const tx=c.x+c.w-12,ty=c.y-26;for(const[dx,dz]of[[-7,-7],[7,-7],[-7,7],[7,7]])add(new T.BoxGeometry(1.6,40,1.6),wood,tx+dx,20+H(tx,ty),ty+dz);add(new T.BoxGeometry(18,1.6,18),wood,tx,40+H(tx,ty),ty);
+      for(const[dx,dz,w,d]of[[0,9,18,1],[-9,0,1,18],[9,0,1,18],[0,-9,18,1]])add(new T.BoxGeometry(w,7,d),wood,tx+dx,44+H(tx,ty),ty+dz);add(new T.BoxGeometry(22,1.4,22),roofM,tx,58+H(tx,ty),ty);for(const[dx,dz]of[[-8,-8],[8,-8],[-8,8],[8,8]])add(new T.BoxGeometry(1,14,1),wood,tx+dx,51+H(tx,ty),ty+dz);}
+    add(new T.CylinderGeometry(.7,.7,54,6),steel,c.x+10,g0+27,c.y+c.h+30);add(new T.BoxGeometry(20,11,.5),M(0xa8201c,.8),c.x+21,g0+47,c.y+c.h+30);add(new T.BoxGeometry(6,6,.6),M(0xf0f0ea,.8),c.x+21,g0+47,c.y+c.h+30.2);
+    add(new T.CylinderGeometry(.25,.25,30,5),steel,c.x+c.w-8,g0+50,c.y+8);
+    for(const[x,y,w,h2,d]of[[c.x-40,c.y+30,16,12,12],[c.x-44,c.y+46,12,9,10],[c.x+c.w+54,c.y+20,18,12,12]])add(new T.BoxGeometry(w,h2,d),M(0x5a6248,.9),x,h2/2+H(x,y),y);
+    for(let k=0;k<3;k++){const b=add(new T.CylinderGeometry(4,4,10,10),M(0x4a4e44,.7),c.x+c.w+50+k*9,5+H(c.x+c.w+50,c.y+44),c.y+44+(k%2)*6);}
+    // their light machine guns left of the fork: on tripods, pointed at the beach
+    DD.dcEGuns=[];for(const e of DCA.eguns){const g=new T.Group();g.position.set(e.x,H(e.x,e.y),e.y);g.rotation.y=0;const P=(geo,m,x,y,z,rz)=>{const b=new T.Mesh(geo,m);b.position.set(x,y,z);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);return b;};
+      P(new T.CylinderGeometry(.7,.7,16,7),steel,8,10.6,0,Math.PI/2);P(new T.BoxGeometry(5,3,2.2),steel,-2,10.4,0);P(new T.BoxGeometry(3,2.4,4.4),steel,1,9.8,2.4);
+      for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,12,5),steel);l.position.set(Math.cos(a)*3.2,5,Math.sin(a)*3.2);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}G.add(g);DD.dcEGuns.push(g);}
     const burnt=M(0x2a2826,.95),rust=M(0x4a3a30,.95),r2=rng(231);
     for(const[x,y,a,tilt]of[[1330,380,.4,.2],[1352,120,-.3,-.25],[1318,-160,.9,.15],[1360,-420,-.6,.3],[1300,620,1.3,-.2],[1390,-20,.2,.1]]){const g=new T.Group();g.position.set(x,DCA.beachH+2,y);g.rotation.set(tilt,a,tilt*.6);
       for(const[w,hh,dd2,px,py,pz]of[[70,10,26,0,5,0],[70,12,1.6,0,10,13],[70,12,1.6,0,10,-13],[1.6,14,26,35,9,0],[10,9,16,-28,12,0]]){const b=new T.Mesh(new T.BoxGeometry(w,hh,dd2),px<0?rust:burnt);b.position.set(px,py,pz);b.castShadow=true;g.add(b);}G.add(g);}
