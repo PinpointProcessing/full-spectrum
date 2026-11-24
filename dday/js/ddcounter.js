@@ -321,7 +321,10 @@ function dcFixTick(dt){
 function dcSlits(){const C=dd.dc,c=DCA.check;return C.slits||(C.slits=[-24,0,24].map((dx,i)=>({x:c.x+c.w/2+dx,y:c.y+c.h+3,t:2+i*.6})));}
 function dcSlitTick(dt){
   const C=dd.dc,co=objs.find(o=>o.tag==='check');if(!co||co.gone||C.ph==='intro'&&!(dd.seq&&dd.seq.dc))return;const P=DCA.slit;
-  for(const s of dcSlits()){if((s.t-=dt)>0)continue;s.t=P.every[0]+Math.random()*(P.every[1]-P.every[0]);
+  // (Version 234, Bryan: "It should open up and be exposed a little bit more") it breaks open as it's hit: a third of the way a hole is blown in
+  // its front and the gun behind it is gone; two thirds, a second hole and half the roof off, and another gun gone
+  const st=co.hp<=DCA.checkHp/3?2:co.hp<=DCA.checkHp*2/3?1:0;while((co.breach||0)<st)dcCheckBreach(co,co.breach=(co.breach||0)+1);
+  for(const s of dcSlits()){if(s.out||(s.t-=dt)>0)continue;s.t=P.every[0]+Math.random()*(P.every[1]-P.every[0]);
     let best=null,bd=P.range;for(const u of[...players,...dd.npcs]){if(!alive(u)||u.y<s.y+10)continue;const d=hyp(u.x-s.x,u.y-s.y);if(d<bd&&Math.abs(u.x-s.x)<d*.85&&los(s.x,s.y+6,u.x,u.y)){bd=d;best=u;}}
     if(!best){s.t=.5;continue;}
     const cv=coverAt(best.x,best.y,s.x,s.y),k=cv>=2?.4:cv>=1?.65:1,p=clamp(P.hit*(1-bd/(P.range*1.25))*k,.05,.4);
@@ -330,12 +333,23 @@ function dcSlitTick(dt){
     best.sup=Math.min(1,(best.sup||0)+.1);best.firedOnT=simT;if(typeof ddSpark==='function')ddSpark(s.x,ddH(s.x,s.y)+17,s.y,1);
     try{if(typeof sfxShotDD==='function')sfxShotDD({x:s.x,y:s.y,side:'E',id:'SL'+s.x,weapon:'mg',gunner:true});}catch(e){}}
 }
+function dcCheckBreach(o,n){
+  const T=THREE,c=DCA.check,S=dcSlits(),sl=S[n===1?2:0],g0=ddH(sl.x,sl.y),dark=new T.MeshStandardMaterial({color:0x121110,roughness:1}),rub=new T.MeshStandardMaterial({color:0x8a8478,roughness:1,flatShading:true}),G=o.meshes&&o.meshes[0]&&o.meshes[0].parent||scene;
+  sl.out=true;const add=(geo,m,x,h,z,r)=>{const q=new T.Mesh(geo,m);q.position.set(x,g0+h,z);if(r)q.rotation.set(r,r*1.7,r*.6);q.castShadow=true;G.add(q);(o.meshes||(o.meshes=[])).push(q);return q;};
+  // the hole: dark, ragged, floor to roof, a little proud of the wall so it reads as the inside; rubble spilled out in front of it
+  for(const[dx,w,h,y]of[[0,20,22,11],[-11,7,15,9],[11,8,17,10],[-4,12,5,24],[6,9,4,25]])add(new T.BoxGeometry(w,h,1.6),dark,sl.x+dx,y,c.y+c.h+.9);
+  for(let k=0;k<11;k++){const r=1.6+((k*7)%5)*.7;add(new T.DodecahedronGeometry(r,0),rub,sl.x-13+((k*37)%27),r*.6,c.y+c.h+5+((k*13)%15),k*.7);}
+  for(let k=0;k<2;k++)booms.push({x:sl.x+(k?8:-6),y:sl.y+2,t:-k*.12,size:1.1});tankFires.push({x:sl.x,y:sl.y-8,r:6,t0:simT,puffs:[],emit:0});shake(.7);
+  if(n===2&&o.roof){o.roof.scale.x=.56;o.roof.position.x+=c.w*.2;o.roof.rotation.z=-.07;const cx=c.x+c.w*.24,cy=c.y+c.h/2;add(new T.BoxGeometry(c.w*.42,1.5,c.h-6),dark,cx,26.6,cy);   // half the roof off: you see down into it
+    const slab=add(new T.BoxGeometry(c.w*.36,5,c.h*.7),new T.MeshStandardMaterial({color:0x7d8076,roughness:.95}),c.x-16,6,cy+6);slab.rotation.set(.1,.3,1.05);}
+  dd.killed=(dd.killed||0)+1;banner(n===1?'The blockhouse is breached. One of its guns is out.':'The blockhouse is breaking up. One gun left.',2800);
+}
 function dcCheckWreck(o){
-  const C=dd.dc;C.checkDead=true;const cx=o.x+o.w/2,cy=o.y+o.h/2;
+  const C=dd.dc;C.checkDead=true;const cx=o.x+o.w/2,cy=o.y+o.h/2;while((o.breach||0)<2)dcCheckBreach(o,o.breach=(o.breach||0)+1);
   for(const m of o.meshes||[]){if(m.material&&m.material.color){m.material=m.material.clone();if(typeof ddgBurnMat==='function')ddgBurnMat(m.material);else m.material.color.setHex(0x2a2826);}}
   if(o.roof){o.roof.rotation.z=.16;o.roof.rotation.x=-.1;o.roof.position.y-=7;}
   for(let k=0;k<4;k++)booms.push({x:cx+(Math.random()-.5)*o.w,y:cy+(Math.random()-.5)*o.h,t:-k*.14,size:1.3});tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});
-  dd.killed=(dd.killed||0)+3;shake(1);if(typeof sfxBoom==='function')sfxBoom(cx,cy,1.4);banner('Their blockhouse is destroyed. Its machine guns are silent.',3200);
+  dd.killed=(dd.killed||0)+1;shake(1);if(typeof sfxBoom==='function')sfxBoom(cx,cy,1.4);banner('Their blockhouse is destroyed. Its machine guns are silent.',3200);
 }
 function dcGunsTick(dt){
   dcFixTick(dt);dcSlitTick(dt);
