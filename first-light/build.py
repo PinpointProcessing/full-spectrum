@@ -7,6 +7,9 @@ src = '\n'.join('/* ===== %s ===== */\n%s' % (os.path.basename(p), open(p).read(
 # recorded sounds ride along inside the page as base64 (an artifact cannot load files from anywhere else)
 import base64
 snd = {os.path.basename(p)[:-4]: base64.b64encode(open(p, 'rb').read()).decode() for p in sorted(glob.glob(os.path.join(here, 'sounds', '*.mp3')))}
+import json
+vl = os.path.join(here, 'sounds', 'voices.json')
+src = 'const VLINE=' + (json.dumps(json.load(open(vl, encoding='utf-8')), ensure_ascii=False) if os.path.exists(vl) else '{}') + ';\n' + src
 src = 'const SND_B64={' + ','.join('%s:"%s"' % kv for kv in snd.items()) + '};\n' + src
 assert '/*@@SRC@@*/' in shell
 open(os.path.join(here, '..', 'first-light.html'), 'w').write(shell.replace('/*@@SRC@@*/', src))

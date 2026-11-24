@@ -75,7 +75,7 @@ function setGoal(){
   else if(!EV.armed&&!EV.breakIn){g='Find something to fight with';s='There’s a bat by the bedroom window';}
   else if(EV.breakIn&&EV.z0&&!EV.z0.dead){g='Something is in the house';s=L.melee==='fists'?'Grab the bat':'Put it down';}
   else if(!EV.out){g='Get out the front door';}
-  else if(REST){g='Catch your breath';s=`The door is holding (${Math.max(0,Math.round(REST.hp/240*100))}%)`;}
+  else if(REST){g=REST.t<22?'Catch your breath':'Something is at the door';s=REST.t<22?'It is quiet, for now':'It will not hold';}
   else if(SF.in){g='Catch your breath';s=SF.chatDone?'Step to the door when you are ready':'Ruth has the door';}
   else if(!EV.channel){g='Follow the flares north';
     const near=survs.filter(x=>!x.recruited&&!x.dead&&!x.hidden&&hyp(x.x-L.x,x.y-L.y)<170).sort((a,b)=>hyp(a.x-L.x,a.y-L.y)-hyp(b.x-L.x,b.y-L.y))[0];
@@ -297,7 +297,7 @@ function safeTick(dt){
     if(!SF.open&&dd<24&&!inside)safeDoorSet(true);
     if(SF.open&&inside&&L.x<SAFE.x1-8){      // you are in: bring your people in, bar the door
       const spots=[[262,556],[266,528],[246,528],[252,558]];allies.forEach((a,i)=>{if(a.dead)return;a.x=spots[i%4][0];a.y=spots[i%4][1];a.safe=true;a.vault=null;a.foe=null;});
-      safeDoorSet(false);SF.in=true;SF.t=0;SF.i=0;L.safe=true;SF.lines=RUTH_LINES.slice();
+      safeDoorSet(false);SF.in=true;SF.t=0;SF.i=0;SF.next=1;L.safe=true;SF.lines=RUTH_LINES.slice();
       for(const z of zeds)if(inSafe(z.x,z.y)&&!z.dead)z.x=SAFE.dx+30;
     }
     if(SF.open&&!inside&&dd>60)safeDoorSet(false);
@@ -305,7 +305,7 @@ function safeTick(dt){
   if(SF.in){
     SF.t+=dt;
     for(const h of[L,...allies])if(!h.dead)h.hp=Math.min(h.maxhp,h.hp+9*dt);
-    if(!SF.chatDone&&SF.t>1+SF.i*4.4){if(SF.i<SF.lines.length){const t=SF.lines[SF.i++];caption(t,'Ruth',4200);speak('ruth',t,4);}else SF.chatDone=true;}
+    if(!SF.chatDone&&SF.t>(SF.next||1)){if(SF.i<SF.lines.length){const t=SF.lines[SF.i++],d=Math.max(3.8,speak('ruth',t,4)+.7);caption(t,'Ruth',d*1000-200);SF.next=SF.t+d;}else SF.chatDone=true;}      // each line waits for the one before it to finish
     // out again: walk into the door from the inside once she has said her piece (or you have been here a few seconds)
     if(SF.t>4&&L.x>SAFE.x1-10&&Math.abs(L.y-SAFE.dy)<12&&input.mx>.3){
       safeDoorSet(true);SF.in=false;SF.done=true;L.safe=false;for(const a of allies)a.safe=false;shutUp();
@@ -337,13 +337,17 @@ function roomsTick(dt){
       else if(inside&&dIn<16&&push>.3){roomDoor(R,true);if(REST===R)REST=null;}
     }else if(inside&&!zin&&dIn>26){      // clear, and you are well inside: shut it and rest
       allies.forEach((a,i)=>{if(a.dead||inRoom(R,a.x,a.y))return;a.x=clamp(L.x+(i%2?14:-14),R.x0+10,R.x1-10);a.y=clamp(L.y+(i<2?14:-14),R.y0+10,R.y1-10);a.vault=null;});
-      roomDoor(R,false);REST=R;R.t=0;if(!R.told){R.told=true;caption('The house is quiet. You shut the door and get your breath back.',null,4200);}
+      roomDoor(R,false);REST=R;if(!R.told){R.told=true;caption('The house is quiet. You shut the door and get your breath back.',null,4200);}
     }else if(!inside&&dOut>80)roomDoor(R,false);
     if(REST===R){
       if(!inside){REST=null;continue;}
       R.t+=dt;
       for(const h of[L,...allies])if(!h.dead&&inRoom(R,h.x,h.y))h.hp=Math.min(h.maxhp,h.hp+5*dt);
-      if(R.hp<=0){R.broken=true;REST=null;roomDoor(R,true);sfx('crash',R.out.x,R.out.y,1);shake(2);caption('The door comes off its hinges.',null,2800);}
+      // a house is only safe for half a minute (Bryan): from 22 s something pounds on the door, at 30 s it comes through
+      if(R.t>22){R.knock=(R.knock||0)-dt;if(R.knock<=0){R.knock=rand(.55,.9);sfx('bang',R.out.x,R.out.y,1);if(Math.random()<.4)sfx('snarl',R.out.x,R.out.y,.8);}}
+      if(R.t>=30){R.broken=true;REST=null;roomDoor(R,true);sfx('crash',R.out.x,R.out.y,1);shake(2);caption('The door comes off its hinges.',null,2800);
+        if(!zeds.some(z=>!z.dead&&!z.far&&hyp(z.x-R.out.x,z.y-R.out.y)<40)){const z=mkZed(Math.random()<.35?'runner':'shambler',R.out.x,R.out.y,{});if(z){z.state='chase';z.tgt=L;z.track=simT+20;}}
+        makeNoise(R.out.x,R.out.y,220);}
     }
   }
   if(!REST)for(const z of zeds)if(z.anim==='bang'&&!z.port&&!z.script&&!z.dead)z.anim=null;

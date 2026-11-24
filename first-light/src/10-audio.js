@@ -1,7 +1,8 @@
 /* Audio: everything is synthesized with Web Audio, no sound files. Starts on the first click (browsers require that). */
 const AU={ctx:null,out:null,sfx:null,tv:null,amb:{},muted:false,noise:null};
 let earX=0,earY=0;
-function auInit(){
+function auInit(){auInit0();if(AU.ctx)sndLoad();}
+function auInit0(){
   if(AU.ctx){if(AU.ctx.state==='suspended')AU.ctx.resume();return;}
   try{
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
@@ -132,6 +133,9 @@ function newsVoices(){
 function say(text,high,dur,voice){
   const miss=()=>{babble(dur,high?200:120,.07);};
   if(AU.muted)return;
+  // a recorded reading of this exact line, if the page carries one (sounds/make_voices.py): the anchors come out of the TV's speaker, everyone else is in the room with you
+  { const k=typeof VLINE!=='undefined'&&VLINE[text],b=k&&ZBUF[k];
+    if(b&&AU.ctx){shutUp();const src=AU.ctx.createBufferSource(),g=AU.ctx.createGain();src.buffer=b;g.gain.value=say.full?1.15:1.5;src.connect(g);g.connect(say.full?AU.out:AU.tv);src.start();say.src=src;src.onended=()=>{if(say.src===src)say.src=null;};return b.duration;} }
   if(AI.tts&&!say.noAI){      // a Claude voice when the app offers one; any refusal drops back to the device's speech for good
     try{AI.tts.speak(text,{voice:voice||(high?'airy':'rounded'),rate:1}).catch(e=>{const c=e&&e.code;if(c&&c!=='replaced'&&c!=='cancelled'&&c!=='stopped'&&c!=='viewer_stopped'){say.noAI=true;}});return;}catch(e){say.noAI=true;}
   }
@@ -163,7 +167,7 @@ function gurgle(t,vol,dest,f0){
     tone('sine',rand(90,170),rand(45,80),rand(.06,.11),.22*vol*(.5+k),dest,tt+.01);}
   burst(520,110,2,.45,.45*vol,dest,t+dur-.25,'lowpass');                                           // the choke
 }
-function shutUp(){try{if(AI.tts)AI.tts.stop();}catch(e){}try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
+function shutUp(){try{if(say.src){say.src.stop();say.src=null;}}catch(e){}try{if(AI.tts)AI.tts.stop();}catch(e){}try{if('speechSynthesis' in window)speechSynthesis.cancel();}catch(e){}}
 
 /* looping beds: far sirens, wind, fire, helicopter, water, and a low drone that swells with danger */
 function startAmbience(){

@@ -428,7 +428,7 @@ function zUpdate(z,dt){
   if(z.state==='chase'&&z.tgt&&!z.tgt.dead&&!z.tgt.safe&&!z.as&&breach(z,z.tgt,dt,z.speed,true))return;
   if(REST&&z.state==='chase'&&!z.as&&!inRoom(REST,z.x,z.y)){      // you are shut in a house: it goes to the door and pounds on it
     const o=REST.out;if(hyp(o.x-z.x,o.y-z.y)>10){z.anim=null;goTo(z,o.x,o.y,z.speed,dt);}
-    else{z.spd=0;z.anim='bang';z.ang=turn(z.ang,Math.atan2(REST.inn.y-o.y,REST.inn.x-o.x),dt*8);z.bangT=(z.bangT||0)-dt;if(z.bangT<=0){z.bangT=rand(.6,.9);if(REST.t>10)REST.hp-=z.ztype==='brute'?45:6;sfx('bang',o.x,o.y,.9);}}      /* the first ten seconds are yours whatever is outside */
+    else{z.spd=0;z.anim='bang';z.ang=turn(z.ang,Math.atan2(REST.inn.y-o.y,REST.inn.x-o.x),dt*8);z.bangT=(z.bangT||0)-dt;if(z.bangT<=0){z.bangT=rand(.6,.9);sfx('bang',o.x,o.y,.9);}}      /* the first ten seconds are yours whatever is outside */
     return;
   }
   // attack: wind up (you can see it coming), strike, recover

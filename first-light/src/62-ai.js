@@ -7,4 +7,4 @@ function aiInit(){
 }
 /* who sounds like what: [Claude voice, higher device voice?] */
 const VOICE={hal:['rounded',false],denise:['airy',true],ruth:['glassy',true],walt:['buttery',false],dunn:['rounded',false],jules:['airy',true],marisol:['glassy',true]};
-function speak(who,text,dur){const v=VOICE[who]||VOICE.hal;say.full=who!=='hal'&&who!=='denise';say(text,v[1],dur||3,v[0]);}
+function speak(who,text,dur){const v=VOICE[who]||VOICE.hal;say.full=who!=='hal'&&who!=='denise';return say(text,v[1],dur||3,v[0])||0;}
