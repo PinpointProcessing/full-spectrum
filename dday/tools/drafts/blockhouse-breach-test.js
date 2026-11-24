@@ -9,5 +9,5 @@ const hit=n=>ev(n=>{const co=objs.find(o=>o.tag==='check'),c=DCA.check;for(let i
 await shot('0-whole');
 const a=await hit(3);console.log(JSON.stringify(a));ok(a.breach===1&&a.live===2,'a third gone: breached, two guns left');await shot('1-breached');
 const b2=await hit(2);console.log(JSON.stringify(b2));ok(b2.breach===2&&b2.live===1,'two thirds gone: half the roof off, one gun left');await shot('2-broken');
-const c=await hit(4);console.log(JSON.stringify(c));ok(c.gone,'destroyed');await shot('3-destroyed');
+const c=await hit(4);console.log(JSON.stringify(c));ok(c.gone,'destroyed');await ev(()=>{for(let i=0;i<240;i++)update(1/30);});await shot('3-destroyed');await ev(()=>{yaw=.7;});await shot('4-destroyed-side');
 console.log('errors',errors.length,errors.slice(0,3));console.log('fails:',fails);await b.close();srv.close();process.exit(0);})();

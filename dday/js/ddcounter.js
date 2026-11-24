@@ -345,11 +345,28 @@ function dcCheckBreach(o,n){
   dd.killed=(dd.killed||0)+1;banner(n===1?'The blockhouse is breached. One of its guns is out.':'The blockhouse is breaking up. One gun left.',2800);
 }
 function dcCheckWreck(o){
-  const C=dd.dc;C.checkDead=true;const cx=o.x+o.w/2,cy=o.y+o.h/2;while((o.breach||0)<2)dcCheckBreach(o,o.breach=(o.breach||0)+1);
-  for(const m of o.meshes||[]){if(m.material&&m.material.color){m.material=m.material.clone();if(typeof ddgBurnMat==='function')ddgBurnMat(m.material);else m.material.color.setHex(0x2a2826);}}
-  if(o.roof){o.roof.rotation.z=.16;o.roof.rotation.x=-.1;o.roof.position.y-=7;}
-  for(let k=0;k<4;k++)booms.push({x:cx+(Math.random()-.5)*o.w,y:cy+(Math.random()-.5)*o.h,t:-k*.14,size:1.3});tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});
-  dd.killed=(dd.killed||0)+1;shake(1);if(typeof sfxBoom==='function')sfxBoom(cx,cy,1.4);banner('Their blockhouse is destroyed. Its machine guns are silent.',3200);
+  const C=dd.dc;C.checkDead=true;const cx=o.x+o.w/2,cy=o.y+o.h/2;for(const sl of dcSlits())sl.out=true;
+  // (Version 235, Bryan: "Make it look better destroyed, it just looks like it loses color") the building comes down: what stood is taken away and
+  // a ruin is built in its place: broken wall stubs of uneven height round its footprint, the roof fallen in as three cracked slabs, a mound of
+  // rubble inside and spilling out of the front, bent reinforcing bars, charred beams, fire and smoke
+  const T=THREE,G=o.meshes&&o.meshes[0]&&o.meshes[0].parent||scene,g0=ddH(cx,cy),r=rng(235),old=o.meshes||[];for(const m of old)m.visible=false;o.meshes=[];
+  const wallM=(typeof ddgMat==='function'?ddgMat('stone'):new T.MeshStandardMaterial({color:0x9a9482})).clone();wallM.color=new T.Color(0x6a6458);if(typeof ddLinClone==='function'){}
+  const soot=new T.MeshStandardMaterial({color:0x3a3632,roughness:1}),slabM=new T.MeshStandardMaterial({color:0x44463f,roughness:.95}),rub=[0x5e594f,0x4a463e,0x38342e,0x6c665a].map(c=>new T.MeshStandardMaterial({color:c,roughness:1,flatShading:true})),bar=new T.MeshStandardMaterial({color:0x2a2420,roughness:.6,metalness:.6}),beam=new T.MeshStandardMaterial({color:0x1c1814,roughness:1});
+  const add=(geo,m,x,h,z,rx,ry,rz)=>{const q=new T.Mesh(geo,m);q.position.set(x,g0+h,z);q.rotation.set(rx||0,ry||0,rz||0);q.castShadow=q.receiveShadow=true;G.add(q);o.meshes.push(q);return q;};
+  // wall stubs: each side cut into pieces, the front lowest (it took the blasts), corners standing tallest
+  const side=(x0,z0,x1,z1,lo,hi)=>{const L=hyp(x1-x0,z1-z0),n=Math.max(3,Math.round(L/11)),ew=Math.abs(x1-x0)>Math.abs(z1-z0);for(let k=0;k<n;k++){const t=(k+.5)/n,edge=Math.min(t,1-t)*2,h=Math.max(2.5,(lo+(hi-lo)*r())*(1.25-edge*.75));if(r()<.14)continue;
+      const w=L/n-.3-r()*1.2,q=add(new T.BoxGeometry(ew?w:3.2,h,ew?3.2:w),r()<.3?soot:wallM,x0+(x1-x0)*t,h/2,z0+(z1-z0)*t,(r()-.5)*.08,0,(r()-.5)*.1);
+      if(r()<.5)add(new T.BoxGeometry(ew?w*.5:3.2,2+r()*3,ew?3.2:w*.5),wallM,q.position.x+(ew?(r()-.5)*w*.4:0),h+1,q.position.z+(ew?0:(r()-.5)*w*.4),0,0,(r()-.5)*.3);}};
+  side(o.x,o.y+o.h,o.x+o.w,o.y+o.h,3,10);side(o.x,o.y,o.x+o.w,o.y,10,24);side(o.x,o.y,o.x,o.y+o.h,6,20);side(o.x+o.w,o.y,o.x+o.w,o.y+o.h,6,18);
+  // the roof, fallen in: one slab leaning against the back wall, one flat on the rubble, one tipped out over the front
+  add(new T.BoxGeometry(o.w*.5,4,o.h*.6),slabM,cx-o.w*.18,11,cy-o.h*.12,.5,.15,.08);add(new T.BoxGeometry(o.w*.42,4,o.h*.5),slabM,cx+o.w*.2,6,cy+2,-.12,-.3,.14);add(new T.BoxGeometry(o.w*.36,4,o.h*.42),slabM,cx+4,5,cy+o.h*.5+7,-.6,.2,-.1);
+  // rubble: heaped inside, spilling through the front
+  for(let k=0;k<46;k++){const out=k>30,x=cx+(r()-.5)*o.w*(out?1.1:.86),z=out?o.y+o.h+2+r()*20:cy+(r()-.5)*o.h*.8,sz=1.6+r()*3.4,h=out?sz*.5:2+r()*6*(1-Math.abs(x-cx)/(o.w*.55));add(new T.DodecahedronGeometry(sz,0),rub[(r()*4)|0],x,h,z,r()*3,r()*3,r()*3);}
+  for(let k=0;k<9;k++){const x=cx+(r()-.5)*o.w*.8,z=cy+(r()-.5)*o.h*.7,l=8+r()*12;add(new T.CylinderGeometry(.3,.3,l,4),bar,x,l/2+2,z,(r()-.5)*.9,0,(r()-.5)*.9);}
+  for(let k=0;k<4;k++)add(new T.BoxGeometry(2.4,2.4,26+r()*16),beam,cx+(r()-.5)*o.w*.6,7+r()*6,cy+(r()-.5)*o.h*.4,(r()-.5)*.7,r()*3,(r()-.5)*.4);
+  for(let k=0;k<5;k++)booms.push({x:cx+(Math.random()-.5)*o.w,y:cy+(Math.random()-.5)*o.h,t:-k*.14,size:1.4});
+  tankFires.push({x:cx-10,y:cy,r:o.w/4,t0:simT,puffs:[],emit:0},{x:cx+18,y:cy+6,r:o.w/6,t0:simT,puffs:[],emit:0});if(typeof paintDecal==='function')for(let k=0;k<3;k++)paintDecal({k:'scorch',x:cx+(k-1)*26,y:cy+10+(k%2)*14,r:Math.random()});
+  dd.killed=(dd.killed||0)+1;shake(1.2);if(typeof sfxBoom==='function')sfxBoom(cx,cy,1.6);banner('Their blockhouse comes down. Its machine guns are silent.',3200);
 }
 function dcGunsTick(dt){
   dcFixTick(dt);dcSlitTick(dt);
