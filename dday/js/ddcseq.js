@@ -7,10 +7,11 @@
    dd.seq={dc:true,...} while it plays (the battle goes on ticking under it: ddplay.js's ddTick and ddCam ask for .dc). Phases by game time:
    camp -> shells -> run (to the barracks' back door) -> hut (a small set of its own, drawn in place of the map: dcSeqRender from scene.js's render)
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
-const DCS={camp:{x:700,y:756},T:{inc:8.2,shell:9.9,fire:10.3,run:10.9,hutMax:3.4,hutDur:3.6,outDur:3.9},   // (the whistle and INCOMING!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out)
+const DCS={camp:{x:700,y:756},T:{inc:15,shell:16.7,fire:17.1,run:17.7,hutMax:3.4,hutDur:3.6,outDur:3.9},   // (the whistle and INCOMING!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out)
   // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
   // (Version 237, Bryan: "Make the rest a little longer. Maybe they can chat via text bubble for a couple of seconds") who says what, and when: [the man's place in spots, from, to, the words]
-  chat:[[0,1.0,3.2,"Coffee's nearly hot."],[1,2.7,5.0,"First hot thing since England."],[3,4.6,6.8,"Think they'll send us home now?"],[5,6.2,8.1,"Not a chance."]],
+  chat:[[0,1.0,3.0,"Coffee's nearly hot."],[1,2.8,4.9,"First hot thing since England."],[3,4.8,6.6,"Anybody seen my other boot?"],[5,6.4,8.2,"Jerry's wearing it."],
+    [4,8.2,10.2,"Think they'll send us home now?"],[7,10.0,11.6,"Not a chance."],[2,11.6,13.6,"Captain says we hold till relieved."],[6,13.2,15.0,"Relieved by who?"]],   // (Version 238: "a full 15 seconds with a script")
   spots:[[14,2,Math.PI,0,'sit',1],[-13,4,0,0,'sit',1],[1,-15,Math.PI/2,0,'kneel',0],[21,18,-2.4,0,'smoke',0],[-37,14,Math.PI/2-.35,0,'sit',2],[-24,14,Math.PI/2+.35,0,'sit',2],[35,-9,-2.6,0,'kneel',0],[-31,-13,.6,0,'smoke',0]]};
 function dcSeqStart(){
   if(startCounter.noSeq||/[?&]noseq\b/.test(location.search))return false;   // (?noseq in the address: the tests that start in the fight)
@@ -29,6 +30,9 @@ function dcSeqStart(){
   for(const[x,y,w,h]of[[c.x+44,c.y-10,10,6],[c.x-62,c.y-4,10,7],[c.x+60,c.y+16,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
   // the bunch of other troops off to one side: the shells land on them
   [[0,0],[13,4],[25,-2],[6,13],[19,15],[31,10]].forEach(([dx,dy],i)=>{const u=ddNpc(c.x-236+dx,c.y-112+dy);Object.assign(u,{inBoat:false,seen:true,post:null,ang:Math.PI+.25*(i%3-1),atEase:i%2===0,work:i%2?'stand':null,cool:99});S.doom.push(u);});
+  // (Version 238, Bryan: "The NPCs are all running inside before the artillery lands. Can we make them nonchalantly walking around and talking with one
+  // another in the background") the other troops are about the yard in twos, strolling or standing talking, until the shells land; then they run out
+  S.idle=dd.npcs.filter(u=>alive(u)&&!S.doom.includes(u));S.idle.forEach((u,i)=>{const pr=i>>1,sp=[[612,704],[792,690],[640,636],[776,800],[618,826]][pr%5];Object.assign(u,{x:sp[0]+(i%2?10:-4),y:sp[1]+(i%2?3:-3),path:[],hopT:1e12,spdK:.42,atEase:true,cool:99,idleT:1.5+pr*2.3,idleP:pr});figRefresh(u);});
   dcHutBuild(S);banner('',1);S.warm=3;for(const u of players){u.seqD=u.dmgIn;u.dmgIn=.0001;}   // (nothing hurts the squad until the opening hands over)
   try{renderer.compile(S.hut.sc,S.hut.cam);}catch(e){}   // (warm: the inside is drawn once, unseen, while the camp is on screen, so going in doesn't hitch)   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)
   return true;
@@ -46,8 +50,10 @@ function dcHutBuild(S){
   box(0,24,FRONT,DW*2,HT-24,2.4,WM);
   for(const x of[-52,-18,18,52])box(x,HT-2,0,3,3,HD*2+60,0x4a3523);box(0,HT+1,0,HW*2+80,2,520,0x2c2018);
   const lamp=new T.Mesh(new T.SphereGeometry(1.2,10,8),M(0xfff0c0,{emissive:0xffd890,emissiveIntensity:2.2}));lamp.position.set(-40,27,6);G.add(lamp);const LL=new T.PointLight(0xffc98a,.9,120,1.4);LL.position.set(-40,26,6);G.add(LL);
-  const sky=ddmTex(64,64,(q,w,h)=>{const gr=q.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#cfe2f2');gr.addColorStop(.52,'#e9eef0');gr.addColorStop(.53,'#7fa05a');gr.addColorStop(1,'#56783c');q.fillStyle=gr;q.fillRect(0,0,w,h);});
-  const out=new T.Mesh(new T.PlaneGeometry(520,150),new T.MeshBasicMaterial({map:sky,toneMapped:false}));out.position.set(0,34,FRONT-90);G.add(out);
+  const sky0=()=>ddmTex(64,64,(q,w,h)=>{const gr=q.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#cfe2f2');gr.addColorStop(.52,'#e9eef0');gr.addColorStop(.53,'#7fa05a');gr.addColorStop(1,'#56783c');q.fillStyle=gr;q.fillRect(0,0,w,h);});
+  // (Version 238, Bryan: "Can the interior of the Command post show outside from inside? Right now it's just a green paint slab") behind the door and
+  // windows, the real field as it is at that moment: the map drawn from the doorway into a picture a few times a second (dcSeqRender)
+  const rt=new T.WebGLRenderTarget(640,320),vcam=new T.PerspectiveCamera(96,2,4,5000),out=new T.Mesh(new T.PlaneGeometry(400,200),new T.MeshBasicMaterial({map:rt.texture,toneMapped:false}));out.position.set(0,14,FRONT-90);G.add(out);
   const door=new T.Group();door.position.set(-DW,0,FRONT);G.add(door);const leaf=new T.Mesh(new T.BoxGeometry(DW*2,24,1),M(0x4a3523));leaf.position.set(DW,12,0);leaf.castShadow=true;door.add(leaf);
   G.add(new T.HemisphereLight(0xa8b8c8,0x3a2c1e,.5));
   const day=new T.SpotLight(0xfff4dc,2.6,260,.55,.5,1);day.position.set(0,26,FRONT-80);day.target.position.set(0,0,30);day.castShadow=true;day.shadow.mapSize.set(1024,1024);day.shadow.bias=-.002;G.add(day,day.target);
@@ -57,7 +63,7 @@ function dcHutBuild(S){
   const guard=[mk('N1',-WX+1,FRONT+8,-Math.PI/2,{npc:true}),mk('N2',WX-1,FRONT+8,-Math.PI/2,{npc:true}),mk('N3',-DW-7,FRONT+7,-Math.PI/2+.5,{npc:true}),mk('N4',WX+10,FRONT+9,-Math.PI/2-.3,{npc:true})];
   const flash=guard.map(()=>{const f=new T.Mesh(new T.SphereGeometry(1.5,8,6),new T.MeshBasicMaterial({color:0xffe9a0,toneMapped:false}));f.visible=false;G.add(f);return f;});
   const blood=new T.Mesh(new T.CircleGeometry(7,18),new T.MeshBasicMaterial({color:0x5a0f0c,transparent:true,opacity:.85}));blood.rotation.x=-Math.PI/2;blood.position.set(-WX+3,.15,FRONT+19);blood.visible=false;G.add(blood);
-  S.hut={sc,cam:new T.PerspectiveCamera(64,cw/ch,1,900),squad,guard,door,flash,blood,FRONT,WX,HD,shotT:guard.map((q,i)=>.2+i*.13)};
+  S.hut={sc,rt,vcam,viewT:0,cam:new T.PerspectiveCamera(64,cw/ch,1,900),squad,guard,door,flash,blood,FRONT,WX,HD,shotT:guard.map((q,i)=>.2+i*.13)};
 }
 // the hut's frame: everyone placed from how far through it is (h 0..1), drawn in place of the map
 function dcSeqRender(rdt,now){
@@ -71,6 +77,8 @@ function dcSeqRender(rdt,now){
   for(const u of[...H.squad,...H.guard]){u.m.g.position.set(u.x,0,u.y);u.m.g.rotation.y=-u.ang;figRefresh(u);figAnimate(u,u.m);}
   H.door.rotation.y=-1.5*clamp((h-.3)/.25,0,1);
   const c=H.cam,cz=clamp(lead+96,H.FRONT+52,H.HD+70);c.position.set(5+Math.sin(ht*9)*.5,26+Math.abs(Math.sin(ht*9))*.7,cz);c.lookAt(hit?-6:0,10,H.FRONT-10);c.aspect=cw/ch;c.updateProjectionMatrix();c.updateMatrixWorld();
+  if((H.viewT-=rdt)<=0||warm){H.viewT=.3;const D=DCA.door,gy=ddH(D.x,D.y-8),tm=renderer.toneMapping,te=renderer.toneMappingExposure;H.vcam.position.set(D.x,gy+14,D.y-8);H.vcam.lookAt(D.x,gy+14,D.y-600);H.vcam.updateMatrixWorld();
+    try{if(typeof DDL_TONE!=='undefined'&&DDL_TONE.map!=null){renderer.toneMapping=DDL_TONE.map;renderer.toneMappingExposure=DDL_TONE.exp;}if(!warm&&typeof syncUnits==='function')syncUnits(now);renderer.setRenderTarget(H.rt);renderer.render(scene,H.vcam);}catch(e){}renderer.setRenderTarget(null);renderer.toneMapping=tm;renderer.toneMappingExposure=te;}
   postRender(H.sc,c);if(warm)return false;   // (the map's own frame is drawn over it straight after)
   ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
   return true;
@@ -84,14 +92,19 @@ function dcSeqTick(dt){
   if(S.ph==='camp'&&t>=T.shell){S.ph='shell';bigText('');
     for(let k=0;k<5;k++){const x=dx+(k%3)*13,y=dy+((k/2)|0)*11;booms.push({x,y,t:-k*.09,size:1.3});}if(typeof sfxBoom==='function')sfxBoom(dx+14,dy+6,1.4);shake(1);
     for(const u of S.doom){u.hp=0;u.dead=true;u.deadT=simT;u.downed=false;if(Math.random()<.6&&typeof ddGore==='function')ddGore(u,true);}
-    for(const u of players)u.sup=.5;}
+    for(const u of players)u.sup=.5;
+    (S.idle||[]).forEach((u,i)=>{u.atEase=false;u.spdK=1;u.cool=1;u.path=[];u.hopT=simT+.3+i*.22;figRefresh(u);});}
   else if(S.ph==='shell'&&t>=T.run){S.ph='run';S.runT=t;players.forEach((u,i)=>{u.path=[{x:D.x+(i%2?5:-5),y:DCA.cpIn.y+(i>>1)*3}];u.lastOrder=simT;});
     booms.push({x:DCA.cp.x+DCA.cp.w+26,y:DCA.cp.y-56,t:0,size:1.3});if(typeof sfxBoom==='function')sfxBoom(DCA.cp.x+DCA.cp.w+26,DCA.cp.y-56,1.3);shake(.7);}
   else if(S.ph==='run'&&(t>=S.runT+T.hutMax||players.filter(u=>u.y<DCA.cpIn.y+16).length>=2)){S.ph='hut';S.hutT=t;   // (inside as soon as the first two are at the door: nobody stands waiting)
-    players.forEach((u,i)=>{u.x=D.x+(i%2?5:-5);u.y=D.y-4-(i>>1)*2;u.path=[];u.ang=-Math.PI/2;u.sup=0;});}
+    players.forEach((u,i)=>{u.x=D.x+(i%2?5:-5);u.y=DCA.cp.y+26+(i>>1)*6;u.path=[];u.ang=-Math.PI/2;u.sup=0;});}   // (under the arch, behind the view out of the door)
   else if(S.ph==='hut'&&t>=S.hutT+T.hutDur){S.ph='out';S.outT=t;S.cp=null;
     players.forEach((u,i)=>{u.x=D.x+(i%2?6:-6)+(i%3-1)*2;u.y=D.y-6-(i>>1)*11;const p=findPath(u.x,u.y,u.sx,u.sy);u.path=p||[{x:u.sx,y:u.sy}];u.lastOrder=simT;});}
   else if(S.ph==='out'&&t>=S.outT+T.outDur){dcSeqEnd();return;}
+  if(S.ph==='camp')for(const u of S.idle||[]){   // a pair walks a little way together, stops, faces each other, walks on
+    if(u.path.length)continue;const mate=S.idle.find(q=>q!==u&&q.idleP===u.idleP);if(mate&&!mate.path.length)u.ang=Math.atan2(mate.y-u.y,mate.x-u.x);
+    if((u.idleT-=dt)>0||(S.idle.indexOf(u)%2))continue;u.idleT=5+Math.random()*4;const tx=clamp(u.x+(Math.random()-.5)*110,580,830),ty=clamp(u.y+(Math.random()-.5)*110,620,862);
+    if(hyp(tx-c.x,ty-c.y)<70||!isFree(tx,ty,6))continue;const p=findPath(u.x,u.y,tx,ty);if(p){u.path=p;if(mate){const q=findPath(mate.x,mate.y,tx+9,ty+5);if(q)mate.path=q;}}}
   // their bullets on the base from just after the shells until the squad is inside: tracers in from the field, sparks and the whine where they strike
   if(t>=T.fire&&(S.ph==='shell'||S.ph==='run')&&(S.bT=(S.bT||0)-dt)<=0){S.bT=.05+Math.random()*.1;const sx=300+Math.random()*700,sy=-40+Math.random()*240,tx=420+Math.random()*540,ty=DCA.wallY+20+Math.random()*290;
     tracers.push({x1:sx,y1:sy,x2:tx,y2:ty,t:0,col:'255,140,100'});if(typeof ddSpark==='function')ddSpark(tx,ddH(tx,ty)+1+Math.random()*10,ty,.9);if(Math.random()<.3&&typeof sfxRicochet==='function')sfxRicochet(tx,ty,false);

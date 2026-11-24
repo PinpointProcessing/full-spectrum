@@ -23,15 +23,15 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   square:{x:700,y:756},
   hedgeY:-70,treeY:-430,forkY:-150,checkHp:650,slit:{range:520,every:[1.3,2.3],rounds:4,hit:.42,dmg:[7,12]},   // (the blockhouse's machine guns: Version 233)
   check:{x:694,y:-316,w:84,h:54,zone:{x0:600,y0:-360,x1:850,y1:-200}},eguns:[{x:612,y:-116},{x:578,y:-162}],   // (eguns: their light machine guns left of the fork, pointed at the beach until they're turned on us)   // (their checkpoint: the woods road runs through its left side)
-  guns:[{k:'n1',n:'MG NEST',x:540,y:516,t:'mg',arc:1.15,hp:260},{k:'n2',n:'MG NEST',x:604,y:468,t:'mg',arc:1.15,hp:260},
-    {k:'h1',n:'HEAVY MG',x:900,y:440,t:'mg',hv:1,arc:1.5,hp:340,face:0},{k:'a1',n:'FIELD GUN',x:858,y:520,t:'art',hp:420,face:0}],   // (face 0: it stands pointing at the beach until it's turned)
-  hold:[[668,520],[700,496],[736,522]],   // (where the men not on a gun stand: in front of the command post)
+  guns:[{k:'n1',n:'MG NEST',x:540,y:486,t:'mg',arc:1.15,hp:260},{k:'n2',n:'MG NEST',x:604,y:438,t:'mg',arc:1.15,hp:260},
+    {k:'h1',n:'HEAVY MG',x:900,y:410,t:'mg',hv:1,arc:1.5,hp:340,face:0},{k:'a1',n:'FIELD GUN',x:858,y:490,t:'art',hp:420,face:0}],   // (face 0: it stands pointing at the beach until it's turned)
+  hold:[[660,478],[700,500],[740,478]],   // (where the men not on a gun stand: in front of the command post)
   posts:[[450,264],[940,250],[430,318],[520,318],[632,318],[790,318],[880,318],[960,330],[590,362],[830,362]],   // (the other troops' forward posts, out in the field)
   hv:{tank:9,every:1.1,range:560,shell:130,mortar:70,man:.5},
   art:{min:170,max:960,reload:7.5,auto:6,R:84,D:150},
-  waves:[{inf:18,tanks:[]},{inf:14,tanks:['road'],mortar:true},{inf:18,tanks:['west','east']}],
+  waves:[{inf:18,more:10,moreAt:20,tanks:['road']},{inf:14,tanks:['road'],mortar:true},{inf:18,tanks:['west','east']}],
   roads:{west:[[700,-150],[672,-210],[640,-262],[560,-330],[420,-400],[250,-470],[60,-560]],east:[[700,-150],[790,-190],[900,-250],[990,-320],[1040,-380],[1120,-470],[1200,-520]]},   // (the fork's two branches, as drawn)
-  ways:{road:[[700,-80],[700,260],[700,440],[700,500]],west:[[420,-400],[560,-330],[640,-262],[690,-150],[660,150],[640,300],[690,440],[700,500]],east:[[700,-240],[740,-60],[790,150],[770,300],[712,440],[700,500]]}};
+  ways:{road:[[560,-330],[640,-262],[690,-150],[700,100],[700,300],[700,440]],west:[[420,-400],[560,-330],[640,-262],[690,-150],[660,150],[640,300],[690,400],[700,450]],east:[[560,-330],[640,-262],[700,-150],[760,-40],[790,150],[770,300],[712,400],[700,450]]}};
 const dcIn=(u,z)=>u.x>z.x0&&u.x<z.x1&&u.y>z.y0&&u.y<z.y1;
 
 /* ---------- the ground ---------- */
@@ -60,7 +60,7 @@ function dcObjects(){
   // the guns' bags; a short line either side of the road in front of the command post
   for(const g of DCA.guns){if(g.t==='mg'){o('sandbag',g.x-24,g.y-20,48,10);o('sandbag',g.x-30,g.y-16,10,28);o('sandbag',g.x+20,g.y-16,10,28);if(g.face===0)o('sandbag',g.x+26,g.y-6,10,30);}
     else{o('sandbag',g.x-34,g.y-36,68,10);o('sandbag',g.x-40,g.y-30,10,34);o('sandbag',g.x+30,g.y-30,10,44);}}
-  o('sandbag',640,470,40,10);o('sandbag',722,470,40,10);
+  o('sandbag',636,452,44,10);o('sandbag',720,452,44,10);o('sandbag',626,456,10,34);o('sandbag',764,456,10,34);   // (the entrance's own breastworks, either side of the road)
   for(const[x,y]of[[450,250],[940,236]]){o('sandbag',x-24,y-20,48,10);o('sandbag',x-30,y-16,10,28);o('sandbag',x+20,y-16,10,28);}o('sandbag',566,344,48,10);o('sandbag',806,344,48,10);   // (the other troops' forward posts)
   // the field: boulders, the hedgerow with its gaps
   for(const[x,y]of[[560,40],[840,80],[390,130],[960,10],[300,-10],[930,140],[620,170],[790,-20],[480,-200],[900,-120]])o('ddbould',x,y,18,15,{cover:1});
@@ -95,6 +95,7 @@ function dcPaint(g){
   // the base: hard-packed yard, the parade square
   g.fillStyle='#a69c7e';g.fillRect(382,DCA.wallY-6,616,340);
   for(let i=0;i<2400;i++){g.fillStyle=`rgba(${r()<.5?'70,64,48':'214,204,172'},${.05+r()*.1})`;g.fillRect(382+r()*616,DCA.wallY-6+r()*340,2+r()*5,2+r()*4);}
+  {const gr=g.createLinearGradient(0,430,0,556);gr.addColorStop(0,'rgba(166,156,126,0)');gr.addColorStop(.3,'rgba(166,156,126,.95)');gr.addColorStop(1,'#a69c7e');g.fillStyle=gr;g.fillRect(590,430,220,128);g.strokeStyle='rgba(240,236,220,.55)';g.lineWidth=2;g.setLineDash([10,8]);g.beginPath();g.moveTo(672,440);g.lineTo(672,556);g.moveTo(728,440);g.lineTo(728,556);g.stroke();g.setLineDash([]);}   // (Version 238: a gravel forecourt in front of the command post, the road's edges marked)
   g.fillStyle='#b6ad90';g.fillRect(610,690,180,130);g.strokeStyle='rgba(240,236,220,.6)';g.lineWidth=2;g.strokeRect(614,694,172,122);g.fillStyle='#b4a47c';g.fillRect(DCA.road-22,640,44,52);
   g.fillStyle='rgba(60,54,40,.45)';g.fillRect(384,DCA.wallY+12,240,10);g.fillRect(776,DCA.wallY+12,220,10);
   // (Version 188) the yard's gravel and oil stains, wheel tracks off the road, the field churned by yesterday's shelling: craters with their
@@ -102,7 +103,7 @@ function dcPaint(g){
   for(let i=0;i<3000;i++){g.fillStyle=`rgba(${r()<.5?'80,74,60':'200,194,170'},${.12+r()*.2})`;g.fillRect(382+r()*616,DCA.wallY-6+r()*340,1+r()*1.6,1+r()*1.6);}
   for(let i=0;i<14;i++){const x=400+r()*580,y=DCA.wallY+10+r()*300,gr=g.createRadialGradient(x,y,1,x,y,8+r()*14);gr.addColorStop(0,'rgba(30,28,24,.5)');gr.addColorStop(1,'rgba(30,28,24,0)');g.fillStyle=gr;g.fillRect(x-24,y-24,48,48);}
   for(const sd of[-1,1]){g.strokeStyle='rgba(84,72,50,.3)';g.lineWidth=7;g.beginPath();g.moveTo(DCA.road+sd*44,-300);g.bezierCurveTo(DCA.road+sd*60,0,DCA.road+sd*30,300,DCA.road+sd*14,560);g.stroke();}
-  for(const[x,y]of[[450,250],[940,236],[590,345],[540,516],[900,440]]){g.strokeStyle='rgba(120,102,70,.35)';g.lineWidth=6;g.beginPath();g.moveTo(x,y+20);g.quadraticCurveTo((x+700)/2+(r()-.5)*60,(y+560)/2,700+(r()-.5)*100,DCA.wallY);g.stroke();}
+  for(const[x,y]of[[450,250],[940,236],[590,345],[540,486],[900,410]]){g.strokeStyle='rgba(120,102,70,.35)';g.lineWidth=6;g.beginPath();g.moveTo(x,y+20);g.quadraticCurveTo((x+700)/2+(r()-.5)*60,(y+560)/2,700+(r()-.5)*100,DCA.wallY);g.stroke();}
   DD.dcHoles=[];for(let i=0;i<16;i++){const x=260+r()*720,y=-60+r()*340,R=7+r()*9;if(Math.abs(x-DCA.road)<40)continue;DD.dcHoles.push({x,y,r:R});
     for(let k=0;k<12;k++){const a=r()*TAU,l=R*(1.3+r());g.strokeStyle='rgba(92,76,50,.2)';g.lineWidth=2+r()*3;g.beginPath();g.moveTo(x+Math.cos(a)*R*.8,y+Math.sin(a)*R*.8);g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke();}
     const gr=g.createRadialGradient(x,y,1,x,y,R+4);gr.addColorStop(0,'rgba(40,32,22,.85)');gr.addColorStop(.6,'rgba(84,68,44,.6)');gr.addColorStop(1,'rgba(84,68,44,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,R+4,0,7);g.fill();
@@ -136,6 +137,15 @@ function dcBuild(G,sc,M,add){
   // watchtowers at the north corners, the flag on the square
   for(const[tx,ty]of[[400,580],[980,580]]){for(const[dx,dz]of[[-7,-7],[7,-7],[-7,7],[7,7]])add(new T.BoxGeometry(1.6,30,1.6),wood,tx+dx,15,ty+dz);
     add(new T.BoxGeometry(18,1.6,18),wood,tx,30,ty);for(const[dx,dz,w,d]of[[0,-9,18,1],[-9,0,1,18],[9,0,1,18]])add(new T.BoxGeometry(w,7,d),wood,tx+dx,34,ty+dz);add(new T.BoxGeometry(22,1.4,22),roofM,tx,50,ty);for(const[dx,dz]of[[-8,-8],[8,-8],[-8,8],[8,8]])add(new T.BoxGeometry(1,20,1),wood,tx+dx,40,ty+dz);}
+  // (Version 238, Bryan: "The front yard should look more like a legitimate base entrance") stone gate pillars either side of the arch with lamps on
+  // them, the boom raised, a sentry box each side, a flag on both sides, a painted board over the arch
+  {const c=DCA.cp,ax=(c.arch[0]+c.arch[1])/2,y0=c.y-8,st=ddgMat('stone'),white=M(0xe8e4d8,.8),red=M(0xb02a22,.8);
+    for(const sd of[-1,1]){const px=ax+sd*22;add(ddgBoxUV(7,24,7,24),st,px,12,y0);add(new T.BoxGeometry(9,2,9),roofM,px,25,y0);add(new T.SphereGeometry(1.6,8,6),M(0xfff2c8,.4),px,27.6,y0);
+      add(new T.BoxGeometry(10,22,10),wood,ax+sd*46,11,y0+2);add(new T.BoxGeometry(13,1.6,13),roofM,ax+sd*46,23,y0+2);add(new T.BoxGeometry(5,14,.6),dark,ax+sd*46,8,y0-3.2);
+      if(sd<0)add(new T.CylinderGeometry(.6,.6,52,6),steel,ax+sd*64,26,y0);}
+    add(new T.BoxGeometry(18,10,.5),M(0x2b4a8a,.8),ax-64+10,46,y0);
+    const pv=add(new T.BoxGeometry(2.4,9,2.4),steel,ax-17,4.5,y0-4);const boom=add(new T.BoxGeometry(40,1.4,1.4),white,ax-17+14,22,y0-4);boom.rotation.z=1.05;for(let k=0;k<4;k++){const b=add(new T.BoxGeometry(5,1.6,1.6),red,ax-17+5+k*5.2,6.4+k*9.1,y0-4);b.rotation.z=1.05;}
+    add(new T.BoxGeometry(34,7,.8),M(0x2c3a2a,.9),ax,34,c.y-.6);add(new T.BoxGeometry(26,1.2,.9),white,ax,34,c.y-.7);}
   add(new T.CylinderGeometry(.7,.7,60,6),steel,DCA.flag.x,30,DCA.flag.y);DD.dcFlag=add(new T.BoxGeometry(22,12,.5),M(0x2b4a8a,.8),DCA.flag.x+12,52,DCA.flag.y);
   // (Version 231) the barrier across the woods road at their checkpoint, its sentry box; the lost landing down on the beach: craft wrecked in the
   // surf, burnt black, and the dead on the sand and up the cliff's foot
@@ -220,9 +230,8 @@ function enterCounter(){
   // the column on the road: the first wave's men marching in, the tanks behind them
   const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*720;e.cool=99;e.stage=-1;
     const p=findPath(e.x,e.y,e.lane,DCA.treeY+30+((i%2)*18),FOOT);if(p)e.path=p;e.zone={x0:e.lane-80,x1:e.lane+80,y0:DCA.treeY-20,y1:DCA.treeY+90};}
-  ddTankSpawn({x:DCA.road,y:-700,ang:Math.PI/2,hold:true,way:DCA.ways.road,name:'Tank'}).w=2;
-  ddTankSpawn({x:DCA.road-6,y:-770,ang:Math.PI/2,hold:true,way:DCA.ways.west,name:'Tank'}).w=3;
-  ddTankSpawn({x:DCA.road+6,y:-840,ang:Math.PI/2,hold:true,way:DCA.ways.east,name:'Tank'}).w=3;
+  // (Version 238, Bryan: "A tank should be coming down the road. Make the first wave a little longer and have at least 1 tank") four tanks waiting up the woods road, the first with wave 1
+  [[430,-396,1,'road'],[300,-450,2,'road'],[190,-500,3,'west'],[90,-548,3,'east']].forEach(([x,y,w,k])=>{ddTankSpawn({x,y,ang:.4,hold:true,way:DCA.ways[k],name:'Tank'}).w=w;});
   enemies=units.filter(u=>u.side==='E');
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   mission.t0=simT;sel=[];cardGroup=[];
@@ -279,6 +288,9 @@ function dcFocus(e,K){const C=dd.dc;C.focus=e||null;C.focusK=K||null;C.focusT=si
 const C0=()=>typeof C!=='undefined'&&C.good?C.good:'#5fe08e';
 function dcFire(g,x,y){
   g.fireT=simT+DCA.art.reload;g.aim=null;const by=g.man;
+  // (Version 238, Bryan: "I can't blow up the blockhouse with the field gun, that should be an option. Like 3 hits") a shell aimed at it, or whose
+  // line runs through it (in first person the crosshair's spot on the ground is behind the wall), strikes its front: each one a third of it
+  {const co=objs.find(o=>o.tag==='check'),c=DCA.check;if(co&&!co.gone&&(hyp(x-(c.x+c.w/2),y-(c.y+c.h/2))<90||segHitsRect(g.x,g.y,x,y,co,6))){x=c.x+c.w/2+(Math.random()-.5)*40;y=c.y+c.h+3;(dd.dc.artLand||(dd.dc.artLand=[])).push({at:simT+clamp(hyp(x-g.x,y-g.y)/520,.7,1.9),by});}}
   nades.push({x0:g.x,y0:g.y-14,x1:x,y1:y,t:0,dur:clamp(hyp(x-g.x,y-g.y)/520,.7,1.9),by,R:DCA.art.R,D:DCA.art.D,shell:true});
   flashes.push({x:g.x,y:g.y-44,t:0});if(typeof sfxCannon==='function')sfxCannon(g.x,g.y);shake(.35);
   const m=DD.dcGuns&&DD.dcGuns[g.k];if(m){m.rotation.y=-Math.atan2(y-g.y,x-g.x);m.userData.kick=1;}
@@ -372,8 +384,13 @@ function dcCheckWreck(o){
   tankFires.push({x:cx-10,y:cy,r:o.w/4,t0:simT,puffs:[],emit:0},{x:cx+18,y:cy+6,r:o.w/6,t0:simT,puffs:[],emit:0});if(typeof paintDecal==='function')for(let k=0;k<3;k++)paintDecal({k:'scorch',x:cx+(k-1)*26,y:cy+10+(k%2)*14,r:Math.random()});
   dd.killed=(dd.killed||0)+1;shake(1.2);if(typeof sfxBoom==='function')sfxBoom(cx,cy,1.6);banner('Their blockhouse comes down. Its machine guns are silent.',3200);
 }
+function dcArtLand(){
+  const C=dd.dc,L=C.artLand;if(!L||!L.length)return;const co=objs.find(o=>o.tag==='check');
+  for(let i=L.length-1;i>=0;i--){if(simT<L[i].at)continue;const h=L.splice(i,1)[0];if(!co||co.gone)continue;co.artHits=(co.artHits||0)+1;co.hp=Math.min(co.hp,DCA.checkHp*(1-co.artHits/3));
+    if(co.hp<=0)ddWreck(co,h.by);else banner(`Direct hit on the blockhouse. ${3-co.artHits} more.`,2200);}
+}
 function dcGunsTick(dt){
-  dcFixTick(dt);dcSlitTick(dt);
+  dcFixTick(dt);dcArtLand();dcSlitTick(dt);
   const C=dd.dc,foes=enemies.filter(e=>!beaten(e)),tanks=ddTanksUp();
   for(const p of dd.allies||[]){const on=!!(p.dcGun&&p.dcGun.man===p);if(on&&!p.dug){p.dug=1;p.dmgIn=(p.dmgIn||1)*DCA.dug;}else if(!on&&p.dug){p.dug=0;p.dmgIn=(p.dmgIn||1)/DCA.dug;}}   // (behind his gun's bags)
   for(const sh of C.shells.slice())if(simT>=sh.at){C.shells.splice(C.shells.indexOf(sh),1);for(const g of C.guns)if(hyp(sh.x-g.x,sh.y-g.y)<DCA.gunHit)dcGunHit(g,sh.D||DCA.hv.shell);}
@@ -462,7 +479,8 @@ function dcTick(dt){
     if(C.t>6){C.ph='setup';C.t=0;dcNoRe();}}
   else if(C.ph==='setup'){if(C.t>=DCA.setup){C.ph='w1';C.wave=1;C.t=0;dcSpawnWave(1);}}
   else if(C.ph==='lull'){if(C.t>=DCA.lull){C.wave++;C.ph='w'+C.wave;C.t=0;dcSpawnWave(C.wave);}}
-  else if(C.t>4&&left(C.wave)===0){
+  else if(C.ph==='w1'&&!C.more&&C.t>=DCA.waves[0].moreAt){C.more=1;const W=DCA.waves[0];for(let i=0;i<W.more;i++){const lane=300+(i/(W.more-1))*620,e=ddFoe('w1',lane-DDX+(Math.random()-.5)*30,DCA.treeY-60-Math.random()*90,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=0;e.advT=simT+Math.random()*3;e.cool=1+Math.random()*2;enemies.push(e);}}   // (the first wave's second lot, out of the trees)
+  else if(C.t>4&&left(C.wave)===0&&(C.wave!==1||C.more)){
     if(C.wave>=3){if(!dd.won){dd.won=true;if(dd.fp&&typeof fpExit==='function')fpExit('The last of them is down.');endAt=performance.now()+2200;banner('The last of them is down. Base held.',4000);}}
     else{C.ph='lull';C.t=0;banner(`Wave ${C.wave} broken. ${DCA.lull} s before the next.`,3600);}}
   // the flag: theirs if they stand at it for DCA.flagT s with none of ours there (it was the command post, and 20 s, until Version 224)

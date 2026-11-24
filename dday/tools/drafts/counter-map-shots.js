@@ -10,7 +10,7 @@ const info=await ev(()=>{for(let i=0;i<90;i++)update(1/30);
   BIRD();return{ph:dd.dc.ph,guns:dd.dc.guns.map(g=>g.k+':'+(g.man?g.man.name:g.going?'going':'-')),npc:dd.npcs.length,foes:enemies.length,hCliff:[ddH(1000,0),ddH(1040,0),ddH(1100,0),ddH(1300,0)].map(Math.round)};});
 console.log(JSON.stringify(info));await page.waitForTimeout(900);await ev(()=>BIRD());await page.waitForTimeout(300);await page.screenshot({path:OUT+'/bird.png'});
 await page.setViewportSize({width:390,height:760});await page.waitForTimeout(400);
-for(const[n,x,z,zm,p,yw]of[['battle',700,440,4.6,.6,0],['guns',780,470,7,.5,0],['field',700,60,3.4,.42,0],['check',720,-190,6.5,.5,0],['fork',650,-60,6,.45,0],['checkside',760,-230,7,.5,.9],['beach',900,300,3.6,.5,-.9]]){
+for(const[n,x,z,zm,p,yw]of[['battle',700,430,4.6,.6,0],['entrance',700,470,8,.42,0],['field',700,60,3.4,.42,0],['check',720,-190,6.5,.5,0],['fork',650,-60,6,.45,0],['checkside',760,-230,7,.5,.9],['beach',900,300,3.6,.5,-.9]]){
   await ev(([x,z,zm,p,yw])=>{for(const q of['.bar'])for(const e of document.querySelectorAll(q))e.style.visibility='';dd.track=null;camPan=null;zoom=zm;yaw=yw;tilt=ddTilt(zm,p);camT.x=x;camT.z=z;for(let i=0;i<2;i++){updateCamera();ddFrame(.03,simT);render(.03,simT);}ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);},[x,z,zm,p,yw]);
   await page.waitForTimeout(700);await ev(()=>{updateCamera();render(.001,simT);ox.clearRect(0,0,cw,ch);});await page.waitForTimeout(250);await page.screenshot({path:`${OUT}/${n}.png`});}
 console.log('errors',errors.length,errors.slice(0,4));await b.close();srv.close();process.exit(0);})();
