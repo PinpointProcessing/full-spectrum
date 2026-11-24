@@ -21,7 +21,7 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   barracks:[{x:396,y:600,w:46,h:118},{x:396,y:742,w:46,h:118}],door:{x:700,y:550},cpIn:{x:700,y:650},   // (the right-hand barracks is the first, by the command post; door: where the squad comes out of the command post)
   armory:{x:900,y:626,w:84,h:56},depot:{x:876,y:790,w:108,h:60},
   square:{x:700,y:756},
-  hedgeY:-70,treeY:-430,forkY:-150,
+  hedgeY:-70,treeY:-430,forkY:-150,checkHp:650,slit:{range:520,every:[1.3,2.3],rounds:4,hit:.42,dmg:[7,12]},   // (the blockhouse's machine guns: Version 233)
   check:{x:694,y:-316,w:84,h:54,zone:{x0:600,y0:-360,x1:850,y1:-200}},eguns:[{x:612,y:-116},{x:578,y:-162}],   // (eguns: their light machine guns left of the fork, pointed at the beach until they're turned on us)   // (their checkpoint: the woods road runs through its left side)
   guns:[{k:'n1',n:'MG NEST',x:540,y:516,t:'mg',arc:1.15,hp:260},{k:'n2',n:'MG NEST',x:604,y:468,t:'mg',arc:1.15,hp:260},
     {k:'h1',n:'HEAVY MG',x:900,y:440,t:'mg',hv:1,arc:1.5,hp:340,face:0},{k:'a1',n:'FIELD GUN',x:858,y:520,t:'art',hp:420,face:0}],   // (face 0: it stands pointing at the beach until it's turned)
@@ -65,7 +65,7 @@ function dcObjects(){
   for(const[x0,x1]of[[220,520],[560,640],[760,840],[880,1000]])o('dchedge',x0,DCA.hedgeY,x1-x0,14,{full:true,cover:2});
   // their checkpoint between the fork's branches: a blockhouse, bags, a wall along its right; the woods road through its left
   // (after Version 231, Bryan: "No walls blocking any roadway (it looks like it blocks beach access)": nothing of it stands on either branch)
-  {const c=DCA.check;o('dcbld',c.x,c.y,c.w,c.h,{full:true,look:'check'});
+  {const c=DCA.check;o('dcbld',c.x,c.y,c.w,c.h,{full:true,look:'check',hp:DCA.checkHp,tag:'check'});
     o('sandbag',c.x-4,c.y+c.h+16,c.w+8,10);o('sandbag',c.x-12,c.y+c.h+2,10,24);o('sandbag',c.x+c.w+2,c.y+c.h+2,10,24);   // a breastwork in front of it, facing the base
     o('sandbag',c.x-22,c.y+6,10,40);o('sandbag',c.x+c.w+14,c.y+6,10,40);                                                  // short lines at its sides
     for(const[x,y]of[[c.x+c.w+34,c.y+46],[c.x+c.w+40,c.y-6],[c.x-34,c.y-14]])o('ddcrate',x,y,22,20,{cover:1});
@@ -141,8 +141,8 @@ function dcBuild(G,sc,M,add){
     add(new T.BoxGeometry(2,10,2),wood,bx+34,5+H(bx+34,by),by);const bar=add(new T.BoxGeometry(60,1.5,1.5),M(0xe8e4d8,.8),bx+6,9.4+H(bx,by),by);bar.rotation.z=.03;for(let k=0;k<5;k++)add(new T.BoxGeometry(6,1.6,1.6),M(0xb02a22,.8),bx-18+k*12,9.4+H(bx,by),by);
     add(new T.BoxGeometry(5,5,5),steel,bx+38,7+H(bx,by),by);add(new T.BoxGeometry(10,22,10),wood,bx+48,11+H(bx+48,by+14),by+14);add(new T.BoxGeometry(13,1.6,13),roofM,bx+48,23+H(bx+48,by+14),by+14);
     // the blockhouse dressed: a thick roof slab, firing slits toward the base and the roads, a lookout post on stilts behind it, their flag, an aerial, stores, wire
-    const cx=c.x+c.w/2,cy=c.y+c.h/2,g0=H(cx,cy);add(new T.BoxGeometry(c.w+14,5,c.h+14),M(0x7d8076,.95),cx,g0+29,cy);add(new T.BoxGeometry(c.w-20,6,c.h-18),M(0x6c7066,.95),cx,g0+34,cy);
-    for(const dx of[-24,0,24])add(new T.BoxGeometry(14,2.6,1.2),dark,cx+dx,g0+17,c.y+c.h+.7);for(const dz of[-12,12]){add(new T.BoxGeometry(1.2,2.6,14),dark,c.x-.7,g0+17,cy+dz);add(new T.BoxGeometry(1.2,2.6,14),dark,c.x+c.w+.7,g0+17,cy+dz);}
+    const cx=c.x+c.w/2,cy=c.y+c.h/2,g0=H(cx,cy),co=DD.objs.find(q=>q.tag==='check'),cm=m=>{if(co&&co.meshes)co.meshes.push(m);return m;};co.roof=cm(add(new T.BoxGeometry(c.w+14,5,c.h+14),M(0x7d8076,.95),cx,g0+29,cy));cm(add(new T.BoxGeometry(c.w-20,6,c.h-18),M(0x6c7066,.95),cx,g0+34,cy));
+    for(const dx of[-24,0,24])cm(add(new T.BoxGeometry(14,2.6,1.2),dark,cx+dx,g0+17,c.y+c.h+.7));for(const dz of[-12,12]){cm(add(new T.BoxGeometry(1.2,2.6,14),dark,c.x-.7,g0+17,cy+dz));cm(add(new T.BoxGeometry(1.2,2.6,14),dark,c.x+c.w+.7,g0+17,cy+dz));}
     {const tx=c.x+c.w-12,ty=c.y-26;for(const[dx,dz]of[[-7,-7],[7,-7],[-7,7],[7,7]])add(new T.BoxGeometry(1.6,40,1.6),wood,tx+dx,20+H(tx,ty),ty+dz);add(new T.BoxGeometry(18,1.6,18),wood,tx,40+H(tx,ty),ty);
       for(const[dx,dz,w,d]of[[0,9,18,1],[-9,0,1,18],[9,0,1,18],[0,-9,18,1]])add(new T.BoxGeometry(w,7,d),wood,tx+dx,44+H(tx,ty),ty+dz);add(new T.BoxGeometry(22,1.4,22),roofM,tx,58+H(tx,ty),ty);for(const[dx,dz]of[[-8,-8],[8,-8],[-8,8],[8,8]])add(new T.BoxGeometry(1,14,1),wood,tx+dx,51+H(tx,ty),ty+dz);}
     add(new T.CylinderGeometry(.7,.7,54,6),steel,c.x+10,g0+27,c.y+c.h+30);add(new T.BoxGeometry(20,11,.5),M(0xa8201c,.8),c.x+21,g0+47,c.y+c.h+30);add(new T.BoxGeometry(6,6,.6),M(0xf0f0ea,.8),c.x+21,g0+47,c.y+c.h+30.2);
@@ -315,8 +315,30 @@ function dcFixTick(dt){
       const m=DD.dcGuns&&DD.dcGuns[g.k];if(m){m.rotation.z=0;m.rotation.x=0;m.position.y+=2;m.traverse(o=>{if(o.userData.dcM0){o.material=o.userData.dcM0;o.userData.dcM0=null;}});}
       for(let i=tankFires.length-1;i>=0;i--)if(hyp(tankFires[i].x-g.x,tankFires[i].y+8-g.y)<4)tankFires.splice(i,1);
       u.fixN=(u.fixN||0)+1;banner(`${u.name} has the ${g.n.toLowerCase()} working again. ${u.fixN>=DCA.fixN?'He is out of supplies.':(DCA.fixN-u.fixN)+' repair left.'}`,3000);dcFill(g);}}}
+// Version 233 (Bryan: "light machine guns shooting through the windows. Keep them as small slits as now. The building can be destroyed with
+// explosions, that's how you kill them"): the blockhouse's three slits toward the base each hold a light machine gun. Nothing reaches the men
+// inside but a blast: it takes DCA.checkHp of our explosions (ddplay.js's ddBlast, as any object with hp; ddWreck hands it to dcCheckWreck).
+function dcSlits(){const C=dd.dc,c=DCA.check;return C.slits||(C.slits=[-24,0,24].map((dx,i)=>({x:c.x+c.w/2+dx,y:c.y+c.h+3,t:2+i*.6})));}
+function dcSlitTick(dt){
+  const C=dd.dc,co=objs.find(o=>o.tag==='check');if(!co||co.gone||C.ph==='intro'&&!(dd.seq&&dd.seq.dc))return;const P=DCA.slit;
+  for(const s of dcSlits()){if((s.t-=dt)>0)continue;s.t=P.every[0]+Math.random()*(P.every[1]-P.every[0]);
+    let best=null,bd=P.range;for(const u of[...players,...dd.npcs]){if(!alive(u)||u.y<s.y+10)continue;const d=hyp(u.x-s.x,u.y-s.y);if(d<bd&&Math.abs(u.x-s.x)<d*.85&&los(s.x,s.y+6,u.x,u.y)){bd=d;best=u;}}
+    if(!best){s.t=.5;continue;}
+    const cv=coverAt(best.x,best.y,s.x,s.y),k=cv>=2?.4:cv>=1?.65:1,p=clamp(P.hit*(1-bd/(P.range*1.25))*k,.05,.4);
+    for(let r=0;r<P.rounds;r++){const hit=Math.random()<p,tx=best.x+(hit?0:(Math.random()-.5)*26),ty=best.y+(hit?0:(Math.random()-.5)*26);tracers.push({x1:s.x,y1:s.y,x2:tx,y2:ty,t:-r*.07,col:'255,140,100'});
+      if(hit)damage(best,P.dmg[0]+Math.random()*(P.dmg[1]-P.dmg[0]),null);}
+    best.sup=Math.min(1,(best.sup||0)+.1);best.firedOnT=simT;if(typeof ddSpark==='function')ddSpark(s.x,ddH(s.x,s.y)+17,s.y,1);
+    try{if(typeof sfxShotDD==='function')sfxShotDD({x:s.x,y:s.y,side:'E',id:'SL'+s.x,weapon:'mg',gunner:true});}catch(e){}}
+}
+function dcCheckWreck(o){
+  const C=dd.dc;C.checkDead=true;const cx=o.x+o.w/2,cy=o.y+o.h/2;
+  for(const m of o.meshes||[]){if(m.material&&m.material.color){m.material=m.material.clone();if(typeof ddgBurnMat==='function')ddgBurnMat(m.material);else m.material.color.setHex(0x2a2826);}}
+  if(o.roof){o.roof.rotation.z=.16;o.roof.rotation.x=-.1;o.roof.position.y-=7;}
+  for(let k=0;k<4;k++)booms.push({x:cx+(Math.random()-.5)*o.w,y:cy+(Math.random()-.5)*o.h,t:-k*.14,size:1.3});tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});
+  dd.killed=(dd.killed||0)+3;shake(1);if(typeof sfxBoom==='function')sfxBoom(cx,cy,1.4);banner('Their blockhouse is destroyed. Its machine guns are silent.',3200);
+}
 function dcGunsTick(dt){
-  dcFixTick(dt);
+  dcFixTick(dt);dcSlitTick(dt);
   const C=dd.dc,foes=enemies.filter(e=>!beaten(e)),tanks=ddTanksUp();
   for(const p of dd.allies||[]){const on=!!(p.dcGun&&p.dcGun.man===p);if(on&&!p.dug){p.dug=1;p.dmgIn=(p.dmgIn||1)*DCA.dug;}else if(!on&&p.dug){p.dug=0;p.dmgIn=(p.dmgIn||1)/DCA.dug;}}   // (behind his gun's bags)
   for(const sh of C.shells.slice())if(simT>=sh.at){C.shells.splice(C.shells.indexOf(sh),1);for(const g of C.guns)if(hyp(sh.x-g.x,sh.y-g.y)<DCA.gunHit)dcGunHit(g,sh.D||DCA.hv.shell);}
@@ -422,6 +444,7 @@ function dcHint(){
 }
 function dcDraw(){
   const C=dd.dc,lab=(x,y,h,text,col,sz=9)=>{toSBack=false;const[sx,sy]=toS(x,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,sz,700);};
+  {const co=objs.find(o=>o.tag==='check');if(co){const c=DCA.check;lab(c.x+c.w/2,c.y+c.h/2,48,co.gone?'BLOCKHOUSE · DESTROYED':co.hp<DCA.checkHp?`BLOCKHOUSE · ${Math.max(1,Math.round(co.hp/DCA.checkHp*100))}%`:'BLOCKHOUSE · BLOW IT UP',co.gone?'#8b949c':'#ff8a7e');}}
   // each gun's circle: gold and dashed for one to man, the squad's blue for one a squad mate holds, grey for one knocked out (not from behind a gun)
   if(!dd.fp)for(const g of C.guns){const m=g.man,mine=m&&!m.npc;toSBack=false;const p=toS(g.x,g.y,1);if(toSBack||p[0]<-60||p[0]>cw+60||p[1]<0||p[1]>ch)continue;
     ox.save();ox.beginPath();ox.ellipse(p[0],p[1],30,15,0,0,7);ox.lineWidth=2.5;ox.strokeStyle=g.dead?'rgba(139,148,156,.7)':mine?'rgba(88,196,246,.9)':m?'rgba(255,138,126,.9)':'rgba(255,215,106,.95)';if(!m&&!g.dead)ox.setLineDash([7,5]);ox.stroke();ox.restore();
