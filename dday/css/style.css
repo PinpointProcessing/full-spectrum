@@ -694,3 +694,7 @@ button.ddm-mvb{background:#39424b!important;border-radius:10px;padding:11px 18px
 .ddm-dead>b{display:block;margin-bottom:4px}.ddm-fl{display:flex;align-items:center;gap:8px;padding:4px 0;color:#cfd6dc}.ddm-fl i{width:16px;height:16px;flex:none;opacity:.7}.ddm-fl i svg{width:100%;height:100%}
 .ddm-fl span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ddm-fl em{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.06em;color:#6fd08c}
 .ddm-fl .ddm-btn.sm{margin:0;min-height:36px;padding:6px 10px;font-size:11px;width:auto;flex:none}.ddm-fl.back span{color:#fff}
+
+/* D-Day Chapter 2's opening: INCOMING!!! flashing until the shells land (ddcseq.js) */
+#bigText.incoming{opacity:1;color:#ff5a45;font-size:clamp(30px,9vw,54px);letter-spacing:.06em;text-shadow:0 2px 0 #000,0 0 18px rgba(255,60,30,.7);animation:ddIncoming .22s steps(2,end) infinite}
+@keyframes ddIncoming{0%{opacity:1}100%{opacity:.35}}

@@ -17,7 +17,7 @@
 // field; the fork (left into the woods, right down the cliffs to the beach); their checkpoint between the branches.
 const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN:2,lull:15,gunHit:42,flagT:14,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
   cliffX:1010,beachH:-78,
-  cp:{x:658,y:562,w:84,h:80},cpZone:{x0:620,y0:462,x1:780,y1:558},flag:{x:756,y:548},   // (the ground in front of the command post: theirs for flagT s with none of ours in it and the base is lost)
+  cp:{x:624,y:562,w:152,h:80,arch:[686,714]},cpZone:{x0:620,y0:462,x1:780,y1:558},flag:{x:756,y:548},   // (the ground in front of the command post: theirs for flagT s with none of ours in it and the base is lost)
   barracks:[{x:396,y:600,w:46,h:118},{x:396,y:742,w:46,h:118}],door:{x:700,y:550},cpIn:{x:700,y:650},   // (the right-hand barracks is the first, by the command post; door: where the squad comes out of the command post)
   armory:{x:900,y:626,w:84,h:56},depot:{x:876,y:790,w:108,h:60},
   square:{x:700,y:756},
@@ -53,7 +53,9 @@ function dcObjects(){
   o('dcside',384,884,612,8,{ew:1});
   for(const b of DCA.barracks)o('ddbarr',b.x,b.y,b.w,b.h,{full:true});
   o('dcbld',DCA.armory.x,DCA.armory.y,DCA.armory.w,DCA.armory.h,{full:true,look:'store'});o('dcbld',DCA.depot.x,DCA.depot.y,DCA.depot.w,DCA.depot.h,{full:true,look:'shed'});
-  o('dcbld',DCA.cp.x,DCA.cp.y,DCA.cp.w,DCA.cp.h,{full:true,look:'cp'});
+  // (Version 236, Bryan: "The building should be wider so there are no alleyways to the left and right") the command post fills the gap in the
+  // bank; the way through it is its own archway, the road running under it
+  {const c=DCA.cp;o('dcbld',c.x,c.y,c.arch[0]-c.x,c.h,{full:true,look:'cpL'});o('dcbld',c.arch[1],c.y,c.x+c.w-c.arch[1],c.h,{full:true,look:'cpR'});}
   for(const[x,y]of[[560,620],[840,700],[610,690],[790,598],[470,668],[560,850],[780,850],[470,850],[850,740]])o('ddcrate',x,y,22,20,{cover:1});
   // the guns' bags; a short line either side of the road in front of the command post
   for(const g of DCA.guns){if(g.t==='mg'){o('sandbag',g.x-24,g.y-20,48,10);o('sandbag',g.x-30,g.y-16,10,28);o('sandbag',g.x+20,g.y-16,10,28);if(g.face===0)o('sandbag',g.x+26,g.y-6,10,30);}
@@ -123,8 +125,9 @@ function dcBuild(G,sc,M,add){
     if(o.kind==='dcbank')o.meshes=[add(ddgBoxUV(o.w,9,o.h+4,24),ddgMat('earth'),cx,g0+4.5,cy),add(ddgBoxUV(o.w-2,3,o.h-2,24),ddgMat('turf'),cx,g0+10,cy)];   // (Version 188: dug earth, turf along the top)
     else if(o.kind==='dcside'){o.meshes=[];if(o.ew){for(let x=o.x;x<=o.x+o.w;x+=25)o.meshes.push(add(new T.BoxGeometry(1,19,1),wood,x,g0+9.5,cy));for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(o.w,.35,.35),wm,cx,g0+hh,cy));}
       else{for(let y=o.y;y<=o.y+o.h;y+=25)o.meshes.push(add(new T.BoxGeometry(1,19,1),wood,cx,g0+9.5,y));for(const hh of[5,10,15])o.meshes.push(add(new T.BoxGeometry(.35,.35,o.h),wm,cx,g0+hh,cy));}}
-    else if(o.kind==='dcbld'){const cp=o.look==='cp'||o.look==='check',h=o.look==='check'?26:cp?40:30;o.meshes=[add(ddgBoxUV(o.w,h,o.h,cp?24:32,[.5,.02]),ddgMat(cp?'stone':'boards'),cx,g0+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,g0+h+2,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),dark,cx,g0+1.2,cy)];   // (Version 188: weatherboards, the post in stone)
-      if(o.look==='cp'){o.meshes.push(add(new T.BoxGeometry(18,22,1.6),dark,cx,g0+11,o.y-.6),add(new T.BoxGeometry(18,22,1.6),dark,cx,g0+11,o.y+o.h+.6));const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,g0+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x2b4a8a,.8),cx+8.5,g0+h+40,cy));}
+    else if(o.kind==='dcbld'){const cp=o.look==='cp'||o.look==='cpL'||o.look==='cpR'||o.look==='check',h=o.look==='check'?26:cp?40:30;o.meshes=[add(ddgBoxUV(o.w,h,o.h,cp?24:32,[.5,.02]),ddgMat(cp?'stone':'boards'),cx,g0+h/2,cy),add(new T.BoxGeometry(o.w+8,4,o.h+8),roofM,cx,g0+h+2,cy),add(new T.BoxGeometry(o.w+2,3,o.h+2),dark,cx,g0+1.2,cy)];   // (Version 188: weatherboards, the post in stone)
+      if(o.look==='cpL'){const c=DCA.cp,ax=(c.arch[0]+c.arch[1])/2,aw=c.arch[1]-c.arch[0],st=ddgMat('stone');   // (the archway between the halves: wall over it front and back, the roof across, a dark floor under)
+        o.meshes.push(add(ddgBoxUV(aw,15,3,24),st,ax,g0+32.5,c.y+1.5),add(ddgBoxUV(aw,15,3,24),st,ax,g0+32.5,c.y+c.h-1.5),add(new T.BoxGeometry(aw+2,4,c.h+8),roofM,ax,g0+h+2,cy),add(new T.BoxGeometry(aw,.6,c.h),dark,ax,g0+.3,cy),add(new T.BoxGeometry(aw,1.2,c.h-6),dark,ax,g0+24.4,cy));const pole=add(new T.CylinderGeometry(.6,.6,44,6),steel,cx,g0+h+24,cy);o.meshes.push(pole,add(new T.BoxGeometry(16,9,.5),M(0x2b4a8a,.8),cx+8.5,g0+h+40,cy));}
       else if(o.look==='check'){o.meshes.push(add(new T.BoxGeometry(12,17,1.4),dark,cx-28,g0+8.5,o.y-.5));}
       else if(o.look==='shed'){for(let k=0;k<3;k++)o.meshes.push(add(new T.BoxGeometry(o.w/3-8,22,1.4),dark,o.x+o.w*(k+.5)/3,g0+11,o.y-.5));}
       else o.meshes.push(add(new T.BoxGeometry(14,18,1.4),dark,cx,g0+9,o.y-.5));}
@@ -209,7 +212,8 @@ function enterCounter(){
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
   dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;ddBaz(1);
   // the squads on the parade square, the other troops along the wall
-  ['A','B'].forEach((t,ti)=>[0,1,2,3].forEach(i=>{const rm=ddmSlotMan(t,i);if(!rm)return;const u=ddNewMan(t,t+(i+1),rm.role,DCA.square.x+(ti?26:-74)+i*16,DCA.square.y+(ti?14:-6),rm);u.inBoat=false;u.seen=true;}));
+  // (Version 236: out in front of the command post, where the opening leaves them)
+  ['A','B'].forEach((t,ti)=>[0,1,2,3].forEach(i=>{const rm=ddmSlotMan(t,i);if(!rm)return;const u=ddNewMan(t,t+(i+1),rm.role,(ti?724:612)+i*18,498+(i%2)*14,rm);u.inBoat=false;u.seen=true;}));
   players=units.filter(u=>u.side==='P'&&!u.npc);
   for(let i=0;i<10;i++){const u=ddNpc(i<5?400+i*44:790+(i-5)*40,DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.hopT=simT+.3+i*.25;}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
   dd.pool=0;dd.sup={A:'hold',B:'hold'};   // (both squads hold: nobody follows anybody off the line)
@@ -223,7 +227,7 @@ function enterCounter(){
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   mission.t0=simT;sel=[];cardGroup=[];
   VB={x0:DCA.x0,z0:-720,x1:DCA.x1+150,z1:900};FIT.w=1040;FIT.h=1560;fitDist();
-  MAXZ=11;camShift=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:DCA.square.x,z:DCA.wallY-10+DD_CAM.look};clampCam();updateCamera();   // (Version 224: on the line of guns, the barracks behind the camera)
+  MAXZ=11;camShift=0;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(DD_CAM.zoom);camT={x:DCA.road,z:DCA.wallY-230+DD_CAM.look};clampCam();updateCamera();   // (Version 236: on the guns in front of the command post; Version 224: on the line of guns, the barracks behind the camera)
   document.body.classList.add('dd');ddSky(.35);DD.day=.35;DD.dayShown=.35;
   updateObjUI();setStatus();buildCards();hud();
   select(players.filter(p=>p.team==='A').length?players.filter(p=>p.team==='A'):players.filter(p=>p.team==='B'));dd.track=null;

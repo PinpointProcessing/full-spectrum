@@ -7,14 +7,14 @@
    dd.seq={dc:true,...} while it plays (the battle goes on ticking under it: ddplay.js's ddTick and ddCam ask for .dc). Phases by game time:
    camp -> shells -> run (to the barracks' back door) -> hut (a small set of its own, drawn in place of the map: dcSeqRender from scene.js's render)
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
-const DCS={camp:{x:700,y:756},T:{shell:4.6,run:5.5,hut:8.1,out:11.7,end:15.6},
+const DCS={camp:{x:700,y:756},T:{inc:3.1,shell:4.7,fire:5.1,run:5.7,hutMax:3.4,hutDur:3.6,outDur:3.9},   // (the whistle and INCOMING!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out)
   // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
   spots:[[14,2,Math.PI,0,'sit',1],[-13,4,0,0,'sit',1],[1,-15,Math.PI/2,0,'kneel',0],[21,18,-2.4,0,'smoke',0],[-37,14,Math.PI/2-.35,0,'sit',2],[-24,14,Math.PI/2+.35,0,'sit',2],[35,-9,-2.6,0,'kneel',0],[-31,-13,.6,0,'smoke',0]]};
 function dcSeqStart(){
   if(startCounter.noSeq||/[?&]noseq\b/.test(location.search))return false;   // (?noseq in the address: the tests that start in the fight)
   const c=DCS.camp,T=THREE,g=ddH(c.x,c.y);
   // where the battle's own camera is: the last shot ends there
-  updateCamera();const end={p:camera.position.clone(),q:camera.quaternion.clone()};
+  updateCamera();const end={p:camera.position.clone(),q:camera.quaternion.clone(),cx:camT.x,cz:camT.z};
   const S=dd.seq={dc:true,t:0,ph:'camp',end,doom:[],seat:[],G:new T.Group()};document.body.classList.add('ddseq');scene.add(S.G);
   players.forEach((u,i)=>{const s=DCS.spots[i%8];u.sx=u.x;u.sy=u.y;Object.assign(u,{x:c.x+s[0],y:c.y+s[1],ang:s[2],path:[],atEase:!!s[3],work:s[4],cool:99});figRefresh(u);S.seat.push(s[5]===1?[u.x,u.y]:null);});
   // a fire, something to sit at
@@ -27,7 +27,7 @@ function dcSeqStart(){
   for(const[x,y,w,h]of[[c.x+44,c.y-10,10,6],[c.x-62,c.y-4,10,7],[c.x+60,c.y+16,9,8]])add(new T.BoxGeometry(w,h,8),M(0x5f6a44,.8),x,h/2,y,0,.3,0);
   // the bunch of other troops off to one side: the shells land on them
   [[0,0],[13,4],[25,-2],[6,13],[19,15],[31,10]].forEach(([dx,dy],i)=>{const u=ddNpc(c.x-236+dx,c.y-112+dy);Object.assign(u,{inBoat:false,seen:true,post:null,ang:Math.PI+.25*(i%3-1),atEase:i%2===0,work:i%2?'stand':null,cool:99});S.doom.push(u);});
-  dcHutBuild(S);dcSpawnWave(1);banner('',1);   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)
+  dcHutBuild(S);dcSpawnWave(1);banner('',1);S.warm=3;try{renderer.compile(S.hut.sc,S.hut.cam);}catch(e){}   // (warm: the inside is drawn once, unseen, while the camp is on screen, so going in doesn't hitch)   // (their first wave starts across the field at once: the other troops are already shooting when the squad comes out)
   return true;
 }
 // the hut: a small set of its own, crossed the short way from its back door to its front door; four of the other troops at its front windows
@@ -58,38 +58,46 @@ function dcHutBuild(S){
 }
 // the hut's frame: everyone placed from how far through it is (h 0..1), drawn in place of the map
 function dcSeqRender(rdt,now){
-  const S=dd&&dd.seq;if(!S||!S.dc||S.ph!=='hut'||!S.hut)return false;const H=S.hut,T=DCS.T,dur=T.out-T.hut,ht=clamp(S.t-T.hut,0,dur),h=ht/dur;
+  const S=dd&&dd.seq;if(!S||!S.dc||!S.hut)return false;const warm=S.ph!=='hut';if(warm){if(!(S.warm>0)||S.t<.25)return false;S.warm--;}const H=S.hut,T=DCS.T,dur=T.hutDur,ht=warm?dur*.4:clamp(S.t-S.hutT,0,dur),h=ht/dur;
   const z0=H.HD+20,z1=H.FRONT-70,lead=z0+(z1-z0)*h;
   H.squad.forEach((u,i)=>{const z=lead+(i>>1)*10+(i%2)*3,nx=(i%2?4.5:-4.5)*(z<H.FRONT+16?.75:1)+(i%3-1);u.ang=Math.atan2(z-u.y-.0001,nx-u.x);if(Math.abs(z-u.y)<.01)u.ang=-Math.PI/2;u.x=nx;u.y=z;u.ang=-Math.PI/2;u.path=[{x:u.x,y:u.y-40}];});
-  const hit=h>.52;H.guard.forEach((u,i)=>{if(i===0&&hit){if(!u.dead){Object.assign(u,{dead:true,hp:0,deadT:simT,x:-H.WX+3,y:H.FRONT+19,ang:1.2});if(typeof sfxScream==='function')sfxScream(DCA.door.x,DCA.door.y);}}else{u.aimT=simT;
+  const hit=!warm&&h>.52;H.guard.forEach((u,i)=>{if(warm)return;if(i===0&&hit){if(!u.dead){Object.assign(u,{dead:true,hp:0,deadT:simT,x:-H.WX+3,y:H.FRONT+19,ang:1.2});if(typeof sfxScream==='function')sfxScream(DCA.door.x,DCA.door.y);}}else{u.aimT=simT;
       if(ht>H.shotT[i]){H.shotT[i]=ht+.28+((i*7+Math.floor(ht*10))%5)*.09;H.flash[i].visible=true;H.flash[i].userData.t=.07;if(typeof sfxShotDD==='function')sfxShotDD(u,DCA.door.x+u.x,DCA.door.y);}}
     const f=H.flash[i];if(f.visible){f.position.set(u.x+Math.cos(u.ang)*9,13.5,u.y+Math.sin(u.ang)*9);if((f.userData.t-=rdt)<=0||u.dead)f.visible=false;}});
   H.blood.visible=hit;
   for(const u of[...H.squad,...H.guard]){u.m.g.position.set(u.x,0,u.y);u.m.g.rotation.y=-u.ang;figRefresh(u);figAnimate(u,u.m);}
   H.door.rotation.y=-1.5*clamp((h-.3)/.25,0,1);
   const c=H.cam,cz=clamp(lead+96,H.FRONT+52,H.HD+70);c.position.set(5+Math.sin(ht*9)*.5,26+Math.abs(Math.sin(ht*9))*.7,cz);c.lookAt(hit?-6:0,10,H.FRONT-10);c.aspect=cw/ch;c.updateProjectionMatrix();c.updateMatrixWorld();
-  postRender(H.sc,c);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
+  postRender(H.sc,c);if(warm)return false;   // (the map's own frame is drawn over it straight after)
+  ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
   return true;
 }
 function dcSeqTick(dt){
-  const S=dd.seq,C=dd.dc,T=DCS.T,c=DCS.camp,D=DCA.door;S.t+=dt;const t=S.t,was=S.ph;
-  if(S.ph==='camp'&&t>=T.shell){S.ph='shell';
-    for(let k=0;k<5;k++){const x=c.x-234+(k%3)*13,y=c.y-110+((k/2)|0)*11;booms.push({x,y,t:-k*.09,size:1.3});}if(typeof sfxBoom==='function')sfxBoom(c.x-220,c.y-104,1.4);shake(1);
+  const S=dd.seq,C=dd.dc,T=DCS.T,c=DCS.camp,D=DCA.door,dx=c.x-234,dy=c.y-110;S.t+=dt;const t=S.t;
+  // (Version 236, Bryan: "Have an artillery whistle come in and a text saying INCOMING!!! The explosion kills the group and then the bullets start firing at the base")
+  if(!S.inc&&t>=T.inc){S.inc=1;bigText('INCOMING!!!','incoming');try{if(typeof ddsWhistle==='function')ddsWhistle({dur:T.shell-T.inc,t:0,x1:c.x,y1:c.y,ddsK:'art'});}catch(e){}
+    for(const u of players){u.work=null;u.atEase=false;figRefresh(u);}}   // (they're on their feet at the sound of it)
+  if(S.ph==='camp'&&t>=T.shell){S.ph='shell';bigText('');
+    for(let k=0;k<5;k++){const x=dx+(k%3)*13,y=dy+((k/2)|0)*11;booms.push({x,y,t:-k*.09,size:1.3});}if(typeof sfxBoom==='function')sfxBoom(dx+14,dy+6,1.4);shake(1);
     for(const u of S.doom){u.hp=0;u.dead=true;u.deadT=simT;u.downed=false;if(Math.random()<.6&&typeof ddGore==='function')ddGore(u,true);}
-    for(const u of players){u.atEase=false;u.work=null;u.sup=.5;figRefresh(u);}}
-  else if(S.ph==='shell'&&t>=T.run){S.ph='run';players.forEach((u,i)=>{u.path=[{x:D.x+(i%2?5:-5),y:DCA.cpIn.y+(i>>1)*3}];u.lastOrder=simT;});
-    booms.push({x:DCA.cp.x+DCA.cp.w+26,y:DCA.cp.y-56,t:0,size:1.3},{x:c.x+150,y:c.y+40,t:-.5,size:1.1});if(typeof sfxBoom==='function')sfxBoom(DCA.cp.x+110,DCA.cp.y-56,1.3);shake(.7);}
-  else if(S.ph==='run'&&t>=T.hut){S.ph='hut';   // (their first wave starts across the field now: the other troops are already shooting when the squad comes out)
+    for(const u of players)u.sup=.5;}
+  else if(S.ph==='shell'&&t>=T.run){S.ph='run';S.runT=t;players.forEach((u,i)=>{u.path=[{x:D.x+(i%2?5:-5),y:DCA.cpIn.y+(i>>1)*3}];u.lastOrder=simT;});
+    booms.push({x:DCA.cp.x+DCA.cp.w+26,y:DCA.cp.y-56,t:0,size:1.3});if(typeof sfxBoom==='function')sfxBoom(DCA.cp.x+DCA.cp.w+26,DCA.cp.y-56,1.3);shake(.7);}
+  else if(S.ph==='run'&&(t>=S.runT+T.hutMax||players.filter(u=>u.y<DCA.cpIn.y+16).length>=2)){S.ph='hut';S.hutT=t;   // (inside as soon as the first two are at the door: nobody stands waiting)
     players.forEach((u,i)=>{u.x=D.x+(i%2?5:-5);u.y=D.y-4-(i>>1)*2;u.path=[];u.ang=-Math.PI/2;u.sup=0;});}
-  else if(S.ph==='hut'&&t>=T.out){S.ph='out';S.cp=null;
+  else if(S.ph==='hut'&&t>=S.hutT+T.hutDur){S.ph='out';S.outT=t;S.cp=null;
     players.forEach((u,i)=>{u.x=D.x+(i%2?6:-6)+(i%3-1)*2;u.y=D.y-6-(i>>1)*11;const p=findPath(u.x,u.y,u.sx,u.sy);u.path=p||[{x:u.sx,y:u.sy}];u.lastOrder=simT;});}
-  else if(S.ph==='out'&&t>=T.end){dcSeqEnd();return;}
+  else if(S.ph==='out'&&t>=S.outT+T.outDur){dcSeqEnd();return;}
+  // their bullets on the base from just after the shells until the squad is inside: tracers in from the field, sparks and the whine where they strike
+  if(t>=T.fire&&(S.ph==='shell'||S.ph==='run')&&(S.bT=(S.bT||0)-dt)<=0){S.bT=.05+Math.random()*.1;const sx=300+Math.random()*700,sy=-40+Math.random()*240,tx=420+Math.random()*540,ty=DCA.wallY+20+Math.random()*290;
+    tracers.push({x1:sx,y1:sy,x2:tx,y2:ty,t:0,col:'255,140,100'});if(typeof ddSpark==='function')ddSpark(tx,ddH(tx,ty)+1+Math.random()*10,ty,.9);if(Math.random()<.3&&typeof sfxRicochet==='function')sfxRicochet(tx,ty,false);
+    if(Math.random()<.35)try{sfxShotDD({x:sx,y:sy,side:'E',id:'F'+((sx/50)|0),weapon:Math.random()<.4?'mg':'rifle',gunner:false});}catch(e){}}
   if(S.ph==='run'||S.ph==='hut'||S.ph==='out')for(const u of players)u.lastOrder=simT;
 }
 function dcSeqEnd(){
   const S=dd.seq,C=dd.dc;if(!S||!S.dc)return;if(S.G&&S.G.parent)S.G.parent.remove(S.G);dd.seq=null;document.body.classList.remove('ddseq');
   for(const u of players)u.cool=Math.min(u.cool,1);
-  camera.position.copy(S.end.p);camera.quaternion.copy(S.end.q);camera.updateMatrixWorld();updateCamera();
+  camT.x=S.end.cx;camT.z=S.end.cz;camera.position.copy(S.end.p);camera.quaternion.copy(S.end.q);camera.updateMatrixWorld();updateCamera();
   C.ph='w1';C.wave=1;C.t=0;dcAuto();dcNoRe();if(typeof hud==='function')hud();
 }
 // its shots (from ddplay.js's ddCam): the yard from the south, behind the run to the back door, then from just over their heads at the front door
@@ -97,14 +105,14 @@ function dcSeqEnd(){
 function dcSeqCam(rdt){
   const S=dd.seq,T=THREE,c=DCS.camp,D=DCA.door,V=(x,h,y)=>new T.Vector3(x,ddH(x,y)+h,y);rdt=Math.min(rdt||0,.1);let pos,look,k=2.2;
   if(camShiftOn){camera.clearViewOffset();camShiftOn=false;}camShift=0;
-  if(S.ph==='camp'){const a=S.t*.05;pos=V(c.x+26-a*70,112-a*40,c.y+250-a*120);look=V(c.x,8,c.y);}
-  else if(S.ph==='shell'){pos=V(c.x-120,170,c.y+330);look=V(c.x-210,9,c.y-100);k=4;}
+  if(S.ph==='camp'){const a=Math.min(S.t,DCS.T.inc)*.05;pos=V(c.x+30-a*40,190-a*30,c.y+470-a*60);look=V(c.x-20,8,c.y-16);}   // (Version 236: wider, the whole square and the men about it)
+  else if(S.ph==='shell'){pos=V(c.x-60,190,c.y+430);look=V(c.x-130,9,c.y-70);k=4;}
   else if(S.ph==='run'){pos=V(D.x+30,110,c.y+300);look=V(D.x,12,DCA.cpIn.y-10);k=3;}
   else if(S.ph==='hut')return true;
-  else{const u=(S.t-DCS.T.out)/(DCS.T.end-DCS.T.out),e=u<.3?0:(u-.3)/.7,s=e*e*(3-2*e),m=players.filter(alive),ly=m.length?Math.min(...m.map(p=>p.y)):D.y,my=m.length?Math.max(...m.map(p=>p.y)):D.y;
+  else{const u=(S.t-S.outT)/DCS.T.outDur,e=u<.3?0:(u-.3)/.7,s=e*e*(3-2*e),m=players.filter(alive),ly=m.length?Math.min(...m.map(p=>p.y)):D.y,my=m.length?Math.max(...m.map(p=>p.y)):D.y;
     const p0=V(D.x,0,Math.min(my+20,DCA.cp.y-4));p0.y=ddH(D.x,D.y)+40;const l0=new T.Vector3(D.x,ddH(D.x,ly)+13,ly-240);
     const cam0=S.c0||(S.c0=new T.PerspectiveCamera());cam0.position.copy(p0);cam0.lookAt(l0);
     camera.position.lerpVectors(p0,S.end.p,s);camera.quaternion.copy(cam0.quaternion).slerp(S.end.q,s);camera.updateMatrixWorld();return true;}
-  if(!S.cp){S.cp=pos.clone();S.cl=look.clone();}const q=Math.min(1,rdt*k);S.cp.lerp(pos,q);S.cl.lerp(look,q);
+  if(!S.cp){S.cp=pos.clone();S.cl=look.clone();}const q=Math.min(1,rdt*k);S.cp.lerp(pos,q);S.cl.lerp(look,q);camT.x=S.cl.x;camT.z=S.cl.z;
   camera.position.copy(S.cp);camera.lookAt(S.cl);camera.updateMatrixWorld();return true;
 }
