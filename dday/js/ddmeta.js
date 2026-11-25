@@ -709,13 +709,10 @@ function ddmWorldShot(r,rdt,now){
   S.fl=Math.max(0,S.fl-rdt*1.8);u.m.fig.mat.userData.U.uFill.value=S.fill0+S.fl*.5;
   const h=ddH(u.x,u.y),cx=u.x+Math.sin(at.yaw)*d*Math.cos(p),cz=u.y+Math.cos(at.yaw)*d*Math.cos(p),cy=Math.max(h+Hm*.5+d*Math.sin(p),ddH(cx,cz)+DDM_SHOT.clear);
   S.c=[cx,cy,cz,u.x,h+Hm*.5,u.y,V[1],V[2]];
-  // Who else is in the picture. Out of it while it lasts (S.hid, put back by ddmWorldOff): anyone standing between him and the camera (the line itself
-  // can be, where his place is beyond it; the other troops wander); a mate right behind him, who'd show as a second body growing out of his; and on an
-  // upright phone every mate in it: the picture's so narrow there that one of them is a rifle and half a man at its edge
-  {const hf=Math.atan(Math.tan(camera.fov*Math.PI/360)*cw/ch),ax=Math.atan2(u.x-cx,u.y-cz),thr=side?Math.atan2(9.5,d):hf+.05,hid=S.hid||(S.hid=new Set());
-    for(const q of units){if(q===u||!q.m||q.dead)continue;let df=Math.abs(Math.atan2(q.x-cx,q.y-cz)-ax);if(df>Math.PI)df=2*Math.PI-df;
-      const hide=(hyp(q.x-cx,q.y-cz)<d+12&&df<hf*1.9+.12)||(df<thr&&ddm.rows.some(r=>r.u===q));
-      if(hide){if(!q.away){q.away=true;hid.add(q);}}else if(hid.has(q)){q.away=false;hid.delete(q);}}}
+  // Who else is in the picture: nobody (Bryan, on Version 244's: "And no other troops in the frame please"). Every other man on the map, ours and
+  // theirs, standing or fallen, is out of sight while his page lasts (S.hid: the ones this took out, put back by ddmWorldOff). Before this only
+  // those between him and the camera and the mates right behind him were, and on a wide screen the rest of the line stood in the background
+  {const hid=S.hid||(S.hid=new Set());for(const q of units)if(q!==u&&q.m&&!q.away){q.away=true;hid.add(q);}}
   yaw=at.yaw;camT.x=u.x;camT.z=u.y;zoom=dist0/d;tilt=typeof ddTilt==='function'?ddTilt(zoom):0;camShift=0;
   render(rdt,now);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
 }
