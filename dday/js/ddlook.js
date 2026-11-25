@@ -84,7 +84,9 @@ function ddDress(G,sc,M){
   // (Version 188: the trucks' canvas tilts and the tents in army canvas, the trucks with a windscreen, bumper and white star; the drums ribbed, chipped and rusting)
   const olive=M(0x5f6a44,.9),canvas=new T.MeshStandardMaterial({map:ddgTex('canvas'),color:0x9c9a6c,roughness:1}),tentM=new T.MeshStandardMaterial({map:ddgMatRep('canvas',24).map,color:0xb0a678,roughness:1}),tyre=M(0x1e1e1c,.9),drumC=[0x5a6a48,0x8a3a26,0x4a5258],drumM=drumC.map(c=>new T.MeshStandardMaterial({map:ddgTex('drum'),color:c,roughness:.6,metalness:.15})),glassM=M(0x2a3034,.3,.4),starM=new T.MeshStandardMaterial({color:0xe8e6dc,roughness:.8});
   for(const o of DD.objs){const cx=o.x+o.w/2,cy=o.y+o.h/2,g0=ddH(cx,cy);
-    if(o.kind==='ddtruck'){o.meshes=[one(new T.BoxGeometry(o.w-4,5,o.h),olive,cx,g0+7,cy),one(new T.BoxGeometry(o.w-4,13,o.h*.26),olive,cx,g0+15,o.y+o.h*.86),one(ddgBoxUV(o.w-2,15,o.h*.62,24),canvas,cx,g0+17,o.y+o.h*.33)];
+    if(o.kind==='ddtruck'&&typeof ddrHas==='function'&&ddrHas('ddrVehTruck')){   // (Version 246, the draft: ddrveh.js's lorry; theirs on the beach's top, ours once the base is)
+      const t=ddrVehTruck(DD_MODE==='beach'?'opel':'gmc',0);t.position.set(cx,g0,cy);t.rotation.y=o.h>=o.w?-Math.PI/2:0;t.userData.real=true;G.add(t);o.meshes=ddrMeshes(t);}
+    else if(o.kind==='ddtruck'){o.meshes=[one(new T.BoxGeometry(o.w-4,5,o.h),olive,cx,g0+7,cy),one(new T.BoxGeometry(o.w-4,13,o.h*.26),olive,cx,g0+15,o.y+o.h*.86),one(ddgBoxUV(o.w-2,15,o.h*.62,24),canvas,cx,g0+17,o.y+o.h*.33)];
       o.meshes.push(one(new T.BoxGeometry(o.w-7,5,.5),glassM,cx,g0+18,o.y+o.h*.73-.3),one(new T.BoxGeometry(o.w,1.6,1.6),M(0x3a3e30,.8),cx,g0+5,o.y+o.h+.4),one(new T.BoxGeometry(.4,6,6),starM,cx+o.w/2-1.8,g0+16,o.y+o.h*.86));
       for(const sx of[-1,1])for(const fz of[.16,.5,.86]){const w=one(new T.CylinderGeometry(4.6,4.6,3.4,10),tyre,cx+sx*(o.w/2-2),g0+4.6,o.y+o.h*fz,0,0,Math.PI/2);o.meshes.push(w);}}
     else if(o.kind==='ddtent'){const sh=new T.Shape();sh.moveTo(-o.w/2,0);sh.lineTo(o.w/2,0);sh.lineTo(0,o.w*.5);sh.closePath();const t=one(new T.ExtrudeGeometry(sh,{depth:o.h,bevelEnabled:false}),tentM,cx,g0,o.y);o.meshes=[t];}

@@ -345,7 +345,8 @@ function ddWreck(o,by){
   if(o.tag==='fuel'&&typeof ddFuelBlast==='function')ddFuelBlast(o,by);
   paintDecal({k:'scorch',x:cx,y:cy,r:Math.random()});shake(o.tag==='barracks'?1:.5);if(typeof sfxBoom==='function')sfxBoom(cx,cy,o.tag==='barracks'?1.4:1);
   if(o.tag==='check'&&typeof dcCheckWreck==='function'){dcCheckWreck(o);return;}   // (Chapter 2's blockhouse: it stands, burnt out, ddcounter.js)
-  if(o.kind==='ddbarr'||o.kind==='ddgun'){for(const m of o.meshes||[]){if(m.material&&m.material.color){m.material=m.material.clone();m.material.color.setHex(0x1b1a18);}m.rotation.z+=(Math.random()-.5)*.25;}if(o.barrel)o.barrel.rotation.x=Math.PI/2+.5;
+  if(o.kind==='ddgun'&&o.real&&typeof ddrGunWreck==='function'&&ddrGunWreck(o)){tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});}   // (Version 246, the draft's guns: burnt and askew, ddreal.js)
+  else if(o.kind==='ddbarr'||o.kind==='ddgun'){for(const m of o.meshes||[]){if(m.material&&m.material.color){m.material=m.material.clone();m.material.color.setHex(0x1b1a18);}m.rotation.z+=(Math.random()-.5)*.25;}if(o.barrel)o.barrel.rotation.x=Math.PI/2+.5;
     tankFires.push({x:cx,y:cy,r:o.w/3,t0:simT,puffs:[],emit:0});}
   else{for(const m of o.meshes||[])m.visible=false;removeObstacle(o,[]);dEpoch++;}   // a gate or the wire: gone, the way's open
   if(o.tag==='barracks'){(dd.held||(dd.held={})).base=true;ddBaseOpen();}   // (blown up instead of held: the way on is open all the same)
@@ -850,7 +851,7 @@ function ddCounter(dt){
 // a tank (since Version 148 there can be several, dd.tanks): o = {x,y,ang,way:[[x,y]..] in map coordinates,name,range,hold}; hold keeps it where it is until it's let go
 function ddTankSpawn(o){
   // (Version 190: a chunky Panzer IV in dunkelgelb, olive and red-brown, three meshes where there were eighteen: ddground.js's ddgTank; the same place, size and turning turret)
-  const tk=ddgTank('panzer'),g=tk.g,tur=tk.tur;
+  const tk=typeof ddrHas==='function'&&ddrHas('ddrTank')?ddrTank('panzer'):ddgTank('panzer'),g=tk.g,tur=tk.tur;   // (Version 246, the draft: ddrtank.js's tank)
   DD.scene.add(g);const L=dd.tanks||(dd.tanks=[]),a=o.ang==null?Math.PI:o.ang;
   const K={x:o.x,y:o.y,ang:a,ta:a,hp:330,hp0:330,i:0,way:o.way||[],g,tur,fireT:simT+5,side:'E',name:o.name||'Tank',id:'TANK'+(L.length+1),stats:{},mats:tk.mats,range:o.range||520,hold:!!o.hold};
   L.push(K);K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;return K;

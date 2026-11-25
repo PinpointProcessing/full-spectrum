@@ -258,7 +258,8 @@ function ddFxShots(dt){
   const t=ddFxTier(),S=DDF.soft,L=DDFX.cap.soft[t]*.7,R=fxR,seen=DDF.seen,v=DDF.v;
   for(const f of flashes){if(!f.u||seen.has(f))continue;seen.add(f);
     const at=f.u&&typeof muzzleAt==='function'?muzzleAt(f.u,v):null,x=at?at.x:f.x,h=at?at.y:ddH(f.x,f.y)+12,y=at?at.z:f.y,mg=f.u&&f.u.gunner;
-    ddFxAdd(DDF.glow,DDFX.cap.glow[t]*.6,x,h,y,0,0,0,.055,mg?10:6.5,mg?15:9,1,.9,.6,1,.55,.2,mg?1:.8,1,0,0,0,0,0);   // a star of flame at the barrel, each shot (Version 188, pass 4: the sprite alone was lost in daylight)
+    const fpk=f.u.fp&&at&&typeof ddReal==='function'&&ddReal()?.5:1;   // (Version 246, the draft's guns: from behind your own gun the flash is a few metres off, not across the field)
+    ddFxAdd(DDF.glow,DDFX.cap.glow[t]*.6,x,h,y,0,0,0,.055,(mg?10:6.5)*fpk,(mg?15:9)*fpk,1,.9,.6,1,.55,.2,mg?1:.8,1,0,0,0,0,0);   // a star of flame at the barrel, each shot (Version 188, pass 4: the sprite alone was lost in daylight)
     if(R()>DDFX.muzzle[t])continue;
     ddFxAdd(S,L,x,h,y,(R()-.5)*6,5+R()*4,(R()-.5)*6,mg?1.4:.9,mg?5:3.4,mg?18:12,.86,.85,.83,.7,.7,.69,mg?.42:.34,0,.8,2,.6,.6,.04);}
   let kick=0;

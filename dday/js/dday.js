@@ -270,7 +270,7 @@ function ddSky(t){
   if(typeof ddLightSky==='function')ddLightSky(S);
 }
 function buildDDay(){
-  disposeDD();ddBuildH();
+  disposeDD();ddBuildH();if(typeof ddrReset==='function')ddrReset();   // (Version 246, the draft's guns: ddreal.js's list starts over)
   const objsL=ddObjects();
   DD={objs:objsL,lamps:[],hq:[],scene:null,lights:null,canvas:null,tex:null,props:null,sea:null,gibs:[],boats:[],day:0,dayShown:-1};
   const sc=new T.Scene();sc.background=new T.Color(0xc4ced6);sc.fog=new T.Fog(0xc4ced6,1200,5500);DD.scene=sc;   // (Version 188: a haze with a near end, kept past the battle by ddlight.js; it was thick enough to pale the battle itself)
@@ -390,12 +390,16 @@ function ddProps(sc,objsL){
       for(let x=o.x;x<=o.x+o.w;x+=38)o.meshes.push(add(new T.BoxGeometry(1,9,1),wood,x,ddH(x,cy)+4.5,cy));
     }else if(o.kind==='ddwreck'){
       if(o.lc){o.meshes=[ddBoatMesh(G,true)];o.meshes[0].position.set(cx,g0-1,cy);o.meshes[0].rotation.set(.05,.3,.22);}
+      else if(typeof ddrHas==='function'&&ddrHas('ddrTankWreck')){   // (Version 246, the draft: ddrtank.js's wreck)
+        const pz=DD_MODE==='village',w=ddrTankWreck(pz?'panzer':'sherman'),along=o.w>=o.h,sc=Math.min(Math.max(o.w,o.h)/64,Math.min(o.w,o.h)/36);
+        w.position.set(cx,g0-1,cy);w.rotation.set(.03,(along?0:-Math.PI/2)+(Math.abs(cx*13+cy*7)%10/10-.5)*.2,-.04);w.scale.setScalar(sc);w.userData.real=true;G.add(w);o.meshes=ddrMeshes(w);}
       else if(typeof ddgTankWreckGeo==='function'){   // (Version 190: a knocked-out tank, not three black boxes: on the beach a Sherman, olive drab sooted, its star still showing; in the village a burnt Panzer; the turret turned, the gun down; the same footprint)
         const pz=DD_MODE==='village',W=ddgTankWreckGeo(pz?'panzer':'sherman'),k='wreckM'+(pz?1:0),ms=DD[k]||(DD[k]=ddgTankMats(pz?'burnt':'shermanw')),along=o.w>=o.h,sc=Math.min(Math.max(o.w,o.h)/64,Math.min(o.w,o.h)/36),ry=(along?0:-Math.PI/2)+(Math.abs(cx*13+cy*7)%10/10-.5)*.2;
         o.meshes=[add(W.paint,ms[0],cx,g0-1,cy,ry,.03,-.04),add(W.trk,ms[1],cx,g0-1,cy,ry,.03,-.04)];for(const m of o.meshes)m.scale.setScalar(sc);}
       else{box(o,14,dark);o.meshes.push(add(new T.BoxGeometry(22,9,18),dark,cx+4,g0+18,cy),add(new T.CylinderGeometry(1.4,1.4,30,6),dark,cx+22,g0+19,cy-2,0,0,Math.PI/2-.25));}
     }else if(o.kind==='ddgun'){   // a gun on its mount, barrel out over the beach
-      if(o.east){o.meshes=[add(new T.BoxGeometry(o.w,9,o.h),steel,cx,g0+4.5,cy),add(new T.BoxGeometry(3,12,20),olive,cx+7,g0+13,cy)];const b=add(new T.CylinderGeometry(1.7,2.2,64,8),steel,cx+36,g0+15,cy,0,0,-(Math.PI/2-.07));o.meshes.push(b);o.barrel=b;}   // (Version 210: the heavy gun turned east)
+      if(typeof ddrPlaceGun==='function'&&ddrPlaceGun(o,cx,cy,g0,G)){}   // (Version 246, the draft: the real piece, ddreal.js)
+      else if(o.east){o.meshes=[add(new T.BoxGeometry(o.w,9,o.h),steel,cx,g0+4.5,cy),add(new T.BoxGeometry(3,12,20),olive,cx+7,g0+13,cy)];const b=add(new T.CylinderGeometry(1.7,2.2,64,8),steel,cx+36,g0+15,cy,0,0,-(Math.PI/2-.07));o.meshes.push(b);o.barrel=b;}   // (Version 210: the heavy gun turned east)
       else{o.meshes=[add(new T.BoxGeometry(o.w,9,o.h),steel,cx,g0+4.5,cy),add(new T.BoxGeometry(20,12,3),olive,cx,g0+13,cy+7)];
       const b=add(new T.CylinderGeometry(1.7,2.2,o.tag==='heavy'?64:o.tag==='art'?70:46,8),steel,cx,g0+(o.tag==='art'?24:15),cy+(o.tag==='heavy'?36:o.tag==='art'?30:27),0,Math.PI/2-(o.tag==='art'?.55:.07));o.meshes.push(b);o.barrel=b;}
     }else if(o.kind==='ddbarr'){   // the barracks: a long hut, pitched roof, door and windows to the south
@@ -422,11 +426,15 @@ function ddProps(sc,objsL){
   DD.roofs=[slab(300,250,84,48,25,'p0'),slab(626,250,84,48,25,'p1'),slab(826,250,160,48,25,'p2'),slab(826,154,108,48,25,'p3'),slab(90,-620,300,56,25,'tp'),slab(30,-440,74,76,25,'hv')];
   for(const m of DD.roofs)m.castShadow=true;
   // the machine guns themselves: a barrel on a tripod at every gun's place, pointing where it covers
-  {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.leftMG,...DD_SPOT.leftMGs,DD_SPOT.pill,...DD_SPOT.pillMGs,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG,DD_SPOT.hillMG,DD_SPOT.hillMG2,DD_SPOT.hillMG3,DD_SPOT.pathMG,...DD_SPOT.heavyMGs]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y)+(sp.elev||0),g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;sp.g=g;
+  {const gm=M(0x2a2c2e,.5,.7);for(const sp of[DD_SPOT.leftMG,...DD_SPOT.leftMGs,DD_SPOT.pill,...DD_SPOT.pillMGs,...DD_SPOT.nests,DD_SPOT.topMG,DD_SPOT.drawMG,DD_SPOT.hillMG,DD_SPOT.hillMG2,DD_SPOT.hillMG3,DD_SPOT.pathMG,...DD_SPOT.heavyMGs]){const x=sp.x+DDX,y=sp.y,g0=ddH(x,y)+(sp.elev||0);
+      if(typeof ddReal==='function'&&ddReal()){const rg=ddrGun('mg42',x,y,g0,sp.ang);sp.g=rg;G.add(rg);continue;}   // (Version 246, the draft: the real gun on its mount, ddreal.js)
+      const g=new T.Group();g.position.set(x,g0,y);g.rotation.y=-sp.ang;sp.g=g;
       const q=(geo,px,py,pz,rz,ry)=>{const b=new T.Mesh(geo,gm);b.position.set(px,py,pz);if(rz)b.rotation.z=rz;if(ry)b.rotation.y=ry;b.castShadow=true;g.add(b);};
       q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
       G.add(g);}}
+  if(DD_MODE==='beach'&&typeof ddrPlaceMortar==='function'){   // (Version 246, the draft: the mortars their crews stand by had no model at all)
+    for(const m of DD_SPOT.mortars)ddrPlaceMortar(m.x+DDX,m.y+8,ddH(m.x+DDX,m.y+8),Math.PI/2,G);for(const[x,y]of[[1680,-722],[1708,-690]])ddrPlaceMortar(x,y,ddH(x,y),Math.PI/2,G);}
   if(DD_MODE==='beach'&&typeof ddPostBuild==='function')ddPostBuild(G,add,M);   // (Version 198: the checkpoint)
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored
@@ -436,6 +444,7 @@ function ddProps(sc,objsL){
 }
 // a landing craft: a steel box of a hull, a ramp at the bow (north, -z) that drops (Version 188: its look is ddground.js's LCVP, one mesh and the ramp)
 function ddBoatMesh(parent,wreck){
+  if(typeof ddrHas==='function'&&ddrHas('ddrVehLCVP')){const rg=ddrVehLCVP(!!wreck);if(wreck)ddrBurn(rg);rg.userData.real=true;(parent||scene).add(rg);return rg;}   // (Version 246, the draft: ddrveh.js's landing craft)
   const L=ddgLCVP(),g=new T.Group(),mat=wreck?L.mw:L.m;
   const hull=new T.Mesh(L.hull,mat);hull.castShadow=true;hull.receiveShadow=true;g.add(hull);
   const ramp=new T.Group();ramp.position.set(0,3,-52);const rp=new T.Mesh(L.ramp,mat);rp.castShadow=true;rp.receiveShadow=true;ramp.add(rp);g.add(ramp);g.userData.ramp=ramp;
@@ -542,6 +551,7 @@ function ddFrame(rdt,now){
   if(typeof ddLightFrame==='function')ddLightFrame(rdt,now);   // (Version 188: the light and sky, ddlight.js)
   if(typeof ddSeaFrame==='function')ddSeaFrame(rdt,now,dt);   // (Version 188: the sea and the shore, ddsea.js)
   if(typeof ddFxFrame==='function')ddFxFrame(rdt,now,dt);   // (Version 188: blasts, smoke, dust and fire, ddfx.js)
+  if(typeof ddrGunsFrame==='function')ddrGunsFrame(rdt);   // (Version 246, the draft's guns turn with their gunners: ddreal.js)
   if(typeof ddGroundFrame==='function')ddGroundFrame(rdt,now,dt);   // (Version 188: the ground's dressing, ddground.js)
   if(DD_MODE==='village'&&typeof vgFrame==='function')vgFrame(rdt,now);   // (the canopy opens over our men, ddvillage.js)
   if(typeof ddCam==='function')ddCam(rdt);   // (ddplay.js: the camera keeps with the squad)

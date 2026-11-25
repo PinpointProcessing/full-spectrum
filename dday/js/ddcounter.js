@@ -163,7 +163,9 @@ function dcBuild(G,sc,M,add){
     for(const[x,y,w,h2,d]of[[c.x-40,c.y+30,16,12,12],[c.x-44,c.y+46,12,9,10],[c.x+c.w+54,c.y+20,18,12,12]])add(new T.BoxGeometry(w,h2,d),M(0x5a6248,.9),x,h2/2+H(x,y),y);
     for(let k=0;k<3;k++){const b=add(new T.CylinderGeometry(4,4,10,10),M(0x4a4e44,.7),c.x+c.w+50+k*9,5+H(c.x+c.w+50,c.y+44),c.y+44+(k%2)*6);}
     // their light machine guns left of the fork: on tripods, pointed at the beach
-    DD.dcEGuns=[];for(const e of DCA.eguns){const g=new T.Group();g.position.set(e.x,H(e.x,e.y),e.y);g.rotation.y=0;const P=(geo,m,x,y,z,rz)=>{const b=new T.Mesh(geo,m);b.position.set(x,y,z);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);return b;};
+    DD.dcEGuns=[];for(const e of DCA.eguns){
+      if(typeof ddReal==='function'&&ddReal()){const rg=ddrGun('mg42',e.x,e.y,H(e.x,e.y),0);G.add(rg);DD.dcEGuns.push(rg);continue;}   // (Version 246, the draft's guns: ddreal.js)
+      const g=new T.Group();g.position.set(e.x,H(e.x,e.y),e.y);g.rotation.y=0;const P=(geo,m,x,y,z,rz)=>{const b=new T.Mesh(geo,m);b.position.set(x,y,z);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);return b;};
       P(new T.CylinderGeometry(.7,.7,16,7),steel,8,10.6,0,Math.PI/2);P(new T.BoxGeometry(5,3,2.2),steel,-2,10.4,0);P(new T.BoxGeometry(3,2.4,4.4),steel,1,9.8,2.4);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,12,5),steel);l.position.set(Math.cos(a)*3.2,5,Math.sin(a)*3.2);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}G.add(g);DD.dcEGuns.push(g);}
     const burnt=M(0x2a2826,.95),rust=M(0x4a3a30,.95),r2=rng(231);
@@ -173,7 +175,9 @@ function dcBuild(G,sc,M,add){
     ddgInst(G,new T.BoxGeometry(11,2.2,4.4),new T.MeshLambertMaterial({color:0xffffff,vertexColors:true}),dead,true,400,false);}
   // the guns: a machine gun on its tripod, or a field gun on its carriage (its group turns to where it fires)
   const gm=M(0x2a2c2e,.5,.7),ol=M(0x4d5540,.9);DD.dcGuns={};
-  for(const q of DCA.guns){const g=new T.Group();g.position.set(q.x,H(q.x,q.y),q.y-(q.t==='art'?14:9));g.rotation.y=q.face===0?0:Math.PI/2;const P=(geo,m,x,y,z,rz,rx)=>{const b=new T.Mesh(geo,m);b.position.set(x,y,z);if(rz)b.rotation.z=rz;if(rx)b.rotation.x=rx;b.castShadow=true;g.add(b);return b;};
+  for(const q of DCA.guns){
+    if(typeof ddReal==='function'&&ddReal()){const rg=dcRealGun(q,H);if(rg){G.add(rg);DD.dcGuns[q.k]=rg;continue;}}   // (Version 246, the draft's guns)
+    const g=new T.Group();g.position.set(q.x,H(q.x,q.y),q.y-(q.t==='art'?14:9));g.rotation.y=q.face===0?0:Math.PI/2;const P=(geo,m,x,y,z,rz,rx)=>{const b=new T.Mesh(geo,m);b.position.set(x,y,z);if(rz)b.rotation.z=rz;if(rx)b.rotation.x=rx;b.castShadow=true;g.add(b);return b;};
     if(q.t==='mg'){if(q.hv){P(new T.CylinderGeometry(1.15,1.15,22,8),gm,12,11.6,0,Math.PI/2);P(new T.BoxGeometry(.9,10,13),ol,5.5,12.4,0);P(new T.BoxGeometry(5,4,5),ol,0,10.6,-3.4);}   // (a heavy one: a longer, thicker barrel, a shield, a bigger box)
       P(new T.CylinderGeometry(.75,.75,17,7),gm,9,11.6,0,Math.PI/2);P(new T.CylinderGeometry(1.25,1.25,7,8),gm,3,11.6,0,Math.PI/2);P(new T.BoxGeometry(5,3,2.2),gm,-2,11.2,0);P(new T.BoxGeometry(3,2.4,4.6),gm,1,10.6,2.6);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}}
@@ -248,6 +252,13 @@ function enterCounter(){
 
 /* ---------- the guns ---------- */
 const dcGunAt=(x,y,r=30)=>dd.dc.guns.reduce((b,g)=>{const d=hyp(x-g.x,y-g.y);return d<r&&(!b||d<hyp(x-b.x,y-b.y))?g:b;},null);
+// Version 246 (a draft, ddreal.js): the gun as the real thing: a Browning .30 in a nest, a .50 for the heavy gun, the anti-tank gun for the field gun
+function dcRealGun(q,H){
+  const a=q.face===0?0:-Math.PI/2;
+  if(q.t==='mg')return ddrGun(q.hv?'m2':'m1919',q.x,q.y-9,H(q.x,q.y),a);
+  if(typeof ddrArtM1AT!=='function')return null;
+  const g=ddrArtM1AT(0);g.position.set(q.x,H(q.x,q.y),q.y-14);g.rotation.y=-a;g.userData.real=true;if(g.userData.barrel&&g.userData.barrel.userData.rest==null)g.userData.barrel.userData.rest=g.userData.barrel.position.x;return g;
+}
 function dcSeat(g){return{x:g.x,y:g.y+(g.t==='art'?12:0)};}
 function dcMan(u,g){   // send him to it; he takes it when he gets there (dcGunsTick)
   const s=dcSeat(g),p=findPath(u.x,u.y,s.x,s.y);if(!p)return false;
@@ -410,7 +421,7 @@ function dcGunsTick(dt){
     const u=g.going;if(u){const s=dcSeat(g);if(!alive(u)||u.dcGun!==g||simT-g.goT>40)g.going=null;
       else if(!u.path.length){g.going=null;if(hyp(u.x-s.x,u.y-s.y)<16&&!g.man){g.man=u;g.manT=simT;u.x=s.x;u.y=s.y;u.ang=-Math.PI/2;u.aimT=simT;
         if(g.t==='mg'){u.onGun={x:g.x,y:g.y,ang:-Math.PI/2,arc:g.arc};u.gunner=true;}if(!u.npc)callout(u,g.t==='art'?'On the field gun':'On the gun',C0());}else if(u.dcGun===g)u.dcGun=null;}}
-    const mesh=DD.dcGuns&&DD.dcGuns[g.k];if(mesh&&mesh.userData.barrel){const k=mesh.userData.kick=Math.max(0,(mesh.userData.kick||0)-dt*2.5);mesh.userData.barrel.position.x=30-k*9;}
+    const mesh=DD.dcGuns&&DD.dcGuns[g.k];if(mesh&&mesh.userData.barrel){const k=mesh.userData.kick=Math.max(0,(mesh.userData.kick||0)-dt*2.5);mesh.userData.barrel.position.x=(mesh.userData.barrel.userData.rest??30)-k*9;}
     if(g.t!=='art'||!g.man||simT<g.fireT||C.ph==='setup'||C.ph==='intro')continue;
     if(g.man.fp)continue;   // (the player is behind it: it fires when he does, ddfp.js)
     if(g.aim){dcFire(g,g.aim.x,g.aim.y);continue;}

@@ -445,6 +445,7 @@ function ddcBind(){
   // ddplay.js's ddDodge for the squad you play (the squad that runs itself always dodges); on the start card and, in a battle, on a small panel while paused
   const d=$('#ddCtlDodge'),st=$('#stage');
   if(st&&!$('#ddSet')){const el=document.createElement('div');el.id='ddSet';el.hidden=true;el.innerHTML='<b>PAUSED</b><label><input type="checkbox" id="ddSetDodge"><span>Auto cover from grenades<small>Off: your men stay in the circle until you move them</small></span></label>';st.appendChild(el);}
+  {const r=$('#ddCtlReal');if(r&&typeof ddReal==='function'){r.checked=ddReal();r.addEventListener('change',()=>ddrSet(r.checked));}}   // (Version 246, a draft: the new guns and vehicles, ddreal.js)
   const d2=$('#ddSetDodge'),set=v=>{DDC.dodge=v;ddcSave();if(d)d.checked=v;if(d2)d2.checked=v;};
   if(d){d.checked=DDC.dodge;d.addEventListener('change',()=>set(d.checked));}if(d2){d2.checked=DDC.dodge;d2.addEventListener('change',()=>set(d2.checked));}
 }

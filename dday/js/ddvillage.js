@@ -182,6 +182,8 @@ function vgBuild(G,sc,M,add){
     else if(o.kind==='vgbale'){const m=add(new T.CylinderGeometry(7,7,12,14),M(0xc9b066,1),cx,g0+7,cy,r()*3,0,Math.PI/2);o.meshes=[m];}
     else if(o.kind==='vgcart'){o.meshes=[add(new T.BoxGeometry(o.w,4,o.h),wood,cx,g0+8,cy),add(new T.BoxGeometry(o.w,6,1),wood,cx,g0+12,o.y),add(new T.BoxGeometry(o.w,6,1),wood,cx,g0+12,o.y+o.h)];
       for(const z of[o.y-1,o.y+o.h+1])o.meshes.push(add(new T.CylinderGeometry(7,7,1.4,12),M(0x4a3a28,.95),cx+4,g0+7,z,0,Math.PI/2));o.meshes.push(add(new T.BoxGeometry(26,1.4,1.4),wood,o.x-11,g0+5,cy-3,0,0,.18));}
+    else if(o.kind==='vgcar'&&typeof ddrHas==='function'&&ddrHas('ddrVehCar')){   // (Version 246, the draft: ddrveh.js's wrecks)
+      const c=ddrVehCar(o.look==='truck'?'lorry':'kubel',true,0);ddrBurn(c);c.position.set(cx,g0,cy);c.rotation.y=o.w>=o.h?(o.look==='truck'?Math.PI:0):-Math.PI/2;c.userData.real=true;G.add(c);o.meshes=ddrMeshes(c);}
     else if(o.kind==='vgcar'){const burnt=M(0x2e2a26,.9,.3),body=o.look==='truck'?[o.w,10,o.h]:[o.w,8,o.h];
       o.meshes=[add(new T.BoxGeometry(...body),burnt,cx,g0+7,cy),add(new T.BoxGeometry(o.look==='truck'?12:o.w*.5,7,o.h-2),burnt,o.look==='truck'?o.x+8:cx-2,g0+14,cy)];
       for(const[dx,dz]of[[-.35,-.5],[.35,-.5],[-.35,.5],[.35,.5]])o.meshes.push(add(new T.CylinderGeometry(3.2,3.2,2,10),M(0x1a1a1a,.9),cx+dx*o.w,g0+3.2,cy+dz*o.h,0,Math.PI/2));}
@@ -190,11 +192,14 @@ function vgBuild(G,sc,M,add){
   }
   // the enemy's machine guns on their tripods, and the field guns' mortar tubes, facing where their men face
   const gm=M(0x2a2c2e,.5,.7);DD.vgGuns=[];
-  for(const q of VG_GUNS){const g=new T.Group();g.position.set(q.x,H(q.x,q.y),q.y);g.rotation.y=-q.ang;const P=(geo,x,y,z,rz)=>{const b=new T.Mesh(geo,gm);b.position.set(x,y,z);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);return b;};
+  for(const q of VG_GUNS){
+    if(typeof ddReal==='function'&&ddReal()){const rg=ddrGun('mg42',q.x,q.y,H(q.x,q.y),q.ang);G.add(rg);DD.vgGuns.push(rg);continue;}   // (Version 246, the draft's guns: ddreal.js)
+    const g=new T.Group();g.position.set(q.x,H(q.x,q.y),q.y);g.rotation.y=-q.ang;const P=(geo,x,y,z,rz)=>{const b=new T.Mesh(geo,gm);b.position.set(x,y,z);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);return b;};
     P(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);P(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);P(new T.BoxGeometry(5,3,2.2),-2,11.2,0);
     for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
     G.add(g);DD.vgGuns.push(g);}
-  for(const[x,y]of[[560,-238],[860,-232]]){const t=add(new T.CylinderGeometry(1.6,2,16,8),gm,x,H(x,y)+7,y,0,-.7);t.castShadow=true;add(new T.CylinderGeometry(4,4,1,10),gm,x,H(x,y)+.5,y+4);}
+  if(typeof ddrPlaceMortar==='function'&&ddrHas('ddrArtMortar')){for(const[x,y]of[[560,-238],[860,-232]])ddrPlaceMortar(x,y,H(x,y),Math.PI/2,G);}   // (Version 246, the draft's mortars)
+  else for(const[x,y]of[[560,-238],[860,-232]]){const t=add(new T.CylinderGeometry(1.6,2,16,8),gm,x,H(x,y)+7,y,0,-.7);t.castShadow=true;add(new T.CylinderGeometry(4,4,1,10),gm,x,H(x,y)+.5,y+4);}
   // the churchyard's graves, café tables in the square, washing on a line, the farm's wood pile
   for(let k=0;k<16;k++){const x=420+(k%8)*16+r()*4,y=-634+((k/8)|0)*14;add(new T.BoxGeometry(5,8+r()*4,1.6),M(0x9a9688,.95),x,H(x,y)+4,y,(r()-.5)*.2);}
   for(const[x,y]of[[652,-576],[668,-584],[754,-582]]){add(new T.CylinderGeometry(4,4,.6,10),M(0x8a8478,.7,.3),x,H(x,y)+8,y);add(new T.CylinderGeometry(.5,.5,8,5),dark,x,H(x,y)+4,y);}
@@ -440,6 +445,7 @@ function vgNpcs(){
 
 /* ---------- their reinforcements: trucks that unload where they stop, then the tank and men on foot ---------- */
 function vgTruckMesh(){
+  if(typeof ddrHas==='function'&&ddrHas('ddrVehTruck')){const rg=ddrVehTruck('opel',0);rg.userData.real=true;return{g:rg,mats:[]};}   // (Version 246, the draft: ddrveh.js's Opel Blitz)
   const g=new T.Group(),M=(c,r=.85,m=.1)=>new T.MeshStandardMaterial({color:c,roughness:r,metalness:m}),ol=M(0x5a5e48),cv=M(0x7a7a5a,1),dk=M(0x1e1e1c,.9),gl=M(0x2a3238,.3,.4);
   const P=(geo,m,x,y,z)=>{const q=new T.Mesh(geo,m);q.position.set(x,y,z);q.castShadow=true;g.add(q);return q;};
   P(new T.BoxGeometry(60,4,22),dk,-2,8,0);P(new T.BoxGeometry(18,14,21),ol,22,17,0);P(new T.BoxGeometry(1,6,17),gl,31.2,20,0);P(new T.BoxGeometry(12,8,22),ol,33,12,0);

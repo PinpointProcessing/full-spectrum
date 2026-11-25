@@ -35,7 +35,7 @@ function fpEnter(u,view){
 function fpExit(why){
   const F=dd&&dd.fp;if(!F)return;const u=F.u;u.fp=false;dd.fp=null;
   camera.fov=F.fov0;camera.near=F.near0;camera.updateProjectionMatrix();
-  if(F.gun&&F.gun.parent)F.gun.parent.remove(F.gun);if(u.m)u.m.g.visible=true;
+  if(F.gun&&F.gun.parent)F.gun.parent.remove(F.gun);if(u.m)u.m.g.visible=true;if(typeof ddrFpOff==='function')ddrFpOff(F);
   document.body.classList.remove('fp','fp-scope');const el=$('#fp');if(el)el.hidden=true;
   try{if(document.pointerLockElement)document.exitPointerLock();}catch(e){}
   if(MAPID!=='dd'||state!=='play')return;
@@ -52,7 +52,9 @@ function fpNext(){
 function fpPose(){
   const F=dd.fp,u=F.u,g=gndH(u.x,u.y)+(u.elev||0),A=fpArt(u),mt=!!u.onGun||!!A,one=mt||F.view==='1p';
   const p=F.p+F.kick,cp=Math.cos(p),D=new T.Vector3(Math.cos(F.a)*cp,Math.sin(p),Math.sin(F.a)*cp),R=new T.Vector3(-Math.sin(F.a),0,Math.cos(F.a));
-  let O;
+  let O,rig=null;
+  // (Version 246, the draft's guns: the eye rides behind and above the back of the real gun, round its pivot: ddreal.js)
+  if(mt&&!A&&typeof ddrFpRig==='function'&&(rig=ddrFpRig(u))){const sp=Math.sin(p);O=new T.Vector3(rig.x,rig.y,rig.z).addScaledVector(D,-rig.eb).add(new T.Vector3(-Math.cos(F.a)*sp,cp,-Math.sin(F.a)*sp).multiplyScalar(rig.eh));return{O,D,R,one,mt,A,rig};}
   if(one)O=new T.Vector3(u.x+Math.cos(F.a)*2.5,g+F.H*.9+(A?5:0),u.y+Math.sin(F.a)*2.5);
   else{O=new T.Vector3(u.x,g+F.H+7,u.y).addScaledVector(D,-FPC.back).addScaledVector(R,FPC.side);const gh=gndH(O.x,O.z)+3;if(O.y<gh)O.y=gh;}
   return{O,D,R,one,mt,A};
@@ -197,7 +199,10 @@ function fpCam(rdt){
     for(const q of units){if(q===u||!q.m||q.side==='E'||q.dead)continue;const dx=q.x-u.x,dy=q.y-u.y,d=hyp(dx,dy);if(d<30||(d<95&&(dx*cx+dy*cy)/d>.72))q.m.g.visible=false;}}
   // the gun in his hands, first person
   const kind=P.mt?'minigun':u.weapon==='hmg'?'bar':u.weapon==='sniper'?'spring':'garand';
-  if(P.one&&!P.A&&!scope){
+  if(P.rig){if(F.gun)F.gun.visible=false;const W2=W;ddrFpFrame(F,P,F.cool>W2.cool-.05&&!F.reloadT);}
+  else if(F.rg&&typeof ddrFpOff==='function')ddrFpOff(F);
+  if(P.rig){}
+  else if(P.one&&!P.A&&!scope){
     if(!F.gun||F.gunK!==kind+(P.mt?'m':'')||F.gun.parent!==scene){if(F.gun&&F.gun.parent)F.gun.parent.remove(F.gun);F.gun=P.mt&&typeof ddPostFpGun==='function'?ddPostFpGun():typeof fpGunModel==='function'&&!P.mt?fpGunModel(kind):ddmGun(kind);F.gunK=kind+(P.mt?'m':'');const own=F.gun.userData.own;F.gun.traverse(o=>{o.frustumCulled=false;o.castShadow=false;if(P.mt&&!own&&o.material)o.material.color.setHex(0x2a2c30);});scene.add(F.gun);}
     const g=F.gun,up=new T.Vector3(0,1,0).applyQuaternion(camera.quaternion),rt=new T.Vector3(1,0,0).applyQuaternion(camera.quaternion),fw=new T.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
     const dip=F.reloadT?Math.min(1.6,(F.reloadT-simT)*2,(simT-(F.reloadT-W.reload))*6):0,shot=F.cool>W.cool-.05&&!F.reloadT;
@@ -232,7 +237,8 @@ function fpBuild(){
   (sq?sq.parentNode:document.body).appendChild(el);
   const ptrs={},stick=el.querySelector('.fp-stick'),knob=stick.firstElementChild;
   const look=(dx,dy,s)=>{const F=dd&&dd.fp;if(!F)return;const u=F.u,k=s*clamp(F.fov/FPC.fov1,.25,1);F.a+=dx*k;F.p=clamp(F.p-dy*k,-1.05,.8);
-    const g=u.onGun||(fpArt(u)?{ang:-Math.PI/2,arc:1.0}:null);if(g){const d=Math.atan2(Math.sin(F.a-g.ang),Math.cos(F.a-g.ang));F.a=g.ang+clamp(d,-g.arc,g.arc);}};
+    const g=u.onGun||(fpArt(u)?{ang:-Math.PI/2,arc:1.0}:null);if(g){const d=Math.atan2(Math.sin(F.a-g.ang),Math.cos(F.a-g.ang));F.a=g.ang+clamp(d,-g.arc,g.arc);}
+    if(u.onGun&&typeof ddReal==='function'&&ddReal())F.p=clamp(F.p,-.42,.5);};   // (the draft's guns: a gun on its mount only tips so far)
   const act=a=>{const F=dd&&dd.fp;if(!F)return;if(a==='back')fpExit();else if(a==='view'){if(F.u.onGun||fpArt(F.u))fpSay('First person on a gun');else F.view=F.view==='1p'?'3p':'1p';}
     else if(a==='next')fpNext();else if(a==='use')fpUse();else if(a==='spec')fpSpec();else if(a==='nade')fpNade();else if(a==='aim')F.aim=!F.aim;else if(a==='reload')fpReload();};
   el.addEventListener('click',ev=>{const b=ev.target.closest('button');if(b&&b.dataset.a!=='fire'){ev.stopPropagation();act(b.dataset.a);}});

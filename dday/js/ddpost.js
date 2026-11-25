@@ -80,7 +80,9 @@ function ddPostBuild(G,add,M){
     const fm=new T.MeshStandardMaterial({color:0xb02222,roughness:.9,side:T.DoubleSide,emissive:0xb02222,emissiveIntensity:.25});const fl=add(new T.PlaneGeometry(20,12),fm,X(fx)+7,f0+39,fy+7,-Math.PI/4);DD.postFlag=fm;DD.postFlagM={m:fl,y:f0+39,mat:fm};}
   ddCapBuild(add,M);   // (the left bunker's flag)
   // the two guns on their tripods, pointing down the path; turned up the hill once they're ours
-  DD.postGuns=P.mg.map(sp=>{const g=new T.Group(),gm=steel.clone();g.userData.mat=gm;   // (its own material: it glows once it's yours to take, ddPostDraw)
+  DD.postGuns=P.mg.map(sp=>{
+    if(typeof ddReal==='function'&&ddReal()){const rg=ddrGun('mg42',X(sp.x),sp.y,gh(sp.x,sp.y),sp.ang);rg.userData.mat=ddrGlow(rg);G.add(rg);return rg;}   // (Version 246, the draft's guns: ddreal.js)
+    const g=new T.Group(),gm=steel.clone();g.userData.mat=gm;   // (its own material: it glows once it's yours to take, ddPostDraw)
     g.position.set(X(sp.x),gh(sp.x,sp.y),sp.y);g.rotation.y=-sp.ang;
     const q=(geo,px,py,pz,rz)=>{const b=new T.Mesh(geo,gm);b.position.set(px,py,pz);if(rz)b.rotation.z=rz;b.castShadow=true;g.add(b);};
     q(new T.CylinderGeometry(.75,.75,17,7),9,11.6,0,Math.PI/2);q(new T.CylinderGeometry(1.25,1.25,7,8),3,11.6,0,Math.PI/2);q(new T.BoxGeometry(5,3,2.2),-2,11.2,0);q(new T.BoxGeometry(3,2.4,4.6),1,10.6,2.6);

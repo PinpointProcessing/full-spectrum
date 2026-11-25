@@ -182,6 +182,7 @@ function fxPool(){
 function muzzleAt(u,out){   // where his barrel ends, in the world
   const F=u&&u.m&&u.m.fig;
   if(F&&!u.gunner){const b=F.bones[20];b.updateWorldMatrix(true,false);return b.localToWorld(out.set((MUZ[F.key.split('|')[1]]||5.4)*GUN_S,.05*GUN_S,0));}
+  if(u&&u.gunner&&typeof ddrMuzzle==='function'){const q=ddrMuzzle(u,out);if(q)return q;}   // (Version 246, the draft's guns: the real barrel's end, ddreal.js)
   if(u&&u.m&&u.m.g&&u.gunner){u.m.g.updateWorldMatrix(true,false);return u.m.g.localToWorld(out.set(16,9.5,0));}
   return null;
 }
