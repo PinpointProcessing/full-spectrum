@@ -114,8 +114,8 @@ function ddmReady(chap){
 /* ---------- the end of a battle won: who's left, what they did ---------- */
 // where the line-up stands and what the base view looks at, on the beach's map or the counterattack's (ddcounter.js)
 function ddmSpots(){
-  if(dd&&dd.vil)return{line:[700,-468],cam:[770,-520],zoom:[1.75,3],bk:VG.meta.bk,ar:VG.meta.ar,vd:VG.meta.vd,hs:VG.meta.hs,sq:[672,-536],off:{bk:[0,-10],ar:[0,-14],vd:[0,-12],hs:[0,-12]}};   // (the village, Chapter 3: its town hall the barracks, ddvillage.js)
-  if(dd&&dd.counter)return{line:[885,655],cam:[700,720],zoom:[1.75,3],bk:[DCA.barracks[0].x+85,DCA.barracks[0].y+50],ar:[DCA.armory.x+55,DCA.armory.y+28],vd:[DCA.depot.x+75,DCA.depot.y+28],hs:[DCA.cp.x+60,DCA.cp.y+50],sq:[DCA.square.x-30,DCA.square.y-20],off:{bk:[0,-10],ar:[-10,24],vd:[30,24],hs:[0,-14]}};
+  if(dd&&dd.vil)return{bf:[730,-520,[-.5,.5,.3]],line:[700,-468],cam:[770,-520],zoom:[1.75,3],bk:VG.meta.bk,ar:VG.meta.ar,vd:VG.meta.vd,hs:VG.meta.hs,sq:[672,-536],off:{bk:[0,-10],ar:[0,-14],vd:[0,-12],hs:[0,-12]}};   // (the village, Chapter 3: its town hall the barracks, ddvillage.js)
+  if(dd&&dd.counter)return{bf:[700,700,[.2,.35,-.35,0]],line:[885,655],cam:[700,720],zoom:[1.75,3],bk:[DCA.barracks[0].x+85,DCA.barracks[0].y+50],ar:[DCA.armory.x+55,DCA.armory.y+28],vd:[DCA.depot.x+75,DCA.depot.y+28],hs:[DCA.cp.x+60,DCA.cp.y+50],sq:[DCA.square.x-30,DCA.square.y-20],off:{bk:[0,-10],ar:[-10,24],vd:[30,24],hs:[0,-14]}};
   return{bf:[DDX+500,575,[.45,-.45,.22,-.22,0]],line:[DDX+520,-556],cam:[1545,-592],zoom:[2.6,3.6],bk:[(DB.bA.x+DB.bB.x+DB.bB.w)/2,DB.bA.y+DB.bA.h/2],ar:[DB.ammo.x+DB.ammo.w/2,DB.ammo.y+DB.ammo.h/2],vd:[DB.pool.x+DB.pool.w/2,DB.pool.y+DB.pool.h/2],hs:[DB.cp.x+DB.cp.w/2,DB.cp.y+DB.cp.h/2],sq:[1500,-592],off:{bk:[0,-6],ar:[34,-14],vd:[-34,20],hs:[0,-12]}};
 }
 function ddmStart(){
@@ -544,7 +544,7 @@ function ddmV2Tap(){const r=ddm&&ddm.v2&&ddm.rows[ddm.step],v=r&&r.v;if(!v||v.wa
 function ddmV2ManHTML(){
   const k=ddm.step,r=ddm.rows[k],m=r.rm,v=r.v,Q=ddm.v2Q,un=ddmUnl(m).filter(q=>q[0]<=v.lv&&q[0]>r.lv0),pk=(r.pkd||[]).map(x=>(ddmJob(m).find(q=>q[0]===x)||[0,x])[1]);
   const fresh=ddm.v2Shown!==k,nw=!!ddm.v2New;ddm.v2Shown=k;ddm.v2New=0;   // (drawn again for the same man, the card doesn't slide in again; the level's flash only as it's reached)
-  return`<div class="ddm-roll v2" data-a="v2tap"><div class="ddm-rtop"><div><div class="ddm-vt sm">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div><div class="ddm-v2n"><b>LEVEL UP</b><span>${ddm.v2I+1} of ${Q.length}</span>${ddm.v2Bg?'':`<small>Backdrop ${DDM_BGN[ddm.v2K||'stage']}</small>`}</div></div>
+  return`<div class="ddm-roll v2" data-a="v2tap"><div class="ddm-rtop"><div><div class="ddm-vt sm">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div><div class="ddm-v2n"><b>LEVEL UP</b><span>${ddm.v2I+1} of ${Q.length}</span></div></div>
     <div class="ddm-rc${r.mvp?' mvp':''}${fresh?'':' still'}" style="--tc:${teamCol(r.u)}">
       <div class="ddm-rh"><i>${DDM_ICON[m.role]||''}</i><div class="nm"><b>${ddmEsc(m.name)}</b><span>${r.team==='A'?'ALPHA':'BRAVO'} · ${DDM_ROLE[m.role].toUpperCase()}</span></div><div class="ddm-lvl">LEVEL<u id="ddmLv"${nw?' class="pop"':''}>${v.lv}</u></div></div>
       <div class="ddm-cite"><b>${r.mvp?DDM_MED+' ':''}${r.cite[0]}</b><span>${ddmEsc(r.cite[1])}</span></div>
@@ -680,11 +680,16 @@ function ddmStageFrame(r,rdt){
 // on the stage and framed the same (DDM_STAGE); the camera is set at the end of dday.js's ddFrame (ddmCam: render's own updateCamera comes first, so
 // the game's camera is pointed the same way from further up for what it decides: what fades, the shadows, the haze). A place is taken only if he can
 // stand there and nothing's between him and the camera (ddmShotPick: isFree, los, the ground along the way); none found, it's the stage.
-// While it's a draft the three take turns, a man each (ddmBgOf; ddm.v2Bg fixes one), so they can be compared on a phone.
-const DDM_BGS=['stage','base','field'],DDM_BGN={stage:'A · dark stage',base:'B · the base',field:'C · the battlefield'};
+const DDM_BGS=['field','base','stage'];
 const DDM_SHOT={pitch:.1,out:[75,60,45,30],along:[0,-25,25,-50,50,-75,75,-100,100,-130,130],yaws:[.42,-.42,.22,-.22,0],clear:5,turn:[.38,.3]};
-// which backdrop this man's page has, and where: settled as his page comes up (ddmV2Go), so the page can say which it is
-function ddmBgPick(k){const r=ddm.rows[k],want=ddm.v2Bg||DDM_BGS[(ddm.v2I||0)%DDM_BGS.length];ddmWorldOff();ddm.v2At=r&&want!=='stage'?ddmShotPick(r,want):null;ddm.v2K=ddm.v2At?want:'stage';}
+// which backdrop this man's page has, and where: settled as his page comes up (ddmV2Go). Version 244 (Bryan, of Version 243's three: "I like C for
+// D-Day and B for the defensive mission. Maybe each after battle screen can be on the battlefield that was just fought?"): the ground just fought
+// over, a place picked by hand on each map and looked at ('field', ddmSpots().bf): after D-Day the beach, the wire and the bluff behind him; after
+// the counterattack the base's square, its command post and the gate behind him; after the village its square, a burnt-out car and a house behind
+// him. Should nothing near it do (something new standing there), out in front of the line ('base'), and the stage last (ddm.v2Bg, the draft
+// tools': one in particular)
+function ddmBgPick(k){const r=ddm.rows[k],want=ddm.v2Bg?[ddm.v2Bg]:DDM_BGS;ddmWorldOff();ddm.v2At=null;ddm.v2K='stage';
+  if(r)for(const w of want){if(w==='stage')break;const at=ddmShotPick(r,w);if(at){ddm.v2At=at;ddm.v2K=w;break;}}}
 function ddmShotPick(r,kind){
   const u=r.u,Hm=20*u.m.g.scale.y,side=cw>ch&&ch<=520,d=Hm/DDM_STAGE[side?1:0][0]/2/Math.tan(camera.fov*Math.PI/360),tp=Math.tan(DDM_SHOT.pitch);
   const ok=(x,y,a)=>{if(!isFree(x,y,7))return false;const cx=x+Math.sin(a)*d,cy=y+Math.cos(a)*d;if(!los(cx,cy,x,y,true))return false;
@@ -704,13 +709,18 @@ function ddmWorldShot(r,rdt,now){
   S.fl=Math.max(0,S.fl-rdt*1.8);u.m.fig.mat.userData.U.uFill.value=S.fill0+S.fl*.5;
   const h=ddH(u.x,u.y),cx=u.x+Math.sin(at.yaw)*d*Math.cos(p),cz=u.y+Math.cos(at.yaw)*d*Math.cos(p),cy=Math.max(h+Hm*.5+d*Math.sin(p),ddH(cx,cz)+DDM_SHOT.clear);
   S.c=[cx,cy,cz,u.x,h+Hm*.5,u.y,V[1],V[2]];
-  if(kind==='base'){   // (a mate standing right behind him would show as a second body growing out of his: out of the picture while it lasts; on an upright phone the picture's so narrow that a mate in it is a rifle and half a man at its edge, so there they all are)
-    const thr=side?Math.atan2(9.5,d):Math.atan(Math.tan(camera.fov*Math.PI/360)*cw/ch)+.05,ax=Math.atan2(u.x-cx,u.y-cz);for(const q of ddm.rows)if(q.u!==u){let df=Math.abs(Math.atan2(q.u.x-cx,q.u.y-cz)-ax);if(df>Math.PI)df=2*Math.PI-df;q.u.away=df<thr;}}
+  // Who else is in the picture. Out of it while it lasts (S.hid, put back by ddmWorldOff): anyone standing between him and the camera (the line itself
+  // can be, where his place is beyond it; the other troops wander); a mate right behind him, who'd show as a second body growing out of his; and on an
+  // upright phone every mate in it: the picture's so narrow there that one of them is a rifle and half a man at its edge
+  {const hf=Math.atan(Math.tan(camera.fov*Math.PI/360)*cw/ch),ax=Math.atan2(u.x-cx,u.y-cz),thr=side?Math.atan2(9.5,d):hf+.05,hid=S.hid||(S.hid=new Set());
+    for(const q of units){if(q===u||!q.m||q.dead)continue;let df=Math.abs(Math.atan2(q.x-cx,q.y-cz)-ax);if(df>Math.PI)df=2*Math.PI-df;
+      const hide=(hyp(q.x-cx,q.y-cz)<d+12&&df<hf*1.9+.12)||(df<thr&&ddm.rows.some(r=>r.u===q));
+      if(hide){if(!q.away){q.away=true;hid.add(q);}}else if(hid.has(q)){q.away=false;hid.delete(q);}}}
   yaw=at.yaw;camT.x=u.x;camT.z=u.y;zoom=dist0/d;tilt=typeof ddTilt==='function'?ddTilt(zoom):0;camShift=0;
   render(rdt,now);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
 }
 function ddmCam(){const S=ddm&&ddm.ws,c=S&&S.c;if(!c)return;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);camera.setViewOffset(cw,ch,cw*c[6],ch*c[7],cw,ch);camera.updateMatrixWorld();}
-function ddmWorldOff(){const S=ddm&&ddm.ws;if(!S)return;const u=S.u;u.x=S.x0;u.y=S.y0;u.ang=S.a0;u.show=false;u.m.fig.fresh=true;if(u.m.ring)u.m.ring.visible=true;u.m.fig.mat.userData.U.uFill.value=S.fill0;camera.clearViewOffset();for(const q of ddm.rows)q.u.away=false;ddm.ws=null;}
+function ddmWorldOff(){const S=ddm&&ddm.ws;if(!S)return;const u=S.u;u.x=S.x0;u.y=S.y0;u.ang=S.a0;u.show=false;u.m.fig.fresh=true;if(u.m.ring)u.m.ring.visible=true;u.m.fig.mat.userData.U.uFill.value=S.fill0;camera.clearViewOffset();for(const q of S.hid||[])q.away=false;ddm.ws=null;}
 const DDM_STAGE=[[.37,0,.2],[.76,.21,-.03]];   // (how much of the screen's height he takes, and how far the picture is moved left and up: his card under him, his card beside him)
 // After Version 224 (Bryan: "Medals are spent after the battle to revive players that were lost"): on the report, a medal brings a fallen man back:
 // into his own slot if it's still empty, else any empty squad slot, else the reserve; at full health, his kit as it was.

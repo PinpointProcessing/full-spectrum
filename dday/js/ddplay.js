@@ -135,19 +135,22 @@ function startDDay(){
 // Version 192 (Bryan: "make sure we have a button to enter the post battle menu after the first mission like the shortcut to the other levels"): Chapter 1
 // started and ended at once as a win, with a battle's worth of made-up numbers so the report has something to say: their men taken off the map, ours each
 // given kills, a revive here, a man down there (one still down at the end), then the report as after a real win (ddFinish -> ddmeta.js's ddmStart)
-function ddAfterFirst(v2){   // (v2: Version 240's draft, the report on one page: one man made to climb two levels and one killed, so every case is on it)
+// Version 244: the same for the other two chapters (ddAfter(2|3,true): Bryan, "Maybe each after battle screen can be on the battlefield that was just
+// fought?", so there has to be a way to see each without playing it through): the chapter started straight in its fight and ended at once as a win
+const ddAfterFirst=v2=>ddAfter(1,v2);
+function ddAfter(chap,v2){   // (v2: Version 240's draft, the report on one page: one man made to climb two levels and one killed, so every case is on it)
   if(v2&&typeof FIG_LVLOOK!=='undefined')FIG_LVLOOK=true;   // (Version 242's draft: the men's look by level, from here until the page is loaded again, so the next mission shows it in battle too)
-  startDDay();
-  setTimeout(()=>{if(!dd||state!=='play')return;
+  if(chap===2)startCounter(false,true);else if(chap===3)startVillage({skip:true});else startDDay();
+  let tries=0;const go=()=>{if(!dd||state!=='play'||!players.some(p=>p.rm)||(chap===2&&!dd.counter)||(chap===3&&!dd.vil)){if(tries++<40)setTimeout(go,150);return;}
     for(const e of enemies){if(e.m&&e.m.g&&e.m.g.parent)e.m.g.parent.remove(e.m.g);e.dead=true;}
     const L=players.filter(p=>p.rm&&!p.dead),K=v2?[7,3,5,2,4,14,1,3]:[7,3,5,2,4,6,1,3];L.forEach((u,i)=>{u.stats.kills=K[i%8];u.stats.best=i%3===0?3:1;u.stats.items=i%2?2:0;u.inBoat=false;});
     if(L[1])L[1].stats.revives=2;if(L[4]){L[4].stats.downs=1;L[4].stats.revives=1;}if(L[6]){L[6].stats.downs=2;L[6].downed=true;}
     if(v2){if(L[7]){L[7].dead=true;L[7].hp=0;}if(typeof ddmV2!=='undefined')ddmV2=true;}
-    dd.lost=3;dd.t0=simT-23*60-41;dd.won=true;if(dd.land)dd.land.done=true;ddFinish();},350);
+    dd.lost=3;dd.t0=simT-23*60-41;dd.won=true;if(dd.land)dd.land.done=true;ddFinish();};setTimeout(go,350);
 }
-function ddCtrBtnShow(){for(const id of['#ddCtrBtn','#ddVilBtn','#ddAfterBtn','#ddAfter2Btn']){const b=$(id);if(b)b.hidden=false;}}   // (every chapter open from the start since Version 178, like the horror game's levels: one not reached yet gets squads made for it, ddmeta.js's ddmReady)
+function ddCtrBtnShow(){for(const id of['#ddCtrBtn','#ddVilBtn','#ddAfterBtn','#ddAfter2Btn','#ddAfterC2Btn','#ddAfterC3Btn']){const b=$(id);if(b)b.hidden=false;}}   // (every chapter open from the start since Version 178, like the horror game's levels: one not reached yet gets squads made for it, ddmeta.js's ddmReady)
 function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();if(typeof ddcBind==='function')ddcBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
-  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}{const v=$('#ddAfterBtn');if(v)v.addEventListener('click',()=>ddAfterFirst());}{const v=$('#ddAfter2Btn');if(v)v.addEventListener('click',()=>ddAfterFirst(true));}
+  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}{const v=$('#ddAfterBtn');if(v)v.addEventListener('click',()=>ddAfterFirst());}{const v=$('#ddAfter2Btn');if(v)v.addEventListener('click',()=>ddAfterFirst(true));}{const v=$('#ddAfterC2Btn');if(v)v.addEventListener('click',()=>ddAfter(2,true));}{const v=$('#ddAfterC3Btn');if(v)v.addEventListener('click',()=>ddAfter(3,true));}
   const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}
 const ddBusy=()=>!!dd&&(!dd.land.done||!!dd.seq);   // (dd.seq: the sequence before Chapter 3, ddvillage.js)
 /* ---------- the camera ----------

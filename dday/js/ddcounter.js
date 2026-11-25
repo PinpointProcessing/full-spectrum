@@ -200,13 +200,13 @@ function dcBuild(G,sc,M,add){
 }
 
 /* ---------- starting it ---------- */
-function startCounter(retry){
+function startCounter(retry,noSeq){   // (noSeq: straight to the fight, no opening: the start card's after-battle shortcut, ddplay.js's ddAfter)
   if(!ddRoster)ddRoster=ddmRead();
   if(retry&&startCounter.snap){ddRoster=JSON.parse(startCounter.snap);ddmSave();}   // (a loss is a retry: the roster as it was when they left the barracks)
   if(!retry&&typeof ddmReady==='function')ddmReady(2);   // (from the start card before it's reached: squads made for it, ddmeta.js, Version 178)
   if(!ddmFit().length){banner('Nobody fit: treat the wounded or add reserves.',3200);return;}
   startCounter.snap=JSON.stringify(ddRoster);
-  startCounter.noSeq=!!retry;reset();DD_MODE='counter';$('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
+  startCounter.noSeq=!!retry||!!noSeq;reset();DD_MODE='counter';$('#intro').hidden=true;$('#end').hidden=true;$('#aar').hidden=true;
   enterCounter();state='play';endAt=0;
   bigText('Chapter 2: Hold the base','chapter');hud();
 }
