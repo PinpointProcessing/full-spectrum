@@ -143,10 +143,10 @@ function figParts(key){
     add('chest',rbox(1.8,.6,2.8,.25),COL.packD,0,-2.25,2.85,0);
     if(!dd)add('chest',rbox(.14,.4,1.7,.06),W,2,-3.12,2.15,0);         // team stripe (glows)
     if(role==='med'){add('chest',rbox(.12,.9,.3,.03),'#c8302a',0,-3.12,1.2,0);add('chest',rbox(.12,.3,.9,.03),'#c8302a',0,-3.12,1.2,0);}   // a red cross
-    if(role==='lead')add('chest',cyl(.07,.07,5.5,4),COL.dark,0,-2.6,5.0,-.9,[0,0,-.12]);   // the team leader's radio antenna
+    if(role==='lead')add('chest',cyl(.07,.07,5.5,4),COL.dark,0,-3.0,4.8,-.9,[0,0,.35]);   // the team leader's radio antenna, leaning back clear of his helmet (it leant forward into the brim)
     if(role==='mg')add('chest',rbox(1.0,1.0,1.0,.2),COL.olive,0,-2.4,-.4,1.2);              // spare ammo
   }
-  if(radio){add('chest',rbox(1.5,2.6,2.4,.35),COL.olive,0,-2.1,1.1,0);add('chest',cyl(.08,.08,6.5,4),COL.dark,0,-2.5,5.2,-.8,[0,0,-.1]);}
+  if(radio){add('chest',rbox(1.5,2.6,2.4,.35),COL.olive,0,-2.1,1.1,0);add('chest',cyl(.08,.08,6.5,4),COL.dark,0,-2.9,5.0,-.8,[0,0,.3]);}   // (its antenna leaning back clear of the helmet)
   // neck and head
   add('neck',cyl(.8,.95,1.1),ddS?'#ffffff':sq?COL.gaiter:en?COL.scarf:'#ffffff',(sq&&!dd)||en?0:1,0,.35,0);
   if(en)add('neck',cyl(1.15,1.3,.9),COL.scarf,0,0,-.1,0);
@@ -527,7 +527,7 @@ function poseTorso(u,F,st,gait,P){
   P.hipsP.set(0,8.85,0);P.rate=18;P.launcher=false;P.feetRate=gait.mv?60:14;
   const G=P.gun,armed=F.key.split('|')[1]!=='none';
   G.mode='chest';G.aimed=false;
-  const lowReady=()=>{G.P.set(2.4,.15,.75);G.E[0]=-.15;G.E[1]=.22;G.E[2]=-.55;},slung=()=>{G.P.set(-2.0,1.3,.2);G.E[0]=1.45;G.E[1]=0;G.E[2]=1.15;};
+  const lowReady=()=>{G.P.set(2.4,.15,.75);G.E[0]=-.15;G.E[1]=.22;G.E[2]=-.55;},slung=()=>{G.P.set(-2.4,-2.2,.2);G.E[0]=1.45;G.E[1]=0;G.E[2]=-1.3;};   // (slung muzzle down, the stock under his shoulder blade: Bryan, on Chapter 2's opening, "the soldiers guns are going through their helmets"; it hung muzzle up behind the head)
   const breathe=Math.sin(t*1.7+sd*9)*.018;
   if(st==='dead'||st==='downed'||st==='stun'){
     const back=st!=='dead'||sd<.55;   // the dead lie on their backs or on their faces
@@ -568,9 +568,9 @@ function poseTorso(u,F,st,gait,P){
   if(st==='grabbed'){P.hipsP.set(-.8,8.2,0);P.spineE[2]=.3;P.chestE[2]=.25;P.headE[2]=.35;P.headE[0]=Math.sin(t*14)*.08;G.P.set(2.0,-1.5,.9);G.E[0]=0;G.E[1]=.3;G.E[2]=-1.2;return;}
   if(st==='grab'){P.hipsP.set(-.6,8.3,0);P.spineE[2]=.12;P.chestE[2]=.08;P.headE[2]=-.15;slung();return;}
   if(st==='gunner'){P.hipsP.set(-.4,7.9,0);P.spineE[2]=-.2;P.chestE[2]=-.08+(simT-(u.shotT||-9)<.1?.04:0);P.headE[2]=-.08;slung();return;}
-  if(st==='kneelwork'){P.hipsP.set(-.5,5.4,.1);P.spineE[2]=-.32;P.chestE[2]=-.25;P.headE[2]=-.35;P.chestE[1]=Math.sin(t*3+sd)*.05;slung();return;}
-  if(st==='sitwork'){P.hipsP.set(-.4,6.1,0);P.spineE[2]=-.16;P.chestE[2]=-.1;P.headE[2]=-.12;P.headE[1]=Math.sin(t*.6+sd)*.25;slung();return;}   // (seated on a crate or a wall)
-  if(st==='smokework'){P.hipsP.set(0,8.8,0);P.spineE[2]=-.04;P.headE[2]=-.05;P.headE[1]=Math.sin(t*.5+sd)*.3;slung();return;}
+  if(st==='kneelwork'){P.hipsP.set(-.5,5.4,.1);P.spineE[2]=-.32;P.chestE[2]=-.25;P.headE[2]=-.35;P.chestE[1]=Math.sin(t*(2.6+sd*.8)+sd*6.283)*.05;slung();return;}   // (the work poses: each man on his own clock, his seed spread over the whole cycle and a pace of his own, so no two move together)
+  if(st==='sitwork'){P.hipsP.set(-.4,6.1,0);P.spineE[2]=-.16;P.chestE[2]=-.1;P.headE[2]=-.12;P.headE[1]=Math.sin(t*(.45+sd*.3)+sd*6.283)*.25;G.mode='body';G.P.set(1.5,.35,4.5);G.X.set(1,0,.2).normalize();G.Y.set(0,1,0);return;}   // (seated on a crate or a wall, his rifle on the ground beside him: slung, it went into the seat)
+  if(st==='smokework'){P.hipsP.set(0,8.8,0);P.spineE[2]=-.04;P.headE[2]=-.05;P.headE[1]=Math.sin(t*(.37+sd*.26)+sd*6.283)*.3;slung();return;}
   if(st==='standwork'){P.hipsP.set(0,8.7,0);P.spineE[2]=-.15;P.chestE[2]=-.1;P.headE[2]=-.3;slung();return;}
   if(st==='rpg'){P.hipsP.set(-.2,8.4,0);P.hipsE[1]=-.3;P.chestE[1]=.1;P.chestE[2]=.02+(simT-(u.rpgT||-9)<.25?.12:0);P.headE[1]=.2;P.headE[0]=.12;P.launcher=true;slung();return;}
   if(st==='throw'){
@@ -670,10 +670,10 @@ function poseLimbs(u,F,st,gait,P){
   if(st==='grabbed'){hand(0,headP.x+.9,headP.y-.4,-.55);hand(1,headP.x+.9,headP.y-.2,.55);EL[0].set(1,-.3,-1);EL[1].set(1,-.3,1);return;}
   if(st==='grab'){hand(0,3.0,13.8,-.7);hand(1,3.3,14.4,.3);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
   if(st==='gunner'){const k=simT-(u.shotT||-9)<.1?-.25:0;hand(0,3.5+k,9.9,-.75);hand(1,3.5+k,9.9,.75);EL[0].set(-.4,-1,-.8);EL[1].set(-.4,-1,.8);return;}
-  if(st==='kneelwork'){const w=Math.sin(t*5+sd)*.35;hand(0,3.0+w,3.0,-.8);hand(1,3.1-w,3.1,.75);EL[0].set(-.2,-1,-1);EL[1].set(-.2,-1,1);return;}
+  if(st==='kneelwork'){const w=Math.sin(t*(4.3+sd*1.4)+sd*6.283)*.35;hand(0,3.0+w,3.0,-.8);hand(1,3.1-w,3.1,.75);EL[0].set(-.2,-1,-1);EL[1].set(-.2,-1,1);return;}
   if(st==='sitwork'){hand(0,3.1,6.9,-.95);hand(1,3.0,6.9,.95);EL[0].set(-.2,-1,-1);EL[1].set(-.2,-1,1);return;}
-  if(st==='smokework'){const up=Math.max(0,Math.sin(t*.8+sd));hand(0,1.3+up*(headP.x+1.5-1.3),9.4+up*(headP.y-.7-9.4),-1.0+up*.75);hand(1,.9,9.2,1.05);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
-  if(st==='standwork'){const w=Math.sin(t*6+sd)*.3;hand(0,3.4,10.4+w,-.8);hand(1,3.4,10.4-w,.8);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
+  if(st==='smokework'){const up=Math.max(0,Math.sin(t*(.62+sd*.4)+sd*6.283));hand(0,1.3+up*(headP.x+1.5-1.3),9.4+up*(headP.y-.7-9.4),-1.0+up*.75);hand(1,.9,9.2,1.05);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
+  if(st==='standwork'){const w=Math.sin(t*(5.2+sd*1.6)+sd*6.283)*.3;hand(0,3.4,10.4+w,-.8);hand(1,3.4,10.4-w,.8);EL[0].set(-.3,-1,-1);EL[1].set(-.3,-1,1);return;}
   if(st==='rpg'){const L=F.launcher;if(L){hand(1,chestP.x+.9,chestP.y+1.75,1.6);hand(0,chestP.x+3.0,chestP.y+1.85,1.35);}EL[0].set(.2,-1,-1);EL[1].set(-.3,-.5,1);return;}
   if(st==='carry'){hand(0,1.3,15.4,-1.7);EL[0].set(.4,-1,-.4);if(!armed)fromSh(1,.3,-5.2,.3);return;}   // his left arm round the man on his shoulders; the rifle in his right hand
   if(st==='throw'){

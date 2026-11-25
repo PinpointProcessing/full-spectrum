@@ -698,3 +698,8 @@ button.ddm-mvb{background:#39424b!important;border-radius:10px;padding:11px 18px
 /* D-Day Chapter 2's opening: INCOMING!!! flashing until the shells land (ddcseq.js) */
 #bigText.incoming{opacity:1;color:#ff5a45;font-size:clamp(30px,9vw,54px);letter-spacing:.06em;text-shadow:0 2px 0 #000,0 0 18px rgba(255,60,30,.7);animation:ddIncoming .22s steps(2,end) infinite}
 @keyframes ddIncoming{0%{opacity:1}100%{opacity:.35}}
+
+/* (draft) Chapter 2's opening: letterbox bars, sliding away as the battle starts */
+#lbT,#lbB{position:absolute;left:0;right:0;height:0;background:#000;z-index:2;pointer-events:none;transition:height .9s ease}
+#lbT{top:0}#lbB{bottom:0}
+body.cine #lbT,body.cine #lbB{height:11%}

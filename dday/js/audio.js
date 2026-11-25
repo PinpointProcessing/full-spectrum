@@ -336,7 +336,7 @@ function audioFrame(){
   const t=AC.currentTime,live=state==='play'&&!paused;
   if(live)footsteps();
   if(typeof chatTick==='function')chatTick();   // the squad's conversations (chatter.js)
-  sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:18000,t,.12);   // slow-mo and pause sound muffled
+  sndMuffle.frequency.setTargetAtTime(state==='play'&&timeScale()<1?900:typeof dd!=='undefined'&&dd&&dd.seq&&dd.seq.ph==='hut'?1800:18000,t,.12);   // (draft: indoors in Chapter 2's opening, the battle outside muffled)   // slow-mo and pause sound muffled
   for(const[g,base]of rainG)g.gain.setTargetAtTime(base*(MAPID==='dd'?0:MAPID==='in'||hqIndoors()?.25:MAPID==='tun'||l4In()?.15:1),t,.4);   // indoors the rain is just a hiss on the roof
   if(amb){
     const inside=MAPID==='in'||MAPID==='tun'||hqIndoors()||l4In();amb.gust+=(Math.random()-.5)*.08;amb.gust=clamp(amb.gust,-.6,.6);
