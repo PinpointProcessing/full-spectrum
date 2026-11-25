@@ -712,3 +712,7 @@ body.cine #lbT,body.cine #lbB{height:11%}
 .ddm-full.v2 .ddm-fbot{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(rgba(10,15,21,0),rgba(10,15,21,.98) 34%)}.ddm-full.v2 .ddm-fbot .ddm-btn:disabled{opacity:1;background:#2a3540!important;color:#9fb0bf}.ddm-full.v2 .ddm-sum{overflow:visible}
 .ddm-tg span.w{background:#22303a;color:#9fc7ff}
 @media (orientation:landscape) and (max-height:520px){.ddm-full.v2 .ddm-sum{align-items:start}.ddm-full.v2 .ddm-tiles.all{grid-template-columns:repeat(4,1fr)}}
+
+/* Version 241 (the draft: a page a man for those who climbed a level, ddmeta.js's ddmV2ManHTML) */
+.ddm-v2n{text-align:right}.ddm-v2n b{display:block;font-size:12px;font-weight:800;letter-spacing:.12em;color:#7ed29a}.ddm-v2n span{font-size:11px;color:#b9c4cd;font-weight:700}
+.ddm-roll.v2 .ddm-pk{margin-top:8px}.ddm-roll.v2 .ddm-rc{padding-bottom:14px}.ddm-rc.still,.ddm-up.still{animation:none}

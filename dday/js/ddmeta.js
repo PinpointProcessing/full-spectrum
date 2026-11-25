@@ -251,7 +251,8 @@ function ddmClick(ev){
   if(a==='rollprev'){if(ddm.step>0)ddmRollGo(ddm.step-1);return;}
   if(a==='card'){ddmRollGo(+b.dataset.i);return;}
   if(a==='revive'){ddmRevive(+b.dataset.i);return;}
-  if(a==='perk2'){const r=ddm.rows[+b.dataset.i];if(r&&r.v&&r.v.wait&&ddmPerkPick(r.rm,b.dataset.k)){r.pkd.push(b.dataset.k);r.v.wait=false;ddm.v2Snd=0;ddmSave();ddmUI();}return;}   // (Version 240's draft: his bar goes on)
+  if(a==='perk2'){const r=ddm.rows[+b.dataset.i];if(performance.now()-(ddm.v2WaitAt||0)<DDM_V2_GUARD)return;if(r&&r.v&&r.v.wait&&ddmPerkPick(r.rm,b.dataset.k)){r.pkd.push(b.dataset.k);r.v.wait=false;ddm.v2Snd=0;ddmSave();ddmUI();}return;}   // (Version 240's draft: his bar goes on)
+  if(a==='v2tap'){ddmV2Tap();return;}
   if(a==='manv'&&ddm.v2&&!ddm.v2Done)return;
   if(a==='manv'){ddmManGo(+b.dataset.i);return;}if(a==='manx'){ddmManGo(null);return;}if(a==='mann'){if(ddm.man!=null)ddmManGo(ddm.man+(+b.dataset.d));return;}   // (Version 223: a man's page off the report, and back)
   if(a==='nom'){ddm.nom=+b.dataset.i;ddmUI();return;}
@@ -487,28 +488,66 @@ function ddmBriefHTML(){
 // - it is WAY too confusing. We should just show post battle stats info with a continue button. Maybe have the exp bar go up for everyone on this
 // page that wasn't rewarded a perk. We should also require the player to pick a perk to continue the exp bar for each player that was rewarded a
 // perk instead of adding a next button (the less buttons the better)". No VICTORY card to tap, no medal screen (it goes to the one who did most),
-// no card a man: every bar fills where it is (r.v: the level and XP shown, and what's still to come); at a level his row opens with his job's
-// two perks and his bar waits there until one is picked; CONTINUE once every bar is in. A row tapped is still that man's page, once it's done
+// no card for every man: every bar fills where it is (r.v: the level and XP shown, and what's still to come); CONTINUE once every bar is in.
+// A row tapped is still that man's page, once it's done. Since Version 241 the men who climbed a level have a page each first (below); the
+// row's own perk buttons are kept for a perk still owed when the page is reached
 let ddmV2=false;
+// a perk tapped in the first moments after its buttons come up isn't taken: on a phone the card grows upward as they appear, so they land where the
+// bar was, right under a thumb tapping to hurry it
+const DDM_V2_GUARD=450;
 const ddmFxTxt=(m,k,t)=>/^gren/.test(k)&&(DDM_ITEMS[m.gear.g]||{}).gl?t.replace('grenade','rifle grenade'):t;   // (the Rifleman's are rifle grenades: Bryan asked which)
+// Version 241 (Bryan, on the one page: "I like the initial page of seeing the troop and his experience bar going up - please keep that for the
+// players that received a new perk"): first a page a man for those who climbed a level (ddm.v2Q, ddm.v2I): he steps out of the line in front of
+// the camera as on the old cards, his bar climbs and stops at the level, his two perks under it; picked, it runs on, and a moment after it's all
+// in the next man comes up by himself (no NEXT, no dots, no SEE ALL). Then the one page, where everyone else's bars fill, and CONTINUE
+function ddmStepOut(i){ddm.rows.forEach((r,k)=>{const u=r.u;if(r.y0==null){r.y0=u.y;r.a0=u.ang;}u.y=r.y0+(k===i?20:0);u.ang=k===i?Math.PI/2:r.a0;});}   // (the man whose turn it is steps out of the line toward the camera: ddmRollGo's)
 function ddmV2Init(){
-  ddm.v2=true;if(ddm.noms.length&&!ddm.mvp)ddmAward(0);ddm.scr=null;ddm.step=ddm.rows.length;ddm.v2T=0;ddm.v2Done=false;
-  ddm.rows.forEach((r,k)=>{r.v={lv:r.lv0,xp:r.xp0,left:r.gain,wait:false,at:.9+k*.14};r.pkd=r.pkd||[];});
+  ddm.v2=true;if(ddm.noms.length&&!ddm.mvp)ddmAward(0);ddm.scr=null;ddm.v2Done=false;
+  ddm.rows.forEach(r=>{r.v={lv:r.lv0,xp:r.xp0,left:r.gain,wait:false,at:0};r.pkd=r.pkd||[];});
+  ddm.v2Q=ddm.rows.map((r,k)=>k).filter(k=>ddm.rows[k].lv1>ddm.rows[k].lv0||ddm.rows[k].rm.pk>0);ddm.v2I=0;ddmV2Go(true);
+}
+function ddmV2Go(quiet){
+  const Q=ddm.v2Q,i=ddm.v2I,n=ddm.rows.length;ddm.v2T=0;ddm.v2Snd=0;ddm.v2Fin=null;
+  if(i<Q.length){ddm.step=Q[i];ddmStepOut(Q[i]);ddm.rows[Q[i]].v.at=.8;}
+  else{ddm.step=n;ddmStepOut(-1);let j=0;for(const r of ddm.rows)if(r.v.left>0)r.v.at=.6+(j++)*.14;}
+  if(!quiet)ddmUI();
 }
 function ddmV2Tick(rdt){
-  if(!ddm||!ddm.v2||ddm.ph!=='report'||ddm.v2Done)return;ddm.v2T+=rdt;let moving=false,dirty=false;
+  if(!ddm||!ddm.v2||ddm.ph!=='report'||ddm.v2Done||ddm.man!=null)return;ddm.v2T+=rdt;let moving=false,dirty=false;const n=ddm.rows.length,one=ddm.step<n;
   if(!ddm.fan){ddm.fan=1;if(typeof sfxLevelUp==='function')sfxLevelUp(true);}
-  ddm.rows.forEach((r,k)=>{const v=r.v;if(!v||v.wait||ddm.v2T<v.at)return;
-    if(v.left<=0){if(r.rm.pk>0){v.wait=true;dirty=true;}return;}   // (a perk still owed from before: asked for once his bar is in)
-    const need=ddmNeed(v.lv),add=Math.min(v.left,need-v.xp,Math.max(150,need*.85)*rdt);v.xp+=add;v.left-=add;moving=true;
-    if(v.xp>=need-.01){v.xp=0;v.lv++;v.wait=true;dirty=true;if(typeof sfxLevelUp==='function')sfxLevelUp(false);}
-    const g=id=>document.getElementById(id+k),b=g('ddmX'),n=g('ddmN'),l=g('ddmL');if(b)b.style.width=Math.round(v.xp/ddmNeed(v.lv)*100)+'%';if(n)n.textContent='+'+Math.round(r.gain-v.left);if(l)l.textContent=v.lv;});
-  if(moving&&!ddm.v2Snd){ddm.v2Snd=1;if(typeof sfxXpFill==='function')sfxXpFill(1,1.2);}
-  if(ddm.v2T>1&&ddm.rows.every(r=>r.v&&r.v.left<=0&&!r.v.wait&&!(r.rm.pk>0))){ddm.v2Done=true;dirty=true;}
+  ddm.rows.forEach((r,k)=>{const v=r.v;if(!v||v.wait||ddm.v2T<v.at||(one&&k!==ddm.step))return;
+    if(v.left<=0){if(r.rm.pk>0){v.wait=true;dirty=true;ddm.v2WaitAt=performance.now();}return;}   // (a perk still owed from before: asked for once his bar is in)
+    const need=ddmNeed(v.lv),add=Math.min(v.left,need-v.xp,Math.max(150,need*(one?.6:.85))*rdt);v.xp+=add;v.left-=add;moving=true;
+    if(v.xp>=need-.01){v.xp=0;v.lv++;v.wait=true;dirty=true;ddm.v2New=1;ddm.v2WaitAt=performance.now();if(typeof sfxLevelUp==='function')sfxLevelUp(false);}
+    const g=id=>document.getElementById(one?id:id+k),b=g(one?'ddmXp':'ddmX'),x=g(one?'ddmXpN':'ddmN'),l=g(one?'ddmLv':'ddmL');
+    if(b)b.style.width=Math.round(v.xp/ddmNeed(v.lv)*100)+'%';if(x)x.textContent='+'+Math.round(r.gain-v.left)+(one?' XP':'');if(l)l.textContent=v.lv;});
+  if(moving&&!ddm.v2Snd){ddm.v2Snd=1;if(typeof sfxXpFill==='function')sfxXpFill(1,one?1.6:1.2);}
+  const fin=r=>r.v&&r.v.left<=0&&!r.v.wait&&!(r.rm.pk>0);
+  if(one){if(fin(ddm.rows[ddm.step])){if(ddm.v2Fin==null)ddm.v2Fin=ddm.v2T+1.1;else if(ddm.v2T>=ddm.v2Fin){ddm.v2I++;ddmSave();ddmV2Go();return;}}}   // (his bar's in and his perks picked: a beat, then the next man, or the page)
+  else if(ddm.v2T>1&&ddm.rows.every(fin)){ddm.v2Done=true;dirty=true;}
   if(dirty){ddmSave();ddmUI();const p=document.querySelector('#ddm .ddm-r2.pick');if(p&&p.scrollIntoView)p.scrollIntoView({block:'nearest'});}
+}
+// a tap on a man's page while his bar is climbing takes it straight to where it stops next
+function ddmV2Tap(){const r=ddm&&ddm.v2&&ddm.rows[ddm.step],v=r&&r.v;if(!v||v.wait||v.left<=0)return;ddm.v2T=Math.max(ddm.v2T,v.at);const need=ddmNeed(v.lv),add=Math.min(v.left,need-v.xp);v.xp+=add-.001;v.left-=add-.001;}
+function ddmV2ManHTML(){
+  const k=ddm.step,r=ddm.rows[k],m=r.rm,v=r.v,Q=ddm.v2Q,un=ddmUnl(m).filter(q=>q[0]<=v.lv&&q[0]>r.lv0),pk=(r.pkd||[]).map(x=>(ddmJob(m).find(q=>q[0]===x)||[0,x])[1]);
+  const fresh=ddm.v2Shown!==k,nw=!!ddm.v2New;ddm.v2Shown=k;ddm.v2New=0;   // (drawn again for the same man, the card doesn't slide in again; the level's flash only as it's reached)
+  return`<div class="ddm-roll v2" data-a="v2tap"><div class="ddm-rtop"><div><div class="ddm-vt sm">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div><div class="ddm-v2n"><b>LEVEL UP</b><span>${ddm.v2I+1} of ${Q.length}</span></div></div>
+    <div class="ddm-rc${r.mvp?' mvp':''}${fresh?'':' still'}" style="--tc:${teamCol(r.u)}">
+      <div class="ddm-rh"><i>${DDM_ICON[m.role]||''}</i><div class="nm"><b>${ddmEsc(m.name)}</b><span>${r.team==='A'?'ALPHA':'BRAVO'} · ${DDM_ROLE[m.role].toUpperCase()}</span></div><div class="ddm-lvl">LEVEL<u id="ddmLv"${nw?' class="pop"':''}>${v.lv}</u></div></div>
+      <div class="ddm-cite"><b>${r.mvp?'★ ':''}${r.cite[0]}</b><span>${ddmEsc(r.cite[1])}</span></div>
+      <div class="ddm-chips"><span>KILLS<b>${r.kills}</b></span><span>REVIVES<b>${r.rev}</b></span><span>TIMES DOWN<b>${r.downs}</b></span><span>GRENADES<b>${r.items}</b></span></div>
+      <div class="ddm-xpr"><div class="ddm-xpb${nw?' flash':''}"><em id="ddmXp" style="width:${Math.round(v.xp/ddmNeed(v.lv)*100)}%"></em></div><span id="ddmXpN">+${Math.round(r.gain-v.left)} XP</span></div>
+      ${v.lv>r.lv0?`<div class="ddm-up${nw?'':' still'}">▲ LEVEL ${v.lv} · +${2*(v.lv-r.lv0)} Health · Aim · Speed · Nerve</div>`:''}
+      ${v.wait?`<div class="ddm-pk"><div class="ddm-gl gold">PICK A PERK</div><div class="ddm-row">${ddmJob(m).map(q=>`<button type="button" class="ddm-pkb" data-a="perk2" data-i="${k}" data-k="${q[0]}"><b>${q[1]}${ddmPerkN(m,q[0])?' ×'+(ddmPerkN(m,q[0])+1):''}</b><span>${ddmFxTxt(m,q[0],q[2])}</span></button>`).join('')}</div></div>`:''}
+      ${pk.length?`<div class="ddm-pkd">✓ ${pk.join(' · ')}</div>`:''}
+      ${un.map(q=>`<div class="ddm-unl new"><b>★ UNLOCKED · ${q[2]}</b><span>${ddmFxTxt(m,q[1],q[3])}</span></div>`).join('')}
+      ${r.mvp?'<div class="ddm-medal">★ The company\'s medal</div>':''}
+    </div></div>`;
 }
 function ddmReport2HTML(){
   const R=ddRoster,rows=ddm.rows,done=ddm.v2Done,due=rows.filter(r=>r.v&&r.v.wait).length,mv=rows.find(r=>r.mvp),cur=rows.findIndex(r=>r.v&&r.v.wait),owed=rows.reduce((n,r)=>n+(r.rm.pk||0),0);   // (cur: the one whose perks are open; the others owed one wait their turn, so there are never more than two buttons to choose between)
+  if(ddm.step<rows.length)return ddmV2ManHTML();
   if(ddm.man!=null&&rows[ddm.man])return ddmManHTML();
   const row=(r,k)=>{const m=r.rm,v=r.v,un=ddmUnl(m).filter(q=>q[0]<=v.lv&&q[0]>r.lv0),pk=(r.pkd||[]).map(x=>(ddmJob(m).find(q=>q[0]===x)||[0,x])[1]);
     const open=v.wait&&k===cur;
@@ -620,7 +659,7 @@ function ddmRollGo(i){
   ddm.rows.forEach((r,k)=>{const u=r.u;if(r.y0==null){r.y0=u.y;r.a0=u.ang;}u.y=r.y0+(k===i?20:0);u.ang=k===i?Math.PI/2:r.a0;});   // (the man whose turn it is steps out of the line toward the camera)
   ddmUI();if(i<0&&typeof sfxLevelUp==='function')sfxLevelUp(true);if(c&&c.hurt&&!c.seen&&typeof sfxStamp==='function')setTimeout(sfxStamp,330);}
 function ddmRollTick(rdt){
-  if(!ddm||ddm.ph!=='report'||ddm.scr)return;ddm.stepT+=rdt;const i=ddm.step,r=ddm.rows[i];
+  if(!ddm||ddm.ph!=='report'||ddm.scr||ddm.v2)return;ddm.stepT+=rdt;const i=ddm.step,r=ddm.rows[i];
   if(i<0){if(!ddm.fan){ddm.fan=1;if(typeof sfxLevelUp==='function')sfxLevelUp(true);}if(!ddm.rows.length&&ddm.stepT>1)ddmRollGo(0);return;}
   if(!r)return;
   const A=ddm.an||(ddm.an={seg:-1,t:0,lv:r.lv0,done:false,segs:(()=>{const L=[];let f=r.xp0/ddmNeed(r.lv0);for(let l=r.lv0;l<r.lv1;l++){L.push([f,1,l]);f=0;}L.push([f,r.rm.xp/ddmNeed(r.lv1),r.lv1]);return L;})()});
@@ -654,6 +693,6 @@ function ddmSwipe(el){let x0=null,y0=0;
   el.addEventListener('pointerup',e=>{
     if(x0!=null&&ddm&&ddm.ph==='barracks'&&ddm.slot&&!ddm.sub&&!ddm.swap&&ddmSel()){const dx=e.clientX-x0,dy=e.clientY-y0;x0=null;if(Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.3)return;ddm.swT=performance.now();ddmBarracksClick('man',{dataset:{d:dx<0?1:-1}});ddmUI();return;}
     if(x0!=null&&ddm&&ddm.ph==='report'&&ddm.man!=null&&!ddm.scr){const dx=e.clientX-x0,dy=e.clientY-y0;x0=null;if(Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.3)return;ddm.swT=performance.now();ddmManGo(ddm.man+(dx<0?1:-1));return;}
-    if(x0==null||!ddm||ddm.ph!=='report'||ddm.scr)return;const dx=e.clientX-x0,dy=e.clientY-y0,n=ddm.rows.length,i=ddm.step;x0=null;
+    if(x0==null||!ddm||ddm.ph!=='report'||ddm.scr||ddm.v2)return;const dx=e.clientX-x0,dy=e.clientY-y0,n=ddm.rows.length,i=ddm.step;x0=null;
     if(Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.3||i<0||i>=n)return;ddm.swT=performance.now();if(ddm.an&&!ddm.an.done)ddmRollEnd();ddmRollGo(dx<0?i+1:Math.max(0,i-1));});
 }
