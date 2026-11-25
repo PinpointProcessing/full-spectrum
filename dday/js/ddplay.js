@@ -135,17 +135,18 @@ function startDDay(){
 // Version 192 (Bryan: "make sure we have a button to enter the post battle menu after the first mission like the shortcut to the other levels"): Chapter 1
 // started and ended at once as a win, with a battle's worth of made-up numbers so the report has something to say: their men taken off the map, ours each
 // given kills, a revive here, a man down there (one still down at the end), then the report as after a real win (ddFinish -> ddmeta.js's ddmStart)
-function ddAfterFirst(){
+function ddAfterFirst(v2){   // (v2: Version 240's draft, the report on one page: one man made to climb two levels and one killed, so every case is on it)
   startDDay();
   setTimeout(()=>{if(!dd||state!=='play')return;
     for(const e of enemies){if(e.m&&e.m.g&&e.m.g.parent)e.m.g.parent.remove(e.m.g);e.dead=true;}
-    const L=players.filter(p=>p.rm&&!p.dead),K=[7,3,5,2,4,6,1,3];L.forEach((u,i)=>{u.stats.kills=K[i%8];u.stats.best=i%3===0?3:1;u.stats.items=i%2?2:0;u.inBoat=false;});
+    const L=players.filter(p=>p.rm&&!p.dead),K=v2?[7,3,5,2,4,14,1,3]:[7,3,5,2,4,6,1,3];L.forEach((u,i)=>{u.stats.kills=K[i%8];u.stats.best=i%3===0?3:1;u.stats.items=i%2?2:0;u.inBoat=false;});
     if(L[1])L[1].stats.revives=2;if(L[4]){L[4].stats.downs=1;L[4].stats.revives=1;}if(L[6]){L[6].stats.downs=2;L[6].downed=true;}
+    if(v2){if(L[7]){L[7].dead=true;L[7].hp=0;}if(typeof ddmV2!=='undefined')ddmV2=true;}
     dd.lost=3;dd.t0=simT-23*60-41;dd.won=true;if(dd.land)dd.land.done=true;ddFinish();},350);
 }
-function ddCtrBtnShow(){for(const id of['#ddCtrBtn','#ddVilBtn','#ddAfterBtn']){const b=$(id);if(b)b.hidden=false;}}   // (every chapter open from the start since Version 178, like the horror game's levels: one not reached yet gets squads made for it, ddmeta.js's ddmReady)
+function ddCtrBtnShow(){for(const id of['#ddCtrBtn','#ddVilBtn','#ddAfterBtn','#ddAfter2Btn']){const b=$(id);if(b)b.hidden=false;}}   // (every chapter open from the start since Version 178, like the horror game's levels: one not reached yet gets squads made for it, ddmeta.js's ddmReady)
 function bindDDay(){const b=$('#ddBtn');if(b)b.addEventListener('click',startDDay);ddBarBind();if(typeof ddcBind==='function')ddcBind();ddLookBind();if(typeof fpBuild==='function')fpBuild();
-  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}{const v=$('#ddAfterBtn');if(v)v.addEventListener('click',()=>ddAfterFirst());}
+  ddCtrBtnShow();{const c=$('#ddCtrBtn');if(c)c.addEventListener('click',()=>startCounter());}{const v=$('#ddVilBtn');if(v)v.addEventListener('click',()=>startVillage());}{const v=$('#ddAfterBtn');if(v)v.addEventListener('click',()=>ddAfterFirst());}{const v=$('#ddAfter2Btn');if(v)v.addEventListener('click',()=>ddAfterFirst(true));}
   const r=$('#ddResetBtn');if(r)r.addEventListener('click',()=>{if(!confirm('Start over? Your squads, reserve, medals and saved equipment are cleared.'))return;try{localStorage.removeItem(DDM_KEY);}catch(e){}ddRoster=null;r.textContent='Cleared: new squads next time';ddCtrBtnShow();});}
 const ddBusy=()=>!!dd&&(!dd.land.done||!!dd.seq);   // (dd.seq: the sequence before Chapter 3, ddvillage.js)
 /* ---------- the camera ----------
@@ -741,7 +742,7 @@ function ddWaves(){
     if(from){for(let k=0;k<5;k++){const sp=openSpot(from.x+(Math.random()-.5)*60,from.y+(Math.random()-.5)*40,dd.allies.map(destOf))||from,u=ddNpc(sp.x,sp.y);u.seen=true;}}
     else{const lanes=[90,200,300,400,600,700,800,910].filter(x=>!dd.boats.some(b=>Math.abs(b.x-DDX-x)<70));for(let k=0;k<(live<14?2:1)&&lanes.length;k++){const i=(Math.random()*lanes.length)|0,x=lanes.splice(i,1)[0];ddBoat(x+(Math.random()-.5)*40,ddCrew(6+((Math.random()*3)|0)));}}}
   // replacements due: each lands in a boat of his own with a few others, and makes for his squad
-  for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}   // (the medic's at him: wait)
+  for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&(players.some(m=>m.raise&&m.raise.t===q.body)||ddRaiseHope(q.body))){q.at=simT+2;continue;}   // (the medic's at him, or may yet be: wait)
     dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;
     const u=ddNewMan(q.team,q.id,ddPickRole(q.team),DDX+500,900);u.joining=true;players.push(u);players.sort((a,b)=>a.id<b.id?-1:1);
     const mates=players.filter(p=>p.team===q.team&&p!==u&&!p.dead),lx=clamp((mates.length?mates.reduce((a,p)=>a+p.x,0)/mates.length:DDX+500)-DDX,90,910);
@@ -926,7 +927,7 @@ function ddDrawTargets(now){
     if(g){const R=g.kind==='rpg'?PRPG.blast||55:58;if(own){if(g.kind==='smoke')disc(g.x,g.y,58,GR,GRL);else disc(g.x,g.y,R,OR,ORL);}else if(g.kind!=='smoke'&&near(g.x,g.y,R))disc(g.x,g.y,R,OR,RL);}
     if(!own)continue;
     const md=u.medGo;if(md&&md.t&&!md.t.dead)disc(md.t.x,md.t.y,15,GN,GNL);
-    if(u.raise&&u.raise.t)disc(u.raise.t.x,u.raise.t.y,15,GN,GNL);}
+    if(u.raise&&u.raise.t)disc(u.raise.t.x,u.raise.t.y,15,GN,GNL);if(u.ddRole==='medic'&&u.helpGo&&u.helpGo.downed)disc(u.helpGo.x,u.helpGo.y,15,GN,GNL);}
   for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P')continue;const own=n.by.team===dd.active;if(own&&n.smoke)disc(n.x1,n.y1,58,GR,GRL);else if(!n.smoke&&(own||near(n.x1,n.y1,n.R||58)))disc(n.x1,n.y1,n.R||58,OR,own?ORL:RL);}
   for(const r of rockets){if(!r.by||r.by.side!=='P'||r.left==null)continue;const x=r.x+r.dx*r.left,y=r.y+r.dy*r.left,own=r.by.team===dd.active;if(own||near(x,y,PRPG.blast||55))disc(x,y,PRPG.blast||55,OR,own?ORL:RL);}
   // a scope on the man the squad you play was told to shoot (Bryan: "a scoop emoji around the unit selected for that squad to attack")
@@ -963,47 +964,80 @@ function ddBlueRect(x0,y0,x1,y1,strong){
 // beside him for a rifleman (combat.js's revive, DD_REVIVE), a medic as quick as ever. With no medic left in the squad, the nearest man who isn't
 // being shot at goes to him by himself; with one, the medic goes (below) and a tap on the downed man still sends whoever's selected
 function ddHelpers(){
+  for(const p of players)if(p.helpGo&&(!alive(p)||!p.helpGo.downed||p.helpGo.dead||p.helpGo.carriedBy))p.helpGo=null;   // (it was never cleared: ddctl.js counted him as busy for good)
   for(const d of players){if(!d.downed||d.dead||d.critical||d.inBoat||d.carriedBy)continue;
     const mates=players.filter(p=>p.team===d.team&&alive(p)&&!p.inBoat);if(mates.some(p=>p.ddRole==='medic'))continue;
     if(mates.some(p=>hyp(p.x-d.x,p.y-d.y)<24||p.helpGo===d&&p.path.length))continue;
     const c=mates.filter(p=>!p.path.length&&!p.throwGo&&!p.medGo&&!p.rpgAim&&p.sup<.5&&simT-(p.firedOnT||-9)>3&&simT-p.lastOrder>2.5&&hyp(p.x-d.x,p.y-d.y)<220).sort((a,b)=>hyp(a.x-d.x,a.y-d.y)-hyp(b.x-d.x,b.y-d.y))[0];
     if(c){const w=goBeside(c,d);if(w&&w.length){c.path=w;c.helpGo=d;callout(c,'Getting him up',C.good);}}}
 }
+// Version 240 (Bryan: "the medics aren't reviving dead units, they run over and make a weird skipping motion and the downed unit is never brought
+// back up. The medic should be able to revive the player AND the medic should drop a smoke automatically where the unit is downed. The medic also
+// should prioritize healing units when their health is under 25%. Medics have 2x smoke and auto use them"). What was wrong: ddTidy took our own
+// dead off the map with the old bodies (over 22 dead and the oldest went, a squad man's among them); the work on a body started over whenever the
+// medic was shot at, stepped out of a shell's way (ddDodge) or walked on with his squad; a replacement landing meanwhile closed the body for good;
+// and the work was shown by his rifle coming up once a second. Now, in this order: a man down (beside him and the usual revive; critical, a kit);
+// a man under a quarter of his health, himself too (a kit, fight or no fight); a dead man (DD_RAISE s beside the body: the seconds are kept on the
+// body, c.raiseP, so leaving it only pauses the work; he kneels over it); in a quiet spell anyone under 55 (keeping a kit back). For a man down
+// or dead he throws one of his own two smokes (m.medSmoke: not the bar's) onto him as soon as he can, pinned or not; pinned, he goes once he
+// isn't. He sees to the other squad's men too while it has no medic on his feet
+const DD_RAISE=8,DD_MEDSMOKE=2,DD_LOWHP=25;
+function ddMedSmoke(m,d){
+  if(!(m.medSmoke>0)||simT<(d.smokeT||0)||simT-(m.nadeT||-9)<2)return false;
+  if(smokes.some(c=>hyp(c.x-d.x,c.y-d.y)<45&&simT-c.t0<SMOKE.life-5)||nades.some(n=>n.smoke&&hyp(n.x1-d.x,n.y1-d.y)<45)){d.smokeT=simT+6;return false;}   // (there's smoke on him already)
+  if(!enemies.some(e=>!beaten(e)&&hyp(e.x-d.x,e.y-d.y)<700))return false;   // (none of theirs within a rifle's or a sniper's reach of him: kept for when it's needed)
+  if(hyp(d.x-m.x,d.y-m.y)>SMOKE.range)return false;
+  const f=throwFrom(m,d.x,d.y,'smoke');if(!f)return false;
+  m.medSmoke--;m.nadeT=simT;m.throwT=simT;if(!m.path.length)m.ang=Math.atan2(d.y-f.y,d.x-f.x);
+  nades.push({x0:f.x,y0:f.y,x1:d.x,y1:d.y,t:0,dur:.9,by:m,smoke:true});m.stats.items++;if(typeof sfxPin==='function')sfxPin(m.x,m.y);
+  callout(m,'Smoke out!',C.warn);d.smokeT=simT+SMOKE.life;return true;
+}
+// a replacement holds off while a medic may still bring the man himself back (the queue, here and in ddvillage.js)
+const ddRaiseHope=b=>!!b&&!b.gone&&!b.noRev&&simT-(b.deadT||0)<45&&players.some(m=>m.ddRole==='medic'&&alive(m)&&!m.inBoat&&hyp(m.x-b.x,m.y-b.y)<380);
 function ddMedics(){
   for(const m of players){if(m.ddRole!=='medic'||!alive(m)||m.inBoat||m.fp)continue;
-    // (Version 153, Bryan: "medics don't appear to be reviving/healing on their own when giving an opportunity": he used to wait until nobody had
-    // shot at him for 3 s, which in a fight is never. Now only being pinned stops him going to a downed man, and when it's quiet he patches up a
-    // man who's hurt but on his feet, keeping one kit back for a critical man)
-    const calm=m.sup<.5&&simT-(m.firedOnT||-9)>3,pinned=m.sup>PINNED;
-    const mates=players.filter(p=>p.team===m.team&&!p.dead&&!p.inBoat);
-    const down=pinned?null:mates.filter(p=>p.downed&&!p.carriedBy&&hyp(p.x-m.x,p.y-m.y)<300).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y))[0];
-    if(!down&&!calm){if(m.raise){m.raise.p=0;}continue;}
-    if(!down&&!m.path.length&&!m.medGo&&!m.throwGo&&!m.raise&&simT-m.lastOrder>2.5&&hasKit(m)&&m.specN>1){
-      const hurt=mates.filter(p=>!p.downed&&p.hp<55&&!p.joining&&hyp(p.x-m.x,p.y-m.y)<200&&!players.some(q=>q!==m&&q.medGo&&q.medGo.t===p)).sort((a,b)=>a.hp-b.hp)[0];
-      if(hurt&&orderMedkit(m,hurt))continue;}
-    if(down&&!m.path.length&&!m.medGo&&!m.throwGo&&simT-m.lastOrder>2.5){
+    if(m.medSmoke==null)m.medSmoke=DD_MEDSMOKE;
+    const pinned=m.sup>PINNED,calm=m.sup<.5&&simT-(m.firedOnT||-9)>3,dist=p=>hyp(p.x-m.x,p.y-m.y),near=(a,b)=>dist(a)-dist(b),goes=t=>{const e=destOf(m);return m.path.length>0&&hyp(e.x-t.x,e.y-t.y)<34;};
+    const otherMedic=players.some(p=>p.team!==m.team&&p.ddRole==='medic'&&alive(p)&&!p.inBoat),mine=p=>p.team===m.team||!otherMedic;
+    const taken=p=>players.some(q=>q!==m&&q.ddRole==='medic'&&alive(q)&&(q.helpGo===p||(q.raise&&q.raise.t===p)||(q.medGo&&q.medGo.t===p)));
+    const mates=players.filter(p=>mine(p)&&!p.dead&&!p.inBoat);
+    if(m.raise){const c=m.raise.t;if(c.noRev||c.gone||!c.corpse||!units.includes(c))m.raise=null;else m.raise.on=false;}
+    if(pinned)m.helpGo=null;
+    if(m.medGo||m.throwGo||m.carry||m.carryGo||m.onGun||m.dcGun||simT-m.lastOrder<2.5)continue;   // (a kit in his hands, on a gun, or just told to do something: that first)
+    const down=mates.filter(p=>p.downed&&!p.carriedBy&&dist(p)<320&&!taken(p)).sort(near)[0];
+    const body=down?null:units.filter(u=>u.corpse&&u.side==='P'&&mine(u)&&u.id0&&!u.gone&&!u.noRev&&dist(u)<380&&simT>(u.noWayT||0)&&!taken(u)&&players.filter(q=>q.team===u.team&&!q.dead).length<DD_CORE[u.team].length).sort(near)[0];
+    const cas=down||(m.raise&&m.raise.t)||body;
+    if(cas)ddMedSmoke(m,cas);
+    if(pinned)continue;   // (he won't leave his spot while he's pinned; the smoke is out if he could throw it)
+    // 1. a man down
+    if(down){m.raise=null;
       if(down.critical){if(hasKit(m))orderMedkit(m,down);}
-      else if(hyp(down.x-m.x,down.y-m.y)>22){const p=goBeside(m,down);if(p&&p.length){m.path=p;m.gaitForce=null;callout(m,'Medic coming',C.good);}}
+      else{m.helpGo=down;if(dist(down)>22&&!goes(down)&&(!m.path.length||simT-m.lastOrder>2.5)){const p=goBeside(m,down);if(p&&p.length){m.path=p;m.gaitForce=null;callout(m,'Medic coming',C.good);}}}
       continue;}
-    if(!calm){if(m.raise)m.raise.p=0;continue;}   // (bringing back the dead still waits for quiet)
-    // a dead man of his squad (Bryan: "If the player has a dead unit the medics can revive. It takes a lot longer than a heal and shouldn't be done in battle"):
-    // 12 s beside the body, and only while it's quiet round him; shot at or pinned, he stops and it starts over
-    {const body=m.raise&&m.raise.t;
-      if(body&&(body.noRev||!units.includes(body)||simT-m.lastOrder<1&&m.lastOrder>m.raise.t0+.01)){m.raise=null;}
-      if(!m.raise&&!m.path.length&&!m.medGo&&!m.throwGo&&simT-m.lastOrder>2.5){
-        const c=units.filter(u=>u.corpse&&u.team===m.team&&u.id0&&!u.gone&&!u.noRev&&hyp(u.x-m.x,u.y-m.y)<340&&!players.some(o=>o!==m&&o.raise&&o.raise.t===u)&&players.filter(q=>q.team===m.team&&!q.dead).length<DD_CORE[m.team].length).sort((a,b)=>hyp(a.x-m.x,a.y-m.y)-hyp(b.x-m.x,b.y-m.y))[0];
-        if(c){m.raise={t:c,p:0,t0:simT};if(hyp(c.x-m.x,c.y-m.y)>20){const s=openSpot(c.x,c.y+12,players.filter(o=>o!==m&&!o.dead).map(destOf))||c,pp=findPath(m.x,m.y,s.x,s.y);if(pp&&pp.length){m.path=pp;m.gaitForce=null;}}callout(m,'Going to him',C.good);}}
-      if(m.raise&&!m.path.length){const c=m.raise.t;
-        if(hyp(c.x-m.x,c.y-m.y)>30){m.raise=null;}
-        else{m.raise.p+=1;m.ang=Math.atan2(c.y-m.y,c.x-m.x);m.aimT=simT;if(m.raise.p>=12){ddRaise(c,m);m.raise=null;}continue;}}}
-    if(m.path.length)continue;
-    for(const p of mates)if(alive(p)&&p.hp<100&&hyp(p.x-m.x,p.y-m.y)<50&&p.sup<.65){p.hp=Math.min(100,p.hp+5);if(!p.mendT||simT>p.mendT){p.mendT=simT+4;callout(p,p===m?'Patching up':'Patched up',C.good);}}
+    // 2. a man under a quarter of his health, himself too: a kit now, fight or no fight
+    if(simT>(m.lowT||0)){const low=mates.filter(p=>!p.downed&&p.hp<DD_LOWHP&&!p.joining&&dist(p)<260&&!taken(p)).sort((a,b)=>a.hp-b.hp)[0];
+      if(low){
+        if(hasKit(m)){if(orderMedkit(m,low)){m.raise=null;continue;}m.lowT=simT+8;}
+        else if(low!==m&&dist(low)>40&&!m.path.length){const p=goBeside(m,low);if(p&&p.length){m.path=p;m.gaitForce=null;}m.lowT=simT+4;}}}   // (no kit left: he goes to him and mends him by hand, below)
+    // 3. a dead man: beside the body until it's done
+    if(m.raise||(body&&!m.path.length)){
+      if(!m.raise){m.raise={t:body,t0:simT,on:false};callout(m,'Going to him',C.good);}
+      const c=m.raise.t;
+      if(dist(c)>30){if(!m.path.length){let s=nearSpot(m,c);if(hyp(s.x-c.x,s.y-c.y)>24)s=c;const pp=findPath(m.x,m.y,s.x,s.y);   // (right beside the body: a free spot further off left him standing short of it)
+          if(pp&&pp.length){m.path=pp;m.gaitForce=null;}else{c.noWayT=simT+15;m.raise=null;}}}
+      else if(!m.path.length){m.raise.on=true;c.raiseP=(c.raiseP||0)+1;m.ang=Math.atan2(c.y-m.y,c.x-m.x);if(c.raiseP>=DD_RAISE){ddRaise(c,m);m.raise=null;}}
+      continue;}
+    // 4. a quiet spell: a kit for anyone under 55, keeping one back for a man down
+    if(calm&&!m.path.length&&hasKit(m)&&m.specN>1){const hurt=mates.filter(p=>!p.downed&&p.hp<55&&!p.joining&&dist(p)<200&&!taken(p)).sort((a,b)=>a.hp-b.hp)[0];if(hurt&&orderMedkit(m,hurt))continue;}
+    // 5. standing still in a quiet spell: those within 5 m mend, himself too
+    if(m.path.length||!calm)continue;
+    for(const p of mates)if(alive(p)&&p.hp<100&&dist(p)<50&&p.sup<.65){p.hp=Math.min(100,p.hp+5);if(!p.mendT||simT>p.mendT){p.mendT=simT+4;callout(p,p===m?'Patching up':'Patched up',C.good);}}
   }
 }
 function ddRaise(p,m){
   const i=dd.queue.findIndex(q=>q.body===p);if(i>=0){dd.queue.splice(i,1);dd.pool++;}
   if(p.noRev||!units.includes(p))return;
-  Object.assign(p,{id:p.id0,dead:false,downed:false,critical:false,hp:35,revive:0,boxRev:0,bleed:BLEED_T,sup:.2,npc:false,corpse:false,path:[],shyT:simT+6,lastOrder:simT});
+  Object.assign(p,{id:p.id0,dead:false,downed:false,critical:false,hp:35,revive:0,boxRev:0,bleed:BLEED_T,sup:.2,npc:false,corpse:false,path:[],shyT:simT+6,lastOrder:simT,raiseP:0});
   dd.lost=Math.max(0,dd.lost-1);players.push(p);players.sort((a,b)=>a.id<b.id?-1:1);buildCards();if(m)m.stats.revives=(m.stats.revives||0)+1;
   callout(p,'Back on his feet',C.good);banner(`${m?m.name:'The medic'} brought ${p.name} back.`,2600);updateObjUI();hud();
 }
@@ -1011,7 +1045,7 @@ function ddRaise(p,m){
 function ddHot(){
   if(typeof figInkHot!=='function')return;
   for(const u of players){const F=u.m&&u.m.fig;if(!F||!F.ink)continue;
-    const hot=alive(u)&&u.team===dd.active&&(u===dd.toolU||!!u.throwGo||!!u.build||(!!u.medGo&&u.team===dd.active)||(!!u.raise&&u.raise.p>0)||simT<(u.hotT||0)),want=hot?figInkHot():figInk();
+    const hot=alive(u)&&u.team===dd.active&&(u===dd.toolU||!!u.throwGo||!!u.build||(!!u.medGo&&u.team===dd.active)||(!!u.raise&&u.raise.on)||simT<(u.hotT||0)),want=hot?figInkHot():figInk();
     if(F.ink.material!==want)F.ink.material=want;}
 }
 /* ---------- every tick (combat.js's update) ---------- */
@@ -1022,7 +1056,7 @@ function ddDeadTick(){
     if(p.downed&&!p.critical&&p.bleed>DD_BLEED)p.bleed=DD_BLEED;if(p.critical&&p.crit>DD_CRIT)p.crit=DD_CRIT;
     if(!p.dead)continue;
     players.splice(players.indexOf(p),1);dd.lost++;p.npc=true;p.corpse=true;p.deadT=simT;const id=p.id;p.id0=id;p.id='X'+(dd.xid=(dd.xid||0)+1);
-    const canRaise=!p.gone&&!p.inBoat&&p.ddRole!=='medic'&&players.some(q=>q.team===p.team&&q.ddRole==='medic'&&!q.dead);   // (his squad's medic may bring him back: the replacement holds off half a minute for it)
+    const canRaise=!p.gone&&!p.inBoat&&players.some(q=>q.ddRole==='medic'&&!q.dead);   // (his squad's medic may bring him back: the replacement holds off half a minute for it)
     sel=sel.filter(x=>x!==p);cardGroup=cardGroup.filter(x=>x!==p);
     if(dd.pool>0){dd.pool--;dd.queue.push({team:p.team,id,at:simT+(canRaise?14:4+Math.random()*3),body:p});}else p.noRev=!canRaise;
     buildCards();updateObjUI();
@@ -1065,7 +1099,7 @@ function ddTick(dt){
   if(!endAt&&!dd.won&&!players.some(alive)&&!dd.queue.length&&(dd.pool<=0||!players.length)&&players.every(p=>p.dead||p.revive===0)){dd.over=true;endAt=performance.now()+1800;}
 }
 function ddTidy(){   // the dead don't pile up for ever: the oldest bodies go
-  const dead=units.filter(u=>u.dead&&(u.npc||u.side==='E')&&!u.veh);if(dead.length<=22)return;
+  const dead=units.filter(u=>u.dead&&(u.npc||u.side==='E')&&!u.veh&&!(u.corpse&&u.id0&&!u.noRev&&!u.gone));if(dead.length<=22)return;   // (not one of ours a medic may still bring back: Version 240, it took them)
   dead.sort((a,b)=>(a.deadT||0)-(b.deadT||0));
   for(const u of dead.slice(0,dead.length-22)){if(u.side==='E')dd.tidyE=(dd.tidyE||0)+1;if(u.m&&u.m.g.parent)u.m.g.parent.remove(u.m.g);units.splice(units.indexOf(u),1);}
   enemies=enemies.filter(e=>units.includes(e));dd.npcs=dd.npcs.filter(u=>units.includes(u));
@@ -1198,7 +1232,7 @@ function drawDDay(now){
   // (Version 167: no place names over the bunkers and guns: the objective pill says where to go, ddhud.js, and a machine gun's field of fire is on the ground)
   if(typeof ddBaseDraw==='function')ddBaseDraw(lab);
   if(dd.front>300&&(dd.wires||[]).some(o=>!o.gone)){const m=players.filter(p=>p.team===dd.active&&alive(p)),cx=m.length?m.reduce((a,p)=>a+p.x,0)/m.length-DDX:500;lab(clamp(cx,60,940),340,24,'WIRE · GRENADE IT OR CLIMB','#ffcf4a');}
-  for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
+  for(const m of players)if(m.raise&&m.raise.t.raiseP>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(c.raiseP/DD_RAISE*100)}%`,sx,sy,'#5fe08e',10,700);}
   // a man coming up to join: a line to him from his squad's tab colour
   for(const p of players)if(p.joining&&alive(p)&&!p.inBoat){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
   const o=$('#oob');if(o){const on=dd.oob>0&&state==='play';o.hidden=!on;if(on){o.style.opacity=Math.min(.86,.35+dd.oob*.06).toFixed(2);o.querySelector('b').textContent=`Turn back · ${Math.max(0,Math.ceil(10-dd.oob))}`;}}

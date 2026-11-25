@@ -703,3 +703,12 @@ button.ddm-mvb{background:#39424b!important;border-radius:10px;padding:11px 18px
 #lbT,#lbB{position:absolute;left:0;right:0;height:0;background:#000;z-index:2;pointer-events:none;transition:height .9s ease}
 #lbT{top:0}#lbB{bottom:0}
 body.cine #lbT,body.cine #lbB{height:11%}
+/* Version 240 (a draft: the report on one page, ddmeta.js's ddmReport2HTML): a man's row with his perks to pick under it */
+.ddm-r2{background:rgba(10,15,20,.9);border-left:4px solid var(--tc);border-radius:9px;overflow:hidden;flex:none}.ddm-r2.pick{box-shadow:inset 0 0 0 1.5px #2faa4f;background:rgba(14,28,20,.95)}
+.ddm-full .ddm-r2 button.ddm-sr{background:transparent!important;border-left:0!important;border-radius:0}.ddm-r2 .ddm-sr.mvp{box-shadow:none}
+.ddm-pk2{padding:0 8px 8px}.ddm-pk2>b{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;color:#7ed29a;margin:0 0 5px 2px}
+.ddm-pk2 .ddm-row{display:flex;gap:6px;margin:0}.ddm-pk2 .ddm-pkb{padding:7px 6px;min-height:46px}.ddm-pk2 .ddm-pkb b{font-size:12px}.ddm-pk2 .ddm-pkb span{font-size:10.5px}
+.ddm-tg{display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 6px 33px;margin-top:-3px}.ddm-tg span{font-size:8.5px;font-weight:800;letter-spacing:.05em;border-radius:4px;padding:1px 6px;background:#1d3a2a;color:#7ed29a}.ddm-tg span.u{background:#2a2412;color:#ffd76a}
+.ddm-full.v2 .ddm-fbot{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(rgba(10,15,21,0),rgba(10,15,21,.98) 34%)}.ddm-full.v2 .ddm-fbot .ddm-btn:disabled{opacity:1;background:#2a3540!important;color:#9fb0bf}.ddm-full.v2 .ddm-sum{overflow:visible}
+.ddm-tg span.w{background:#22303a;color:#9fc7ff}
+@media (orientation:landscape) and (max-height:520px){.ddm-full.v2 .ddm-sum{align-items:start}.ddm-full.v2 .ddm-tiles.all{grid-template-columns:repeat(4,1fr)}}

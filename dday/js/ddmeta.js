@@ -142,7 +142,8 @@ function ddmStart(){
   // the line-up: each squad in a diagonal line across from the other, in front of the barracks on the hill
   const[cx,cy]=ddm.sp.line;ddmLineUp();
   for(const u of units)if(!rows.some(r=>r.u===u)){u.path=[];if(u.side==='P'&&!u.dead&&Math.hypot(u.x-cx,u.y-(cy-10))<70){u.x+=u.x<cx?-70:70;}}
-  if(noms.length===1)ddmAward(0);   // (nobody to choose between)
+  if(ddmV2){ddmV2=false;ddmV2Init();}   // (Version 240's draft: the whole report on one page, below)
+  else if(noms.length===1)ddmAward(0);   // (nobody to choose between)
   ddmUI();
 }
 function ddmLineUp(){const rows=ddm.rows,[cx,cy]=ddm.sp.line,T={A:0,B:0};
@@ -181,7 +182,7 @@ function ddMetaFrame(rdt,now){
   const SP=ddm.sp;
   const mv=ddm.ph==='report'&&ddm.man!=null&&ddm.step>=ddm.rows.length?ddm.rows[ddm.man]:null;   // (Version 223: a man's page: he's on the left of it)
   if(mv){ddmPortraitFrame(mv,rdt);return;}else ddmPortraitEnd();
-  if(ddm.ph==='report'){ddmRollTick(rdt);const r=mv||ddm.rows[ddm.step],C=ddm.cam,one=!!r,zt=mv?(cw<ch?15:13):one?(cw<ch?10.5:9.5):(cw<ch?7.6:6.4),tx=one?r.u.x+(mv?C.ox||0:0):SP.line[0],tz=(one?r.u.y+(mv?C.oz||0:cw<ch?16:6):SP.line[1]-34)+DD_CAM.look;if(!mv)C.ox=C.oz=0;
+  if(ddm.ph==='report'){ddmRollTick(rdt);ddmV2Tick(rdt);const r=mv||ddm.rows[ddm.step],C=ddm.cam,one=!!r,zt=mv?(cw<ch?15:13):one?(cw<ch?10.5:9.5):(cw<ch?7.6:6.4),tx=one?r.u.x+(mv?C.ox||0:0):SP.line[0],tz=(one?r.u.y+(mv?C.oz||0:cw<ch?16:6):SP.line[1]-34)+DD_CAM.look;if(!mv)C.ox=C.oz=0;
     if(C.x==null){C.x=tx;C.z=tz;C.zm=zt;}const e=Math.min(1,rdt*4.5);C.x+=(tx-C.x)*e;C.z+=(tz-C.z)*e;C.zm+=(zt-C.zm)*e;zoom=C.zm;yaw=0;tilt=ddTilt(C.zm,mv?.25:undefined);camT.x=C.x;camT.z=C.z;}
   else{const z=cw<ch?SP.zoom[0]:SP.zoom[1],at=ddm.at&&SP[ddm.at],tx=at?at[0]:SP.cam[0],tz=(at?at[1]-(cw<ch?30:8):SP.cam[1])+DD_CAM.look,zt=at?z*1.7:z,C=ddm.bc||(ddm.bc={x:tx,z:tz,zm:zt}),e=Math.min(1,rdt*3.2);
     C.x+=(tx-C.x)*e;C.z+=(tz-C.z)*e;C.zm+=(zt-C.zm)*e;zoom=C.zm;yaw=0;tilt=-.5;camT.x=C.x;camT.z=C.z;}   // (Version 196: walking the base)
@@ -250,6 +251,8 @@ function ddmClick(ev){
   if(a==='rollprev'){if(ddm.step>0)ddmRollGo(ddm.step-1);return;}
   if(a==='card'){ddmRollGo(+b.dataset.i);return;}
   if(a==='revive'){ddmRevive(+b.dataset.i);return;}
+  if(a==='perk2'){const r=ddm.rows[+b.dataset.i];if(r&&r.v&&r.v.wait&&ddmPerkPick(r.rm,b.dataset.k)){r.pkd.push(b.dataset.k);r.v.wait=false;ddm.v2Snd=0;ddmSave();ddmUI();}return;}   // (Version 240's draft: his bar goes on)
+  if(a==='manv'&&ddm.v2&&!ddm.v2Done)return;
   if(a==='manv'){ddmManGo(+b.dataset.i);return;}if(a==='manx'){ddmManGo(null);return;}if(a==='mann'){if(ddm.man!=null)ddmManGo(ddm.man+(+b.dataset.d));return;}   // (Version 223: a man's page off the report, and back)
   if(a==='nom'){ddm.nom=+b.dataset.i;ddmUI();return;}
   if(a==='award'){ddmAward(ddm.nom||0);ddm.scr=null;if(typeof sfxLevelUp==='function')sfxLevelUp(true);ddmRollGo(0);return;}
@@ -276,7 +279,7 @@ function ddmClick(ev){
 
 /* ---------- the barracks: its panels ---------- */
 const ddmSel=()=>ddm.slot?ddRoster.squads[ddm.slot[0]][ddm.slot[1]]:null;
-const ddmStats=(m,cls)=>`<div class="ddm-stats ${cls||''}"><div class="ddm-dim">${DDM_ROLE[m.role]} · Level ${m.level}${m.stars?' · '+'★'.repeat(Math.min(3,m.stars)):''}${m.kills?' · '+m.kills+' kills':''}</div>${[['Health','hp'],['Aim','aim'],['Speed','spd'],['Bravery','brv']].map(([n,k])=>`<div class="ddm-st"><span>${n}</span><div><em style="width:${m.st[k]}%"></em></div><b>${m.st[k]}</b></div>`).join('')}<div class="ddm-xp"><em style="--w:${Math.round(m.xp/ddmNeed(m.level)*100)}%"></em></div>${m.trait?`<div class="ddm-perk gold"><b>★ ${DDM_TRAITS[m.trait].n}</b><br>${DDM_TRAITS[m.trait].d}</div>`:''}${ddmUnl(m).map(q=>`<div class="ddm-unl sm${m.level>=q[0]?' new':''}"><b>${m.level>=q[0]?'★':'LV '+q[0]} ${q[2]}</b><span>${q[3]}</span></div>`).join('')}${ddmJob(m).filter(q=>ddmPerkN(m,q[0])).map(q=>`<div class="ddm-unl sm new"><b>${q[1]}${ddmPerkN(m,q[0])>1?' ×'+ddmPerkN(m,q[0]):''}</b><span>${q[2]}</span></div>`).join('')}${['w','t'].map(k=>DDM_ITEMS[m.gear[k]]).filter(I=>I.star).map(I=>`<div class="ddm-perk gold"><b>★ ${I.n}</b><br>${I.d} Lost if he dies.</div>`).join('')}${m.hurt?`<div class="ddm-perk hurt"><b>✚ Wounded</b><br>He sits out the next chapter unless he's treated.<br><button type="button" class="ddm-btn sm" data-a="treat" data-u="${m.uid}"${(ddRoster.treat||0)<1&&ddRoster.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`:''}</div>`;
+const ddmStats=(m,cls)=>`<div class="ddm-stats ${cls||''}"><div class="ddm-dim">${DDM_ROLE[m.role]} · Level ${m.level}${m.stars?' · '+'★'.repeat(Math.min(3,m.stars)):''}${m.kills?' · '+m.kills+' kills':''}</div>${[['Health','hp'],['Aim','aim'],['Speed','spd'],['Bravery','brv']].map(([n,k])=>`<div class="ddm-st"><span>${n}</span><div><em style="width:${m.st[k]}%"></em></div><b>${m.st[k]}</b></div>`).join('')}<div class="ddm-xp"><em style="--w:${Math.round(m.xp/ddmNeed(m.level)*100)}%"></em></div>${m.trait?`<div class="ddm-perk gold"><b>★ ${DDM_TRAITS[m.trait].n}</b><br>${DDM_TRAITS[m.trait].d}</div>`:''}${ddmUnl(m).map(q=>`<div class="ddm-unl sm${m.level>=q[0]?' new':''}"><b>${m.level>=q[0]?'★':'LV '+q[0]} ${q[2]}</b><span>${ddmFxTxt(m,q[1],q[3])}</span></div>`).join('')}${ddmJob(m).filter(q=>ddmPerkN(m,q[0])).map(q=>`<div class="ddm-unl sm new"><b>${q[1]}${ddmPerkN(m,q[0])>1?' ×'+ddmPerkN(m,q[0]):''}</b><span>${ddmFxTxt(m,q[0],q[2])}</span></div>`).join('')}${['w','t'].map(k=>DDM_ITEMS[m.gear[k]]).filter(I=>I.star).map(I=>`<div class="ddm-perk gold"><b>★ ${I.n}</b><br>${I.d} Lost if he dies.</div>`).join('')}${m.hurt?`<div class="ddm-perk hurt"><b>✚ Wounded</b><br>He sits out the next chapter unless he's treated.<br><button type="button" class="ddm-btn sm" data-a="treat" data-u="${m.uid}"${(ddRoster.treat||0)<1&&ddRoster.medals<1?' disabled':''}>TREAT · ${ddmTreatCost()}</button></div>`:''}</div>`;
 const ddmStar=m=>!!(m.trait||DDM_ITEMS[m.gear.w].star||DDM_ITEMS[m.gear.t].star);
 const ddmMen8=()=>['A','B'].flatMap(t=>ddRoster.squads[t].map((q,i)=>q?[t,i]:null).filter(Boolean));
 // a picture for a piece of kit: a long gun, a grenade, or a tool
@@ -480,7 +483,47 @@ function ddmBriefHTML(){
     ${w.length?`<div class="ddm-wd">✚ ${w.map(m=>ddmEsc(m.name)).join(' and ')} ${w.length>1?'are':'is'} wounded and will sit this one out. Treat ${w.length>1?'them':'him'} at the field hospital first, or go ${w.length>1?'men':'a man'} short.</div>`:''}
     <div class="ddm-row"><button type="button" class="ddm-btn grey" data-a="gox">NOT YET</button><button type="button" class="ddm-btn go" data-a="start">START MISSION ▸</button></div></div>`;
 }
+// Version 240 (a draft, opened only by the start card's "new report" shortcut: ddmV2): the whole report on one page. Bryan: "After the stat menu
+// - it is WAY too confusing. We should just show post battle stats info with a continue button. Maybe have the exp bar go up for everyone on this
+// page that wasn't rewarded a perk. We should also require the player to pick a perk to continue the exp bar for each player that was rewarded a
+// perk instead of adding a next button (the less buttons the better)". No VICTORY card to tap, no medal screen (it goes to the one who did most),
+// no card a man: every bar fills where it is (r.v: the level and XP shown, and what's still to come); at a level his row opens with his job's
+// two perks and his bar waits there until one is picked; CONTINUE once every bar is in. A row tapped is still that man's page, once it's done
+let ddmV2=false;
+const ddmFxTxt=(m,k,t)=>/^gren/.test(k)&&(DDM_ITEMS[m.gear.g]||{}).gl?t.replace('grenade','rifle grenade'):t;   // (the Rifleman's are rifle grenades: Bryan asked which)
+function ddmV2Init(){
+  ddm.v2=true;if(ddm.noms.length&&!ddm.mvp)ddmAward(0);ddm.scr=null;ddm.step=ddm.rows.length;ddm.v2T=0;ddm.v2Done=false;
+  ddm.rows.forEach((r,k)=>{r.v={lv:r.lv0,xp:r.xp0,left:r.gain,wait:false,at:.9+k*.14};r.pkd=r.pkd||[];});
+}
+function ddmV2Tick(rdt){
+  if(!ddm||!ddm.v2||ddm.ph!=='report'||ddm.v2Done)return;ddm.v2T+=rdt;let moving=false,dirty=false;
+  if(!ddm.fan){ddm.fan=1;if(typeof sfxLevelUp==='function')sfxLevelUp(true);}
+  ddm.rows.forEach((r,k)=>{const v=r.v;if(!v||v.wait||ddm.v2T<v.at)return;
+    if(v.left<=0){if(r.rm.pk>0){v.wait=true;dirty=true;}return;}   // (a perk still owed from before: asked for once his bar is in)
+    const need=ddmNeed(v.lv),add=Math.min(v.left,need-v.xp,Math.max(150,need*.85)*rdt);v.xp+=add;v.left-=add;moving=true;
+    if(v.xp>=need-.01){v.xp=0;v.lv++;v.wait=true;dirty=true;if(typeof sfxLevelUp==='function')sfxLevelUp(false);}
+    const g=id=>document.getElementById(id+k),b=g('ddmX'),n=g('ddmN'),l=g('ddmL');if(b)b.style.width=Math.round(v.xp/ddmNeed(v.lv)*100)+'%';if(n)n.textContent='+'+Math.round(r.gain-v.left);if(l)l.textContent=v.lv;});
+  if(moving&&!ddm.v2Snd){ddm.v2Snd=1;if(typeof sfxXpFill==='function')sfxXpFill(1,1.2);}
+  if(ddm.v2T>1&&ddm.rows.every(r=>r.v&&r.v.left<=0&&!r.v.wait&&!(r.rm.pk>0))){ddm.v2Done=true;dirty=true;}
+  if(dirty){ddmSave();ddmUI();const p=document.querySelector('#ddm .ddm-r2.pick');if(p&&p.scrollIntoView)p.scrollIntoView({block:'nearest'});}
+}
+function ddmReport2HTML(){
+  const R=ddRoster,rows=ddm.rows,done=ddm.v2Done,due=rows.filter(r=>r.v&&r.v.wait).length,mv=rows.find(r=>r.mvp),cur=rows.findIndex(r=>r.v&&r.v.wait),owed=rows.reduce((n,r)=>n+(r.rm.pk||0),0);   // (cur: the one whose perks are open; the others owed one wait their turn, so there are never more than two buttons to choose between)
+  if(ddm.man!=null&&rows[ddm.man])return ddmManHTML();
+  const row=(r,k)=>{const m=r.rm,v=r.v,un=ddmUnl(m).filter(q=>q[0]<=v.lv&&q[0]>r.lv0),pk=(r.pkd||[]).map(x=>(ddmJob(m).find(q=>q[0]===x)||[0,x])[1]);
+    const open=v.wait&&k===cur;
+    return`<div class="ddm-r2${open?' pick':''}" style="--tc:${teamCol(r.u)}"><button type="button" class="ddm-sr${r.mvp?' mvp':''}" data-a="manv" data-i="${k}"><i>${DDM_ICON[m.role]||''}</i><div class="nm"><b>${ddmEsc(m.name)}${r.mvp?'<q class="g">MEDAL</q>':''}</b><span>${r.team==='A'?'ALPHA':'BRAVO'} · ${DDM_ROLE[m.role].toUpperCase()}</span></div><em class="${v.lv>r.lv0?'up':''}" id="ddmL${k}">${v.lv}</em><em>${r.kills}</em><em>${r.rev}</em><em>${r.downs}</em><em>${r.items}</em><div class="x"><span id="ddmN${k}">+${Math.round(r.gain-v.left)}</span><div class="ddm-xpb"><em id="ddmX${k}" style="width:${Math.round(v.xp/ddmNeed(v.lv)*100)}%"></em></div></div></button>
+      ${open?`<div class="ddm-pk2"><b>▲ LEVEL ${v.lv} · PICK A PERK</b><div class="ddm-row">${ddmJob(m).map(q=>`<button type="button" class="ddm-pkb" data-a="perk2" data-i="${k}" data-k="${q[0]}"><b>${q[1]}${ddmPerkN(m,q[0])?' ×'+(ddmPerkN(m,q[0])+1):''}</b><span>${ddmFxTxt(m,q[0],q[2])}</span></button>`).join('')}</div></div>`:''}
+      ${pk.length||un.length||(v.wait&&!open)?`<div class="ddm-tg">${pk.map(t=>`<span>✓ ${t}</span>`).join('')}${un.map(q=>`<span class="u">★ ${q[2]}</span>`).join('')}${v.wait&&!open?'<span class="w">▲ PERK NEXT</span>':''}</div>`:''}</div>`;};
+  return`<div class="ddm-full v2"><div class="ddm-hd"><div><div class="ddm-vt sm">VICTORY</div><div class="ddm-dim">${ddm.chap}</div></div></div>
+    <div class="ddm-tiles all">${[...ddm.tiles,...(ddm.more||[])].slice(0,4).map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+    ${mv?`<div class="ddm-mvl"><b>★ COMPANY'S MEDAL</b> · ${ddmEsc(mv.rm.name)}<span>+100 XP</span></div>`:''}
+    <div class="ddm-srh"><span></span><span class="l"></span><span>LV</span><span>KILL</span><span>REV</span><span>DOWN</span><span>GREN</span><span class="r">XP</span></div>
+    <div class="ddm-sum">${rows.map(row).join('')}${ddm.dead.length?`<div class="ddm-dead"><b>FALLEN · ★ ${R.medals} medal${R.medals===1?'':'s'}</b>${ddm.dead.map((d,j)=>`<div class="ddm-fl${d.back?' back':''}"><i>${DDM_ICON[d.rm?d.rm.role:d.role]||''}</i><span>${ddmEsc(d.name)}</span>${d.back?'<em>BACK WITH THE SQUAD</em>':d.rm?`<button type="button" class="ddm-btn sm" data-a="revive" data-i="${j}"${R.medals>0?'':' disabled'}>BRING BACK ★ 1</button>`:''}</div>`).join('')}</div>`:''}</div>
+    <div class="ddm-fbot"><button type="button" class="ddm-btn" data-a="${DDM_NEXT[R.stage]?'go':'menu'}"${done?'':' disabled'}>${due?`PICK ${owed>1?owed+' PERKS':'A PERK'} ▲`:DDM_NEXT[R.stage]?'CONTINUE ▸':'BACK TO THE MENU ▸'}</button></div>${ddm.brief?ddmBriefHTML():''}</div>`;
+}
 function ddmReportHTML(){
+  if(ddm.v2)return ddmReport2HTML();
   const n=ddm.rows.length,i=ddm.step,tiles=`<div class="ddm-tiles">${ddm.tiles.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>`;
   if(ddm.scr==='medal'){const k=ddm.nom||0,c=ddm.noms[k];
     return`<div class="ddm-aw"><div class="ddm-sheet"><div class="ddm-t gold">★ THE COMPANY'S MEDAL</div><div class="ddm-dim" style="margin:3px 0 9px">A star and +100 XP</div>
@@ -496,9 +539,9 @@ function ddmReportHTML(){
         <div class="ddm-chips"><span>KILLS<b>${r.kills}</b></span><span>REVIVES<b>${r.rev}</b></span><span>TIMES DOWN<b>${r.downs}</b></span><span>GRENADES<b>${r.items}</b></span></div>
         <div class="ddm-xpr"><div class="ddm-xpb"><em id="ddmXp" style="width:${Math.round((sn?m.xp/ddmNeed(r.lv1):r.xp0/ddmNeed(r.lv0))*100)}%"></em></div><span id="ddmXpN">+${sn?r.gain:0} XP</span></div>
         <div class="ddm-up" id="ddmUp"${sn&&up?'':' hidden'}>▲ LEVEL UP${r.lv1-r.lv0>1?' ×'+(r.lv1-r.lv0):''} · +${2*(r.lv1-r.lv0)} Health · Aim · Speed · Nerve</div>
-        ${pk?`<div class="ddm-pk" id="ddmPk"${sn?'':' hidden'}><div class="ddm-gl gold">CHOOSE A PERK${m.pk>1?' · '+m.pk+' TO CHOOSE':''}</div><div class="ddm-row">${ddmJob(m).map(q=>`<button type="button" class="ddm-pkb" data-a="perk" data-k="${q[0]}"><b>${q[1]}${ddmPerkN(m,q[0])?' ×'+(ddmPerkN(m,q[0])+1):''}</b><span>${q[2]}</span></button>`).join('')}</div></div>`:''}
+        ${pk?`<div class="ddm-pk" id="ddmPk"${sn?'':' hidden'}><div class="ddm-gl gold">CHOOSE A PERK${m.pk>1?' · '+m.pk+' TO CHOOSE':''}</div><div class="ddm-row">${ddmJob(m).map(q=>`<button type="button" class="ddm-pkb" data-a="perk" data-k="${q[0]}"><b>${q[1]}${ddmPerkN(m,q[0])?' ×'+(ddmPerkN(m,q[0])+1):''}</b><span>${ddmFxTxt(m,q[0],q[2])}</span></button>`).join('')}</div></div>`:''}
         ${(r.pkd||[]).length?`<div class="ddm-pkd">✓ ${r.pkd.map(k=>(ddmJob(m).find(q=>q[0]===k)||[0,k])[1]).join(' · ')}</div>`:''}
-        ${ddmUnl(m).map(q=>q[0]<=r.lv1&&q[0]>r.lv0?`<div class="ddm-unl new" id="ddmUn"${sn?'':' hidden'}><b>★ UNLOCKED · ${q[2]}</b><span>${q[3]}</span></div>`:'').join('')}${(q=>q?`<div class="ddm-unl"><b>LEVEL ${q[0]} · ${q[2]}</b><span>${q[3]}</span></div>`:'')(ddmUnl(m).find(q=>q[0]>r.lv1))}
+        ${ddmUnl(m).map(q=>q[0]<=r.lv1&&q[0]>r.lv0?`<div class="ddm-unl new" id="ddmUn"${sn?'':' hidden'}><b>★ UNLOCKED · ${q[2]}</b><span>${ddmFxTxt(m,q[1],q[3])}</span></div>`:'').join('')}${(q=>q?`<div class="ddm-unl"><b>LEVEL ${q[0]} · ${q[2]}</b><span>${ddmFxTxt(m,q[1],q[3])}</span></div>`:'')(ddmUnl(m).find(q=>q[0]>r.lv1))}
         ${r.mvp?'<div class="ddm-medal">★ The company\'s medal, from you</div>':''}
         <div class="ddm-dots">${ddm.rows.map((q,k)=>`<i class="${k===i?'on':q.seen?'ok':''}" data-a="card" data-i="${k}"></i>`).join('')}</div>
         <div class="ddm-row ddm-nav"><button type="button" class="ddm-btn grey" data-a="rollprev"${i?'':' disabled'}>◂</button><button type="button" class="ddm-btn" data-a="rollnext">${i<n-1?'NEXT MAN ▸':'DONE ▸'}</button></div>
@@ -532,12 +575,12 @@ function ddmManHTML(){
       <div class="ddm-gl gold">LEVEL ${r.lv1}${m.stars?' · '+'★'.repeat(Math.min(3,m.stars)):''}</div>
       <div class="ddm-xpr"><div class="ddm-xpb"><em style="width:${Math.round(m.xp/ddmNeed(r.lv1)*100)}%"></em></div><span>${m.xp} / ${ddmNeed(r.lv1)} XP</span></div>
       ${up?`<div class="ddm-up">▲ LEVEL UP${r.lv1-r.lv0>1?' ×'+(r.lv1-r.lv0):''} · +${2*(r.lv1-r.lv0)} Health · Aim · Speed · Nerve</div>`:''}
-      ${m.pk>0?`<div class="ddm-pk"><div class="ddm-gl gold">CHOOSE A PERK${m.pk>1?' · '+m.pk+' TO CHOOSE':''}</div><div class="ddm-row">${ddmJob(m).map(q=>`<button type="button" class="ddm-pkb" data-a="perk" data-k="${q[0]}"><b>${q[1]}${ddmPerkN(m,q[0])?' ×'+(ddmPerkN(m,q[0])+1):''}</b><span>${q[2]}</span></button>`).join('')}</div></div>`:''}
+      ${m.pk>0?`<div class="ddm-pk"><div class="ddm-gl gold">CHOOSE A PERK${m.pk>1?' · '+m.pk+' TO CHOOSE':''}</div><div class="ddm-row">${ddmJob(m).map(q=>`<button type="button" class="ddm-pkb" data-a="perk" data-k="${q[0]}"><b>${q[1]}${ddmPerkN(m,q[0])?' ×'+(ddmPerkN(m,q[0])+1):''}</b><span>${ddmFxTxt(m,q[0],q[2])}</span></button>`).join('')}</div></div>`:''}
       <div class="ddm-gl gold">WHAT HE'S GOOD AT</div>
       ${[['Health','hp'],['Aim','aim'],['Speed','spd'],['Bravery','brv']].map(([t,k])=>`<div class="ddm-st"><span>${t}</span><div><em style="width:${m.st[k]}%"></em></div><b>${m.st[k]}</b></div>`).join('')}
       ${m.trait?`<div class="ddm-perk gold"><b>★ ${DDM_TRAITS[m.trait].n}</b><br>${DDM_TRAITS[m.trait].d}</div>`:''}
-      ${ddmJob(m).filter(q=>ddmPerkN(m,q[0])).map(q=>`<div class="ddm-unl sm new"><b>${q[1]}${ddmPerkN(m,q[0])>1?' ×'+ddmPerkN(m,q[0]):''}</b><span>${q[2]}</span></div>`).join('')}
-      ${ddmUnl(m).filter(q=>m.level>=q[0]).map(q=>`<div class="ddm-unl sm new"><b>★ ${q[2]}</b><span>${q[3]}</span></div>`).join('')}
+      ${ddmJob(m).filter(q=>ddmPerkN(m,q[0])).map(q=>`<div class="ddm-unl sm new"><b>${q[1]}${ddmPerkN(m,q[0])>1?' ×'+ddmPerkN(m,q[0]):''}</b><span>${ddmFxTxt(m,q[0],q[2])}</span></div>`).join('')}
+      ${ddmUnl(m).filter(q=>m.level>=q[0]).map(q=>`<div class="ddm-unl sm new"><b>★ ${q[2]}</b><span>${ddmFxTxt(m,q[1],q[3])}</span></div>`).join('')}
       <div class="ddm-gl gold">HE CARRIES</div>
       <div class="ddm-mvk">${kit}</div>
     </div>

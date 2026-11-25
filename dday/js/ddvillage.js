@@ -536,7 +536,7 @@ function vgZones(){
 const vgRally=p=>{(dd.vg.rally||(dd.vg.rally=[])).push(p);};
 // a man lost, and somebody in the reserve: he comes up from the nearest place already ours and makes for his squad
 function vgReplace(){
-  for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&players.some(m=>m.raise&&m.raise.t===q.body)){q.at=simT+2;continue;}
+  for(const q of dd.queue.slice()){if(simT<q.at)continue;if(q.body&&(players.some(m=>m.raise&&m.raise.t===q.body)||ddRaiseHope(q.body))){q.at=simT+2;continue;}
     dd.queue.splice(dd.queue.indexOf(q),1);if(q.body)q.body.noRev=true;let rm=ddmTakeReserve();dd.pool=ddmReserveFit().length;const fox=!rm&&dd.vg.ph==='village'&&(dd.vg.foxR||0)>0;if(!rm&&!fox)continue;if(fox)dd.vg.foxR--;
     const b=vgFrom();
     const sp=openSpot(b.x,b.y,players.filter(p=>!p.dead).map(destOf))||b,u=ddNewMan(q.team,q.id,rm?rm.role:ddPickRole(q.team),sp.x,sp.y,rm||undefined);Object.assign(u,{inBoat:false,seen:true,joining:true});
@@ -594,7 +594,7 @@ function vgDraw(){
   // (Version 167: the machine guns show their fields of fire on the ground and the objective pill says where to go, ddhud.js: what's left here is short)
   for(const e of enemies)if(e.weapon==='sniper'&&!beaten(e)&&e.seen)lab(e.x,e.y,(e.elev||0)+30,'SNIPER','#ff8a6a');
   if(V.ph==='village')for(const z of VG.zones){const h=V.held[z.k];if(h)ddBlueRect(z.x0,z.y0,z.x1,z.y1,true);lab(z.lx,z.ly,h?36:44,h?`${z.n} · OURS`:z.n,h?'#8fd0ff':'#ffcf4a',9);}   // (ours: blue on the ground too, Version 170)
-  for(const m of players)if(m.raise&&m.raise.p>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(m.raise.p/12*100)}%`,sx,sy,'#5fe08e',10,700);}
+  for(const m of players)if(m.raise&&m.raise.t.raiseP>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(c.raiseP/DD_RAISE*100)}%`,sx,sy,'#5fe08e',10,700);}
   for(const p of players)if(p.joining&&alive(p)){const[sx,sy]=toS(p.x,p.y,26);label('JOINING',sx,sy,teamCol(p),9,700);}
 }
 function vgFinishLost(){

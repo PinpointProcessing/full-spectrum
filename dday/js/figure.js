@@ -394,7 +394,7 @@ function figState(u){
   if(u.carry)return'carry';
   if(u.rpgAim||simT-(u.rpgT||-9)<(MAPID==='dd'?1.0:.5))return'rpg';
   if(simT-(u.throwT||-9)<.75)return'throw';
-  if((u.medGo&&u.medGo.prog>0)||(u.carryGo&&u.carryGo.prog>0)||(typeof zipOf==='function'&&zipOf(u)&&!u.path.length)||u.plant||reviving(u))return'kneelwork';
+  if((u.medGo&&u.medGo.prog>0)||(u.carryGo&&u.carryGo.prog>0)||(typeof zipOf==='function'&&zipOf(u)&&!u.path.length)||u.plant||reviving(u)||(u.raise&&u.raise.on&&!u.path.length))return'kneelwork';   // (u.raise: a D-Day medic over a body, ddplay.js)
   if(typeof useOf==='function'&&(g=>g&&!u.path.length&&g.a.secs)(useOf(u)))return'standwork';
   return'base';
 }
