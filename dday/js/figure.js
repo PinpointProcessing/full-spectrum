@@ -77,12 +77,13 @@ function figKitKey(u,L){
   if(typeof MAPID!=='undefined'&&MAPID==='dd'){if(w==='m4'||w==='m4s')w='m1';else if(w==='hmg')w='bar';else if(w==='ak')w='kar';}
   const helm=L.k==='en'&&(u.gunner||u.helm||(typeof alertStage==='function'&&alertStage()>=2));
   const role=L.k==='sq'?(u.id==='A1'?'lead':u.id==='B2'||u.spec==='med'?'med':u.id==='B1'?'mg':''):'';
-  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}${u.gl&&(w==='m4'||w==='m4s'||w==='m1')?'g':''}${typeof MAPID!=='undefined'&&MAPID==='dd'?'S':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}`;   // (g: an M203 under the rifle, Level 4's find)
+  const lv=L.k==='sq'?figLvOf(u):0;   // (Version 242's draft: his look by level; level 1 is the look as it was, so its key is as it was)
+  return`${L.k}|${w}|${helm?'h':''}${u.radio?'r':''}${u.gl&&(w==='m4'||w==='m4s'||w==='m1')?'g':''}${typeof MAPID!=='undefined'&&MAPID==='dd'?'S':''}|${L.k==='en'?(helm?3:L.hat):0}|${role}${lv>1?'|'+lv:''}`;   // (g: an M203 under the rifle, Level 4's find)
 }
 
 /* ---------- the parts ---------- */
 function figParts(key){
-  const [k,w,flags,hatS,role]=key.split('|'),hat=+hatS,helm=flags.includes('h'),radio=flags.includes('r'),gl=flags.includes('g');
+  const [k,w,flags,hatS,role,lvS]=key.split('|'),hat=+hatS,helm=flags.includes('h'),radio=flags.includes('r'),gl=flags.includes('g'),lv=+lvS||1;
   const out=[],E=new T.Euler(),Q=new T.Quaternion(),V=new T.Vector3(),S=new T.Vector3(1,1,1);
   // add(bone, geometry, colour, kind, x,y,z, [rx,ry,rz], [sx,sy,sz]); kind: 0 colour as given, 1 skin, 2 team colour (glows), 9 team colour as paint,
   // 3 hair, 4 gun metal, 5 gun furniture, 7 lamp lens, 8 uniform (the colour multiplies the person's cloth colour)
@@ -93,6 +94,8 @@ function figParts(key){
   // webbing (suspenders, a cartridge belt), canvas leggings and bare hands, no plate carrier, strobe, night-vision mount or ear defenders; the Germans in
   // the Stahlhelm with its flared skirt, Y-straps, cartridge pouches and the gas-mask canister, no armband or vest. The stocky build is kept (STOCKY).
   const dd=flags.includes('S'),ddS=dd&&sq,ddE=dd&&en,WEB='#6e6748',JK='#e4e4e4';
+  // (Version 242's draft, his kit by level: canvas, leather, painted steel)
+  const up=n=>ddS&&lv>=n,BND='#8b8158',BNDP='#9a9066',VST='#7a7350',VSTD='#625c40',LTH='#5a4530',STEEL='#4b5345',STEELL='#5d6654',GRD=lv>=9?STEEL:LTH,GK=lv>=9?5:0;
   // legs
   for(const s of[-1,1]){const S_=s<0?'L':'R';
     if(sci){add('thigh'+S_,cyl(1.02,.84,4.2),COL.trouser,0,0,-2,0);add('shin'+S_,cyl(.82,.7,3.9),COL.trouser,0,0,-1.95,0);}
@@ -101,6 +104,8 @@ function figParts(key){
     if(ddS)add('shin'+S_,cyl(.94,.84,1.75,8),'#958a66',0,0,-2.95,0);       // canvas leggings
     else if(sq)add('shin'+S_,rbox(.8,1.2,1.15,.3),COL.pad,0,.62,-.12,0);      // knee pad
     if(sq&&s>0)add('thigh'+S_,rbox(.95,1.5,.55,.18),COL.web,0,.15,-1.3,1.05); // holster
+    if(up(6))add('shin'+S_,rbox(.7,1.25,1.2,.3),STEEL,5,.6,-.15,0);           // (level 6) knee guards
+    if(up(8)){add('thigh'+S_,rbox(.3,1.75,1.08,.14),STEEL,5,1.0,-1.7,0);add('thigh'+S_,rbox(.12,1.5,.18,.05),STEELL,5,1.13,-1.7,0);}   // (level 8) plates down the fronts of his thighs
     const shoe=sq?COL.boot:en?COL.eboot:sci?'#1d1d1f':COL.shoe;
     add('foot'+S_,rbox(civ?2.3:2.6,civ?.85:1.05,civ?1.1:1.25,.32),shoe,0,.5,-.38,0);
     add('foot'+S_,cyl(.74,.78,civ?.6:1.1),shoe,0,0,civ?0:.22,0);
@@ -135,6 +140,23 @@ function figParts(key){
     add('chest',rbox(.14,1.25,.3,.05),COL.tie,0,1.3,1.6,0);
     add('chest',rbox(.1,.55,.4,.03),'#e8e8e0',0,1.22,1.4,.95);        // ID badge
   }
+  if(up(3)){   // (level 3) the assault vest over his jacket: canvas, cut short of the shoulders, pockets on the chest and at the waist
+    add('chest',rbox(2.95,2.35,3.56,.5),VST,0,0,.95,0);add('spine',rbox(2.62,1.35,3.3,.4),VST,0,0,1.3,0);
+    add('chest',cyl(.5,.5,3.0,10),'#6f6a49',0,-2.25,3.42,0,[Math.PI/2,0,0]);for(const z of[-.95,.95])add('chest',cyl(.53,.53,.16,10),WEB,0,-2.25,3.42,z,[Math.PI/2,0,0]);   // ...and a rolled blanket strapped across the top of his pack (the vest doesn't show from behind; this does)
+    for(const s of[-1,1]){add('chest',rbox(.16,.85,1.0,.08),VSTD,0,1.5,1.42,s*.86);add('chest',rbox(.2,.22,1.06,.06),VSTD,0,1.52,1.9,s*.86);add('spine',rbox(.16,.8,1.05,.08),VSTD,0,1.36,1.2,s*.86);}
+  }
+  if(up(5)){   // (level 5) painted steel: a breastplate with a ridge down it, a plate over his belly, one over the small of his back under the pack
+    add('chest',rbox(.34,2.0,2.75,.3),STEEL,5,1.58,1.15,0);add('chest',rbox(.12,1.85,.2,.05),STEELL,5,1.78,1.15,0);
+    add('spine',rbox(.3,1.15,2.4,.2),STEEL,5,1.44,1.2,0);add('spine',rbox(.3,1.2,2.5,.2),STEEL,5,-1.44,1.15,0);
+  }
+  if(up(2)){   // (level 2) a bandolier from his left shoulder to his right hip, front and back, and over the shoulder between
+    const X=lv>=5?1.86:lv>=3?1.56:1.45,a=-.62,c=Math.cos(a),sn=Math.sin(a);
+    add('chest',rbox(.12,3.9,.52,.05),BND,0,X,1.15,0,[a,0,0]);add('chest',rbox(.12,3.9,.52,.05),BND,0,-(lv>=3?1.56:1.45),1.15,0,[a,0,0]);
+    add('chest',rbox(lv>=3?3.2:3.0,.12,.52,.05),BND,0,0,lv>=3?2.74:2.72,-1.13);
+    for(const q of[-1.3,-.65,0,.65,1.3])add('chest',rbox(.26,.5,.5,.1),BNDP,0,X+.1,1.15+q*c,q*sn,[a,0,0]);
+  }
+  if(up(10))add('chest',figStar(.56,.07),'#e9e5d6',0,1.76,1.62,.78,[0,Math.PI/2,0]);   // (level 10) a white star on the breastplate
+  if(up(4))for(const s of[-1,1])add('clav'+(s<0?'L':'R'),rbox(1.55,.42,1.7,.2),GRD,GK,0,.52,s*.3);   // (level 4) shoulder guards: a pad on each shoulder (leather, steel from level 9)...
   if(dd&&(sq||en))for(const s of[-1,1])add('clav'+(s<0?'L':'R'),rbox(1.3,.95,1.5,.4),JK,8,0,-.05,s*.15);   // the jacket's shoulders
   else if(sq||(en&&helm))for(const s of[-1,1])add('clav'+(s<0?'L':'R'),rbox(1.3,.95,1.5,.4),sq?COL.vest:COL.evest,0,0,-.05,s*.15);   // shoulder straps
   // the pack, or the radio
@@ -150,6 +172,7 @@ function figParts(key){
   // neck and head
   add('neck',cyl(.8,.95,1.1),ddS?'#ffffff':sq?COL.gaiter:en?COL.scarf:'#ffffff',(sq&&!dd)||en?0:1,0,.35,0);
   if(en)add('neck',cyl(1.15,1.3,.9),COL.scarf,0,0,-.1,0);
+  if(up(7))add('neck',cyl(1.02,1.2,.75,10),'#77714f',0,0,.15,0);   // (level 7) a scarf at his neck
   add('head',rbox(2.25,2.4,2.05,.85),W,1,.15,1.05,0);
   for(const s of[-1,1])add('head',rbox(.18,.26,.5,.06),COL.dark,0,1.27,1.2,s*.45);   // eyes
   if(!sq||dd)for(const s of[-1,1])add('head',rbox(.5,.7,.25,.1),Wd,1,.05,1.0,s*1.05);   // ears
@@ -158,6 +181,9 @@ function figParts(key){
     add('head',cyl(1.99,2.08,.16,16),COL.helm,0,0,1.4,0);                                     // ...its rim
     add('head',rbox(.08,.36,.82,.04),W,9,-1.71,2.14,0,[0,0,-.64]);                          // the team's colour painted on the back (kind 9: matte, no glow)
     for(const s of[-1,1])add('head',rbox(.14,1.2,.14,.04),WEB,0,.42,.82,s*1.1,[s*.12,0,0]); // the chinstrap
+    if(up(7)){add('head',cyl(1.83,1.87,.22,16),'#3b3a30',0,0,1.98,0);add('head',rbox(.3,.55,1.7,.14),'#22231f',0,1.8,1.98,0,[0,0,.28]);   // (level 7) goggles pushed up on his helmet, their strap round it
+      for(const s of[-1,1])add('head',rbox(.1,.4,.62,.08),'#2b3a40',4,1.96,2.03,s*.42,[0,0,.28]);}
+    if(up(10))add('head',rbox(.08,.2,1.0,.04),'#e6e2d2',0,-1.76,1.82,0,[0,0,-.5]);         // (level 10) the white bar across the back of an old hand's helmet
   }else if(sq){
     add('head',dome(1.68,12,5),COL.helm,0,-.05,1.38,0,null,[1.1,.95,1.08]);   // helmet
     add('head',rbox(.55,.5,.75,.15),COL.dark,0,1.62,2.0,0);                  // night-vision mount
@@ -178,6 +204,8 @@ function figParts(key){
   for(const s of[-1,1]){const S_=s<0?'L':'R';
     add('arm'+S_,cyl(.8,.7,3.1),W,8,0,-1.5,0);
     if(sq)add('arm'+S_,rbox(.95,.8,.14,.05),W,2,0,-1.0,s*.78);                // team patch (glows)
+    if(up(4))add('arm'+S_,cyl(.95,.88,.75,10),GRD,GK,0,-.18,0);               // (level 4) ...and a cap over the top of each arm, clear of his team's patch
+    if(up(6))add('fore'+S_,cyl(.8,.72,1.35,10),LTH,0,0,-1.55,0);              // (level 6) leather guards on his forearms
     if(en&&s<0&&!dd)add('arm'+S_,cyl(.84,.84,.55),COL.red,0,0,-.95,0);       // red armband
     add('fore'+S_,cyl(.7,.6,2.7),W,8,0,-1.35,0);
     if(sq&&!dd)add('fore'+S_,rbox(.85,.85,.9,.3),COL.pad,0,-.35,-.15,0);     // elbow pad
@@ -245,6 +273,20 @@ const GRIP={m4:{R:[-.3,-.45,.22],L:[2.9,-.5,-.25],butt:-2.9},m4s:{R:[-.3,-.45,.2
 // runs along its bone's y), the head, hands and boots bigger; ddplay.js makes the whole man a little wider than tall on top
 const STOCKY={head:[1.5,1.5,1.5],neck:[1.3,1,1.3],arm:[1.45,1,1.45],fore:[1.45,1,1.45],hand:[1.55,1.4,1.55],thigh:[1.4,1,1.38],shin:[1.45,1,1.45],foot:[1.3,1.35,1.5],
   hips:[1.2,1,1.2],spine:[1.24,1,1.24],chest:[1.24,1,1.24],clav:[1.2,1.1,1.2],gun:[GUN_S*1.12,GUN_S*1.25,GUN_S*1.25]};
+// Version 242, a draft (off unless FIG_LVLOOK: ddplay.js's draft shortcut turns it on). Bryan, on the report draft: "Can each level also make them a
+// little bit more buff, with armor and general view?" A D-Day squad man's look by his level, FIG_LVMAX at most (the key's sixth part, from figLvOf):
+// each level a little more of him (FIG_BUFF: per level above the first, his chest, shoulders, arms and neck thicker; figBuild: the shoulder joints
+// further apart and the whole man a touch bigger) and one more piece of kit (figParts): 2 a bandolier, 3 an assault vest, 4 leather shoulder guards,
+// 5 a steel breastplate, 6 forearm and knee guards, 7 goggles and a scarf, 8 thigh plates, 9 the shoulder guards in steel, 10 a star and a helmet bar.
+// Most of it shows from behind and above too, where the battle's camera is: the strap over the shoulder, the vest's colour, the guards, the scarf.
+let FIG_LVLOOK=false;const FIG_LVMAX=10;
+const FIG_BUFF={chest:[.016,0,.02],spine:[.008,0,.01],clav:[.015,.015,.03],arm:[.028,0,.028],fore:[.02,0,.02],neck:[.02,0,.02],thigh:[.012,0,.012],shin:[.008,0,.008],
+  hips:[.006,0,.008],hand:[.008,.008,.008],sh:.045,all:.006};
+const figLvOf=u=>FIG_LVLOOK&&typeof MAPID!=='undefined'&&MAPID==='dd'&&u.side==='P'?clamp(Math.round(u.lookLv??(u.rm?u.rm.level:u.level)??1),1,FIG_LVMAX):0;
+// what the level does to his own skeleton (the geometry's part of it is in figGeometry): wider across the shoulders, a little bigger all over
+function figBuild(F){const k=Math.max(0,(+F.key.split('|')[5]||1)-1),B=F.bones,d=FIG_BUFF.sh*k;B[BI.armL].position.z=FB[BI.armL][2][2]-d;B[BI.armR].position.z=FB[BI.armR][2][2]+d;B[0].scale.setScalar(1+FIG_BUFF.all*k);}
+// a five-pointed star, flat, facing +z (the breastplate's, at level 10)
+function figStar(r,d){const sh=new T.Shape();for(let i=0;i<10;i++){const a=Math.PI/2+i*Math.PI/5,q=i%2?r*.42:r;sh[i?'lineTo':'moveTo'](Math.cos(a)*q,Math.sin(a)*q);}sh.closePath();return new T.ExtrudeGeometry(sh,{depth:d,bevelEnabled:false});}
 let FIG_INK=null;
 function figInk(){   // an ink line round him: the same mesh drawn again, its back faces only, pushed out along its normals
   if(FIG_INK)return FIG_INK;const m=new T.MeshBasicMaterial({color:0x17130f,side:T.BackSide,skinning:true});
@@ -257,13 +299,13 @@ function figInkHot(){   // the same line in orange and thicker: the man who's do
 }
 function figGeometry(key){
   let G=FIG_GEO.get(key);if(G)return G;
-  const parts=figParts(key),stocky=key.split('|')[2].includes('S');let nv=0,ni=0;
+  const parts=figParts(key),stocky=key.split('|')[2].includes('S'),bk=Math.max(0,(+key.split('|')[5]||1)-1);let nv=0,ni=0;   // (bk: levels above the first, Version 242's draft)
   for(const p of parts){nv+=p.g.attributes.position.count;ni+=p.g.index?p.g.index.count:p.g.attributes.position.count;}
   const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),col=new Float32Array(nv*3),mid=new Float32Array(nv),si=new Uint16Array(nv*4),sw=new Float32Array(nv*4),idx=new Uint32Array(ni);
   const M=new T.Matrix4(),N=new T.Matrix3(),v3=new T.Vector3();let v=0,k=0;
   for(const p of parts){
     const g=p.g,P=g.attributes.position,Nn=g.attributes.normal,base=v,R=FB_REST[p.b];
-    M.makeTranslation(R[0],R[1],R[2]);const sc=p.b===BI.gun?GUN_S:p.b===BI.head?1.1:1;if(stocky){const q=STOCKY[FB[p.b][0].replace(/[LR]$/,'')]||[1,1,1];M.multiply(new T.Matrix4().makeScale(q[0],q[1],q[2]));}else if(sc!==1)M.multiply(new T.Matrix4().makeScale(sc,sc,sc));M.multiply(p.m);N.getNormalMatrix(M);
+    M.makeTranslation(R[0],R[1],R[2]);const sc=p.b===BI.gun?GUN_S:p.b===BI.head?1.1:1;if(stocky){const nm=FB[p.b][0].replace(/[LR]$/,''),q=STOCKY[nm]||[1,1,1],f=FIG_BUFF[nm]||[0,0,0];M.multiply(new T.Matrix4().makeScale(q[0]*(1+f[0]*bk),q[1]*(1+f[1]*bk),q[2]*(1+f[2]*bk)));}else if(sc!==1)M.multiply(new T.Matrix4().makeScale(sc,sc,sc));M.multiply(p.m);N.getNormalMatrix(M);
     for(let i=0;i<P.count;i++,v++){
       v3.fromBufferAttribute(P,i).applyMatrix4(M);pos[v*3]=v3.x;pos[v*3+1]=v3.y;pos[v*3+2]=v3.z;
       v3.fromBufferAttribute(Nn,i).applyMatrix3(N).normalize();nor[v*3]=v3.x;nor[v*3+1]=v3.y;nor[v*3+2]=v3.z;
@@ -339,11 +381,11 @@ function makeFigure(u){
   scene.add(g);
   const F={mesh,ink,bones,mat,L,key,launcher,lt:simT,px:u.x,py:u.y,spd:0,mvx:1,mvz:0,phase:0,state:'',blendT:-9,seed:(seedOf(u)>>>0)%1000/1000,
     foot:[new T.Vector3(.2,ANKLE,-1.1),new T.Vector3(-.3,ANKLE,1.1)],hex:[new T.Vector3(),new T.Vector3()],hw:[1,1],hq:[new T.Quaternion(),new T.Quaternion()],fresh:true};
-  u.m={g,pose,ring,spot,beam,rifle:null,fig:F,person:civ};
+  u.m={g,pose,ring,spot,beam,rifle:null,fig:F,person:civ};figBuild(F);
   return u.m;
 }
 // change what he wears/carries: the same skeleton, another geometry
-function figRefresh(u){const F=u.m&&u.m.fig;if(!F)return;const key=figKitKey(u,F.L);if(key!==F.key){F.key=key;F.mesh.geometry=figGeometry(key);if(F.ink)F.ink.geometry=F.mesh.geometry;}}
+function figRefresh(u){const F=u.m&&u.m.fig;if(!F)return;const key=figKitKey(u,F.L);if(key!==F.key){F.key=key;F.mesh.geometry=figGeometry(key);if(F.ink)F.ink.geometry=F.mesh.geometry;figBuild(F);}}
 
 /* ---------- the pose solver ---------- */
 const _fq=[...Array(8)].map(()=>new T.Quaternion()),_fv=[...Array(12)].map(()=>new T.Vector3()),_fe=new T.Euler(),_fmx=new T.Matrix4();
@@ -378,6 +420,7 @@ function figState(u){
   if(u.dead)return'dead';
   if(u.downed)return'downed';
   if(simT<(u.stunT||0))return'stun';
+  if(u.show&&!u.path.length)return'show';     // (on the stage of his level-up page: ddmeta.js, Version 242's draft)
   if(u.atEase&&!u.path.length)return'ease';   // (standing about in the barracks: ddmeta.js)
   if(u.strapped&&!u.joined)return'strapped';
   if(u.railed&&!u.path.length)return'tied';   // (a scientist tied to the drawbridge's railings: monsters.js)
@@ -554,6 +597,10 @@ function poseTorso(u,F,st,gait,P){
     P.hipsP.set(-.6,5.3,0);P.chestE[2]=st==='tied'?-.12:.05;P.headE[2]=st==='tied'?-.35:-.1;P.chestE[0]=Math.sin(t*7+sd*4)*.012;
     G.mode='body';G.P.set(4.2,.35,.6);G.X.set(1,0,.25).normalize();G.Y.set(0,1,0);return;   // his rifle on the ground in front of him
   }
+  if(st==='show'){   // on the stage: standing tall, his chest out, his rifle slung; the moment he's levelled (u.showT) a breath in and up on his toes
+    const pk=Math.max(0,1-(t-(u.showT??-9))/.9),p=pk*pk*(3-2*pk);
+    P.hipsP.set(0,8.95+p*.4,0);P.spineE[2]=.04+p*.1;P.chestE[2]=.05+breathe*1.6+p*.14;P.headE[2]=.03+p*.1;P.headE[1]=Math.sin(t*.4+sd*5)*.1;P.rate=10;slung();return;
+  }
   if(st==='ease'){   // at ease: weight from foot to foot, a look round, and now and then a stretch or his hands at something (Bryan: "standing, fidgeting with their hands, stretching, etc.")
     const e=easeG(sd,t),sw=Math.sin(t*.55+sd*11);P.hipsP.set(0,8.85+Math.sin(t*1.7+sd*9)*.05,sw*.28);P.hipsE[0]=sw*.05;P.spineE[0]=-sw*.04;P.chestE[2]=breathe;
     P.headE[1]=Math.sin(t*.37+sd*7)*.45;P.headE[2]=Math.sin(t*.23+sd*3)*.08;P.rate=8;
@@ -657,6 +704,7 @@ function poseLimbs(u,F,st,gait,P){
     FT[0].set(1.9,ANKLE,-1.25);K[0].set(1,.25,-.2);flat(0);FT[1].set(-3.1,.72,1.2);K[1].set(1,-.6,.1);
   }else if(st==='sitwork'){FT[0].set(3.7,ANKLE,-1.2);FT[1].set(3.4,ANKLE,1.25);K[0].set(1,.5,-.1);K[1].set(1,.5,.1);flat(0);flat(1);
   }else if(st==='strapped'){FT[0].set(.3,ANKLE,-1.3);FT[1].set(.3,ANKLE,1.3);flat(0);flat(1);}
+  else if(st==='show'){FT[0].set(.25,ANKLE,-1.5);FT[1].set(-.1,ANKLE,1.5);flat(0);flat(1);}
   else if(st==='grabbed'){FT[0].set(1.8,ANKLE,-1.1);FT[1].set(2.2,ANKLE,1.1);flat(0);flat(1);}
   else if(st==='gunner'||st==='rpg'||(P.gun.aimed)){FT[0].set(1.6,ANKLE,-1.25);FT[1].set(-1.4,ANKLE,1.3);flat(0);flat(1);P.footE[0][1]=.35;P.footE[1][1]=-.5;}
   else{FT[0].set(.35,ANKLE,-1.15);FT[1].set(-.35,ANKLE,1.18);flat(0);flat(1);}
@@ -682,6 +730,10 @@ function poseLimbs(u,F,st,gait,P){
     else if(k<.34){const a=smooth((k-.16)/.18);hand(1,lerp(-2.2,3.4,a),lerp(16.8,15.8,a),lerp(2.5,1.2,a));}
     else{const a=smooth((k-.34)/.66);hand(1,lerp(3.4,2.4,a),lerp(15.8,10.5,a),lerp(1.2,1.0,a));}
     EL[1].set(-1,-.3,1);return;
+  }
+  if(st==='show'){   // his arms a little out from his sides, further for a moment as he levels
+    const pk=Math.max(0,1-(t-(u.showT??-9))/.9),p=pk*pk*(3-2*pk),sh0=shoulder(0),sh1=shoulder(1);
+    hand(0,sh0.x+.5,sh0.y-5.2+p*.5,sh0.z-.8-p*.7);hand(1,sh1.x+.5,sh1.y-5.2+p*.5,sh1.z+.8+p*.7);EL[0].set(-1,0,-.6);EL[1].set(-1,0,.6);return;
   }
   if(st==='ease'){
     const e=easeG(sd,t),k=e.k,w=Math.sin(t*5+sd*3)*.25,sh0=shoulder(0),sh1=shoulder(1);

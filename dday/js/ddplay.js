@@ -136,6 +136,7 @@ function startDDay(){
 // started and ended at once as a win, with a battle's worth of made-up numbers so the report has something to say: their men taken off the map, ours each
 // given kills, a revive here, a man down there (one still down at the end), then the report as after a real win (ddFinish -> ddmeta.js's ddmStart)
 function ddAfterFirst(v2){   // (v2: Version 240's draft, the report on one page: one man made to climb two levels and one killed, so every case is on it)
+  if(v2&&typeof FIG_LVLOOK!=='undefined')FIG_LVLOOK=true;   // (Version 242's draft: the men's look by level, from here until the page is loaded again, so the next mission shows it in battle too)
   startDDay();
   setTimeout(()=>{if(!dd||state!=='play')return;
     for(const e of enemies){if(e.m&&e.m.g&&e.m.g.parent)e.m.g.parent.remove(e.m.g);e.dead=true;}

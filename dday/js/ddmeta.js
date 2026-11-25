@@ -181,7 +181,10 @@ function ddMetaFrame(rdt,now){
   if(ddm.ph==='barracks'){ddmRoomFrame(rdt);ddmPlace();return;}
   const SP=ddm.sp;
   const mv=ddm.ph==='report'&&ddm.man!=null&&ddm.step>=ddm.rows.length?ddm.rows[ddm.man]:null;   // (Version 223: a man's page: he's on the left of it)
-  if(mv){ddmPortraitFrame(mv,rdt);return;}else ddmPortraitEnd();
+  if(mv){ddmPortraitFrame(mv,rdt);return;}
+  if(ddm.ph==='report'&&ddm.v2&&ddm.man==null&&ddm.step>=0&&ddm.step<ddm.rows.length){   // (Version 242's draft: a man's level-up page is the man himself, on the stage)
+    ddmV2Tick(rdt);if(ddm.step<ddm.rows.length){ddmStageFrame(ddm.rows[ddm.step],rdt);return;}}
+  ddmPortraitEnd();
   if(ddm.ph==='report'){ddmRollTick(rdt);ddmV2Tick(rdt);const r=mv||ddm.rows[ddm.step],C=ddm.cam,one=!!r,zt=mv?(cw<ch?15:13):one?(cw<ch?10.5:9.5):(cw<ch?7.6:6.4),tx=one?r.u.x+(mv?C.ox||0:0):SP.line[0],tz=(one?r.u.y+(mv?C.oz||0:cw<ch?16:6):SP.line[1]-34)+DD_CAM.look;if(!mv)C.ox=C.oz=0;
     if(C.x==null){C.x=tx;C.z=tz;C.zm=zt;}const e=Math.min(1,rdt*4.5);C.x+=(tx-C.x)*e;C.z+=(tz-C.z)*e;C.zm+=(zt-C.zm)*e;zoom=C.zm;yaw=0;tilt=ddTilt(C.zm,mv?.25:undefined);camT.x=C.x;camT.z=C.z;}
   else{const z=cw<ch?SP.zoom[0]:SP.zoom[1],at=ddm.at&&SP[ddm.at],tx=at?at[0]:SP.cam[0],tz=(at?at[1]-(cw<ch?30:8):SP.cam[1])+DD_CAM.look,zt=at?z*1.7:z,C=ddm.bc||(ddm.bc={x:tx,z:tz,zm:zt}),e=Math.min(1,rdt*3.2);
@@ -503,7 +506,7 @@ const ddmFxTxt=(m,k,t)=>/^gren/.test(k)&&(DDM_ITEMS[m.gear.g]||{}).gl?t.replace(
 function ddmStepOut(i){ddm.rows.forEach((r,k)=>{const u=r.u;if(r.y0==null){r.y0=u.y;r.a0=u.ang;}u.y=r.y0+(k===i?20:0);u.ang=k===i?Math.PI/2:r.a0;});}   // (the man whose turn it is steps out of the line toward the camera: ddmRollGo's)
 function ddmV2Init(){
   ddm.v2=true;if(ddm.noms.length&&!ddm.mvp)ddmAward(0);ddm.scr=null;ddm.v2Done=false;
-  ddm.rows.forEach(r=>{r.v={lv:r.lv0,xp:r.xp0,left:r.gain,wait:false,at:0};r.pkd=r.pkd||[];});
+  ddm.rows.forEach(r=>{r.v={lv:r.lv0,xp:r.xp0,left:r.gain,wait:false,at:0};r.pkd=r.pkd||[];r.u.lookLv=r.lv0;figRefresh(r.u);});   // (lookLv: his look is his level as the page has it so far, Version 242)
   ddm.v2Q=ddm.rows.map((r,k)=>k).filter(k=>ddm.rows[k].lv1>ddm.rows[k].lv0||ddm.rows[k].rm.pk>0);ddm.v2I=0;ddmV2Go(true);
 }
 function ddmV2Go(quiet){
@@ -518,7 +521,8 @@ function ddmV2Tick(rdt){
   ddm.rows.forEach((r,k)=>{const v=r.v;if(!v||v.wait||ddm.v2T<v.at||(one&&k!==ddm.step))return;
     if(v.left<=0){if(r.rm.pk>0){v.wait=true;dirty=true;ddm.v2WaitAt=performance.now();}return;}   // (a perk still owed from before: asked for once his bar is in)
     const need=ddmNeed(v.lv),add=Math.min(v.left,need-v.xp,Math.max(150,need*(one?.6:.85))*rdt);v.xp+=add;v.left-=add;moving=true;
-    if(v.xp>=need-.01){v.xp=0;v.lv++;v.wait=true;dirty=true;ddm.v2New=1;ddm.v2WaitAt=performance.now();if(typeof sfxLevelUp==='function')sfxLevelUp(false);}
+    if(v.xp>=need-.01){v.xp=0;v.lv++;v.wait=true;dirty=true;ddm.v2New=1;ddm.v2WaitAt=performance.now();if(typeof sfxLevelUp==='function')sfxLevelUp(false);
+      r.u.lookLv=v.lv;r.u.showT=simT;if(ddm.por)ddm.por.fl=1;}   // (Version 242: he changes where he stands)
     const g=id=>document.getElementById(one?id:id+k),b=g(one?'ddmXp':'ddmX'),x=g(one?'ddmXpN':'ddmN'),l=g(one?'ddmLv':'ddmL');
     if(b)b.style.width=Math.round(v.xp/ddmNeed(v.lv)*100)+'%';if(x)x.textContent='+'+Math.round(r.gain-v.left)+(one?' XP':'');if(l)l.textContent=v.lv;});
   if(moving&&!ddm.v2Snd){ddm.v2Snd=1;if(typeof sfxXpFill==='function')sfxXpFill(1,one?1.6:1.2);}
@@ -558,7 +562,7 @@ function ddmReport2HTML(){
     <div class="ddm-tiles all">${[...ddm.tiles,...(ddm.more||[])].slice(0,4).map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
     ${mv?`<div class="ddm-mvl"><b>★ COMPANY'S MEDAL</b> · ${ddmEsc(mv.rm.name)}<span>+100 XP</span></div>`:''}
     <div class="ddm-srh"><span></span><span class="l"></span><span>LV</span><span>KILL</span><span>REV</span><span>DOWN</span><span>GREN</span><span class="r">XP</span></div>
-    <div class="ddm-sum">${rows.map(row).join('')}${ddm.dead.length?`<div class="ddm-dead"><b>FALLEN · ★ ${R.medals} medal${R.medals===1?'':'s'}</b>${ddm.dead.map((d,j)=>`<div class="ddm-fl${d.back?' back':''}"><i>${DDM_ICON[d.rm?d.rm.role:d.role]||''}</i><span>${ddmEsc(d.name)}</span>${d.back?'<em>BACK WITH THE SQUAD</em>':d.rm?`<button type="button" class="ddm-btn sm" data-a="revive" data-i="${j}"${R.medals>0?'':' disabled'}>BRING BACK ★ 1</button>`:''}</div>`).join('')}</div>`:''}</div>
+    <div class="ddm-sum">${rows.map(row).join('')}${ddm.dead.length?`${ddmFallenHTML()}`:''}</div>
     <div class="ddm-fbot"><button type="button" class="ddm-btn" data-a="${DDM_NEXT[R.stage]?'go':'menu'}"${done?'':' disabled'}>${due?`PICK ${owed>1?owed+' PERKS':'A PERK'} ▲`:DDM_NEXT[R.stage]?'CONTINUE ▸':'BACK TO THE MENU ▸'}</button></div>${ddm.brief?ddmBriefHTML():''}</div>`;
 }
 function ddmReportHTML(){
@@ -593,7 +597,7 @@ function ddmReportHTML(){
     <div class="ddm-tiles all">${[...ddm.tiles,...(ddm.more||[])].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
     ${mv?`<div class="ddm-mvl"><b>★ COMPANY'S MEDAL</b> · ${ddmEsc(mv.rm.name)}<span>+100 XP</span></div>`:''}
     <div class="ddm-srh"><span></span><span class="l">TAP A MAN TO SEE HIM</span><span>LV</span><span>KILL</span><span>REV</span><span>DOWN</span><span>GREN</span><span class="r">XP</span></div>
-    <div class="ddm-sum">${ddm.rows.map(row).join('')}${ddm.dead.length?`<div class="ddm-dead"><b>FALLEN · ★ ${ddRoster.medals} medal${ddRoster.medals===1?'':'s'}</b>${ddm.dead.map((d,j)=>`<div class="ddm-fl${d.back?' back':''}"><i>${DDM_ICON[d.rm?d.rm.role:d.role]||''}</i><span>${ddmEsc(d.name)}</span>${d.back?'<em>BACK WITH THE SQUAD</em>':d.rm?`<button type="button" class="ddm-btn sm" data-a="revive" data-i="${j}"${ddRoster.medals>0?'':' disabled'}>BRING BACK ★ 1</button>`:''}</div>`).join('')}</div>`:''}</div>
+    <div class="ddm-sum">${ddm.rows.map(row).join('')}${ddm.dead.length?`${ddmFallenHTML()}`:''}</div>
     <div class="ddm-fbot">${DDM_NEXT[ddRoster.stage]?'<button type="button" class="ddm-btn" data-a="go">NEXT MISSION ▸</button>':'<button type="button" class="ddm-btn" data-a="menu">BACK TO THE MENU ▸</button>'}</div>${ddm.brief?ddmBriefHTML():''}</div>`;
 }
 // Version 223 (Bryan, with a picture of the full report: "if I click a unit after the stats are read, I can back right out back to the full stat menu...
@@ -632,24 +636,48 @@ function ddmManGo(i){
   ddm.rows.forEach((r,k)=>{const u=r.u;if(r.y0==null){r.y0=u.y;r.a0=u.ang;}u.y=r.y0+(k===ddm.man?20:0);u.ang=k===ddm.man?Math.PI/2:r.a0;u.away=ddm.man!=null&&k!==ddm.man;});   // (away: scene.js draws only him)
   ddmUI();
 }
-function ddmPortraitFrame(r,rdt){
+function ddmPorScene(){
   let P=ddm.por;if(!P){const sc=new T.Scene();sc.background=new T.Color(0x0c1117);const g=new T.Group();sc.add(g);
     const fl=new T.Mesh(new T.CircleGeometry(26,40),new T.MeshStandardMaterial({color:0x1a222c,roughness:.9}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;g.add(fl);
     g.add(new T.HemisphereLight(0xb8c6d6,0x1a1f26,.75));const key=new T.SpotLight(0xfff0d8,1.7,160,.7,.6,1);key.position.set(18,44,34);key.target.position.set(0,10,0);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.bias=-.002;g.add(key,key.target);
-    const rim=new T.DirectionalLight(0x7fb4ff,.7);rim.position.set(-20,18,-26);g.add(rim);P=ddm.por={sc,g,cam:new T.PerspectiveCamera(26,1,1,600),u:null,H:22};}
-  const u=r.u;if(P.u!==u){if(P.u)moveMesh(P.u,scene);P.u=u;moveMesh(u,P.g);u.m.g.traverse(o=>{o.frustumCulled=false;});if(u.m.ring)u.m.ring.visible=false;
+    const rim=new T.DirectionalLight(0x7fb4ff,.7);rim.position.set(-20,18,-26);g.add(rim);P=ddm.por={sc,g,cam:new T.PerspectiveCamera(26,1,1,600),u:null,H:22,key};}
+  return P;
+}
+function ddmPortraitFrame(r,rdt){
+  const P=ddmPorScene();
+  const u=r.u;if(P.u!==u){ddmPortraitEnd();P.u=u;moveMesh(u,P.g);u.m.g.traverse(o=>{o.frustumCulled=false;});if(u.m.ring)u.m.ring.visible=false;
     u.m.g.position.set(0,0,0);u.m.g.rotation.y=-(Math.PI/2-.35);u.m.g.updateMatrixWorld(true);try{const b=new T.Box3().setFromObject(u.m.g);if(b.max.y>8)P.H=b.max.y;}catch(e){}}
   u.m.g.visible=true;u.m.g.position.set(0,0,0);u.m.g.rotation.y=-(Math.PI/2-.35);figRefresh(u);figAnimate(u,u.m);
   const c=P.cam,tall=cw<ch,H=P.H*1.5,d=H/2/Math.tan(c.fov*Math.PI/360);c.aspect=cw/ch;c.position.set(0,P.H*.5,d);c.lookAt(0,P.H*.5,0);c.setViewOffset(cw,ch,cw*(tall?.3:.28),0,cw,ch);c.updateProjectionMatrix();c.updateMatrixWorld();
   postRender(P.sc,c);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
 }
-function ddmPortraitEnd(){const P=ddm&&ddm.por;if(P&&P.u){moveMesh(P.u,scene);if(P.u.m.ring)P.u.m.ring.visible=true;P.u=null;}}
+function ddmPortraitEnd(){const P=ddm&&ddm.por;if(P&&P.u){moveMesh(P.u,scene);if(P.u.m.ring)P.u.m.ring.visible=true;if(P.u.show){P.u.show=false;P.u.m.fig.fresh=true;}P.u=null;P.key.intensity=1.7;}}
+// Version 242, a draft (Bryan, on Version 241's: "Can the exp bar leveling up show the unit themselves?"): on his level-up page the man himself,
+// on the man's page's stage: standing tall, his rifle slung so all of him shows (figure.js's 'show'), big above his card, or beside it on a wide
+// screen. At each level his look changes on the spot (u.lookLv: figure.js's look by level), he breathes in (u.showT) and the lamp flares (P.fl)
+function ddmStageFrame(r,rdt){
+  const P=ddmPorScene(),u=r.u;
+  if(P.u!==u){ddmPortraitEnd();P.u=u;moveMesh(u,P.g);u.m.g.traverse(o=>{o.frustumCulled=false;});if(u.m.ring)u.m.ring.visible=false;u.show=true;u.m.fig.fresh=true;P.fl=0;
+    u.m.g.position.set(0,0,0);u.m.g.updateMatrixWorld(true);try{const b=new T.Box3().setFromObject(u.m.g);if(b.max.y>8)P.H=b.max.y;}catch(e){}}
+  u.m.g.visible=true;u.m.g.position.set(0,0,0);u.m.g.rotation.y=-(Math.PI/2-(P.yaw??.38+Math.sin(ddm.t*.45)*.3));figRefresh(u);figAnimate(u,u.m);   // (he turns a little to and fro, so his sides show; P.yaw: the draft tools' own angle)
+  P.fl=Math.max(0,(P.fl||0)-rdt*1.8);P.key.intensity=1.7*(1+P.fl*1.1);
+  // (beside his card where the card is at the side: css, a phone on its side)
+  const c=P.cam,S=DDM_STAGE[cw>ch&&ch<=520?1:0],d=P.H/S[0]/2/Math.tan(c.fov*Math.PI/360);c.aspect=cw/ch;c.position.set(0,P.H*.56,d);c.lookAt(0,P.H*.5,0);
+  c.setViewOffset(cw,ch,cw*S[1],ch*S[2],cw,ch);c.updateProjectionMatrix();c.updateMatrixWorld();
+  postRender(P.sc,c);ox.setTransform(dpr,0,0,dpr,0,0);ox.clearRect(0,0,cw,ch);
+}
+const DDM_STAGE=[[.37,0,.2],[.76,.21,-.03]];   // (how much of the screen's height he takes, and how far the picture is moved left and up: his card under him, his card beside him)
 // After Version 224 (Bryan: "Medals are spent after the battle to revive players that were lost"): on the report, a medal brings a fallen man back:
 // into his own slot if it's still empty, else any empty squad slot, else the reserve; at full health, his kit as it was.
-function ddmRevive(j){const R=ddRoster,d=ddm&&ddm.dead[j];if(!d||d.back||!d.rm||R.medals<1)return false;
+// After Version 241 (Bryan: "Bring Back should be REVIVE. And a medal emoji with the number owner 1/1 or 1/100 (use cost/total owned) higher level
+// players may be more expensive. I haven't made up my mind on that yet"): the button reads REVIVE and the medals it costs over the medals owned;
+// the cost is ddmReviveCost's, one medal for anyone until he decides (the one place to change it)
+const ddmReviveCost=rm=>1;
+function ddmFallenHTML(){const R=ddRoster;return`<div class="ddm-dead"><b>FALLEN</b>${ddm.dead.map((d,j)=>{const c=d.rm?ddmReviveCost(d.rm):0;return`<div class="ddm-fl${d.back?' back':''}"><i>${DDM_ICON[d.rm?d.rm.role:d.role]||''}</i><span>${ddmEsc(d.name)}</span>${d.back?'<em>REVIVED</em>':d.rm?`<button type="button" class="ddm-btn sm" data-a="revive" data-i="${j}"${R.medals>=c?'':' disabled'}>REVIVE<u class="ddm-md">🏅 ${c}/${R.medals}</u></button>`:''}</div>`;}).join('')}</div>`;}
+function ddmRevive(j){const R=ddRoster,d=ddm&&ddm.dead[j],c=d&&d.rm?ddmReviveCost(d.rm):1;if(!d||d.back||!d.rm||R.medals<c)return false;
   const Q=R.squads[d.team]||R.squads.A,o=R.squads[d.team==='A'?'B':'A'];let k=Q[d.slot]?Q.indexOf(null):d.slot;
   if(k>=0)Q[k]=d.rm;else if((k=o.indexOf(null))>=0)o[k]=d.rm;else R.reserve.push(d.rm);
-  d.rm.hurt=0;R.medals--;d.back=true;ddmSave();sfxLevelUp(false);ddmUI();return true;}
+  d.rm.hurt=0;R.medals-=c;d.back=true;ddmSave();sfxLevelUp(false);ddmUI();return true;}
 function ddmNomWhy(r){const pl=(n,w)=>n+' '+w+(n===1?'':'s'),a=[];if(r.kills)a.push(pl(r.kills,'kill'));if(r.rev)a.push(r.rev+(r.rev===1?' man':' men')+' brought back');if(r.best>=3)a.push(r.best+' in a row');a.push(r.downs?'down '+(r.downs===1?'once':r.downs+' times'):'never went down');return a.join(' · ');}
 // the report's clock: the title, the medal, then each man's card: his bar filling a level at a time, once (r.seen)
 function ddmRollGo(i){
