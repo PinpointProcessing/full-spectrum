@@ -208,7 +208,10 @@ function ddPostBlast(n){
   for(const g of S.guns){const m=g.man;if(!ddPostMine(m)||m.fp||hyp(g.x-n.x1,g.y-n.y1)>R)continue;ddPostOff(g,m,'Incoming! Off the gun.');m.lastOrder=simT-2;}
 }
 // you behind the gun your man holds: first person, with EXIT
-function ddPostControl(g){const u=g.man;if(!ddPostMine(u)||dd.fp)return;u.ang=g.up;if(typeof fpEnter==='function'&&fpEnter(u,'1p')){dd.fp.a=g.up;dd.fp.p=-.03;const b=document.querySelector('#fp [data-a="back"]');if(b)b.textContent='◀ EXIT';banner('On the gun. EXIT to go back.',2400);}}
+// from behind one of them (Version 248): the next of them that one of the squads' men holds, round again at the end; null when there's no other
+function ddPostNextOf(u){const S=dd&&dd.post;if(!S||!u||!u.postGun)return null;const L=S.guns.filter(g=>ddPostMine(g.man)&&alive(g.man)),i=L.indexOf(u.postGun);return i<0||L.length<2?null:L[(i+1)%L.length];}
+function ddPostNext(){const F=dd&&dd.fp,g=F?ddPostNextOf(F.u):null;if(!g)return false;ddPostControl(g,true);return true;}
+function ddPostControl(g,sw){const u=g.man;if(!ddPostMine(u)||(dd.fp&&!sw))return;u.ang=g.up;if(typeof fpEnter==='function'&&fpEnter(u,'1p')){dd.fp.a=g.up;dd.fp.p=-.03;const b=document.querySelector('#fp [data-a="back"]');if(b)b.textContent='◀ EXIT';banner('On the gun. EXIT to go back.',2400);}}
 // Version 208, in first person (Bryan: "a grenade shouldn't force a player off the gun, it should show a grenade icon around the players screen
 // (like it works in COD)"): anything of theirs coming down near you shows as a grenade on a ring round the middle of the screen, on the side
 // it's on, red and bigger when you're inside its blast

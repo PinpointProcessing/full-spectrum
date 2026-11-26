@@ -532,19 +532,30 @@ function dcDraw(){
   for(const m of players)if(m.raise&&m.raise.t.raiseP>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(c.raiseP/DD_RAISE*100)}%`,sx,sy,'#5fe08e',10,700);}
   dcBar();
 }
+/* Version 248 (Bryan: "Can you make the most powerful stationary weapon to the left and weakest to the right? I feel like players won't know what
+   to select right away and might naturally select the first one to the left. Also, is there a cycle button so the player can switch stationary
+   guns?"): the row shows the guns strongest first (dcRow: the field gun, the heavy machine gun, then the nests; it was the order they stand in on
+   the map, the nests first), and from behind a gun NEXT GUN goes on to the next gun along the row that one of the squads' men is on, round again
+   at the end (dcNextGun; Tab on a keyboard, ddfp.js's fpNext). Until now the only way across was a tap on another gun's tile. */
+const dcPw=g=>g.t==='art'?3:g.hv?2:1,dcName=g=>g.t==='art'?'field gun':g.hv?'heavy MG':'MG nest'+(g.k==='n1'?' 1':g.k==='n2'?' 2':'');
+function dcRow(){return dd.dc.guns.slice().sort((a,b)=>dcPw(b)-dcPw(a));}   // (a steady sort: guns as strong as each other keep their own order)
+function dcNextOf(u){   // the gun NEXT GUN would go to from the one u is on, or null when no other is held by a squad mate
+  const L=dcRow().filter(g=>!g.dead&&g.man&&!g.man.npc&&alive(g.man)),i=u?L.indexOf(u.dcGun):-1;if(i<0||L.length<2)return null;return L[(i+1)%L.length];
+}
+function dcNextGun(){const F=dd&&dd.fp,n=F&&dd.dc?dcNextOf(F.u):null;if(!n)return false;dcTile(n.k);return true;}
 // the row of guns (Bryan's pick of the drafts, docs/drafts/v225-guns.jpg): a tile a gun, who is on it and what it's doing; a white arrow and
 // "Man a Gun" until the player has picked his first; along the bottom from above, along the top from behind a gun
 function dcBar(){
   let el=$('#dcBar');const C=dd&&dd.dc,show=!!C&&state==='play'&&C.ph!=='intro'&&!dd.seq&&!endAt;
   if(!el){if(!show){document.body.classList.remove('dcg');return;}el=document.createElement('div');el.id='dcBar';stage.appendChild(el);
-    el.addEventListener('click',ev=>{const b=ev.target.closest('[data-k]');if(!b||!dd||!dd.dc)return;ev.stopPropagation();if(b.dataset.k==='back'){if(dd.fp)fpExit();}else if(b.dataset.k==='leave'){if(dd.fp){const g=dd.fp.u.dcGun;fpExit('Off the gun.');if(g)dcLeave(g);}}else dcTile(b.dataset.k);dcBar();});
+    el.addEventListener('click',ev=>{const b=ev.target.closest('[data-k]');if(!b||!dd||!dd.dc)return;ev.stopPropagation();if(b.dataset.k==='back'){if(dd.fp)fpExit();}else if(b.dataset.k==='next'){dcNextGun();}else if(b.dataset.k==='leave'){if(dd.fp){const g=dd.fp.u.dcGun;fpExit('Off the gun.');if(g)dcLeave(g);}}else dcTile(b.dataset.k);dcBar();});
     for(const t of['pointerdown','pointerup','touchstart'])el.addEventListener(t,ev=>ev.stopPropagation());}
   if(el.hidden!==!show)el.hidden=!show;document.body.classList.toggle('dcg',show);if(!show)return;   // (dcg: the squad's own bar gives way to the guns')
   const fpU=dd.fp?dd.fp.u:null,foc=!!(C.focus||C.focusK);
-  const h=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+'<div class="dcb-row">'+C.guns.map(g=>{const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
+  const h=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+`<div class="dcb-row" style="grid-template-columns:repeat(${C.guns.length},1fr)">`+dcRow().map(g=>{const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
     const who=g.dead?'destroyed':you?'YOU':m?(npc?'Private':m.name):g.going?'coming':'empty',st=g.dead?(g.fix?'REPAIRING':dcFixLeft()?'TAP TO REPAIR':'KNOCKED OUT'):!m?(g.going?'ON HIS WAY':'TAP TO MAN'):g.t==='art'?(simT<g.fireT?'RELOAD '+Math.ceil(g.fireT-simT):foc?'ON TARGET':'LOADED'):foc?'ON TARGET':simT-(m.shotT||-9)<1.6||simT<g.hvT+.4?'FIRING':'READY';
     return`<button type="button" data-k="${g.k}" class="dcb-t${you?' you':''}${g.dead?' dead':''}${!m&&!g.dead&&!g.going?' empty':''}${foc&&m&&!g.dead?' tg':''}">${npc?'<u>NPC</u>':''}<i>${g.n}${g.k==='n1'?' 1':g.k==='n2'?' 2':''}</i><b>${who}</b><span>${st}</span><em style="width:${Math.max(0,Math.round(g.hp/g.hp0*100))}%"></em></button>`;}).join('')+'</div>'
-    +(fpU&&fpU.dcGun?'<div class="dcb-row two"><button type="button" data-k="back">‹ BACK<small>he stays on the gun</small></button><button type="button" data-k="leave">LEAVE GUN<small>he gets off it</small></button></div>':'');
+    +(fpU&&fpU.dcGun?(nx=>`<div class="dcb-row two${nx?' three':''}"><button type="button" data-k="back">‹ BACK<small>he stays on the gun</small></button>${nx?`<button type="button" data-k="next">NEXT GUN ›<small>${dcName(nx)}</small></button>`:''}<button type="button" data-k="leave">LEAVE GUN<small>he gets off it</small></button></div>`)(dcNextOf(fpU)):'');
   if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;}
 }
 function dcFinishLost(){

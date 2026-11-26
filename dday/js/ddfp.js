@@ -45,7 +45,11 @@ function fpExit(why){
   if(why||!(endAt||dd.won))banner(why||'Back in command of the squad.',2000);hud();   // (not over the win's banner)
 }
 function fpNext(){
-  const F=dd.fp;if(!F)return;const m=players.filter(p=>p.team===F.u.team&&alive(p)&&!p.inBoat&&!p.joining);if(m.length<2)return;
+  const F=dd.fp;if(!F)return;
+  // (Version 248: behind a gun, Next is the next gun one of the squads' men is on: Chapter 2's along its row, the checkpoint's in their own order)
+  if(dd.counter&&F.u.dcGun){if(typeof dcNextGun!=='function'||!dcNextGun())fpSay('No other gun manned');return;}
+  if(F.u.postGun&&typeof ddPostNext==='function'&&ddPostNext())return;
+  const m=players.filter(p=>p.team===F.u.team&&alive(p)&&!p.inBoat&&!p.joining);if(m.length<2)return;
   const n=m[(m.indexOf(F.u)+1)%m.length];if(fpEnter(n))banner(`You are ${n.name}.`,1400);
 }
 /* where the eye is and where it looks: first person from his head (always on a mounted gun), else from behind his right shoulder */
@@ -297,6 +301,7 @@ function fpHud(){
   set('.fp-who b',`${u.role||''} · ${u.name}`);set('.fp-who span',`${teamName(u.team)} · ${hp}${u.sup>.65?' · PINNED':''}`);
   {const b=el.querySelector('.fp-who u');b.style.width=hp+'%';b.style.background=hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff7a4a';}
   set('[data-a="view"]',mt?'On the gun':F.view==='1p'?'3rd person':'1st person');
+  set('[data-a="next"]',u.postGun&&typeof ddPostNextOf==='function'&&ddPostNextOf(u)?'Next gun ▶':'Next man ▶');
   {const cg=!!(dd.counter&&u.dcGun);for(const a of['back','view','next']){const n=el.querySelector(`[data-a="${a}"]`);if(n&&n.hidden!==cg)n.hidden=cg;}el.classList.toggle('dcg',cg);}   // (Version 224: on one of the counterattack's guns the row of guns has BACK and LEAVE GUN, ddcounter.js's dcBar)
   const gname=A?'Field gun':u.onGun?'Machine gun':(typeof WEAPON!=='undefined'&&WEAPON[u.weapon||'rifle']?WEAPON[u.weapon||'rifle'].label:'Rifle');
   set('.fp-ammo',A?`<b>${simT>=A.fireT?'READY':'LOADING '+Math.ceil(A.fireT-simT)}</b><span>${gname}</span>`:`<b>${F.reloadT?'RELOADING':F.clip+' / '+W.clip}</b><span>${gname}</span>`);
