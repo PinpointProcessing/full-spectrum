@@ -73,12 +73,12 @@ function ddsPlace(x,y,carry=1){
 // a voice of ours: gain -> distance low-pass -> pan -> the mix, with a send to the echo that grows with distance, and (echo, Version
 // 188 pass 2) one to the slap back off the bluffs or the walls (ddsEcho). Counted by when it ends (AC time), so a crowded fight
 // drops the faintest new sounds rather than the nearest
-function ddsOut(x,y,vol,dur,force,echo,carry){
+function ddsOut(x,y,vol,dur,force,echo,carry,lpMin){   // (lpMin, Version 253: a floor under the distance's low-pass: Chapter 2's opening's distant war, ddsBurst)
   if(!AC||!sndOn)return null;
   const now=AC.currentTime,L=DSFX.live;for(let i=L.length-1;i>=0;i--)if(L[i]<now)L.splice(i,1);
   const P=ddsPlace(x,y,carry),g0=vol*P.g;
   if(g0<.004||!force&&(L.length>=DDS_MAX||L.length>=DDS_BUSY&&g0<.12))return null;
-  const g=AC.createGain(),lp=AC.createBiquadFilter();g.gain.value=g0;lp.type='lowpass';lp.frequency.value=P.lp;lp.Q.value=.4;g.connect(lp);
+  const g=AC.createGain(),lp=AC.createBiquadFilter();g.gain.value=g0;lp.type='lowpass';lp.frequency.value=Math.max(P.lp,lpMin||0);lp.Q.value=.4;g.connect(lp);
   let out=lp,p=null;if(AC.createStereoPanner){p=AC.createStereoPanner();p.pan.value=P.pan;lp.connect(p);out=p;}
   out.connect(sndMuffle);const s=AC.createGain();s.gain.value=P.send;out.connect(s);s.connect(sndVerb);
   let e=null;if(echo){e=AC.createGain();e.gain.value=echo*(.55+.45*clamp(P.d/60,0,1));out.connect(e);e.connect(ddsEcho());}
@@ -141,14 +141,16 @@ function ddsPattern(u,gun){
 function ddsBurst(u,gun,G,offs,ts){
   const last=offs[offs.length-1]/ts,P=ddsPlace(u.x,u.y),now=AC.currentTime,C=DSFX.cat[gun]||(DSFX.cat[gun]=[]);for(let i=C.length-1;i>=0;i--)if(C[i]<now)C.splice(i,1);
   if(P.d>25&&C.length>=G.cap)return;
-  // (carryK, Version 252: Chapter 2's opening's distant war, each burst heard further than one gun would be: ddcseq.js's DCS.farK)
-  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.6:1),last+1.7,false,gun==='mg'?.35:.8,G.carry*(u.carryK||1));if(!o)return;C.push(o.t0+last+.6);   // (the other troops under your own squads: there are dozens of them)
-  const far=o.d>DDS_FAR,kind=far?G.far:G.near;
+  // (u.ddsX, Versions 252 and 253: Chapter 2's opening's distant war, ddcseq.js's DCS.far: k, heard as far as a gun k times nearer; v, louder; and
+  // made for a phone's speaker: near, the close recordings, which have the crack (the far ones are rumble below 800 Hz); lp, a floor under the
+  // distance's low-pass; hp, the lows taken off, which a phone can't play and which only made it boom)
+  const X=u.ddsX,o=ddsOut(u.x,u.y,G.vol*(u.npc?.6:1)*(X&&X.v||1),last+1.7,false,gun==='mg'?.35:.8,G.carry*(X&&X.k||1),X&&X.lp);if(!o)return;C.push(o.t0+last+.6);   // (the other troops under your own squads: there are dozens of them)
+  const far=o.d>DDS_FAR&&!(X&&X.near),kind=far?G.far:G.near,hp=X&&X.hp;
   for(let i=0;i<offs.length;i++){
     const at=o.t0+offs[i]/ts,r=ddsR(G.r[0],G.r[1]);
-    if(gun==='bar'&&!far&&i<offs.length-1)ddsSrc(o,ddsPick('bar'),at,r*(u.supK>=1.5?1.06:1),ddsR(.85,1));   // (a round inside the burst: its report cut short; the last one rings out)
-    else if(gun==='bar'&&!far)ddsSrc(o,ddsPick('us'),at,r,1);
-    else ddsSrc(o,ddsPick(kind),at,r,i?ddsR(.82,1):1);
+    if(gun==='bar'&&!far&&i<offs.length-1)ddsSrc(o,ddsPick('bar'),at,r*(u.supK>=1.5?1.06:1),ddsR(.85,1),hp);   // (a round inside the burst: its report cut short; the last one rings out)
+    else if(gun==='bar'&&!far)ddsSrc(o,ddsPick('us'),at,r,1,hp);
+    else ddsSrc(o,ddsPick(kind),at,r,i?ddsR(.82,1):1,hp);
     if(gun==='m1')ddsPing(u,at,o);
   }
   if(gun==='spring'&&o.d<30)ddsBolt(o,o.t0+offs[0]/ts+.55/ts);

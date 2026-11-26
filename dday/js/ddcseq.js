@@ -42,10 +42,12 @@ const DCS={camp:{x:700,y:742},doom:{x:604,y:658},   // (draft: the group hit by 
   hut:[[10.5,5.7,66,-3.1,-23,1.4,5.6,4.2,.4,3.5,5.6],[4.4,16,71,4.6,26,1.8,5.3,.8,.8,5.8,4.5],[-11.7,20.7,65,-3.1,-31,1.9,6.6,6,1.1,4.5,.8],[9.1,41.1,79,4.9,35,.5,5.9,1,1.3,5.9,3.1],
     [-12.4,40,67,-2.7,-30,1.3,4,5.5,.4,3.7,2.4],[-.7,40.3,60,4.5,19,1.5,3.5,2.1,.9,5.5,.7],[-8.4,53.2,64,-2.9,-17,1.2,6.9,1.4,.3,3,1.1],[7.6,52.2,59,4.7,30,1.8,5.2,1.6,.2,4.9,3.2]],
   rush:[1.14,.34],   // (the scramble's speed: 1.14 to 1.48 of a run, each man his own)
-  // (Version 252, Bryan: "there was no noise at all") the distant war all through the camp and its three quiet seconds: each burst as loud as a gun this
-  // much nearer would be (ddsfx.js's carryK; at 100 to 130 m one burst a second came out at -33 to -36 dB on a phone's band), and the bed's far battle
-  // at .85 of the fight's (ddamb.js; it was .5)
-  farK:2.4};
+  // (Version 252, Bryan: "there was no noise at all") the distant war all through the camp and its three quiet seconds: k, each burst as loud as a gun
+  // this much nearer would be, and the bed's far battle at .85 of the fight's (ddamb.js; it was .5). Version 253 (Bryan, of the
+  // before and after: "They sound the exact same"): in the band a phone's speaker plays, 800 Hz to 8 kHz, that had only gone from -38 to -34 dB, the
+  // bursts being the far recordings, all rumble below 800 Hz, low-passed at about 2 kHz. Now the close recordings (near), low-passed no lower than lp,
+  // the lows under hp taken off, v times louder, and one every gap[0] to gap[0]+gap[1] s (it was .25 to 1.35): a crackle off to the north (ddsfx.js's ddsBurst, u.ddsX)
+  far:{k:4,v:1.6,near:1,lp:4500,hp:500,gap:[.12,.5]}};
 // A man in a scramble (Version 249): his own speed on top of his own (rushK, read by combat.js's updateUnit; spdK is his roster's), one of three ways of
 // running (figure.js's figGait, u.frantic: 1 hunched over his rifle, 2 a hand on his helmet, 3 his rifle in one hand and the other arm pumping) and
 // his stride started anywhere in its cycle, so no two are in step. Over once he's got where he was going, or after `secs` (dcFranticTick)
@@ -223,7 +225,7 @@ function dcSeqStick(){const S=dd.seq,K=S&&S.stick;if(!K)return;const u=K.u,m=K.m
 function dcSeqWar(dt){
   const S=dd.seq,T=DCS.T,t=S.t,far=t<T.shell;
   if(far){if((S.farT=(S.farT||1.2)-dt)<=0){S.farT=1.6+S.rnd()*2.4;const x=150+S.rnd()*900;try{if(S.rnd()<.6)ddsFarBoom(x,-1200-S.rnd()*600);else sfxBoom(x,-700,1.2);}catch(e){}}
-    if((S.farG=(S.farG||.6)-dt)<=0){S.farG=.25+S.rnd()*1.1;const x=150+S.rnd()*900;try{sfxShotDD({x,y:-260-S.rnd()*300,side:S.rnd()<.6?'E':'P',id:'G'+((x/60)|0),weapon:S.rnd()<.4?'mg':'rifle',gunner:S.rnd()<.4,carryK:DCS.farK});}catch(e){}}
+    if((S.farG=(S.farG||.6)-dt)<=0){S.farG=DCS.far.gap[0]+S.rnd()*DCS.far.gap[1];const x=150+S.rnd()*900;try{sfxShotDD({x,y:-260-S.rnd()*300,side:S.rnd()<.6?'E':'P',id:'G'+((x/60)|0),weapon:S.rnd()<.4?'mg':'rifle',gunner:S.rnd()<.4,ddsX:DCS.far});}catch(e){}}
     return;}
   if((S.nearT=(S.nearT||.4)-dt)<=0){S.nearT=(S.ph==='hut'?.7:.45)+S.rnd()*.6;
     for(let k=0;k<6;k++){const out=S.ph==='out',x=out?300+S.rnd()*640:420+S.rnd()*560,y=out?120+S.rnd()*330:S.ph==='hut'?380+S.rnd()*150:480+S.rnd()*420;
