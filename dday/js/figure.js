@@ -528,7 +528,7 @@ function runLayer(u,F,st,gait,B){
   const R=F.rn||(F.rn={hp:new T.Vector3(),hq:new T.Quaternion(),sq:new T.Quaternion(),cq:new T.Quaternion(),nq:new T.Quaternion(),headq:new T.Quaternion(),gp:new T.Vector3(),gq:new T.Quaternion(),w:0,on:false,gon:false});
   const dt=Math.max(0,Math.min(.1,simT-(R.t??simT)));R.t=simT;R.w+=((runOn(u,st,gait,F)?1:0)-R.w)*(F.fresh?1:Math.min(1,dt*8));if(R.w<.01)return;
   R.hp.copy(B[1].position);R.hq.copy(B[1].quaternion);R.sq.copy(B[2].quaternion);R.cq.copy(B[3].quaternion);R.nq.copy(B[4].quaternion);R.headq.copy(B[5].quaternion);R.on=true;
-  const K=RUN_K,w=R.w,ph=F.phase;
+  const K=RUN_K,w=R.w*(gait&&gait.fr?1.22:1),ph=F.phase;
   const down=Math.cos((ph-.16)*TAU2*2);   // 1 with a foot under him (mid-stance), -1 in the air between
   const twist=Math.cos(ph*TAU2)*K.twist*w;   // + with his right leg out in front
   B[1].position.y-=K.bob*(down+1)*.5*w;B[1].position.z+=Math.cos((ph-.16)*TAU2)*K.sway*w;
@@ -550,6 +550,9 @@ function figGait(u,F,st){
   if(!mv||st==='climb'||st==='boat'||st==='drive'||st==='carried'||st==='dead'||st==='downed'||st==='stun'||st==='grabbed'||st==='strapped')return{mv:false,S:0,run:false,sneak:false};
   if(st==='crawl')return{mv:true,S:9,sf:.5,lift:0,crawl:true};
   if(st==='carry')return{mv:true,S:13,sf:.62,lift:1.1,run:false,sneak:false,hip:8.4,lean:.2};
+  // (D-Day, Version 249, Bryan: "Make sure the troops run frantically to the front, not orderly march") a scramble (u.frantic 1..3, set by ddcseq.js's
+  // dcFrantic): a longer, higher stride, lower hips; 1 hunched over his rifle, 2 a hand on his helmet, 3 his rifle in one hand and the other arm pumping
+  if(run&&u.frantic&&MAPID==='dd')return{mv:true,S:32,sf:.28,lift:3.3,run:true,hip:7.6,lean:.24,fr:u.frantic|0};   // (S 32: at the scramble's 62 to 80 a second that's about four and a half steps a second, as the run's 26 is at 54)
   if(run)return{mv:true,S:26,sf:.32,lift:2.4,run:true,hip:7.9,lean:.24};
   const sneak=u.side==='P'&&u.gait==='sneak'&&!F.L.k.match(/pri|sci/);
   if(sneak)return{mv:true,S:17,sf:.55,lift:1.2,sneak:true,hip:7.0,lean:.3};
@@ -630,7 +633,10 @@ function poseTorso(u,F,st,gait,P){
   const crouch=!gait.mv&&(u.side==='P'?(u.covered&&caught(u)):!!u.coverNow);
   const vk=u.vaultK||0,unarmed=!armed;
   if(gait.mv){
-    if(gait.run){P.hipsP.set(0,gait.hip-RUN_K.bob*.35,0);P.spineE[2]=-RUN_K.lean;P.chestE[2]=-.04;P.headE[2]=RUN_K.lean*.75;P.neckE[2]=.05;P.rate=16;}   // running: the bob and twist come on top, unsmoothed (runLayer)
+    if(gait.run&&gait.fr){const fr=gait.fr,lean=RUN_K.lean+(fr===1?.24:fr===2?.2:.13),g=Math.sin(t*(1.5+sd*.7)+sd*31);   // a scramble: bent well forward, his head down between his shoulders; now and then a look to one side
+      P.hipsP.set(0,gait.hip-RUN_K.bob*.35,0);P.spineE[2]=-lean;P.chestE[2]=fr===1?-.14:-.07;P.headE[2]=lean*(fr===3?.8:.5);P.neckE[2]=.05;P.rate=16;
+      if(g>.78)P.headE[1]=(sd>.5?1:-1)*(g-.78)*2.6;}
+    else if(gait.run){P.hipsP.set(0,gait.hip-RUN_K.bob*.35,0);P.spineE[2]=-RUN_K.lean;P.chestE[2]=-.04;P.headE[2]=RUN_K.lean*.75;P.neckE[2]=.05;P.rate=16;}   // running: the bob and twist come on top, unsmoothed (runLayer)
     else{const bob=Math.cos(F.phase*TAU2*2);P.hipsP.set(0,gait.hip-.22*(1+bob)*.5,0);
     P.hipsE[1]=Math.sin(F.phase*TAU2)*.1;P.hipsE[0]=Math.sin(F.phase*TAU2)*.04;
     P.spineE[2]=-gait.lean;P.chestE[1]=-P.hipsE[1]*.8;P.headE[2]=gait.lean*.6;P.rate=16;}
@@ -655,7 +661,10 @@ function poseTorso(u,F,st,gait,P){
     G.mode='aim';G.X.set(Math.cos(pitch),Math.sin(pitch)+kick*.05,0).normalize();G.Y.set(-Math.sin(pitch),Math.cos(pitch),0);
     G.aimed=true;return;
   }
-  if(gait.run&&!aim){G.P.set(2.45,.05,.62);G.E[0]=-.18;G.E[1]=.3;G.E[2]=-.5;}   // running: across his front, the muzzle down and out to the left (since v119; it was across the chest, the muzzle up)
+  // (the chest is pitched well forward in a scramble, half a radian and more, and the gun is placed in the chest's frame: tipped back up by about that much, or its muzzle is in the dirt)
+  if(gait.run&&!aim&&gait.fr>1){G.P.set(2.2,-1.5,2.7);G.E[0]=.12;G.E[1]=-.04;G.E[2]=.3;}   // a scramble: in his right hand down at his side, the muzzle forward and a little low (his left hand: poseLimbs)
+  else if(gait.run&&!aim&&gait.fr===1){G.P.set(2.5,-.8,.5);G.E[0]=-.22;G.E[1]=.5;G.E[2]=-.06;}   // a scramble: clutched low across his front
+  else if(gait.run&&!aim){G.P.set(2.45,.05,.62);G.E[0]=-.18;G.E[1]=.3;G.E[2]=-.5;}   // running: across his front, the muzzle down and out to the left (since v119; it was across the chest, the muzzle up)
   else if(gait.sneak||crouch||(u.side==='E'&&u.alerted)){G.P.set(2.55,1.05,.8);G.E[0]=-.08;G.E[1]=.1;G.E[2]=-.2;}   // ready, muzzle low
   else lowReady();
 }
@@ -743,6 +752,10 @@ function poseLimbs(u,F,st,gait,P){
     else if(e.g===5){b1=[headP.x+.4,headP.y+1.5,headP.z+1.3+w*.3];EL[1].set(-.2,.3,1);}               // a scratch of the head
     else if(e.g===6){b0=[chestP.x+2.7,chestP.y-.6,.9];b1=[chestP.x+2.9,chestP.y-1.2,-.9];EL[0].set(-.2,-1,-1);EL[1].set(-.2,-1,1);}   // arms folded
     hand(0,lerp(a0[0],b0[0],k),lerp(a0[1],b0[1],k),lerp(a0[2],b0[2],k));hand(1,lerp(a1[0],b1[0],k),lerp(a1[1],b1[1],k),lerp(a1[2],b1[2],k));return;
+  }
+  if(gait.fr>1&&gait.run&&armed&&!P.gun.aimed&&st==='base'&&!(u.vaultK>.2)){   // a scramble with his rifle in his right hand: the left holds his helmet on, or pumps with the stride
+    if(gait.fr===2){hand(0,headP.x+.7,headP.y+1.75,headP.z-1.0);EL[0].set(.7,-.1,-1);}
+    else{const c=Math.cos(F.phase*TAU2);fromSh(0,.7+c*2.5,-3.7+c*1.1,-.55);EL[0].set(-.8,-.3,-.6);}
   }
   if(u.vaultK>.2)hand(0,3.2,7.0,-1.2);   // a hand down on the sill
   if(!armed){   // nothing in his hands: they swing as he walks

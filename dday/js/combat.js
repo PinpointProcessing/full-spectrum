@@ -1114,7 +1114,7 @@ function updateUnit(u,dt){
   if(u.path.length){u.peek=null;
     const p=u.path[0],dx=p.x-u.x,dy=p.y-u.y,d=hyp(dx,dy);
     const sz=slowAt(u.x,u.y),held=doorWait(u,p,dt),sp=held?0:(u.veh?GJEEP.speed:u.crawl?CRAWL_SPEED:vd<VAULT_HALF?VAULT_SPEED:u.side==='P'?(u.gait==='sneak'?SNEAK_SPEED:RUN_SPEED):u.mon?(u.monSpd||(u.mon==='boss'?BOSS.walk:HOUND.run)):u.dog?(u.alerted?DOG.run:DOG.walk):u.alerted?46:26)*   // an unaware patrol strolls
-      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*(u.spdK||1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl
+      (u.sup>0.65?0.7:1)*(sz?sz.k:1)*(u.spdK||1)*(u.rushK||1)*dt;   // the broken rail bridge is slow going; the sewer pipe is a crawl (rushK: D-Day's scramble, ddcseq.js's dcFrantic)
     if(held){}else if(d<=sp){u.x=p.x;u.y=p.y;u.path.shift();}else{u.x+=dx/d*sp;u.y+=dy/d*sp;}   // (held: opening a door in his way, orders.js)
     if(u.veh)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*3);   // the jeep swings round
     else if(simT-u.aimT>0.8&&d>0.5)u.ang=turn(u.ang,Math.atan2(dy,dx),dt*8);

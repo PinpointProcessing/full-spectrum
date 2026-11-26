@@ -26,7 +26,7 @@
    Placed from the camera (audio.js's place(), and the camera's right-hand side for the far-off things: ddaPan); slow-mo and pause muffle
    it with the rest and hold the battle's clock; it fades out on the report and the barracks (state 'ddmeta'), at the end, and when
    D-Day is left. Its own random numbers (ddaR), so the game's Math.random sequence is the same with sound as without. */
-const DDA={sr:24000,shore:706,maxEv:24,loop:{water:18,birds:24.5},   // (the loops' lengths in sounds/amb/: ddaLoopCut)
+const DDA={sr:24000,shore:706,maxEv:24,hush:.14,loop:{water:18,birds:24.5},   // (the loops' lengths in sounds/amb/: ddaLoopCut)
   wash:[[.08,3.95],[4.18,2.45],[6.78,2.2],[9.13,3.46],[12.74,1.7],[14.59,3.2],[17.94,2.3],[20.39,1.97]],   // (where each recorded wash is in surf.mp3)
   lv:{wind:.19,surf:.42,sea:.13,diesel:.19,chorus:.05,slap:.2,mg:.24,rifle:.18,art:.3,naval:.4,shell:.22,air:.42,tank:.5,track:.42,truck:.42,fire:.3,roar:.32,birds:.16,gun:.55}};
 let ddA=null;
@@ -285,7 +285,8 @@ function ddAmbFrame(t,live){
   if(!A.on){A.on=true;A.bus.gain.cancelScheduledValues(t);}A.offT=0;
   A.I+=(S.I-A.I)*Math.min(1,dt*.4);A.bt+=dt*ts;
   const udt=t-A.uT;if(udt>=.066){A.uT=t;   // (the levels and filters about 15 times a second: no need to automate them every frame)
-    A.bus.gain.setTargetAtTime(paused?.6:1,t,.8);ddaWind(t,Math.min(udt,.2),S);ddaSurf(t,S);ddaRoar(t,S,live);ddaBirds(t,Math.min(udt,.2),S);ddaBoatVoices(t,live);ddaTanks(t,live);ddaTrucks(t,live);ddaFires(t);}
+    // (Chapter 2's opening, Version 249, Bryan: "Silence for three seconds": the war falls away to a breath of wind, and is back with the shell)
+    {const hush=!!(dd&&dd.seq&&dd.seq.hush);if(A.hushed&&!hush)A.unhushT=t+.7;A.hushed=hush;A.bus.gain.setTargetAtTime(hush?DDA.hush:paused?.6:1,t,hush?.3:t<(A.unhushT||0)?.12:.8);}ddaWind(t,Math.min(udt,.2),S);ddaSurf(t,S);ddaRoar(t,S,live);ddaBirds(t,Math.min(udt,.2),S);ddaBoatVoices(t,live);ddaTanks(t,live);ddaTrucks(t,live);ddaFires(t);}
   ddaHull(t,live);if(live)ddaBattle(A.bt,t,S);
 }
 // off: everything fades, and a moment later the loops are stopped (the report and the barracks, the end, D-Day left)

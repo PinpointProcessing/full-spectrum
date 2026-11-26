@@ -233,6 +233,7 @@ function enterCounter(){
   ['A','B'].forEach((t,ti)=>[0,1,2,3].forEach(i=>{const rm=ddmSlotMan(t,i);if(!rm)return;const u=ddNewMan(t,t+(i+1),rm.role,(ti?724:612)+i*18,498+(i%2)*14,rm);u.inBoat=false;u.seen=true;}));
   players=units.filter(u=>u.side==='P'&&!u.npc);
   for(let i=0;i<10;i++){const u=ddNpc(i<5?400+i*44:790+(i-5)*40,DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.hopT=simT+.3+i*.25;}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
+  if(typeof dcFrantic==='function'){const r=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4711);for(const u of dd.npcs){u.hopT=simT+.2+r()*1.9;dcFrantic(u,r);}}   // (Version 249, Bryan: "run frantically to the front, not orderly march": each when he's ready and at his own speed; they went one every quarter second. Its own random numbers: the battle's are as they were)
   dd.pool=0;dd.sup={A:'hold',B:'hold'};   // (both squads hold: nobody follows anybody off the line)
   // the column on the road: the first wave's men marching in, the tanks behind them
   const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*720;e.cool=99;e.stage=-1;
@@ -493,7 +494,7 @@ function dcTick(dt){
   ddAllDown();ddDeadTick();dd.pool=0;
   dcGunsTick(dt);ddHot();ddTankTick(dt);
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();if(!dd.seq&&typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}}   // (Version 168: ddctl.js)
-  if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();}
+  if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();if(typeof dcFranticTick==='function')dcFranticTick();}
   const left=n=>enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length+dd.tanks.filter(K=>K.w===n&&K.hp>0).length;
   if(dd.seq&&dd.seq.dc){dcSeqTick(dt);}   // (Version 228: the opening, ddcseq.js; it ends in the first wave)
   else if(C.ph==='intro'){if(C.t>4.2&&!C.back){C.back=1;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.square.x,z:DCA.wallY-34+DD_CAM.look,zoom:7.4},t:0,dur:1.6};}
