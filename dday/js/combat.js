@@ -323,7 +323,7 @@ function callout(u,text,col){if(MAPID==='dd'&&!DD_SAY.has(text))return;callouts.
    following him. Pinned (PINNED), he won't leave his spot for an order: a throw or a shot he'd have to move for. He says so
    out loud too (voice.js's 'cant'). Moving him is still an order he takes: that's how he gets out of it. */
 let bubbles=[],cantSaidT=-1e9;
-function bubble(u,text,col){bubbles=bubbles.filter(b=>b.u!==u);bubbles.push({u,text,col:col||C.warn,t0:performance.now()});}
+function bubble(u,text,col,ms){bubbles=bubbles.filter(b=>b.u!==u);bubbles.push({u,text,col:col||C.warn,t0:performance.now(),ms});}   // (ms: how long it stays, real milliseconds; BUBBLE_MS if not given)
 const pinnedNow=u=>u.sup>PINNED;
 function refusePinned(u){
   bubble(u,'I’m pinned! I can’t do that!',C.bad);
@@ -435,7 +435,8 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 // src: who did it (credited with the kill for the after-action report)
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
-  if(MAPID==='dd'&&ddDamage(t,dmg,src))return;   // (D-Day: the other troops, killed outright, the gore: dday.js)
+  t.hpFloor=null;if(MAPID==='dd'&&(t.dcGun||t.shieldT>simT)&&typeof dcShield==='function'){dmg=dcShield(t,dmg,src);if(!(dmg>0)){t.hpFloor=null;return;}}   // (Version 254, Chapter 2: a man on a gun: the gun takes it first, he never goes below half, ddcounter.js)
+  if(MAPID==='dd'&&ddDamage(t,dmg,src)){t.hpFloor=null;return;}   // (D-Day: the other troops, killed outright, the gore: dday.js)
   if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun jeep (mission.js): bullets (at GJEEP.bullet) and blasts
   if(t.side==='E'&&!t.dog&&alertStage()>=2)dmg*=.8;   // the base's Alert II: helmets and vests (layers.js)
   if(t.dmgIn)dmg*=t.dmgIn;else if(t.l1)dmg*=L1E.dmgIn;   // Level 1's and Level 2's guards go down faster (level1.js, level2.js)
@@ -443,7 +444,7 @@ function damage(t,dmg,src){
   if(t.unarmored)dmg*=1.3;   // a freed prisoner: no vest (office.js)
   else if(t.side==='P')dmg*=SQUAD_VEST;   // the squad's vests
   if(isCls(t,'defender'))dmg*=CLS.defArmor;   // (a Defender's heavy armour: classes.js)
-  t.hp-=dmg;t.hitFlash=.25;
+  t.hp-=dmg;t.hitFlash=.25;if(t.hpFloor!=null){if(t.hp<t.hpFloor)t.hp=t.hpFloor;t.hpFloor=null;}
   if(t.side==='P'&&!t.offMap&&!offFloor(t))hitCue(t.hp<=0?.85:Math.min(.6,.22+dmg/50));
   if(t.side==='P'&&t.hp>0&&t.hp<SHY_HP)t.shyT=simT+SHY_T;   // badly hurt and still being hit: he keeps his head down
   if(t.side==='E'&&t.hp>0&&!t.dog&&Math.random()<.5&&typeof sfxPain==='function')sfxPain(t,t.hp<40);
@@ -496,9 +497,9 @@ function burst(u,t,L){
   if(u.heavy&&++u.rounds>=HEAVY.bursts){u.rounds=0;u.reloadT=simT+HEAVY.reload+1;bark(u,'reload',true);if(typeof sfxReload==='function')setTimeout(()=>sfxReload(u.x,u.y),600);}   // the run's heavy gun: a reload after this burst
   u.target=t;u.aimT=simT;u.shotAtT=simT;if(u.veh)u.aimA=Math.atan2(L.ty-L.fy,L.tx-L.fx);else{u.ang=Math.atan2(L.ty-L.fy,L.tx-L.fx);leanOut(u,L);}
   const c=hitChance(u,t,L);
-  const n=u.gunner?5:wOf(u).n;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun or a sniper rifle one round
+  const GW=u.onGun&&u.gunW,n=GW?GW.n:u.gunner?5:wOf(u).n;   // machine guns fire long bursts, rifles 3-round bursts, a shotgun or a sniper rifle one round (GW: Chapter 2's guns, their own rate: ddcounter.js's DCA.gw)
   const q=silenced(u);if(q)silWear(u);   // a silenced M4: a quiet burst, and the silencer wears (below)
-  for(let i=0;i<n;i++)shots.push({at:simT+i*(u.gunner||n>3?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
+  for(let i=0;i<n;i++)shots.push({at:simT+i*(GW?GW.gap:u.gunner||n>3?0.07:0.08),u,t,L,hit:Math.random()<c,quiet:q});
   if(u.side==='P'&&t.alerted&&!t.mon&&simT>t.flankCD&&shotCover(L)===0){t.flankCD=simT+6;callout(t,'Flanked',C.good);}   // (not a monster: they don't take cover)
 }
 function resolveShot(s){
@@ -517,10 +518,10 @@ function resolveShot(s){
   if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
   else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
   if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0,u});   // a silencer hides the flash
-  t.sup=Math.min(1.2,t.sup+(u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t)*(nearCaptain(t)?CLS.leadNerve:1):1)*(isCls(u,'support')?CLS.supMul:1)*(u.supK||1)*(t.nerveK||1));   // machine guns, sniper rounds and shotgun blasts pin people down (a Support harder; a Captain steadies the men near him: classes.js)
+  t.sup=Math.min(1.2,t.sup+(u.onGun&&u.gunW?u.gunW.sup:u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t)*(nearCaptain(t)?CLS.leadNerve:1):1)*(isCls(u,'support')?CLS.supMul:1)*(u.supK||1)*(t.nerveK||1));   // machine guns, sniper rounds and shotgun blasts pin people down (a Support harder; a Captain steadies the men near him: classes.js)
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');}   // the jeep: rounds spark off its body, and some find the crew
   else if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(t.side==='P'&&Math.random()<.45)sfxGrunt(t,false);}   // (an enemy's cry is in damage())   // a hit: the thud, and often a grunt
-  if(s.hit){const W=wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,t.veh?dm*GJEEP.bullet:dm,u);}
+  if(s.hit){const W=u.onGun&&u.gunW||wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,t.veh?dm*GJEEP.bullet:dm,u);}
   if(u.side==='P'){alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet,u);squadNoise(u,fx,fy,s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined);}   // they'll think the squad is where the shot came from (a silenced shot: only close by)
   else alertAll(null,false,fx,fy,ex,ey,t.mon?t:{x:t.x,y:t.y});   // (at a monster, Level 4: their men hear it, but it gives none of ours away)   // their own gunfire is heard nearby too
   if(t.side==='E'&&!t.alerted)t.alerted=true;
@@ -1132,7 +1133,7 @@ function updateUnit(u,dt){
     else if(u.focusTank&&shootTank(u)){}   // ordered to shoot a fuel tank
     else if(u.supT)suppressShot(u);
     else if(wOf(u).far&&u.path.length)u.cool=.3;   // a sniper rifle: not on the move
-    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);const W=wOf(u);u.cool=u.gunner?1.3+Math.random()*.5:(W.cool[0]+Math.random()*(W.cool[1]-W.cool[0]))*(u.side==='E'&&W.far?ESNIPER.slow:1);}else u.cool=.25;}
+    else{const pt=pickTarget(u);if(pt){burst(u,pt.t,pt.L);const W=wOf(u),GW=u.onGun&&u.gunW;u.cool=GW?GW.cool[0]+Math.random()*(GW.cool[1]-GW.cool[0]):u.gunner?1.3+Math.random()*.5:(W.cool[0]+Math.random()*(W.cool[1]-W.cool[0]))*(u.side==='E'&&W.far?ESNIPER.slow:1);}else u.cool=.25;}
   }
 }
 function turn(a,b,k){let d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*Math.min(1,k);}

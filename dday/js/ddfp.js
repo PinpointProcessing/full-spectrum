@@ -9,9 +9,14 @@ const FP_W={   // the guns as he fires them himself: one round a press (held, th
   hmg:{cool:.105,dmg:[13,18],clip:20,reload:2.3,spread:.017,kick:.006,range:520,sup:.07},
   sniper:{cool:1.25,dmg:[85,110],clip:5,reload:2.4,spread:.0015,kick:.03,range:900,sup:.3,zoom:.3},
   shotgun:{cool:.9,dmg:[38,50],clip:5,reload:2.4,spread:.03,kick:.03,range:220,sup:.14},
-  mg:{cool:.085,dmg:[12,17],clip:60,reload:2.6,spread:.02,kick:.004,range:620,sup:.09}};
+  mg:{cool:.085,dmg:[12,17],clip:60,reload:2.6,spread:.02,kick:.004,range:620,sup:.09},
+  // (Version 254, Chapter 2's guns, Bryan: "Can the light machine guns have a higher rate of fire, 2x faster. The heavy machine gun can stay slow but
+  // has more damage. The light machine guns should have a very fast rate of fire": the nests twice the rounds a second with a longer belt; the
+  // heavy gun a round every 0.15 s, each more than twice as hard, and more off a tank: tank, of DCA.hv.tank a round, ddcounter.js's dcHvTank)
+  lmg:{cool:.0425,dmg:[12,17],clip:150,reload:2.6,spread:.022,kick:.003,range:620,sup:.09},
+  hvmg:{cool:.15,dmg:[30,40],clip:80,reload:3,spread:.013,kick:.009,range:620,sup:.16,tank:.8}};
 const fpArt=u=>dd&&dd.counter&&u.dcGun&&u.dcGun.man===u&&u.dcGun.t==='art'?u.dcGun:null;
-const fpWK=u=>u.onGun?'mg':FP_W[u.weapon]?u.weapon:'rifle';
+const fpWK=u=>u.onGun?(u.onGun.hv?'hvmg':u.onGun.lt?'lmg':'mg'):FP_W[u.weapon]?u.weapon:'rifle';
 const fpOK=()=>!!dd&&state==='play'&&dd.land.done&&!endAt&&!dd.seq;   // (not during the sequence before Chapter 3: ddvillage.js)
 function fpPick(){
   if(sel.length===1&&alive(sel[0])&&!sel[0].npc)return sel[0];
@@ -115,7 +120,7 @@ function fpShoot(){
     best.sup=Math.min(1.2,best.sup+W.sup*(u.supK||1)*(best.nerveK||1));if(!best.alerted)best.alerted=true;
     if(c&&Math.random()<(c>=2?.45:.25)){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}
     else{const hs=u.weapon==='shotgun'?clamp(1-(hyp(ex-u.x,ey-u.y)-60)/200,.35,1):1;if(typeof sfxFlesh==='function')sfxFlesh(ex,ey);damage(best,(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*hs,u);F.hitT=performance.now();if(best.dead)F.killT=F.hitT;}}
-  else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');if(u.dcGun&&u.dcGun.hv&&typeof dcHvTank==='function'){dcHvTank(tank,.34,u);F.hitT=performance.now();}}else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);   // (a heavy machine gun in your hands marks a tank: ddcounter.js. Version 247: the miss's sound on the ground had been swallowed by this note since Version 224)
+  else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');if(u.dcGun&&u.dcGun.hv&&typeof dcHvTank==='function'){dcHvTank(tank,W.tank||.34,u);F.hitT=performance.now();}}else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);   // (a heavy machine gun in your hands marks a tank: ddcounter.js. Version 247: the miss's sound on the ground had been swallowed by this note since Version 224)
     for(const e of enemies)if(!beaten(e)&&hyp(e.x-ex,e.y-ey)<28)e.sup=Math.min(1.2,e.sup+W.sup*.7);}
   tracers.push({x1:u.x+Math.cos(F.a)*14,y1:u.y+Math.sin(F.a)*14,x2:ex,y2:ey,t:0,col:'255,231,163'});
   flashes.push({x:u.x+Math.cos(F.a)*6,y:u.y+Math.sin(F.a)*6,t:0,u});u.shotT=simT;u.aimT=simT;u.target=best||null;sfxShot(u);
@@ -178,22 +183,22 @@ function fpMates(){
   fpTools(m,u);
 }
 function fpTools(m,u){
-  const foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-u.x,e.y-u.y)<520),ready=p=>!p.path.length&&!p.throwGo&&!p.rpgAim&&!p.medGo&&!pinnedNow(p)&&simT-(p.nadeT??-99)>5;
+  const foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-u.x,e.y-u.y)<520),ready=p=>!p.path.length&&!p.throwGo&&!p.rpgAim&&!p.medGo&&!p.dcGun&&!pinnedNow(p)&&simT-(p.nadeT??-99)>5&&simT>(p.toolNoT??-99);   // (Version 254: not a man on one of Chapter 2's guns; and after a throw he couldn't make, not again for 6 s: the refusals came up over him every second)
   const by=p=>(a,b)=>hyp(a.x-p.x,a.y-p.y)-hyp(b.x-p.x,b.y-p.y),near=(x,y,r)=>dd.allies.some(q=>hyp(q.x-x,q.y-y)<r);
   // a rocket at a tank whenever there is one; at a gun now and then
   const dm=m.find(p=>p.spec==='rpg'&&p.specN>0&&ready(p));
   if(dm){const K=ddTanksUp().filter(k=>{const d=hyp(k.x-dm.x,k.y-dm.y);return d>PRPG.min+10&&d<PRPG.range&&ddRocketClear(k.x,k.y,d);}).sort(by(dm))[0];
-    if(K){if(Math.random()<.5&&orderThrow(dm,K.x,K.y,'rpg'))callout(dm,'Rocket on the tank!',C.warn);return;}
+    if(K){if(Math.random()<.5){if(orderThrow(dm,K.x,K.y,'rpg'))callout(dm,'Rocket on the tank!',C.warn);else dm.toolNoT=simT+6;}return;}
     const gun=foes.filter(e=>e.gunner||e.tag==='heavy'||e.tag==='cannon'||e.tag==='art'||e.tag==='mortar').filter(e=>{const d=hyp(e.x-dm.x,e.y-dm.y);return d>PRPG.min+10&&d<PRPG.range+40&&ddRocketClear(e.x,e.y,d);}).sort(by(dm))[0];
-    if(gun&&Math.random()<.14){orderThrow(dm,gun.x,gun.y,'rpg');return;}}
+    if(gun&&Math.random()<.14){if(!orderThrow(dm,gun.x,gun.y,'rpg'))dm.toolNoT=simT+6;return;}}
   // a grenade where they're bunched or dug in
   const g=m.find(p=>(p.grenade||0)>0&&ready(p));
   if(g&&Math.random()<.3){const tg=foes.filter(e=>hyp(e.x-g.x,e.y-g.y)<nadeRange(g)+30&&!near(e.x,e.y,75)&&(foes.filter(o=>hyp(o.x-e.x,o.y-e.y)<55).length>=2||coverAt(e.x,e.y,g.x,g.y)>0||e.gunner)).sort(by(g))[0];
-    if(tg){orderThrow(g,tg.x,tg.y,'nade');return;}}
+    if(tg){if(!orderThrow(g,tg.x,tg.y,'nade'))g.toolNoT=simT+6;return;}}
   // smoke when they're being pinned
   const s=m.find(p=>p.spec==='smoke'&&p.specN>0&&!p.path.length&&!p.throwGo),all=[u,...m],pin=all.reduce((a,p)=>a+p.sup,0)/all.length;
   if(s&&(pin>.45||u.sup>.7)&&!smokes.some(c=>hyp(c.x-u.x,c.y-u.y)<160)){const mg=foes.sort(by(u)).find(e=>e.gunner)||foes[0];
-    if(mg){const d=hyp(mg.x-u.x,mg.y-u.y)||1,k=Math.min(90,d*.5);orderThrow(s,u.x+(mg.x-u.x)/d*k,u.y+(mg.y-u.y)/d*k,'smoke');}}
+    if(mg){const d=hyp(mg.x-u.x,mg.y-u.y)||1,k=Math.min(90,d*.5);if(!orderThrow(s,u.x+(mg.x-u.x)/d*k,u.y+(mg.y-u.y)/d*k,'smoke'))s.toolNoT=simT+6;}}
 }
 function fpTick(dt){
   const F=dd.fp;if(!F)return;const u=F.u;
@@ -201,11 +206,11 @@ function fpTick(dt){
   if(endAt||dd.won||dd.over){fpExit();return;}
   u.lastOrder=simT;u.supT=null;u.focus=null;
   const wk=fpWK(u),W=FP_W[wk];if(F.wk!==wk){F.wk=wk;F.clip=W.clip;F.reloadT=0;F.cool=.25;}
-  F.kick*=Math.exp(-dt*9);F.cool-=dt;if(F.reloadT&&simT>=F.reloadT){F.reloadT=0;F.clip=W.clip;}
+  F.kick*=Math.exp(-dt*9);F.cool=Math.max(F.cool-dt,-.05);if(F.reloadT&&simT>=F.reloadT){F.reloadT=0;F.clip=W.clip;}
   const A=fpArt(u);
   if(A){A.orderT=simT;   // (his gun waits for him: it doesn't pick its own target while he's on it)
     if(F.fire&&simT>=A.fireT&&dd.dc.ph!=='intro'&&dd.dc.ph!=='setup'){const p=fpArtAim();dcFire(A,p.x,p.y,{direct:true,tank:p.tank});F.kick=.1;F.fire=false;}}
-  else if(F.fire&&!F.reloadT&&F.cool<=0&&!u.path.length&&!u.vaultK&&!u.carry&&!u.rpgAim&&simT-(u.throwT??-9)>.5){fpShoot();F.cool=W.cool;}
+  else if(F.fire&&!F.reloadT&&F.cool<=0&&!u.path.length&&!u.vaultK&&!u.carry&&!u.rpgAim&&simT-(u.throwT??-9)>.5){let k=0;do{fpShoot();F.cool+=W.cool;}while(F.cool<=0&&!F.reloadT&&++k<3);}   // (Version 254: two rounds in one tick when the frames are slow, so the light guns' 0.0425 s keeps its rate)
   if((F.aiT-=dt)<=0){F.aiT=1;fpMates();}
 }
 const _fpl=typeof T!=='undefined'?new T.Quaternion():null,_fpe=typeof T!=='undefined'?new T.Euler():null;

@@ -142,10 +142,17 @@ function ddObjective(){
   const tank=near((dd.tanks||[]).filter(K=>K.hp>0&&!K.left&&!K.retreat&&!K.wreck&&(dd.counter?!K.hold:(K.range||0)>1)&&dM(K)<(K.range||520)+120));
   if(tank)return{t:dd.counter?'Tank! Field gun or bazooka':'Tank! Bazooka or grenades',x:tank.x,y:tank.y,h:20,k:'danger'};
   if(dd.counter){const C=dd.dc;if(!C||C.ph==='intro')return null;
-    if(C.ph==='setup'||C.ph==='lull'){const s=Math.max(0,Math.ceil((C.ph==='setup'?DCA.setup:DCA.lull)-C.t));
+    // (Version 254) the push on their checkpoint, once the sergeant has shouted it: there, with how many of theirs are still in it, or how far the
+    // taking has got; once it's ours and they're in it, keeping it
+    const cz=DCA.cz,cc={x:(cz.x0+cz.x1)/2,y:(cz.y0+cz.y1)/2},inZ=enemies.filter(e=>!beaten(e)&&!e.onTank&&dcIn(e,cz)).length;
+    if(C.cpGo&&!C.cpOurs&&C.pushT0!=null&&simT-C.pushT0>2.5)return{t:inZ?`Take the checkpoint · ${inZ} left`:C.capT>0?`Taking the checkpoint · ${Math.min(99,Math.round(C.capT/DCA.capT*100))}%`:'Take the checkpoint',x:cc.x,y:cc.y,h:24};
+    if(C.cpOurs&&C.capT>0)return{t:`Hold the checkpoint · ${Math.max(1,Math.ceil(DCA.loseT-C.capT))}`,x:cc.x,y:cc.y,h:24,k:'danger'};
+    if(C.ph==='push')return{t:`Wave ${C.wave} complete`};
+    // (Version 254: in a rest the clock is across the top already, ddcounter.js's dcRestHud, so the pill says nothing unless a gun wants a man)
+    if(C.ph==='setup'||C.ph==='lull'){const s=Math.max(0,Math.ceil((C.ph==='setup'?DCA.setup:(C.rest||DCA.lull))-C.t));
       const free=C.guns.filter(g=>!g.dead&&!(g.man&&!g.man.npc)&&!(g.going&&!g.going.npc)),g=ours.some(u=>!u.dcGun)?near(free,dcSeat):null;   // (a gun one of the other troops holds counts as free: a squad man takes it over)
       const t=C.ph==='setup'?`They attack in ${s}`:`Wave ${C.wave+1} in ${s}`;
-      if(!g||!ours.some(u=>!u.dcGun&&!u.npc&&alive(u)))return{t};const P=dcSeat(g);return{t:`A gun is empty · ${s}`,x:P.x,y:P.y,h:10};}
+      if(!g||!ours.some(u=>!u.dcGun&&!u.npc&&alive(u)))return C.ph==='lull'?null:{t};const P=dcSeat(g);return{t:`A gun is empty · ${s}`,x:P.x,y:P.y,h:10};}
     const n=enemies.filter(e=>e.tag==='w'+C.wave&&!beaten(e)).length+(dd.tanks||[]).filter(K=>K.w===C.wave&&K.hp>0).length,f=near(enemies.filter(e=>e.tag==='w'+C.wave&&known(e)));
     return f?{t:`Hold the base · ${n} left`,x:f.x,y:f.y,h:14,k:'danger'}:{t:`Hold the base · ${n} left`};}
   if(dd.vil){const V=dd.vg;if(!V)return null;

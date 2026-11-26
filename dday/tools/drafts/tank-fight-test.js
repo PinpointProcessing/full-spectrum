@@ -12,7 +12,11 @@ const start=async()=>{const {page,errors}=await open(b,`http://localhost:${PORT}
   await ev(()=>{window.requestAnimationFrame=()=>0;Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4247);localStorage.removeItem('warehouseYard.ddmeta.v1');localStorage.removeItem('warehouseYard.lastError');
     window.TKERR=[];window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){try{update(1/30);}catch(e){TKERR.push('update: '+e.message+' @'+(e.stack||'').split('\n')[1]);}if(i%3==0){try{panTick(.1);ddFrame(.1,simT);}catch(e){TKERR.push('frame: '+e.message+' @'+(e.stack||'').split('\n')[1]);}}}};
     window.SAFE=on=>{if(!window._d0)window._d0=damage;damage=on?((t,d,s)=>t.side==='P'?undefined:_d0(t,d,s)):_d0;};});
-  await page.click('#ddCtrBtn');await page.waitForTimeout(900);return{page,errors,ev};};
+  await page.click('#ddCtrBtn');await page.waitForTimeout(900);
+  // (Version 254: Chapter 2's tanks come from wave 5 on and are made as their wave starts; this test is about the tank and its gunner, so it puts
+  // them where Version 247 had them, waiting up the woods road, the first let loose as wave 1 starts)
+  await ev(()=>{if(!dd.tanks.length)[[430,-396,1,'road'],[300,-450,2,'road'],[190,-500,3,'west'],[90,-548,3,'east']].forEach(([x,y,w,k])=>{const K=ddTankSpawn({x,y,ang:.4,hold:true,way:DCA.ways[k],name:'Tank',range:DCA.tankR});K.w=w;if(w===1)K.relT=simT+16;});});
+  return{page,errors,ev};};
 const shot=async(page,ev,name,c)=>{if(!OUT)return;await ev(c=>{window._cam=c;if(!window._uc0)window._uc0=updateCamera;updateCamera=()=>{const c=window._cam;camera.fov=c[6]||38;camera.near=1;camera.aspect=cw/ch;camera.updateProjectionMatrix();camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);camera.updateMatrixWorld();};
     if(!window._dc)window._dc=ddCam;ddCam=()=>{};for(const s of ['#sq','.panel','#ddObj','#hint','#banner','#big','#bigText','#tl','#obj','#fp','#dcBar','#ddSwap','#dcNoRe'])for(const el of document.querySelectorAll(s))el.style.visibility='hidden';
     ddFrame(.6,simT);render(1/30,simT);ox.setTransform(1,0,0,1,0,0);ox.clearRect(0,0,9999,9999);},c);await page.waitForTimeout(400);

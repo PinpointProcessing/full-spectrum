@@ -5,10 +5,10 @@ const {page,errors}=await open(b,`http://localhost:${PORT}/index.html?noseq&gfx=
 await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');Math.random=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(77);window.requestAnimationFrame=()=>0;startCounter();});await page.waitForTimeout(700);
 const s0=await ev(()=>{for(let i=0;i<220;i++)update(1/30);for(const e of enemies){e.x=60;e.y=-700;e.path=[];e.stunT=1e9;e.cool=1e9;}for(const K of dd.tanks)K.hold=true;
   const co=objs.find(o=>o.tag==='check');return{ph:dd.dc.ph,hp:co&&co.hp,full:co&&co.full,slits:dcSlits().length};});console.log(JSON.stringify(s0));ok(s0.hp===650&&s0.slits===3,'the blockhouse has 650 to take and three slits');
-// a man out in the field in front of it: he is shot at, from the slits
-const s1=await ev(()=>{const u=players[0];if(u.dcGun){const g=u.dcGun;if(g.man===u)dcLeave(g);else g.going=null;u.dcGun=null;}Object.assign(u,{x:700,y:-40,path:[],hp:100});const n0=tracers.length;let tr=0,minHp=100,fromSlit=0;const t0=simT;
+// a man out in the field in front of it: he is shot at, from the slits (Version 254: they're manned from the push on it after wave 2 until it's taken)
+const s1=await ev(()=>{dd.dc.cpGo=true;dd.dc.pushOn=true;const u=players[0];if(u.dcGun){const g=u.dcGun;if(g.man===u)dcLeave(g);else g.going=null;u.dcGun=null;}Object.assign(u,{x:700,y:-40,path:[],hp:100});const n0=tracers.length;let tr=0,minHp=100,fromSlit=0;const t0=simT;
   for(let i=0;i<300;i++){const a=tracers.length;u.x=700;u.y=-40;u.path=[];u.lastOrder=simT;update(1/30);for(const t of tracers)if(!t._c){t._c=1;if(Math.abs(t.y1-(DCA.check.y+DCA.check.h+3))<1){fromSlit++;}}minHp=Math.min(minHp,u.hp);if(u.downed||u.dead)break;}
-  return{fromSlit,minHp:Math.round(minHp),down:!!(u.downed||u.dead),sup:+u.sup.toFixed(2),secs:+(simT-t0).toFixed(1)};});console.log(JSON.stringify(s1));ok(s1.fromSlit>=8&&(s1.minHp<100||s1.down),'its machine guns fire through the slits at a man in the field and hurt him');
+  return{fromSlit,minHp:Math.round(minHp),down:!!(u.downed||u.dead),sup:+u.sup.toFixed(2),secs:+(simT-t0).toFixed(1)};});console.log(JSON.stringify(s1));ok(s1.fromSlit>=8&&(s1.minHp<100||s1.down),'manned (the push on it), its machine guns fire through the slits at a man in the field and hurt him');
 // far back at the base nobody is in reach
 const s2=await ev(()=>{const u=players[0];Object.assign(u,{downed:false,dead:false,critical:false,hp:100,x:700,y:500,path:[]});let n=0;for(const t of tracers)t._c=1;for(let i=0;i<150;i++){update(1/30);for(const t of tracers)if(!t._c){t._c=1;if(Math.abs(t.y1-(DCA.check.y+DCA.check.h+3))<1&&t.y2>430)n++;}}return n;});ok(s2===0,'they do not reach the command post ('+s2+')');
 // bullets do nothing to it; our blasts do

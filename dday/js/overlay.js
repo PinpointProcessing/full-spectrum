@@ -64,10 +64,10 @@ function bubblePath(x0,y0,w,h,r,ax,ay){   // the box, and with ay a tail from it
 }
 function drawBubbles(){
   if(!bubbles.length)return;
-  const now=performance.now();bubbles=bubbles.filter(b=>now-b.t0<BUBBLE_MS&&!b.u.dead&&units.includes(b.u));
+  const now=performance.now();bubbles=bubbles.filter(b=>now-b.t0<(b.ms||BUBBLE_MS)&&!b.u.dead&&units.includes(b.u));
   for(const b of bubbles){
     const u=b.u;if(offFloor(u)||u.away)continue;
-    const age=now-b.t0,pop=Math.min(1,age/140),A=Math.min(1,(BUBBLE_MS-age)/450);
+    const age=now-b.t0,pop=Math.min(1,age/140),A=Math.min(1,((b.ms||BUBBLE_MS)-age)/450);
     const ev=u.onTower||u.climb?u.elev||0:0;toSBack=false;const[ax,ay0]=toS(u.x+(u.lx||0),u.y+(u.ly||0),24+ev),back=toSBack,ay=ay0-22;   // (its tail stops above his bar and PINNED)
     ox.font=`700 12px ${HUDFONT}`;const w=ox.measureText(b.text).width+18,h=22,minY=58,maxY=ch-76;
     let x0=ax-w/2,y0=ay-10-h,tail=!back;

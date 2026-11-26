@@ -310,7 +310,7 @@ function ddGore(t,big){
 function ddDamage(t,dmg,src){
   if(t.side==='E'){if(dmg>=55&&dmg*(t.dmgIn||1)>=t.hp&&!t.veh)ddGore(t,true);else if(dmg*(t.dmgIn||1)>=t.hp&&Math.random()<.3)ddGore(t,false);return false;}
   if(t.npc){
-    t.hp-=dmg*1.15*ddWeak(t);t.hitFlash=.25;
+    t.hp-=dmg*1.15*ddWeak(t);t.hitFlash=.25;if(t.hpFloor!=null&&t.hp<t.hpFloor)t.hp=t.hpFloor;   // (Version 254: one of them on a Chapter 2 gun never goes below half, ddcounter.js's dcShield)
     if(t.hp<=0){t.hp=0;t.dead=true;t.path=[];t.deadT=simT;dd.npcLost++;
       if(typeof sfxBodyFall==='function'){sfxBodyFall(t.x,t.y);const r=Math.random();if(r<.4)sfxScream(t,.8);else if(r<.7)sfxGrunt(t,true);}
       if(dmg>=55)ddGore(t,true);else{paintDecal({k:'body',x:t.x,y:t.y,a:t.ang,r:Math.random()});if(Math.random()<.25)ddGore(t,false);}}
@@ -318,7 +318,7 @@ function ddDamage(t,dmg,src){
     return true;
   }
   if(t.inBoat)return true;   // (the ride in costs the squads nobody: Bryan)
-  const dead_on=dmg>=70,head=!dead_on&&!dd.wireHit&&simT>(dd.graceT||0)&&dmg>3&&dmg<45&&Math.random()<.04;
+  const sh=t.hpFloor!=null,dead_on=!sh&&dmg>=70,head=!sh&&!dead_on&&!dd.wireHit&&simT>(dd.graceT||0)&&dmg>3&&dmg<45&&Math.random()<.04;   // (sh, Version 254: a man on a Chapter 2 gun is never killed outright)
   if(dead_on||head){ddKill(t,head?'Shot through the head':'Blown apart',dead_on);return true;}
   return false;
 }

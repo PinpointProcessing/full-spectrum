@@ -9,13 +9,31 @@
    the base at the south facing inland (north), a field, a hedgerow, a farm and an orchard, the tree line, one road. `dd.counter` is true
    and ddTick hands over to dcTick. `dd.dc` is the fight: ph 'intro' (the camera up the road to the column) -> 'setup' (DCA.setup s) ->
    'w1' -> 'lull' -> 'w2' -> 'lull' -> 'w3' -> won. DCA.guns are the mounted guns (three forward nests, two on the wall, two field guns): a
-   tap on one with a squad picked sends its nearest free man (dcTap, dcMan), the other troops take what's left (dcNpc). */
+   tap on one with a squad picked sends its nearest free man (dcTap, dcMan), the other troops take what's left (dcNpc).
+   (Version 254: seven waves, 'push' after the second, dcWaveDone; see the notes at DCA and at their checkpoint below) */
 // Version 231 (Bryan's plan, docs/drafts/v231-base-defence-plan-2.jpg): Chapter 2 is fought from the D-Day base, looking down the road their
 // reinforcements come along, the beach down a cliff on the right. Drawn here turned a quarter: the story's east is this map's north, so the camera,
 // the waves and the guns keep working as they did. South to north: the square, the two barracks on its left, the command post in the gap of the
 // north bank with the road through it; the guns outside (two nests on the left, the field gun and the heavy MG on the right by the cliff); the
 // field; the fork (left into the woods, right down the cliffs to the beach); their checkpoint between the branches.
-const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN:2,lull:15,gunHit:42,flagT:14,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
+const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN:2,lull:20,gunHit:42,flagT:14,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
+  // Version 254 (Bryan, after Version 253: "this game should mostly take place on the stationary weapons"; "Can the light machine guns have a
+  // higher rate of fire, 2x faster. The heavy machine gun can stay slow but has more damage"; "A stationary weapon should be destroyed first and
+  // just hurt the soldier. It doesn't kill the soldier. Have the machine be destroyed first and the soldier has no less than 50% health").
+  // gw: a gun's own fire when its man shoots by himself (combat.js's burst, resolveShot and updateUnit read u.gunW while he's on it): the nests'
+  // light guns twice the rounds a second (10 a burst, 0.035 s apart, where a gunner fired 5 at 0.07), the heavy gun as slow as before with more
+  // than twice the damage a round. shield (dcShield, from combat.js's damage): what hits a man on a gun hits the gun (gun x); he takes man x of it
+  // the usual way, never below floor, never killed outright (ddplay.js's ddDamage); the gun blown up throws him off it, off more, not below floor
+  gw:{lt:{n:10,gap:.035,cool:[1.3,1.8],dmg:[11,16],sup:.09},hv:{n:5,gap:.12,cool:[1.4,1.9],dmg:[26,36],sup:.16}},
+  shield:{gun:.6,man:.3,floor:50,off:30,stun:1.1},
+  // Version 254 (Bryan: "After the first wave show Wave 1 complete. And give a timer on the rest time until the next wave"; "At the end of Wave 2,
+  // have NPC soldiers run to the second checkpoint, with the lead NPC saying Move Forward!! Take the checkpoint ahead!! After that, show an
+  // objective highlight over the checkpoint base to capture"; "Let's test with 7 waves - increasingly harder. Heavy units can start appearing at
+  // Wave 5, starting with less reinforcements troops"): the push after wave 2 (pushMax: the next wave comes anyway; capT: ours in the zone and none
+  // of theirs that long takes it; loseT: theirs in it and none of ours that long loses it again), the other troops kept at npcN between waves,
+  // cpFrom: the share of a wave that comes out of their checkpoint while it's theirs
+  pushMax:100,capT:5,loseT:10,npcN:10,cpFrom:.25,cpAtt:.4,
+  cz:{x0:560,y0:-372,x1:852,y1:-96},   // (the checkpoint to take: the blockhouse and its bags, and their two light guns left of the fork)
   cliffX:1010,beachH:-78,
   cp:{x:624,y:562,w:152,h:80,arch:[686,714]},cpZone:{x0:620,y0:462,x1:780,y1:558},flag:{x:756,y:548},   // (the ground in front of the command post: theirs for flagT s with none of ours in it and the base is lost)
   barracks:[{x:396,y:600,w:46,h:118},{x:396,y:742,w:46,h:118}],door:{x:700,y:550},cpIn:{x:700,y:650},   // (the right-hand barracks is the first, by the command post; door: where the squad comes out of the command post)
@@ -26,11 +44,30 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   guns:[{k:'n1',n:'MG NEST',x:540,y:486,t:'mg',arc:1.15,hp:260},{k:'n2',n:'MG NEST',x:604,y:438,t:'mg',arc:1.15,hp:260},
     {k:'h1',n:'HEAVY MG',x:900,y:410,t:'mg',hv:1,arc:1.5,hp:340,face:0},{k:'a1',n:'FIELD GUN',x:858,y:490,t:'art',hp:420,face:0}],   // (face 0: it stands pointing at the beach until it's turned)
   hold:[[660,478],[700,500],[740,478]],   // (where the men not on a gun stand: in front of the command post)
-  posts:[[450,264],[940,250],[430,318],[520,318],[632,318],[790,318],[880,318],[960,330],[590,362],[830,362]],   // (the other troops' forward posts, out in the field)
-  hv:{tank:9,every:1.1,range:560,shell:130,mortar:70,man:.5,hold:.8},   // (hold: how long one burst of the heavy gun puts a tank's next shot back; ddplay.js's ddTankHold caps the total)
+  lee:[[560,584],[840,584],[480,584],[920,584]],   // (Version 254: behind the bank, where a man thrown off his gun goes to get his breath back)
+  // (Version 254, Bryan: "Make more defensive points in the fields between the base and checkpoint 2"; "Have the NPCs pushing forward to distract
+  // the enemy") def: the horseshoes of bags across the field, two men in each (the first two were the only ones); lines: where the other troops
+  // stand, back to front: the near posts, the middle of the field, the line short of the hedgerow (its gaps in sight), and, once it's ours, their
+  // checkpoint (bags north of the blockhouse's corners, its corners). Line 0 is each man's own spot on the wall (u.back)
+  def:[[450,250],[940,236],[330,150],[520,140],[860,150],[470,10],[600,20],[790,20],[930,10]],
+  lines:[[[440,248],[460,248],[930,234],[950,234],[578,360],[602,360],[818,360],[842,360]],
+    [[320,148],[340,148],[510,138],[530,138],[850,148],[870,148]],
+    [[460,8],[480,8],[590,18],[610,18],[780,18],[800,18],[920,8],[940,8]],
+    [[614,-342],[638,-342],[794,-342],[818,-342],[712,-325],[760,-325]]],
+  posts:[[440,248],[460,248],[930,234],[950,234],[578,360],[602,360],[818,360],[842,360],[320,148],[870,148]],   // (where the ten run to as it starts: the near line, two in the middle)
+  // the push on their checkpoint: from the line short of the hedgerow, into it (round their light guns, beside the blockhouse); their men in it
+  // (garr: two at their light guns, five round the blockhouse, all posted)
+  storm:[[598,-128],[640,-150],[662,-236],[800,-226],[842,-238],[612,-186],[700,-208],[760,-206]],
+  garr:[[662,-252],[801,-246],[700,-224],[760,-224],[640,-292]],
+  hv:{tank:14,every:1.1,range:560,shell:130,mortar:70,hold:.8},   // (hold: how long one burst of the heavy gun puts a tank's next shot back; ddplay.js's ddTankHold caps the total. Version 254: tank 9 to 14, "more damage"; man .5 is gone: what hits a gun's man goes to the gun, dcShield)
   art:{min:170,max:960,reload:7.5,auto:6,R:84,D:150,fast:1500},   // (fast: how fast a shell fired from behind the gun flies, units a second: flat, where the crosshair is)
   tankR:700,   // (Version 247: how far their tanks shoot here, in the open field; 520 elsewhere. At 520 the field gun and the heavy gun had them before they came into their own reach)
-  waves:[{inf:18,more:10,moreAt:20,tanks:['road']},{inf:14,tanks:['road'],mortar:true},{inf:18,tanks:['west','east']}],
+  // (Version 254: seven waves, each harder than the last; their tanks from wave 5, that wave with fewer men, Bryan. inf: men as it starts; more: a
+  // second lot moreAt s in; tanks: the ways they come down (DCA.ways), started from tankAt one every 7 s; mortar: shells on our manned nests. Until
+  // Version 253: three waves, a tank in each)
+  waves:[{inf:16,more:8,moreAt:20},{inf:18,more:8,moreAt:18},{inf:20,more:10,moreAt:18,mortar:true},{inf:24,more:10,moreAt:16,mortar:true},
+    {inf:12,more:6,moreAt:22,tanks:['road'],mortar:true},{inf:16,more:8,moreAt:18,tanks:['road','east'],mortar:true},{inf:20,more:10,moreAt:16,tanks:['west','road','east'],mortar:true}],
+  tankAt:{road:[430,-396],west:[300,-450],east:[190,-500]},
   roads:{west:[[700,-150],[672,-210],[640,-262],[560,-330],[420,-400],[250,-470],[60,-560]],east:[[700,-150],[790,-190],[900,-250],[990,-320],[1040,-380],[1120,-470],[1200,-520]]},   // (the fork's two branches, as drawn)
   ways:{road:[[560,-330],[640,-262],[690,-150],[700,100],[700,300],[700,440]],west:[[420,-400],[560,-330],[640,-262],[690,-150],[660,150],[640,300],[690,400],[700,450]],east:[[560,-330],[640,-262],[700,-150],[760,-40],[790,150],[770,300],[712,400],[700,450]]}};
 const dcIn=(u,z)=>u.x>z.x0&&u.x<z.x1&&u.y>z.y0&&u.y<z.y1;
@@ -62,7 +99,7 @@ function dcObjects(){
   for(const g of DCA.guns){if(g.t==='mg'){o('sandbag',g.x-24,g.y-20,48,10);o('sandbag',g.x-30,g.y-16,10,28);o('sandbag',g.x+20,g.y-16,10,28);if(g.face===0)o('sandbag',g.x+26,g.y-6,10,30);}
     else{o('sandbag',g.x-34,g.y-36,68,10);o('sandbag',g.x-40,g.y-30,10,34);o('sandbag',g.x+30,g.y-30,10,44);}}
   o('sandbag',636,452,44,10);o('sandbag',720,452,44,10);o('sandbag',626,456,10,34);o('sandbag',764,456,10,34);   // (the entrance's own breastworks, either side of the road)
-  for(const[x,y]of[[450,250],[940,236]]){o('sandbag',x-24,y-20,48,10);o('sandbag',x-30,y-16,10,28);o('sandbag',x+20,y-16,10,28);}o('sandbag',566,344,48,10);o('sandbag',806,344,48,10);   // (the other troops' forward posts)
+  for(const[x,y]of DCA.def){o('sandbag',x-24,y-20,48,10);o('sandbag',x-30,y-16,10,28);o('sandbag',x+20,y-16,10,28);}o('sandbag',566,344,48,10);o('sandbag',806,344,48,10);   // (the other troops' forward posts; Version 254: more across the field, DCA.def)
   // the field: boulders, the hedgerow with its gaps
   for(const[x,y]of[[560,40],[840,80],[390,130],[960,10],[300,-10],[930,140],[620,170],[790,-20],[480,-200],[900,-120]])o('ddbould',x,y,18,15,{cover:1});
   for(const[x0,x1]of[[220,520],[560,640],[760,840],[880,1000]])o('dchedge',x0,DCA.hedgeY,x1-x0,14,{full:true,cover:2});
@@ -72,7 +109,8 @@ function dcObjects(){
     o('sandbag',c.x-4,c.y+c.h+16,c.w+8,10);o('sandbag',c.x-12,c.y+c.h+2,10,24);o('sandbag',c.x+c.w+2,c.y+c.h+2,10,24);   // a breastwork in front of it, facing the base
     o('sandbag',c.x-22,c.y+6,10,40);o('sandbag',c.x+c.w+14,c.y+6,10,40);                                                  // short lines at its sides
     for(const[x,y]of[[c.x+c.w+34,c.y+46],[c.x+c.w+40,c.y-6],[c.x-34,c.y-14]])o('ddcrate',x,y,22,20,{cover:1});
-    for(const e of DCA.eguns){o('sandbag',e.x+16,e.y-18,10,36);o('sandbag',e.x-18,e.y+16,36,10);}}                          // their light machine guns' bags: toward the beach, and toward us
+    for(const e of DCA.eguns){o('sandbag',e.x+16,e.y-18,10,36);o('sandbag',e.x-18,e.y+16,36,10);o('sandbag',e.x-18,e.y-28,36,10);}   // their light machine guns' bags: toward the beach, and toward us (Version 254: and north, for when they're ours)
+    o('sandbag',604,-362,44,10);o('sandbag',784,-362,44,10);o('sandbag',700,-345,72,10);}                                                                   // (Version 254) bags north of the blockhouse's corners: for whoever holds it against what comes out of the woods
   for(const[x,y]of[[300,-420],[430,-440],[560,-450],[860,-430],[950,-410]])o('ddbould',x,y,20,16,{cover:1});
   return L;
 }
@@ -225,21 +263,23 @@ function enterCounter(){
   MAPID='dd';LEVEL=5;groundH=ddH;
   dd={counter:true,t0:simT,pool:ddmReserveFit().length,lost:0,queue:[],npcs:[],npcN:0,nid:0,eid:0,active:'A',idle:{A:0,B:0},hop:{A:0,B:0},wp:{A:0,B:0},front:800,won:false,over:false,
     land:{t:0,done:true},boats:[],waveT:0,spawnT:1e9,aiT:0,npcT:0,shellT:{},oob:0,ambT:0,killed:0,npcLost:0,blown:{},labels0:{},tanks:[],held:{},wires:[],
-    dc:{ph:'intro',t:0,wave:0,cpT:0,guns:DCA.guns.map(g=>({...g,hp0:g.hp,man:null,going:null,fireT:0,orderT:-99,aim:null,hits:0,dead:false,smokeT:0,hvT:0})),art:null,col:[],shells:[],focus:null,focusK:null,picked:false}};
+    dc:{ph:'intro',t:0,wave:0,cpT:0,guns:DCA.guns.map(g=>({...g,hp0:g.hp,man:null,going:null,fireT:0,orderT:-99,aim:null,hits:0,dead:false,smokeT:0,hvT:0})),art:null,col:[],shells:[],focus:null,focusK:null,picked:false,
+      cpOurs:false,cpGo:false,capT:0,spawned:0,rest:0}};   // (Version 254: their checkpoint ours or not, the push on it under way, the taking's clock; their men so far; the rest's length)
   for(const k in DD_LABELS){dd.labels0[k]=WEAPON[k].label;WEAPON[k].label=DD_LABELS[k];}
   dd.rpg0=SPECIALS.rpg.label;SPECIALS.rpg.label='Bazooka';dd.rpgR=PRPG.range;PRPG.range=900;dd.rpgA=PRPG.aim;PRPG.aim=1.15;ddBaz(1);
   // the squads on the parade square, the other troops along the wall
   // (Version 236: out in front of the command post, where the opening leaves them)
   ['A','B'].forEach((t,ti)=>[0,1,2,3].forEach(i=>{const rm=ddmSlotMan(t,i);if(!rm)return;const u=ddNewMan(t,t+(i+1),rm.role,(ti?724:612)+i*18,498+(i%2)*14,rm);u.inBoat=false;u.seen=true;}));
   players=units.filter(u=>u.side==='P'&&!u.npc);
-  for(let i=0;i<10;i++){const u=ddNpc(i<5?400+i*44:790+(i-5)*40,DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.hopT=simT+.3+i*.25;}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
+  for(let i=0;i<10;i++){const u=ddNpc(i<5?400+i*44:790+(i-5)*40,DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.ln=i<8?1:2;u.hopT=simT+.3+i*.25;}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
   if(typeof dcFrantic==='function'){const r=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4711);for(const u of dd.npcs){u.hopT=simT+.2+r()*1.9;dcFrantic(u,r);}}   // (Version 249, Bryan: "run frantically to the front, not orderly march": each when he's ready and at his own speed; they went one every quarter second. Its own random numbers: the battle's are as they were)
   dd.pool=0;dd.sup={A:'hold',B:'hold'};   // (both squads hold: nobody follows anybody off the line)
   // the column on the road: the first wave's men marching in, the tanks behind them
   const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*720;e.cool=99;e.stage=-1;
     const p=findPath(e.x,e.y,e.lane,DCA.treeY+30+((i%2)*18),FOOT);if(p)e.path=p;e.zone={x0:e.lane-80,x1:e.lane+80,y0:DCA.treeY-20,y1:DCA.treeY+90};}
-  // (Version 238, Bryan: "A tank should be coming down the road. Make the first wave a little longer and have at least 1 tank") four tanks waiting up the woods road, the first with wave 1
-  [[430,-396,1,'road'],[300,-450,2,'road'],[190,-500,3,'west'],[90,-548,3,'east']].forEach(([x,y,w,k])=>{ddTankSpawn({x,y,ang:.4,hold:true,way:DCA.ways[k],name:'Tank',range:DCA.tankR}).w=w;});
+  // (Version 238 had four tanks waiting up the woods road from the start, the first with wave 1. Version 254, Bryan: "Heavy units can start
+  // appearing at Wave 5": they're made when their wave starts, dcSpawnWave)
+  dd.dc.spawned=W.inf;
   enemies=units.filter(u=>u.side==='E');
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   mission.t0=simT;sel=[];cardGroup=[];
@@ -251,11 +291,11 @@ function enterCounter(){
   // the look up the road: there they are; then back, and the clock starts
   if(typeof dcSeqStart==='function'&&dcSeqStart())return;   // (Version 228: the opening sequence, ddcseq.js; not on a retry)
   dcAuto();camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.road,z:-470+DD_CAM.look,zoom:6.5},t:0,dur:2.2};
-  banner('They are coming out of the woods. Tanks on the road.',4000);
+  banner('They are coming out of the woods.',4000);
 }
 
 /* ---------- the guns ---------- */
-const dcGunAt=(x,y,r=30)=>dd.dc.guns.reduce((b,g)=>{const d=hyp(x-g.x,y-g.y);return d<r&&(!b||d<hyp(x-b.x,y-b.y))?g:b;},null);
+const dcGunAt=(x,y,r=30)=>dd.dc.guns.reduce((b,g)=>{if(g.off)return b;const d=hyp(x-g.x,y-g.y);return d<r&&(!b||d<hyp(x-b.x,y-b.y))?g:b;},null);
 // Version 246 (a draft, ddreal.js): the gun as the real thing: a Browning .30 in a nest, a .50 for the heavy gun, the anti-tank gun for the field gun
 function dcRealGun(q,H){
   const a=q.face===0?0:-Math.PI/2;
@@ -264,11 +304,33 @@ function dcRealGun(q,H){
   const g=ddrArtM1AT(0);g.position.set(q.x,H(q.x,q.y),q.y-14);g.rotation.y=-a;g.userData.real=true;if(g.userData.barrel&&g.userData.barrel.userData.rest==null)g.userData.barrel.userData.rest=g.userData.barrel.position.x;return g;
 }
 function dcSeat(g){return{x:g.x,y:g.y+(g.t==='art'?12:0)};}
+// he takes it: on its seat, facing the way it points, a machine gun's swing and its own fire (DCA.gw: the light guns twice as fast, the heavy one
+// slower and harder hitting: combat.js reads u.gunW). From dcGunsTick when he gets there, and from dcTile at once (Version 254)
+function dcSit(g,u){
+  if(g.man&&g.man!==u){const o=g.man;dcOff(o);if(o.dcGun===g)o.dcGun=null;}   // (one of the other troops on it gives it up to the squad mate who's come for it)
+  const s=dcSeat(g),f=g.face0??-Math.PI/2;g.going=null;g.man=u;g.manT=simT;u.path=[];u.x=s.x;u.y=s.y;u.ang=f;u.aimT=simT;u.dcGun=g;
+  if(g.t==='mg'){u.onGun={x:g.x,y:g.y,ang:f,arc:g.arc,lt:!g.hv,hv:!!g.hv};u.gunner=true;u.gunW=DCA.gw[g.hv?'hv':'lt'];}
+  if(!u.npc)callout(u,g.t==='art'?'On the field gun':'On the gun',C0());
+}
+function dcOff(u){if(!u)return;if(u.onGun){u.onGun=null;u.gunner=false;}u.gunW=null;}
+// Version 254 (Bryan: "A stationary weapon should be destroyed first and just hurt the soldier. It doesn't kill the soldier. Have the machine be
+// destroyed first and the soldier has no less than 50% health"): from combat.js's damage, for one of ours on a gun that's still up. The gun takes
+// the hit (shield.gun of it); he takes shield.man of it the usual way, never below shield.floor (or what he had, if he took the gun with less) and
+// never killed outright (ddplay.js's ddDamage reads t.hpFloor). Until now a man on a gun was hurt like any other, a round in four in a hundred
+// killed him outright ("shot through the head"), and the gun only took half of what hit him: Bryan, "The soldiers killed me before I could even
+// shoot"; in tests three men on guns in one fight were killed outright by a single round, from 32 to 100 HP. Returns what's left for him.
+function dcShield(t,dmg,src){
+  const g=t.dcGun,S=DCA.shield;if(!dd||!dd.dc||!(dmg>0))return dmg;
+  if(t.shieldT>simT&&!(g&&g.man===t&&!g.dead)){t.hpFloor=Math.min(t.hp,S.floor);return dmg*S.man;}   // (just thrown off his gun: the shell that blew it up doesn't kill him a moment later)
+  if(!g||g.man!==t||g.dead)return dmg;
+  t.hpFloor=Math.min(t.hp,S.floor);dcGunHit(g,dmg*S.gun);
+  return g.dead?0:dmg*S.man;   // (the hit that blew the gun up threw him off it: dcGunHit has hurt him already)
+}
 function dcMan(u,g){   // send him to it; he takes it when he gets there (dcGunsTick)
   const s=dcSeat(g),p=findPath(u.x,u.y,s.x,s.y);if(!p)return false;
-  if(g.man&&g.man!==u&&g.man.npc){g.man.onGun=null;g.man.gunner=false;g.man.dcGun=null;g.man=null;}   // (one of the other troops gives it up to a squad man)
+  // (one of the other troops on it stays on it until the squad mate gets there: dcSit)
   if(u.dcGun&&u.dcGun!==g){u.dcGun.man=u.dcGun.man===u?null:u.dcGun.man;u.dcGun.going=null;}
-  Object.assign(u,{path:p,lastOrder:simT,watch:null,supT:null,focus:null,onGun:null,gunner:false,dcGun:g});g.going=u;g.goT=simT;return true;
+  dcOff(u);Object.assign(u,{path:p,lastOrder:simT,watch:null,supT:null,focus:null,dcGun:g});g.going=u;g.goT=simT;return true;
 }
 // Version 224 (Bryan): the squad takes the guns itself as it starts; a tap on an empty gun, on the map or on its tile, sends the nearest free squad
 // mate, and one of the other troops only when no squad mate is left ("it only says NPC if no squad mates are left"); a tap on a gun a squad mate
@@ -288,13 +350,17 @@ function dcAuto(){
   for(const g of C.guns)if(!g.going){const u=free().sort((a,b)=>(a.ddRole==='medic')-(b.ddRole==='medic')||hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(u&&players.filter(alive).length>C.guns.filter(q=>q.going).length+2)dcMan(u,g);}
   free().forEach((u,i)=>{const s=DCA.hold[i%DCA.hold.length],p=findPath(u.x,u.y,s[0],s[1]);if(p)u.path=p;});   // (the rest at the flag: it's lost if none of ours is by it)
 }
-function dcLeave(g){const u=g&&g.man;if(!u)return;if(u.onGun){u.onGun=null;u.gunner=false;}u.dcGun=null;g.man=null;if(isFree(u.x,u.y+14,5))u.y+=14;}
+function dcLeave(g){const u=g&&g.man;if(!u)return;dcOff(u);u.dcGun=null;g.man=null;if(isFree(u.x,u.y+14,5))u.y+=14;}
 function dcTile(k){
-  const C=dd.dc,g=C.guns.find(q=>q.k===k);if(!g||C.ph==='intro'||state!=='play'||endAt)return;C.picked=true;
+  const C=dd.dc,g=C.guns.find(q=>q.k===k);if(!g||g.off||C.ph==='intro'||state!=='play'||endAt)return;C.picked=true;
   if(g.dead){dcFixSend(g,true);return;}
+  // (Version 254, Bryan: "I try to go on the field gun and it took about three clicks": as the fight starts every gun's man is still walking to
+  // it, and a tap on a gun whose man was on his way did nothing until he got there: five taps half a second apart in a test. Now he's on it at
+  // once and you're behind it)
+  {const u=g.going;if((!g.man||g.man.npc)&&u&&!u.npc&&alive(u)&&u.dcGun===g&&hyp(u.x-g.x,u.y-g.y)<450)dcSit(g,u);}   // (from as far as 45 m: across the base; not from the base to their checkpoint)
   const m=g.man;
-  if(m&&!m.npc){if(typeof fpEnter==='function'&&(!dd.fp||dd.fp.u!==m)){fpEnter(m,'1p');if(dd.fp){dd.fp.a=-Math.PI/2;dd.fp.p=-.04;}}return;}
-  if(g.going&&!g.going.npc)return;
+  if(m&&!m.npc){if(typeof fpEnter==='function'&&(!dd.fp||dd.fp.u!==m)){fpEnter(m,'1p');if(dd.fp){dd.fp.a=g.face0??-Math.PI/2;dd.fp.p=-.04;}}return;}
+  if(g.going&&!g.going.npc){banner(`${g.going.name} is on his way to the ${dcName(g)}.`,1600);return;}
   if(!dcFill(g)&&!(g.man||g.going))banner('Nobody left to man it.',1600);
 }
 function dcTap(wx,wy){const C=dd.dc;if(C.ph==='intro')return true;const g=dcGunAt(wx,wy);if(!g)return false;dcTile(g.k);return true;}
@@ -323,9 +389,13 @@ function dcGunHit(g,d){
   if(g.hp>0){if(g.hits>h0)banner(g.hits===1?`${g.n} is hit.`:`${g.n} is badly hit.`,2200);return;}
   // (Version 224, Bryan: "Stationary guns can be destroyed ... they can blow up, incapacitating the squad mate (can be healed by a medic)")
   g.dead=true;g.aim=null;if(dd.dc.art===g)dd.dc.art=null;const man=g.man;
-  for(const u of[g.man,g.going])if(u){if(u.onGun){u.onGun=null;u.gunner=false;}if(u.dcGun===g)u.dcGun=null;}g.man=null;g.going=null;
-  if(man&&alive(man)){if(man.fp&&typeof fpExit==='function')fpExit(`${g.n} is knocked out.`);if(isFree(man.x,man.y+12,5))man.y+=12;man.hp=Math.min(man.hp,1);damage(man,30,null);}
-  if(m){m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.userData.dcM0=o.material;o.material=o.material.clone();if(typeof ddgBurnMat==='function')ddgBurnMat(o.material);else o.material.color.setHex(0x1b1a18);}});}   // (Version 190: charred brown-grey, not black)
+  for(const u of[g.man,g.going])if(u){dcOff(u);if(u.dcGun===g)u.dcGun=null;}g.man=null;g.going=null;
+  // (Version 254, Bryan: "Have the machine be destroyed first and the soldier has no less than 50% health": thrown off it, hurt, on his feet. It
+  // was down to 1 HP and then 30 more, so he went down and waited for a medic)
+  if(man&&alive(man)){const S=DCA.shield;if(man.fp&&typeof fpExit==='function')fpExit(`${g.n} is knocked out. ${man.name} is hurt.`);if(isFree(man.x,man.y+12,5))man.y+=12;
+    if(man.hp>S.floor)man.hp=Math.max(S.floor,man.hp-S.off);man.hitFlash=.25;man.stunT=simT+S.stun;man.shieldT=simT+S.stun+.6;man.path=[];if(!man.npc&&typeof hitCue==='function')hitCue(.5);
+    if(!man.npc){const h=DCA.lee.slice().sort((a,b)=>hyp(a[0]-man.x,a[1]-man.y)-hyp(b[0]-man.x,b[1]-man.y))[0],p=findPath(man.x,man.y,h[0],h[1]);if(p){man.path=p;man.lastOrder=simT;}}}   // (once he's on his feet, behind the bank: in tests the men thrown off went to the flag and were shot there)
+  if(m){m.userData.dcDown=1;m.rotation.z=.32;m.rotation.x=.12;m.position.y-=2;m.traverse(o=>{if(o.material){o.userData.dcM0=o.material;o.material=o.material.clone();if(typeof ddgBurnMat==='function')ddgBurnMat(o.material);else o.material.color.setHex(0x1b1a18);}});}   // (Version 190: charred brown-grey, not black)
   for(let q=0;q<3;q++)booms.push({x:g.x+(Math.random()-.5)*24,y:g.y+(Math.random()-.5)*20,t:-q*.1,size:1});tankFires.push({x:g.x,y:g.y-8,r:9,t0:simT,puffs:[],emit:0});
   shake(.6);if(typeof sfxBoom==='function')sfxBoom(g.x,g.y,1.1);banner(`${g.n} is knocked out.`,3200);
 }
@@ -336,10 +406,16 @@ function dcHvTank(K,k,by){if(!K||K.hp<=0)return;K.hp-=DCA.hv.tank*(k||1);ddTankH
 function dcFixSend(g,say){
   if(!g.dead)return false;if(g.fix&&alive(g.fix.u)){if(say)banner(`${g.fix.u.name} is repairing the ${g.n.toLowerCase()}.`,1600);return true;}
   const E=players.filter(u=>alive(u)&&u.ddRole==='demo'&&!u.fp&&(u.fixN||0)<DCA.fixN&&!dd.dc.guns.some(q=>q.fix&&q.fix.u===u)).sort((a,b)=>(!!a.dcGun-!!b.dcGun)||hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y));
-  const u=say?E[0]:E.find(q=>!q.dcGun);if(!u){if(say)banner(players.some(q=>alive(q)&&q.ddRole==='demo'&&(q.fixN||0)<DCA.fixN)?'No Engineer free to repair it.':'The Engineers are out of repair supplies.',2000);return false;}
-  if(u.dcGun){const o=u.dcGun;if(o.man===u)dcLeave(o);else{o.going=null;u.dcGun=null;}}
+  const rest=dd.dc.ph==='lull'||dd.dc.ph==='push',u=say||rest?E[0]:E.find(q=>!q.dcGun);if(!u){if(say)banner(players.some(q=>alive(q)&&q.ddRole==='demo'&&(q.fixN||0)<DCA.fixN)?'No Engineer free to repair it.':'The Engineers are out of repair supplies.',2000);return false;}
+  if(u.dcGun){const o=u.dcGun;if(o.man===u)dcLeave(o);else{o.going=null;u.dcGun=null;}if(!say)u.fixFrom=o;}   // (in a rest, by himself: back to his own gun after, Version 254)
   const p=findPath(u.x,u.y,g.x,g.y+16)||findPath(u.x,u.y,g.x+16,g.y+10);if(p){u.path=p;u.lastOrder=simT;}g.fix={u,t:0};
   if(say)banner(`${u.name} goes to repair the ${g.n.toLowerCase()}.`,2000);return true;}
+// a knocked-out gun working again: upright, its own paint, its fire out (an Engineer's repair; their checkpoint's light guns, taken again, Version 254)
+function dcGunUp(g,hp){
+  g.dead=false;g.fix=null;g.hp=hp;g.hits=hp<g.hp0*.75?1:0;g.fireT=simT+2;
+  const m=DD.dcGuns&&DD.dcGuns[g.k];if(m){if(m.userData.dcDown){m.userData.dcDown=0;m.rotation.z=0;m.rotation.x=0;m.position.y+=2;}m.traverse(o=>{if(o.userData.dcM0){o.material=o.userData.dcM0;o.userData.dcM0=null;}});}
+  for(let i=tankFires.length-1;i>=0;i--)if(hyp(tankFires[i].x-g.x,tankFires[i].y+8-g.y)<4)tankFires.splice(i,1);
+}
 const dcFixLeft=()=>players.some(q=>alive(q)&&q.ddRole==='demo'&&(q.fixN||0)<DCA.fixN);
 function dcFixTick(dt){
   const C=dd.dc;C.fixT=(C.fixT||0)-dt;const look=C.fixT<=0;if(look)C.fixT=1.5;
@@ -348,19 +424,19 @@ function dcFixTick(dt){
     const u=f.u;if(!alive(u)||u.dcGun||u.fp){g.fix=null;continue;}
     u.lastOrder=simT;if(hyp(u.x-g.x,u.y-g.y)>34){if(!u.path||!u.path.length){f.w=(f.w||0)+dt;if(f.w>2)g.fix=null;}continue;}
     u.lastOrder=simT;if(u.sup>PINNED)continue;f.t+=dt;
-    if(f.t>=DCA.fixT){g.dead=false;g.fix=null;g.hp=Math.round(g.hp0*.6);g.hits=1;g.mhp=null;g.fireT=simT+2;
-      const m=DD.dcGuns&&DD.dcGuns[g.k];if(m){m.rotation.z=0;m.rotation.x=0;m.position.y+=2;m.traverse(o=>{if(o.userData.dcM0){o.material=o.userData.dcM0;o.userData.dcM0=null;}});}
-      for(let i=tankFires.length-1;i>=0;i--)if(hyp(tankFires[i].x-g.x,tankFires[i].y+8-g.y)<4)tankFires.splice(i,1);
-      u.fixN=(u.fixN||0)+1;banner(`${u.name} has the ${g.n.toLowerCase()} working again. ${u.fixN>=DCA.fixN?'He is out of supplies.':(DCA.fixN-u.fixN)+' repair left.'}`,3000);dcFill(g);}}}
+    if(f.t>=DCA.fixT){dcGunUp(g,Math.round(g.hp0*.6));
+      u.fixN=(u.fixN||0)+1;banner(`${u.name} has the ${g.n.toLowerCase()} working again. ${u.fixN>=DCA.fixN?'He is out of supplies.':(DCA.fixN-u.fixN)+' repair left.'}`,3000);
+      const o=u.fixFrom;u.fixFrom=null;if(o&&!o.dead&&!o.off&&!o.man&&!o.going)dcMan(u,o);dcFill(g);}}}
 // Version 233 (Bryan: "light machine guns shooting through the windows. Keep them as small slits as now. The building can be destroyed with
 // explosions, that's how you kill them"): the blockhouse's three slits toward the base each hold a light machine gun. Nothing reaches the men
 // inside but a blast: it takes DCA.checkHp of our explosions (ddplay.js's ddBlast, as any object with hp; ddWreck hands it to dcCheckWreck).
 function dcSlits(){const C=dd.dc,c=DCA.check;return C.slits||(C.slits=[-24,0,24].map((dx,i)=>({x:c.x+c.w/2+dx,y:c.y+c.h+3,t:2+i*.6})));}
 function dcSlitTick(dt){
-  const C=dd.dc,co=objs.find(o=>o.tag==='check');if(!co||co.gone||C.ph==='intro'&&!(dd.seq&&dd.seq.dc))return;const P=DCA.slit;
+  const C=dd.dc,co=objs.find(o=>o.tag==='check');if(!co||co.gone)return;const P=DCA.slit;
   // (Version 234, Bryan: "It should open up and be exposed a little bit more") it breaks open as it's hit: a third of the way a hole is blown in
   // its front and the gun behind it is gone; two thirds, a second hole and half the roof off, and another gun gone
   const st=co.hp<=DCA.checkHp/3?2:co.hp<=DCA.checkHp*2/3?1:0;while((co.breach||0)<st)dcCheckBreach(co,co.breach=(co.breach||0)+1);
+  if(!C.cpGo||C.cpOurs)return;   // (Version 254: its guns are manned only from the push on it until it's taken; until then its men were out in the waves)
   for(const s of dcSlits()){if(s.out||(s.t-=dt)>0)continue;s.t=P.every[0]+Math.random()*(P.every[1]-P.every[0]);
     let best=null,bd=P.range;for(const u of[...players,...dd.npcs]){if(!alive(u)||u.y<s.y+10)continue;const d=hyp(u.x-s.x,u.y-s.y);if(d<bd&&Math.abs(u.x-s.x)<d*.85&&los(s.x,s.y+6,u.x,u.y)){bd=d;best=u;}}
     if(!best){s.t=.5;continue;}
@@ -417,27 +493,27 @@ function dcGunsTick(dt){
   for(const sh of C.shells.slice())if(simT>=sh.at){C.shells.splice(C.shells.indexOf(sh),1);for(const g of C.guns)if(hyp(sh.x-g.x,sh.y-g.y)<DCA.gunHit)dcGunHit(g,sh.D||DCA.hv.shell);}
   if(C.focus&&beaten(C.focus))C.focus=null;if(C.focusK&&!(C.focusK.hp>0))C.focusK=null;
   for(const n of nades)if(n.tk&&n.tk.hp>0){n.x1=n.tk.x;n.y1=n.tk.y;}   // (Version 247: a shell aimed at a tank from behind the gun lands on the tank, wherever it has got to)
-  for(const g of C.guns){
+  for(const g of C.guns){if(g.off)continue;   // (Version 254: their checkpoint's light guns while it isn't ours)
     if(g.hits&&(g.smokeT-=dt)<=0&&DD.rk&&DD.rk.puff){g.smokeT=g.hits>=2?.11:.22;const h=ddH(g.x,g.y)+(g.t==='art'?16:12);   // one hit: thin grey smoke; two: thick and dark; wrecked: black
       DD.rk.puff(g.x+(Math.random()-.5)*8,h,g.y-8+(Math.random()-.5)*8,g.hits>=2?7+Math.random()*4:4+Math.random()*2.5,g.hits>=2?3.4:2.4,g.hits>=3?0x161514:g.hits===2?0x2b2927:0x9a9690,g.hits>=2?13:9);}
     if(g.dead)continue;
     const m=g.man;if(m&&alive(m)&&m.dcGun===g&&m.path.length){m.path=[];m.x=dcSeat(g).x;m.y=dcSeat(g).y;}   // (he stays on it: only LEAVE GUN, or a tap that sends him to another gun, takes him off: Version 224)
-    if(m&&alive(m)&&m.dcGun===g){if(g.mhp!=null&&m.hp<g.mhp)dcGunHit(g,(g.mhp-m.hp)*DCA.hv.man);g.mhp=m.hp;if(g.dead)continue;   // (what hits its man hits the gun too)
+    if(m&&alive(m)&&m.dcGun===g){   // (Version 254: what hits its man goes to the gun first, dcShield from combat.js's damage; it was half of what hurt him, worked out here)
       if(g.t==='mg'&&!m.fp){if(C.focus&&m.focus!==C.focus)m.focus=C.focus;   // (every gun on the one the player put his thumb on)
         const K=g.hv?(C.focusK||(simT-(m.shotAtT||-9)<1.5?null:tanks.filter(q=>!q.hold&&hyp(q.x-g.x,q.y-g.y)<DCA.hv.range&&q.y<g.y).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0])):null;
         if(K&&simT>=g.hvT&&hyp(K.x-g.x,K.y-g.y)<DCA.hv.range&&Math.abs(Math.atan2(Math.sin(Math.atan2(K.y-g.y,K.x-g.x)+Math.PI/2),Math.cos(Math.atan2(K.y-g.y,K.x-g.x)+Math.PI/2)))<g.arc){g.hvT=simT+DCA.hv.every;dcHvTank(K,1,m);m.ang=Math.atan2(K.y-g.y,K.x-g.x);m.aimT=simT;
           for(let q=0;q<4;q++)tracers.push({x1:g.x,y1:g.y-8,x2:K.x+(Math.random()-.5)*26,y2:K.y+(Math.random()-.5)*20,t:-q*.05,col:'255,231,163'});flashes.push({x:g.x,y:g.y-10,t:0});sparks.push({x:K.x,y:K.y,t:0});if(typeof sfxShotDD==='function')sfxShotDD(m);}}}
-    else g.mhp=null;
-    if(m&&(!alive(m)||m.path.length||m.dcGun!==g)){if(m.onGun){m.onGun=null;m.gunner=false;}if(m.dcGun===g)m.dcGun=null;g.man=null;if(C.art===g)C.art=null;}
+    if(m&&(!alive(m)||m.path.length||m.dcGun!==g)){dcOff(m);if(m.dcGun===g)m.dcGun=null;g.man=null;if(C.art===g)C.art=null;}
     const u=g.going;if(u){const s=dcSeat(g);if(!alive(u)||u.dcGun!==g||simT-g.goT>40)g.going=null;
-      else if(!u.path.length){g.going=null;if(hyp(u.x-s.x,u.y-s.y)<16&&!g.man){g.man=u;g.manT=simT;u.x=s.x;u.y=s.y;u.ang=-Math.PI/2;u.aimT=simT;
-        if(g.t==='mg'){u.onGun={x:g.x,y:g.y,ang:-Math.PI/2,arc:g.arc};u.gunner=true;}if(!u.npc)callout(u,g.t==='art'?'On the field gun':'On the gun',C0());}else if(u.dcGun===g)u.dcGun=null;}}
+      else if(!u.path.length){g.going=null;if(hyp(u.x-s.x,u.y-s.y)<16&&(!g.man||g.man.npc&&!u.npc))dcSit(g,u);else if(u.dcGun===g)u.dcGun=null;}}
     const mesh=DD.dcGuns&&DD.dcGuns[g.k];if(mesh&&mesh.userData.barrel){const k=mesh.userData.kick=Math.max(0,(mesh.userData.kick||0)-dt*2.5);mesh.userData.barrel.position.x=(mesh.userData.barrel.userData.rest??30)-k*9;}
     if(g.t!=='art'||!g.man||simT<g.fireT||C.ph==='setup'||C.ph==='intro')continue;
     if(g.man.fp)continue;   // (the player is behind it: it fires when he does, ddfp.js)
     if(g.aim){dcFire(g,g.aim.x,g.aim.y);continue;}
     {const fo=C.focusK?{x:C.focusK.x+Math.cos(C.focusK.ang)*30,y:C.focusK.y+Math.sin(C.focusK.ang)*30}:C.focus?{x:C.focus.x,y:C.focus.y}:null;   // (the one the player put his thumb on, first)
       if(fo){const d=hyp(fo.x-g.x,fo.y-g.y);if(d>DCA.art.min&&d<DCA.art.max&&!dd.allies.some(a=>hyp(a.x-fo.x,a.y-fo.y)<100)){dcFire(g,fo.x+(Math.random()-.5)*24,fo.y+(Math.random()-.5)*24);continue;}}}
+    // (Version 254) the push on their checkpoint: the blockhouse, while it stands and no tank is in reach (three direct hits bring it down)
+    {const co=C.cpGo&&!C.cpOurs&&objs.find(o=>o.tag==='check'&&!o.gone),c=DCA.check;if(co&&!tanks.some(K=>!K.hold&&hyp(K.x-g.x,K.y-g.y)<DCA.art.max)&&hyp(c.x+c.w/2-g.x,c.y+c.h/2-g.y)<DCA.art.max){dcFire(g,c.x+c.w/2,c.y+c.h/2);continue;}}
     // by itself: the nearest tank in reach, else where their men are thickest
     let best=null,bs=0;for(const K of tanks){const d=hyp(K.x-g.x,K.y-g.y);if(d>DCA.art.min&&d<DCA.art.max&&K.y>DCA.treeY-40){const s=900-d;if(s>bs){bs=s;best={x:K.x+Math.cos(K.ang)*30,y:K.y+Math.sin(K.ang)*30};}}}
     if(!best)for(const e of foes){const d=hyp(e.x-g.x,e.y-g.y);if(d<DCA.art.min||d>DCA.art.max||e.y<DCA.treeY-20)continue;const n=foes.filter(o=>hyp(o.x-e.x,o.y-e.y)<70).length;
@@ -445,42 +521,152 @@ function dcGunsTick(dt){
     if(best&&(bs>=2||tanks.length))dcFire(g,best.x+(Math.random()-.5)*36,best.y+(Math.random()-.5)*36);
   }
 }
-// the other troops: at their posts on the wall, and onto any gun the squads have left empty once the setting-up is over
+// the other troops (Version 254, Bryan: "Have the NPCs pushing forward to distract the enemy"). Each holds a spot on one of DCA.lines (u.ln, u.post;
+// line 0 is his own spot on the wall, u.back). While a wave is on, a man in good shape moves up a line every 9 to 15 s when the spot he'd take isn't
+// under their feet (none of theirs within 16 m of it, no tank within 30 m), so their men meet him first, out in the field, away from the guns; he
+// drops back a line when they close on him (two within 14 m, one within 9 m, a tank within 25 m), and to the wall once he's hurt (under 45). In a
+// rest they go up to the middle of the field. No further than the line short of the hedgerow, or their checkpoint once it's ours. On the push on
+// the checkpoint they're dcStorm's. As before, one of them takes a gun the squads have left empty once no squad mate is free for it.
+// (Until Version 254: out to a forward post as it started, back to the wall when theirs came within 26 m, and there for the rest of the fight)
+const dcLineSpots=k=>k<=0?null:DCA.lines[Math.min(k,DCA.lines.length)-1];
+function dcNpcSpot(u,k){   // the free spot on line k nearest him (one man a spot)
+  if(k<=0)return u.back;const L=dcLineSpots(k);if(!L)return null;let b=null,bd=1e9;
+  for(const[x,y]of L){if(dd.npcs.some(o=>o!==u&&alive(o)&&o.post&&o.post.x===x&&o.post.y===y))continue;const d=hyp(x-u.x,y-u.y);if(d<bd){bd=d;b={x,y};}}
+  return b;
+}
+const dcNpcSafe=s=>!enemies.some(e=>!beaten(e)&&hyp(e.x-s.x,e.y-s.y)<160)&&!dd.tanks.some(K=>K.hp>0&&!K.hold&&hyp(K.x-s.x,K.y-s.y)<300);
 function dcNpc(){
-  const C=dd.dc,foes=enemies.filter(e=>!beaten(e));
-  for(const u of dd.npcs){if(!alive(u)||u.dcGun||!u.post)continue;
-    if(u.post!==u.back&&u.back&&(u.hp<70||foes.some(e=>hyp(e.x-u.post.x,e.y-u.post.y)<260)||dd.tanks.some(K=>K.hp>0&&!K.hold&&hyp(K.x-u.post.x,K.y-u.post.y)<230))){u.post=u.back;u.hopT=0;}   // (it's on top of him: back to the line)
-    if(!u.path.length&&hyp(u.x-u.post.x,u.y-u.post.y)>30&&simT>(u.hopT||0)){const p=findPath(u.x,u.y,u.post.x,u.post.y);if(p)u.path=p;u.hopT=simT+4;}}
+  const C=dd.dc,fight=/^w/.test(C.ph),rest=C.ph==='lull'||C.ph==='push',maxL=C.cpOurs?4:3;
+  for(const u of dd.npcs){if(!alive(u)||u.dcGun||!u.back||u.seqHop)continue;
+    if(u.cpGo){dcStorm(u);continue;}
+    if(u.ln==null)u.ln=u.post&&u.post!==u.back?1:0;const P=u.post||u.back;
+    const close=enemies.filter(e=>!beaten(e)&&hyp(e.x-P.x,e.y-P.y)<140),tank=dd.tanks.some(K=>K.hp>0&&!K.hold&&hyp(K.x-P.x,K.y-P.y)<250);
+    let k=u.ln;
+    if(u.hp<(u.ln===4?35:45))k=u.ln===4?2:0;                                                                          // hurt: back to the wall (from the checkpoint, to the middle of the field)
+    else if(k>0&&k<4&&(close.length>=2||close.some(e=>hyp(e.x-P.x,e.y-P.y)<90)||tank)){k=u.ln-1;u.advT=simT+8;}       // they're on him: back a line (at their checkpoint he holds: they fight for it)
+    else if(simT>(u.advT||0)&&C.ph!=='intro'&&C.ph!=='setup'){
+      const want=fight?maxL:C.cpOurs?4:2;
+      if(u.ln<want){const s=dcNpcSpot(u,u.ln+1);if(s&&dcNpcSafe(s))k=u.ln+1;}
+      u.advT=simT+(fight?9+Math.random()*6:2+Math.random()*2);}
+    if(k!==u.ln){const s=dcNpcSpot(u,k);if(s){u.ln=k;u.post=s;u.hopT=0;}}
+    if(!u.path.length&&hyp(u.x-u.post.x,u.y-u.post.y)>24&&simT>(u.hopT||0)){const p=findPath(u.x,u.y,u.post.x,u.post.y);if(p)u.path=p;u.hopT=simT+4;}}
   if(C.ph==='intro'||C.ph==='setup')return;
+  // their light guns at the checkpoint once they're ours: one of the other troops up there takes each (a tap on its tile sends a squad mate instead)
+  for(const g of C.guns){if(!g.cp||g.off||g.man||g.going||g.dead)continue;
+    const u=dd.npcs.filter(n=>alive(n)&&!n.dcGun&&n.ln>=3).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(u)dcMan(u,g);}
   if(dcFreeMen().length)return;   // (a squad mate is free: the gun waits for the player's tap)
-  for(const g of C.guns){if(g.man||g.going||g.dead)continue;
-    const free=dd.npcs.filter(u=>alive(u)&&!u.dcGun).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(free)dcMan(free,g);}
+  for(const g of C.guns){if(g.man||g.going||g.dead||g.off||g.cp)continue;
+    const free=dd.npcs.filter(u=>alive(u)&&!u.dcGun&&!u.cpGo).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0];if(free)dcMan(free,g);}
+}
+
+/* ---------- their checkpoint (Version 254) ----------
+   Bryan: "At the end of Wave 2, have NPC soldiers run to the second checkpoint, with the lead NPC saying Move Forward!! Take the checkpoint ahead!!
+   After that, show an objective highlight over the checkpoint base to capture"; his plan for this map (after Version 230): "an advance choke point
+   ... Troops will stop regenerating from there making it somewhat easier. The enemy will then fight for that. Losing it would just push back the
+   player". After wave 2, and after any later wave while it isn't ours, the other troops go (the squad stays on its guns: the game is the guns): the
+   one out in front (Sgt. Kane) shouts it, and they run (dcStorm: up to the line short of the hedgerow, then into it, round their light guns and the
+   blockhouse). It has men in it now (dcGarrison: a man at each of their two light guns, turned on us, five round the blockhouse, and its slits' guns
+   firing while it stands): the field gun, left to itself, shells the blockhouse. Taken (dcCpTick: ours in DCA.cz, none of theirs, DCA.capT s): its
+   slits silent, their light guns turned round and ours (FORWARD MG 1 and 2 in the row, the other troops up there on them until a tap sends a squad
+   mate), none of their next waves come out of it, and nearly half of each wave goes for it first (dcEnemy). Theirs again (theirs in it and none of
+   ours, DCA.loseT s): its light guns lost, our men up there back, and the push again after the wave. */
+function dcGarrison(){
+  const C=dd.dc;if((C.garr||[]).some(e=>!beaten(e)))return;C.garr=[];
+  for(const g of C.guns)if(g.cp&&g.dead)dcGunUp(g,g.hp0);   // (their light guns working again for their own men, if we'd knocked them out)
+  DCA.eguns.forEach((e,i)=>{const u=ddFoe('cp',e.x-DDX,e.y-6,{name:'Machine gunner',gunner:true,post:true,ang:Math.PI/2});u.onGun={x:e.x,y:e.y,ang:Math.PI/2,arc:1.1};enemies.push(u);C.garr.push(u);
+    const m=DD.dcEGuns&&DD.dcEGuns[i];if(m&&!m.userData.real)m.rotation.y=-Math.PI/2;});   // (their light guns turned on us: they pointed at the beach)
+  for(const[x,y]of DCA.garr){const u=ddFoe('cp',x-DDX,y,{post:true,ang:Math.PI/2,nade:Math.random()<.4?1:0});enemies.push(u);C.garr.push(u);}
+  C.spawned+=C.garr.length;
+}
+function dcPushStart(){
+  const C=dd.dc;C.pushOn=true;C.cpGo=true;C.capT=0;C.pushT0=simT;dcGarrison();
+  const go=dd.npcs.filter(u=>alive(u)&&!u.dcGun);for(const u of go){u.cpGo=true;u.stormSt=null;}
+  // the one out in front leads it
+  const lead=go.filter(u=>u.hp>=60).sort((a,b)=>a.y-b.y)[0]||go[0];
+  if(lead){C.lead=lead;lead.name='Sgt. Kane';lead.lead=true;bubble(lead,C.lost?'Move Forward!! Take the checkpoint back!!':'Move Forward!! Take the checkpoint ahead!!','#ff6a3d',5200);}
+}
+// one of the other troops on the push: up to the line short of the hedgerow, then on into the checkpoint, where he stays and fights; hurt (under 35)
+// he drops out and goes back
+function dcStormSpot(u){
+  let b=null,bd=1e9;for(const[x,y]of DCA.storm){const n=dd.npcs.filter(o=>o!==u&&alive(o)&&o.stormTo&&o.stormTo.x===x&&o.stormTo.y===y).length;if(n>=2)continue;
+    const d=hyp(x-u.x,y-u.y)+n*90;if(d<bd){bd=d;b={x,y};}}
+  return b||{x:DCA.storm[0][0],y:DCA.storm[0][1]};
+}
+function dcStorm(u){
+  const C=dd.dc;if(!C.cpGo||C.cpOurs){u.cpGo=false;return;}
+  if(u.hp<35){u.cpGo=false;u.stormSt=null;u.stormTo=null;u.ln=0;u.post=u.back;u.hopT=0;return;}
+  if(u.stormSt==null){const L=DCA.lines[2],q=L.reduce((b,q)=>hyp(q[0]-u.x,q[1]-u.y)<hyp(b[0]-u.x,b[1]-u.y)?q:b,L[0]);
+    u.stormSt=0;u.stormTo=dcNpcSpot(u,3)||{x:q[0],y:q[1]};u.post=u.stormTo;u.ln=3;u.stormT=simT+3+Math.random()*5;u.hopT=0;}
+  const T=u.stormTo,there=hyp(u.x-T.x,u.y-T.y)<40;
+  if(u.stormSt===0&&simT>u.stormT&&(there||!u.path.length&&simT>u.stormT+6)){u.stormSt=1;u.stormTo=dcStormSpot(u);u.post=u.stormTo;u.hopT=0;}
+  if(!u.path.length&&hyp(u.x-T.x,u.y-T.y)>20&&simT>(u.hopT||0)){const p=findPath(u.x,u.y,u.stormTo.x,u.stormTo.y);if(p&&p.length)u.path=p;u.hopT=simT+3;}
+}
+function dcCpTick(dt){
+  const C=dd.dc;if(!C.cpGo&&!C.cpOurs)return;const Z=DCA.cz;
+  const theirs=enemies.filter(e=>!beaten(e)&&!e.onTank&&dcIn(e,Z)).length,ours=(dd.allies||[]).filter(u=>alive(u)&&dcIn(u,Z)).length;C.czN=[ours,theirs];
+  if(!C.cpOurs){if(!C.pushOn)return;if(ours&&!theirs){C.capT+=dt;if(C.capT>=DCA.capT)dcCpTaken();}else C.capT=Math.max(0,C.capT-dt*(theirs?2:.5));}
+  else{if(theirs&&!ours){C.capT+=dt;if(C.capT>=DCA.loseT)dcCpLost();}else C.capT=Math.max(0,C.capT-dt*2);}
+}
+function dcCpTaken(){
+  const C=dd.dc;C.cpOurs=true;C.cpGo=false;C.pushOn=false;C.capT=0;C.cpAt=simT;C.lost=false;
+  bigText('Checkpoint taken','complete');banner('The checkpoint is ours. Their two light guns are turned on the woods.',3800);
+  DCA.eguns.forEach((e,i)=>{const k='c'+(i+1);let g=C.guns.find(q=>q.k===k);
+    if(!g){g={k,n:'FORWARD MG',sub:String(i+1),x:e.x,y:e.y,t:'mg',arc:1.2,hp:420,hp0:420,cp:1,man:null,going:null,fireT:0,orderT:-99,aim:null,hits:0,dead:false,smokeT:0,hvT:0};C.guns.push(g);}
+    g.off=false;const m=DD.dcEGuns&&DD.dcEGuns[i];if(m){if(!m.userData.real)m.rotation.y=Math.PI/2;DD.dcGuns[k]=m;}
+    if(g.dead)dcGunUp(g,g.hp0);else{g.hp=g.hp0;g.hits=0;}});   // (taken again: whatever we knocked out, their men had working)
+  for(const u of dd.npcs)if(alive(u)&&u.cpGo){u.cpGo=false;u.stormSt=null;u.stormTo=null;u.ln=4;u.post=dcNpcSpot(u,4)||dcNpcSpot(u,3)||u.back;u.hopT=0;}
+  dcNpc();if(C.ph==='push'){C.ph='lull';C.t=0;C.rest=DCA.lull;}
+}
+function dcCpLost(){
+  const C=dd.dc;C.cpOurs=false;C.capT=0;C.lost=true;
+  banner('They have taken the checkpoint back. Fall back!',3800);
+  for(const g of C.guns)if(g.cp){if(g.man)dcLeave(g);if(g.going){g.going.dcGun=null;g.going=null;}g.off=true;const m=DD.dcEGuns&&DD.dcEGuns[+g.sub-1];if(m&&!m.userData.real)m.rotation.y=-Math.PI/2;}
+  if(dd.fp&&dd.fp.u.dcGun&&dd.fp.u.dcGun.cp&&typeof fpExit==='function')fpExit();
+  for(const u of players)if(alive(u)&&!u.dcGun&&dcIn(u,DCA.cz)){const s=DCA.hold[(players.indexOf(u))%DCA.hold.length],p=findPath(u.x,u.y,s[0],s[1]);if(p){u.path=p;u.lastOrder=simT;}}
+  for(const u of dd.npcs)if(alive(u)&&u.ln>=3){u.ln=2;u.post=dcNpcSpot(u,2)||u.back;u.hopT=0;}
 }
 
 /* ---------- the enemy ---------- */
-function dcSpawnWave(n){
-  const W=DCA.waves[n-1],tag='w'+n;
-  if(n>1)for(let i=0;i<W.inf;i++){const lane=n===2?560+(i/(W.inf-1))*280:(i%2?250+(i/W.inf)*260:720+(i/W.inf)*250);
-    const e=ddFoe(tag,lane-DDX+(Math.random()-.5)*30,DCA.treeY-60-Math.random()*90,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=-1;enemies.push(e);}
-  for(const e of enemies)if(e.tag===tag){e.cool=Math.min(e.cool,1+Math.random()*2);e.stage=0;e.advT=simT+Math.random()*3;e.gait=null;}
-  for(const K of dd.tanks)if(K.w===n&&K.hp>0){K.hold=false;K.i=0;}
-  banner(n===1?'Here they come: infantry across the whole field.':n===2?'Wave 2: a tank on the road, mortars on the nests.':'Wave 3: two tanks, one on each flank.',3600);
+// a lot of their men for wave n: out of the woods along the whole front, some of them out of their checkpoint while it's theirs and nobody's
+// pushing on it; with it ours, most go for it first (cpAtt: dcEnemy), the rest down the flanks round it
+function dcSpawnLot(n,count){
+  const C=dd.dc,tag='w'+n,fromCp=!C.cpOurs&&!C.cpGo?Math.round(count*DCA.cpFrom):0,L=[];
+  for(let i=0;i<count;i++){let x,y,lane;
+    if(i<fromCp){x=704+Math.random()*70;y=-352-Math.random()*16;lane=520+Math.random()*360;}
+    else{lane=250+(i/Math.max(1,count-1))*720+(Math.random()-.5)*30;x=lane+(Math.random()-.5)*30;y=-600-Math.random()*100;}
+    const e=ddFoe(tag,x-DDX,y,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=-1;
+    if(C.cpOurs){if(Math.random()<DCA.cpAtt)e.cpAtt=1;else e.lane=e.lane<DCA.road?250+Math.random()*190:870+Math.random()*100;}
+    enemies.push(e);L.push(e);}
+  C.spawned+=count;return L;
 }
+function dcSpawnWave(n){
+  const C=dd.dc,W=DCA.waves[n-1],tag='w'+n;if(!W)return;C.more=0;
+  if(n>1)dcSpawnLot(n,W.inf);   // (wave 1's men are on the road already: enterCounter)
+  for(const e of enemies)if(e.tag===tag){e.cool=Math.min(e.cool,1+Math.random()*2);e.stage=0;e.advT=simT+Math.random()*3;e.gait=null;}
+  (W.tanks||[]).forEach((k,i)=>{const at=DCA.tankAt[k]||DCA.tankAt.road,K=ddTankSpawn({x:at[0],y:at[1],ang:.4,hold:true,way:DCA.ways[k],name:'Tank',range:DCA.tankR});K.w=n;K.relT=simT+i*7;});
+  if(n>1){bigText(`Wave ${n}`,'inbound');banner(W.tanks?`Wave ${n} of ${DCA.waves.length}: ${W.tanks.length>1?W.tanks.length+' tanks':'a tank'} with them.`:`Wave ${n} of ${DCA.waves.length}.`,3200);}
+  else banner('Here they come: infantry across the whole field.',3600);
+}
+function dcSpawnMore(n){const W=DCA.waves[n-1];if(!W||!W.more)return;for(const e of dcSpawnLot(n,W.more)){e.stage=0;e.advT=simT+Math.random()*3;e.cool=1+Math.random()*2;}}
 // each man works his way down the field in bounds: the hedgerow, the open ground, the trench, the wire, then the gate and the command post
 const DC_STAGE=[-96,90,240,430];
 function dcEnemy(){
-  const C=dd.dc,taken=enemies.filter(o=>!o.dead).map(destOf);
+  const C=dd.dc,taken=enemies.filter(o=>!o.dead).map(destOf),Z=DCA.cz;
   for(const e of enemies){if(beaten(e)||e.stage==null||e.stage<0||e.path.length||simT<(e.advT||0))continue;
     if(e.sup>.7){e.advT=simT+1.5;continue;}
     let tx,ty;const st=e.stage;
+    if(e.cpAtt&&C.cpOurs&&st<=1){   // (Version 254: their checkpoint is ours: into it, and they keep at it until it's theirs again)
+      tx=Z.x0+30+Math.random()*(Z.x1-Z.x0-60);ty=Z.y0+14+Math.random()*130;const s=openSpot(tx,ty,taken)||{x:tx,y:ty},p=findPath(e.x,e.y,s.x,s.y,FOOT);
+      if(p&&p.length){e.path=p;e.zone={x0:s.x-110,x1:s.x+110,y0:s.y-90,y1:s.y+90};e.stage=1;e.advT=simT+5+Math.random()*5;}else e.advT=simT+2;continue;}
     if(st<DC_STAGE.length){ty=DC_STAGE[st]+(Math.random()-.5)*40;const pull=st/DC_STAGE.length;tx=e.lane+(DCA.road-e.lane)*pull*.75+(Math.random()-.5)*50;}
     else if(st===DC_STAGE.length){tx=DCA.road+(Math.random()-.5)*70;ty=DCA.wallY+50+Math.random()*30;}
     else{tx=DCA.flag.x+(Math.random()-.5)*90;ty=DCA.flag.y+(Math.random()-.5)*60;}   // (the flag)
     const s=openSpot(clamp(tx,DCA.x0+30,DCA.x1-30),ty,taken)||{x:tx,y:ty},p=findPath(e.x,e.y,s.x,s.y,FOOT);
     if(p&&p.length){e.path=p;e.zone={x0:s.x-110,x1:s.x+110,y0:s.y-90,y1:s.y+90};e.stage=Math.min(st+1,DC_STAGE.length+1);e.advT=simT+(st>=DC_STAGE.length?2:3.5+Math.random()*4.5);}
     else e.advT=simT+2;}
-  // mortars with the second wave: a shell now and then on a manned forward nest
-  if(C.ph==='w2'&&simT>(C.mortT||0)){C.mortT=simT+7+Math.random()*5;const L=C.guns.filter(g=>g.k[0]==='n'&&g.man);if(L.length){const g=L[(Math.random()*L.length)|0],mx=g.x+(Math.random()-.5)*56,my=g.y+(Math.random()-.5)*56;ddShell({x:g.x+(Math.random()-.5)*300,y:DCA.treeY-200,side:'E',name:'Mortar',stats:{}},mx,my,44,62,2.4);C.shells.push({x:mx,y:my,at:simT+2.4,D:DCA.hv.mortar});}}
+  // mortars (from wave 3): a shell now and then on a manned nest
+  const W=DCA.waves[C.wave-1];
+  if(W&&W.mortar&&/^w/.test(C.ph)&&simT>(C.mortT||0)){C.mortT=simT+11+Math.random()*6;const L=C.guns.filter(g=>g.k[0]==='n'&&g.man&&!g.dead);if(L.length){const g=L[(Math.random()*L.length)|0],mx=g.x+(Math.random()-.5)*56,my=g.y+(Math.random()-.5)*56;ddShell({x:g.x+(Math.random()-.5)*300,y:DCA.treeY-200,side:'E',name:'Mortar',stats:{}},mx,my,44,62,2.4);C.shells.push({x:mx,y:my,at:simT+2.4,D:DCA.hv.mortar});}}
 }
 // a man lost, and somebody in the reserve: he comes out of the barracks for him
 function dcReplace(){   // (Version 224, Bryan: "No reinforcements this time": nobody comes out of the barracks for a man lost)
@@ -489,10 +675,30 @@ function dcReplace(){   // (Version 224, Bryan: "No reinforcements this time": n
 function dcNoRe(){let el=$('#dcNoRe');if(!el){el=document.createElement('div');el.id='dcNoRe';el.textContent='NO REINFORCEMENTS';stage.appendChild(el);}el.classList.remove('on');void el.offsetWidth;el.classList.add('on');}
 
 /* ---------- the fight's clock ---------- */
+// a wave beaten (Version 254, Bryan: "After the first wave show Wave 1 complete. And give a timer on the rest time until the next wave"): WAVE n
+// COMPLETE, the guns patched up (not one knocked out: that's still an Engineer's job), the Engineers' repair kit made up again, the other troops
+// made up, then the rest with its clock (dcRestHud), or the push on their checkpoint (after wave 2, and after any later wave while it isn't ours)
+// the other troops between waves: those still up patched up, and fresh men out through the arch up to DCA.npcN again
+function dcNpcTopUp(){
+  for(const u of dd.npcs)if(alive(u))u.hp=Math.max(u.hp,100);
+  const BX=[420,470,520,570,810,860,910,950,445,835],n=DCA.npcN-dd.npcs.filter(alive).length;
+  for(let i=0;i<n;i++){const u=ddNpc(688+(i%4)*8,DCA.cp.y+DCA.cp.h+8+((i/4)|0)*9);u.inBoat=false;u.seen=true;u.back={x:BX[i%BX.length],y:DCA.wallY+24};u.ln=0;u.post=u.back;u.hopT=simT+.3+i*.2;}
+}
+function dcWaveDone(){
+  const C=dd.dc,n=C.wave;
+  if(n>=DCA.waves.length){if(!dd.won){dd.won=true;if(dd.fp&&typeof fpExit==='function')fpExit('The last of them is down.');endAt=performance.now()+2600;bigText(`All ${DCA.waves.length} waves held`,'complete');banner('The last of them is down. Base held.',4000);}return;}
+  bigText(`Wave ${n} complete`,'complete');
+  for(const g of C.guns)if(!g.dead&&g.hp<g.hp0){g.hp=g.hp0;g.hits=0;}
+  for(const u of players)u.fixN=0;
+  dcNpcTopUp();
+  if(n>=2&&!C.cpOurs){C.ph='push';C.t=0;C.pushOn=false;}
+  else{C.ph='lull';C.t=0;C.rest=DCA.lull;}
+}
 function dcTick(dt){
   const C=dd.dc;C.t+=dt;
   ddAllDown();ddDeadTick();dd.pool=0;
-  dcGunsTick(dt);ddHot();ddTankTick(dt);
+  dcGunsTick(dt);ddHot();ddTankTick(dt);dcCpTick(dt);
+  for(const K of dd.tanks)if(K.hold&&K.relT!=null&&simT>=K.relT){K.hold=false;K.i=0;K.relT=null;}   // (a wave's tanks let loose one after another)
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();if(!dd.seq&&typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}}   // (Version 168: ddctl.js)
   if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();if(typeof dcFranticTick==='function')dcFranticTick();}
   const left=n=>enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length+dd.tanks.filter(K=>K.w===n&&K.hp>0).length;
@@ -500,11 +706,12 @@ function dcTick(dt){
   else if(C.ph==='intro'){if(C.t>4.2&&!C.back){C.back=1;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.square.x,z:DCA.wallY-34+DD_CAM.look,zoom:7.4},t:0,dur:1.6};}
     if(C.t>6){C.ph='setup';C.t=0;dcNoRe();}}
   else if(C.ph==='setup'){if(C.t>=DCA.setup){C.ph='w1';C.wave=1;C.t=0;dcSpawnWave(1);}}
-  else if(C.ph==='lull'){if(C.t>=DCA.lull){C.wave++;C.ph='w'+C.wave;C.t=0;dcSpawnWave(C.wave);}}
-  else if(C.ph==='w1'&&!C.more&&C.t>=DCA.waves[0].moreAt){C.more=1;const W=DCA.waves[0];for(let i=0;i<W.more;i++){const lane=300+(i/(W.more-1))*620,e=ddFoe('w1',lane-DDX+(Math.random()-.5)*30,DCA.treeY-60-Math.random()*90,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=0;e.advT=simT+Math.random()*3;e.cool=1+Math.random()*2;enemies.push(e);}}   // (the first wave's second lot, out of the trees)
-  else if(C.t>4&&left(C.wave)===0&&(C.wave!==1||C.more)){
-    if(C.wave>=3){if(!dd.won){dd.won=true;if(dd.fp&&typeof fpExit==='function')fpExit('The last of them is down.');endAt=performance.now()+2200;banner('The last of them is down. Base held.',4000);}}
-    else{C.ph='lull';C.t=0;banner(`Wave ${C.wave} broken. ${DCA.lull} s before the next.`,3600);}}
+  else if(C.ph==='lull'){if(C.t>=(C.rest||DCA.lull)){C.wave++;C.ph='w'+C.wave;C.t=0;dcSpawnWave(C.wave);}}
+  else if(C.ph==='push'){if(!C.pushOn&&C.t>=2)dcPushStart();
+    if(C.t>=DCA.pushMax){C.wave++;C.ph='w'+C.wave;C.t=0;dcSpawnWave(C.wave);}}   // (not taken in time: the next wave comes anyway, and the push goes on)
+  else if(/^w/.test(C.ph)){const W=DCA.waves[C.wave-1]||{};
+    if(!C.more&&W.more&&C.t>=W.moreAt){C.more=1;dcSpawnMore(C.wave);}   // (the wave's second lot, out of the trees)
+    else if(C.t>4&&left(C.wave)===0&&(C.more||!W.more))dcWaveDone();}
   // the flag: theirs if they stand at it for DCA.flagT s with none of ours there (it was the command post, and 20 s, until Version 224)
   const inCp=enemies.filter(e=>!beaten(e)&&dcIn(e,DCA.cpZone)).length+dd.tanks.filter(K=>K.hp>0&&dcIn(K,DCA.cpZone)).length,ours=dd.allies.filter(u=>alive(u)&&dcIn(u,DCA.cpZone)).length;
   C.cpT=inCp&&!ours?C.cpT+dt:Math.max(0,C.cpT-dt*2);C.cpN=inCp;
@@ -515,13 +722,20 @@ function dcTick(dt){
 function dcHint(){
   const C=dd.dc;
   if(C.ph==='intro')return'They are coming. In a moment the guns are yours.';
-  return'Your men are on the guns. Tap a gun, on the map or in the row at the bottom, to fire it yourself; an empty one, to send a man to it. A thumb on one of theirs turns every gun on him. The field gun and the bazookas are for the tanks. Nobody comes to replace the fallen: lose the flag, or everyone, and it is lost.';
+  if(C.cpGo&&!C.cpOurs)return'Take their checkpoint: the other troops and your free men are going in. Cover them from the guns: the field gun brings the blockhouse down in three hits, the machine guns keep their heads down.';
+  return`${DCA.waves.length} waves. Your men are on the guns: tap a gun, on the map or in the row at the bottom, to fire it yourself; an empty one, to send a man to it. A thumb on one of theirs turns every gun on him. The field gun and the bazookas are for the tanks (from wave 5). A gun takes the hits before its man does. Nobody comes to replace the fallen: lose the flag, or everyone, and it is lost.`;
 }
 function dcDraw(){
   const C=dd.dc,lab=(x,y,h,text,col,sz=9)=>{toSBack=false;const[sx,sy]=toS(x,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,sz,700);};
-  {const co=objs.find(o=>o.tag==='check');if(co){const c=DCA.check;lab(c.x+c.w/2,c.y+c.h/2,48,co.gone?'BLOCKHOUSE · DESTROYED':co.hp<DCA.checkHp?`BLOCKHOUSE · ${Math.max(1,Math.round(co.hp/DCA.checkHp*100))}%`:'BLOCKHOUSE · BLOW IT UP',co.gone?'#8b949c':'#ff8a7e');}}
+  // (Version 254) their checkpoint while it's the one to take: a yellow box over it that pulses, and how far the taking has got (blue once it's ours)
+  const cpShow=C.cpOurs||C.cpGo&&C.pushT0!=null&&simT-C.pushT0>2.5;
+  if(cpShow){const Z=DCA.cz,pu=.5+.5*Math.sin(performance.now()/260),c=DCA.check;
+    if(C.cpOurs)dcZoneRect(Z,'rgba(96,165,255,.09)','rgba(130,190,255,.7)',1.8);else dcZoneRect(Z,`rgba(255,207,74,${(.07+.07*pu).toFixed(3)})`,`rgba(255,215,106,${(.55+.4*pu).toFixed(2)})`,2.8);
+    const tk=C.capT>0,pc=Math.min(99,Math.round(C.capT/(C.cpOurs?DCA.loseT:DCA.capT)*100));
+    lab(c.x+c.w/2,c.y+c.h/2,58,C.cpOurs?(tk?`CHECKPOINT · THEY'RE TAKING IT ${pc}%`:'CHECKPOINT · OURS'):tk?`TAKING THE CHECKPOINT · ${pc}%`:'TAKE THE CHECKPOINT',C.cpOurs?(tk?'#ff8a7e':'#8fd0ff'):'#ffcf4a',11);}
+  {const co=objs.find(o=>o.tag==='check');if(co&&!cpShow){const c=DCA.check;lab(c.x+c.w/2,c.y+c.h/2,48,co.gone?'BLOCKHOUSE · DESTROYED':co.hp<DCA.checkHp?`BLOCKHOUSE · ${Math.max(1,Math.round(co.hp/DCA.checkHp*100))}%`:'BLOCKHOUSE · BLOW IT UP',co.gone?'#8b949c':'#ff8a7e');}}
   // each gun's circle: gold and dashed for one to man, the squad's blue for one a squad mate holds, grey for one knocked out (not from behind a gun)
-  if(!dd.fp)for(const g of C.guns){const m=g.man,mine=m&&!m.npc;toSBack=false;const p=toS(g.x,g.y,1);if(toSBack||p[0]<-60||p[0]>cw+60||p[1]<0||p[1]>ch)continue;
+  if(!dd.fp)for(const g of C.guns){if(g.off)continue;const m=g.man,mine=m&&!m.npc;toSBack=false;const p=toS(g.x,g.y,1);if(toSBack||p[0]<-60||p[0]>cw+60||p[1]<0||p[1]>ch)continue;
     ox.save();ox.beginPath();ox.ellipse(p[0],p[1],30,15,0,0,7);ox.lineWidth=2.5;ox.strokeStyle=g.dead?'rgba(139,148,156,.7)':mine?'rgba(88,196,246,.9)':m?'rgba(255,138,126,.9)':'rgba(255,215,106,.95)';if(!m&&!g.dead)ox.setLineDash([7,5]);ox.stroke();ox.restore();
     lab(g.x,g.y,g.t==='art'?34:24,g.dead?(g.fix&&hyp(g.fix.u.x-g.x,g.fix.u.y-g.y)<=34?`${g.n} · REPAIRING ${Math.max(1,Math.ceil(DCA.fixT-g.fix.t))}`:g.fix?`${g.n} · ENGINEER COMING`:dcFixLeft()?`${g.n} · TAP TO REPAIR`:`${g.n} · KNOCKED OUT`):m?(mine?`${g.n} · ${m.name.toUpperCase()}`:`${g.n} · NPC`):g.going?`${g.n} · ON HIS WAY`:`${g.n} · TAP TO MAN`,g.dead?'#8b949c':m?(mine?'#8fd0ff':'#ff8a7e'):'#ffcf4a');
     if(!g.dead&&g.hp<g.hp0){toSBack=false;const q=toS(g.x,g.y,g.t==='art'?44:33);if(!toSBack)bar(q[0]-16,q[1],32,Math.max(0,g.hp/g.hp0),g.hp<g.hp0*.4?'#ff7a4a':'#ffcf4a');}}
@@ -531,15 +745,30 @@ function dcDraw(){
       ox.setLineDash([]);ox.lineWidth=3;ox.strokeStyle='#ff5a4e';ox.beginPath();ox.arc(q[0],q[1],16,0,7);ox.stroke();for(const[a,b]of[[0,-1],[0,1],[-1,0],[1,0]]){ox.beginPath();ox.moveTo(q[0]+a*10,q[1]+b*10);ox.lineTo(q[0]+a*25,q[1]+b*25);ox.stroke();}ox.restore();}}}
   // (Version 167: the tanks' health is ddplay.js's ddDrawTargets' bar; the flag and its clock are in the objective pill, ddhud.js)
   for(const m of players)if(m.raise&&m.raise.t.raiseP>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(c.raiseP/DD_RAISE*100)}%`,sx,sy,'#5fe08e',10,700);}
-  dcBar();
+  dcBar();dcRestHud();
+}
+// a box on the ground (ddplay.js's ddBlueRect in any colour)
+function dcZoneRect(Z,fill,stroke,lw){
+  const P=[];let bad=false;const add=(x,y)=>{toSBack=false;const q=toS(x,y,1.5);if(toSBack)bad=true;P.push(q);};
+  for(let x=Z.x0;x<Z.x1;x+=24)add(x,Z.y0);for(let y=Z.y0;y<Z.y1;y+=24)add(Z.x1,y);for(let x=Z.x1;x>Z.x0;x-=24)add(x,Z.y1);for(let y=Z.y1;y>Z.y0;y-=24)add(Z.x0,y);
+  if(bad||!P.some(q=>q[0]>-200&&q[0]<cw+200&&q[1]>-200&&q[1]<ch+200))return;
+  ox.save();ox.beginPath();ox.moveTo(P[0][0],P[0][1]);for(const q of P)ox.lineTo(q[0],q[1]);ox.closePath();ox.fillStyle=fill;ox.fill();ox.strokeStyle=stroke;ox.lineWidth=lw;ox.stroke();ox.restore();
+}
+// the rest's clock (Version 254, Bryan: "give a timer on the rest time until the next wave"): WAVE n IN s across the top, a bar running down under it
+function dcRestHud(){
+  let el=$('#dcRest');const C=dd&&dd.dc,R=C&&(C.rest||DCA.lull),on=!!C&&state==='play'&&!endAt&&!dd.seq&&!dd.won&&C.ph==='lull'&&C.t<R;
+  if(!el){if(!on)return;el=document.createElement('div');el.id='dcRest';el.innerHTML='<b></b><i><em></em></i>';stage.appendChild(el);}
+  if(el.hidden!==!on)el.hidden=!on;if(!on)return;
+  const t=`WAVE ${C.wave+1} IN ${Math.max(1,Math.ceil(R-C.t))}`,b=el.firstChild,w=(100*clamp(1-C.t/R,0,1)).toFixed(1)+'%',e=el.querySelector('em');
+  if(b.textContent!==t)b.textContent=t;if(e.style.width!==w)e.style.width=w;
 }
 /* Version 248 (Bryan: "Can you make the most powerful stationary weapon to the left and weakest to the right? I feel like players won't know what
    to select right away and might naturally select the first one to the left. Also, is there a cycle button so the player can switch stationary
    guns?"): the row shows the guns strongest first (dcRow: the field gun, the heavy machine gun, then the nests; it was the order they stand in on
    the map, the nests first), and from behind a gun NEXT GUN goes on to the next gun along the row that one of the squads' men is on, round again
    at the end (dcNextGun; Tab on a keyboard, ddfp.js's fpNext). Until now the only way across was a tap on another gun's tile. */
-const dcPw=g=>g.t==='art'?3:g.hv?2:1,dcName=g=>g.t==='art'?'field gun':g.hv?'heavy MG':'MG nest'+(g.k==='n1'?' 1':g.k==='n2'?' 2':'');
-function dcRow(){return dd.dc.guns.slice().sort((a,b)=>dcPw(b)-dcPw(a));}   // (a steady sort: guns as strong as each other keep their own order)
+const dcPw=g=>g.t==='art'?3:g.hv?2:1,dcSub=g=>g.sub?' '+g.sub:g.k==='n1'?' 1':g.k==='n2'?' 2':'',dcName=g=>g.t==='art'?'field gun':g.hv?'heavy MG':(g.cp?'forward MG':'MG nest')+dcSub(g);
+function dcRow(){return dd.dc.guns.filter(g=>!g.off).sort((a,b)=>dcPw(b)-dcPw(a));}   // (Version 254: not their checkpoint's light guns while it isn't ours)   // (a steady sort: guns as strong as each other keep their own order)
 function dcNextOf(u){   // the gun NEXT GUN would go to from the one u is on, or null when no other is held by a squad mate
   const L=dcRow().filter(g=>!g.dead&&g.man&&!g.man.npc&&alive(g.man)),i=u?L.indexOf(u.dcGun):-1;if(i<0||L.length<2)return null;return L[(i+1)%L.length];
 }
@@ -552,12 +781,22 @@ function dcBar(){
     el.addEventListener('click',ev=>{const b=ev.target.closest('[data-k]');if(!b||!dd||!dd.dc)return;ev.stopPropagation();if(b.dataset.k==='back'){if(dd.fp)fpExit();}else if(b.dataset.k==='next'){dcNextGun();}else if(b.dataset.k==='leave'){if(dd.fp){const g=dd.fp.u.dcGun;fpExit('Off the gun.');if(g)dcLeave(g);}}else dcTile(b.dataset.k);dcBar();});
     for(const t of['pointerdown','pointerup','touchstart'])el.addEventListener(t,ev=>ev.stopPropagation());}
   if(el.hidden!==!show)el.hidden=!show;document.body.classList.toggle('dcg',show);if(!show)return;   // (dcg: the squad's own bar gives way to the guns')
-  const fpU=dd.fp?dd.fp.u:null,foc=!!(C.focus||C.focusK);
-  const h=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+`<div class="dcb-row" style="grid-template-columns:repeat(${C.guns.length},1fr)">`+dcRow().map(g=>{const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
+  const fpU=dd.fp?dd.fp.u:null,foc=!!(C.focus||C.focusK),row=dcRow(),two=!!(fpU&&fpU.dcGun),nx=two?dcNextOf(fpU):null;
+  // (Version 254) the buttons are made only when what's in the row changes (its guns, the arrow, the buttons under it), and their words and colours
+  // are set in place every frame. The row was made again whole whenever a word in it changed (the field gun's reload counting down, a gun FIRING
+  // or READY): about three times a second, and a tap whose finger went down on one button and came up on its replacement did nothing
+  const cols=row.length>4&&innerWidth<560?Math.ceil(row.length/2):row.length,key=[C.picked||fpU?0:1,row.map(g=>g.k).join(),two?nx?3:2:0,cols].join('|');
+  if(el.dataset.key!==key){el.dataset.key=key;
+    el.innerHTML=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+`<div class="dcb-row" style="grid-template-columns:repeat(${cols},1fr)">`
+      +row.map(g=>`<button type="button" data-k="${g.k}" class="dcb-t"><u hidden>NPC</u><i></i><b></b><span></span><em></em></button>`).join('')+'</div>'
+      +(two?`<div class="dcb-row two${nx?' three':''}"><button type="button" data-k="back">‹ BACK<small>he stays on the gun</small></button>${nx?'<button type="button" data-k="next">NEXT GUN ›<small></small></button>':''}<button type="button" data-k="leave">LEAVE GUN<small>he gets off it</small></button></div>`:'');}
+  const set=(n,p,v)=>{if(n&&n[p]!==v)n[p]=v;};
+  for(const g of row){const b=el.querySelector(`.dcb-t[data-k="${g.k}"]`);if(!b)continue;const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
     const who=g.dead?'destroyed':you?'YOU':m?(npc?'Private':m.name):g.going?'coming':'empty',st=g.dead?(g.fix?'REPAIRING':dcFixLeft()?'TAP TO REPAIR':'KNOCKED OUT'):!m?(g.going?'ON HIS WAY':'TAP TO MAN'):g.t==='art'?(simT<g.fireT?'RELOAD '+Math.ceil(g.fireT-simT):foc?'ON TARGET':'LOADED'):foc?'ON TARGET':simT-(m.shotT||-9)<1.6||simT<g.hvT+.4?'FIRING':'READY';
-    return`<button type="button" data-k="${g.k}" class="dcb-t${you?' you':''}${g.dead?' dead':''}${!m&&!g.dead&&!g.going?' empty':''}${foc&&m&&!g.dead?' tg':''}">${npc?'<u>NPC</u>':''}<i>${g.n}${g.k==='n1'?' 1':g.k==='n2'?' 2':''}</i><b>${who}</b><span>${st}</span><em style="width:${Math.max(0,Math.round(g.hp/g.hp0*100))}%"></em></button>`;}).join('')+'</div>'
-    +(fpU&&fpU.dcGun?(nx=>`<div class="dcb-row two${nx?' three':''}"><button type="button" data-k="back">‹ BACK<small>he stays on the gun</small></button>${nx?`<button type="button" data-k="next">NEXT GUN ›<small>${dcName(nx)}</small></button>`:''}<button type="button" data-k="leave">LEAVE GUN<small>he gets off it</small></button></div>`)(dcNextOf(fpU)):'');
-  if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;}
+    set(b,'className','dcb-t'+(you?' you':'')+(g.dead?' dead':'')+(!m&&!g.dead&&!g.going?' empty':'')+(foc&&m&&!g.dead?' tg':''));
+    const[tu,ti,tb,ts,te]=b.children;set(tu,'hidden',!npc);set(ti,'textContent',g.n+dcSub(g));set(tb,'textContent',who);set(ts,'textContent',st);
+    const w=Math.max(0,Math.round(g.hp/g.hp0*100))+'%';if(te&&te.style.width!==w)te.style.width=w;}
+  if(nx)set(el.querySelector('[data-k="next"] small'),'textContent',dcName(nx));
 }
 function dcFinishLost(){
   state='end';setStatus();$('#status').textContent='Lost';

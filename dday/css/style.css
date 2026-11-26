@@ -657,6 +657,10 @@ body.dd #sq .sq-men{margin-bottom:7px}
 body.fp #dcBar{bottom:auto;top:max(92px,calc(env(safe-area-inset-top,0px) + 92px));background:rgba(10,15,21,.84);padding-top:7px;padding-bottom:8px}
 body.dd.dcg #sq{display:none!important}
 #dcNoRe{position:absolute;left:0;right:0;top:max(118px,22%);z-index:31;text-align:center;font:800 26px/1.1 system-ui,-apple-system,Segoe UI,Arial,sans-serif;letter-spacing:.14em;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.8);opacity:0;pointer-events:none}
+/* (Version 254) the rest between Chapter 2's waves: its clock across the top */
+#dcRest{position:absolute;left:50%;transform:translateX(-50%);top:max(108px,17%);z-index:31;text-align:center;pointer-events:none;color:#fff;font:800 20px/1.1 system-ui,-apple-system,Segoe UI,Arial,sans-serif;letter-spacing:.12em;text-shadow:0 2px 8px rgba(0,0,0,.85)}
+#dcRest[hidden]{display:none}#dcRest i{display:block;width:150px;max-width:60vw;height:4px;margin:7px auto 0;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden}#dcRest em{display:block;height:100%;background:#ffcf4a}
+body.fp #dcRest{top:max(196px,30%)}
 body.fp #dcNoRe{top:36%}#dcNoRe.on{animation:dcNoRe 5s ease both}@keyframes dcNoRe{0%{opacity:0}14%{opacity:1}80%{opacity:1}100%{opacity:0}}
 @media (orientation:landscape) and (max-height:520px){#dcBar .dcb-t{min-height:44px;padding:4px 2px 6px}.dcb-hd{font-size:14px;margin-bottom:4px}#dcNoRe{font-size:20px;top:64px}}
 

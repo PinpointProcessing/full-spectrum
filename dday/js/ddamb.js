@@ -269,7 +269,7 @@ function ddAmbScene(){
   if(dd.seq&&dd.seq.dc){const a=!!dd.seq.inc;Object.assign(S,{mode:'counter',I:a?1:.85,wind:.6,leaves:.3,naval:a?.7:.4,air:a?1:.6,birds:0});}   // (draft: Chapter 2's opening: the war far off in the camp, then all round. Version 252: the camp's far battle at .85, it was .5: Bryan heard "no noise at all")
   else if(dd.seq){Object.assign(S,{mode:'seq',I:.1,wind:.5,leaves:.3,naval:.15,air:.6,birds:1});}
   else if(dd.vil){const V=dd.vg||{};Object.assign(S,{mode:'village',I:dd.won?.22:V.ph==='woods'?.38:V.ph==='field'?.52:V.r2?.85:.7,wind:V.ph==='woods'?.85:.65,leaves:V.ph==='woods'?1:.45,naval:.25,birds:dd.won?.7:V.ph==='woods'?1:V.ph==='field'?.6:.2});}
-  else if(dd.counter){const ph=dd.dc?dd.dc.ph:'intro';Object.assign(S,{mode:'counter',I:dd.won?.22:/^w/.test(ph)?.8:ph==='lull'?.38:.28,wind:.7,leaves:.35,naval:.3,birds:dd.won?.5:/^w/.test(ph)?0:.35});}
+  else if(dd.counter){const ph=dd.dc?dd.dc.ph:'intro';Object.assign(S,{mode:'counter',I:dd.won?.22:/^w/.test(ph)?.8:ph==='push'?.62:ph==='lull'?.38:.28,wind:.7,leaves:.35,naval:.3,birds:dd.won?.5:/^w/.test(ph)?0:.35});}
   else{const z=camT.z,ride=!dd.land.done;Object.assign(S,{mode:ride?'ride':'beach',I:dd.won?.3:ride?1:z>300?.95:z>-300?.8:.65,wind:z>-300?.9:1,surf:1,naval:1});}
   return S;
 }

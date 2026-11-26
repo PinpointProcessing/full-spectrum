@@ -32,7 +32,10 @@ const DDS_GUN={
   ksnip:{near:'kar',far:'karfar',vol:.72,r:[.88,.93],cap:2,carry:1.6},
   mp40:{near:'smg',far:'smgfar',vol:.48,r:[.96,1.05],cap:2,carry:1},
   trench:{near:'trench',far:'usfar',vol:.65,r:[.96,1.03],cap:2,carry:1.1},
-  mg:{near:'thud',far:'thud',vol:.9,r:[.97,1.03],cap:4,carry:1.9}};
+  mg:{near:'thud',far:'thud',vol:.9,r:[.97,1.03],cap:4,carry:1.9},
+  // (Version 254, Chapter 2's own guns: the nests' light guns twice as fast and a little higher, the heavy gun slower, deeper, louder)
+  lmg:{near:'thud',far:'thud',vol:.82,r:[1.1,1.17],cap:4,carry:1.8},
+  hmg:{near:'thud',far:'thud',vol:1,r:[.84,.9],cap:3,carry:2.1}};
 const ddsR=(a,b)=>a+Math.random()*(b-a);
 
 /* ---------- loading (from audioInit) ---------- */
@@ -110,7 +113,7 @@ const ddsPick=k=>{const L=DSFX.buf[k];return L&&L.length?L[(Math.random()*L.leng
 /* ---------- guns ---------- */
 // which gun a man has, by side and weapon (Version 188: one in five of their riflemen sounds like an MP40)
 function ddsGun(u){
-  if(u.gunner||u.onGun)return'mg';const w=u.weapon;
+  if(u.gunner||u.onGun)return u.onGun&&u.onGun.lt?'lmg':u.onGun&&u.onGun.hv?'hmg':'mg';const w=u.weapon;
   if(u.side==='E'){if(w==='sniper')return'ksnip';if(w==='shotgun')return'trench';const h=u.id?u.id.charCodeAt(u.id.length-1)+u.id.length:0;return h%5===0?'mp40':'kar';}
   return w==='hmg'?'bar':w==='sniper'?'spring':w==='shotgun'?'trench':'m1';
 }
@@ -123,7 +126,7 @@ function ddsShot(u){
   const gun=ddsGun(u),G=DDS_GUN[gun],ts=Math.max(.25,timeScale()||1);
   if(!u.id)return ddsFake(u,gun);   // (the ride in and the battle next door: shots from nobody in particular, ddplay.js)
   const fp=typeof dd!=='undefined'&&dd&&dd.fp&&dd.fp.u===u;
-  if(fp){if(gun==='mg'){const now=AC.currentTime;if(now-(u.thudT||0)<.16)return true;u.thudT=now;}ddsBurst(u,gun,G,[0],ts);return true;}
+  if(fp){const gap=gun==='mg'?.16:gun==='lmg'?.08:gun==='hmg'?.13:0;if(gap){const now=AC.currentTime;if(now-(u.thudT||0)<gap)return true;u.thudT=now;}ddsBurst(u,gun,G,[0],ts);return true;}
   if(simT<(u.ddsEnd||0))return true;u.ddsEnd=simT+.5;
   ddsBurst(u,gun,G,ddsPattern(u,gun),ts);return true;
 }
@@ -132,6 +135,8 @@ function ddsPattern(u,gun){
   const near=ddsPlace(u.x,u.y).d<60;
   switch(gun){
     case'mg':{const n=Math.random()<.4?4:3,L=[];for(let i=0;i<n;i++)L.push(i*.165+ddsR(-.008,.008)*(i>0));return L;}
+    case'lmg':{const n=Math.random()<.4?7:6,L=[];for(let i=0;i<n;i++)L.push(i*.078+ddsR(-.006,.006)*(i>0));return L;}
+    case'hmg':{const n=Math.random()<.4?4:3,L=[];for(let i=0;i<n;i++)L.push(i*.2+ddsR(-.008,.008)*(i>0));return L;}
     case'bar':{const fast=u.supK>=1.5,n=fast?9:5,s=fast?.06:.122,L=[];for(let i=0;i<n;i++)L.push(i*s+(i?ddsR(-.006,.006):0));return L;}
     case'm1':return!near||u.npc&&Math.random()<.7?[0]:u.npc||u.team!==dd.active?[0,ddsR(.3,.42)]:[0,ddsR(.26,.34),ddsR(.56,.68)];   // (the squad you're playing three aimed shots, the other two, the other troops mostly one)
     case'kar':return near&&Math.random()<.22?[0,ddsR(.95,1.2)]:[0];
@@ -144,7 +149,7 @@ function ddsBurst(u,gun,G,offs,ts){
   // (u.ddsX, Versions 252 and 253: Chapter 2's opening's distant war, ddcseq.js's DCS.far: k, heard as far as a gun k times nearer; v, louder; and
   // made for a phone's speaker: near, the close recordings, which have the crack (the far ones are rumble below 800 Hz); lp, a floor under the
   // distance's low-pass; hp, the lows taken off, which a phone can't play and which only made it boom)
-  const X=u.ddsX,o=ddsOut(u.x,u.y,G.vol*(u.npc?.6:1)*(X&&X.v||1),last+1.7,false,gun==='mg'?.35:.8,G.carry*(X&&X.k||1),X&&X.lp);if(!o)return;C.push(o.t0+last+.6);   // (the other troops under your own squads: there are dozens of them)
+  const X=u.ddsX,o=ddsOut(u.x,u.y,G.vol*(u.npc?.6:1)*(X&&X.v||1),last+1.7,false,/mg$/.test(gun)?.35:.8,G.carry*(X&&X.k||1),X&&X.lp);if(!o)return;C.push(o.t0+last+.6);   // (the other troops under your own squads: there are dozens of them)
   const far=o.d>DDS_FAR&&!(X&&X.near),kind=far?G.far:G.near,hp=X&&X.hp;
   for(let i=0;i<offs.length;i++){
     const at=o.t0+offs[i]/ts,r=ddsR(G.r[0],G.r[1]);
@@ -174,7 +179,7 @@ function ddsFake(u,gun){
 // a round fired without a call to sfxShot (combat.js's suppressShot plays nothing unless silenced): heard from the flash it leaves
 function ddsLoose(u){
   if(!u||u.dead||DSFX.fired.includes(u))return;const gun=ddsGun(u),G=DDS_GUN[gun];
-  if(gun==='mg'){if(simT<(u.ddsEnd||0))return;u.ddsEnd=simT+.45;ddsBurst(u,gun,G,[0,.165,.33],Math.max(.25,timeScale()||1));return;}
+  if(/mg$/.test(gun)){if(simT<(u.ddsEnd||0))return;u.ddsEnd=simT+.45;ddsBurst(u,gun,G,gun==='lmg'?[0,.078,.156,.234,.312]:[0,.165,.33],Math.max(.25,timeScale()||1));return;}
   ddsBurst(u,gun,G,gun==='bar'?[0,.12]:[0],Math.max(.25,timeScale()||1));
 }
 
