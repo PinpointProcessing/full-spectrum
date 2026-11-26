@@ -1,5 +1,6 @@
 // Chapter 2's opening, stepped in game time with a picture at each beat (Version 228). Version 249: Bryan's script at the fire, the three quiet seconds,
 // INCOMING!!!!! from the group the shell lands on, and the scramble to the front (the yard, the dash through the command post, out of its door).
+// Version 250: the four lines that aren't his (DCS.own), each said by the right man at the right moment, and the clock without them.
 // node counter-opening-test.js OUT [port]   (run from a folder with a harness.js shim, or HARNESS=...; DDROOT = the dday folder)
 const {chromium}=require('playwright');const {serve,open}=require(process.env.HARNESS||'./harness.js');const fs=require('fs');const OUT=process.argv[2]||'seq249',PORT=+process.argv[3]||9890;
 (async()=>{fs.mkdirSync(OUT,{recursive:true});const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
@@ -13,23 +14,28 @@ const s0=await ev(()=>({seq:!!dd.seq,dc:dd.seq&&dd.seq.dc,ph:dd.seq&&dd.seq.ph,b
 ok(s0.seq&&s0.dc&&s0.busy&&s0.cls&&s0.y.every(y=>y>650)&&!s0.skip,'it starts: the squad in the square, no orders, no Skip');
 // the talk at the fire: Bryan's six lines, the two at the fire turn about, the second called by his own name
 const WANT=["We finally took those bastards.","What a hell of a fight. We lost too many good men.","Hey, at least you're still standing.","Yeah? But for how long?",`Listen, ${s0.name}. Keep it together. We finally get to rest, so rest up buddy.`,"Yeah, maybe I'll catch some ZZZs."];
-const chat=await ev(()=>DCS.chat.map(l=>[l[0],l[1],l[2]]));const said=[];
-for(let i=0;i<6;i++){await to((chat[i][1]+chat[i][2])/2);const L=await ev(()=>{const L=dcSeqLine(dd.seq);return L&&{who:L.who,text:L.text,sh:L.sh,id:L.u.id,at:[Math.round(L.u.x-DCS.camp.x),Math.round(L.u.y-DCS.camp.y)]};});said.push(L);if(i===0||i===4)await shot('1-line'+(i+1));}
-console.log(JSON.stringify(said));
-ok(said.every((L,i)=>L&&L.text===WANT[i]&&L.who===i%2&&!L.sh),'the six lines as written, said turn about by the two at the fire');
-ok(said.every(L=>L&&Math.abs(L.at[0])<12&&Math.abs(L.at[1])<6)&&said[0].id!==said[1].id&&said[4].text.includes(s0.name)&&!said[4].text.includes('{'),'both sit at the fire; the fifth line names the man spoken to');
+const chat=await ev(()=>DCS.chat.map(l=>[l[0],l[1],l[2],l[3],l[4],l[5]]));const camp=chat.filter(l=>!l[4]),said=[],line=()=>ev(()=>{const L=dcSeqLine(dd.seq);return L&&{who:L.who,text:L.text,sh:L.sh,own:L.own,id:L.u.id,ph:dd.seq.ph,at:[Math.round(L.u.x-DCS.camp.x),Math.round(L.u.y-DCS.camp.y)]};});
+for(let i=0;i<camp.length;i++){await to((camp[i][1]+camp[i][2])/2);const L=await line();said.push(L);if(i===0||camp[i][5]||/Listen/.test(camp[i][3]))await shot('1-line'+(i+1));}
+console.log(JSON.stringify(said));const his=said.filter(L=>L&&!L.own),mine=said.filter(L=>L&&L.own);
+ok(his.length===6&&his.every((L,i)=>L.text===WANT[i]&&L.who===i%2&&!L.sh),'his six lines as written and in his order, said turn about by the two at the fire');
+ok(his.every(L=>Math.abs(L.at[0])<12&&Math.abs(L.at[1])<6)&&his[0].id!==his[1].id&&his[4].text.includes(s0.name)&&!his[4].text.includes('{'),'both sit at the fire; the fifth line names the man spoken to');
+// (Version 250) the two camp lines that aren't his: the second man goes on about the men lost, one of the two smoking calls over before "ZZZs"
+const iC=said.findIndex(L=>L&&/counting heads/.test(L.text)),iW=said.findIndex(L=>L&&/Wake me/.test(L.text));
+ok(mine.length===2&&iC===2&&said[iC].who===1&&said[iC].id===his[1].id&&said[iW].who===3&&Math.hypot(said[iW].at[0]-26,said[iW].at[1]+60)<4&&/ZZZs/.test(said[iW+1].text),'two more in the camp: the second man at the fire ("counting heads") after his own line, and one of the two smoking just before "ZZZs"');
 // three seconds with nobody speaking and the far guns quiet
-const h0=await to(chat[5][2]+.3),hq=await ev(()=>({hush:!!dd.seq.hush,line:!!dcSeqLine(dd.seq)}));const h1=await to(T.inc-.3),hq1=await ev(()=>({hush:!!dd.seq.hush,line:!!dcSeqLine(dd.seq),inc:!!dd.seq.inc}));await shot('2-hush');console.log(JSON.stringify([h0,hq,h1,hq1]));
-ok(Math.abs((T.inc-chat[5][2])-3)<.05&&hq.hush&&!hq.line&&hq1.hush&&!hq1.line&&!hq1.inc,'then three seconds of quiet: nobody speaks, the far guns stop');
+const endTalk=camp[camp.length-1][2],h0=await to(endTalk+.3),hq=await ev(()=>({hush:!!dd.seq.hush,line:!!dcSeqLine(dd.seq)}));const h1=await to(T.inc-.3),hq1=await ev(()=>({hush:!!dd.seq.hush,line:!!dcSeqLine(dd.seq),inc:!!dd.seq.inc}));await shot('2-hush');console.log(JSON.stringify([h0,hq,h1,hq1]));
+ok(Math.abs((T.inc-endTalk)-3)<.05&&hq.hush&&!hq.line&&hq1.hush&&!hq1.line&&!hq1.inc,'then three seconds of quiet: nobody speaks, the far guns stop');
 // INCOMING!!!!! from the group by the corner, the camera on them
 await to(T.inc+.8);const inc=await ev(()=>{const S=dd.seq,L=dcSeqLine(S);return{inc:!!S.inc,hush:!!S.hush,who:L&&L.who,text:L&&L.text,sh:L&&L.sh,doom0:L&&L.u===S.doom[0],camX:Math.round(S.camX),alive:S.doom.filter(alive).length};});console.log(JSON.stringify(inc));await shot('3-incoming');
 ok(inc.inc&&!inc.hush&&inc.who==='d'&&inc.text==='INCOMING!!!!!'&&inc.sh&&inc.doom0&&inc.camX>780&&inc.alive===3,'INCOMING!!!!! is shouted by one of the three the shell lands on, the camera on their corner');
 console.log(JSON.stringify(await to(T.shell+.5)));await shot('4-shells');ok(await ev(()=>dd.seq.doom.every(u=>u.dead)&&players.every(alive)),'the shells kill the bunch to one side; the squad is unhurt');
+const a1=await line();console.log(JSON.stringify(a1));ok(a1&&a1.text==="THEY'RE COMING BACK!"&&a1.who===1&&a1.sh&&a1.own&&a1.ph==='shell'&&a1.id===his[1].id,'after the shell the second man at the fire shouts that they are coming back');
 const n0=await ev(()=>({go:dd.npcs.filter(u=>alive(u)&&u.path.length).length,fr:dd.npcs.filter(u=>alive(u)&&u.frantic).length,n:dd.npcs.filter(alive).length,ks:[...new Set(dd.npcs.filter(alive).map(u=>(u.rushK||1).toFixed(2)))].length}));console.log(JSON.stringify(n0));
 ok(n0.fr===n0.n&&n0.go>=2&&n0.go<n0.n&&n0.ks>=6,'the other troops bolt for the front, each on his own beat and at his own speed ('+n0.go+' of '+n0.n+' off half a second after the shell)');
 // the scramble across the yard
 console.log(JSON.stringify(await toPh('run')));const r0=await ev(()=>{for(let i=0;i<6;i++){update(1/60);ddCam(1/60);}return{go:players.filter(u=>u.path.length).length,n:players.length};});
 await ev(()=>{for(let i=0;i<24;i++){update(1/60);ddCam(1/60);}});await shot('5-run');
+const a2=await line();console.log(JSON.stringify(a2));ok(a2&&a2.text==='TO THE FRONT! MOVE!'&&a2.who===0&&a2.sh&&a2.own&&a2.ph==='run'&&a2.id===his[0].id,'as they run the first man sends everyone to the front');
 const r1=await ev(()=>({fr:players.filter(u=>u.frantic>=1&&u.frantic<=3).length,ks:[...new Set(players.map(u=>(u.rushK||1).toFixed(2)))].length,kmin:Math.min(...players.map(u=>u.rushK||1)),kmax:Math.max(...players.map(u=>u.rushK||1)),styles:[...new Set(players.map(u=>u.frantic))].length,spd:players.map(u=>u.spdK),
   go:players.filter(u=>u.path.length).length,n:players.length}));console.log(JSON.stringify(r0),JSON.stringify(r1));
 ok(r0.go>=2&&r0.go<r0.n,'they do not set off together: '+r0.go+' of '+r0.n+' running a tenth of a second in');
@@ -60,6 +66,9 @@ ok(!s1.seq&&s1.ph==='w1'&&!s1.cls&&s1.guns>=3&&s1.up>=7&&!s1.camp,'it ends in th
 for(let i=0;i<16;i++)await ev(()=>{for(let k=0;k<30;k++)update(1/30);});
 const s2=await ev(()=>({fr:dd.allies.filter(u=>u.frantic).length,rush:dd.allies.filter(u=>(u.rushK||1)!==1).length,spd:players.map(u=>+u.spdK.toFixed(2))}));console.log(JSON.stringify(s2),JSON.stringify(r1.spd));
 ok(s2.fr===0&&s2.rush===0&&JSON.stringify(s2.spd)===JSON.stringify(r1.spd.map(v=>+v.toFixed(2))),'sixteen seconds on nobody is scrambling any more, and every man has his own speed back');
+// without the four that aren't his, the clock is Version 249's
+const off=await ev(()=>{DCS.own=false;const T=dcSeqTimes(),r={inc:T.inc,shell:T.shell,fire:T.fire,run:T.run,n:DCS.chat.length,rows:DCS.chat.map(l=>[l[0],l[1],l[2]]),own:DCS.chat.filter(l=>l[5]).length};DCS.own=true;dcSeqTimes();r.back=DCS.T.inc;return r;});console.log(JSON.stringify(off));
+ok(off.inc===22&&off.shell===23.7&&off.fire===24.1&&off.run===24.6&&off.n===7&&!off.own&&JSON.stringify(off.rows)===JSON.stringify([[0,1,3.3],[1,3.5,7.2],[0,7.4,9.8],[1,10,12.2],[0,12.4,16.9],[1,17.1,19],['d',22.2,23.55]])&&off.back===T.inc,'with DCS.own off: his six and INCOMING!!!!! alone, on the clock they had');
 // a retry has no sequence; its other troops still bolt for their posts each on his own beat
 await ev(()=>{startCounter(true);});await page.waitForTimeout(600);const rt=await ev(()=>({seq:!!dd.seq,ph:dd.dc.ph,fr:dd.npcs.filter(u=>u.frantic).length,n:dd.npcs.length,hops:new Set(dd.npcs.map(u=>(u.hopT-simT).toFixed(1))).size}));console.log(JSON.stringify(rt));
 ok(!rt.seq&&rt.ph==='intro','a retry starts without it');ok(rt.fr===rt.n&&rt.hops>=5,'on a retry the other troops run out each when he is ready ('+rt.hops+' different moments)');

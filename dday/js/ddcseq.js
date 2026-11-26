@@ -8,15 +8,23 @@
    camp -> shells -> run (to the barracks' back door) -> hut (a small set of its own, drawn in place of the map: dcSeqRender from scene.js's render)
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
 const DCS={camp:{x:700,y:742},doom:{x:604,y:658},   // (draft: the group hit by the shell, at the command post's south-west corner)
-  T:{inc:22,shell:23.7,fire:24.1,run:24.6,hutMax:3.0,hutDur:2.0,outDur:3.9,hush:3},   // (the shell's sound and INCOMING!!!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out; hush: the quiet before the shell)
+  T:{inc:22,shell:23.7,fire:24.1,run:24.6,runMin:1.2,hutMax:3.0,hutDur:2.0,outDur:3.9,hush:3},   // (the shell's sound and INCOMING!!!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out; hush: the quiet before the shell. The first four are worked out from the talk's length: dcSeqTimes)
   // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
   // (Version 237, Bryan: "Make the rest a little longer. Maybe they can chat via text bubble for a couple of seconds") who says what, and when: [the man's place in spots, from, to, the words]
   // (Version 249, Bryan: "The script is kind of bland", and his own: the six lines below, "Silence for three seconds", then "INCOMING!!!!! (From the
   // group about to get hit)". The two at the fire say them turn about; {1} is the name of the man spoken to, the second of them; 'd': the first of
   // the three by the corner the shell lands on, 1: shouted. Until then: coffee, a lost boot, "Relieved by who?", and INCOMING! from one of the smokers)
-  chat:[[0,1.0,3.3,"We finally took those bastards."],[1,3.5,7.2,"What a hell of a fight. We lost too many good men."],[0,7.4,9.8,"Hey, at least you're still standing."],[1,10.0,12.2,"Yeah? But for how long?"],
-    [0,12.4,16.9,"Listen, {1}. Keep it together. We finally get to rest, so rest up buddy."],[1,17.1,19.0,"Yeah, maybe I'll catch some ZZZs."],
-    ['d',22.2,23.55,"INCOMING!!!!!",1]],
+  // (Version 250, Bryan: "You can add some of your own lines if you think of anything good") the talk is a list now, [who, the words, seconds on
+  // screen, shouted, not Bryan's], and its clock is worked out from it (dcSeqTimes: chat and the first four of T), so a line can come out or go in
+  // without leaving a gap. His six are untouched and in his order. The four that aren't his: the second man at the fire goes on about the men lost
+  // ("counting heads"), one of the two smoking calls over just before "catch some ZZZs", and after the shell the second man sees them coming and
+  // the first sends everyone to the front, which is why they run. `own:false` leaves those four out and gives Version 249's clock back exactly
+  own:true,
+  lines:[[0,"We finally took those bastards.",2.3],[1,"What a hell of a fight. We lost too many good men.",3.7],[1,"I keep counting heads. Keep coming up short.",3.0,0,1],
+    [0,"Hey, at least you're still standing.",2.4],[1,"Yeah? But for how long?",2.2],[0,"Listen, {1}. Keep it together. We finally get to rest, so rest up buddy.",4.5],
+    [3,"Wake me when the war's over.",2.1,0,1],[1,"Yeah, maybe I'll catch some ZZZs.",1.9]],
+  after:[[1,"THEY'RE COMING BACK!",'shell',.1,.8,1],[0,"TO THE FRONT! MOVE!",'run',.1,1.7,1]],   // (after the shell: [who, the words, counted from which moment of T, from, for how long, not Bryan's]; always shouted)
+  chat:[],   // ([who, from, to, the words, shouted, not Bryan's]: filled in by dcSeqTimes)
   // (draft 4, Bryan: "still too many troops in frame. They are also all looking towards the camera, it doesn't look natural"; "I like the body
   // structure of game play but we should stop having them focus at the camera"; "no motions between the soldiers should be done at the same time")
   // seen from about as far as in the battle, so they're the size they are in play, with plenty of ground between them: two at the fire, the one
@@ -49,8 +57,20 @@ function dcHutAt(r,ht,F){
   const sm=u=>u*u*(3-2*u),s=r[2]*ht+r[8]*(Math.sin(r[9]*ht+r[10])-Math.sin(r[10])),z=r[1]-s,k=sm(clamp((z-F-4)/40,0,1)),o=sm(clamp((F-18-z)/60,0,1));
   return[z>=F?r[3]+(r[0]-r[3])*k+r[5]*Math.sin(r[6]*ht+r[7])*k:r[3]+(r[4]-r[3])*o,z];
 }
+// the talk's clock (Version 250): each line up for its seconds with a fifth of a second between, the first a second in; then the quiet, the shell's
+// sound with INCOMING!!!!! over it, the shell 1.7 s after that, their bullets, the run; and the shouts after the shell, counted from its moments
+function dcSeqTimes(){
+  const T=DCS.T,C=DCS.chat=[];let t=1,end=1;
+  for(const[who,text,secs,sh,own]of DCS.lines){if(own&&!DCS.own)continue;C.push([who,+t.toFixed(2),+(t+secs).toFixed(2),text,sh?1:0,own?1:0]);end=t+secs;t=end+.2;}
+  T.inc=+(end+T.hush).toFixed(2);T.shell=+(T.inc+1.7).toFixed(2);T.fire=+(T.inc+2.1).toFixed(2);T.run=+(T.inc+2.6).toFixed(2);
+  C.push(['d',+(T.inc+.2).toFixed(2),+(T.inc+1.55).toFixed(2),"INCOMING!!!!!",1,0]);
+  for(const[who,text,at,from,secs,own]of DCS.after){if(own&&!DCS.own)continue;C.push([who,+(T[at]+from).toFixed(2),+(T[at]+from+secs).toFixed(2),text,1,own?1:0]);}
+  return T;
+}
+dcSeqTimes();
 function dcSeqStart(){
   if(startCounter.noSeq||/[?&]noseq\b/.test(location.search))return false;   // (?noseq in the address: the tests that start in the fight)
+  dcSeqTimes();
   const c=DCS.camp,T=THREE,g=ddH(c.x,c.y);
   // where the battle's own camera is: the last shot ends there
   updateCamera();const end={p:camera.position.clone(),q:camera.quaternion.clone(),cx:camT.x,cz:camT.z};
@@ -151,7 +171,7 @@ function dcSeqTick(dt){
     // one every 0.16 s, to two files at the door. Now two bolt at once and the rest when they've gathered themselves, in no order, each at his own speed
     players.map((u,i)=>[u,i]).sort(()=>S.rnd()-.5).forEach(([u,i],k)=>{u.seqGo=t+(k<2?0:.06+S.rnd()*.6);u.seqI=i;dcFrantic(u,S.rnd);});
     booms.push({x:DCA.cp.x+DCA.cp.w+26,y:DCA.cp.y-56,t:0,size:1.3});shake(.7);}
-  else if(S.ph==='run'&&(t>=S.runT+T.hutMax||players.filter(u=>u.y<DCA.cpIn.y+18).length>=Math.min(3,players.length))){S.ph='hut';S.hutT=t;   // (inside as soon as the first three are at the door: nobody stands waiting)
+  else if(S.ph==='run'&&(t>=S.runT+T.hutMax||t>=S.runT+T.runMin&&players.filter(u=>u.y<DCA.cpIn.y+18).length>=Math.min(3,players.length))){S.ph='hut';S.hutT=t;   // (inside as soon as the first three are at the door: nobody stands waiting. Version 250: not before runMin, so the shout as they run can be read; they run on in under the arch meanwhile)
     players.forEach((u,i)=>{u.x=D.x+(i%2?5:-5);u.y=DCA.cp.y+26+(i>>1)*6;u.path=[];u.ang=-Math.PI/2;u.sup=0;});}   // (under the arch, behind the view out of the door)
   else if(S.ph==='hut'&&t>=S.hutT+T.hutDur){S.ph='out';S.outT=t;S.cp=null;
     // (Version 249) out of the door in a bunch, not two files: nobody nearer another than a body's width, each already running for his own place at his
@@ -163,7 +183,7 @@ function dcSeqTick(dt){
   // (the other troops, each on his own beat. After the chain above, not inside it: put between its if and its else, this loop's own if took the else)
   for(const u of S.idle||[])if(u.seqHop&&t>=u.seqHop){u.seqHop=0;u.hopT=simT+4;if(alive(u)&&u.post&&!u.dcGun){const p=findPath(u.x,u.y,u.post.x,u.post.y);if(p)u.path=p;else u.hopT=0;}}   // (dcNpc looks only twice a second: they'd set off in batches)
   if(S.ph==='run')for(const u of players)if(u.seqGo&&t>=u.seqGo){u.seqGo=0;u.lastOrder=simT;u.sup=Math.min(u.sup,.5);   // (each sets off on his own beat, by his own way: a swerve on the way, a place of his own in the crush at the door)
-    const ex=D.x+(S.rnd()-.5)*24,ey=DCA.cpIn.y+S.rnd()*16;let mx=(u.x+ex)/2+(S.rnd()-.5)*40,my=(u.y+ey)/2+(S.rnd()-.5)*14;if(hyp(mx-c.x,my-c.y)<16)mx+=mx<c.x?-18:18;   // (not through the fire)
+    const ex=D.x+(S.rnd()-.5)*22,ey=DCA.cpIn.y-10-S.rnd()*30;let mx=(u.x+ex)/2+(S.rnd()-.5)*40,my=(u.y+ey)/2+(S.rnd()-.5)*14;if(hyp(mx-c.x,my-c.y)<16)mx+=mx<c.x?-18:18;   // (not through the fire)
     u.path=hyp(u.x-ex,u.y-ey)>50?[{x:mx,y:my},{x:ex,y:ey}]:[{x:ex,y:ey}];}
   if(S.ph==='camp')for(const u of S.idle||[]){   // a pair walks a little way together, stops, faces each other, walks on
     if(u.path.length)continue;const mate=S.idle.find(q=>q!==u&&q.idleP===u.idleP);if(mate&&!mate.path.length)u.ang=Math.atan2(mate.y-u.y,mate.x-u.x);
@@ -224,17 +244,19 @@ function dcIncomingSfx(L){
 // the talk in the camp: a bubble over whoever is speaking (from overlay.js while the sequence plays)
 // the line being said just now, if any: who says it and the words ({1}: the name of the man spoken to, the second at the fire)
 function dcSeqLine(S){
-  const cur=S&&S.ph==='camp'?DCS.chat.filter(l=>S.t>=l[1]&&S.t<=l[2]).pop():null;if(!cur)return null;   // (only the newest line when two overlap)
-  const[who,a,b,raw,sh]=cur,u=who==='d'?S.doom[0]:players[who];if(!u||!u.m)return null;
-  return{who,u,a,b,sh:!!sh,text:raw.replace('{1}',(players[1]&&players[1].name)||'buddy')};
+  const cur=S&&(S.ph==='camp'||S.ph==='shell'||S.ph==='run')?DCS.chat.filter(l=>S.t>=l[1]&&S.t<=l[2]).pop():null;if(!cur)return null;   // (only the newest line when two overlap. Version 250: after the shell and on the run too)
+  const[who,a,b,raw,sh,own]=cur,u=who==='d'?S.doom[0]:players[who];if(!u||!u.m||(who!=='d'&&!alive(u)))return null;
+  return{who,u,a,b,sh:!!sh,own:!!own,text:raw.replace('{1}',(players[1]&&players[1].name)||'buddy')};
 }
 function dcSeqDraw(){
   const S=dd.seq,Ln=dcSeqLine(S);if(!Ln)return;const{who,u,a,b,sh,text}=Ln;toSBack=false;const[sx,sy]=toS(u.x,u.y,26);if(toSBack)return;
   // (Version 249: Bryan's lines are longer, so a bubble wraps to the screen)
   const fs=sh?17:14,lh=fs+4;ox.save();ox.font=(sh?'900 ':'600 ')+fs+'px system-ui,-apple-system,sans-serif';
-  const maxW=Math.min(cw-36,sh?330:238),L=[];let ln='';for(const wd of text.split(' ')){const t2=ln?ln+' '+wd:wd;if(ln&&ox.measureText(t2).width>maxW){L.push(ln);ln=wd;}else ln=t2;}if(ln)L.push(ln);
+  // (Version 250) wrapped to as few lines as fit, then the lines evened out: the narrowest width that still takes that many (a last line of one word looked like a mistake)
+  const maxW=Math.min(cw-36,sh?330:238),wrap=W=>{const L=[];let ln='';for(const wd of text.split(' ')){const t2=ln?ln+' '+wd:wd;if(ln&&ox.measureText(t2).width>W){L.push(ln);ln=wd;}else ln=t2;}if(ln)L.push(ln);return L;};
+  const key=text+'|'+maxW+'|'+fs,WC=S.wrapC||(S.wrapC={});let L=WC[key];if(!L){L=wrap(maxW);if(L.length>1){let lo=maxW*.4,hi=maxW;for(let i=0;i<7;i++){const mid=(lo+hi)/2;if(wrap(mid).length<=L.length)hi=mid;else lo=mid;}L=wrap(hi);}WC[key]=L;}
   const w=Math.max(...L.map(q=>ox.measureText(q).width))+20,h=L.length*lh+(sh?14:12),side=who===1?.3:who===0?.7:.5;   // (the two at the fire sit a step apart: each one's bubble leans to his own side)
-  const x=clamp(sx-w*side,6,cw-w-6),y=Math.max(ch*.11+8,sy-h-12),k=clamp(Math.min((S.t-a)/.2,(b-S.t)/.25),0,1);ox.globalAlpha=k;
+  const x=clamp(sx-w*side,6,cw-w-6),y=Math.max(ch*.11+8,sy-h-12),k=clamp(Math.min((S.t-a)/(sh?.08:.2),(b-S.t)/(sh?.12:.25)),0,1);ox.globalAlpha=k;   // (a shout is up at once: the first after the shell has 0.8 s, to the cut to the yard)
   ox.fillStyle='rgba(250,248,240,.96)';ox.strokeStyle=sh?'#b3261e':'rgba(20,24,30,.85)';ox.lineWidth=sh?3:1.5;ox.beginPath();const r=8;ox.moveTo(x+r,y);ox.arcTo(x+w,y,x+w,y+h,r);ox.arcTo(x+w,y+h,x,y+h,r);ox.lineTo(clamp(sx+7,x+r+14,x+w-r),y+h);ox.lineTo(sx,y+h+9);ox.lineTo(clamp(sx-7,x+r,x+w-r-14),y+h);ox.arcTo(x,y+h,x,y,r);ox.arcTo(x,y,x+w,y,r);ox.closePath();ox.fill();ox.stroke();
   ox.fillStyle=sh?'#b3261e':'#161a20';ox.textAlign='left';ox.textBaseline='middle';L.forEach((q,i)=>ox.fillText(q,x+10,y+(sh?7:6)+lh*(i+.5)+.5));ox.restore();
 }
