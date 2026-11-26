@@ -169,7 +169,9 @@ function dcBuild(G,sc,M,add){
       P(new T.CylinderGeometry(.7,.7,16,7),steel,8,10.6,0,Math.PI/2);P(new T.BoxGeometry(5,3,2.2),steel,-2,10.4,0);P(new T.BoxGeometry(3,2.4,4.4),steel,1,9.8,2.4);
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,12,5),steel);l.position.set(Math.cos(a)*3.2,5,Math.sin(a)*3.2);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}G.add(g);DD.dcEGuns.push(g);}
     const burnt=M(0x2a2826,.95),rust=M(0x4a3a30,.95),r2=rng(231);
-    for(const[x,y,a,tilt]of[[1330,380,.4,.2],[1352,120,-.3,-.25],[1318,-160,.9,.15],[1360,-420,-.6,.3],[1300,620,1.3,-.2],[1390,-20,.2,.1]]){const g=new T.Group();g.position.set(x,DCA.beachH+2,y);g.rotation.set(tilt,a,tilt*.6);
+    for(const[x,y,a,tilt]of[[1330,380,.4,.2],[1352,120,-.3,-.25],[1318,-160,.9,.15],[1360,-420,-.6,.3],[1300,620,1.3,-.2],[1390,-20,.2,.1]]){
+      if(typeof ddrHas==='function'&&ddrHas('ddrVehLCVP')){const w=ddrVehLCVP(true);ddrBurn(w);w.userData.real=true;w.scale.setScalar(.8);w.position.set(x,DCA.beachH+1,y);w.rotation.set(tilt*.5,a+Math.PI/2,tilt*.4);G.add(w);continue;}   // (Version 246, the draft: yesterday's landing craft, burnt out, ddrveh.js)
+      const g=new T.Group();g.position.set(x,DCA.beachH+2,y);g.rotation.set(tilt,a,tilt*.6);
       for(const[w,hh,dd2,px,py,pz]of[[70,10,26,0,5,0],[70,12,1.6,0,10,13],[70,12,1.6,0,10,-13],[1.6,14,26,35,9,0],[10,9,16,-28,12,0]]){const b=new T.Mesh(new T.BoxGeometry(w,hh,dd2),px<0?rust:burnt);b.position.set(px,py,pz);b.castShadow=true;g.add(b);}G.add(g);}
     const dead=[];for(let i=0;i<64;i++){const x=DCA.cliffX+30+r2()*290,y=DDB.y0+80+r2()*1480;dead.push({x,y,h:ddH(Math.min(x,1390),y)+.8,ry:r2()*6,sx:1,c:r2()<.8?0x5a6240:0x3a3a36});}
     ddgInst(G,new T.BoxGeometry(11,2.2,4.4),new T.MeshLambertMaterial({color:0xffffff,vertexColors:true}),dead,true,400,false);}

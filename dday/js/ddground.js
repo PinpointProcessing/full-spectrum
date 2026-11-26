@@ -527,8 +527,8 @@ function ddgTankWreckGeo(kind,ty=.5,tz=.08){
 // knocked out: the burnt paint, rusty tracks, roughened; a scorch on the ground under it (the ground's own picture: scene.js's paintDecal)
 function ddgTankBurn(K){
   if(K&&K.g&&typeof ddReal==='function'&&ddReal()&&(K.g.userData.real||K.g.userData.ddrTank)){   // (Version 246, the draft's tanks and trucks: their own burnt look, ddreal.js)
-    if(K.tur&&typeof ddrTankBurn==='function')ddrTankBurn(K);else ddrBurn(K.g);
-    if(typeof paintDecal==='function')for(const d of[-18,0,18])paintDecal({k:'scorch',x:K.x+Math.cos(K.ang)*d,y:K.y+Math.sin(K.ang)*d,r:Math.random()});return;}
+    if(K.tur&&typeof ddrTankBurn==='function'){ddrTankBurn(K);return;}   // (it paints its own scorch marks)
+    ddrBurn(K.g);if(typeof paintDecal==='function')for(const d of[-18,0,18])paintDecal({k:'scorch',x:K.x+Math.cos(K.ang)*d,y:K.y+Math.sin(K.ang)*d,r:Math.random()});return;}
   const [pm,tm]=K.mats;if(pm){pm.map=ddgTankTex('burnt');pm.roughness=.95;pm.metalness=.05;pm.needsUpdate=true;}
   if(tm){tm.map=ddgTrackTex(true);tm.roughness=.9;tm.needsUpdate=true;}
   if(typeof paintDecal==='function')for(const d of[-18,0,18])paintDecal({k:'scorch',x:K.x+Math.cos(K.ang)*d,y:K.y+Math.sin(K.ang)*d,r:Math.random()});

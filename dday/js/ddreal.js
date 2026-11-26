@@ -202,7 +202,7 @@ function ddrMG42Parts(B,S,o){
   B.rbox(st,C.gunL,2.3*k,.2*k,.7*k,.06*k,-.75*k,.44*k,0);
   B.box(st,C.gunD,.9*k,.16*k,.5*k,-.3*k,.3*k,-.5*k).box(st,C.gunD,.5*k,.5*k,.12*k,-.3*k,0,-.36*k);
   B.box(st,C.gunD,.5*k,.26*k,.16*k,.75*k,.48*k,0).box(st,C.gunD,.1*k,.3*k,.3*k,.6*k,.6*k,0);
-  B.tube(st,C.gunL,[-1.3*k,.05*k,.3*k],[-1.3*k,.05*k,.62*k],.07*k,.07*k,6).cyl(st,C.gunL,.1*k,.3*k,-1.3*k,.05*k,.66*k,'x',6);
+  B.tube(st,C.gunL,[-1.3*k,.05*k,.3*k],[-1.3*k,.05*k,.58*k],.06*k,.06*k,6).cyl(st,C.gunL,.08*k,.36*k,-1.3*k,.05*k,.62*k,'x',L>1?10:6);
   // the grip (bakelite) and the trigger guard; the butt, fish-tailed
   B.ext('matte',C.bake,P([[-1.75,-.36],[-1.2,-.36],[-1.36,-1.26],[-1.98,-1.26]]),.34*k,0,0,0,0,0,0,.08*k);
   B.tube(st,C.gunD,[-1.2*k,-.4*k,0],[-.7*k,-.4*k,0],.035*k,.035*k,4).tube(st,C.gunD,[-.7*k,-.4*k,0],[-.66*k,-.76*k,0],.035*k,.035*k,4).tube(st,C.gunD,[-.66*k,-.76*k,0],[-1.3*k,-.84*k,0],.035*k,.035*k,4);
@@ -215,7 +215,7 @@ function ddrMG42Parts(B,S,o){
     B.both(s=>B.box(st,C.black,.06*k,.16*k,.1*k,.6*k,.82*k,s*.1*k)).both(s=>B.box(st,C.gunD,.22*k,.3*k,.03*k,6.5*k,.48*k,s*.13*k));
     B.box(st,C.gunD,.08*k,.98*k,.38*k,-4.62*k,-.13*k,0).box(st,C.gunD,.95*k,.06*k,.7*k,-.3*k,.2*k,-.62*k);
     B.both(s=>B.tube(st,C.gunD,[1.4*k,-.36*k,s*.14*k],[5.4*k,-.4*k,s*.16*k],.05*k,.05*k,5));
-    B.cyl(st,C.gunL,.36*k,.16*k,-2.27*k,0,0,'x',12).cyl(st,C.gunD,.1*k,.5*k,-1.3*k,.05*k,.66*k,'x',8);}
+    B.cyl(st,C.gunL,.36*k,.16*k,-2.27*k,0,0,'x',12);}
   return B;
 }
 // a belt of cartridges hanging off to the left of the feed: n rounds from x0,y0,z0 (in gun units, times k), each r thick and len long; full: bullets and links too
@@ -245,7 +245,8 @@ function ddrCradleParts(B,S,col){
   if(B.lod)B.cyl('steel',C.gunL,.2*k,.14*k,-1.0*k,-.78*k,.34*k,'z',8);
   return B;
 }
-// a whole gun on its mount: g (fixed: the legs, the ammunition box), g.userData.top (turns with the gun: the cradle and the gun), the bore h off the ground
+// a whole gun on its mount: g (fixed: the legs, the ammunition box), g.ddrTop (turns with the gun: the cradle and the gun), the bore h off the ground.
+// (Parts are kept as plain properties, not in userData: three's clone() copies userData through JSON, and the beach's scenery is cloned for the battle next door.)
 function ddrMG42(lod,o){
   o=o||{};const S=o.S||DDR_S,h=o.h||11.2;
   const M=ddrModel('mg42|'+(lod||0)+'|'+S+'|'+h,()=>{
@@ -254,7 +255,7 @@ function ddrMG42(lod,o){
     base.rbox('paint',C.feldD,3.6*S,1.7*S,.85*S,.08*S,-.4*S,.86*S,-2.7*S).tube('steel',C.gunD,[-1.2*S,1.75*S,-2.7*S],[.4*S,1.75*S,-2.7*S],.05*S,.05*S,4);
     ddrMG42Parts(top,S);
     return{base:base.geos(),top:top.geos({lo:.92}),pivot:h};});
-  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.userData.top=t;g.userData.real=true;return g;
+  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;return g;
 }
 
 /* ---------- the Browning M1919A4 (our .30 calibre gun: the nests in Chapter 2) ----------
@@ -307,7 +308,7 @@ function ddrM1919(lod,o){
     base.rbox('paint',C.odD,2.8*S,1.8*S,.95*S,.08*S,-.3*S,.9*S,-2.5*S).tube('steel',C.gunD,[-1*S,1.86*S,-2.5*S],[.4*S,1.86*S,-2.5*S],.05*S,.05*S,4);
     ddrM1919Parts(top,S);
     return{base:base.geos(),top:top.geos({lo:.92}),pivot:h-.25*S};});
-  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.userData.top=t;g.userData.real=true;return g;
+  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;return g;
 }
 
 /* ---------- the Browning M2 (our .50 calibre gun: the heavy machine gun in Chapter 2) ---------- */
@@ -341,14 +342,14 @@ function ddrM2(lod,o){
     base.rbox('paint',C.odD,3.2*S,2.0*S,1.6*S,.08*S,-.2*S,1.0*S,-3.0*S).tube('steel',C.gunD,[-1.2*S,2.06*S,-3.0*S],[.8*S,2.06*S,-3.0*S],.06*S,.06*S,4);
     ddrM2Parts(top,S);
     return{base:base.geos(),top:top.geos({lo:.92}),pivot:h-.4*S};});
-  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.userData.top=t;g.userData.real=true;return g;
+  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;return g;
 }
 
 /* ---------- first person behind a mounted gun ----------
    The gun you look along is the real one: it stands on its mount where the gun stands in the world and turns on its pivot as you aim; the camera rides
    behind and above its back end (ddfp.js's fpPose and fpCam ask ddrFpRig and ddrFpFrame). A finer model than the battle's (lod 2), with your hands on it. */
 // where the eye is from the gun's pivot, in gun units: eb behind it, eh above it; mz, by: where the muzzle is
-const DDR_FP={mg42:{eb:5.5,eh:1.55,mz:7.9,by:0},m1919:{eb:4.5,eh:1.85,mz:5.7,by:.25},m2:{eb:7.2,eh:2.2,mz:11.5,by:.4}};
+const DDR_FP={mg42:{eb:5.8,eh:1.95,mz:7.9,by:0},m1919:{eb:4.7,eh:2.1,mz:5.7,by:.25},m2:{eb:7.4,eh:2.5,mz:11.5,by:.4}};
 // a forearm in its sleeve from the elbow e to the wrist w, the palm p and fingers [[a,b],...] (all in gun units, times k)
 function ddrArm(B,k,e,w,palm,fingers,o){
   o=o||{};const sk=o.skin||0xb48c6e,cl=o.cloth||0x857f5a,m='matte',K=a=>a.map(v=>v*k),mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
@@ -384,7 +385,7 @@ function ddrFpGun(kind,o){
   // (the flash and the smoke at the muzzle are the battle's own: ddfx.js, from ddrMuzzle)
   const f=new T.Group();f.visible=false;rec.add(f);
   g.traverse(q=>{q.frustumCulled=false;});
-  g.userData={top,rec,flash:f,kind,S,h,pivot:M.pivot,own:true,real:true};return g;
+  g.ddrTop=top;g.ddr={top,rec,flash:f,S,h,pivot:M.pivot};g.userData={kind,own:true,real:true};return g;
 }
 
 /* ---------- the guns that stand in the world: who is on each, the gun turning with its gunner ----------
@@ -400,6 +401,8 @@ function ddrGlow(g){
   return{emissive:{setHex:h=>{for(const m of M)m.emissive.setHex(h);}},set emissiveIntensity(v){for(const m of M)m.emissiveIntensity=v*.45;},get emissiveIntensity(){return M[0]?M[0].emissiveIntensity/.45:0;}};
 }
 function ddrReset(){DDR.guns.clear();DDR.t=0;}
+// made once while a chapter is built, so the first tank or truck to appear in a fight doesn't cost a long frame (a tank's shapes and paint take a fifth of a second here)
+function ddrWarm(){if(!ddReal())return;try{if(typeof ddrTank==='function')ddrTank('panzer');if(typeof ddrVehTruck==='function'&&typeof DD_MODE!=='undefined'&&DD_MODE==='village')ddrVehTruck('opel',0);}catch(e){}}
 function ddrGunOf(u){
   if(!u||!u.onGun)return null;let best=null,bd=20;
   for(const G of DDR.guns.values()){if(!G.g.parent)continue;const d=Math.hypot(G.g.position.x-u.onGun.x,G.g.position.z-u.onGun.y);if(d<bd){bd=d;best=G;}}
@@ -410,25 +413,25 @@ function ddrGunsFrame(rdt){
   if(DDR.t<=0){DDR.t=.3;for(const G of DDR.guns.values()){if(!G.g.parent){DDR.guns.delete(G.g);continue;}G.man=null;}
     if(typeof units!=='undefined')for(const u of units){if(!u.onGun||u.dead||u.downed){u.ddrG=null;continue;}const G=ddrGunOf(u);if(G&&!G.man)G.man=u;u.ddrG=G&&G.man===u?G:null;}}
   const k=Math.min(1,rdt*9);
-  for(const G of DDR.guns.values()){const t=G.g.userData.top;if(!t)continue;const u=G.man;let want=0,rec=0;
+  for(const G of DDR.guns.values()){const t=G.g.ddrTop;if(!t)continue;const u=G.man;let want=0,rec=0;
     if(u&&u.onGun&&!u.dead){const a0=-G.g.rotation.y;want=-Math.atan2(Math.sin(u.ang-a0),Math.cos(u.ang-a0));if(typeof simT!=='undefined'&&simT-(u.shotT??-9)<.07)rec=.35;}
     t.rotation.y+=(want-t.rotation.y)*k;t.position.x=-rec*Math.cos(t.rotation.y);t.position.z=rec*Math.sin(t.rotation.y);}
 }
 // where his gun's muzzle is in the world (post.js's muzzleAt asks: the flash and the smoke come from the real barrel's end)
 function ddrMuzzle(u,out){
-  if(!ddReal()||!u||!u.onGun)return null;const F=typeof dd!=='undefined'&&dd&&dd.fp&&dd.fp.u===u?dd.fp:null,m=F&&F.rg?F.rg:u.ddrG&&u.ddrG.g;if(!m||!m.userData.top)return null;
-  const E=DDR_FP[m.userData.kind]||DDR_FP.mg42,S=m.userData.kind==='m2'?DDR_S*.82:DDR_S,t=F&&F.rg?m.userData.rec:m.userData.top;t.updateWorldMatrix(true,false);return t.localToWorld(out.set((E.mz+.4)*S,E.by*S,0));
+  if(!ddReal()||!u||!u.onGun)return null;const F=typeof dd!=='undefined'&&dd&&dd.fp&&dd.fp.u===u?dd.fp:null,m=F&&F.rg?F.rg:u.ddrG&&u.ddrG.g;if(!m||!m.ddrTop)return null;
+  const E=DDR_FP[m.userData.kind]||DDR_FP.mg42,S=m.userData.kind==='m2'?DDR_S*.82:DDR_S,t=F&&F.rg?m.ddr.rec:m.ddrTop;t.updateWorldMatrix(true,false);return t.localToWorld(out.set((E.mz+.4)*S,E.by*S,0));
 }
 // first person: the gun this man is on, if it's one of these
 function ddrFpRig(u){
   if(!ddReal()||!u||!u.onGun)return null;const G=ddrGunOf(u);if(!G)return null;
-  const E=DDR_FP[G.kind]||DDR_FP.mg42,S=G.kind==='m2'?DDR_S*.82:DDR_S,top=G.g.userData.top;
+  const E=DDR_FP[G.kind]||DDR_FP.mg42,S=G.kind==='m2'?DDR_S*.82:DDR_S,top=G.g.ddrTop;
   return{G,x:G.g.position.x,y:G.g.position.y+(top?top.position.y:11),z:G.g.position.z,eb:E.eb*S,eh:E.eh*S,S};
 }
 function ddrFpFrame(F,P,shot){
   const R=P.rig,G=R.G,T=THREE;
   if(!F.rg||F.rgG!==G){ddrFpOff(F);F.rg=ddrFpGun(G.kind);F.rgG=G;(G.g.parent||scene).add(F.rg);}
-  const m=F.rg,U=m.userData;G.g.visible=false;m.visible=true;m.position.copy(G.g.position);m.rotation.y=G.g.rotation.y;
+  const m=F.rg,U=m.ddr;G.g.visible=false;m.visible=true;m.position.copy(G.g.position);m.rotation.y=G.g.rotation.y;
   const a0=-G.g.rotation.y,pe=F.p+F.kick;U.top.rotation.set(0,-Math.atan2(Math.sin(F.a-a0),Math.cos(F.a-a0)),pe,'YZX');
   F.rk=(F.rk||0)*.72+(shot?.5:0);U.rec.position.x=-F.rk*U.S*.5;U.flash.visible=!!shot;if(shot)U.flash.rotation.x=Math.random()*6;
 }
@@ -437,16 +440,42 @@ function ddrFpOff(F){if(!F||!F.rg)return;if(F.rg.parent)F.rg.parent.remove(F.rg)
 /* ---------- wiring the other pieces in (the builders are in ddrart.js, ddrtank.js, ddrveh.js; missing, the old model is drawn) ---------- */
 const ddrHas=f=>ddReal()&&typeof window[f]==='function';
 const ddrMeshes=g=>{const L=[];g.traverse(o=>{if(o.isMesh)L.push(o);});return L;};
+// a piece that goes into the beach's scenery, which three's clone() copies for the battle next door, userData through JSON: anything in its userData that
+// isn't plain (a part, a function) is moved to a property of the same name with 'ddr_' in front
+function ddrPlain(g){g.traverse(o=>{const U=o.userData;for(const k in U){const v=U[k];if(v&&(typeof v==='function'||v.isObject3D||v.isMaterial||v.isBufferGeometry)){o['ddr_'+k]=v;delete U[k];}}});return g;}
 // a gun of theirs on the beach's top (dday.js's 'ddgun' objects, by tag): the piece, pointing out to sea (south) or east
 function ddrPlaceGun(o,cx,cy,g0,G){
   const f={heavy:'ddrArtCoast',art:'ddrArtLeFH18',cannon:'ddrArtPak40',aa:'ddrArtFlak38'}[o.tag];if(!f||!ddrHas(f))return null;
-  const g=window[f](0);g.position.set(cx,g0,cy);g.rotation.y=o.east?0:-Math.PI/2;g.userData.real=true;G.add(g);o.real=g;o.meshes=ddrMeshes(g);o.barrel=null;return g;
+  const g=window[f](0);g.position.set(cx,g0,cy);g.rotation.y=o.east?0:-Math.PI/2;g.ddrBarrel=g.userData.barrel||null;ddrPlain(g);g.userData.real=true;G.add(g);o.real=g;o.meshes=ddrMeshes(g);o.barrel=null;return g;
 }
 // knocked out by a blast (ddplay.js's ddBlast): burnt, askew, the barrel down
-function ddrGunWreck(o){const g=o.real;if(!g)return false;ddrBurn(g);g.rotation.z+=.1;g.rotation.x+=.05;g.position.y-=.6;const b=g.userData.barrel;if(b)b.rotation.z-=.22;return true;}
+function ddrGunWreck(o){const g=o.real;if(!g)return false;ddrBurn(g);g.rotation.z+=.1;g.rotation.x+=.05;g.position.y-=.6;const b=g.ddrBarrel;if(b)b.rotation.z-=.22;return true;}
 // a mortar by its crew: the tube, and the crate of bombs beside it; ang the way it throws
 function ddrPlaceMortar(x,y,g0,ang,G){
-  if(!ddrHas('ddrArtMortar'))return null;const g=ddrArtMortar(0);g.position.set(x,g0,y);g.rotation.y=-ang;g.userData.real=true;G.add(g);
-  if(typeof ddrArtMortarKit==='function'){const k=ddrArtMortarKit(0);k.position.set(x-Math.sin(ang)*9,g0,y+Math.cos(ang)*9);k.rotation.y=-ang+.5;G.add(k);}
+  if(!ddrHas('ddrArtMortar'))return null;const g=ddrPlain(ddrArtMortar(0));g.position.set(x,g0,y);g.rotation.y=-ang;g.userData.real=true;G.add(g);
+  if(typeof ddrArtMortarKit==='function'){const k=ddrPlain(ddrArtMortarKit(0));k.position.set(x-Math.sin(ang)*9,g0,y+Math.cos(ang)*9);k.rotation.y=-ang+.5;G.add(k);}
   return g;
+}
+
+/* ---------- the ships off the beach (ddlook.js's ddScenery): a destroyer and a transport, far out in the haze, so shape before detail ---------- */
+function ddrShip(kind){
+  const M=ddrModel('ship|'+kind,()=>{const B=ddrB(0),p='paint',dd2=kind==='destroyer',L=dd2?400:440,W=dd2?40:58,H=dd2?20:30,hull=0x7a858e,deck=0x5c646a,dk=0x4a5258,hz=Math.PI/2;
+    // the hull from above: a fine bow, a rounded stern; pushed up to the deck's height, a darker strake at the waterline, the deck on top
+    const plan=[[L/2,0],[L*.39,W*.3],[L*.22,W/2],[-L*.4,W/2],[-L/2,W*.3],[-L/2,-W*.3],[-L*.4,-W/2],[L*.22,-W/2],[L*.39,-W*.3]];
+    B.ext(p,hull,plan,H,0,H/2,0,-hz,0,0).ext(p,0x3c4248,plan.map(q=>[q[0]*1.002,q[1]*1.01]),3,0,1.6,0,-hz,0,0).ext(p,deck,plan.map(q=>[q[0]*.985,q[1]*.94]),1,0,H+.3,0,-hz,0,0);
+    B.ext(p,hull,[[L/2,0],[L*.3,W*.42],[L*.3,-W*.42]],6,L*.01,H+3,0,-hz,0,0);
+    if(dd2){   // a destroyer: the bridge, two raked funnels, the gun houses fore and aft, a mast, depth-charge racks
+      B.box(p,hull,L*.2,16,W*.6,L*.1,H+8,0).box(p,hull,L*.1,12,W*.5,L*.12,H+22,0).box(p,dk,L*.1,2,W*.56,L*.12,H+29,0);
+      for(const x of[-L*.03,-L*.15])B.cyl(p,dk,9,26,x,H+14,0,'y',10,8).put(p,new THREE.CylinderGeometry(8.4,8.4,1.4,10),0x2e3236,x,H+27.5,0);
+      for(const[x,h]of[[L*.3,6],[L*.23,12],[-L*.3,6],[-L*.37,6]]){B.box(p,hull,22,10,20,x,H+h,0).tube('steel',DDRC.gunD,[x+(x>0?8:-8),H+h+1,0],[x+(x>0?34:-34),H+h+5,0],1.6,1.3,6);}
+      B.tube(p,dk,[L*.08,H+28,0],[L*.07,H+78,0],1.6,.9,5).tube(p,dk,[L*.075,H+60,-14],[L*.075,H+60,14],.8,.8,4).box(p,dk,L*.14,8,W*.5,-L*.24,H+4,0);
+    }else{   // a transport: the house amidships with its funnel, masts and derricks over the holds, landing craft on the davits along its sides
+      B.box(p,0x8a949c,L*.26,20,W*.7,-L*.04,H+10,0).box(p,0x8a949c,L*.16,12,W*.56,-L*.02,H+26,0).box(p,dk,L*.16,2,W*.62,-L*.02,H+33,0);
+      B.cyl(p,dk,13,34,-L*.08,H+44,0,'y',10,11).put(p,new THREE.CylinderGeometry(11.6,11.6,2,10),0x2e3236,-L*.08,H+62,0);
+      for(const x of[L*.28,L*.14,-L*.24,-L*.36]){B.tube(p,dk,[x,H,0],[x,H+70,0],2.2,1.2,5).both(s=>B.tube(p,dk,[x,H+8,0],[x+(x>0?-1:1)*34,H+48,s*10],1.2,.9,4));}
+      B.both(s=>{for(const x of[-L*.14,L*.04])B.box(p,0x6a747c,30,7,9,x,H+12,s*(W/2+3)).tube(p,dk,[x-12,H+2,s*W*.46],[x-12,H+20,s*(W/2+4)],.9,.9,4).tube(p,dk,[x+12,H+2,s*W*.46],[x+12,H+20,s*(W/2+4)],.9,.9,4);});
+      B.box(p,deck,L*.12,5,W*.4,L*.2,H+2.5,0).box(p,deck,L*.1,5,W*.4,-L*.3,H+2.5,0);
+    }
+    return{g:B.geos({lo:.9,tile:60})};});
+  const g=ddrPart(M.g,{shadow:false,receive:false});g.userData.real=true;return g;
 }

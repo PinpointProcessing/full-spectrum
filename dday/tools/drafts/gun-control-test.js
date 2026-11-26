@@ -41,7 +41,7 @@ const s6=await ev(()=>({fp:!!dd.fp,one:dd.fp&&fpPose().one,mt:dd.fp&&fpPose().mt
 ok(s6.fp&&s6.one&&s6.mt&&/EXIT/.test(s6.btn),'a tap on CONTROL: first person on the gun, with an EXIT button');
 await ev(()=>{const F=dd.fp,P=fpPose(),e=TG;F.a=Math.atan2(e.y-P.O.z,e.x-P.O.x);const d=Math.hypot(e.x-P.O.x,e.y-P.O.z);F.p=Math.atan2(gndH(e.x,e.y)+12-P.O.y,d);for(let i=0;i<6;i++){update(1/30);}fpCam(1/30);render(1/30,simT);});await page.waitForTimeout(500);
 await ev(()=>{fpCam(1/30);render(1/30,simT);});await page.waitForTimeout(250);await page.screenshot({path:OUT+'/g3-pov.png'});
-const s7=await ev(()=>{const F=dd.fp,h0=TG.hp;F.fire=true;let fl=0;for(let i=0;i<60;i++){F.kick=0;update(1/30);fpCam(1/30);if(F.gun&&F.gun.userData.flash&&F.gun.userData.flash.visible)fl++;}F.fire=false;return{own:!!(F.gun&&F.gun.userData.own),dmg:Math.round(h0-TG.hp),fl,clip:F.clip};});
+const s7=await ev(()=>{const F=dd.fp,h0=TG.hp;F.fire=true;let fl=0;for(let i=0;i<60;i++){F.kick=0;update(1/30);fpCam(1/30);if(F.rg?flashes.some(f=>f.u===F.u):F.gun&&F.gun.userData.flash&&F.gun.userData.flash.visible)fl++;}F.fire=false;return{own:!!(F.rg||F.gun&&F.gun.userData.own),dmg:Math.round(h0-TG.hp),fl,clip:F.clip};});
 console.log(JSON.stringify(s7));ok(s7.own,'its own machine-gun model in the view');ok(s7.dmg>0&&s7.fl>0,'firing it hurts the man in the sights, the muzzle flashes');
 await ev(()=>{dd.fp.fire=true;for(let i=0;i<3;i++){update(1/30);fpCam(1/30);}render(1/30,simT);});await page.waitForTimeout(450);await ev(()=>{fpCam(1/30);render(1/30,simT);});await page.waitForTimeout(200);await page.screenshot({path:OUT+'/g4-pov-fire.png'});await ev(()=>{dd.fp.fire=false;});
 await page.click('#fp [data-a="back"]');await page.waitForTimeout(300);

@@ -299,7 +299,7 @@ function ddFxCannon(x,h,y,dir){
 function ddFxBigGuns(dt){
   const seen=DDF.seen,tanks=dd&&dd.tanks||[];
   for(const f of flashes){if(f.u||seen.has(f))continue;seen.add(f);let h=ddH(f.x,f.y)+16,dir=null;
-    for(const K of tanks){if(hyp(K.x+Math.cos(K.ta)*58-f.x,K.y+Math.sin(K.ta)*58-f.y)<3){h=ddH(K.x,K.y)+28;dir=K.ta;break;}}
+    for(const K of tanks){const mz=K.mz||58;if(hyp(K.x+Math.cos(K.ta)*mz-f.x,K.y+Math.sin(K.ta)*mz-f.y)<3){h=ddH(K.x,K.y)+(K.mh||28);dir=K.ta;break;}}
     if(dir==null&&rockets.some(r=>{const b=r.total?r.total-r.left:0;return hyp(r.x-r.dx*b-f.x,r.y-r.dy*b-f.y)<8;}))continue;   // (a bazooka's launch, where the rocket set off from: ddRockets puffs that one. Before pass 4 only a rocket still at the flash was caught, and it's 10 on by the first frame: a big gun's smoke ring went up round our own man)
     ddFxCannon(f.x,h,f.y,dir);}
   // a tank on the move: dust from its tracks, a little oily smoke from its back deck

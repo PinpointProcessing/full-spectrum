@@ -853,7 +853,7 @@ function ddTankSpawn(o){
   // (Version 190: a chunky Panzer IV in dunkelgelb, olive and red-brown, three meshes where there were eighteen: ddground.js's ddgTank; the same place, size and turning turret)
   const tk=typeof ddrHas==='function'&&ddrHas('ddrTank')?ddrTank('panzer'):ddgTank('panzer'),g=tk.g,tur=tk.tur;   // (Version 246, the draft: ddrtank.js's tank)
   DD.scene.add(g);const L=dd.tanks||(dd.tanks=[]),a=o.ang==null?Math.PI:o.ang;
-  const K={x:o.x,y:o.y,ang:a,ta:a,hp:330,hp0:330,i:0,way:o.way||[],g,tur,fireT:simT+5,side:'E',name:o.name||'Tank',id:'TANK'+(L.length+1),stats:{},mats:tk.mats,range:o.range||520,hold:!!o.hold};
+  const K={x:o.x,y:o.y,ang:a,ta:a,hp:330,hp0:330,i:0,way:o.way||[],g,tur,fireT:simT+5,side:'E',name:o.name||'Tank',id:'TANK'+(L.length+1),stats:{},mats:tk.mats,range:o.range||520,hold:!!o.hold,mz:g.userData.muzzle?g.userData.muzzle[0]+1:58,mh:g.userData.muzzle?(tur.position.y+g.userData.muzzle[1]):28};   // (mz, mh: where the gun ends, ahead of the tank's middle and off the ground: the flash and the smoke ring; the draft's tank has a shorter gun)
   L.push(K);K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;return K;
 }
 const ddTanksUp=()=>(dd&&dd.tanks||[]).filter(K=>K.hp>0);
@@ -866,9 +866,10 @@ function ddTankTick(dt){
       let t=null,bd=K.range;for(const u of dd.allies){if(u.inBoat||!alive(u))continue;const d=hyp(u.x-K.x,u.y-K.y);if(d<bd&&d>50&&los(K.x,K.y,u.x,u.y)){bd=d;t=u;}}
       if(t){K.ta=turn(K.ta,Math.atan2(t.y-K.y,t.x-K.x),dt*1.6);
         if(simT>=K.fireT&&Math.abs(((Math.atan2(t.y-K.y,t.x-K.x)-K.ta+Math.PI*3)%(Math.PI*2))-Math.PI)<.12){K.fireT=simT+5.5+Math.random()*2;
-          ddShell(K,t.x+(Math.random()-.5)*46,t.y+(Math.random()-.5)*46,48,80,Math.max(.5,bd/420));flashes.push({x:K.x+Math.cos(K.ta)*58,y:K.y+Math.sin(K.ta)*58,t:0});if(typeof sfxCannon==='function')sfxCannon(K.x,K.y);shake(.25);}}
+          ddShell(K,t.x+(Math.random()-.5)*46,t.y+(Math.random()-.5)*46,48,80,Math.max(.5,bd/420));flashes.push({x:K.x+Math.cos(K.ta)*(K.mz||58),y:K.y+Math.sin(K.ta)*(K.mz||58),t:0});if(typeof sfxCannon==='function')sfxCannon(K.x,K.y);shake(.25);}}
       else K.ta=turn(K.ta,K.ang,dt*.8);
     }
+    if(K.g.userData.roll){const d=hyp(K.x-(K.rx??K.x),K.y-(K.ry??K.y));K.rx=K.x;K.ry=K.y;if(d>.01)K.g.userData.roll(d);}   // (Version 246, the draft's tank: its tracks run as it drives, ddrtank.js)
     K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;K.tur.rotation.y=-(K.ta-K.ang);
   }
 }

@@ -305,6 +305,7 @@ function buildDDay(){
     const bl=new T.PointLight(0xffa050,0,300,1.6);sc.add(bl);
     DD.lights={hemi,moon:sun,lampPool:pool,muzzle:mz,boomL:bl};
     ddGibPool(sc);
+    if(typeof ddrWarm==='function')ddrWarm();   // (Version 246, the draft: the tank's shapes made now, not in the fight)
     for(const f of['ddLightBuild','ddSeaBuild','ddFxBuild','ddGroundBuild'])if(typeof window[f]==='function')window[f](sc);   // (Version 188: each of the looks' own build: ddlight.js, ddsea.js, ddfx.js, ddground.js; every chapter, the lights made)
   }finally{scene=keep;}
 }
@@ -389,10 +390,10 @@ function ddProps(sc,objsL){
       for(let k=0;k<n;k++){const x=o.x+k*7+3.5,t=add(new T.TorusGeometry(4,.3,4,9),wm,x,ddH(x,cy)+4.2,cy,Math.PI/2+.35);o.meshes.push(t);}
       for(let x=o.x;x<=o.x+o.w;x+=38)o.meshes.push(add(new T.BoxGeometry(1,9,1),wood,x,ddH(x,cy)+4.5,cy));
     }else if(o.kind==='ddwreck'){
-      if(o.lc){o.meshes=[ddBoatMesh(G,true)];o.meshes[0].position.set(cx,g0-1,cy);o.meshes[0].rotation.set(.05,.3,.22);}
+      if(o.lc){o.meshes=[ddBoatMesh(G,true)];if(typeof ddrPlain==='function'&&o.meshes[0].userData.real)ddrPlain(o.meshes[0]);o.meshes[0].position.set(cx,g0-1,cy);o.meshes[0].rotation.set(.05,.3,.22);}
       else if(typeof ddrHas==='function'&&ddrHas('ddrTankWreck')){   // (Version 246, the draft: ddrtank.js's wreck)
         const pz=DD_MODE==='village',w=ddrTankWreck(pz?'panzer':'sherman'),along=o.w>=o.h,sc=Math.min(Math.max(o.w,o.h)/64,Math.min(o.w,o.h)/36);
-        w.position.set(cx,g0-1,cy);w.rotation.set(.03,(along?0:-Math.PI/2)+(Math.abs(cx*13+cy*7)%10/10-.5)*.2,-.04);w.scale.setScalar(sc);w.userData.real=true;G.add(w);o.meshes=ddrMeshes(w);}
+        ddrPlain(w);w.position.set(cx,g0-1,cy);w.rotation.set(.03,(along?0:-Math.PI/2)+(Math.abs(cx*13+cy*7)%10/10-.5)*.2,-.04);w.scale.setScalar(sc);w.userData.real=true;G.add(w);o.meshes=ddrMeshes(w);}
       else if(typeof ddgTankWreckGeo==='function'){   // (Version 190: a knocked-out tank, not three black boxes: on the beach a Sherman, olive drab sooted, its star still showing; in the village a burnt Panzer; the turret turned, the gun down; the same footprint)
         const pz=DD_MODE==='village',W=ddgTankWreckGeo(pz?'panzer':'sherman'),k='wreckM'+(pz?1:0),ms=DD[k]||(DD[k]=ddgTankMats(pz?'burnt':'shermanw')),along=o.w>=o.h,sc=Math.min(Math.max(o.w,o.h)/64,Math.min(o.w,o.h)/36),ry=(along?0:-Math.PI/2)+(Math.abs(cx*13+cy*7)%10/10-.5)*.2;
         o.meshes=[add(W.paint,ms[0],cx,g0-1,cy,ry,.03,-.04),add(W.trk,ms[1],cx,g0-1,cy,ry,.03,-.04)];for(const m of o.meshes)m.scale.setScalar(sc);}
@@ -434,7 +435,7 @@ function ddProps(sc,objsL){
       for(const a of[0,2.3,-2.3]){const l=new T.Mesh(new T.CylinderGeometry(.4,.4,13,5),gm);l.position.set(Math.cos(a)*3.4,5.4,Math.sin(a)*3.4);l.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);g.add(l);}
       G.add(g);}}
   if(DD_MODE==='beach'&&typeof ddrPlaceMortar==='function'){   // (Version 246, the draft: the mortars their crews stand by had no model at all)
-    for(const m of DD_SPOT.mortars)ddrPlaceMortar(m.x+DDX,m.y+8,ddH(m.x+DDX,m.y+8),Math.PI/2,G);for(const[x,y]of[[1680,-722],[1708,-690]])ddrPlaceMortar(x,y,ddH(x,y),Math.PI/2,G);}
+    for(const m of DD_SPOT.mortars)ddrPlaceMortar(m.x+DDX,m.y+8,ddH(m.x+DDX,m.y+8),Math.PI/2,G);for(const[x,y]of[[1675,-730],[1703,-698]])ddrPlaceMortar(x,y,ddH(x,y),Math.PI,G);}   // (their base's two stand behind bags to the west of them)
   if(DD_MODE==='beach'&&typeof ddPostBuild==='function')ddPostBuild(G,add,M);   // (Version 198: the checkpoint)
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored

@@ -55,6 +55,9 @@ function fpPose(){
   let O,rig=null;
   // (Version 246, the draft's guns: the eye rides behind and above the back of the real gun, round its pivot: ddreal.js)
   if(mt&&!A&&typeof ddrFpRig==='function'&&(rig=ddrFpRig(u))){const sp=Math.sin(p);O=new T.Vector3(rig.x,rig.y,rig.z).addScaledVector(D,-rig.eb).add(new T.Vector3(-Math.cos(F.a)*sp,cp,-Math.sin(F.a)*sp).multiplyScalar(rig.eh));return{O,D,R,one,mt,A,rig};}
+  // (the draft's field gun: the eye above and behind its breech, looking along the barrel over the shield, and the gun turned to where you look)
+  const am=A&&typeof ddReal==='function'&&ddReal()&&typeof DD!=='undefined'&&DD.dcGuns&&DD.dcGuns[A.k];
+  if(am&&am.userData.real&&!A.dead){am.rotation.y=-F.a;O=new T.Vector3(am.position.x-Math.cos(F.a)*15,am.position.y+20,am.position.z-Math.sin(F.a)*15);return{O,D,R,one,mt,A};}
   if(one)O=new T.Vector3(u.x+Math.cos(F.a)*2.5,g+F.H*.9+(A?5:0),u.y+Math.sin(F.a)*2.5);
   else{O=new T.Vector3(u.x,g+F.H+7,u.y).addScaledVector(D,-FPC.back).addScaledVector(R,FPC.side);const gh=gndH(O.x,O.z)+3;if(O.y<gh)O.y=gh;}
   return{O,D,R,one,mt,A};

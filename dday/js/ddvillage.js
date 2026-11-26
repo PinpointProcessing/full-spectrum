@@ -183,7 +183,7 @@ function vgBuild(G,sc,M,add){
     else if(o.kind==='vgcart'){o.meshes=[add(new T.BoxGeometry(o.w,4,o.h),wood,cx,g0+8,cy),add(new T.BoxGeometry(o.w,6,1),wood,cx,g0+12,o.y),add(new T.BoxGeometry(o.w,6,1),wood,cx,g0+12,o.y+o.h)];
       for(const z of[o.y-1,o.y+o.h+1])o.meshes.push(add(new T.CylinderGeometry(7,7,1.4,12),M(0x4a3a28,.95),cx+4,g0+7,z,0,Math.PI/2));o.meshes.push(add(new T.BoxGeometry(26,1.4,1.4),wood,o.x-11,g0+5,cy-3,0,0,.18));}
     else if(o.kind==='vgcar'&&typeof ddrHas==='function'&&ddrHas('ddrVehCar')){   // (Version 246, the draft: ddrveh.js's wrecks)
-      const c=ddrVehCar(o.look==='truck'?'lorry':'kubel',true,0);ddrBurn(c);c.position.set(cx,g0,cy);c.rotation.y=o.w>=o.h?(o.look==='truck'?Math.PI:0):-Math.PI/2;c.userData.real=true;G.add(c);o.meshes=ddrMeshes(c);}
+      const c=ddrPlain(ddrVehCar(o.look==='truck'?'lorry':'kubel',true,0));ddrBurn(c);c.position.set(cx,g0,cy);c.rotation.y=o.w>=o.h?(o.look==='truck'?Math.PI:0):-Math.PI/2;c.userData.real=true;G.add(c);o.meshes=ddrMeshes(c);}
     else if(o.kind==='vgcar'){const burnt=M(0x2e2a26,.9,.3),body=o.look==='truck'?[o.w,10,o.h]:[o.w,8,o.h];
       o.meshes=[add(new T.BoxGeometry(...body),burnt,cx,g0+7,cy),add(new T.BoxGeometry(o.look==='truck'?12:o.w*.5,7,o.h-2),burnt,o.look==='truck'?o.x+8:cx-2,g0+14,cy)];
       for(const[dx,dz]of[[-.35,-.5],[.35,-.5],[-.35,.5],[.35,.5]])o.meshes.push(add(new T.CylinderGeometry(3.2,3.2,2,10),M(0x1a1a1a,.9),cx+dx*o.w,g0+3.2,cy+dz*o.h,0,Math.PI/2));}
