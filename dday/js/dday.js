@@ -439,8 +439,11 @@ function ddProps(sc,objsL){
   if(DD_MODE==='beach'&&typeof ddPostBuild==='function')ddPostBuild(G,add,M);   // (Version 198: the checkpoint)
   if(typeof ddDress==='function')ddDress(G,sc,M);   // (ddlook.js: grass, bushes, trees, stones, clutter)
   // the battle next door: the same works, mirrored
+  // (Version 246, the draft's guns and vehicles aren't copied into it: they'd be drawn three times over, for scenery off the edge of the fight)
+  const real246=G.children.filter(o=>o.userData&&o.userData.real);for(const o of real246)G.remove(o);
   for(const s of[-1,1]){const c=G.clone(true);c.scale.x=-1;c.position.x=s<0?0:2*(DDB.x1-DDB.x0);sc.add(c);
     for(const m of c.children)if(!m.isInstancedMesh&&m.position.z<-330&&m.position.x>(s<0?1200:860))m.visible=false;}   // (no mirror image where their base stands, or of it: ddbase.js)
+  for(const o of real246)G.add(o);
   if(typeof ddBaseBuild==='function')ddBaseBuild(sc);
 }
 // a landing craft: a steel box of a hull, a ramp at the bow (north, -z) that drops (Version 188: its look is ddground.js's LCVP, one mesh and the ramp)

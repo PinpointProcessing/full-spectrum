@@ -17,8 +17,8 @@ for(const ch of CH){
   // a camera looking at (x,y) from az (radians, 0 = from the east, PI/2 = from the south), d away, h above the ground there, at a point lh up
   const at=async(name,x,y,az,d,h,lh,fov)=>{const g=await ev(([x,y])=>ddH(x,y),[x,y]);await shot(name,[x+Math.cos(az)*d,g+h,y+Math.sin(az)*d,x,g+(lh==null?8:lh),y,fov||38]);};
   const fpshot=async(name,setup,arg)=>{if(ONLY&&!ONLY.includes(name))return;await ev(()=>{if(window._uc0)updateCamera=window._uc0;if(window._dc)ddCam=window._dc;});const ok=await ev(setup,arg);if(ok===false){console.log('fp setup failed',name);return;}
-    await ev(()=>{bigText('');for(let i=0;i<3;i++)update(1/600);for(let i=0;i<30;i++)fpCam(1/30);render(1/30,simT);hud();ox.setTransform(1,0,0,1,0,0);ox.clearRect(0,0,9999,9999);for(const s of ['#fp','#dcBar','#ddObj','#banner','#big','#hint'])for(const el of document.querySelectorAll(s))el.style.visibility='hidden';});await page.waitForTimeout(450);
-    await ev(()=>{if(window.FIRE){dd.fp.cool=1;dd.fp.vk=1;}fpCam(1/600);render(1/30,simT);ox.clearRect(0,0,9999,9999);});await page.waitForTimeout(250);await page.screenshot({path:`${OUT}/${ch}-${name}.png`});console.log('shot',ch,name);await ev(()=>{if(dd.fp)fpExit();});};
+    await ev(()=>{bigText('');flashes.length=0;for(let i=0;i<3;i++)update(1/600);for(let i=0;i<30;i++)fpCam(1/30);render(1/30,simT);hud();ox.setTransform(1,0,0,1,0,0);ox.clearRect(0,0,9999,9999);for(const s of ['#fp','#dcBar','#ddObj','#banner','#big','#hint'])for(const el of document.querySelectorAll(s))el.style.visibility='hidden';});await page.waitForTimeout(450);
+    await ev(()=>{if(window.FIRE){fpShoot();dd.fp.cool=FP_W.mg.cool;for(let i=0;i<2;i++)update(1/120);}fpCam(1/600);render(1/30,simT);ox.clearRect(0,0,9999,9999);});await page.waitForTimeout(250);await page.screenshot({path:`${OUT}/${ch}-${name}.png`});console.log('shot',ch,name);await ev(()=>{if(dd.fp)fpExit();});};
   if(ch==='beach'){
     await page.click('#ddBtn');await page.waitForTimeout(500);
     // the ride in: the boats
@@ -32,11 +32,12 @@ for(const ch of CH){
     // the roofs come back each frame (ddFrame): keep them off for the pictures
     await ev(()=>{const f=ddFrame;ddFrame=function(){f.apply(this,arguments);for(const m of DD.roofs||[]){m.visible=false;for(const p of m.userData.parts||[])p.visible=false;}};});
     let i=0;for(const m of S.mg){await at('mg'+(i++),m.x,m.y,m.a+Math.PI*.78,42,26,10,34);}
-    for(const g of S.guns)await at('gun-'+g.t,g.x,g.y,g.e?-.9:Math.PI*.5+.8,95,52,14,38);
+    {const C={art:[Math.PI*.5+.8,95,52],heavy:[1.05,78,30],cannon:[-.75,74,40],aa:[Math.PI*.5+.8,80,44]};let n=0;
+      for(const g of S.guns){const c=C[g.t]||C.art;await at('gun-'+g.t+(g.t==='art'&&n++?'2':''),g.x,g.y,c[0],c[1],c[2],12,38);}}
     if(S.post.length)await at('postgun',S.post[0].x,S.post[0].y,Math.PI*.5+.9,44,26,10,34);
     if(S.trucks[0])await at('truck',S.trucks[0].x,S.trucks[0].y,.9,90,48,10,38);
     for(const w of S.wr.slice(0,2))await at('wreck'+(w.lc?'-lc':''),w.x,w.y,.85,100,52,8,38);
-    if(S.mort[0])await at('mortar',S.mort[0].x,S.mort[0].y,Math.PI*.5+.6,46,28,6,36);
+    if(S.mort[0])await at('mortar',S.mort[0].x,S.mort[0].y+6,-2.4,44,26,6,36);
     const K=await ev(()=>{const K=ddTankSpawn({x:820,y:-560,ang:Math.PI*.8,name:'Test',hold:true});K.tur.rotation.y=.3;return{x:K.x,y:K.y};});
     await at('tank',K.x,K.y,.9,96,44,12,38);await at('tank-low',K.x,K.y,2.2,80,16,12,38);await at('tank-top',K.x,K.y,1.2,150,170,10,38);
     await ev(()=>{const K=dd.tanks[dd.tanks.length-1];ddTankHit(K.x,K.y,3);RUN(4);});await at('tank-dead',K.x,K.y,.9,96,44,12,38);
@@ -62,7 +63,7 @@ for(const ch of CH){
     await at('mortar',560,-238,Math.PI*.5+.6,44,26,6,36);
     for(const c of S.cars)await at('car-'+(c.l||'car'),c.x,c.y,.9,80,42,8,38);
     if(S.wr[0])await at('wreck',S.wr[0].x,S.wr[0].y,.85,100,52,8,38);
-    const T=await ev(()=>{const K=vgTruck({way:[[700,120],[700,60]],men:0,goal:[700,0]});return{x:K.x,y:K.y};});
+    const T=await ev(()=>{const K=vgTruck({way:[[700,120],[700,60]],men:0,goal:[700,0]});K.ph='parked';RUN(.7);return{x:K.x,y:K.y};});   // (parked, and a moment for the light's colour sweep to reach it)
     await at('truck',T.x,T.y,.6,90,46,12,38);await at('truck-rear',T.x,T.y,2.4,84,40,12,38);
   }
   console.log(ch,'errors',errors.length,errors.slice(0,3));await page.close();

@@ -14,6 +14,7 @@
    - ddrB(lod): a builder. Parts are added by material and colour (box, rbox, tube, cyl, lathe, ext, ball, torus, put), then geos() merges them
      into one geometry a material with the wear picture laid over them by where they are, and a little shade toward the ground.
      lod 0 is the model for the battle's camera (few sides, no rounding), lod 1 the one you see close up or from behind the gun.
+     ddrB(lod,fold): fold {brass:'steel',wood:'matte'} puts the parts of one material into another's mesh (fewer draw calls at the battle's distance).
    - ddrModel(key, build): made once a page and shared; ddrInst(model) a Group of meshes from it.
    Frame for every model: +x the way it points, +y up, +z its right; the origin on the ground under its pivot. 1 unit = 10 cm. */
 const DDR={on:false,env:null,tex:{},mats:{},geo:{},guns:new Map(),t:0};
@@ -123,18 +124,18 @@ function ddrProject(G,tile,wood){
 }
 
 /* ---------- the builder ---------- */
-function ddrB(lod){
-  const T=THREE,L={},B={lod:lod||0},hz=Math.PI/2,_a=new T.Vector3(),_b=new T.Vector3(),_d=new T.Vector3(),_up=new T.Vector3(0,1,0),_q=new T.Quaternion(),_m=new T.Matrix4(),_s=new T.Vector3(1,1,1);
+function ddrB(lod,fold){
+  const T=THREE,L={},B={lod:lod||0},hz=Math.PI/2,K=mk=>fold&&fold[mk]||mk,_a=new T.Vector3(),_b=new T.Vector3(),_d=new T.Vector3(),_up=new T.Vector3(0,1,0),_q=new T.Quaternion(),_m=new T.Matrix4(),_s=new T.Vector3(1,1,1);
   const N=(n0,n1)=>B.lod?(n1||Math.round(n0*1.8)):n0;   // how many sides: the battle's camera, close up
   B.N=N;
-  B.put=(mk,g,c,x,y,z,rx,ry,rz,sx,sy,sz,o)=>{(L[mk]||(L[mk]=[])).push(Object.assign({g,c,p:[x||0,y||0,z||0],r:[rx||0,ry||0,rz||0],s:[sx??1,sy??1,sz??1]},o||{}));return B;};
+  B.put=(mk,g,c,x,y,z,rx,ry,rz,sx,sy,sz,o)=>{mk=K(mk);(L[mk]||(L[mk]=[])).push(Object.assign({g,c,p:[x||0,y||0,z||0],r:[rx||0,ry||0,rz||0],s:[sx??1,sy??1,sz??1]},o||{}));return B;};
   B.box=(mk,c,w,h,d,x,y,z,rx,ry,rz)=>B.put(mk,new T.BoxGeometry(w,h,d),c,x,y,z,rx,ry,rz);
   // a box with its edges rounded off (close up only: at the battle's distance a plain box, a ninth of the triangles)
   B.rbox=(mk,c,w,h,d,r,x,y,z,rx,ry,rz)=>B.put(mk,B.lod&&typeof rbox==='function'?rbox(w,h,d,r):new T.BoxGeometry(w,h,d),c,x,y,z,rx,ry,rz);
   // a round bar from a to b, ra thick at a and rb at b (n sides)
   B.tube=(mk,c,a,b,ra,rb,n,open)=>{_a.set(a[0],a[1],a[2]);_b.set(b[0],b[1],b[2]);_d.subVectors(_b,_a);const l=_d.length();if(l<1e-4)return B;
     _q.setFromUnitVectors(_up,_d.normalize());_m.compose(_a.addScaledVector(_d,l/2),_q,_s);
-    (L[mk]||(L[mk]=[])).push({g:new T.CylinderGeometry(rb==null?ra:rb,ra,l,N(n||8),1,!!open),c,m:_m.clone()});return B;};
+    mk=K(mk);(L[mk]||(L[mk]=[])).push({g:new T.CylinderGeometry(rb==null?ra:rb,ra,l,N(n||8),1,!!open),c,m:_m.clone()});return B;};
   // a cylinder along an axis ('x','y','z'), centred at x,y,z
   B.cyl=(mk,c,r,len,x,y,z,ax,n,r2)=>B.put(mk,new T.CylinderGeometry(r2==null?r:r2,r,len,N(n||10)),c,x,y,z,ax==='z'?hz:0,0,ax==='x'?-hz:0);
   // a turned shape: prof [[t,r],...] along the axis from x,y,z (t along the axis, r the radius there)
@@ -179,6 +180,8 @@ function ddrPart(geos,o){
 function ddrBurn(g){if(g)g.traverse(o=>{if(o.isMesh&&o.userData.ddrK&&o.material)o.material=ddrBurnt(o.userData.ddrK);});}
 const ddrTris=g=>{let n=0;g.traverse(o=>{if(o.isMesh&&o.geometry)n+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3;});return n;};
 
+// at the battle's distance a gun on its mount is three meshes, not eight: the mount all in the paint's, the gun's brass in the steel's, its wood and cradle in the matte's and the steel's
+const DDR_FOLD_B={steel:'paint',matte:'paint'},DDR_FOLD_T={brass:'steel',wood:'matte',paint:'steel'};
 // how much bigger than life the guns on mounts are drawn: the men are chunky, and a gun at its true size reads as a stick beside them
 const DDR_S=1.45;
 /* ---------- colours ---------- */
@@ -250,12 +253,12 @@ function ddrCradleParts(B,S,col){
 function ddrMG42(lod,o){
   o=o||{};const S=o.S||DDR_S,h=o.h||11.2;
   const M=ddrModel('mg42|'+(lod||0)+'|'+S+'|'+h,()=>{
-    const base=ddrB(lod),top=ddrB(lod),C=DDRC;
+    const base=ddrB(lod,lod?null:DDR_FOLD_B),top=ddrB(lod,lod?null:DDR_FOLD_T),C=DDRC;
     ddrLafetteParts(base,S,h);ddrCradleParts(top,S);
     base.rbox('paint',C.feldD,3.6*S,1.7*S,.85*S,.08*S,-.4*S,.86*S,-2.7*S).tube('steel',C.gunD,[-1.2*S,1.75*S,-2.7*S],[.4*S,1.75*S,-2.7*S],.05*S,.05*S,4);
     ddrMG42Parts(top,S);
     return{base:base.geos(),top:top.geos({lo:.92}),pivot:h};});
-  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;return g;
+  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;if(!lod)for(const m of t.children)if(m.userData.ddrK!=='steel')m.castShadow=false;return g;
 }
 
 /* ---------- the Browning M1919A4 (our .30 calibre gun: the nests in Chapter 2) ----------
@@ -303,12 +306,12 @@ function ddrTripodParts(B,S,h,col,big){
 function ddrM1919(lod,o){
   o=o||{};const S=o.S||DDR_S,h=o.h||11.2;
   const M=ddrModel('m1919|'+(lod||0)+'|'+S+'|'+h,()=>{
-    const base=ddrB(lod),top=ddrB(lod),C=DDRC;
+    const base=ddrB(lod,lod?null:DDR_FOLD_B),top=ddrB(lod,lod?null:DDR_FOLD_T),C=DDRC;
     ddrTripodParts(base,S,h);
     base.rbox('paint',C.odD,2.8*S,1.8*S,.95*S,.08*S,-.3*S,.9*S,-2.5*S).tube('steel',C.gunD,[-1*S,1.86*S,-2.5*S],[.4*S,1.86*S,-2.5*S],.05*S,.05*S,4);
     ddrM1919Parts(top,S);
     return{base:base.geos(),top:top.geos({lo:.92}),pivot:h-.25*S};});
-  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;return g;
+  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;if(!lod)for(const m of t.children)if(m.userData.ddrK!=='steel')m.castShadow=false;return g;
 }
 
 /* ---------- the Browning M2 (our .50 calibre gun: the heavy machine gun in Chapter 2) ---------- */
@@ -337,12 +340,12 @@ function ddrM2Parts(B,S,o){
 function ddrM2(lod,o){
   o=o||{};const S=o.S||DDR_S*.82,h=o.h||11.4;
   const M=ddrModel('m2|'+(lod||0)+'|'+S+'|'+h,()=>{
-    const base=ddrB(lod),top=ddrB(lod),C=DDRC;
+    const base=ddrB(lod,lod?null:DDR_FOLD_B),top=ddrB(lod,lod?null:DDR_FOLD_T),C=DDRC;
     ddrTripodParts(base,S*1.15,h,null,true);
     base.rbox('paint',C.odD,3.2*S,2.0*S,1.6*S,.08*S,-.2*S,1.0*S,-3.0*S).tube('steel',C.gunD,[-1.2*S,2.06*S,-3.0*S],[.8*S,2.06*S,-3.0*S],.06*S,.06*S,4);
     ddrM2Parts(top,S);
     return{base:base.geos(),top:top.geos({lo:.92}),pivot:h-.4*S};});
-  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;return g;
+  const g=new THREE.Group(),b=ddrPart(M.base),t=ddrPart(M.top);t.position.y=M.pivot;g.add(b);g.add(t);g.ddrTop=t;g.userData.real=true;if(!lod)for(const m of t.children)if(m.userData.ddrK!=='steel')m.castShadow=false;return g;
 }
 
 /* ---------- first person behind a mounted gun ----------
