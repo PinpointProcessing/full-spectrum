@@ -407,7 +407,7 @@ function ddrReset(){DDR.guns.clear();DDR.t=0;}
 // made once while a chapter is built, so the first tank or truck to appear in a fight doesn't cost a long frame (a tank's shapes and paint take a fifth of a second here)
 function ddrWarm(){if(!ddReal())return;try{if(typeof ddrTank==='function')ddrTank('panzer');if(typeof ddrVehTruck==='function'&&typeof DD_MODE!=='undefined'&&DD_MODE==='village')ddrVehTruck('opel',0);}catch(e){}}
 function ddrGunOf(u){
-  if(!u||!u.onGun)return null;let best=null,bd=20;
+  if(!u||!u.onGun||u.onTank)return null;let best=null,bd=20;   // (not the man on a tank: his gun is the tank's own, ddplay.js)
   for(const G of DDR.guns.values()){if(!G.g.parent)continue;const d=Math.hypot(G.g.position.x-u.onGun.x,G.g.position.z-u.onGun.y);if(d<bd){bd=d;best=G;}}
   return best;
 }

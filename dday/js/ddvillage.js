@@ -581,7 +581,7 @@ function vgTick(dt){
   if((dd.npcT-=dt)<=0){dd.npcT=.5;vgNpcs();vgEnemyPush();vgReplace();vgZones();ddHelpers();ddTidy();updateObjUI();}
   // won: everything taken, their reinforcements in and beaten, the tank out; the last of them give up
   if(V.ph==='village'&&V.r2&&!dd.won&&!endAt){
-    const all=VG.zones.every(z=>V.held[z.k]),left=enemies.filter(e=>!beaten(e)&&e.y<-160),tk=ddTanksUp().filter(K=>!K.retreat);
+    const all=VG.zones.every(z=>V.held[z.k]),left=enemies.filter(e=>!beaten(e)&&e.y<-160&&!e.onTank),tk=ddTanksUp().filter(K=>!K.retreat);
     if(all&&left.length<=2&&tk.length){V.tankOutT=V.tankOutT||V.t+22;if(V.t>V.tankOutT)for(const K of tk)vgTankOut(K);}
     if(all&&!tk.length&&left.length<=2&&V.trucks.every(K=>K.ph==='parked')){
       for(const e of enemies)if(!beaten(e))vgGiveUp(e);

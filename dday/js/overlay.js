@@ -161,7 +161,7 @@ function drawOverlay(rdt,now){
   for(const s of sparks){const[sx,sy]=toS(s.x,s.y,6),k=1-s.t/.22;ox.fillStyle=`rgba(255,200,120,${k})`;for(let i=0;i<4;i++){const a=i*1.7+s.x,d=2+s.t*40;ox.fillRect(sx+Math.cos(a)*d,sy+Math.sin(a)*d,1.6,1.6);}}
   for(const b of booms){if(DDM)break;const k=b.t/.6;gPath(b.x,b.y,10+70*k);ox.strokeStyle=`rgba(255,200,130,${1-k})`;ox.lineWidth=3*(1-k)+1;ox.stroke();}
   ox.globalCompositeOperation='source-over';
-  for(const n of nades){
+  for(const n of nades){if(n.direct)continue;   // (a shell fired flat from behind the field gun: its streak is drawn, not a lobbed dot: ddcounter.js)
     const k=n.t/n.dur,x=n.x0+(n.x1-n.x0)*k,y=n.y0+(n.y1-n.y0)*k,h=Math.sin(k*Math.PI)*30+8*(1-k);
     const[sx,sy]=toS(x,y),[bx,by]=toS(x,y,h);ox.fillStyle='rgba(0,0,0,.55)';ox.beginPath();ox.arc(sx,sy,2.5,0,TAU);ox.fill();
     ox.fillStyle=n.smoke?'#b9c0c6':'#c9d1a0';ox.beginPath();ox.arc(bx,by,3,0,TAU);ox.fill();

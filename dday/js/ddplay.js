@@ -332,7 +332,7 @@ function ddKill(t,how,big){
 /* ---------- blasts (mission.js's tankBlast): the gates, the wire, the guns, the barracks ---------- */
 function ddBlast(x,y,by){
   if(!dd||(by&&by.side==='E'))return;
-  const rk=dd.rkt?1:0;ddTankHit(x,y,1,rk?DD_BAZ.tank:1);if(typeof vgBlast==='function')vgBlast(x,y);   // (Chapter 3's trucks: ddvillage.js)
+  const rk=dd.rkt?1:0;ddTankHit(x,y,1,rk?DD_BAZ.tank:1,by);if(typeof vgBlast==='function')vgBlast(x,y);   // (Chapter 3's trucks: ddvillage.js)
   for(const o of objs.slice()){
     if(o.hp==null||o.gone)continue;const d=rectDist(x,y,o);if(d>46)continue;
     o.hp-=110*(rk?DD_BAZ.obj:1)*(1-d/52);
@@ -854,8 +854,52 @@ function ddTankSpawn(o){
   const tk=typeof ddrHas==='function'&&ddrHas('ddrTank')?ddrTank('panzer'):ddgTank('panzer'),g=tk.g,tur=tk.tur;   // (Version 246, the draft: ddrtank.js's tank)
   DD.scene.add(g);const L=dd.tanks||(dd.tanks=[]),a=o.ang==null?Math.PI:o.ang;
   const K={x:o.x,y:o.y,ang:a,ta:a,hp:330,hp0:330,i:0,way:o.way||[],g,tur,fireT:simT+5,side:'E',name:o.name||'Tank',id:'TANK'+(L.length+1),stats:{},mats:tk.mats,range:o.range||520,hold:!!o.hold,mz:g.userData.muzzle?g.userData.muzzle[0]+1:58,mh:g.userData.muzzle?(tur.position.y+g.userData.muzzle[1]):28};   // (mz, mh: where the gun ends, ahead of the tank's middle and off the ground: the flash and the smoke ring; the draft's tank has a shorter gun)
-  L.push(K);K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;return K;
+  L.push(K);K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;ddTankCrew(K);return K;
 }
+/* Version 247 (Bryan, after Version 246: "the tank was not engaging at all. There should be an MG unit on top of the tank too"): a man at a
+   machine gun in the commander's hatch. He is one of their men like any other (ddFoe: he picks his own targets, his bursts pin and hurt, he can be
+   shot, pinned, counted as a kill), carried round on the turret: ddTankCrewPose puts him at the cupola each tick. Half cover behind the hatch's rim
+   (combat.js's hitChance, onTank) and a third of a blast (explode: he ducks inside); his aim a little worse than a gun's on the ground (the tank is
+   moving); he reaches DD_TANKMG.longR x 1.45, 58 m, spraying past 42 m as the hill bunker's gun does. Killed, the gun is left pointing at the sky and nobody takes his place; the tank knocked out, he goes with it. While the tank is
+   kept back with no reach of its own (the base's second tank in its motor pool) he stays down inside. */
+const DD_TANKMG={on:true,longR:400,aimPen:.1,waist:10.5,cloth:'#3b3e41',tap:16};
+// the old tank's gun and ring, in the same few boxes as the tank itself (the draft's tank has its own: ddrtank.js's ddrTankMG). fix: what stays
+// with the turret (the ring round the cupola, the hatch's lid standing open); gun: what turns with him; muz: the muzzle, in his own figure's frame
+function ddTankMGMesh(){
+  const T=THREE,st=0x2c2e30,pt=0xb39a62,wd=0x5e3a20,hz=Math.PI/2,by=2.2;   // (by: the bore over the cupola's rim; one mesh for what stays, one for what turns, shared by every tank of the chapter)
+  const G=DD.tkmg||(DD.tkmg={mat:new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.7,metalness:.25}),
+    fix:ddgMerge([{g:new T.TorusGeometry(4.3,.35,5,14),p:[0,.5,0],r:[hz,0,0],c:st},{g:new T.CylinderGeometry(3.6,3.6,.6,10),p:[-4.2,3.4,0],r:[0,0,hz-.25],c:pt}],true),   // the ring, the lid open behind him
+    gun:ddgMerge([{g:new T.BoxGeometry(.9,2.6,.9),p:[4.6,by-1.6,0],c:st},{g:new T.BoxGeometry(3.4,.6,1.2),p:[6.2,by-.7,0],c:st},                                      // the arm up off the ring, the cradle
+      {g:new T.BoxGeometry(3.6,1,.8),p:[5.6,by,0],c:st},{g:new T.CylinderGeometry(.42,.42,8.2,7),p:[11.4,by,0],r:[0,0,hz],c:st},                                       // the receiver, the barrel in its jacket
+      {g:new T.CylinderGeometry(.3,.55,1,7),p:[16,by,0],r:[0,0,-hz],c:st},{g:new T.BoxGeometry(.3,.7,.2),p:[14.8,by+.6,0],c:st},                                       // the muzzle, the front sight
+      {g:new T.BoxGeometry(3.4,1.1,.7),p:[2.4,by-.2,0],c:wd},{g:new T.BoxGeometry(.7,1.5,.6),p:[4.3,by-1,0],r:[0,0,.25],c:wd},                                         // the butt, the grip
+      {g:new T.CylinderGeometry(1.1,1.1,.9,9),p:[6,by-.3,-1],r:[hz,0,0],c:st}],true)});                                                                               // the belt drum on its left
+  G.mat.userData.ddKeep=true;   // (its colours are already what the light wants: ddlight.js's sweep leaves it)
+  const mk=geo=>{const g=new T.Group(),m=new T.Mesh(geo,G.mat);m.castShadow=true;g.add(m);return g;};
+  return{fix:mk(G.fix),gun:mk(G.gun),muz:[16.6/(DD_FIG*1.06),(DD_TANKMG.waist+by)/(DD_FIG*.9),0]};
+}
+function ddTankCrew(K){
+  if(!DD_TANKMG.on||K.mg)return;const U=K.g.userData,real=!!(U&&U.real)&&typeof ddrTankMG==='function';
+  K.cup=(U&&U.cupola)||[-6,14.8,-4.5];   // (the commander's hatch in the turret's own frame: along it, its rim's height, across)
+  const M=real?ddrTankMG():ddTankMGMesh();for(const q of[M.fix,M.gun]){q.position.set(K.cup[0],K.cup[1],K.cup[2]);K.tur.add(q);}K.mgG=M.gun;K.mgFix=M.fix;
+  const e=ddFoe('tankmg',K.x-DDX,K.y,{name:'Tank gunner',gunner:true,post:true,ang:K.ta,longR:DD_TANKMG.longR,aimPen:DD_TANKMG.aimPen,cloth:DD_TANKMG.cloth,onTank:K,muz:M.muz});
+  e.onGun={x:K.x,y:K.y,ang:K.ta,arc:Math.PI};K.mg=e;if(!enemies.includes(e))enemies.push(e);if(dd.vg&&dd.vg.spawned!=null)dd.vg.spawned++;ddTankCrewPose(K);   // (the village's report counts their men as they come)
+}
+function ddTankCrewPose(K){
+  const e=K.mg;if(!e)return;const G=K.mgG;
+  if(K.left&&!e.dead){e.dead=true;e.gone=true;e.hp=0;}                                                  // (the village's tank pulled back up the road: he went with it)
+  if(e.dead){if(G&&!G.userData.down){G.userData.down=1;G.rotation.z=.5;}if(!e.gone&&simT-(K.mgDeadT??(K.mgDeadT=simT))>.5)e.gone=true;return;}   // (he drops inside; his gun points at the sky)
+  e.dormant=!(K.hp>0)||(K.hold&&K.range<=1);
+  const c=K.cup,tp=K.tur.position,ca=Math.cos(K.ang),sa=Math.sin(K.ang),ct=Math.cos(K.ta),st=Math.sin(K.ta);
+  e.x=K.x+tp.x*ca-tp.z*sa+c[0]*ct-c[2]*st;e.y=K.y+tp.x*sa+tp.z*ca+c[0]*st+c[2]*ct;
+  e.elev=ddH(K.x,K.y)+tp.y+c[1]-DD_TANKMG.waist-ddH(e.x,e.y);e.path=[];e.onGun.x=e.x;e.onGun.y=e.y;e.onGun.ang=K.ta;
+  if(!e.dormant){e.alerted=true;e.revealT=Math.max(e.revealT||0,simT+.4);}                              // (a man standing on a tank is seen as far as the tank is)
+  if(G)G.rotation.y=-(e.ang-K.ta);
+}
+// its gun's next shot put back s seconds by what's hitting it (a heavy machine gun: ddcounter.js), but no shot by more than DD_TANK.hold in all:
+// until Version 247 every burst put it back 1.6 s and the bursts came every 1.1 s, so a tank in a heavy gun's reach never fired at all
+const DD_TANK={hold:2.4,answer:8};
+function ddTankHold(K,s){if(!K||K.hp<=0)return;if(K.fireMax==null||K.fireMax<simT-1)K.fireMax=Math.max(K.fireT||0,simT)+DD_TANK.hold;K.fireT=Math.min(K.fireMax,Math.max(K.fireT||0,simT+s));}
 const ddTanksUp=()=>(dd&&dd.tanks||[]).filter(K=>K.hp>0);
 function ddTankTick(dt){
   const turn=(a,b,m)=>{let d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI;return a+clamp(d,-m,m);};
@@ -863,21 +907,24 @@ function ddTankTick(dt){
     if(K.hp>0){
       const W=K.hold?null:K.way[K.i];
       if(W){const dx=W[0]-K.x,dy=W[1]-K.y,d=hyp(dx,dy);if(d<4)K.i++;else{K.ang=turn(K.ang,Math.atan2(dy,dx),dt*1.2);K.x+=Math.cos(K.ang)*20*dt;K.y+=Math.sin(K.ang)*20*dt;}}
-      let t=null,bd=K.range;for(const u of dd.allies){if(u.inBoat||!alive(u))continue;const d=hyp(u.x-K.x,u.y-K.y);if(d<bd&&d>50&&los(K.x,K.y,u.x,u.y)){bd=d;t=u;}}
+      let t=null,bd=K.range;
+      {const h=K.hitBy;if(h&&simT-(K.hitT||0)<DD_TANK.answer&&alive(h)&&!h.inBoat){const d=hyp(h.x-K.x,h.y-K.y);if(d<K.range&&d>50&&los(K.x,K.y,h.x,h.y)){t=h;bd=d;}}}   // (Version 247: it answers whoever hit it last, a gun before the riflemen nearer to it)
+      if(!t)for(const u of dd.allies){if(u.inBoat||!alive(u))continue;const d=hyp(u.x-K.x,u.y-K.y);if(d<bd&&d>50&&los(K.x,K.y,u.x,u.y)){bd=d;t=u;}}
       if(t){K.ta=turn(K.ta,Math.atan2(t.y-K.y,t.x-K.x),dt*1.6);
-        if(simT>=K.fireT&&Math.abs(((Math.atan2(t.y-K.y,t.x-K.x)-K.ta+Math.PI*3)%(Math.PI*2))-Math.PI)<.12){K.fireT=simT+5.5+Math.random()*2;
+        if(simT>=K.fireT&&Math.abs(((Math.atan2(t.y-K.y,t.x-K.x)-K.ta+Math.PI*3)%(Math.PI*2))-Math.PI)<.12){K.fireT=simT+5.5+Math.random()*2;K.fireMax=K.fireT+DD_TANK.hold;
           ddShell(K,t.x+(Math.random()-.5)*46,t.y+(Math.random()-.5)*46,48,80,Math.max(.5,bd/420));flashes.push({x:K.x+Math.cos(K.ta)*(K.mz||58),y:K.y+Math.sin(K.ta)*(K.mz||58),t:0});if(typeof sfxCannon==='function')sfxCannon(K.x,K.y);shake(.25);}}
       else K.ta=turn(K.ta,K.ang,dt*.8);
     }
     if(K.g.userData.roll){const d=hyp(K.x-(K.rx??K.x),K.y-(K.ry??K.y));K.rx=K.x;K.ry=K.y;if(d>.01)K.g.userData.roll(d);}   // (Version 246, the draft's tank: its tracks run as it drives, ddrtank.js)
-    K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;K.tur.rotation.y=-(K.ta-K.ang);
+    K.g.position.set(K.x,ddH(K.x,K.y),K.y);K.g.rotation.y=-K.ang;K.tur.rotation.y=-(K.ta-K.ang);ddTankCrewPose(K);
   }
 }
-function ddTankHit(x,y,k=1,pw=1){
+function ddTankHit(x,y,k=1,pw=1,by){
   for(const K of dd.tanks||[]){if(K.hp<=0)continue;const d=hyp(x-K.x,y-K.y);if(d>58*k)continue;
-    K.hp-=170*k*pw*(1-d/(75*k));
+    K.hp-=170*k*pw*(1-d/(75*k));if(by&&by.side==='P'){K.hitBy=by;K.hitT=simT;}
     if(K.hp>0)continue;   // (hit: the bar over it says how much is left, Version 167)
-    K.hp=0;if(typeof ddgTankBurn==='function')ddgTankBurn(K);else for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;   // (Version 190: burnt paint, rust and a scorch, not black)
+    K.hp=0;if(K.mg&&!K.mg.dead){K.mg.dormant=false;damage(K.mg,9999,by||null);}   // (its gunner with it)
+    if(typeof ddgTankBurn==='function')ddgTankBurn(K);else for(const m of K.mats)m.color.setHex(0x1b1a18);K.tur.rotation.z=.12;   // (Version 190: burnt paint, rust and a scorch, not black)
     for(let q=0;q<5;q++)booms.push({x:K.x+(Math.random()-.5)*40,y:K.y+(Math.random()-.5)*26,t:-q*.12,size:1.3});
     tankFires.push({x:K.x,y:K.y,r:12,t0:simT,puffs:[],emit:0});shake(1);if(typeof sfxBoom==='function')sfxBoom(K.x,K.y,1.4);banner(`${K.name} is knocked out.`,3000);ddTankWreck(K);}
 }
@@ -934,7 +981,7 @@ function ddDrawTargets(now){
     if(!own)continue;
     const md=u.medGo;if(md&&md.t&&!md.t.dead)disc(md.t.x,md.t.y,15,GN,GNL);
     if(u.raise&&u.raise.t)disc(u.raise.t.x,u.raise.t.y,15,GN,GNL);if(u.ddRole==='medic'&&u.helpGo&&u.helpGo.downed)disc(u.helpGo.x,u.helpGo.y,15,GN,GNL);}
-  for(const n of nades){if(n.enemy||!n.by||n.by.side!=='P')continue;const own=n.by.team===dd.active;if(own&&n.smoke)disc(n.x1,n.y1,58,GR,GRL);else if(!n.smoke&&(own||near(n.x1,n.y1,n.R||58)))disc(n.x1,n.y1,n.R||58,OR,own?ORL:RL);}
+  for(const n of nades){if(n.enemy||n.direct||!n.by||n.by.side!=='P')continue;const own=n.by.team===dd.active;if(own&&n.smoke)disc(n.x1,n.y1,58,GR,GRL);else if(!n.smoke&&(own||near(n.x1,n.y1,n.R||58)))disc(n.x1,n.y1,n.R||58,OR,own?ORL:RL);}
   for(const r of rockets){if(!r.by||r.by.side!=='P'||r.left==null)continue;const x=r.x+r.dx*r.left,y=r.y+r.dy*r.left,own=r.by.team===dd.active;if(own||near(x,y,PRPG.blast||55))disc(x,y,PRPG.blast||55,OR,own?ORL:RL);}
   // a scope on the man the squad you play was told to shoot (Bryan: "a scoop emoji around the unit selected for that squad to attack")
   const scope=(cx,cy,r)=>{ox.save();ox.lineCap='round';for(const[w,c]of[[3.6,'rgba(0,0,0,.55)'],[1.8,'rgba(255,58,40,.98)']]){ox.strokeStyle=c;ox.lineWidth=w;ox.beginPath();ox.arc(cx,cy,r,0,TAU);

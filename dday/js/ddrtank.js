@@ -413,7 +413,7 @@ function ddrTank(kind,o){
   for(const k in M.hull)ddrTankDef(k);for(const k in M.tur)ddrTankDef(k);
   const g=new THREE.Group(),tur=new THREE.Group(),h=ddrPart(M.hull),t=ddrPart(M.tur);
   g.add(h);tur.position.set(M.ring[0],M.ring[1],M.ring[2]);tur.add(t);g.add(tur);
-  g.userData={real:true,kind,lod:o.lod|0,tur,hull:h,top:t,gun:M.gun,muzzle:M.muzzle};
+  g.userData={real:true,kind,lod:o.lod|0,tur,hull:h,top:t,gun:M.gun,muzzle:M.muzzle,cupola:kind!=='sherman'?[-5.8,11.2,0]:[-2.6,9.6,-4.2]};   // (cupola: the commander's hatch in the turret's own frame, its rim's height: where ddplay.js stands the man at the machine gun)
   // the tracks run: roll(dist) slides their picture by how far the tank has gone (this tank's own copy of the tracks' material, made when first asked)
   let own=null;g.userData.roll=d=>{const m=h.children.find(c=>DDR_TK_DEF[c.userData.ddrK]&&DDR_TK_DEF[c.userData.ddrK][0].slice(0,3)==='trk');if(!m)return;
     if(!own){own=ddrMat(m.userData.ddrK).clone();own.map=own.map.clone();own.map.needsUpdate=true;}if(m.material!==own){if(m.material!==ddrMat(m.userData.ddrK))return;m.material=own;}   // (not once it's burnt)
@@ -439,4 +439,32 @@ function ddrTankWreck(kind,o){
     for(const k in tur){tur[k].applyMatrix4(m);all[k]=ddrTankJoin(all[k],tur[k]);}
     return{all};});
   for(const k in M.all)ddrTankDef(k);const g=ddrPart(M.all);g.userData.real=true;g.userData.kind=kind;g.userData.wreck=true;return g;
+}
+
+/* ---------- the machine gun on the commander's cupola (Version 247, Bryan: "There should be an MG unit on top of the tank too") ----------
+   An MG 34 on the cupola's anti-aircraft ring, as the Panzer IV carried one: the round perforated jacket, the belt drum on its left, the wooden
+   butt, on an arm that rides a ring round the cupola. ddplay.js's ddTankCrew adds both groups to the turret at the cupola's middle, rim height:
+   fix stays with the turret (the ring, the hatch's lid standing open behind the man); gun turns with him (the arm, the cradle, the gun: +x where he
+   aims, his own axis at the origin). muz: the muzzle in his figure's own frame (post.js's muzzleAt). 1.2 times life, like the tank. */
+function ddrTankMG(lod){
+  lod=lod|0;const k=1.2,x0=6.6,y0=2.2;
+  const M=ddrModel('tankmg|'+lod,()=>{
+    const C=DDRC,st='steel',F=ddrB(lod),G=ddrB(lod,DDR_FOLD_T),L=lod,X=x=>x0+x*k,Y=y=>y0+y*k,P=a=>a.map(p=>[x0+p[0]*k,y0+p[1]*k]);
+    // what stays with the turret
+    F.torus('paint',C.gelbD,3.7,.2,0,-.25,0,Math.PI/2,0,0).cyl('paint',C.gelb,2.7,.4,-3.9,2.5,0,'x',L?12:9);
+    if(L)F.both(s=>F.box('paint',C.gelbD,.5,.5,.5,-3.6,.2,s*1.2));
+    // the arm up off the ring and the cradle the gun lies in
+    G.tube('paint',C.gelbD,[3.7,-.25,0],[X(-.1),Y(-.6),0],.3,.24,5).box('paint',C.gelbD,2.2*k,.16*k,.56*k,X(.2),Y(-.4),0);
+    // the gun: the jacket and its holes, the muzzle's cone, the front sight; the receiver, its cover and rear sight; the drum; the grip; the butt
+    G.cyl(st,C.gun,.27*k,5.4*k,X(3.6),Y(0),0,'x',L?12:7);
+    if(L)for(let i=0;i<9;i++)G.both(s=>G.box(st,C.black,.3*k,.14*k,.03*k,X(1.4+i*.55),Y(.04),s*.26*k));
+    G.lathe(st,C.gunD,[[0,.2*k],[.3*k,.2*k],[.35*k,.3*k],[.8*k,.34*k],[.85*k,.2*k]],X(6.3),Y(0),0,'x',L?12:7);
+    G.box(st,C.gunD,.12*k,.4*k,.1*k,X(5.9),Y(.45),0);
+    G.rbox(st,C.gun,2.7*k,.62*k,.5*k,.08*k,X(-.45),Y(0),0).box(st,C.gunL,1.6*k,.14*k,.52*k,X(-.3),Y(.36),0).box(st,C.gunD,.1*k,.34*k,.3*k,X(.5),Y(.55),0);
+    G.cyl(st,C.gunD,.62*k,.5*k,X(-.1),Y(-.22),-.62*k,'z',L?12:8);
+    G.ext('matte',C.bake,P([[-1.75,-.3],[-1.25,-.3],[-1.4,-1.2],[-1.95,-1.2]]),.3*k,0,0,0,0,0,0,.06*k);
+    G.ext('wood',C.woodD,P([[-1.8,.26],[-2.6,.2],[-4.4,.3],[-4.6,.3],[-4.6,-.7],[-4.3,-.7],[-2.9,-.3],[-1.8,-.3]]),.34*k,0,0,0,0,0,0,.08*k);
+    return{fix:F.geos(),gun:G.geos({lo:.92}),muz:X(7.15)+.3};});
+  const fix=ddrPart(M.fix),gun=ddrPart(M.gun);for(const g of[fix,gun]){g.userData.real=true;for(const m of g.children)if(m.userData.ddrK!=='steel')m.castShadow=false;}
+  return{fix,gun,muz:[M.muz/(DD_FIG*1.06),(DD_TANKMG.waist+y0)/(DD_FIG*.9),0]};
 }

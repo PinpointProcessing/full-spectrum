@@ -27,8 +27,9 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
     {k:'h1',n:'HEAVY MG',x:900,y:410,t:'mg',hv:1,arc:1.5,hp:340,face:0},{k:'a1',n:'FIELD GUN',x:858,y:490,t:'art',hp:420,face:0}],   // (face 0: it stands pointing at the beach until it's turned)
   hold:[[660,478],[700,500],[740,478]],   // (where the men not on a gun stand: in front of the command post)
   posts:[[450,264],[940,250],[430,318],[520,318],[632,318],[790,318],[880,318],[960,330],[590,362],[830,362]],   // (the other troops' forward posts, out in the field)
-  hv:{tank:9,every:1.1,range:560,shell:130,mortar:70,man:.5},
-  art:{min:170,max:960,reload:7.5,auto:6,R:84,D:150},
+  hv:{tank:9,every:1.1,range:560,shell:130,mortar:70,man:.5,hold:.8},   // (hold: how long one burst of the heavy gun puts a tank's next shot back; ddplay.js's ddTankHold caps the total)
+  art:{min:170,max:960,reload:7.5,auto:6,R:84,D:150,fast:1500},   // (fast: how fast a shell fired from behind the gun flies, units a second: flat, where the crosshair is)
+  tankR:700,   // (Version 247: how far their tanks shoot here, in the open field; 520 elsewhere. At 520 the field gun and the heavy gun had them before they came into their own reach)
   waves:[{inf:18,more:10,moreAt:20,tanks:['road']},{inf:14,tanks:['road'],mortar:true},{inf:18,tanks:['west','east']}],
   roads:{west:[[700,-150],[672,-210],[640,-262],[560,-330],[420,-400],[250,-470],[60,-560]],east:[[700,-150],[790,-190],[900,-250],[990,-320],[1040,-380],[1120,-470],[1200,-520]]},   // (the fork's two branches, as drawn)
   ways:{road:[[560,-330],[640,-262],[690,-150],[700,100],[700,300],[700,440]],west:[[420,-400],[560,-330],[640,-262],[690,-150],[660,150],[640,300],[690,400],[700,450]],east:[[560,-330],[640,-262],[700,-150],[760,-40],[790,150],[770,300],[712,400],[700,450]]}};
@@ -237,7 +238,7 @@ function enterCounter(){
   const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*720;e.cool=99;e.stage=-1;
     const p=findPath(e.x,e.y,e.lane,DCA.treeY+30+((i%2)*18),FOOT);if(p)e.path=p;e.zone={x0:e.lane-80,x1:e.lane+80,y0:DCA.treeY-20,y1:DCA.treeY+90};}
   // (Version 238, Bryan: "A tank should be coming down the road. Make the first wave a little longer and have at least 1 tank") four tanks waiting up the woods road, the first with wave 1
-  [[430,-396,1,'road'],[300,-450,2,'road'],[190,-500,3,'west'],[90,-548,3,'east']].forEach(([x,y,w,k])=>{ddTankSpawn({x,y,ang:.4,hold:true,way:DCA.ways[k],name:'Tank'}).w=w;});
+  [[430,-396,1,'road'],[300,-450,2,'road'],[190,-500,3,'west'],[90,-548,3,'east']].forEach(([x,y,w,k])=>{ddTankSpawn({x,y,ang:.4,hold:true,way:DCA.ways[k],name:'Tank',range:DCA.tankR}).w=w;});
   enemies=units.filter(u=>u.side==='E');
   contact=true;clearTeams();teamSeen.A=true;teamSeen.B=true;teamSeen.N=true;
   mission.t0=simT;sel=[];cardGroup=[];
@@ -299,12 +300,18 @@ function dcTap(wx,wy){const C=dd.dc;if(C.ph==='intro')return true;const g=dcGunA
 // a thumb on one of theirs, from above: every gun that can bear turns on him until he's down (dcGunsTick); a tank the same
 function dcFocus(e,K){const C=dd.dc;C.focus=e||null;C.focusK=K||null;C.focusT=simT;}
 const C0=()=>typeof C!=='undefined'&&C.good?C.good:'#5fe08e';
-function dcFire(g,x,y){
-  g.fireT=simT+DCA.art.reload;g.aim=null;const by=g.man;
+// o (Version 247, from behind the gun: ddfp.js's fpArtAim): direct: it flies flat and fast to where the crosshair is; tank: the tank the
+// crosshair was on, which it follows in (dcGunsTick), so a shot aimed at a tank hits the tank. Until then a shell always went to the spot on the
+// ground under the crosshair, which for a shot aimed at a tank's hull is far behind it (Bryan: "The field gun was not doing anything to the tank")
+function dcFire(g,x,y,o){
+  g.fireT=simT+DCA.art.reload;g.aim=null;const by=g.man,direct=!!(o&&o.direct);let tk=o&&o.tank||null,hitCheck=false;
   // (Version 238, Bryan: "I can't blow up the blockhouse with the field gun, that should be an option. Like 3 hits") a shell aimed at it, or whose
   // line runs through it (in first person the crosshair's spot on the ground is behind the wall), strikes its front: each one a third of it
-  {const co=objs.find(o=>o.tag==='check'),c=DCA.check;if(co&&!co.gone&&(hyp(x-(c.x+c.w/2),y-(c.y+c.h/2))<90||segHitsRect(g.x,g.y,x,y,co,6))){x=c.x+c.w/2+(Math.random()-.5)*40;y=c.y+c.h+3;(dd.dc.artLand||(dd.dc.artLand=[])).push({at:simT+clamp(hyp(x-g.x,y-g.y)/520,.7,1.9),by});}}
-  nades.push({x0:g.x,y0:g.y-14,x1:x,y1:y,t:0,dur:clamp(hyp(x-g.x,y-g.y)/520,.7,1.9),by,R:DCA.art.R,D:DCA.art.D,shell:true});
+  {const co=objs.find(q=>q.tag==='check'),c=DCA.check;if(!tk&&co&&!co.gone&&(hyp(x-(c.x+c.w/2),y-(c.y+c.h/2))<90||segHitsRect(g.x,g.y,x,y,co,6))){x=c.x+c.w/2+(Math.random()-.5)*40;y=c.y+c.h+3;hitCheck=true;}}
+  const d=hyp(x-g.x,y-g.y),dur=direct?clamp(d/DCA.art.fast,.14,.65):clamp(d/520,.7,1.9);
+  if(hitCheck)(dd.dc.artLand||(dd.dc.artLand=[])).push({at:simT+dur,by});
+  nades.push({x0:g.x,y0:g.y-14,x1:x,y1:y,t:0,dur,by,R:DCA.art.R,D:DCA.art.D,shell:true,direct,tk});
+  if(direct)tracers.push({x1:g.x,y1:g.y-14,x2:x,y2:y,t:0,col:'255,236,190'});
   flashes.push({x:g.x,y:g.y-44,t:0});if(typeof sfxCannon==='function')sfxCannon(g.x,g.y);shake(.35);
   const m=DD.dcGuns&&DD.dcGuns[g.k];if(m){m.rotation.y=-Math.atan2(y-g.y,x-g.x);m.userData.kick=1;}
 }
@@ -322,7 +329,7 @@ function dcGunHit(g,d){
   shake(.6);if(typeof sfxBoom==='function')sfxBoom(g.x,g.y,1.1);banner(`${g.n} is knocked out.`,3200);
 }
 // a heavy machine gun on a tank: a little off it each burst, and its next shot put back while it's being hit
-function dcHvTank(K,k){if(!K||K.hp<=0)return;K.hp-=DCA.hv.tank*(k||1);K.fireT=Math.max(K.fireT||0,simT+1.6);if(K.hp<=0){K.hp=1;ddTankHit(K.x,K.y,1,3);}}
+function dcHvTank(K,k,by){if(!K||K.hp<=0)return;K.hp-=DCA.hv.tank*(k||1);ddTankHold(K,DCA.hv.hold);if(by&&simT-(K.hitT||-99)>3){K.hitBy=by;K.hitT=simT;}if(K.hp<=0){K.hp=1;ddTankHit(K.x,K.y,1,3,by);}}   // (Version 247: it was K.fireT put back 1.6 s every 1.1 s: the tank never fired; and now it turns on the gun that's doing it, unless a shell or a rocket has hit it in the last 3 s)
 // Version 226 (Bryan, asked whether the Engineer should repair destroyed guns: "yes"): a knocked-out gun is put right by an Engineer (the bazooka
 // man) standing at it DCA.fixT seconds. A tap on the gun sends the nearest one (off his own gun if need be); one with nothing to do goes by himself.
 function dcFixSend(g,say){
@@ -408,6 +415,7 @@ function dcGunsTick(dt){
   for(const p of dd.allies||[]){const on=!!(p.dcGun&&p.dcGun.man===p);if(on&&!p.dug){p.dug=1;p.dmgIn=(p.dmgIn||1)*DCA.dug;}else if(!on&&p.dug){p.dug=0;p.dmgIn=(p.dmgIn||1)/DCA.dug;}}   // (behind his gun's bags)
   for(const sh of C.shells.slice())if(simT>=sh.at){C.shells.splice(C.shells.indexOf(sh),1);for(const g of C.guns)if(hyp(sh.x-g.x,sh.y-g.y)<DCA.gunHit)dcGunHit(g,sh.D||DCA.hv.shell);}
   if(C.focus&&beaten(C.focus))C.focus=null;if(C.focusK&&!(C.focusK.hp>0))C.focusK=null;
+  for(const n of nades)if(n.tk&&n.tk.hp>0){n.x1=n.tk.x;n.y1=n.tk.y;}   // (Version 247: a shell aimed at a tank from behind the gun lands on the tank, wherever it has got to)
   for(const g of C.guns){
     if(g.hits&&(g.smokeT-=dt)<=0&&DD.rk&&DD.rk.puff){g.smokeT=g.hits>=2?.11:.22;const h=ddH(g.x,g.y)+(g.t==='art'?16:12);   // one hit: thin grey smoke; two: thick and dark; wrecked: black
       DD.rk.puff(g.x+(Math.random()-.5)*8,h,g.y-8+(Math.random()-.5)*8,g.hits>=2?7+Math.random()*4:4+Math.random()*2.5,g.hits>=2?3.4:2.4,g.hits>=3?0x161514:g.hits===2?0x2b2927:0x9a9690,g.hits>=2?13:9);}
@@ -416,7 +424,7 @@ function dcGunsTick(dt){
     if(m&&alive(m)&&m.dcGun===g){if(g.mhp!=null&&m.hp<g.mhp)dcGunHit(g,(g.mhp-m.hp)*DCA.hv.man);g.mhp=m.hp;if(g.dead)continue;   // (what hits its man hits the gun too)
       if(g.t==='mg'&&!m.fp){if(C.focus&&m.focus!==C.focus)m.focus=C.focus;   // (every gun on the one the player put his thumb on)
         const K=g.hv?(C.focusK||(simT-(m.shotAtT||-9)<1.5?null:tanks.filter(q=>!q.hold&&hyp(q.x-g.x,q.y-g.y)<DCA.hv.range&&q.y<g.y).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0])):null;
-        if(K&&simT>=g.hvT&&hyp(K.x-g.x,K.y-g.y)<DCA.hv.range&&Math.abs(Math.atan2(Math.sin(Math.atan2(K.y-g.y,K.x-g.x)+Math.PI/2),Math.cos(Math.atan2(K.y-g.y,K.x-g.x)+Math.PI/2)))<g.arc){g.hvT=simT+DCA.hv.every;dcHvTank(K);m.ang=Math.atan2(K.y-g.y,K.x-g.x);m.aimT=simT;
+        if(K&&simT>=g.hvT&&hyp(K.x-g.x,K.y-g.y)<DCA.hv.range&&Math.abs(Math.atan2(Math.sin(Math.atan2(K.y-g.y,K.x-g.x)+Math.PI/2),Math.cos(Math.atan2(K.y-g.y,K.x-g.x)+Math.PI/2)))<g.arc){g.hvT=simT+DCA.hv.every;dcHvTank(K,1,m);m.ang=Math.atan2(K.y-g.y,K.x-g.x);m.aimT=simT;
           for(let q=0;q<4;q++)tracers.push({x1:g.x,y1:g.y-8,x2:K.x+(Math.random()-.5)*26,y2:K.y+(Math.random()-.5)*20,t:-q*.05,col:'255,231,163'});flashes.push({x:g.x,y:g.y-10,t:0});sparks.push({x:K.x,y:K.y,t:0});if(typeof sfxShotDD==='function')sfxShotDD(m);}}}
     else g.mhp=null;
     if(m&&(!alive(m)||m.path.length||m.dcGun!==g)){if(m.onGun){m.onGun=null;m.gunner=false;}if(m.dcGun===g)m.dcGun=null;g.man=null;if(C.art===g)C.art=null;}

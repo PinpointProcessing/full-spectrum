@@ -270,7 +270,7 @@ function ddcPt(R){return R.kind==='enemy'?{x:R.e.x,y:R.e.y,h:14+(R.e.elev||0)}:R
 function ddcEnemyAt(sx,sy){
   if(unitAtScreen(sx,sy,false))return null;   // (one of ours under the finger: that's him)
   let best=null,bd=36;
-  for(const e of enemies){if(e.dead||e.surr||!e.vis||beaten(e))continue;toSBack=false;const[x,y]=toS(e.x+(e.lx||0),e.y+(e.ly||0),8+(e.elev||0));if(toSBack)continue;const d=hyp(x-sx,y-sy);if(d<bd){bd=d;best=e;}}
+  for(const e of enemies){if(e.dead||e.surr||!e.vis||beaten(e))continue;toSBack=false;const[x,y]=toS(e.x+(e.lx||0),e.y+(e.ly||0),8+(e.elev||0));if(toSBack)continue;const d=hyp(x-sx,y-sy);if(e.onTank&&d>(typeof DD_TANKMG!=='undefined'?DD_TANKMG.tap:16))continue;if(d<bd){bd=d;best=e;}}   // (the man on a tank: only a tap right on him, else the tap is for the tank)
   return best;
 }
 // a tap on the map (ddplay.js's ddTap asks first): true if it was for a ring, null to go on as usual

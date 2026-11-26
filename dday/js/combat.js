@@ -9,7 +9,7 @@ function peekOf(u){return u.peek&&simT<u.peek.until&&alive(u)&&!u.path.length?u.
 // revived, or badly hurt and being hit; Bryan saw a weak soldier at a wall's edge go down, get revived, lean out and go down
 // again). Nobody sees into or out of the tunnel.
 const shy=u=>u.side==='P'&&simT<(u.shyT||0);
-function sightOf(u,tx,ty){if(hideAt(u.x,u.y)!==hideAt(tx,ty))return null;return u.path.length||shy(u)?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}
+function sightOf(u,tx,ty){if(hideAt(u.x,u.y)!==hideAt(tx,ty))return null;return u.path.length||shy(u)||u.onTank?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}   // (the man in a tank's hatch doesn't lean out round a wall: D-Day, Version 247)
 // line of fire from a to b: from a's spot or lean (fx,fy) to b, or to b's peek spot if b is leaned out. null if none.
 function fireLine(a,b){
   const pk=peekOf(b);
@@ -113,7 +113,7 @@ function hitChance(s,t,L){
   const W=wOf(s);let c=sg?1-Math.max(0,d-80)/150:W.far?0.92-d/2600:0.86-d/900;   // a shotgun: near-certain within 8 m, falling off fast beyond; a sniper rifle barely falls off
   c+=W.acc||0;if(s.path.length)c+=W.move||0;
   if(s.longR&&d>420)c-=.28+(d-420)/700;   // (D-Day's hill bunker: it reaches further than the other guns, and sprays past 42 m)
-  let cov=shotCover(L);if(t.inVeh||t.onTower)cov=Math.max(cov,1);   // inside the jeep, or up the watchtower behind its rails: partial cover
+  let cov=shotCover(L);if(t.inVeh||t.onTower||t.onTank)cov=Math.max(cov,1);   // inside the jeep, up the watchtower behind its rails, or in a tank's hatch behind its rim (D-Day, Version 247): partial cover
   if(cov===1)c-=sg?0.2:0.28;else if(cov===2)c-=sg?0.3:0.42;   // the pellet spread makes cover count for less
   c-=s.sup>0.65?0.25:s.sup*0.15;
   if(s.side==='P'&&ambushing(s))c+=AMBUSH_BONUS;
@@ -699,7 +699,7 @@ function explode(x,y,by,quiet,R=58,D=95){   // (R, D: the blast's reach and its 
     if(v.dead||v.seat==='driver'||v.side==='C')continue;const d=hyp(v.x-x,v.y-y);if(d>R)continue;   // (nobody harms the scientists or the men still locked up: office.js)   // the driver is shielded; riders and the gunner sit in the open
     if(!los(x,y,v.x,v.y)||hideAt(v.x,v.y)!==hideAt(x,y))continue;   // the tunnel shelters whoever's inside
     v.sup=Math.min(1.2,v.sup+0.8);
-    if(!v.downed)damage(v,D*(1-d/(R+4))*(MAPID==='dd'&&typeof ddHoleBlast==='function'?ddHoleBlast(v,x,y):1),by);   // (D-Day: down in a shell hole, a blast outside it does a third: ddplay.js)
+    if(!v.downed)damage(v,D*(1-d/(R+4))*(MAPID==='dd'&&typeof ddHoleBlast==='function'?ddHoleBlast(v,x,y):1)*(v.onTank?.35:1),by);   // (D-Day: down in a shell hole, a blast outside it does a third: ddplay.js; the man in a tank's hatch ducks inside: a third, Version 247)
     if(v.side==='E'&&!v.surr)v.alerted=true;
   }
   const theirs=!!by&&by.side==='E';   // an enemy grenade (layers.js): no ambush for the squad, and the base doesn't count its own

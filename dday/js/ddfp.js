@@ -72,6 +72,25 @@ function fpAimPoint(max,min){   // the spot on the ground under the crosshair, k
   const F=dd.fp,u=F.u,P=fpPose(),G=fpGround(P.O,P.D)||{x:u.x+Math.cos(F.a)*max,y:u.y+Math.sin(F.a)*max};
   const ox=P.A?P.A.x:u.x,oy=P.A?P.A.y:u.y;let dx=G.x-ox,dy=G.y-oy,d=hyp(dx,dy)||1;const k=clamp(d,min||0,max)/d;return{x:ox+dx*k,y:oy+dy*k,d};
 }
+// a ray against a box turned ang about the vertical (a tank's hull and turret): half sizes hx along it, hy up, hz across; how far along the ray, or null
+function fpRayBox(O,D,cx,cy,cz,ang,hx,hy,hz){
+  const ca=Math.cos(ang),sa=Math.sin(ang),rx=O.x-cx,ry=O.y-cy,rz=O.z-cz,o=[rx*ca+rz*sa,ry,-rx*sa+rz*ca],d=[D.x*ca+D.z*sa,D.y,-D.x*sa+D.z*ca],h=[hx,hy,hz];let t0=0,t1=1e9;
+  for(let i=0;i<3;i++){if(Math.abs(d[i])<1e-6){if(Math.abs(o[i])>h[i])return null;continue;}let a=(-h[i]-o[i])/d[i],b=(h[i]-o[i])/d[i];if(a>b){const q=a;a=b;b=q;}t0=Math.max(t0,a);t1=Math.min(t1,b);if(t0>t1)return null;}
+  return t0;
+}
+/* Version 247 (Bryan: "The field gun was not doing anything to the tank"): what the field gun's crosshair is on. Its shell used to go to the spot on
+   the ground under the crosshair (fpAimPoint): aimed at a tank's hull or turret that spot is far behind the tank (at 89 m the shell landed 11 to
+   14 m past it), so only a shot at the ground at its feet, led by a tank's length, ever hurt it. Now the first thing on the crosshair's line takes
+   it: a tank (its hull and turret as a box, a little bigger with distance), one of their men (the man on a tank: the tank), else the ground. */
+function fpArtAim(){
+  const F=dd.fp,P=fpPose(),O=P.O,D=P.D,G=fpGround(O,D);let bt=G?G.t:1e9,best=null;
+  for(const K of ddTanksUp()){const m=hyp(K.x-O.x,K.y-O.z)*.006,t=fpRayBox(O,D,K.x,gndH(K.x,K.y)+17,K.y,K.ang,36+m,18+m,21+m);if(t!=null&&t<bt){bt=t;best={x:K.x,y:K.y,tank:K};}}
+  if(best)return best;   // (a tank on the line takes it even with a man nearer on that line: the blast has him too)
+  for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone)continue;const g=gndH(e.x,e.y)+(e.elev||0);
+    for(const h of[5,12,19]){const vx=e.x-O.x,vy=g+h-O.y,vz=e.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<0||t>=bt)continue;
+      if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<3.5+t*.004){bt=t;const K=e.onTank&&e.onTank.hp>0?e.onTank:null;best=K?{x:K.x,y:K.y,tank:K}:{x:e.x,y:e.y};break;}}}
+  return best||fpAimPoint(DCA.art.max,DCA.art.min);
+}
 /* one round, where the crosshair is: it hits whoever is on that line (their cover still stops some), not a roll of the dice */
 function fpShoot(){
   const F=dd.fp,u=F.u,P=fpPose(),W=FP_W[fpWK(u)],O=P.O,D=P.D.clone();
@@ -82,7 +101,7 @@ function fpShoot(){
   for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone)continue;const g=gndH(e.x,e.y)+(e.elev||0);
     for(const h of[5,12,19]){const vx=e.x-O.x,vy=g+h-O.y,vz=e.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;
       if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<4.2+t*.011){best=e;bt=t;break;}}}
-  let tank=null;for(const K of ddTanksUp()){const vx=K.x-O.x,vy=gndH(K.x,K.y)+12-O.y,vz=K.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<24){tank=K;best=null;bt=t-20;}}
+  let tank=null;for(const K of ddTanksUp()){if(best&&best.onTank===K)continue;const vx=K.x-O.x,vy=gndH(K.x,K.y)+12-O.y,vz=K.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<24){tank=K;best=null;bt=t-20;}}
   // (Version 211, Bryan: "the MG nest from the top of the hill can reach the lowers MG nests and vice versa. It seems like I was unable to hit them
   // from the bottom MG nest": a gun's reach in your hands was 62 m and the roof's guns are 72 to 75 m off, so every round stopped short. One of the
   // checkpoint's guns reaches 90 m now; and a man up on a roof is hit over whatever stands between on the ground)
@@ -92,7 +111,7 @@ function fpShoot(){
     best.sup=Math.min(1.2,best.sup+W.sup*(u.supK||1)*(best.nerveK||1));if(!best.alerted)best.alerted=true;
     if(c&&Math.random()<(c>=2?.45:.25)){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}
     else{const hs=u.weapon==='shotgun'?clamp(1-(hyp(ex-u.x,ey-u.y)-60)/200,.35,1):1;if(typeof sfxFlesh==='function')sfxFlesh(ex,ey);damage(best,(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*hs,u);F.hitT=performance.now();if(best.dead)F.killT=F.hitT;}}
-  else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');if(u.dcGun&&u.dcGun.hv&&typeof dcHvTank==='function'){dcHvTank(tank,.34);F.hitT=performance.now();}}   // (a heavy machine gun in your hands marks a tank: ddcounter.js)else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);
+  else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');if(u.dcGun&&u.dcGun.hv&&typeof dcHvTank==='function'){dcHvTank(tank,.34,u);F.hitT=performance.now();}}else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);   // (a heavy machine gun in your hands marks a tank: ddcounter.js. Version 247: the miss's sound on the ground had been swallowed by this note since Version 224)
     for(const e of enemies)if(!beaten(e)&&hyp(e.x-ex,e.y-ey)<28)e.sup=Math.min(1.2,e.sup+W.sup*.7);}
   tracers.push({x1:u.x+Math.cos(F.a)*14,y1:u.y+Math.sin(F.a)*14,x2:ex,y2:ey,t:0,col:'255,231,163'});
   flashes.push({x:u.x+Math.cos(F.a)*6,y:u.y+Math.sin(F.a)*6,t:0,u});u.shotT=simT;u.aimT=simT;u.target=best||null;sfxShot(u);
@@ -181,7 +200,7 @@ function fpTick(dt){
   F.kick*=Math.exp(-dt*9);F.cool-=dt;if(F.reloadT&&simT>=F.reloadT){F.reloadT=0;F.clip=W.clip;}
   const A=fpArt(u);
   if(A){A.orderT=simT;   // (his gun waits for him: it doesn't pick its own target while he's on it)
-    if(F.fire&&simT>=A.fireT&&dd.dc.ph!=='intro'&&dd.dc.ph!=='setup'){const p=fpAimPoint(DCA.art.max,DCA.art.min);dcFire(A,p.x,p.y);F.kick=.1;F.fire=false;}}
+    if(F.fire&&simT>=A.fireT&&dd.dc.ph!=='intro'&&dd.dc.ph!=='setup'){const p=fpArtAim();dcFire(A,p.x,p.y,{direct:true,tank:p.tank});F.kick=.1;F.fire=false;}}
   else if(F.fire&&!F.reloadT&&F.cool<=0&&!u.path.length&&!u.vaultK&&!u.carry&&!u.rpgAim&&simT-(u.throwT??-9)>.5){fpShoot();F.cool=W.cool;}
   if((F.aiT-=dt)<=0){F.aiT=1;fpMates();}
 }
