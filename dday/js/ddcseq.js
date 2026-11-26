@@ -8,7 +8,7 @@
    camp -> shells -> run (to the barracks' back door) -> hut (a small set of its own, drawn in place of the map: dcSeqRender from scene.js's render)
    -> out (the camera from just over their heads at the front door up into the battle's own view) -> the first wave's fight. Not on a retry. */
 const DCS={camp:{x:700,y:742},doom:{x:604,y:658},   // (draft: the group hit by the shell, at the command post's south-west corner)
-  T:{inc:22,shell:23.7,fire:24.1,run:24.6,runMin:1.2,hutMax:3.0,hutDur:2.0,outDur:3.9,hush:3},   // (the shell's sound and INCOMING!!!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out; hush: the quiet before the shell. The first four are worked out from the talk's length: dcSeqTimes)
+  T:{inc:22,shell:23.7,fire:24.1,run:24.6,runMin:1.2,hutMax:3.0,hutDur:2.0,outDur:3.9,hush:3},   // (the shell's sound and INCOMING!!!!!, the shells, their bullets on the base, the run; then how long at most to the door, inside, and coming out; hush: nobody speaks for this long before the shell's sound, the war going on far off (Version 251, Bryan: "the distant gunfire should continue"). The first four are worked out from the talk's length: dcSeqTimes)
   // (dx, dy, the way he faces, at ease, what he's doing, a seat under him: 1 a crate, 2 the wall)
   // (Version 237, Bryan: "Make the rest a little longer. Maybe they can chat via text bubble for a couple of seconds") who says what, and when: [the man's place in spots, from, to, the words]
   // (Version 249, Bryan: "The script is kind of bland", and his own: the six lines below, "Silence for three seconds", then "INCOMING!!!!! (From the
@@ -154,7 +154,6 @@ function dcSeqTick(dt){
   const S=dd.seq,C=dd.dc,T=DCS.T,c=DCS.camp,D=DCA.door,dx=DCS.doom.x-14,dy=DCS.doom.y-6;S.t+=dt;const t=S.t;dcSeqWar(dt);dcSeqFace();
   // (Version 236, Bryan: "Have an artillery whistle come in and a text saying INCOMING!!! The explosion kills the group and then the bullets start firing at the base")
   if(!S.wave&&t>=T.inc-4.2){S.wave=1;dcSpawnWave(1);banner('',1);}   // (their first wave starts across the field while the camp is still quiet: the other troops are shooting by the time the squad comes out)
-  S.hush=t>=T.inc-T.hush&&t<T.inc;   // (Version 249, "Silence for three seconds": nobody speaks and the far guns fall quiet, dcSeqWar and ddamb.js's bed)
   if(!S.inc&&t>=T.inc){S.inc=1;dcIncomingSfx(T.shell-T.inc);
     players.slice().sort(()=>S.rnd()-.5).forEach((u,k)=>u.seqDuck=t+.5+k*.13+S.rnd()*.08);   // (the squad ducks at the shout, each on his own beat)
     S.doom.forEach((u,k)=>u.seqDuck=t+(k?.75+k*.22:.12));}   // (the three by the corner: the one who shouts it looks up first, then the other two bolt, too late)
@@ -219,7 +218,6 @@ function dcSeqStick(){const S=dd.seq,K=S&&S.stick;if(!K)return;const u=K.u,m=K.m
 // ddamb.js); from INCOMING!!! on, shells landing round the base and in the field, never on the squad, and gunfire coming in
 function dcSeqWar(dt){
   const S=dd.seq,T=DCS.T,t=S.t,far=t<T.shell;
-  if(far&&S.hush)return;   // (the three seconds of quiet before the shell)
   if(far){if((S.farT=(S.farT||1.2)-dt)<=0){S.farT=1.6+S.rnd()*2.4;const x=150+S.rnd()*900;try{if(S.rnd()<.6)ddsFarBoom(x,-1200-S.rnd()*600);else sfxBoom(x,-700,1.2);}catch(e){}}
     if((S.farG=(S.farG||.6)-dt)<=0){S.farG=.25+S.rnd()*1.1;const x=150+S.rnd()*900;try{sfxShotDD({x,y:-260-S.rnd()*300,side:S.rnd()<.6?'E':'P',id:'G'+((x/60)|0),weapon:S.rnd()<.4?'mg':'rifle',gunner:S.rnd()<.4});}catch(e){}}
     return;}
