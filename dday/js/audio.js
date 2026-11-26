@@ -14,8 +14,17 @@ const SAMPLE_FILES={boom:['boom-1','boom-2'],launch:['launch']};   // (Version 1
 let AC=null,sndMaster=null,sndMuffle=null,sndVerb=null,sndVerbIn=null,noiseBuf=null,sndOn=true,voices=0,loops={},samples={},rainG=[],amb=null;
 try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
 
+// (Version 252, Bryan after Version 251: "there was no noise at all", in Chapter 2's opening, as after Version 192: "the second level has no
+// sound". Neither seen here: in a browser the sound runs from the first tap, in both versions. An iPhone lets a page's sound out only once something
+// has played inside a tap, and it can report the sound running while still holding it back; Chapter 2's opening has no taps of its own, so a tap that
+// didn't free it on the start card left the whole opening silent. Now every tap and key, whenever the game asks, wakes it and plays a silent sample)
+function audioUnlock(){
+  if(!AC||AC.state==='closed')return;
+  if(AC.state!=='running'){try{const r=AC.resume();if(r&&r.catch)r.catch(()=>{});}catch(e){}}
+  try{const s=AC.createBufferSource();s.buffer=AC.createBuffer(1,1,AC.sampleRate);s.connect(AC.destination);s.start(0);}catch(e){}
+}
 function audioInit(){
-  if(AC){if(AC.state!=='running'&&AC.state!=='closed'){try{const r=AC.resume();if(r&&r.catch)r.catch(()=>{});}catch(e){}}return;}   // (Version 193: an iPhone puts the sound into 'interrupted', not 'suspended', after a call, a lock or a switch of apps, and it was never woken again: Bryan's second level with no sound)
+  if(AC){audioUnlock();return;}   // (Version 193: an iPhone puts the sound into 'interrupted', not 'suspended', after a call, a lock or a switch of apps, and it was never woken again: Bryan's second level with no sound)
   const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
   try{AC=new Ctx();}catch(e){return;}
   const comp=AC.createDynamicsCompressor();comp.threshold.value=-16;comp.knee.value=12;comp.ratio.value=5;comp.attack.value=.003;comp.release.value=.25;comp.connect(AC.destination);
@@ -40,6 +49,7 @@ function audioInit(){
   }).catch(()=>{});
   for(const k of['fanfare','snare'])fetch(`sounds/ui/${k}.mp3`).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>AC.decodeAudioData(b,ok,no))).then(buf=>{samples['ui_'+k]=[buf];}).catch(()=>{});   // (Version 197: the report's recorded brass and drum)
   if(typeof ddsLoad==='function')ddsLoad();   // (Version 188: D-Day's guns and blasts, sounds/guns/: ddsfx.js)
+  audioUnlock();   // (Version 252: the tap that made it plays the silent sample too)
   // recorded samples, if they can be fetched (not from file://)
   for(const[k,names]of Object.entries(SAMPLE_FILES)){
     samples[k]=[];

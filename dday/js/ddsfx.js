@@ -141,7 +141,8 @@ function ddsPattern(u,gun){
 function ddsBurst(u,gun,G,offs,ts){
   const last=offs[offs.length-1]/ts,P=ddsPlace(u.x,u.y),now=AC.currentTime,C=DSFX.cat[gun]||(DSFX.cat[gun]=[]);for(let i=C.length-1;i>=0;i--)if(C[i]<now)C.splice(i,1);
   if(P.d>25&&C.length>=G.cap)return;
-  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.6:1),last+1.7,false,gun==='mg'?.35:.8,G.carry);if(!o)return;C.push(o.t0+last+.6);   // (the other troops under your own squads: there are dozens of them)
+  // (carryK, Version 252: Chapter 2's opening's distant war, each burst heard further than one gun would be: ddcseq.js's DCS.farK)
+  const o=ddsOut(u.x,u.y,G.vol*(u.npc?.6:1),last+1.7,false,gun==='mg'?.35:.8,G.carry*(u.carryK||1));if(!o)return;C.push(o.t0+last+.6);   // (the other troops under your own squads: there are dozens of them)
   const far=o.d>DDS_FAR,kind=far?G.far:G.near;
   for(let i=0;i<offs.length;i++){
     const at=o.t0+offs[i]/ts,r=ddsR(G.r[0],G.r[1]);
