@@ -23,7 +23,7 @@ for(const[W,H]of[[390,760],[844,390]]){const {page,errors,ev}=await start(255,W,
       names:[...document.querySelectorAll('#dcBar .dcb-t b')].map(q=>q.textContent),nextTxt:document.querySelector('#fp [data-a="gnext"]').textContent,prevTxt:document.querySelector('#fp [data-a="gprev"]').textContent};});
   console.log('  ',W,JSON.stringify({exit:L.exit,prev:L.prev,next:L.next,ammo:L.ammo,fire:L.fire,bar:L.bar,pill:L.pill,names:L.names,next:L.nextTxt,prev:L.prevTxt}));
   ok(L.on==='n1'&&L.exit.vis&&L.exit.x+L.exit.w>W-30&&L.exit.y<140&&L.exit.y>=L.pause.y+L.pause.h-2,`${W}: one click on MG NEST 1's tile and you're behind it; EXIT GUN at the top right, under PAUSE (${L.exit.x},${L.exit.y})`);
-  ok(L.prev.vis&&L.prev.x<30&&L.prev.y+L.prev.h/2>H*.3&&L.prev.y+L.prev.h/2<H*.7,`${W}: PREV on the left of the screen (${L.prev.x},${L.prev.y}): "${L.prevTxt}"`);
+  ok(L.prev.vis&&Math.abs(L.prev.y-L.next.y)<=3&&L.prev.x+L.prev.w<=L.next.x+1,`${W}: PREV left of NEXT GUN, one row (Version 256; on the left halfway down in Version 255) (${L.prev.x},${L.prev.y}): "${L.prevTxt}"`);
   ok(L.next.vis&&L.next.y+L.next.h<=L.ammo.y+2&&L.next.x+L.next.w>W*.6&&/NEXT GUN/i.test(L.nextTxt),`${W}: NEXT GUN over the rounds left, on the right (${L.next.x},${L.next.y}): "${L.nextTxt}"`);
   ok(L.bar.vis&&L.bar.y+L.bar.h>=H-2&&L.bar.y>H*.55&&!L.two&&L.names.includes('YOU')&&L.names.filter(n=>n&&n!=='YOU'&&n!=='empty').length>=2&&L.fire.y+L.fire.h<=L.bar.y+1,`${W}: the row of guns along the bottom, who is on each (${L.names.join(', ')}), no BACK / LEAVE row under it, FIRE over it`);
   ok(!L.top.vis&&!L.reload.vis&&!L.nade.vis&&!L.spec.vis&&!L.stick.vis&&L.aim.vis&&L.fire.vis,`${W}: no name and health panel, Command, reload, grenade, item or stick on the gun; AIM and FIRE`);
@@ -54,13 +54,13 @@ for(const[W,H]of[[390,760],[844,390]]){const {page,errors,ev}=await start(255,W,
       for(const r of rockets)if(r.by&&r.by.npc&&!seen.has(r)){seen.add(r);RK.push({t:+simT.toFixed(1),w:dd.dc.wave});}};
     window.RUNW=s=>{for(let i=0;i<s*2;i++){RUN(.5);WATCH5();}};});   // (WATCH5, not WATCH: orders.js has a WATCH)
   const t1=await ev(()=>{RUNW(17);const K=dd.tanks.filter(K=>K.w===1);return{ph:dd.dc.ph,n:K.length,free:K.filter(K=>!K.hold).length};});
-  ok(t1.ph==='w1'&&t1.n===1,`wave 1 comes with a tank (${t1.n}), let loose with it (${t1.free})`);
+  ok(t1.ph==='w1'&&t1.n===2&&t1.free>=1,`wave 1 comes with two tanks (${t1.n}; one in Version 255), the first let loose with it (${t1.free}; the second 7 s later, counter-v256-test.js)`);
   const s1=await ev(()=>{RUNW(70);return{smk:dd.dc.smkN||0,SM:SM.slice(0,4),RK:RK.slice(0,3),clouds:smokes.length};});
   console.log('  ',JSON.stringify(s1));
   ok(s1.smk>=1&&s1.SM.length>=1&&s1.SM.every(q=>q.to<q.from),`their men throw smoke (${s1.smk} in wave 1), each toward our nearest manned gun (from ${s1.SM.map(q=>q.from+' to '+q.to).join(', ')})`);
   const bzk=await ev(()=>{const u=dd.npcs.find(q=>q.spec==='rpg'&&alive(q)&&!q.dcGun);u.specN=3;u.bzT=0;u.path=[];u.x=400;u.y=370;u.sup=0;for(const q of[...players,...dd.npcs])if(q!==u&&alive(q)&&hyp(q.x-400,q.y+20)<90){q.x=560;q.y=520;}
-    const K=ddTankSpawn({x:400,y:-20,ang:Math.PI/2,way:[],name:'Tank',range:1});K.w=9;const n0=rockets.length;let fired=null;for(let i=0;i<6*30&&!fired;i++){update(1/30);if(rockets.some(r=>r.by===u))fired=+simT.toFixed(1);}
-    const r={fired,left:u.specN,wave1:RK.length};K.hp=0;return r;});
+    const K=ddTankSpawn({x:400,y:-20,ang:Math.PI/2,way:[],name:'Tank',range:1});K.w=9;const old=new Set(rockets.filter(r=>r.by===u));let fired=null,left=null;for(let i=0;i<6*30&&!fired;i++){update(1/30);if(rockets.some(r=>r.by===u&&!old.has(r))){fired=+simT.toFixed(1);left=u.specN;}}   // (a new rocket of his, not one still flying at wave 1's tanks; left as he fires: wave 1 can end meanwhile and his rockets be made up)
+    const r={fired,left,wave1:RK.length};K.hp=0;return r;});
   console.log('  ',JSON.stringify(bzk));
   ok(bzk.fired&&bzk.left===2,`a bazooka man of the other troops fires at a tank 40 m off by himself (${bzk.left} rockets left; ${bzk.wave1} at wave 1's tank, which the field gun usually has first)`);
   const tp=await ev(()=>{const B=dd.npcs.filter(u=>u.spec==='rpg'&&alive(u));B[0].hp=0;B[0].dead=true;for(const u of B)u.specN=0;dcNpcTopUp();return{bz:dd.npcs.filter(u=>u.spec==='rpg'&&alive(u)).map(u=>u.specN)};});

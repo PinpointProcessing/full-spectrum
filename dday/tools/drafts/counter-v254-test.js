@@ -57,7 +57,7 @@ const by=k=>`dd.dc.guns.find(g=>g.k==='${k}')`;
 // ---- 2. the waves, the rest's clock, the other troops, the push, the checkpoint
 {const {page,errors,ev}=await start(1254);
   const w=await ev(()=>({n:DCA.waves.length,tk:DCA.waves.map(W=>(W.tanks||[]).length),hl:DCA.waves.map(W=>W.helis||0),men:DCA.waves.map(W=>W.inf+(W.more||0)),def:DCA.def.length,bags:objs.filter(o=>o.kind==='sandbag'&&DCA.def.some(([x,y])=>Math.abs(o.x-(x-24))<1&&Math.abs(o.y-(y-20))<1)).length}));
-  console.log('  ',JSON.stringify(w));ok(w.n===7&&w.tk.join()==='1,1,2,2,2,3,3'&&w.hl.join()==='0,0,0,0,1,0,2'&&w.men[4]<w.men[3]&&w.men[6]>w.men[4],`seven waves (${w.men.join(', ')} men; tanks ${w.tk.join(', ')}; helicopters ${w.hl.join(', ')}): Version 255's, Bryan's numbers; wave 5 with fewer men than wave 4`);
+  console.log('  ',JSON.stringify(w));ok(w.n===7&&w.tk.join()==='2,1,2,2,2,3,3'&&w.hl.join()==='0,0,0,0,1,0,2'&&w.men[4]<w.men[3]&&w.men[6]>w.men[4],`seven waves (${w.men.join(', ')} men; tanks ${w.tk.join(', ')}; helicopters ${w.hl.join(', ')}): Version 255's, Bryan's numbers, with wave 1's two from Version 256; wave 5 with fewer men than wave 4`);
   ok(w.def>=9&&w.bags===w.def,`${w.def} defensive points across the field, each a horseshoe of bags (two before)`);
   // wave 1: the other troops out in the field
   // (Version 255: wave 1 has a tank and the line comes and goes with it, so the most out at any moment of its first 30 s, sampled every 2 s)

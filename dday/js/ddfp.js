@@ -267,9 +267,9 @@ function fpBuild(){
   el.innerHTML=`<div class="fp-scopeV" aria-hidden="true"></div><div class="fp-x" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
 <div class="fp-top"><button type="button" data-a="back">◀ Command</button><div class="fp-who"><b></b><span></span><i><u></u></i></div><button type="button" data-a="view"></button><button type="button" data-a="next">Next man ▶</button></div>
 <div class="fp-msg" hidden></div>
-<button type="button" data-a="gexit" class="fp-gexit">Exit gun</button><button type="button" data-a="gprev" class="fp-gprev">‹ Prev<small></small></button>
+<button type="button" data-a="gexit" class="fp-gexit">Exit gun</button>
 <div class="fp-stick" aria-hidden="true"><i></i></div>
-<div class="fp-btns"><button type="button" data-a="gnext" class="fp-gnext">Next gun ›<small></small></button><div class="fp-ammo"></div><button type="button" data-a="use" hidden></button><button type="button" data-a="reload">Reload</button><button type="button" data-a="spec"></button><button type="button" data-a="nade"></button><button type="button" data-a="aim">Aim</button><button type="button" data-a="fire" class="fp-fire">FIRE</button></div>
+<div class="fp-btns"><button type="button" data-a="gprev" class="fp-gprev">‹ Prev<small></small></button><button type="button" data-a="gnext" class="fp-gnext">Next gun ›<small></small></button><div class="fp-ammo"></div><button type="button" data-a="use" hidden></button><button type="button" data-a="reload">Reload</button><button type="button" data-a="spec"></button><button type="button" data-a="nade"></button><button type="button" data-a="aim">Aim</button><button type="button" data-a="fire" class="fp-fire">FIRE</button></div>
 <div class="fp-keys">WASD move · mouse look · click fire · right click aim · R reload · G grenade · Q item · E use · V view · Tab next man · F command</div>`;
   (sq?sq.parentNode:document.body).appendChild(el);
   const ptrs={},stick=el.querySelector('.fp-stick'),knob=stick.firstElementChild;

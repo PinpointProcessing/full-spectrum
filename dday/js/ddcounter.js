@@ -84,8 +84,9 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   // one tank to wave 1 and 2, two tanks on 3 and 4, two tanks and a helicopter on 5, three tanks on 6, three tanks and two helicopters on 7":
   // helis, dcHeliSpawn. Waves 6 and 7 with a few fewer men than in Version 254, 20 and 24 for 24 and 30: with three tanks and the helicopters the
   // bots' fights were lost there, as Bryan had it in Version 254, "starting with less reinforcements troops" where the heavy units come.
-  // Version 254 had tanks from wave 5 only, until Version 253 three waves with a tank in each)
-  waves:[{inf:16,more:8,moreAt:20,tanks:['road']},{inf:18,more:8,moreAt:18,tanks:['east']},{inf:20,more:10,moreAt:18,tanks:['road','west'],mortar:true},
+  // Version 254 had tanks from wave 5 only, until Version 253 three waves with a tank in each. Version 256, Bryan: "start with two tanks": wave 1's
+  // two, down the road and the east branch)
+  waves:[{inf:16,more:8,moreAt:20,tanks:['road','east']},{inf:18,more:8,moreAt:18,tanks:['east']},{inf:20,more:10,moreAt:18,tanks:['road','west'],mortar:true},
     {inf:24,more:10,moreAt:16,tanks:['road','east'],mortar:true},{inf:12,more:6,moreAt:22,tanks:['west','east'],helis:1,mortar:true},
     {inf:14,more:6,moreAt:18,tanks:['west','road','east'],mortar:true},{inf:16,more:8,moreAt:16,tanks:['west','road','east'],helis:2,mortar:true}],
   tankAt:{road:[430,-396],west:[300,-450],east:[190,-500]},
@@ -394,7 +395,7 @@ const C0=()=>typeof C!=='undefined'&&C.good?C.good:'#5fe08e';
 // crosshair was on, which it follows in (dcGunsTick), so a shot aimed at a tank hits the tank. Until then a shell always went to the spot on the
 // ground under the crosshair, which for a shot aimed at a tank's hull is far behind it (Bryan: "The field gun was not doing anything to the tank")
 function dcFire(g,x,y,o){
-  g.fireT=simT+DCA.art.reload;g.aim=null;const by=g.man,direct=!!(o&&o.direct);let tk=o&&o.tank||null,hitCheck=false;
+  g.fireT=simT+DCA.art.reload;g.aim=null;g.fpShot=!!(g.man&&g.man.fp);const by=g.man,direct=!!(o&&o.direct);let tk=o&&o.tank||null,hitCheck=false;   // (fpShot: Version 256, above)
   // (Version 238, Bryan: "I can't blow up the blockhouse with the field gun, that should be an option. Like 3 hits") a shell aimed at it, or whose
   // line runs through it (in first person the crosshair's spot on the ground is behind the wall), strikes its front: each one a third of it
   {const co=objs.find(q=>q.tag==='check'),c=DCA.check;if(!tk&&co&&!co.gone&&(hyp(x-(c.x+c.w/2),y-(c.y+c.h/2))<90||segHitsRect(g.x,g.y,x,y,co,6))){x=c.x+c.w/2+(Math.random()-.5)*40;y=c.y+c.h+3;hitCheck=true;}}
@@ -531,6 +532,9 @@ function dcGunsTick(dt){
     const u=g.going;if(u){const s=dcSeat(g);if(!alive(u)||u.dcGun!==g||simT-g.goT>40)g.going=null;
       else if(!u.path.length){g.going=null;if(hyp(u.x-s.x,u.y-s.y)<16&&(!g.man||g.man.npc&&!u.npc))dcSit(g,u);else if(u.dcGun===g)u.dcGun=null;}}
     const mesh=DD.dcGuns&&DD.dcGuns[g.k];if(mesh&&mesh.userData.barrel){const k=mesh.userData.kick=Math.max(0,(mesh.userData.kick||0)-dt*2.5);mesh.userData.barrel.position.x=(mesh.userData.barrel.userData.rest??30)-k*9;}
+    // (Version 256, Bryan: "have the field gun already loaded") you come to it loaded: if its crew fired it last, they've loaded it again by the time
+    // you're behind it. A shell you fired yourself still has its reload to run, so going off it and straight back gains nothing (g.fpShot, dcFire)
+    if(g.t==='art'){const on=!!(g.man&&g.man.fp);if(on&&!g.fpOn&&!g.fpShot)g.fireT=Math.min(g.fireT,simT);g.fpOn=on;}
     if(g.t!=='art'||!g.man||simT<g.fireT||C.ph==='setup'||C.ph==='intro')continue;
     if(g.man.fp)continue;   // (the player is behind it: it fires when he does, ddfp.js)
     if(g.aim){dcFire(g,g.aim.x,g.aim.y);continue;}
@@ -1018,7 +1022,13 @@ function dcBar(){
   if(el.dataset.key!==key){el.dataset.key=key;
     el.innerHTML=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+`<div class="dcb-row" style="grid-template-columns:repeat(${cols},1fr)">`
       +row.map(g=>`<button type="button" data-k="${g.k}" class="dcb-t"><u hidden>NPC</u><i></i><b></b><span></span><em></em></button>`).join('')+'</div>';}
-  {const sz=key+'|'+innerWidth+'x'+innerHeight+'|'+!!fpU;if(el.dataset.sz!==sz){el.dataset.sz=sz;document.body.style.setProperty('--dcbh',el.offsetHeight+'px');}}   // (Version 255: how tall the row is, for the gun screen's buttons to sit over it, css/style.css)
+  // (Version 255, how tall the row is, for the gun screen's buttons to sit over it, css/style.css. Version 256: measured from the gun screen's own
+  // bottom edge to the top of the row, again twice a second. The row sits at the bottom of the battle's view, which on a phone with a home bar
+  // ends above the bottom of the screen (the page is padded for it), while the gun screen covers the whole screen: on Bryan's phone AIM and FIRE
+  // went under the row)
+  {const fe=fpU&&document.getElementById('fp'),sz=key+'|'+innerWidth+'x'+innerHeight,now=performance.now();
+    if(fe&&(el.dataset.sz!==sz||now-(C.bhT||0)>500)){el.dataset.sz=sz;C.bhT=now;const h=Math.round(fe.getBoundingClientRect().bottom-el.getBoundingClientRect().top);
+      if(h>0&&h!==C.bh){C.bh=h;document.body.style.setProperty('--dcbh',h+'px');}}}
   const set=(n,p,v)=>{if(n&&n[p]!==v)n[p]=v;};
   for(const g of row){const b=el.querySelector(`.dcb-t[data-k="${g.k}"]`);if(!b)continue;const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
     const who=g.dead?'destroyed':you?'YOU':m?(npc?'Private':m.name):g.going?'coming':'empty',st=g.dead?(g.fix?'REPAIRING':dcFixLeft()?'TAP TO REPAIR':'KNOCKED OUT'):!m?(g.going?'ON HIS WAY':'TAP TO MAN'):g.t==='art'?(simT<g.fireT?'RELOAD '+Math.ceil(g.fireT-simT):foc?'ON TARGET':'LOADED'):foc?'ON TARGET':simT-(m.shotT||-9)<1.6||simT<g.hvT+.4?'FIRING':'READY';
