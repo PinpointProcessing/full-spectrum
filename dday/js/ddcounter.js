@@ -16,7 +16,7 @@
 // the waves and the guns keep working as they did. South to north: the square, the two barracks on its left, the command post in the gap of the
 // north bank with the road through it; the guns outside (two nests on the left, the field gun and the heavy MG on the right by the cliff); the
 // field; the fork (left into the woods, right down the cliffs to the beach); their checkpoint between the branches.
-const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN:2,lull:20,gunHit:42,flagT:14,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
+const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN:3,lull:10,gunHit:42,flagT:14,dug:.6,   // (dug: a man on a gun takes this share of what hits him)
   // Version 254 (Bryan, after Version 253: "this game should mostly take place on the stationary weapons"; "Can the light machine guns have a
   // higher rate of fire, 2x faster. The heavy machine gun can stay slow but has more damage"; "A stationary weapon should be destroyed first and
   // just hurt the soldier. It doesn't kill the soldier. Have the machine be destroyed first and the soldier has no less than 50% health").
@@ -59,14 +59,35 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   // (garr: two at their light guns, five round the blockhouse, all posted)
   storm:[[598,-128],[640,-150],[662,-236],[800,-226],[842,-238],[612,-186],[700,-208],[760,-206]],
   garr:[[662,-252],[801,-246],[700,-224],[760,-224],[640,-292]],
-  hv:{tank:14,every:1.1,range:560,shell:130,mortar:70,hold:.8},   // (hold: how long one burst of the heavy gun puts a tank's next shot back; ddplay.js's ddTankHold caps the total. Version 254: tank 9 to 14, "more damage"; man .5 is gone: what hits a gun's man goes to the gun, dcShield)
+  hv:{tank:14,every:1.1,range:560,shell:100,mortar:70,hold:.8},   // (hold: how long one burst of the heavy gun puts a tank's next shot back; ddplay.js's ddTankHold caps the total. Version 254: tank 9 to 14, "more damage"; man .5 is gone: what hits a gun's man goes to the gun, dcShield. Version 255: shell, a tank's shell on a gun, 130 to 100: with a tank in every wave a nest went in two of them, three again as in Version 160)
   art:{min:170,max:960,reload:7.5,auto:6,R:84,D:150,fast:1500},   // (fast: how fast a shell fired from behind the gun flies, units a second: flat, where the crosshair is)
-  tankR:700,   // (Version 247: how far their tanks shoot here, in the open field; 520 elsewhere. At 520 the field gun and the heavy gun had them before they came into their own reach)
-  // (Version 254: seven waves, each harder than the last; their tanks from wave 5, that wave with fewer men, Bryan. inf: men as it starts; more: a
-  // second lot moreAt s in; tanks: the ways they come down (DCA.ways), started from tankAt one every 7 s; mortar: shells on our manned nests. Until
-  // Version 253: three waves, a tank in each)
-  waves:[{inf:16,more:8,moreAt:20},{inf:18,more:8,moreAt:18},{inf:20,more:10,moreAt:18,mortar:true},{inf:24,more:10,moreAt:16,mortar:true},
-    {inf:12,more:6,moreAt:22,tanks:['road'],mortar:true},{inf:16,more:8,moreAt:18,tanks:['road','east'],mortar:true},{inf:20,more:10,moreAt:16,tanks:['west','road','east'],mortar:true}],
+  // (Version 255) a helicopter: hp, alt its height over the field (about 5 m: Chapter 2's camera is low, and anything much higher is off the top of
+  // the screen; altIn over the trees), spd and turn (rad/s), c and r the circle it flies over
+  // the field, orbitT the seconds between runs, fire from how near and how far it lets its rockets go, rk two a run (their speed, spread round the
+  // gun, blast R and D, and what one does to a gun it lands by), dmg what our fire does to it (a rifle, a nest's light gun, the heavy gun), its
+  // door gunner's reach and aim, first and next the seconds into its wave it comes in and the next one after it, the crash's blast
+  heli:{hp:1100,alt:48,altIn:150,spd:82,turn:.8,c:{x:700,y:110},r:240,orbitT:[8,12],fire:[200,440],rk:{n:2,gap:.32,spd:380,spread:34,R:62,D:75,gun:55},
+    dmg:{rifle:.3,lt:.8,hv:1.6},longR:400,aimPen:.22,first:12,next:22,crashR:70,crashD:90,runs:6,stay:120},
+  // (runs, stay: it turns for home after that many rocket runs or that many seconds over the field, shot down or not: in a test fight two of them
+  // circled for the rest of it over a base with every gun knocked out and its last man out of their sight, and it could neither be won nor lost)
+  // (Version 255, Bryan: "NPC can have rocket launchers (if that's there class)"; "Enemy units are equipped with smoke") bz: two of the other troops
+  // are bazooka men (n rockets, made up between waves), firing at a tank by themselves (ddvillage.js's vgBazooka); smk: one in `every` of their men
+  // carries a smoke grenade, thrown toward our nearest manned gun (gap: seconds between two across the field). bz.r: their reach, 60 m (the
+  // village's are 48 m: the field gun had the tanks before they came that close)
+  bz:{men:2,n:3,at:[4,6],r:600},smk:{every:4,gap:[5,9]},
+  // (Version 255) how near a tank makes one of the other troops drop back a line, and keeps him from moving up to a spot: with a tank in every
+  // wave now, Version 254's 25 and 30 m kept them all at the wall the whole time one was in the field
+  npcTank:[180,200],
+  tankR:700,tankHp:230,tankRoll:30,   // (Version 247: how far their tanks shoot here, in the open field; 520 elsewhere. At 520 the field gun and the heavy gun had them before they came into their own reach. Version 255: tankHp, a tank's health here, 230 against 330 elsewhere: with one to three in every wave they lived long enough to knock out the guns faster than they were put right)
+  // (Version 254: seven waves, each harder than the last. inf: men as it starts, more: a second lot moreAt s in, tanks: the ways they come down
+  // (DCA.ways), started from tankAt one every 7 s, mortar: shells on our manned nests. Version 255, Bryan: "The waves should be more hectic. Add
+  // one tank to wave 1 and 2, two tanks on 3 and 4, two tanks and a helicopter on 5, three tanks on 6, three tanks and two helicopters on 7":
+  // helis, dcHeliSpawn. Waves 6 and 7 with a few fewer men than in Version 254, 20 and 24 for 24 and 30: with three tanks and the helicopters the
+  // bots' fights were lost there, as Bryan had it in Version 254, "starting with less reinforcements troops" where the heavy units come.
+  // Version 254 had tanks from wave 5 only, until Version 253 three waves with a tank in each)
+  waves:[{inf:16,more:8,moreAt:20,tanks:['road']},{inf:18,more:8,moreAt:18,tanks:['east']},{inf:20,more:10,moreAt:18,tanks:['road','west'],mortar:true},
+    {inf:24,more:10,moreAt:16,tanks:['road','east'],mortar:true},{inf:12,more:6,moreAt:22,tanks:['west','east'],helis:1,mortar:true},
+    {inf:14,more:6,moreAt:18,tanks:['west','road','east'],mortar:true},{inf:16,more:8,moreAt:16,tanks:['west','road','east'],helis:2,mortar:true}],
   tankAt:{road:[430,-396],west:[300,-450],east:[190,-500]},
   roads:{west:[[700,-150],[672,-210],[640,-262],[560,-330],[420,-400],[250,-470],[60,-560]],east:[[700,-150],[790,-190],[900,-250],[990,-320],[1040,-380],[1120,-470],[1200,-520]]},   // (the fork's two branches, as drawn)
   ways:{road:[[560,-330],[640,-262],[690,-150],[700,100],[700,300],[700,440]],west:[[420,-400],[560,-330],[640,-262],[690,-150],[660,150],[640,300],[690,400],[700,450]],east:[[560,-330],[640,-262],[700,-150],[760,-40],[790,150],[770,300],[712,400],[700,450]]}};
@@ -271,11 +292,11 @@ function enterCounter(){
   // (Version 236: out in front of the command post, where the opening leaves them)
   ['A','B'].forEach((t,ti)=>[0,1,2,3].forEach(i=>{const rm=ddmSlotMan(t,i);if(!rm)return;const u=ddNewMan(t,t+(i+1),rm.role,(ti?724:612)+i*18,498+(i%2)*14,rm);u.inBoat=false;u.seen=true;}));
   players=units.filter(u=>u.side==='P'&&!u.npc);
-  for(let i=0;i<10;i++){const u=ddNpc(i<5?400+i*44:790+(i-5)*40,DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.ln=i<8?1:2;u.hopT=simT+.3+i*.25;}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
+  for(let i=0;i<10;i++){const u=ddNpc(i<5?400+i*44:790+(i-5)*40,DCA.wallY+22+(i%2)*10);u.inBoat=false;u.seen=true;u.back={x:u.x,y:u.y};u.post={x:DCA.posts[i][0],y:DCA.posts[i][1]};u.ln=i<8?1:2;u.hopT=simT+.3+i*.25;if(DCA.bz.at.includes(i))dcBzMan(u);}   // (Version 224: they run out to forward posts in the field as it starts, and fall back to the line when it gets too close: dcNpc)
   if(typeof dcFrantic==='function'){const r=(x=>()=>(x=(x*16807)%2147483647)/2147483647)(4711);for(const u of dd.npcs){u.hopT=simT+.2+r()*1.9;dcFrantic(u,r);}}   // (Version 249, Bryan: "run frantically to the front, not orderly march": each when he's ready and at his own speed; they went one every quarter second. Its own random numbers: the battle's are as they were)
   dd.pool=0;dd.sup={A:'hold',B:'hold'};   // (both squads hold: nobody follows anybody off the line)
   // the column on the road: the first wave's men marching in, the tanks behind them
-  const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*720;e.cool=99;e.stage=-1;
+  const W=DCA.waves[0];for(let i=0;i<W.inf;i++){const e=ddFoe('w1',DCA.road-DDX+((i%3)-1)*13,-560-((i/3)|0)*22,{ang:Math.PI/2,nade:i%7===0?1:0});e.lane=250+(i/(W.inf-1))*720;e.cool=99;e.stage=-1;e.smk=i%DCA.smk.every===2?1:0;
     const p=findPath(e.x,e.y,e.lane,DCA.treeY+30+((i%2)*18),FOOT);if(p)e.path=p;e.zone={x0:e.lane-80,x1:e.lane+80,y0:DCA.treeY-20,y1:DCA.treeY+90};}
   // (Version 238 had four tanks waiting up the woods road from the start, the first with wave 1. Version 254, Bryan: "Heavy units can start
   // appearing at Wave 5": they're made when their wave starts, dcSpawnWave)
@@ -309,9 +330,11 @@ function dcSeat(g){return{x:g.x,y:g.y+(g.t==='art'?12:0)};}
 function dcSit(g,u){
   if(g.man&&g.man!==u){const o=g.man;dcOff(o);if(o.dcGun===g)o.dcGun=null;}   // (one of the other troops on it gives it up to the squad mate who's come for it)
   const s=dcSeat(g),f=g.face0??-Math.PI/2;g.going=null;g.man=u;g.manT=simT;u.path=[];u.x=s.x;u.y=s.y;u.ang=f;u.aimT=simT;u.dcGun=g;
-  if(g.t==='mg'){u.onGun={x:g.x,y:g.y,ang:f,arc:g.arc,lt:!g.hv,hv:!!g.hv};u.gunner=true;u.gunW=DCA.gw[g.hv?'hv':'lt'];}
+  dcGunOn(g,u,f);
   if(!u.npc)callout(u,g.t==='art'?'On the field gun':'On the gun',C0());
 }
+// his hands on a machine gun: its arc, its fire (Version 255: also put back by dcGunsTick if anything has taken them off it while he holds it)
+function dcGunOn(g,u,f){if(g.t==='mg'){u.onGun={x:g.x,y:g.y,ang:f??(u.onGun?u.onGun.ang:g.face0??-Math.PI/2),arc:g.arc,lt:!g.hv,hv:!!g.hv};u.gunner=true;u.gunW=DCA.gw[g.hv?'hv':'lt'];}}
 function dcOff(u){if(!u)return;if(u.onGun){u.onGun=null;u.gunner=false;}u.gunW=null;}
 // Version 254 (Bryan: "A stationary weapon should be destroyed first and just hurt the soldier. It doesn't kill the soldier. Have the machine be
 // destroyed first and the soldier has no less than 50% health"): from combat.js's damage, for one of ours on a gun that's still up. The gun takes
@@ -335,7 +358,7 @@ function dcMan(u,g){   // send him to it; he takes it when he gets there (dcGuns
 // Version 224 (Bryan): the squad takes the guns itself as it starts; a tap on an empty gun, on the map or on its tile, sends the nearest free squad
 // mate, and one of the other troops only when no squad mate is left ("it only says NPC if no squad mates are left"); a tap on a gun a squad mate
 // holds puts the player behind it (first person, ddfp.js); from there BACK leaves the view with him still on it and LEAVE GUN takes him off it.
-const dcFreeMen=()=>players.filter(u=>alive(u)&&!u.dcGun&&!u.onGun&&!u.carry&&!u.fp&&!u.inBoat);
+const dcFreeMen=()=>players.filter(u=>alive(u)&&!u.dcGun&&!u.onGun&&!u.carry&&!u.fp&&!u.inBoat&&!dd.dc.guns.some(g=>g.fix&&g.fix.u===u));   // (Version 255: not an Engineer on his way to a repair: the gun he'd left was manned again by him, which called the repair off)
 function dcFill(g){
   const by=(a,b)=>(a.ddRole==='medic')-(b.ddRole==='medic')||hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y);
   for(const u of dcFreeMen().sort(by))if(dcMan(u,g)){callout(u,g.t==='art'?'To the field gun':'To the gun',C0());return u;}
@@ -488,7 +511,7 @@ function dcArtLand(){
 }
 function dcGunsTick(dt){
   dcFixTick(dt);dcArtLand();dcSlitTick(dt);
-  const C=dd.dc,foes=enemies.filter(e=>!beaten(e)),tanks=ddTanksUp();
+  const C=dd.dc,foes=enemies.filter(e=>!beaten(e)&&!e.air),tanks=ddTanksUp();   // (not the helicopter's gunner: a shell bursts on the ground)
   for(const p of dd.allies||[]){const on=!!(p.dcGun&&p.dcGun.man===p);if(on&&!p.dug){p.dug=1;p.dmgIn=(p.dmgIn||1)*DCA.dug;}else if(!on&&p.dug){p.dug=0;p.dmgIn=(p.dmgIn||1)/DCA.dug;}}   // (behind his gun's bags)
   for(const sh of C.shells.slice())if(simT>=sh.at){C.shells.splice(C.shells.indexOf(sh),1);for(const g of C.guns)if(hyp(sh.x-g.x,sh.y-g.y)<DCA.gunHit)dcGunHit(g,sh.D||DCA.hv.shell);}
   if(C.focus&&beaten(C.focus))C.focus=null;if(C.focusK&&!(C.focusK.hp>0))C.focusK=null;
@@ -498,6 +521,7 @@ function dcGunsTick(dt){
       DD.rk.puff(g.x+(Math.random()-.5)*8,h,g.y-8+(Math.random()-.5)*8,g.hits>=2?7+Math.random()*4:4+Math.random()*2.5,g.hits>=2?3.4:2.4,g.hits>=3?0x161514:g.hits===2?0x2b2927:0x9a9690,g.hits>=2?13:9);}
     if(g.dead)continue;
     const m=g.man;if(m&&alive(m)&&m.dcGun===g&&m.path.length){m.path=[];m.x=dcSeat(g).x;m.y=dcSeat(g).y;}   // (he stays on it: only LEAVE GUN, or a tap that sends him to another gun, takes him off: Version 224)
+    if(m&&alive(m)&&m.dcGun===g&&g.t==='mg'&&!m.onGun)dcGunOn(g,m,m.ang);   // (Version 255: his hands back on it, see dcGunOn)
     if(m&&alive(m)&&m.dcGun===g){   // (Version 254: what hits its man goes to the gun first, dcShield from combat.js's damage; it was half of what hurt him, worked out here)
       if(g.t==='mg'&&!m.fp){if(C.focus&&m.focus!==C.focus)m.focus=C.focus;   // (every gun on the one the player put his thumb on)
         const K=g.hv?(C.focusK||(simT-(m.shotAtT||-9)<1.5?null:tanks.filter(q=>!q.hold&&hyp(q.x-g.x,q.y-g.y)<DCA.hv.range&&q.y<g.y).sort((a,b)=>hyp(a.x-g.x,a.y-g.y)-hyp(b.x-g.x,b.y-g.y))[0])):null;
@@ -534,13 +558,13 @@ function dcNpcSpot(u,k){   // the free spot on line k nearest him (one man a spo
   for(const[x,y]of L){if(dd.npcs.some(o=>o!==u&&alive(o)&&o.post&&o.post.x===x&&o.post.y===y))continue;const d=hyp(x-u.x,y-u.y);if(d<bd){bd=d;b={x,y};}}
   return b;
 }
-const dcNpcSafe=s=>!enemies.some(e=>!beaten(e)&&hyp(e.x-s.x,e.y-s.y)<160)&&!dd.tanks.some(K=>K.hp>0&&!K.hold&&hyp(K.x-s.x,K.y-s.y)<300);
+const dcNpcSafe=s=>!enemies.some(e=>!beaten(e)&&!e.air&&hyp(e.x-s.x,e.y-s.y)<160)&&!dd.tanks.some(K=>K.hp>0&&!K.hold&&hyp(K.x-s.x,K.y-s.y)<DCA.npcTank[1]);
 function dcNpc(){
   const C=dd.dc,fight=/^w/.test(C.ph),rest=C.ph==='lull'||C.ph==='push',maxL=C.cpOurs?4:3;
   for(const u of dd.npcs){if(!alive(u)||u.dcGun||!u.back||u.seqHop)continue;
     if(u.cpGo){dcStorm(u);continue;}
     if(u.ln==null)u.ln=u.post&&u.post!==u.back?1:0;const P=u.post||u.back;
-    const close=enemies.filter(e=>!beaten(e)&&hyp(e.x-P.x,e.y-P.y)<140),tank=dd.tanks.some(K=>K.hp>0&&!K.hold&&hyp(K.x-P.x,K.y-P.y)<250);
+    const close=enemies.filter(e=>!beaten(e)&&!e.air&&hyp(e.x-P.x,e.y-P.y)<140),tank=!(u.spec==='rpg'&&u.specN>0)&&dd.tanks.some(K=>K.hp>0&&!K.hold&&hyp(K.x-P.x,K.y-P.y)<DCA.npcTank[0]);   // (Version 255: a bazooka man holds for a tank: it's his)
     let k=u.ln;
     if(u.hp<(u.ln===4?35:45))k=u.ln===4?2:0;                                                                          // hurt: back to the wall (from the checkpoint, to the middle of the field)
     else if(k>0&&k<4&&(close.length>=2||close.some(e=>hyp(e.x-P.x,e.y-P.y)<90)||tank)){k=u.ln-1;u.advT=simT+8;}       // they're on him: back a line (at their checkpoint he holds: they fight for it)
@@ -603,7 +627,7 @@ function dcStorm(u){
 }
 function dcCpTick(dt){
   const C=dd.dc;if(!C.cpGo&&!C.cpOurs)return;const Z=DCA.cz;
-  const theirs=enemies.filter(e=>!beaten(e)&&!e.onTank&&dcIn(e,Z)).length,ours=(dd.allies||[]).filter(u=>alive(u)&&dcIn(u,Z)).length;C.czN=[ours,theirs];
+  const theirs=enemies.filter(e=>!beaten(e)&&!e.onTank&&!e.air&&dcIn(e,Z)).length,ours=(dd.allies||[]).filter(u=>alive(u)&&dcIn(u,Z)).length;C.czN=[ours,theirs];
   if(!C.cpOurs){if(!C.pushOn)return;if(ours&&!theirs){C.capT+=dt;if(C.capT>=DCA.capT)dcCpTaken();}else C.capT=Math.max(0,C.capT-dt*(theirs?2:.5));}
   else{if(theirs&&!ours){C.capT+=dt;if(C.capT>=DCA.loseT)dcCpLost();}else C.capT=Math.max(0,C.capT-dt*2);}
 }
@@ -634,7 +658,7 @@ function dcSpawnLot(n,count){
   for(let i=0;i<count;i++){let x,y,lane;
     if(i<fromCp){x=704+Math.random()*70;y=-352-Math.random()*16;lane=520+Math.random()*360;}
     else{lane=250+(i/Math.max(1,count-1))*720+(Math.random()-.5)*30;x=lane+(Math.random()-.5)*30;y=-600-Math.random()*100;}
-    const e=ddFoe(tag,x-DDX,y,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=-1;
+    const e=ddFoe(tag,x-DDX,y,{ang:Math.PI/2,nade:i%5===0?1:0});e.lane=lane;e.stage=-1;e.smk=i%DCA.smk.every===2?1:0;   // (Version 255: a smoke grenade, dcEnemySmoke)
     if(C.cpOurs){if(Math.random()<DCA.cpAtt)e.cpAtt=1;else e.lane=e.lane<DCA.road?250+Math.random()*190:870+Math.random()*100;}
     enemies.push(e);L.push(e);}
   C.spawned+=count;return L;
@@ -643,15 +667,17 @@ function dcSpawnWave(n){
   const C=dd.dc,W=DCA.waves[n-1],tag='w'+n;if(!W)return;C.more=0;
   if(n>1)dcSpawnLot(n,W.inf);   // (wave 1's men are on the road already: enterCounter)
   for(const e of enemies)if(e.tag===tag){e.cool=Math.min(e.cool,1+Math.random()*2);e.stage=0;e.advT=simT+Math.random()*3;e.gait=null;}
-  (W.tanks||[]).forEach((k,i)=>{const at=DCA.tankAt[k]||DCA.tankAt.road,K=ddTankSpawn({x:at[0],y:at[1],ang:.4,hold:true,way:DCA.ways[k],name:'Tank',range:DCA.tankR});K.w=n;K.relT=simT+i*7;});
-  if(n>1){bigText(`Wave ${n}`,'inbound');banner(W.tanks?`Wave ${n} of ${DCA.waves.length}: ${W.tanks.length>1?W.tanks.length+' tanks':'a tank'} with them.`:`Wave ${n} of ${DCA.waves.length}.`,3200);}
-  else banner('Here they come: infantry across the whole field.',3600);
+  (W.tanks||[]).forEach((k,i)=>{const at=DCA.tankAt[k]||DCA.tankAt.road,K=ddTankSpawn({x:at[0],y:at[1],ang:.4,hold:true,way:DCA.ways[k],name:'Tank',range:DCA.tankR});K.w=n;K.relT=simT+i*7;K.hp=K.hp0=DCA.tankHp;});
+  for(let i=0;i<(W.helis||0);i++)dcHeliSpawn(n,simT+DCA.heli.first+i*DCA.heli.next);   // (Version 255)
+  const tk=W.tanks?W.tanks.length:0,hl=W.helis||0,what=[tk?(tk>1?tk+' tanks':'a tank'):'',hl?(hl>1?hl+' helicopters':'a helicopter'):''].filter(Boolean).join(' and ');
+  if(n>1){bigText(`Wave ${n}`,'inbound');banner(what?`Wave ${n} of ${DCA.waves.length}: ${what} with them.`:`Wave ${n} of ${DCA.waves.length}.`,3200);}
+  else banner(what?`Here they come: infantry across the whole field, ${what} behind them.`:'Here they come: infantry across the whole field.',3600);
 }
 function dcSpawnMore(n){const W=DCA.waves[n-1];if(!W||!W.more)return;for(const e of dcSpawnLot(n,W.more)){e.stage=0;e.advT=simT+Math.random()*3;e.cool=1+Math.random()*2;}}
 // each man works his way down the field in bounds: the hedgerow, the open ground, the trench, the wire, then the gate and the command post
 const DC_STAGE=[-96,90,240,430];
 function dcEnemy(){
-  const C=dd.dc,taken=enemies.filter(o=>!o.dead).map(destOf),Z=DCA.cz;
+  const C=dd.dc,taken=enemies.filter(o=>!o.dead&&!o.air).map(destOf),Z=DCA.cz;
   for(const e of enemies){if(beaten(e)||e.stage==null||e.stage<0||e.path.length||simT<(e.advT||0))continue;
     if(e.sup>.7){e.advT=simT+1.5;continue;}
     let tx,ty;const st=e.stage;
@@ -664,15 +690,210 @@ function dcEnemy(){
     const s=openSpot(clamp(tx,DCA.x0+30,DCA.x1-30),ty,taken)||{x:tx,y:ty},p=findPath(e.x,e.y,s.x,s.y,FOOT);
     if(p&&p.length){e.path=p;e.zone={x0:s.x-110,x1:s.x+110,y0:s.y-90,y1:s.y+90};e.stage=Math.min(st+1,DC_STAGE.length+1);e.advT=simT+(st>=DC_STAGE.length?2:3.5+Math.random()*4.5);}
     else e.advT=simT+2;}
+  dcEnemySmoke();
   // mortars (from wave 3): a shell now and then on a manned nest
   const W=DCA.waves[C.wave-1];
   if(W&&W.mortar&&/^w/.test(C.ph)&&simT>(C.mortT||0)){C.mortT=simT+11+Math.random()*6;const L=C.guns.filter(g=>g.k[0]==='n'&&g.man&&!g.dead);if(L.length){const g=L[(Math.random()*L.length)|0],mx=g.x+(Math.random()-.5)*56,my=g.y+(Math.random()-.5)*56;ddShell({x:g.x+(Math.random()-.5)*300,y:DCA.treeY-200,side:'E',name:'Mortar',stats:{}},mx,my,44,62,2.4);C.shells.push({x:mx,y:my,at:simT+2.4,D:DCA.hv.mortar});}}
+}
+// (Version 255, Bryan: "Enemy units are equipped with smoke") a man with a smoke grenade, out past the hedgerow and close to a gun of ours (or
+// pinned down further off), throws it toward the nearest manned gun, so he and those behind him come on behind it (combat.js's popSmoke as it
+// lands: nobody sees through it, our guns neither); one every few seconds across the whole field, never onto smoke already there
+function dcEnemySmoke(){
+  const C=dd.dc;if(!/^w/.test(C.ph)||simT<(C.smkT||0))return;const guns=C.guns.filter(g=>!g.dead&&!g.off&&g.man);if(!guns.length)return;
+  for(const e of enemies){if(!e.smk||beaten(e)||e.air||e.onTank||e.stage==null||e.stage<2)continue;
+    const g=guns.reduce((b,q)=>hyp(q.x-e.x,q.y-e.y)<hyp(b.x-e.x,b.y-e.y)?q:b),d=hyp(g.x-e.x,g.y-e.y);if(d>520||d<120||(e.sup<.3&&d>380))continue;
+    const k=Math.min(SMOKE.range*.85,d*.55)/d,tx=e.x+(g.x-e.x)*k,ty=e.y+(g.y-e.y)*k;
+    if(smokes.some(c=>hyp(c.x-tx,c.y-ty)<SMOKE.r*1.6)||nades.some(n=>n.smoke&&hyp(n.x1-tx,n.y1-ty)<SMOKE.r*1.6))continue;
+    e.smk=0;e.ang=Math.atan2(ty-e.y,tx-e.x);e.aimT=simT;e.throwT=simT;e.advT=Math.min(e.advT||0,simT+1.4);
+    nades.push({x0:e.x,y0:e.y,x1:tx,y1:ty,t:0,dur:.9,by:e,smoke:true});if(typeof sfxPin==='function')sfxPin(e.x,e.y);
+    C.smkT=simT+DCA.smk.gap[0]+Math.random()*(DCA.smk.gap[1]-DCA.smk.gap[0]);C.smkN=(C.smkN||0)+1;return;}
+}
+// (Version 255, Bryan: "NPC can have rocket launchers (if that's there class)") one of the other troops made a bazooka man: the launcher on him,
+// rockets made up between waves (dcNpcTopUp); he fires at a tank by himself (ddvillage.js's vgBazooka, from dcTick)
+function dcBzMan(u){u.spec='rpg';u.specN=DCA.bz.n;u.bzT=0;u.bzAim=null;if(typeof figRefresh==='function'&&u.m)figRefresh(u);}
+// (Version 255) the last one or two of a wave out of every gun's reach (in the trees, round the blockhouse) once its tanks and helicopters are
+// gone: 25 s with nobody of theirs down and they fall back into the woods, and the wave is over. In a test a wave waited 400 s on one man
+function dcStragglers(n,all){
+  const C=dd.dc,L=enemies.filter(e=>e.tag==='w'+n&&!beaten(e));
+  if(!all||L.length>2||dd.tanks.some(K=>K.w===n&&K.hp>0)||(C.helis||[]).some(H=>H.w===n&&H.hp>0)){C.strT=null;return;}
+  const k=L.length;if(C.strT==null||C.strN!==k){C.strT=simT;C.strN=k;return;}
+  if(simT-C.strT<25)return;for(const e of L){e.dead=true;e.gone=true;e.hp=0;e.path=[];}C.strT=null;banner(k>1?'The last of them fall back into the woods.':'The last of them falls back into the woods.',2600);
+}
+// (Version 255) a tank at the end of its road with nothing in its sights for DCA.tankRoll s rolls on onto the ground in front of the command post
+// (DCA.cpZone, where it counts for the flag's clock). The roads end just short of it: in a test fight, with every gun knocked out and the last man
+// out of their sight, two tanks sat there for the rest of it and the fight could be neither won nor lost. Its shot put back (ddTankHold) or a
+// shot fired starts the clock again
+function dcTankRoll(){
+  for(const K of dd.tanks){if(K.hp<=0||K.hold||K.rolled||!K.way||K.i<K.way.length)continue;
+    if(K.endT==null||K.fireT!==K.ft0){K.endT=simT;K.ft0=K.fireT;continue;}
+    if(simT-K.endT<DCA.tankRoll)continue;
+    K.rolled=true;K.way.push([700+(((K.id.charCodeAt(K.id.length-1)||0)%3)-1)*40,505]);if(!dd.dc.rollSaid){dd.dc.rollSaid=1;banner('A tank rolls up to the gate!',3000);}}
 }
 // a man lost, and somebody in the reserve: he comes out of the barracks for him
 function dcReplace(){   // (Version 224, Bryan: "No reinforcements this time": nobody comes out of the barracks for a man lost)
   for(const q of dd.queue)if(q.body)q.body.noRev=true;dd.queue.length=0;dd.pool=0;
 }
 function dcNoRe(){let el=$('#dcNoRe');if(!el){el=document.createElement('div');el.id='dcNoRe';el.textContent='NO REINFORCEMENTS';stage.appendChild(el);}el.classList.remove('on');void el.offsetWidth;el.classList.add('on');}
+
+/* ---------- Version 255: helicopters ---------- */
+// (Bryan, after Version 254: "two tanks and a helicopter on 5 ... three tanks and two helicopters on 7". Neither side flew one in a fight in
+// 1944: a game's what-if, as he asked.) Each comes in over the trees after its wave has begun (DCA.heli.first s in, the next DCA.heli.next s
+// later), circles over the field and every few seconds makes a run at one of our manned guns: two rockets at it from 20 to 44 m out (on a gun
+// they count as a tank's shell does, dcGunHit; and they hurt whoever's near, combat.js's explode), then breaks away and circles again. Its door
+// gunner is one of their men (ddFoe 'heli': a machine gunner, all round) carried with it (dcHeliCrew): he picks his own targets, from the air
+// over walls and hedges (combat.js's fireLine, air), and our cover counts one step less from up there (shotCover). What hits him hits the
+// helicopter (combat.js's damage -> dcHeliHit): a rifle a little, the nests' light guns more, the heavy gun most; nothing on the ground reaches it
+// (explode leaves it out). Shot down it spins, smoking, falls and burns where it lands (dcHeliDown), hurting whoever's under it. It is one of
+// its wave's (dcTick's left(), the objective's count) and its gunner one of ENEMY DOWN. Its sound: audio.js's 'heli' loop (dcHeliSound).
+const dcHeliUp=()=>(dd&&dd.dc&&dd.dc.helis||[]).filter(H=>H.st!=='wait'&&H.st!=='dead'&&H.hp>0);
+function dcHeliSpawn(n,at){
+  const C=dd.dc,P=DCA.heli,L=C.helis||(C.helis=[]),k=L.length;
+  const H={id:'HELI'+(k+1),w:n,hp:P.hp,hp0:P.hp,st:'wait',relT:at,x:360+((k*317)%600),y:-1050,alt:P.altIn,ang:Math.PI/2,turnR:0,sp:P.spd,dir:k%2?-1:1,t:0,runT:0,q:[],g:null,e:null,smokeT:0};
+  L.push(H);return H;
+}
+// its door gunner, made when it comes in: one of their men, carried with it (and its weight on the report: one of ENEMY DOWN)
+function dcHeliCrew(H){
+  const P=DCA.heli,e=ddFoe('heli',H.x-DDX,H.y,{name:'Door gunner',gunner:true,post:true,ang:H.ang,longR:P.longR,aimPen:P.aimPen,nade:0});
+  e.air=H;e.onGun={x:H.x,y:H.y,ang:H.ang,arc:Math.PI};e.alerted=true;e.elev=H.alt;H.e=e;if(!enemies.includes(e))enemies.push(e);dd.dc.spawned++;dcHeliPose(H);
+}
+function dcHeliPose(H){
+  const e=H.e;if(!e||e.dead)return;const c=Math.cos(H.ang),s=Math.sin(H.ang);
+  e.x=H.x+c*6-s*10;e.y=H.y+s*6+c*10;e.elev=Math.max(0,H.alt-8);e.path=[];e.onGun.x=e.x;e.onGun.y=e.y;e.onGun.ang=H.ang;e.alerted=true;e.revealT=Math.max(e.revealT||0,simT+.5);e.seen=true;
+}
+// a gun for a run: one of ours that's manned, the one the player is on now and then, else the nearest to where it is
+function dcHeliPick(H){
+  const L=dd.dc.guns.filter(g=>!g.dead&&!g.off&&g.man&&alive(g.man));if(!L.length)return null;
+  const fp=L.find(g=>g.man.fp);if(fp&&Math.random()<.45)return fp;
+  return L.sort((a,b)=>hyp(a.x-H.x,a.y-H.y)-hyp(b.x-H.x,b.y-H.y))[Math.random()<.6?0:Math.min(L.length-1,1)];
+}
+function dcHeliTick(dt){
+  const C=dd.dc,L=C.helis;if(!L||!L.length)return;const P=DCA.heli,turn=(a,b,m)=>{const d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI;return a+clamp(d,-m,m);};
+  for(const H of L){
+    if(H.st==='dead'||H.st==='gone')continue;
+    if(H.st==='wait'){if(simT<H.relT)continue;H.st='in';H.t=0;dcHeliCrew(H);
+      bigText(L.filter(q=>q.st!=='wait').length>1?'Another helicopter':'Helicopter!','inbound');banner(C.heliSaid?'Another helicopter over the trees.':'A helicopter over the trees! The heavy MG tears it up.',3600);C.heliSaid=1;continue;}
+    H.t+=dt;
+    if(H.st==='crash'){dcHeliFall(H,dt);continue;}
+    if((H.st==='orbit'||H.st==='brk')&&!H.q.length&&((H.runs||0)>=P.runs||simT-(H.onT??simT)>P.stay)){H.st='out';H.t=0;banner((H.runs||0)>=P.runs?'The helicopter has fired off its rockets and turns for home.':'The helicopter turns for home.',3000);}
+    let tx,ty,alt=P.alt,sp=P.spd;
+    if(H.st==='in'){const a=Math.atan2(H.y-P.c.y,H.x-P.c.x);tx=P.c.x+Math.cos(a)*P.r;ty=P.c.y+Math.sin(a)*P.r;alt=H.y<DCA.treeY?P.altIn:P.alt;
+      if(hyp(tx-H.x,ty-H.y)<70){H.st='orbit';H.t=0;H.runT=simT+3+Math.random()*3;H.onT=H.onT??simT;}}
+    else if(H.st==='orbit'){const a=Math.atan2(H.y-P.c.y,H.x-P.c.x)+H.dir*.55;tx=P.c.x+Math.cos(a)*P.r;ty=P.c.y+Math.sin(a)*P.r;
+      if(simT>=H.runT){const g=dcHeliPick(H);if(g){H.st='run';H.t=0;H.tg=g;}else H.runT=simT+3;}}
+    else if(H.st==='run'){const g=H.tg;if(!g||g.dead||!g.man){H.st='orbit';H.ap=null;H.runT=simT+2;continue;}
+      const d=hyp(g.x-H.x,g.y-H.y);
+      if(!H.ap&&H.t<.1&&d<P.fire[0]+90)H.ap={x:clamp(g.x+(H.x-g.x)/(d||1)*400,DCA.x0+40,DCA.x1-40),y:clamp(g.y+(H.y-g.y)/(d||1)*400,-320,260)};   // (too close to turn in: out first, then round at it)
+      if(H.ap){tx=H.ap.x;ty=H.ap.y;if(hyp(tx-H.x,ty-H.y)<70||H.t>7)H.ap=null;}
+      else{tx=g.x;ty=g.y;alt=P.alt-8;sp=P.spd*1.15;const off=Math.abs(((Math.atan2(g.y-H.y,g.x-H.x)-H.ang+Math.PI*3)%(Math.PI*2))-Math.PI);
+        if(d<P.fire[1]&&d>P.fire[0]&&off<.3&&!H.q.length){H.runs=(H.runs||0)+1;for(let i=0;i<P.rk.n;i++)H.q.push({at:simT+i*P.rk.gap,x:g.x+(Math.random()-.5)*2*P.rk.spread,y:g.y+(Math.random()-.5)*2*P.rk.spread});dcHeliBreak(H);}
+        else if(d<=P.fire[0]||H.t>16)dcHeliBreak(H);}}
+    else if(H.st==='brk'){tx=H.bx;ty=H.by;if(hyp(tx-H.x,ty-H.y)<70||H.t>5){H.st='orbit';H.t=0;H.runT=simT+P.orbitT[0]+Math.random()*(P.orbitT[1]-P.orbitT[0]);}}
+    else if(H.st==='out'){tx=H.x;ty=-1400;alt=H.y<DCA.treeY+200?P.altIn:P.alt+30;sp=P.spd*1.1;   // (home: north over the trees and away; the wave no longer waits on it)
+      if(H.y<-1150){H.st='gone';H.hp=0;const e=H.e;if(e&&!e.dead){e.dead=true;e.gone=true;e.hp=0;e.path=[];}if(H.g)H.g.visible=false;continue;}}
+    const a0=H.ang;H.ang=turn(H.ang,Math.atan2(ty-H.y,tx-H.x),P.turn*dt);H.turnR+=((H.ang-a0)/Math.max(dt,1e-4)-H.turnR)*Math.min(1,dt*3);
+    H.sp+=(sp-H.sp)*Math.min(1,dt*1.2);H.x+=Math.cos(H.ang)*H.sp*dt;H.y+=Math.sin(H.ang)*H.sp*dt;H.alt+=(alt-H.alt)*Math.min(1,dt*.7);
+    for(let i=H.q.length-1;i>=0;i--)if(simT>=H.q[i].at){dcHeliRocket(H,H.q[i]);H.q.splice(i,1);}
+    dcHeliPose(H);
+  }
+  dcHeliRockets(dt);
+}
+// the break after a run: off to one side and on past the gun, then round again
+function dcHeliBreak(H){
+  const a=H.ang+H.dir*1.25;H.st='brk';H.t=0;H.bx=clamp(H.x+Math.cos(a)*320,DCA.x0+60,DCA.x1-60);H.by=clamp(H.y+Math.sin(a)*320,-260,300);
+}
+// a rocket off its pods: straight down its line to the spot, a smoke trail behind it (dday.js's rocket mesh and puffs)
+function dcHeliRocket(H,T){
+  const C=dd.dc,P=DCA.heli,c=Math.cos(H.ang),s=Math.sin(H.ang),side=(C.hrkN=(C.hrkN||0)+1)%2?1:-1;
+  const x=H.x+c*4-s*side*12,y=H.y+s*4+c*side*12,z=ddH(H.x,H.y)+H.alt-6,tz=ddH(T.x,T.y)+2,d=Math.hypot(T.x-x,T.y-y,tz-z)||1,v=P.rk.spd;
+  (C.hrk||(C.hrk=[])).push({x,y,z,vx:(T.x-x)/d*v,vy:(T.y-y)/d*v,vz:(tz-z)/d*v,by:H.e,left:d/v,m:null});
+  flashes.push({x,y,t:0});if(typeof playSample==='function')playSample('launch',x,y,.45,1.1);
+}
+function dcHeliRockets(dt){
+  const C=dd.dc,L=C.hrk;if(!L||!L.length)return;const P=DCA.heli;
+  for(let i=L.length-1;i>=0;i--){const r=L[i];r.left-=dt;r.x+=r.vx*dt;r.y+=r.vy*dt;r.z+=r.vz*dt;
+    if(r.left>0&&r.z>ddH(r.x,r.y)+1)continue;
+    L.splice(i,1);if(r.m)r.m.visible=false;const by=r.by&&!r.by.dead?r.by:null;
+    explode(r.x,r.y,by,false,P.rk.R,P.rk.D);for(const g of C.guns)if(!g.off&&hyp(r.x-g.x,r.y-g.y)<DCA.gunHit)dcGunHit(g,P.rk.gun);}
+}
+// what hits its door gunner (combat.js's damage): the helicopter takes it, by what fired
+function dcHeliHit(H,dmg,src){
+  if(!H||H.hp<=0||H.st==='crash'||H.st==='dead')return;const P=DCA.heli.dmg;
+  const k=src&&src.onGun?(src.onGun.hv?P.hv:P.lt):P.rifle;
+  H.hp-=dmg*k;H.hitT=simT;if(src&&src.side==='P')H.hitBy=src;if(H.e)H.e.hitFlash=.25;
+  if(H.hp<=0){H.hp=0;dcHeliDown(H);}
+}
+// shot down: its gunner with it (the kill to whoever brought it down), a burst, then it spins and falls
+function dcHeliDown(H){
+  const e=H.e;H.st='crash';H.t=0;H.q.length=0;H.vz=0;H.spin=1.6;
+  if(e&&!e.dead){e.dead=true;e.hp=0;e.gone=true;e.path=[];const by=H.hitBy;if(by&&by.side==='P'&&by.stats)creditKill(by);}
+  H.burst=1;if(typeof sfxBoom==='function')sfxBoom(H.x,H.y,.8);shake(.5);banner(`The helicopter is hit${H.hitBy&&H.hitBy.side==='P'&&!H.hitBy.npc?` · ${H.hitBy.name}`:''}! It's going down.`,3200);
+}
+function dcHeliFall(H,dt){
+  const P=DCA.heli;H.spin=Math.min(7,H.spin+dt*2.4);H.ang+=H.spin*dt;H.sp=Math.max(10,H.sp-dt*24);H.vz-=40*dt;H.alt+=H.vz*dt;
+  H.x+=Math.cos(H.ang)*H.sp*dt*.6;H.y+=Math.sin(H.ang)*H.sp*dt*.6;
+  if(H.alt>4)return;
+  H.alt=0;H.st='dead';H.hp=0;explode(H.x,H.y,H.hitBy||null,true,P.crashR,P.crashD);
+  for(let q=0;q<4;q++)booms.push({x:H.x+(Math.random()-.5)*36,y:H.y+(Math.random()-.5)*30,t:-q*.13,size:1.3});
+  tankFires.push({x:H.x,y:H.y,r:12,t0:simT,puffs:[],emit:0});shake(1);bigText('Helicopter down','complete');
+}
+// the nearest one in the air, for its sound (audio.js)
+function dcHeliSound(){
+  let b=null,bd=1e9;for(const H of(dd&&dd.dc&&dd.dc.helis)||[]){if(H.st==='wait'||H.st==='dead'||H.st==='gone')continue;const d=hyp(H.x-camT.x,H.y-camT.z);if(d<bd){bd=d;b=H;}}return b;
+}
+// its look: field grey over pale blue, crosses on the boom and the cabin, rocket pods on stubs, the gunner in the open door; one mesh for the body
+// (merged, colours baked in: ddground.js's ddgMerge), the rotors their own (they turn), and a faint disc where the blades blur
+function dcHeliMesh(){
+  const T=THREE,hz=Math.PI/2,top=0x4a5341,dk=0x1d1f20,pale=0x8d9aa2,wh=0xe6e4da,bk=0x121212,P=[];
+  const add=(g,p,c,r,s)=>P.push({g,p,c,r,s});
+  add(new T.BoxGeometry(40,14,18),[2,0,0],top);add(new T.BoxGeometry(38,2,17),[2,-7.6,0],pale);                       // the cabin, its belly
+  add(new T.SphereGeometry(9.5,14,10),[22,-.5,0],top,null,[1.2,.78,.95]);                                                   // the nose
+  add(new T.SphereGeometry(8.8,14,10,0,Math.PI*2,0,Math.PI*.55),[23,1.2,0],0x15222a,[0,0,-.35],[1.12,.8,.98]);            // the cockpit glass
+  add(new T.BoxGeometry(22,5,14),[-2,9.4,0],0x3e4636);add(new T.CylinderGeometry(1.4,1.7,6,8),[0,14,0],dk);               // the engine housing, the mast
+  add(new T.CylinderGeometry(2.2,4.2,62,10),[-48,3.5,0],top,[0,0,hz]);                                                     // the tail boom (thin end aft)
+  add(new T.BoxGeometry(9,15,1.4),[-77,10,0],top,[0,0,.25]);add(new T.BoxGeometry(5,1,14),[-66,4,0],top);               // the fin, the tail plane
+  for(const sz of[-1,1]){add(new T.CylinderGeometry(.9,.9,52,8),[2,-12.5,sz*11],dk,[0,0,hz]);                            // the skids
+    for(const x of[-10,14])add(new T.BoxGeometry(1.4,6,1.2),[x,-9.5,sz*9.5],dk,[-sz*.35,0,0]);
+    add(new T.BoxGeometry(5,1.2,7),[3,-3,sz*12.4],top);add(new T.CylinderGeometry(2.1,2.1,13,9),[4,-5.4,sz*16],dk,[0,0,hz]);   // the stub wing, the rocket pod
+    add(new T.BoxGeometry(15,9,.4),[4,-.5,sz*9.1],0x0b0c0d);                                                                // the open door: dark inside
+    // the crosses: white round black, on the cabin's back half and on the boom
+    for(const[x,y,z,k]of[[-11,1,sz*9.15,1],[-40,4,sz*3.5,.7]]){add(new T.BoxGeometry(7.4*k,1.9*k,.3),[x,y,z],wh);add(new T.BoxGeometry(1.9*k,7.4*k,.3),[x,y,z],wh);
+      add(new T.BoxGeometry(6*k,1*k,.5),[x,y,z],bk);add(new T.BoxGeometry(1*k,6*k,.5),[x,y,z],bk);}}
+  // the gunner in the right-hand door and his gun out over the sill
+  add(new T.BoxGeometry(4.6,8,4),[5,0,7.2],0x575a50);add(new T.SphereGeometry(2.4,8,6),[5,5.6,7.2],0x4b4f47,null,[1,.8,1]);
+  add(new T.CylinderGeometry(.45,.45,11,6),[6,1.6,13],dk,[hz,0,0]);add(new T.BoxGeometry(2.4,1.6,4),[6,1.4,9.4],dk);
+  const mat=new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.62,metalness:.22});mat.userData.ddKeep=true;
+  const geo=ddgMerge(P.map(q=>({g:q.g,p:q.p,c:q.c,r:q.r,s:q.s})),true);
+  const g=new T.Group(),b=new T.Group();g.add(b);const body=new T.Mesh(geo,mat);body.castShadow=true;b.add(body);
+  const rm=new T.MeshStandardMaterial({color:0x1a1c1d,roughness:.6,metalness:.4});rm.userData.ddKeep=true;
+  const rotor=new T.Mesh(ddgMerge([{g:new T.BoxGeometry(148,.5,5),p:[0,0,0]},{g:new T.BoxGeometry(5,.5,148),p:[0,0,0]}]),rm);rotor.position.set(0,17.5,0);rotor.castShadow=true;b.add(rotor);
+  const tr=new T.Mesh(ddgMerge([{g:new T.BoxGeometry(1.6,13,.3),p:[0,0,0]},{g:new T.BoxGeometry(13,1.6,.3),p:[0,0,0]}]),rm);tr.position.set(-79,12,1.6);b.add(tr);
+  const disc=new T.Mesh(new T.CircleGeometry(74,40),new T.MeshBasicMaterial({color:0x8a949c,transparent:true,opacity:.08,depthWrite:false,side:T.DoubleSide}));disc.rotation.x=-hz;disc.position.y=17.3;b.add(disc);
+  g.userData={b,rotor,tr,disc,mats:[mat,rm]};return g;
+}
+// each frame (dday.js's ddFrame): the helicopters where they are, leaning into their turns and nose down, the blades turning; the rockets
+function dcFrame(rdt,now){
+  const C=dd&&dd.dc;if(!C)return;
+  for(const H of C.helis||[]){
+    if(H.st==='wait'||H.st==='gone'){if(H.g)H.g.visible=false;continue;}
+    if(!H.g){H.g=dcHeliMesh();DD.scene.add(H.g);}
+    const g=H.g,U=g.userData,fall=H.st==='crash',dead=H.st==='dead';g.visible=true;
+    g.position.set(H.x,ddH(H.x,H.y)+H.alt+(dead?4:0),H.y);g.rotation.y=-H.ang;
+    const bank=dead?.38:fall?clamp(H.turnR*.06,-.5,.5)+.2:clamp(H.turnR*.45,-.42,.42),pitch=dead?.1:fall?-.35:-(H.st==='run'?.2:.13)*clamp(H.sp/DCA.heli.spd,0,1.3);
+    U.b.rotation.set(bank,0,pitch);
+    if(!dead){U.rotor.rotation.y+=rdt*(fall?14:30);U.tr.rotation.z+=rdt*44;U.disc.material.opacity=fall?.04:.08;}
+    else if(!U.burnt){U.burnt=1;U.disc.visible=false;U.rotor.rotation.z=.3;for(const m of U.mats)if(typeof ddgBurnMat==='function')ddgBurnMat(m);else m.color.setHex(0x2a2826);}
+    // smoke from it once it's badly hit, black and thick as it falls
+    if(!dead&&(H.hp<H.hp0*.5||fall)&&DD.rk&&DD.rk.puff&&(H.smokeT-=rdt)<=0){H.smokeT=fall?.04:H.hp<H.hp0*.25?.08:.16;
+      const c=Math.cos(H.ang),s=Math.sin(H.ang);DD.rk.puff(H.x-c*6,g.position.y+10,H.y-s*6,fall?7:5,fall?3:2.4,fall||H.hp<H.hp0*.25?0x1c1a18:0x55524d,6);}
+    if(H.burst&&DD.rk&&DD.rk.puff){H.burst=0;const y0=g.position.y;for(let k=0;k<10;k++)DD.rk.puff(H.x+(Math.random()-.5)*20,y0+(Math.random()-.5)*10,H.y+(Math.random()-.5)*20,k<5?7+k:9+k,k<5?.7:2.6,k<5?0xffb040:0x2a2724,k<5?4:10);}   // (hit: a burst of flame and smoke up there)
+    if(H.e&&H.e.m)H.e.m.g.visible=false;   // (he's drawn in the door, as part of it)
+  }
+  const P=C.hrk||[];let i=0;C.hrkM=C.hrkM||[];
+  for(const r of P){if(!DD.rk||!DD.rk.mk)break;const m=r.m||(r.m=C.hrkM.find(q=>!q.visible&&!q.userData.busy)||(()=>{const q=DD.rk.mk();C.hrkM.push(q);return q;})());
+    m.visible=true;m.position.set(r.x,r.z,r.y);m.rotation.set(0,-Math.atan2(r.vy,r.vx),0);m.rotateZ(Math.atan2(r.vz,Math.hypot(r.vx,r.vy)));
+    if(DD.rk.puff)for(let k=0;k<2;k++)DD.rk.puff(r.x-r.vx*.02*(k+1),r.z-r.vz*.02*(k+1),r.y-r.vy*.02*(k+1),4,1.6,0xe8e6de,3);i++;}
+  for(const m of C.hrkM)if(!P.some(r=>r.m===m))m.visible=false;
+}
 
 /* ---------- the fight's clock ---------- */
 // a wave beaten (Version 254, Bryan: "After the first wave show Wave 1 complete. And give a timer on the rest time until the next wave"): WAVE n
@@ -683,6 +904,8 @@ function dcNpcTopUp(){
   for(const u of dd.npcs)if(alive(u))u.hp=Math.max(u.hp,100);
   const BX=[420,470,520,570,810,860,910,950,445,835],n=DCA.npcN-dd.npcs.filter(alive).length;
   for(let i=0;i<n;i++){const u=ddNpc(688+(i%4)*8,DCA.cp.y+DCA.cp.h+8+((i/4)|0)*9);u.inBoat=false;u.seen=true;u.back={x:BX[i%BX.length],y:DCA.wallY+24};u.ln=0;u.post=u.back;u.hopT=simT+.3+i*.2;}
+  const bz=dd.npcs.filter(u=>alive(u)&&u.spec==='rpg');for(const u of bz)u.specN=Math.max(u.specN||0,DCA.bz.n);   // (Version 255: the bazooka men's rockets made up, and two of them again)
+  for(const u of dd.npcs.filter(u=>alive(u)&&!u.spec&&!u.dcGun).reverse()){if(bz.length>=DCA.bz.men)break;dcBzMan(u);bz.push(u);}
 }
 function dcWaveDone(){
   const C=dd.dc,n=C.wave;
@@ -697,11 +920,11 @@ function dcWaveDone(){
 function dcTick(dt){
   const C=dd.dc;C.t+=dt;
   ddAllDown();ddDeadTick();dd.pool=0;
-  dcGunsTick(dt);ddHot();ddTankTick(dt);dcCpTick(dt);
+  dcGunsTick(dt);ddHot();ddTankTick(dt);dcTankRoll();dcHeliTick(dt);dcCpTick(dt);
   for(const K of dd.tanks)if(K.hold&&K.relT!=null&&simT>=K.relT){K.hold=false;K.i=0;K.relT=null;}   // (a wave's tanks let loose one after another)
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();if(!dd.seq&&typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}}   // (Version 168: ddctl.js)
-  if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();if(typeof dcFranticTick==='function')dcFranticTick();}
-  const left=n=>enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length+dd.tanks.filter(K=>K.w===n&&K.hp>0).length;
+  if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();if(typeof vgBazooka==='function')vgBazooka();if(typeof dcFranticTick==='function')dcFranticTick();}
+  const left=n=>enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length+dd.tanks.filter(K=>K.w===n&&K.hp>0).length+(C.helis||[]).filter(H=>H.w===n&&H.hp>0).length;   // (a helicopter still to come counts: Version 255)
   if(dd.seq&&dd.seq.dc){dcSeqTick(dt);}   // (Version 228: the opening, ddcseq.js; it ends in the first wave)
   else if(C.ph==='intro'){if(C.t>4.2&&!C.back){C.back=1;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.square.x,z:DCA.wallY-34+DD_CAM.look,zoom:7.4},t:0,dur:1.6};}
     if(C.t>6){C.ph='setup';C.t=0;dcNoRe();}}
@@ -711,9 +934,10 @@ function dcTick(dt){
     if(C.t>=DCA.pushMax){C.wave++;C.ph='w'+C.wave;C.t=0;dcSpawnWave(C.wave);}}   // (not taken in time: the next wave comes anyway, and the push goes on)
   else if(/^w/.test(C.ph)){const W=DCA.waves[C.wave-1]||{};
     if(!C.more&&W.more&&C.t>=W.moreAt){C.more=1;dcSpawnMore(C.wave);}   // (the wave's second lot, out of the trees)
-    else if(C.t>4&&left(C.wave)===0&&(C.more||!W.more))dcWaveDone();}
+    else if(C.t>4&&left(C.wave)===0&&(C.more||!W.more))dcWaveDone();
+    else dcStragglers(C.wave,C.more||!W.more);}
   // the flag: theirs if they stand at it for DCA.flagT s with none of ours there (it was the command post, and 20 s, until Version 224)
-  const inCp=enemies.filter(e=>!beaten(e)&&dcIn(e,DCA.cpZone)).length+dd.tanks.filter(K=>K.hp>0&&dcIn(K,DCA.cpZone)).length,ours=dd.allies.filter(u=>alive(u)&&dcIn(u,DCA.cpZone)).length;
+  const inCp=enemies.filter(e=>!beaten(e)&&!e.air&&dcIn(e,DCA.cpZone)).length+dd.tanks.filter(K=>K.hp>0&&dcIn(K,DCA.cpZone)).length,ours=dd.allies.filter(u=>alive(u)&&dcIn(u,DCA.cpZone)).length;
   C.cpT=inCp&&!ours?C.cpT+dt:Math.max(0,C.cpT-dt*2);C.cpN=inCp;
   if(!endAt&&!dd.won){
     if(C.cpT>=DCA.flagT){dd.over=true;dd.why='cp';if(dd.fp&&typeof fpExit==='function')fpExit('They have the flag.');endAt=performance.now()+1500;}
@@ -723,7 +947,7 @@ function dcHint(){
   const C=dd.dc;
   if(C.ph==='intro')return'They are coming. In a moment the guns are yours.';
   if(C.cpGo&&!C.cpOurs)return'Take their checkpoint: the other troops and your free men are going in. Cover them from the guns: the field gun brings the blockhouse down in three hits, the machine guns keep their heads down.';
-  return`${DCA.waves.length} waves. Your men are on the guns: tap a gun, on the map or in the row at the bottom, to fire it yourself; an empty one, to send a man to it. A thumb on one of theirs turns every gun on him. The field gun and the bazookas are for the tanks (from wave 5). A gun takes the hits before its man does. Nobody comes to replace the fallen: lose the flag, or everyone, and it is lost.`;
+  return`${DCA.waves.length} waves. Your men are on the guns: tap a gun, on the map or in the row at the bottom, to fire it yourself; an empty one, to send a man to it. A thumb on one of theirs turns every gun on him. The field gun and the bazookas are for the tanks, a tank or more every wave. A helicopter comes over in waves 5 and 7: the machine guns, the heavy one most of all. A gun takes the hits before its man does. Nobody comes to replace the fallen: lose the flag, or everyone, and it is lost.`;
 }
 function dcDraw(){
   const C=dd.dc,lab=(x,y,h,text,col,sz=9)=>{toSBack=false;const[sx,sy]=toS(x,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,sz,700);};
@@ -744,6 +968,8 @@ function dcDraw(){
       for(const g of C.guns){if(g.dead||!g.man)continue;toSBack=false;const p=toS(g.x,g.y,8);if(toSBack)continue;ox.beginPath();ox.moveTo(p[0],p[1]);ox.lineTo(q[0],q[1]);ox.stroke();}
       ox.setLineDash([]);ox.lineWidth=3;ox.strokeStyle='#ff5a4e';ox.beginPath();ox.arc(q[0],q[1],16,0,7);ox.stroke();for(const[a,b]of[[0,-1],[0,1],[-1,0],[1,0]]){ox.beginPath();ox.moveTo(q[0]+a*10,q[1]+b*10);ox.lineTo(q[0]+a*25,q[1]+b*25);ox.stroke();}ox.restore();}}}
   // (Version 167: the tanks' health is ddplay.js's ddDrawTargets' bar; the flag and its clock are in the objective pill, ddhud.js)
+  // (Version 255) a helicopter's health over it while it's up (C here is the fight, not the colours)
+  for(const H of C.helis||[]){if(H.st==='wait'||H.st==='dead'||H.hp<=0)continue;toSBack=false;const q=toS(H.x,H.y,H.alt+30);if(!toSBack)bar(q[0]-24,q[1],48,H.hp/H.hp0,'#ff6a55');}
   for(const m of players)if(m.raise&&m.raise.t.raiseP>0&&alive(m)){const c=m.raise.t,[sx,sy]=toS(c.x,c.y,20);label(`REVIVING ${Math.round(c.raiseP/DD_RAISE*100)}%`,sx,sy,'#5fe08e',10,700);}
   dcBar();dcRestHud();
 }
@@ -773,30 +999,32 @@ function dcNextOf(u){   // the gun NEXT GUN would go to from the one u is on, or
   const L=dcRow().filter(g=>!g.dead&&g.man&&!g.man.npc&&alive(g.man)),i=u?L.indexOf(u.dcGun):-1;if(i<0||L.length<2)return null;return L[(i+1)%L.length];
 }
 function dcNextGun(){const F=dd&&dd.fp,n=F&&dd.dc?dcNextOf(F.u):null;if(!n)return false;dcTile(n.k);return true;}
+// (Version 255) the one before it along the row: PREV on the gun screen's left (ddfp.js), Shift+Tab
+function dcPrevOf(u){const L=dcRow().filter(g=>!g.dead&&g.man&&!g.man.npc&&alive(g.man)),i=u?L.indexOf(u.dcGun):-1;if(i<0||L.length<2)return null;return L[(i-1+L.length)%L.length];}
+function dcPrevGun(){const F=dd&&dd.fp,n=F&&dd.dc?dcPrevOf(F.u):null;if(!n)return false;dcTile(n.k);return true;}
 // the row of guns (Bryan's pick of the drafts, docs/drafts/v225-guns.jpg): a tile a gun, who is on it and what it's doing; a white arrow and
 // "Man a Gun" until the player has picked his first; along the bottom from above, along the top from behind a gun
 function dcBar(){
   let el=$('#dcBar');const C=dd&&dd.dc,show=!!C&&state==='play'&&C.ph!=='intro'&&!dd.seq&&!endAt;
   if(!el){if(!show){document.body.classList.remove('dcg');return;}el=document.createElement('div');el.id='dcBar';stage.appendChild(el);
-    el.addEventListener('click',ev=>{const b=ev.target.closest('[data-k]');if(!b||!dd||!dd.dc)return;ev.stopPropagation();if(b.dataset.k==='back'){if(dd.fp)fpExit();}else if(b.dataset.k==='next'){dcNextGun();}else if(b.dataset.k==='leave'){if(dd.fp){const g=dd.fp.u.dcGun;fpExit('Off the gun.');if(g)dcLeave(g);}}else dcTile(b.dataset.k);dcBar();});
+    el.addEventListener('click',ev=>{const b=ev.target.closest('[data-k]');if(!b||!dd||!dd.dc)return;ev.stopPropagation();dcTile(b.dataset.k);dcBar();});
     for(const t of['pointerdown','pointerup','touchstart'])el.addEventListener(t,ev=>ev.stopPropagation());}
   if(el.hidden!==!show)el.hidden=!show;document.body.classList.toggle('dcg',show);if(!show)return;   // (dcg: the squad's own bar gives way to the guns')
-  const fpU=dd.fp?dd.fp.u:null,foc=!!(C.focus||C.focusK),row=dcRow(),two=!!(fpU&&fpU.dcGun),nx=two?dcNextOf(fpU):null;
+  const fpU=dd.fp?dd.fp.u:null,foc=!!(C.focus||C.focusK),row=dcRow();   // (Version 255: no BACK / NEXT GUN / LEAVE GUN under it from behind a gun: EXIT GUN, PREV and NEXT GUN are on the gun screen itself, ddfp.js)
   // (Version 254) the buttons are made only when what's in the row changes (its guns, the arrow, the buttons under it), and their words and colours
   // are set in place every frame. The row was made again whole whenever a word in it changed (the field gun's reload counting down, a gun FIRING
   // or READY): about three times a second, and a tap whose finger went down on one button and came up on its replacement did nothing
-  const cols=row.length>4&&innerWidth<560?Math.ceil(row.length/2):row.length,key=[C.picked||fpU?0:1,row.map(g=>g.k).join(),two?nx?3:2:0,cols].join('|');
+  const cols=row.length>4&&innerWidth<560?Math.ceil(row.length/2):row.length,key=[C.picked||fpU?0:1,row.map(g=>g.k).join(),cols].join('|');
   if(el.dataset.key!==key){el.dataset.key=key;
     el.innerHTML=(C.picked||fpU?'':'<div class="dcb-hd"><svg viewBox="0 0 22 26"><path d="M8 0h6v14h6L11 26 2 14h6z" fill="#fff"/></svg>Man a Gun</div>')+`<div class="dcb-row" style="grid-template-columns:repeat(${cols},1fr)">`
-      +row.map(g=>`<button type="button" data-k="${g.k}" class="dcb-t"><u hidden>NPC</u><i></i><b></b><span></span><em></em></button>`).join('')+'</div>'
-      +(two?`<div class="dcb-row two${nx?' three':''}"><button type="button" data-k="back">‹ BACK<small>he stays on the gun</small></button>${nx?'<button type="button" data-k="next">NEXT GUN ›<small></small></button>':''}<button type="button" data-k="leave">LEAVE GUN<small>he gets off it</small></button></div>`:'');}
+      +row.map(g=>`<button type="button" data-k="${g.k}" class="dcb-t"><u hidden>NPC</u><i></i><b></b><span></span><em></em></button>`).join('')+'</div>';}
+  {const sz=key+'|'+innerWidth+'x'+innerHeight+'|'+!!fpU;if(el.dataset.sz!==sz){el.dataset.sz=sz;document.body.style.setProperty('--dcbh',el.offsetHeight+'px');}}   // (Version 255: how tall the row is, for the gun screen's buttons to sit over it, css/style.css)
   const set=(n,p,v)=>{if(n&&n[p]!==v)n[p]=v;};
   for(const g of row){const b=el.querySelector(`.dcb-t[data-k="${g.k}"]`);if(!b)continue;const m=g.man,you=!!fpU&&m===fpU,npc=!!m&&m.npc;
     const who=g.dead?'destroyed':you?'YOU':m?(npc?'Private':m.name):g.going?'coming':'empty',st=g.dead?(g.fix?'REPAIRING':dcFixLeft()?'TAP TO REPAIR':'KNOCKED OUT'):!m?(g.going?'ON HIS WAY':'TAP TO MAN'):g.t==='art'?(simT<g.fireT?'RELOAD '+Math.ceil(g.fireT-simT):foc?'ON TARGET':'LOADED'):foc?'ON TARGET':simT-(m.shotT||-9)<1.6||simT<g.hvT+.4?'FIRING':'READY';
     set(b,'className','dcb-t'+(you?' you':'')+(g.dead?' dead':'')+(!m&&!g.dead&&!g.going?' empty':'')+(foc&&m&&!g.dead?' tg':''));
     const[tu,ti,tb,ts,te]=b.children;set(tu,'hidden',!npc);set(ti,'textContent',g.n+dcSub(g));set(tb,'textContent',who);set(ts,'textContent',st);
     const w=Math.max(0,Math.round(g.hp/g.hp0*100))+'%';if(te&&te.style.width!==w)te.style.width=w;}
-  if(nx)set(el.querySelector('[data-k="next"] small'),'textContent',dcName(nx));
 }
 function dcFinishLost(){
   state='end';setStatus();$('#status').textContent='Lost';

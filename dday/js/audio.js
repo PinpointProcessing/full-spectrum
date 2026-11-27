@@ -362,7 +362,7 @@ function audioFrame(){
   if(jv&&jv.state==='ok'&&crewOf(jv).some(u=>u.seat==='driver'))setLoop('jeep',live?(jv.moving?.32:.16):0,jv.x,jv.y,jv.moving?1.9:1);
   else if(wj&&wave.phase==='drive')setLoop('jeep',live?.32:0,wj.x,wj.y,1.9);
   else setLoop('jeep',0,null,null);
-  {const H=MAPID==='l1'&&typeof heli!=='undefined'&&heli&&heli.pos;setLoop('heli',H&&state==='play'?.5:0,H?H.x:null,H?H.y:null,1);}   // Level 1's helicopter (level1.js)
+  {const H=MAPID==='l1'&&typeof heli!=='undefined'&&heli&&heli.pos?heli.pos:MAPID==='dd'&&typeof dcHeliSound==='function'?dcHeliSound():null;setLoop('heli',H&&state==='play'?(H.st==='crash'?.75:.55):0,H?H.x:null,H?H.y:null,H&&H.st==='crash'?.8:1);}   // Level 1's helicopter (level1.js); D-Day Chapter 2's, Version 255 (ddcounter.js)
   if(state==='equip')setLoop('boat',.12,camT.x,camT.z,.8);   // between missions: the outboard ticking over at sea
   else if(MAPID==='l1'&&typeof l1!=='undefined'&&l1.away!=null&&L1.boat)setLoop('boat',.22,L1.boat.position.x,L1.boat.position.z,1.4);   // Level 1's boat going out
   else if(MAPID==='l2'&&typeof l2!=='undefined'&&L2&&(l2.land||l2.away!=null))setLoop('boat',live?.24:0,(l2.land?L2.landBoat:L2.boat).position.x,(l2.land?L2.landBoat:L2.boat).position.z,l2.land?1:1.4);   // Level 2's boat in and out

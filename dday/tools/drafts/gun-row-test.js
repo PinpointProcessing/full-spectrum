@@ -3,6 +3,8 @@
 // NEXT GUN from behind a gun (the button, and Tab): on along the row to the next gun a squad mate is on, round again at the end, past a gun
 // that's knocked out or held by one of the other troops; gone when no other gun is manned. The checkpoint's guns in Chapter 1 the same through
 // the view's own Next button. Real clicks.   node gun-row-test.js [port] [OUTDIR for pictures]   (DDROOT, HARNESS as real-guns-test.js)
+// (Version 255: NEXT GUN is on the gun screen itself, over the rounds left, and BACK is EXIT GUN at the top right; the row under the tiles and
+// its LEAVE GUN are gone, ddfp.js)
 const {chromium}=require('playwright');const {serve,open}=require(process.env.HARNESS||'/tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/harness.js');const fs=require('fs');
 const PORT=+process.argv[2]||9768,OUT=process.argv[3]||null;if(OUT)fs.mkdirSync(OUT,{recursive:true});
 (async()=>{const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
@@ -14,7 +16,8 @@ const start=async()=>{const {page,errors}=await open(b,`http://localhost:${PORT}
   return{page,errors,ev};};
 const row=ev=>ev(()=>{DRAW();const T=[...document.querySelectorAll('#dcBar .dcb-row:not(.two) .dcb-t')],r=document.querySelector('#dcBar .dcb-row:not(.two)');
   return{k:T.map(q=>q.dataset.k),n:T.map(q=>q.querySelector('i').textContent),x:T.map(q=>Math.round(q.getBoundingClientRect().left)),w:T.map(q=>Math.round(q.getBoundingClientRect().width)),cols:getComputedStyle(r).gridTemplateColumns.split(' ').length,
-    two:[...document.querySelectorAll('#dcBar .dcb-row.two button')].map(q=>q.dataset.k+':'+q.textContent),hd:!!document.querySelector('#dcBar .dcb-hd'),on:dd.fp&&dd.fp.u.dcGun?dd.fp.u.dcGun.k:null};});
+    two:[...document.querySelectorAll('#dcBar .dcb-row.two button')].map(q=>q.dataset.k+':'+q.textContent),hd:!!document.querySelector('#dcBar .dcb-hd'),on:dd.fp&&dd.fp.u.dcGun?dd.fp.u.dcGun.k:null,
+    nx:(n=>n&&getComputedStyle(n).display!=='none'?(n.disabled?'off:':'')+n.textContent:null)(document.querySelector('#fp [data-a="gnext"]')),ex:(n=>!!n&&getComputedStyle(n).display!=='none')(document.querySelector('#fp [data-a="gexit"]'))};});
 // ---- Chapter 2
 {const {page,errors,ev}=await start();await page.click('#ddCtrBtn');await page.waitForTimeout(900);
   await ev(()=>{const d0=damage;damage=(t,d,s)=>t.side==='P'?undefined:d0(t,d,s);RUN(12);for(const e of enemies)e.stunT=1e9;for(const K of dd.tanks)K.hold=true;});
@@ -22,11 +25,11 @@ const row=ev=>ev(()=>{DRAW();const T=[...document.querySelectorAll('#dcBar .dcb-
   ok(a.k.join()==='a1,h1,n1,n2'&&a.n.join('|')==='FIELD GUN|HEAVY MG|MG NEST 1|MG NEST 2','the row: the field gun first, then the heavy machine gun, then the nests ('+a.n.join(', ')+')');
   ok(a.cols===4&&a.x[0]<a.x[1]&&a.x[1]<a.x[2]&&a.x[2]<a.x[3]&&a.w[0]>80,'four tiles across the screen, left to right, each '+a.w[0]+' px wide');ok(a.hd&&!a.two.length,'the arrow and "Man a Gun" over it, no buttons under it yet');
   if(OUT){await page.waitForTimeout(400);await ev(()=>DRAW());await page.waitForTimeout(300);await page.screenshot({path:OUT+'/row-above.png'});}
-  await page.click('#dcBar .dcb-t:first-child');const c=await row(ev);console.log('  ',JSON.stringify(c.two),c.on);
+  await page.click('#dcBar .dcb-t:first-child');const c=await row(ev);console.log('  ',JSON.stringify(c.two),c.nx,c.ex,c.on);
   ok(c.on==='a1','a real click on the first tile: behind the field gun');
-  ok(c.two.length===3&&/^back/.test(c.two[0])&&/^next:NEXT GUN ›heavy MG/.test(c.two[1])&&/^leave/.test(c.two[2]),'under the tiles: BACK, NEXT GUN (it names the heavy MG), LEAVE GUN');
+  ok(!c.two.length&&/^Next gun ›heavy MG$/i.test(c.nx||'')&&c.ex,'nothing under the tiles; on the gun screen NEXT GUN (it names the heavy MG) and EXIT GUN');
   if(OUT){await page.waitForTimeout(500);await ev(()=>DRAW());await page.waitForTimeout(400);await page.screenshot({path:OUT+'/row-behind.png'});}
-  const seq=[];for(let i=0;i<4;i++){await page.click('#dcBar [data-k="next"]');seq.push((await row(ev)).on);}
+  const seq=[];for(let i=0;i<4;i++){await page.click('#fp [data-a="gnext"]');seq.push((await row(ev)).on);}
   ok(seq.join()==='h1,n1,n2,a1','NEXT GUN four times: the heavy gun, nest 1, nest 2, and round to the field gun again ('+seq.join(' > ')+')');
   await page.keyboard.press('Tab');const t=await row(ev);ok(t.on==='h1','Tab does the same: on to the heavy gun');
   const m=await ev(()=>{const C=dd.dc,by=k=>C.guns.find(g=>g.k===k);return{a1:!!by('a1').man,stay:by('a1').man&&by('a1').man.dcGun===by('a1')};});ok(m.a1&&m.stay,'the man left behind stays on his gun');
@@ -34,9 +37,9 @@ const row=ev=>ev(()=>{DRAW();const T=[...document.querySelectorAll('#dcBar .dcb-
   const s=await ev(()=>{const C=dd.dc,by=k=>C.guns.find(g=>g.k===k);dcTile('a1');dcGunHit(by('h1'),9999);by('n1').man.npc=true;const n=dcNextOf(dd.fp.u);const r1=n&&n.k;dcNextGun();const on=dd.fp.u.dcGun.k;by('n1').man.npc=false;return{r1,on};});
   ok(s.r1==='n2'&&s.on==='n2','the heavy gun knocked out and nest 1 held by one of the other troops: NEXT GUN goes to nest 2');
   const o=await ev(()=>{const C=dd.dc,by=k=>C.guns.find(g=>g.k===k);dcGunHit(by('n1'),9999);dcGunHit(by('a1'),9999);return{next:dcNextOf(dd.fp.u),on:dd.fp&&dd.fp.u.dcGun&&dd.fp.u.dcGun.k};});const r2=await row(ev);
-  ok(o.next===null&&r2.two.length===2&&!r2.two.some(q=>/^next/.test(q)),'no other gun manned: no NEXT GUN, BACK and LEAVE GUN as before ('+r2.two.length+' buttons)');
+  ok(o.next===null&&/^off:/.test(r2.nx||'')&&r2.ex,'no other gun manned: NEXT GUN greyed ('+r2.nx+'), EXIT GUN still there');
   await page.keyboard.press('Tab');const tb=await ev(()=>({on:dd.fp&&dd.fp.u.dcGun&&dd.fp.u.dcGun.k,msg:dd.fp&&dd.fp.msg&&dd.fp.msg.t}));ok(tb.on==='n2'&&/No other gun/.test(tb.msg||''),'Tab then says so and stays ('+tb.msg+')');
-  await page.click('#dcBar [data-k="back"]');const bk=await ev(()=>({fp:!!dd.fp,man:!!dd.dc.guns.find(g=>g.k==='n2').man}));ok(!bk.fp&&bk.man,'BACK: out of the view, he stays on the gun');
+  await page.click('#fp [data-a="gexit"]');const bk=await ev(()=>({fp:!!dd.fp,man:!!dd.dc.guns.find(g=>g.k==='n2').man}));ok(!bk.fp&&bk.man,'EXIT GUN: out of the view, he stays on the gun');
   ok(errors.length===0&&(await ev(()=>TKERR.length))===0,'Chapter 2: no errors '+errors.slice(0,2)+(await ev(()=>TKERR.slice(0,2))));await page.close();}
 // ---- Chapter 1: two of the checkpoint's guns held by the squads' men
 {const {page,errors,ev}=await start();await page.click('#ddBtn');await page.waitForTimeout(700);

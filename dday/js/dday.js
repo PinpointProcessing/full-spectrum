@@ -558,6 +558,7 @@ function ddFrame(rdt,now){
   if(typeof ddrGunsFrame==='function')ddrGunsFrame(rdt);   // (Version 246, the draft's guns turn with their gunners: ddreal.js)
   if(typeof ddGroundFrame==='function')ddGroundFrame(rdt,now,dt);   // (Version 188: the ground's dressing, ddground.js)
   if(DD_MODE==='village'&&typeof vgFrame==='function')vgFrame(rdt,now);   // (the canopy opens over our men, ddvillage.js)
+  if(DD_MODE==='counter'&&typeof dcFrame==='function')dcFrame(rdt,now);   // (Version 255: Chapter 2's helicopters and their rockets, ddcounter.js)
   if(typeof ddCam==='function')ddCam(rdt);   // (ddplay.js: the camera keeps with the squad)
   if(typeof ddmCam==='function')ddmCam();    // (ddmeta.js, Version 243's draft: the level-up page's own shot of a man, the world behind him)
 }

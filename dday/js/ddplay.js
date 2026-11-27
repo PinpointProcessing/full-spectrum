@@ -298,6 +298,7 @@ function ddPick(u){
     if(u.onGun){let da=Math.atan2(f.y-u.onGun.y,f.x-u.onGun.x)-u.onGun.ang;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)>u.onGun.arc)continue;}
     const L=fireLine(u,f);if(!L)continue;
     let c=hitChance(u,f,L)+Math.random()*.12;if(u.focus===f)c+=1;if(u.side==='E'&&f.npc)c-=.03;
+    if(f.air)c+=u.onGun?.25:.08;   // (Chapter 2's helicopter, Version 255: the guns swing onto it when they can, ddcounter.js)
     if(c>bs){bs=c;best={t:f,L};}
   }
   return best;
@@ -687,6 +688,7 @@ function ddDodge(n){
   const R=n.R||ENADE.r;
   for(const p of players){
     if(!alive(p)||p.offMap||p.inBoat||p.fp||hyp(p.x-n.x1,p.y-n.y1)>R+6||simT-p.lastOrder<1)continue;
+    if(p.dcGun&&p.dcGun.man===p)continue;   // (Version 255: a man on one of Chapter 2's guns stays on it, the gun takes the hit, ddcounter.js's dcShield. His dodge used to take him off it for a tick: mission.js's manTick drops onGun from anyone with a path, and he went on firing as a rifleman)
     if(typeof DDC!=='undefined'&&DDC.dodge===false&&p.team===dd.active)continue;   // (Version 221: the setting Auto cover from grenades, off: the squad you play stays until you move it, ddctl.js)
     if(DD_HOLE_RIDE){const h=ddHoleOf(p.x,p.y);if(h&&ddHoleOf(n.x1,n.y1)!==h)continue;}   // (down in a shell hole and it lands outside: he rides it out, ddHoleBlast)
     const others=players.filter(o=>o!==p&&!o.dead).map(destOf),K=[];

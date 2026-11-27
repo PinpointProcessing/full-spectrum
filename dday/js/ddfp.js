@@ -95,7 +95,7 @@ function fpArtAim(){
   const F=dd.fp,P=fpPose(),O=P.O,D=P.D,G=fpGround(O,D);let bt=G?G.t:1e9,best=null;
   for(const K of ddTanksUp()){const m=hyp(K.x-O.x,K.y-O.z)*.006,t=fpRayBox(O,D,K.x,gndH(K.x,K.y)+17,K.y,K.ang,36+m,18+m,21+m);if(t!=null&&t<bt){bt=t;best={x:K.x,y:K.y,tank:K};}}
   if(best)return best;   // (a tank on the line takes it even with a man nearer on that line: the blast has him too)
-  for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone)continue;const g=gndH(e.x,e.y)+(e.elev||0);
+  for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone||e.air)continue;const g=gndH(e.x,e.y)+(e.elev||0);   // (not Chapter 2's helicopter: a shell bursts on the ground)
     for(const h of[5,12,19]){const vx=e.x-O.x,vy=g+h-O.y,vz=e.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<0||t>=bt)continue;
       if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<3.5+t*.004){bt=t;const K=e.onTank&&e.onTank.hp>0?e.onTank:null;best=K?{x:K.x,y:K.y,tank:K}:{x:e.x,y:e.y};break;}}}
   return best||fpAimPoint(DCA.art.max,DCA.art.min);
@@ -107,7 +107,11 @@ function fpShoot(){
   D.x+=(Math.random()-.5)*2*sp;D.y+=(Math.random()-.5)*2*sp;D.z+=(Math.random()-.5)*2*sp;D.normalize();
   const tmin=P.one?0:FPC.back*.9,G=fpGround(O,D),tG=G?G.t:1500;
   let best=null,bt=tG+6;
-  for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone)continue;const g=gndH(e.x,e.y)+(e.elev||0);
+  // (Version 255) Chapter 2's helicopter: its nose, cabin, boom and tail on the line, a little more forgiving with distance. A hit is its door gunner's, and combat.js's damage hands it on
+  if(typeof dcHeliUp==='function')for(const H of dcHeliUp()){if(!H.e||H.e.dead)continue;const c=Math.cos(H.ang),s=Math.sin(H.ang),g=gndH(H.x,H.y)+H.alt;
+    for(const[f,r]of[[18,9],[2,11],[-22,7],[-46,6]]){const vx=H.x+c*f-O.x,vy=g+2-O.y,vz=H.y+s*f-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;
+      if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<r+t*.011){best=H.e;bt=t;break;}}}
+  for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone||e.air)continue;const g=gndH(e.x,e.y)+(e.elev||0);
     for(const h of[5,12,19]){const vx=e.x-O.x,vy=g+h-O.y,vz=e.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;
       if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<4.2+t*.011){best=e;bt=t;break;}}}
   let tank=null;for(const K of ddTanksUp()){if(best&&best.onTank===K)continue;const vx=K.x-O.x,vy=gndH(K.x,K.y)+12-O.y,vz=K.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<24){tank=K;best=null;bt=t-20;}}
@@ -115,14 +119,15 @@ function fpShoot(){
   // from the bottom MG nest": a gun's reach in your hands was 62 m and the roof's guns are 72 to 75 m off, so every round stopped short. One of the
   // checkpoint's guns reaches 90 m now; and a man up on a roof is hit over whatever stands between on the ground)
   const R=u.postGun?900:W.range,reach=Math.min(bt,R+tmin);let ex=O.x+D.x*reach,ey=O.z+D.z*reach;
-  if(best&&(hyp(best.x-u.x,best.y-u.y)>R||!((best.elev||0)>20&&u.postGun)&&!los(u.x,u.y,best.x,best.y)))best=null;
-  if(best){ex=best.x;ey=best.y;const c=coverAt(best.x,best.y,u.x,u.y);best.revealT=Math.max(best.revealT||0,simT+1.6);
+  if(best&&(hyp(best.x-u.x,best.y-u.y)>R||!(best.air||(best.elev||0)>20&&u.postGun)&&!los(u.x,u.y,best.x,best.y)))best=null;
+  let z2=null;if(best&&best.air){ex=O.x+D.x*bt;ey=O.z+D.z*bt;z2=O.y+D.y*bt;}else if(!best&&!tank&&!G){z2=O.y+D.y*reach;}   // (up at the helicopter, or into the sky: the tracer goes there, not to the ground under it)
+  if(best){if(!best.air){ex=best.x;ey=best.y;}const c=best.air?0:coverAt(best.x,best.y,u.x,u.y);best.revealT=Math.max(best.revealT||0,simT+1.6);
     best.sup=Math.min(1.2,best.sup+W.sup*(u.supK||1)*(best.nerveK||1));if(!best.alerted)best.alerted=true;
     if(c&&Math.random()<(c>=2?.45:.25)){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}
-    else{const hs=u.weapon==='shotgun'?clamp(1-(hyp(ex-u.x,ey-u.y)-60)/200,.35,1):1;if(typeof sfxFlesh==='function')sfxFlesh(ex,ey);damage(best,(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*hs,u);F.hitT=performance.now();if(best.dead)F.killT=F.hitT;}}
+    else{const hs=u.weapon==='shotgun'?clamp(1-(hyp(ex-u.x,ey-u.y)-60)/200,.35,1):1;if(best.air){if(Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');}else if(typeof sfxFlesh==='function')sfxFlesh(ex,ey);damage(best,(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*hs,u);F.hitT=performance.now();if(best.dead)F.killT=F.hitT;}}
   else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');if(u.dcGun&&u.dcGun.hv&&typeof dcHvTank==='function'){dcHvTank(tank,W.tank||.34,u);F.hitT=performance.now();}}else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);   // (a heavy machine gun in your hands marks a tank: ddcounter.js. Version 247: the miss's sound on the ground had been swallowed by this note since Version 224)
     for(const e of enemies)if(!beaten(e)&&hyp(e.x-ex,e.y-ey)<28)e.sup=Math.min(1.2,e.sup+W.sup*.7);}
-  tracers.push({x1:u.x+Math.cos(F.a)*14,y1:u.y+Math.sin(F.a)*14,x2:ex,y2:ey,t:0,col:'255,231,163'});
+  tracers.push({x1:u.x+Math.cos(F.a)*14,y1:u.y+Math.sin(F.a)*14,x2:ex,y2:ey,t:0,col:'255,231,163',z2});
   flashes.push({x:u.x+Math.cos(F.a)*6,y:u.y+Math.sin(F.a)*6,t:0,u});u.shotT=simT;u.aimT=simT;u.target=best||null;sfxShot(u);
   F.kick=Math.min(.12,F.kick+W.kick);if(u.onGun)shake(.06);
   if(--F.clip<=0){F.reloadT=simT+W.reload;if(typeof sfxReload==='function')setTimeout(()=>sfxReload(u.x,u.y),350);}
@@ -183,7 +188,7 @@ function fpMates(){
   fpTools(m,u);
 }
 function fpTools(m,u){
-  const foes=enemies.filter(e=>!beaten(e)&&hyp(e.x-u.x,e.y-u.y)<520),ready=p=>!p.path.length&&!p.throwGo&&!p.rpgAim&&!p.medGo&&!p.dcGun&&!pinnedNow(p)&&simT-(p.nadeT??-99)>5&&simT>(p.toolNoT??-99);   // (Version 254: not a man on one of Chapter 2's guns; and after a throw he couldn't make, not again for 6 s: the refusals came up over him every second)
+  const foes=enemies.filter(e=>!beaten(e)&&!e.air&&hyp(e.x-u.x,e.y-u.y)<520),ready=p=>!p.path.length&&!p.throwGo&&!p.rpgAim&&!p.medGo&&!p.dcGun&&!pinnedNow(p)&&simT-(p.nadeT??-99)>5&&simT>(p.toolNoT??-99);   // (Version 254: not a man on one of Chapter 2's guns; and after a throw he couldn't make, not again for 6 s: the refusals came up over him every second)
   const by=p=>(a,b)=>hyp(a.x-p.x,a.y-p.y)-hyp(b.x-p.x,b.y-p.y),near=(x,y,r)=>dd.allies.some(q=>hyp(q.x-x,q.y-y)<r);
   // a rocket at a tank whenever there is one; at a gun now and then
   const dm=m.find(p=>p.spec==='rpg'&&p.specN>0&&ready(p));
@@ -262,8 +267,9 @@ function fpBuild(){
   el.innerHTML=`<div class="fp-scopeV" aria-hidden="true"></div><div class="fp-x" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
 <div class="fp-top"><button type="button" data-a="back">◀ Command</button><div class="fp-who"><b></b><span></span><i><u></u></i></div><button type="button" data-a="view"></button><button type="button" data-a="next">Next man ▶</button></div>
 <div class="fp-msg" hidden></div>
+<button type="button" data-a="gexit" class="fp-gexit">Exit gun</button><button type="button" data-a="gprev" class="fp-gprev">‹ Prev<small></small></button>
 <div class="fp-stick" aria-hidden="true"><i></i></div>
-<div class="fp-btns"><div class="fp-ammo"></div><button type="button" data-a="use" hidden></button><button type="button" data-a="reload">Reload</button><button type="button" data-a="spec"></button><button type="button" data-a="nade"></button><button type="button" data-a="aim">Aim</button><button type="button" data-a="fire" class="fp-fire">FIRE</button></div>
+<div class="fp-btns"><button type="button" data-a="gnext" class="fp-gnext">Next gun ›<small></small></button><div class="fp-ammo"></div><button type="button" data-a="use" hidden></button><button type="button" data-a="reload">Reload</button><button type="button" data-a="spec"></button><button type="button" data-a="nade"></button><button type="button" data-a="aim">Aim</button><button type="button" data-a="fire" class="fp-fire">FIRE</button></div>
 <div class="fp-keys">WASD move · mouse look · click fire · right click aim · R reload · G grenade · Q item · E use · V view · Tab next man · F command</div>`;
   (sq?sq.parentNode:document.body).appendChild(el);
   const ptrs={},stick=el.querySelector('.fp-stick'),knob=stick.firstElementChild;
@@ -271,7 +277,7 @@ function fpBuild(){
     const g=u.onGun||(fpArt(u)?{ang:-Math.PI/2,arc:1.0}:null);if(g){const d=Math.atan2(Math.sin(F.a-g.ang),Math.cos(F.a-g.ang));F.a=g.ang+clamp(d,-g.arc,g.arc);}
     if(u.onGun&&typeof ddReal==='function'&&ddReal())F.p=clamp(F.p,-.42,.5);};   // (the draft's guns: a gun on its mount only tips so far)
   const act=a=>{const F=dd&&dd.fp;if(!F)return;if(a==='back')fpExit();else if(a==='view'){if(F.u.onGun||fpArt(F.u))fpSay('First person on a gun');else F.view=F.view==='1p'?'3p':'1p';}
-    else if(a==='next')fpNext();else if(a==='use')fpUse();else if(a==='spec')fpSpec();else if(a==='nade')fpNade();else if(a==='aim')F.aim=!F.aim;else if(a==='reload')fpReload();};
+    else if(a==='next'||a==='gnext')fpNext();else if(a==='gexit')fpExit();else if(a==='gprev'){if(typeof dcPrevGun!=='function'||!dcPrevGun())fpSay('No other gun manned');}else if(a==='use')fpUse();else if(a==='spec')fpSpec();else if(a==='nade')fpNade();else if(a==='aim')F.aim=!F.aim;else if(a==='reload')fpReload();};
   el.addEventListener('click',ev=>{const b=ev.target.closest('button');if(b&&b.dataset.a!=='fire'){ev.stopPropagation();act(b.dataset.a);}});
   el.addEventListener('contextmenu',ev=>ev.preventDefault());
   el.addEventListener('pointerdown',ev=>{const F=dd&&dd.fp;if(!F)return;const b=ev.target.closest('button');
@@ -295,7 +301,7 @@ function fpBuild(){
   addEventListener('keydown',ev=>{if(MAPID!=='dd'||!dd)return;const F=dd.fp;
     if(!F){if(ev.code==='KeyF'&&fpOK()&&!ev.repeat&&!(ev.target&&/INPUT|TEXTAREA/.test(ev.target.tagName))){ev.preventDefault();ev.stopPropagation();fpEnter();}return;}
     if(KEY[ev.code]){F.keys[KEY[ev.code]]=true;ev.preventDefault();ev.stopPropagation();}
-    else if(ACT[ev.code]){ev.preventDefault();ev.stopPropagation();if(!ev.repeat)act(ACT[ev.code]);}},true);
+    else if(ACT[ev.code]){ev.preventDefault();ev.stopPropagation();if(!ev.repeat)act(ev.code==='Tab'&&ev.shiftKey&&dd.counter&&F.u.dcGun?'gprev':ACT[ev.code]);}},true);
   addEventListener('keyup',ev=>{const F=dd&&dd.fp;if(F&&KEY[ev.code])F.keys[KEY[ev.code]]=false;},true);
   addEventListener('blur',()=>{const F=dd&&dd.fp;if(F){F.keys={};F.fire=false;F.mv.x=F.mv.y=0;}});
 }
@@ -307,7 +313,14 @@ function fpHud(){
   {const b=el.querySelector('.fp-who u');b.style.width=hp+'%';b.style.background=hp>=70?'#5fe08e':hp>=35?'#ffcf4a':'#ff7a4a';}
   set('[data-a="view"]',mt?'On the gun':F.view==='1p'?'3rd person':'1st person');
   set('[data-a="next"]',u.postGun&&typeof ddPostNextOf==='function'&&ddPostNextOf(u)?'Next gun ▶':'Next man ▶');
-  {const cg=!!(dd.counter&&u.dcGun);for(const a of['back','view','next']){const n=el.querySelector(`[data-a="${a}"]`);if(n&&n.hidden!==cg)n.hidden=cg;}el.classList.toggle('dcg',cg);}   // (Version 224: on one of the counterattack's guns the row of guns has BACK and LEAVE GUN, ddcounter.js's dcBar)
+  // (Version 255, Bryan: "The screen is too busy. The next gun button can be above the count of bullets. On the left side of the screen it can be
+  // previous. The bottom can show the teammates that are on the guns. On the top right there is an exit gun button"): on one of Chapter 2's guns
+  // (#fp.dcg) only EXIT GUN at the top right, PREV on the left, NEXT GUN over the rounds left, AIM and FIRE, and the row of guns along the bottom
+  // (ddcounter.js's dcBar). The man's name and health, Command, the view, reload, grenade and item are hidden there (css/style.css)
+  {const cg=!!(dd.counter&&u.dcGun);el.classList.toggle('dcg',cg);
+    if(cg){const nx=typeof dcNextOf==='function'?dcNextOf(u):null,pv=typeof dcPrevOf==='function'?dcPrevOf(u):null,nb=el.querySelector('[data-a="gnext"]'),pb=el.querySelector('[data-a="gprev"]');
+      set('[data-a="gnext"] small',nx?dcName(nx):'none other manned');if(nb.disabled!==!nx)nb.disabled=!nx;set('[data-a="gprev"] small',pv?dcName(pv):'');if(pb.disabled!==!pv)pb.disabled=!pv;}
+    set('.fp-keys',cg?'mouse aim · click fire · right click zoom · Tab next gun · Shift+Tab previous · Esc exit gun':'WASD move · mouse look · click fire · right click aim · R reload · G grenade · Q item · E use · V view · Tab next man · F command');}
   const gname=A?'Field gun':u.onGun?'Machine gun':(typeof WEAPON!=='undefined'&&WEAPON[u.weapon||'rifle']?WEAPON[u.weapon||'rifle'].label:'Rifle');
   set('.fp-ammo',A?`<b>${simT>=A.fireT?'READY':'LOADING '+Math.ceil(A.fireT-simT)}</b><span>${gname}</span>`:`<b>${F.reloadT?'RELOADING':F.clip+' / '+W.clip}</b><span>${gname}</span>`);
   const nb=set('[data-a="nade"]',`${u.gl?'Rifle grenade':'Grenade'} <b>${u.grenade||0}</b>`);nb.disabled=!(u.grenade>0)||mt;

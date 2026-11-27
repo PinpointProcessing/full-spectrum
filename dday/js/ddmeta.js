@@ -457,7 +457,7 @@ function ddmRoomPlace(el){
    what it gave him, the MVP's medal, a wound; a tap goes on (a tap while it fills finishes it first), SKIP goes to the summary; then the summary with
    everyone, the fallen, and one button on to the base. The base says where you are (ddmStepsHTML) and what the next mission is (ddmNextHTML); it starts
    only from NEXT MISSION and its briefing's START (ddmBriefHTML); leaving the barracks is back to the base. */
-const DDM_NEXT={1:['Chapter 2 · Hold the base','They counterattack from inland: seven waves, tanks from the fifth. Man the guns and hold; after the second, take their checkpoint.'],
+const DDM_NEXT={1:['Chapter 2 · Hold the base','They counterattack from inland: seven waves, tanks in every one, helicopters in the fifth and the last. Man the guns and hold; after the second, take their checkpoint.'],
   2:['Chapter 3 · Take the village','Out of the base and inland: through the woods and across the field to the village, then hold it against what they send.']};
 // each man's commendation, from his battle: the first that fits; the "most" ones go to one man each
 function ddmCite(rows){

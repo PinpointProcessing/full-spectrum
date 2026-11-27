@@ -263,7 +263,7 @@ function ddFxShots(dt){
     if(R()>DDFX.muzzle[t])continue;
     ddFxAdd(S,L,x,h,y,(R()-.5)*6,5+R()*4,(R()-.5)*6,mg?1.4:.9,mg?5:3.4,mg?18:12,.86,.85,.83,.7,.7,.69,mg?.42:.34,0,.8,2,.6,.6,.04);}
   let kick=0;
-  for(const r of tracers){if(r.t<.085||DDF.hit.has(r))continue;DDF.hit.add(r);if(kick++>8)continue;
+  for(const r of tracers){if(r.t<.085||DDF.hit.has(r))continue;DDF.hit.add(r);if(r.z2!=null||kick++>8)continue;   // (r.z2: it ended in the air, Version 255)
     const x=r.x2,y=r.y2;if(ddFxWater(x,y))continue;let flesh=false;for(const u of units)if(!u.dead&&hyp(u.x-x,u.y-y)<6){flesh=true;break;}if(flesh)continue;
     const c=ddFxDirt(x,y,DDF.col,false),g=ddH(x,y),fr=ddFxDirt(x,y,DDF.col2,true);   // a spurt of the darker stuff under the top, then a light puff of it hanging
     ddFxAdd(S,L,x,g+2,y,(R()-.5)*10,60+R()*50,(R()-.5)*10,.45+R()*.2,1.6,4.5,fr[0],fr[1],fr[2],c[0],c[1],c[2],.85,1,1,-260,.1,1,.01);
@@ -425,7 +425,7 @@ function ddFxDraw(){
   K.m.material.uniforms.uPx.value=2*Math.tan(cam.fov*Math.PI/360)/bh*3;
   for(const r of tracers){if(ns>=lim)break;const L=hyp(r.x2-r.x1,r.y2-r.y1);if(L<1)continue;
     const hd=Math.min(1,r.t/.08),tl=Math.max(0,hd-Math.min(.9,Math.max(28,L*.22)/L)),fade=r.t<.08?1:Math.max(0,1-(r.t-.08)/.04);if(fade<=0)continue;
-    const h1=ddH(r.x1,r.y1)+12,h2=ddH(r.x2,r.y2)+10,o=ns*4,en=r.col&&r.col.charCodeAt(4)===49;   // ('255,140,100': theirs, a hotter orange-red)
+    const h1=r.z1!=null?r.z1:ddH(r.x1,r.y1)+12,h2=r.z2!=null?r.z2:ddH(r.x2,r.y2)+10,o=ns*4,en=r.col&&r.col.charCodeAt(4)===49;   // ('255,140,100': theirs, a hotter orange-red. z1, z2: a shot up at Chapter 2's helicopter or down from it, Version 255)
     KA[o]=r.x1+(r.x2-r.x1)*tl;KA[o+1]=h1+(h2-h1)*tl;KA[o+2]=r.y1+(r.y2-r.y1)*tl;KA[o+3]=r.q?.6:1.2;
     KB[o]=r.x1+(r.x2-r.x1)*hd;KB[o+1]=h1+(h2-h1)*hd;KB[o+2]=r.y1+(r.y2-r.y1)*hd;KB[o+3]=fade*(r.q?.35:1);
     if(r.q){KC[o]=.55;KC[o+1]=.62;KC[o+2]=.7;}else if(en){KC[o]=1;KC[o+1]=.36;KC[o+2]=.16;}else{KC[o]=1;KC[o+1]=.74;KC[o+2]=.32;}ns++;}

@@ -12,6 +12,7 @@ const shy=u=>u.side==='P'&&simT<(u.shyT||0);
 function sightOf(u,tx,ty){if(hideAt(u.x,u.y)!==hideAt(tx,ty))return null;return u.path.length||shy(u)||u.onTank?(los(u.x,u.y,tx,ty)?{x:u.x,y:u.y}:null):sightFrom(u.x,u.y,tx,ty);}   // (the man in a tank's hatch doesn't lean out round a wall: D-Day, Version 247)
 // line of fire from a to b: from a's spot or lean (fx,fy) to b, or to b's peek spot if b is leaned out. null if none.
 function fireLine(a,b){
+  if(a.air||b.air)return airLine(a,b);   // (D-Day's helicopter, Version 255: over walls and hedges, ddcounter.js)
   const pk=peekOf(b);
   for(const t of pk?[b,pk]:[b]){
     const f=sightOf(a,t.x,t.y);
@@ -20,7 +21,13 @@ function fireLine(a,b){
   return null;
 }
 function lineOf(s,t){return{fx:s.x,fy:s.y,tx:t.x,ty:t.y,lean:false,atPeek:false};}
-function shotCover(L){return L.atPeek?1:coverAt(L.tx,L.ty,L.fx,L.fy);}
+// a line to or from a man in the air (D-Day's helicopter's door gunner, Version 255): over everything on the ground but a building (a roof over
+// him); air 1: the target's up there (nothing covers it), 2: the shooter is (cover counts one step less from above: shotCover)
+function airLine(a,b){
+  for(const o of objs)if(o.full&&!o.gone&&(o.kind==='ddbarr'||o.kind==='dcbld'||objHeight(o)>=60)&&segHitsRect(a.x,a.y,b.x,b.y,o,0))return null;
+  return{fx:a.x,fy:a.y,tx:b.x,ty:b.y,lean:false,atPeek:false,air:b.air?1:2};
+}
+function shotCover(L){if(L.air===1)return 0;const c=L.atPeek?1:coverAt(L.tx,L.ty,L.fx,L.fy);return L.air===2?Math.max(0,c-1):c;}
 function leanOut(u,L){if(L.lean)u.peek={x:L.fx,y:L.fy,until:simT+PEEK_T};}
 
 /* ---------- combat helpers ---------- */
@@ -119,6 +126,7 @@ function hitChance(s,t,L){
   if(s.side==='P'&&ambushing(s))c+=AMBUSH_BONUS;
   if(s.path.length||(s.inVeh&&s.inVeh.moving))c-=isCls(s,'assault')?CLS.moveAim:0.15;
   if(t.path.length)c-=0.08;
+  if(t.air)c-=0.12;   // (a helicopter going by: D-Day, Version 255)
   if(s.side==='P')c+=rankAim(s)+ob+(nearCaptain(s)?CLS.leadAim:0)+(s.rallyT>simT?SKILL.rally.aim:0);   // (a Captain's rally: skills.js)   // rank: steadier aim; on Watch / breaching: a bonus
   if(s.side==='E')c-=ENEMY_AIM+(s.aimPen??(s.l1?L1E.aim:0));   // (Level 1's and Level 2's guards: worse still, level1.js, level2.js)
   if(s.gunner)c-=0.05;   // machine gun: sprays
@@ -435,6 +443,7 @@ function creditKill(u){const s=u.stats;s.kills++;s.streak=simT-s.lastKill<=STREA
 // src: who did it (credited with the kill for the after-action report)
 function damage(t,dmg,src){
   if(t.dead||t.downed)return;
+  if(t.air&&typeof dcHeliHit==='function'){dcHeliHit(t.air,dmg,src);return;}   // (the helicopter's door gunner: what hits him hits it, ddcounter.js, Version 255)
   t.hpFloor=null;if(MAPID==='dd'&&(t.dcGun||t.shieldT>simT)&&typeof dcShield==='function'){dmg=dcShield(t,dmg,src);if(!(dmg>0)){t.hpFloor=null;return;}}   // (Version 254, Chapter 2: a man on a gun: the gun takes it first, he never goes below half, ddcounter.js)
   if(MAPID==='dd'&&ddDamage(t,dmg,src)){t.hpFloor=null;return;}   // (D-Day: the other troops, killed outright, the gore: dday.js)
   if(t.veh){t.hp-=dmg;t.hitFlash=.25;if(t.hp<=0)truckWreck(t,src);return;}   // the gun jeep (mission.js): bullets (at GJEEP.bullet) and blasts
@@ -508,7 +517,7 @@ function resolveShot(s){
   const L=s.L,fx=L.lean?L.fx:u.x,fy=L.lean?L.fy:u.y,tx=L.atPeek?L.tx:t.x,ty=L.atPeek?L.ty:t.y;
   let ex=tx,ey=ty;
   if(!s.hit){
-    const cov=shotCover({fx,fy,tx,ty,atPeek:L.atPeek});
+    const cov=shotCover({fx,fy,tx,ty,atPeek:L.atPeek,air:L.air});
     const a=Math.atan2(ty-fy,tx-fx),d=hyp(tx-fx,ty-fy);
     if(cov&&Math.random()<.7){ex=fx+Math.cos(a)*(d-10);ey=fy+Math.sin(a)*(d-10);sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}   // it hit his cover: what it sounds like depends on what it is
     else if(t.side==='P'&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey,'ground');   // incoming: the near misses smack the ground round him
@@ -516,10 +525,11 @@ function resolveShot(s){
   }
   const sg=u.weapon==='shotgun';   // a shotgun: a spread of pellets, hard hits close, less with range
   if(sg){const a=Math.atan2(ey-fy,ex-fx),d=hyp(ex-fx,ey-fy);for(let k=0;k<4;k++){const aa=a+(Math.random()-.5)*0.16;tracers.push({x1:fx,y1:fy,x2:fx+Math.cos(aa)*d,y2:fy+Math.sin(aa)*d,t:0,col:'255,231,163'});}}   // a spread of pellets
-  else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet});
+  else tracers.push({x1:fx,y1:fy,x2:ex,y2:ey,t:0,col:u.side==='P'?'255,231,163':'255,140,100',q:s.quiet,z1:u.air?gndH(fx,fy)+(u.elev||0)+9:null,z2:L.air===1?gndH(tx,ty)+(t.elev||0)+8+(s.hit?0:(Math.random()-.35)*34):null});   // (z1, z2: up to the helicopter, or down from it: D-Day's 3D tracers, ddfx.js)
   if(s.quiet)lastNoiseT=simT;else flashes.push({x:fx,y:fy,t:0,u});   // a silencer hides the flash
   t.sup=Math.min(1.2,t.sup+(u.onGun&&u.gunW?u.gunW.sup:u.gunner?0.08:wOf(u).sup)*(t.side==='P'?rankNerve(t)*(nearCaptain(t)?CLS.leadNerve:1):1)*(isCls(u,'support')?CLS.supMul:1)*(u.supK||1)*(t.nerveK||1));   // machine guns, sniper rounds and shotgun blasts pin people down (a Support harder; a Captain steadies the men near him: classes.js)
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');}   // the jeep: rounds spark off its body, and some find the crew
+  else if(s.hit&&t.air){if(Math.random()<.4&&typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');}   // (the helicopter: rounds on its skin)
   else if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(t.side==='P'&&Math.random()<.45)sfxGrunt(t,false);}   // (an enemy's cry is in damage())   // a hit: the thud, and often a grunt
   if(s.hit){const W=u.onGun&&u.gunW||wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,t.veh?dm*GJEEP.bullet:dm,u);}
   if(u.side==='P'){alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet,u);squadNoise(u,fx,fy,s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined);}   // they'll think the squad is where the shot came from (a silenced shot: only close by)
@@ -697,7 +707,7 @@ function explode(x,y,by,quiet,R=58,D=95){   // (R, D: the blast's reach and its 
   tankBlast(x,y,by);
   const jv=jeepOf();if(jv){const d=hyp(jv.x-x,jv.y-y);if(d>1&&d<60)vehBlast(jv,70*(1-d/62));}
   for(const v of units){
-    if(v.dead||v.seat==='driver'||v.side==='C')continue;const d=hyp(v.x-x,v.y-y);if(d>R)continue;   // (nobody harms the scientists or the men still locked up: office.js)   // the driver is shielded; riders and the gunner sit in the open
+    if(v.dead||v.seat==='driver'||v.side==='C'||v.air)continue;const d=hyp(v.x-x,v.y-y);if(d>R)continue;   // (v.air: a blast on the ground doesn't reach the helicopter, Version 255)   // (nobody harms the scientists or the men still locked up: office.js)   // the driver is shielded; riders and the gunner sit in the open
     if(!los(x,y,v.x,v.y)||hideAt(v.x,v.y)!==hideAt(x,y))continue;   // the tunnel shelters whoever's inside
     v.sup=Math.min(1.2,v.sup+0.8);
     if(!v.downed)damage(v,D*(1-d/(R+4))*(MAPID==='dd'&&typeof ddHoleBlast==='function'?ddHoleBlast(v,x,y):1)*(v.onTank?.35:1),by);   // (D-Day: down in a shell hole, a blast outside it does a third: ddplay.js; the man in a tank's hatch ducks inside: a third, Version 247)

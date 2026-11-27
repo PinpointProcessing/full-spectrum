@@ -113,7 +113,7 @@ function ddEdgeArrow(dx,dy,col,text,size){
 function ddShooters(now){
   const mine=players.filter(p=>alive(p)&&p.team===dd.active&&!p.inBoat);if(!mine.length)return;
   const hit=L=>simT<L.t+3&&mine.some(u=>hyp(u.x-L.x,u.y-L.y)<(L.R||50)+60);
-  const S=new Set();for(const e of enemies){if(beaten(e)||e.mon)continue;
+  const S=new Set();for(const e of enemies){if(beaten(e)||e.mon||e.air)continue;   // (the helicopter: its own bar, Version 255)
     if(e.target&&mine.includes(e.target)&&simT-(e.shotAtT??-99)<2)S.add(e);
     if((e.shells||[]).some(hit))S.add(e);}   // (the heavy gun, the cannon, the artillery, mortars, the grenadier)
   for(const K of dd.tanks||[])if(K.hp>0&&(K.shells||[]).some(hit))S.add(K);
@@ -138,13 +138,15 @@ function ddObjective(){
   // the counterattack's command post: while their clock runs it comes before anything (losing it loses the base)
   if(dd.counter&&dd.dc&&dd.dc.ph!=='intro'&&dd.dc.cpN&&dd.dc.cpT>0){const C=dd.dc,K=(dd.tanks||[]).find(K=>K.hp>0&&dcIn(K,DCA.cpZone));
     return{t:`${K?'Tank at the flag':'They are at the flag'} · ${Math.max(1,Math.ceil(DCA.flagT-C.cpT))}`,x:K?K.x:DCA.flag.x,y:K?K.y:DCA.flag.y+20,h:K?20:0,k:'danger'};}   // (Version 224: the flag, where the command post was)
+  // (Version 255) Chapter 2's helicopter, while it's up: the machine guns on it
+  if(dd.counter&&typeof dcHeliUp==='function'){const H=near(dcHeliUp().filter(H=>H.st!=='crash'));if(H)return{t:'Helicopter! Machine guns on it',x:H.x,y:H.y,h:H.alt+10,k:'danger'};}
   // a tank in the fight comes first (one dug in counts: it fires from its pit; one waiting to be let loose doesn't)
   const tank=near((dd.tanks||[]).filter(K=>K.hp>0&&!K.left&&!K.retreat&&!K.wreck&&(dd.counter?!K.hold:(K.range||0)>1)&&dM(K)<(K.range||520)+120));
   if(tank)return{t:dd.counter?'Tank! Field gun or bazooka':'Tank! Bazooka or grenades',x:tank.x,y:tank.y,h:20,k:'danger'};
   if(dd.counter){const C=dd.dc;if(!C||C.ph==='intro')return null;
     // (Version 254) the push on their checkpoint, once the sergeant has shouted it: there, with how many of theirs are still in it, or how far the
     // taking has got; once it's ours and they're in it, keeping it
-    const cz=DCA.cz,cc={x:(cz.x0+cz.x1)/2,y:(cz.y0+cz.y1)/2},inZ=enemies.filter(e=>!beaten(e)&&!e.onTank&&dcIn(e,cz)).length;
+    const cz=DCA.cz,cc={x:(cz.x0+cz.x1)/2,y:(cz.y0+cz.y1)/2},inZ=enemies.filter(e=>!beaten(e)&&!e.onTank&&!e.air&&dcIn(e,cz)).length;
     if(C.cpGo&&!C.cpOurs&&C.pushT0!=null&&simT-C.pushT0>2.5)return{t:inZ?`Take the checkpoint · ${inZ} left`:C.capT>0?`Taking the checkpoint · ${Math.min(99,Math.round(C.capT/DCA.capT*100))}%`:'Take the checkpoint',x:cc.x,y:cc.y,h:24};
     if(C.cpOurs&&C.capT>0)return{t:`Hold the checkpoint · ${Math.max(1,Math.ceil(DCA.loseT-C.capT))}`,x:cc.x,y:cc.y,h:24,k:'danger'};
     if(C.ph==='push')return{t:`Wave ${C.wave} complete`};
@@ -153,7 +155,7 @@ function ddObjective(){
       const free=C.guns.filter(g=>!g.dead&&!(g.man&&!g.man.npc)&&!(g.going&&!g.going.npc)),g=ours.some(u=>!u.dcGun)?near(free,dcSeat):null;   // (a gun one of the other troops holds counts as free: a squad man takes it over)
       const t=C.ph==='setup'?`They attack in ${s}`:`Wave ${C.wave+1} in ${s}`;
       if(!g||!ours.some(u=>!u.dcGun&&!u.npc&&alive(u)))return C.ph==='lull'?null:{t};const P=dcSeat(g);return{t:`A gun is empty · ${s}`,x:P.x,y:P.y,h:10};}
-    const n=enemies.filter(e=>e.tag==='w'+C.wave&&!beaten(e)).length+(dd.tanks||[]).filter(K=>K.w===C.wave&&K.hp>0).length,f=near(enemies.filter(e=>e.tag==='w'+C.wave&&known(e)));
+    const n=enemies.filter(e=>e.tag==='w'+C.wave&&!beaten(e)).length+(dd.tanks||[]).filter(K=>K.w===C.wave&&K.hp>0).length+(C.helis||[]).filter(H=>H.w===C.wave&&H.hp>0).length,f=near(enemies.filter(e=>e.tag==='w'+C.wave&&known(e)));
     return f?{t:`Hold the base · ${n} left`,x:f.x,y:f.y,h:14,k:'danger'}:{t:`Hold the base · ${n} left`};}
   if(dd.vil){const V=dd.vg;if(!V)return null;
     if(V.ph==='woods')return{t:'To the edge of the woods',x:VG.road,y:vgEdge(VG.road)};

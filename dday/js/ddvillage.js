@@ -503,12 +503,12 @@ function vgWaves(){
       banner('A tank down the main street, men from the west.',4000);}}
 }
 function vgBazooka(){
-  for(const u of dd.npcs){if(u.spec!=='rpg'||!alive(u)||!(u.specN>0))continue;
+  for(const u of dd.npcs){if(u.spec!=='rpg'||!alive(u)||!(u.specN>0)||u.dcGun)continue;   // (not one on a gun: Chapter 2, Version 255)
     if(u.bzAim){if(simT<u.bzAim.at)continue;const a=u.bzAim;u.bzAim=null;const d=hyp(a.x-u.x,a.y-u.y)||1;u.specN--;
       rockets.push({x:u.x,y:u.y,dx:(a.x-u.x)/d,dy:(a.y-u.y)/d,left:d,total:d,z0:RPG_SH,z1:12,by:u,trail:[],spec:PRPG,speed:PRPG.speed});flashes.push({x:u.x,y:u.y,t:0});u.rpgT=simT;
       if(typeof playSample==='function')playSample('launch',u.x,u.y,.5,1);continue;}
     if(simT<(u.bzT||0)||u.sup>.7)continue;
-    const K=ddTanksUp().filter(k=>{const d=hyp(k.x-u.x,k.y-u.y);return d>PRPG.min+10&&d<480&&los(u.x,u.y,k.x,k.y,true)&&!dd.allies.some(o=>hyp(o.x-k.x,o.y-k.y)<60);}).sort((a,b)=>hyp(a.x-u.x,a.y-u.y)-hyp(b.x-u.x,b.y-u.y))[0];
+    const K=ddTanksUp().filter(k=>{const d=hyp(k.x-u.x,k.y-u.y);return d>PRPG.min+10&&d<(dd.counter?DCA.bz.r:480)&&los(u.x,u.y,k.x,k.y,true)&&!dd.allies.some(o=>hyp(o.x-k.x,o.y-k.y)<60);}).sort((a,b)=>hyp(a.x-u.x,a.y-u.y)-hyp(b.x-u.x,b.y-u.y))[0];
     if(!K)continue;u.bzT=simT+7+Math.random()*3;u.path=[];u.ang=Math.atan2(K.y-u.y,K.x-u.x);u.aimT=simT;u.bzAim={x:K.x+Math.cos(K.ang)*14,y:K.y+Math.sin(K.ang)*14,at:simT+1.3};callout(u,'Bazooka!',C.warn);}
 }
 // the tank keeps to the streets (the main street and the one across at the square) and goes where our men are; the last of their
