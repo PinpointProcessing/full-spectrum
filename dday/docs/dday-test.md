@@ -1,0 +1,829 @@
+# D-Day test game (to build when Bryan's back)
+
+Bryan, after v125: "I want to try something new when I return. I want to build a D-Day test game. Let's see if that works
+better than what we currently have. Don't delete what we currently have."
+
+His brief:
+- Two teams of four, each with a medic, a gunner, a sniper and an anti-tank soldier.
+- They start in a landing craft that has reached the beach.
+- Pillboxes on the slope, and hills with cover to run up.
+- Dozens of other allied NPC troops landing too.
+- Setting undecided: the Pacific (Japan) or Normandy.
+
+Plan (my proposal):
+- A separate page (e.g. `dday.html`) with its own folder of scripts. Warehouse Yard stays as it is.
+- Reuse what already works: the squad controls, cover, pathfinding, the soldier figures, post-processing, sound and voices.
+- Setting: Normandy first (a wide beach, beach obstacles, a seawall, bluffs with pillboxes and trenches, landing craft coming
+  in), our own invented sector, not any real game's or film's.
+- Open question for Bryan: whether this is a quick test in the current engine or the first Godot test (the Godot scene was
+  already next on the list).
+
+## Bryan's breakdown and drawing (after v125, 11 Nov)
+
+His answers: Normandy. The NPC allies fight, but couldn't win without the player. The current engine first (Godot later),
+"but I would also like to enhance our graphics as much as possible".
+
+His drawing of the first map: `docs/dday-map-draft.jpg` (portrait, the sea at the bottom). My reading of it, bottom to top:
+- Water, then the beach: coils of barbed wire on the left, a deep shell hole, a hole with four men sheltering in it, a
+  little hole on the right, and dark obstacles low on the left.
+- A line across the top of the beach: a gate at the far left, a run of sandbags, two stretches of concrete wall with a gate
+  beside them in the middle, then a mountain rock wall running off to the right.
+- Behind the left gate and the sandbags: a pillbox with a machine gun, facing the beach.
+- From the middle gate a way up between rock: "Mountain Face" on its left, more rock or slope on its right; it climbs
+  diagonally up and to the left.
+- On the right, above the rock wall, a bunker with two machine gun nests covering the beach and the gate.
+- Upper left: a heavy gun in an emplacement, its barrel pointing down at the beach.
+- Along the top: a long position with a sniper at its left end, a cannon in the middle and a machine gun at its right end.
+- Top right: the barracks ("troop gather") and, below it, artillery: mortars.
+
+His rules:
+- Copies of the map on both sides so it looks like a large battle; the far left and right are visuals only, do no harm to the
+  player and can't be played in. Wandering too far out darkens the screen with a warning; more than 10 s out and the unit dies.
+- Two squads of four, always full: when a man dies, a fresh one who has just landed joins, with a random type, name and
+  stats/personality.
+- The screams and yells already in the game are used here; and new voices, screaming in battle the way actors do in a war
+  film (original lines, our own voices).
+- Changing squad moves the camera to it. The squad not being played runs itself: it doesn't advance "unless everyone is
+  dead" and then slowly; it can use special items and grenades, rarely, and more the longer the player ignores it.
+
+Checked: the voice tool (Zonos, its model, the scream reference) still runs in this environment, so new voices can be made.
+
+## Bryan's nine answers (11 Nov)
+
+1. The only way up is the path. The rock face is too steep to climb. The gates are passable: climbed or destroyed.
+2. The match ends when the barracks is destroyed. The top of the hill is a moderately sized flat base; the barracks keeps
+   sending troops down to the fight until it's destroyed. The base becomes the player's.
+3. 20 replacement troops. No tutorial here (a boot camp level will come before it).
+4. Replacements: random, but a missing type is filled first (demolition man / anti-tank, assault / gunner, medic,
+   sharpshooter). My recommendation, built: fill a missing type first, random only when all four are there.
+5. The squad that runs itself: "enemies in front of them" dead before it moves.
+6. New screaming voices: a follow-up. For now the screams of men dying, bullets, explosions, machine guns and ambience
+   already in the game.
+7. A man can be killed outright by a headshot or a blast dead on. Graphic: limbs and body parts fly off, blood, "war is hell".
+8. The graphics plan is fine; the day goes by as the level advances (evening at the top of the hill).
+9. The kind of level in Medal of Honor: Allied Assault, with our own rules, models and map: start on a transport boat,
+   bullets overhead, bombs in the water, a close camera; maybe a man or two dies before the beach, or a boat is hit and
+   they swim. "The intro part does not negate units for the player." A small script for the ride in: a follow-up.
+
+## The first playable (v126 code, published as Version 127)
+
+Intro card: "D-Day test · Normandy". Nothing of the Warehouse Yard was removed. Code: `js/dday.js` (the map and its look)
+and `js/ddplay.js` (the rules); the engine's hooks are listed in CLAUDE.md.
+
+What's in:
+- The map from the drawing, with real height (the first map here with it): the beach, shell holes and steel obstacles, wire,
+  the line of gate / sandbags / concrete / gate, the pillbox behind the left gate, the draw up between the rock (the only
+  way up), the two nests on the right, the heavy gun, the long position with sniper, cannon and machine gun, the mortars,
+  the barracks. Mirror copies of the land either side, sea to the horizon, a sky that goes from grey dawn to a warm evening
+  as the squads climb.
+- Landing craft: the two squads ride in together (nobody can be hurt on the ride yet), other boats either side, more waves
+  every 16-26 s.
+- Two squads of four (medic, gunner with a BAR, sharpshooter with a Springfield, demolition man with a Bazooka, 4 rockets),
+  random names and one trait each (steady, sharp-eyed, quick, tough, green, hothead, careful, old hand).
+- One squad is played; picking the other (its tab or one of its men) changes over and the camera goes to it. The other runs
+  itself: gets its own wounded up, fights, moves up only when nobody's left in front of it and never more than about 17 m
+  ahead of the squad being played, and uses a rocket, a grenade or smoke now and then, more often the longer it's left.
+- A man killed (bled out, a headshot: 4 % of hits, a blast of 70+ on him) leaves the squad; a replacement lands 5-8 s
+  later in a boat near his squad and runs up to it, while the 20 last. Missing type first.
+- Other troops (grey rings, not selectable) land and fight but hold at lines behind what the squads have opened.
+- Defenders: 32 to start, dug in (they take 28 % less), the guns reach further than rifles; the barracks sends a man down
+  every 8-12 s (at most 9 at a time) until it's destroyed. Mortars, the heavy gun and the cannon shell the beach with a
+  red INCOMING circle while they're crewed.
+- Gates and the wire blow open with a grenade or a rocket; the guns can be wrecked; the barracks takes four blasts.
+- Gore: blood, and body parts thrown from a blast dead on.
+- Off the map's sides: the screen darkens with "Turn back" and a count; at 10 s the man is lost.
+- Lost when nobody's left standing and nobody's coming.
+
+Tested headless: loads with no errors; the landing; taps land where aimed on the hill (five spots, exact); squad switch;
+the off-map count and death at 10.0 s; replacements arriving and joining; a gate blown and the way open; the loss screen
+and "Land again"; Level 1 afterwards (height hook off, weapon names back). A reckless bot playing Alpha (moves only, a hop
+every 40 s at most) won in 4 min 10 s with 6 of the squads' men killed and 50 of the other troops: so it can be won, and
+it kills. Not judged yet: pacing with a real player, performance on a phone (up to ~70 figures), sound mix.
+
+Not in yet (follow-ups): the ride-in script (men lost before the beach, a boat hit, swimming ashore), the new screaming
+voices, enemy vehicles, a report with XP, saves.
+
+## Graphics pass and more troops (Version 128)
+
+Bryan, after the first playable: "Remember to have dozens of ai units running in too. The drafts you are sending me look
+very barren and ugly. The graphics are very bad. If we can have something like Tiny Troopers but not as cute looking."
+(A bright, chunky, busy look of our own; nothing copied from that game.)
+
+- The ground is worked out point by point from its height and steepness: golden sand with ripples, wet sand at the water,
+  layered rock on the steep faces, grass on the cliff tops and the base, worn earth in the draw; lit from the sun's side.
+- `js/ddlook.js`, scenery: about 2,000 grass tufts, gorse and bushes on the tops, hedgerow trees, stones on the faces,
+  stakes in the surf, sand lips round the shell holes, dropped crates and helmets, mine signs; at the base trucks, tents,
+  fuel drums and a radio mast (these block the way and give cover); a pitched roof on the barracks.
+- Beyond the map: a sky with cloud, ships on the horizon, barrage balloons, landing craft and 96 men going up the beaches
+  either side (cheap instanced figures, looks only), three lines of surf, a painted moving sea.
+- Daylight picture: more colour, no cold night shadows, less vignette, grain and glow (post.js, this map only).
+- Soldiers drawn 30 % bigger, olive drab against the defenders' grey-blue, without the night levels' blue rim light.
+- Other troops: five boats in the first wave (about 34 men besides the squads), then two boats of 6-8 every 9-15 s while
+  fewer than 24 are alive; up to ~40 in play at once.
+- Found on the way: the sea drew nearly black, then washed white: the ripple map and the distance haze both go wrong on
+  that sheet here, so the sea has a painted surface and no haze.
+
+Still plain: the bunkers and walls (flat concrete), the figures themselves (the Warehouse Yard's), no dust or water
+splashes from shell bursts. Not measured: speed on a phone with ~90 figures.
+
+## Bryan's second round (same day, also in Version 128)
+
+"I don't like the hum in the background, and the audio is too modern sounding. It needs to fit the aesthetic of D-Day. The
+troops should look bubblier and better drawn, show me some drafts of different character model. The turrets should have a
+THUD THUD THUD sounding like a heavy machine gunner would. The first bunker should share the same hill going up to the
+second bunker, just at the edge of the beach. I'd also like to add a new unit, radioman, which will unlock after the first
+mission or two. He calls in artillery, airstrikes, and maybe even balloon (like in Battlefield 1). Make the camera much
+closer to the units by default, like a third person for the full squad, think Full Spectrum Warrior. Also make sure the
+camera is angled so the player can see the horizon. I'd like the camera semi-fixed to the team."
+
+Built:
+- Camera (`DD_CAM`, `ddCam` in ddplay.js): close behind the squad being played (zoom 8.5, 11 allowed here), low (about
+  17°) with the picture moved down so the hill and the horizon are in; it keeps a little ahead of the squad's middle. A
+  drag still moves the view and it eases back about 2 s after the finger lifts; pinch, twist and tilt work as before; Fit
+  map gives the overview. It rides with the boat on the way in.
+- The first bunker: on a shelf cut into the foot of the hill the nests stand on, right of the middle gate, at the beach's
+  edge (`DD_LEDGE`), reached from the bottom of the draw. The pocket behind the left gate keeps a sandbag line and two men.
+- Sound: no drone under the fight (that was the hum), more wind; mounted guns thud, about six heavy beats a second
+  (`sfxShotDD` in audio.js); the BAR a slower, deeper bark; rifles the older semi-automatic's crack, pitched down, with a
+  ping as an M1's clip goes; none of the Warehouse squad's radio talk here (their lines and words are modern).
+  Still the same recordings underneath (no period recordings in the project yet): real M1, MG42 and BAR recordings, if
+  free ones can be found, would do more than any of this.
+- Character drafts: `docs/drafts/troops-sheet.jpg`, `troops-A.jpg`, `-B.jpg`, `-C.jpg`, `troops-gameview.jpg`, made by
+  `tools/drafts/troops.html` (?opt=A|B|C|all, &top=1): rounded parts, a toon shade, an ink outline. A Bubble (big head,
+  small round body), B Stocky (barrel chest, thick short limbs), C Lean toon (longer limbs, smaller head). The game's
+  figures are unchanged until Bryan picks; the pick then needs the 21-bone animation fitted to it.
+
+Not built, recorded: the radioman, a fifth type who unlocks after the first mission or two: he calls in artillery (a
+barrage on a marked spot after a delay), air strikes (a pass along a line), and perhaps an observation balloon (sight over
+a wide area while it's up, and it can be shot down). Questions for then: does he take a squad slot or come as a fifth man;
+how often each call; whether the defenders get the same.
+
+## Bryan's third round (Version 129)
+
+"I think I like stocky the most, but lean looks good too. Let's go with stocky for now. The left side pill box needs to
+share a path with the upper pill box. The mountain face runs along the path. The current mountain between them should be a
+path running horizontally to both bases. A fence blocks all access and has to be climbed or blown up. A fence runs across
+the beach blocking access to the paths and pillboxes. Climbing would hurt because of barbed wire. The units items are so
+hard to see and they are not visible. [...] a squad shares an equipment menu. So the whole bar at the bottom where the
+cards are currently, is a mix of the units selected. The names and unit stats on the top, and at the bottom, their
+collective tools. If they have an rpg unit, and two medics, the player would see 1 rpg ready (used by rpg unit only) and
+have a defibrillator (revive) and 2 (or however many) medic packs. The players with that skill/tool will only be able to
+use that skill or tool. Smoke would also act the same, and the player would get 4x grenades per unit. Only the unit with
+the grenade would use it."
+
+Built:
+- Stocky soldiers (figure.js: `STOCKY`, a flag `S` in the kit key on this map): the same skeleton and animation, each
+  bone's parts thicker, the head, hands and boots bigger, the whole man a little wider than tall, and an ink outline
+  (`figInk`: the mesh drawn again, back faces, pushed out). Not yet the draft's own helmet shapes and webbing.
+- One path (`DD_LEDGE`, `ddPathH`): along the foot of the mountain's face at the beach's edge, from the first bunker at
+  its west end (by the bottom of the draw) up 4 m to the second at its east end. The old shelf above it keeps two men.
+- The wire (`ddwire`, 20 stretches of 5 m right across the beach in front of everything): climbing it costs 13-19 health
+  ("Cut on the wire"), a grenade or a rocket blows a stretch open. The gates are gone: the gaps behind the wire are open.
+- The squad's bar (`ddBar`, `DD_TOOLS`, `ddToolUse` in ddplay.js; `#sq`): the men of the squad being played along the top
+  (role, name, health, what he's doing; a tap picks just him), and under them what they carry between them, added up, as
+  big buttons: grenades, smoke, Bazooka rockets, medic kits, Revive. A tap gives the job to a man who has that item (one
+  who isn't pinned or busy first) and aims it; afterwards the squad is selected again. Revive sends the medic to the
+  nearest man down.
+
+Open: one grenade a man for now (so a squad shows 4): Bryan's "4x grenades per unit" could mean four each. Whether the
+bar should replace the cards in the Warehouse Yard too. Whether the path is what he pictured.
+
+## Bryan's answers and the bunkers (Version 130)
+
+One grenade a man (the squad shows 4). The wire alone is the barrier, no gates. The path is right. The squad's bar is
+for D-Day only for now. And: "Make the bunkers interiors. Like the wall goes transparent when they get in there. Units are
+only seen if looking from the front hole or entry way. When it becomes transparent because troops are inside, then the
+units are fully visible."
+
+Built: the two bunkers on the path and the heavy gun's emplacement are closed rooms (dday.js: `bk` on their `ddpb` walls):
+walls to the roof, a firing slit along the front, open at the back. The side walls block sight and shots (`full`), so the
+men inside are seen and hit only through the slit or the entry. With one of ours inside, the walls and roof of that bunker
+go clear together (`ddFrame`, the roof's `userData.walls`). The camera sits a little higher over the squad so the bar
+doesn't cover them (`DD_CAM` look 30, shift .09).
+
+## Bryan's fourth round (Version 131)
+
+"1) there needs to be a fixed gun up that first hill too. 2) unclear on how to cut fences. An RPG should have much longer
+range but less accuracy from far away. So shooting one from the water to the first gun nest will be inaccurate. 3) there
+should be a new unit that builds makeshift defenses under fire. Also, some ai units will build defenses when storming the
+beach. 4) the pillboxes look bad. They can be designed better."
+
+Built:
+- A machine gun nest part way up the draw (`DD_SPOT.drawMG`, behind the sandbags at its second bend, firing down it), and
+  a barrel on a tripod drawn at every gun's place.
+- The wire: tap it, or the Blow wire button that shows in the squad's bar while the squad is on the beach near it: the
+  nearest man with a grenade walks up and throws at that stretch (a rocket if nobody has a grenade); one blast opens about
+  15 m. The label on it says so. Climbing still works and still cuts.
+- The Bazooka reaches 90 m here (38 m elsewhere), and past 24 m its rocket strays, up to 17 cm for every metre beyond: from
+  the waterline to the first bunker it lands 1.5 to 3.5 m off; from 20 m, dead on.
+- The Engineer (`DD_ROLES.eng`: build.js's kit, three barricades; heavier armour): Barricade in the squad's bar, then tap
+  where: he walks there and puts up heavy cover in 2.5 s. For now Bravo starts with one in its sharpshooter's place
+  (`DD_CORE`), so he can be tried: Bryan to say whether he's a fifth man or takes someone's place.
+- About one in six of the other troops is an engineer too: pinned on the sand, he digs in (a barricade in front of him, at
+  most seven on the beach) and the others use it.
+- The bunkers redrawn: board-marked, stained concrete, a front wall that leans back to a deep firing slit under a heavy
+  lintel, piers, earth banked up the sides with turf, a thick roof with sandbags and a vent, the gun's barrel in the slit.
+  They still go clear, all of it, with one of ours inside.
+
+Found and fixed: with the low camera a tap near rising ground went to the wrong place (the wire tap landed 160 m away): the
+tap's ray is now walked along the ground and halved (`toW` in scene.js). Taps near the cliffs in Versions 128 to 130 will
+have been unreliable.
+
+
+## Version 132 (Bryan, after 131)
+
+Bryan: "Throwing and using items isn't clear. Also squad tracking is a bit sloppy. I feel like my camera was moving around by itself and selection was confusing. Also, the intro to the map doesn't feel right." Then, on my list: "Wrong camera, it should be behind the last units head inside. It should feel like they are under heavy fire approaching the beach. Maybe someone dies or a boat gets blown up. There should be multiple boats landing. There is no noice until they land. Nobody moves until the troops exit. They all pile out of the boat and wait, the should all be running to cover and engaging." "Maybe the camera shouldnt move unless dragged by the user. But i do want the camera to switch to the selected squad still." "The bunker on the left needs to be on the path. No wall divides the bunker on the left with the bunker on the right." "Artiellyer and another bunker are on top of the hill on the right too. Right now its empty."
+
+Built:
+- The ride in (`ddCam`, `ddRideFx`, `ddBoatHit`, `ddLandPlan`, `ddBoatsTick`): 17 s, the camera inside the squads' boat just behind the last man's head, looking over the others at the beach, rocking with the boat and jolting at near misses. Seven boats abreast (`ddBoat(dx,men,own,{y0,T,pw,doom})`); the one ahead and to the right is hit at 9.4 s and sinks with everyone in it. Machine gun tracers from the four bunkers into the water and onto the hulls (splashes: dday.js's `ddSplash`), shells in the sea, the diesel (audio.js, the 'truck' loop), the guns' thud, rounds on the hull. None of it hurts the squads' boat. Nothing is written over the picture meanwhile but the banners.
+- The landing: each man runs from the ramp straight to cover on the sand (the squads' spots picked together as the ramp drops, `u.landDest`; the other troops by `ddNpcThink` at once), and the other boats' men fight from the moment their own ramps drop (the early `return` in `ddTick` is gone). The player has the squad as the last man leaves the ramp. For 8 s after it the squads take 0.55 of every hit and nobody is killed outright by a bullet (`dd.graceT`).
+- The camera stays where the player puts it. It moves by itself only as they land (swinging out of the boat to the usual view, `dd.cam.k`) and when a squad is picked (`ddSelected`: a pan to it, and a banner saying which squad is the player's now). `DD_CAM.look`/`boat` are left over from the follow.
+- The squad bar: under each tool, who carries it (a name, or "3 men carry one"); with a tool in hand a strip above the bar says what it is, whose it is, what a tap does and that a tap on the strip puts it away (`.sq-aim`), and his name tile is outlined white.
+- The map: no concrete walls on the beach line (sandbags there instead); no earth banks between the two bunkers on the path; the path painted as one track from the draw's mouth past both. The top of the hill on the right is ground (`DD_TOP`, height 96, reached from the draw by the old nests' shelf; a rim of rock between it and the path): a third bunker at its south rim (`bk:'p3'`, `DD_SPOT.hillMG`, tag 'hill', a gunner and a rifleman) and an artillery piece behind sandbags (`ddgun` tag 'art', two crew, shelling the beach every 13 to 18 s until it's blown or its crew is down). Labels HILL BUNKER and ARTILLERY, a line in the objective list.
+- Tests: `$SP/dd16.js [w h]` steps the ride and the landing with pictures; `dd15.js` the path, the hilltop and the aiming strip. The bot (`dd2.js`), two runs: won at 378 s with 7 lost and at 418 s with 13 lost (v131: 205 s, 3 lost), before the grace was added.
+
+Not built: voices for the ride (a coxswain's shout), a man of the squads' own dying in the boat (Bryan's "maybe"; the boat beside them goes instead), range and blast rings while aiming beyond what the game already drew.
+
+## Version 133
+
+Bryan: "Let's make a fifth slot for engineer". Each squad is five: medic, gunner, sharpshooter, demolition, engineer (`DD_CORE`); Bravo has its sharpshooter back. The boat seats ten (rows 13 apart), the squad bar takes five names (its columns set in `ddBar`) and on a phone the tools are narrower with no owner line so seven fit.
+
+## Version 134 (Bryan, on screenshots of 133)
+
+"1) a little farther back on the boat and looking slightly from above. The camera can move around from this fixed spot so the player can look around. 2) the left side bunker is still there. Remove the circled part and make it a road, move the bunker more the right so it's at the center left of the map. 3) the top is blocked off by the reinforcements left. How about just three people emoji and a count 20/20 and it goes down. Also get rid of sneak and fit map."
+
+- The ride's camera: above and behind the stern, looking a little down; a drag turns it from that spot (`dd.land.look`, read from how far the drag moved `camT`; `VB.z1` is out at sea until `ddAshore`).
+- The block of rock he circled (the left mass's foot at dx 330-470) is gone (`DD_FACE`): a road along the top of the beach from the left edge to the draw's mouth, where it meets the path to the other bunkers (`ddRawH`, painted in `paintDDGround`). What he calls the left bunker was the old sandbag position in the left pocket: it's a real bunker now (`bk:'p0'`, `DD_SPOT.leftMG`, tag 'left': a machine gun and three riflemen) on that road at dx 300-384.
+- The replacements chip is three heads and "20/20", top right (`#ddChip`, moved out of `#tl`). No Fit map or gait button on this map (css), and the squad that runs itself no longer sneaks.
+- The bot won in 157 s with 2 lost: with the rock gone and five a squad it's a good deal easier than 132.
+
+## Version 135
+
+Bryan: "Get rid of the level name on top, it's just in the way. Maybe show it for the first five seconds. Maybe flash it in front of the screen. Chapter 1: D-Day". No objective box on this map (`ddObjUI`, hud.js); "Chapter 1: D-Day" in the middle of the screen for 5 s at the start (`bigText` with the class `chapter`), then the "Thirty seconds" banner.
+
+## Version 136
+
+Bryan: "The camera is really bad in the beginning. It gets stuck and moves very clunky, we can limit so the player can only see left to right. Also, the sounds of bullets hitting metal and helmets sound like a xylophone not bullet ricochet. The bullets should make a spark when hitting metal or a helmet."
+
+- The ride's look-around turns left and right only, about 60 degrees each way, read straight from the finger (`ddLookBind`, `dd.land.look.to`) and eased. Version 134 read it from how far the map's own drag had moved the view, which stuck at that drag's limits.
+- `sfxRicochet` (audio.js): a crack, the plate's knock and often a falling whine, made in code. On this map `sfxImpact` on metal uses it too. The recorded metal hit at random pitches was the xylophone.
+- `ddSpark` (dday.js): a flash and five sparks in 3D where a round strikes steel: the boats' ramps and sides and now and then a helmet on the ride in, steel obstacles and wrecks in the fight. Helmet hits in the fight itself have no spark yet.
+
+To come, with Bryan's script (he'll write it; the ride may get longer for it): "seeing a player in front get hit by a sniper, he takes his helmet off and looks at it and then gets sniped in the head."
+
+## Version 137
+
+Bryan: "The player doesn't need to destroy the barracks, just control it to win. The hill up should have a mg nest facing downwards. Can there be a blue highlight around each bunker or pill box when the team takes control of it. Every area under control of the ally is highlighted in very light transparent blue. Only the buildings and the borders of the allies territory. Maybe the ground can be very light blue. Show me a draft. Using equipment feels to complicated and clunky. Can the unit that is doing the action be highlighted orange. Like the outline of their body. Can medics heal automatically when they are not being shot out, or not pinned down. Artillery should be on the second hill and should rain down on the beach. A voice bubble from one of the lead units on the boat has a text bubble saying Move! Get off the beach!!, that will also be a script later on. He says this when they land and first step onto the beach. Have someone die in the boat on its way to the beach. I'm thinking of making it first person to the back player... Just like how Medal of Honor started it out. And then when the player moves forward he steps out of the first person and it turns to the moveable camera."
+
+- The win: the barracks held (`ddZones`): nobody of theirs alive within 32 m of it and two of the squads' men within 14 m of its door for 4 s. Nobody comes out of it while one of ours is within 15 m of the door. Blowing it up still wins.
+- Ground taken, a draft (`DD_ZONES`, `dd.held`, `ddDrawZones`): a place is ours once its defenders are down and one of ours has stood in it; a faint blue wash and a blue border on the ground (drawn on the overlay, so it lies over the men too), and its bunker turns blue (`DD.bk`). Nine places: the beach, the left bunker, the pillbox, the upper bunker, the hill bunker, the way up, the heavy gun, the artillery, the base.
+- The man doing what the bar ordered is outlined in orange (`ddHot`, figure.js's `figInkHot`) until it's done: the tool in hand, a throw, a build, the wire, a revive.
+- Medics by themselves (`ddMedics`): not pinned and not shot at for 3 s, a squad's medic goes to a downed man of his squad and mends anyone of it within 5 m, himself too, 5 HP a second.
+- The artillery: two guns on the second hill's top (`DD_TOP2`, reached from the base), three crew; a salvo of three shells on the beach every 8 to 12 s until a gun is wrecked or the crew is down. The heavy gun fires out to sea more. The right hill keeps its bunker.
+- The nest up the draw has bags on three sides and its label from the start. (My reading of "the hill up": the way up. If he meant the right hill's top, that's the bunker there.)
+- The landing: "Move! Get off the beach!!" in a bubble over the first man onto the sand. A2 is killed in the boat at 12 s (a replacement comes for him). The ride is seen through the last man's eyes (`ddCam`), left and right to look; the view leaves him as he goes off the ramp.
+- The bot won in 215 s with 4 lost.
+
+## Version 138
+
+Bryan: "get rid of the engineer for this round. He unlocks in the next level. Only 4 per squad." Four a squad again (medic, gunner, sharpshooter, demolition); `DD_ENG` false keeps the Engineer, his barricades and the other troops' digging in out until the next level.
+
+## Version 139
+
+Bryan: "I hit squad Alpha and tried to shoot a bazooka. Instead the whole team ran. We have to make sure when the tool icon is selected, no other action can be performed. I am thinking we should keep it on that action until all of it is used up. So a medic can run around and heal while a bazooka guy can unload on a location. When the player selects a location for a tool it should be a filled in circle. Orange for the to the rocket shows and orange area of intended impact. Same with grenades and when they land. Smoke could be a grey circle. Medic would be a deep green around the player targeted for a heal or revive. Revive didn't need to be an option, medics can automatically revive. If the player has a dead unit the medics can revive. It takes a lot longer than a heal and shouldn't be done in battle. The bunker's embrasure should be much larger, the player can see inside the bunker from the ground. But add more stationary machine tunes in each one, three on the bottom, three on the right, artillery units behind the upper right bunker, and two machine guns and a grander in the upper right bunker. Two sniper in the highest bunker looking down with a regular machine gun. A light machine gun nest at the top of the path in front of the highest bunker."
+
+- A tool stays in hand (`dd.toolK`, `ddToolArm`, `ddToolKeep`, `ddToolEnd`, `ddToolFree`): every tap on the map uses it again, by whoever of the squad has one and is free, until none are left or it's put away (its button, the strip, another tool, a name tile, a team tab). While it's in hand a tap does nothing else (`ddTap`). What went wrong before: after the first rocket the whole squad was selected again, so the next tap was a move.
+- Where it's going (`ddDrawTargets`): a filled circle from the order until it lands: orange the size of the blast for a rocket or a grenade, grey for smoke, deep green round the man a medic is going to.
+- No Revive button. A squad's medic, when it's quiet round him (not pinned, not shot at for 3 s), also brings back a dead man of his squad: 12 s beside the body (`m.raise`, `ddRaise`, REVIVING n% over it), starting over if he's shot at. The replacement for a man who can be brought back holds off 32 s (`dd.queue`'s `body`); brought back, the replacement is cancelled and the pool gets it back. Not a man blown apart, the medic himself, or the man killed in the boat.
+- Bunkers: a low wall and a tall opening you can see into (the dark panel behind the slit is gone, piers at the ends only). Guns: three in the left bunker, three in the pillbox and three in the upper bunker on the right, fanned out with a narrow swing each (`leftMGs`, `pillMGs`, `nests`), so a bunker covers about what its one gun did; the hill bunker two and a grenadier who lobs rifle grenades at whoever's within 43 m (`lob`); the back bunker at the top closed in like the others (`bk:'tp'`) with two snipers and its machine gun; a light machine gun in a sandbag nest at the top of the way up (`pathMG`). The artillery is on the hill behind the hill bunker, as since 137. My reading of "three on the bottom, three on the right" and of which bunker is the highest: his to correct.
+- The bot won in 413 s with 13 lost (137: 215 s, 4 lost): fourteen machine guns now.
+
+## Version 140
+
+Bryan: "The pov camera should be the last man in the boat to the bottom right corner from above. So every unit is seen in the boat, not just the first two." The ride's camera is over the last man's shoulder at the boat's back right corner, a little above, looking down its length (`ddCam`); left and right to look, as before.
+
+## Version 141: picking squads, one use a press, the scope, the Bazooka
+
+Bryan, after Version 140: "I had a problem selecting squads. It would take a couple of presses. I don't like the 'throw/use as many as you can' idea with the equipment. Let's just make sure the player is able to clearly use a tool so they aren't spamming press. Maybe a press after using a tool doesn't do anything. They would double press to move towards it. Can we make a scoop emoji around the unit selected for that squad to attack? Can we draw a large bazooka and see the player actually use it, and watch a rocket go through the air?"
+
+- Picking a squad: a team tab never deselects on this map (pressed on the squad already picked it used to clear the selection, so the next press picked it again: the "couple of presses"); pressed again it takes the camera to that squad (`ddGoSquad`). A tap on one of ours on the map is always his whole squad, never just him.
+- Tools: one use a press again (Version 139's "stays in hand" is gone). The tool's button, then one tap on the map: he does it, the tool is put away and the squad is picked again (`ddToolKeep`). For 2.5 s after that a tap on the ground does nothing but say "Double tap to move." (taps on an enemy or one of ours still work); a double tap there moves the squad at once (`ddTap`, `dd.usedAt`, `dd.lastTap`).
+- The scope: a red scope ring with cross-hairs on the man the squad you play was told to shoot (`u.focus`), drawn in `ddDrawTargets`. "Scoop emoji" read as a scope/cross-hair: Bryan to say if he meant something else.
+- The Bazooka: a big M1 on this map (figure.js: a long open tube with a flared muzzle, a wooden shoulder stock, two grips, a sight), shouldered and aimed for 1.15 s before it fires (`PRPG.aim`, put back on leaving) and kept up a second after. The rocket is a 3D model with fins and a burning tail on a shallow arc, a white smoke trail behind it, a flash at the muzzle and the back-blast behind the man (dday.js's `ddRockets` from `ddFrame`).
+- Test: `$SP/dd25.js` (tabs, one rocket a press, the ignored tap, the double tap), `$SP/dd26.js` (close-up pictures).
+
+After it (Bryan: "The messages that show up on the screen should be all the way on top, to the left of the reinforcement count"; "when you select a squad, it shows you the direction they are facing?"): on this map the banner sits top left, beside the count (`body.dd #banner`), and each selected man's ring has an arrowhead in his team's colour the way he faces (overlay.js).
+
+## Version 144: the phone on its side, first person in the boat
+
+Bryan: "Can we make it work horizontal too? If I flip my phone sideways? Also, the view make it first person to the last unit in the boat."
+
+- Landscape on a phone (`@media (orientation:landscape) and (max-height:540px)`, `body.dd` only, at the end of css/style.css): the map takes the whole screen; the title, status chip, hint line and Clear are hidden; Sound and Pause sit over the top right corner with the count beside them; the Alpha and Bravo tabs go down the left edge; the squad's men and tools share one row along the bottom (`#sq` as a grid), the aim strip above it. Only D-Day has this layout: the other levels are as before.
+- The ride in is first person again, through the eyes of the last man in the boat (`ddCam`), with the left-right look as before. (Version 140's view from the back corner is gone.)
+- Test: `$SP/dd31.js 844 390` (pictures of the ride, play and a tool in hand).
+
+## Version 145: the counterattack, a second barracks, "Too far" at the finger
+
+Bryan, on Version 144: the squad's menu on a wide screen "is perfectly laid out", horizontal should look like it; the scope "should be the size of the players upper torso"; "if something is too far, can a message pop up where the using is selecting. 'Too far' or 'Not in range'"; "Have a tank come out of the far base with 4 squads from the barracks to the right of the level's barracks"; "Make another large barrack directly behind the top bunker... Units regenerate from here too"; "The mission is 'take control of the beach' that shows on top for 5-10 seconds when the match starts".
+
+- The phone on its side keeps the squad's bar as on a wide screen (men over tools with their names), not the one-row version of 144.
+- The scope is the size of a man's upper body (`ddDrawTargets`).
+- A refusal is said where the finger was: "Too far", "Not in range", "Too close" (`ddNote`, `dd.tapW` set in input.js's `tap`, `dd.notes`; from combat.js's `tooFar`, `throwNade` and `fireRPG`), as well as the bubble over the man.
+- A second barracks behind the highest bunker (`DD_SPOT.barr2`, `door2`, tag 'barr2', 380 HP): the barracks' men come out of both in turn (`ddBarracks`), up to 8 at once; blown, it sends nobody.
+- The counterattack (`ddCounter`, `dd.ctr`): the first time one of the squads' men is within 33 m of the barracks' door, a tank drives in from the right edge (`DD_SPOT.tankWay`, `ddTankSpawn`, `ddTankTick`, `dd.tank`) and four squads of four (tag 'counter') come out of the far base's barracks beyond the map's right edge (`barr3`, `door3`, scenery). The tank is not a unit: bullets do nothing to it, it shells the nearest of ours it has a line to every 5.5-7.5 s, and blasts hurt it (`ddTankHit` from `ddBlast`: two close rockets, or three). The barracks can't be held while it's alive nearby.
+- "Mission: take control of the beach" in the banner for 8 s at the start, then "Thirty seconds to the beach!".
+- For later (Bryan): "Parts of buildings can collapse and kill people within it. Bunkers don't collapse. We can talk about that later." Open question to him: the scope on gun nests, tanks and buildings (wanted there too, or seen there by mistake?).
+- Test: `$SP/dd33.js`.
+
+## Version 146: anyone picks a man up, quicker turnover, 30 men, the squad plainly shown, a rocket for the tank
+
+Bryan's answers on 145: the counterattack starts "when you are near the barracks" (as built); the scope on a tank only if "our units use explosives only for heavily armored vehicles when targeted? Like a rocket?"; "I wonder if we should make a long press a quick way for a rocket strike or suppression" (a hold on an enemy already suppresses, input.js; not extended yet). Then: "When a user is downed, anyone can pick them up. It just take a while for non medics. I'm wondering they should be cycled through faster - like die off. And increase the troops to 30 for this match. I would also like the squad to be seen more predominantly, right now I was getting confused with what squad I was using and where they were."
+
+- Anyone gets a downed man up: 8 s beside him for a rifleman (`DD_REVIVE`, combat.js's revive), a medic as quick as before. With no medic left in the squad the nearest man who isn't being shot at goes by himself (`ddHelpers`, `u.helpGo`); a tap on the downed man still sends whoever's selected.
+- Quicker turnover: 20 s down (`DD_BLEED`), 10 s critical (`DD_CRIT`), then dead; his replacement 4-7 s later, 14 s if the squad's medic might still raise him (it was 32).
+- 30 replacements (`DD_POOL`).
+- The squad being played: a filled disc and thick ring in its colour under each man and a marker over his head, the other squad a thin ring (overlay.js); its tab filled in its colour (`.tab.ddon`) and "ALPHA SQUAD" / "BRAVO SQUAD" over the bar (`#sq[data-team]::before`).
+- A tap on the tank sends a rocket from the squad's Bazooka man (a grenade if that's all there is and he's near enough), with the scope on the tank meanwhile (`ddTap`, `dd.tankAim`).
+- Test: `$SP/dd34.js` (pool 30; with no medic a helper set off and had him up at 18.5 s; left alone, critical at 20 s and dead at 30 s).
+
+## Version 147: full screen, the bar at the bottom
+
+Bryan: "I do not like the black border at all. Also the menu is way too up on the screen to work with." Read as the dark page frame round the map (title bar, side padding, hint line, tabs row) that pushed the squad's bar up. On D-Day the map now fills the screen in both orientations (`body.dd` rules at the end of css/style.css, no media query): no title, status chip, hint line or Clear; Sound and Pause over the top right corner; the Alpha and Bravo tabs down the left edge; the squad's bar at the very bottom. The dark edge over the picture is gone too (`#stage::after` off, post.js's vignette 0 in dd). If he meant the black outline on the soldiers, that's figure.js's `figInk`.
+
+## The first military base: draft (not built)
+
+Bryan, after Version 147: "Instead of ending the battle. What about adding a full military after the tank? The path can continue down that road is and that can be the first military base. Two more tanks, and 30 more soldiers at the base. Please draw me a draft of the base first."
+
+Draft: `docs/drafts/dday-base-draft.png` (source `tools/drafts/dday-base.html`, a top-down plan, north up). The road runs on east from the barracks to a checkpoint and the base's west gate. An earth bank and trench along the west face with two watchtowers, wire round the other three sides; inside: two barracks, mortar pits, a fuel dump that blows up, a parade ground, the motor pool, an ammo store, an anti-aircraft gun, and the command post at the east end (hold it to win). Tank 1 dug in behind the gate covering the road, Tank 2 in the motor pool, coming out when the gate falls. 30 men: 3 at the checkpoint, 2 in the towers, 8 in the trenches, 6 by the barracks, 2 on the mortars, 2 in the motor pool, 2 on the AA gun, 5 at the command post. Three ways in: A the road, B a sunken lane north to a gap in the wire behind the barracks, C an orchard south to the motor pool's back gate. Waiting for Bryan's changes before building; it needs the map made longer to the east.
+
+## Version 148: the first military base (built)
+
+Bryan's answers on the draft: "One hard front but keep the other options and secondary optional entries. The enemy will be still sending troops to attack. There is no sneaking in this match"; "Barracks keeps sending men out"; no refill of replacements ("the game is basically a limit on numbers (like battlefield tickets)"); "Ammo drop at the captured barracks".
+
+- The battle doesn't end at the barracks on the hill. Held (two men at the door 4 s, nobody of theirs within 20 m), it becomes an ammo drop (`ddBaseOpen` in the new `js/ddbase.js`) and the road runs on east along the top to the base.
+- The map: the top is real, flat ground east of the old play area now (dday.js's `ddBuildH`, x 1290 on, y -330 and north; `EAST_X` is `NAV_W`; the edge-of-battle rule lets men past x 1200 on the top). The base is x 1300-1790, y -752 to -462 (`DB`): about 49 m by 29 m, smaller than the draft because the nav grid ends at x 1800 and the map's north edge is the base's north fence. Everything else out there is blocked (the ground drawn east of x 1400 is the mirror image of the battle next door). The mirror copies of props are hidden where the base stands.
+- The west face is the hard front: an earth bank with a trench behind it, the gate in the middle, a checkpoint in front, a tank dug in behind. The other ways in: the wire at the north and south ends of that face (climb it, or blow it), and a gap in the south wire by the south-west corner. The draft's sunken lane round the north and the orchard round the south aren't there: there is no ground to put them on.
+- Inside: barracks A and B (380 HP each, a man out of one of them every 10-15 s toward the squads, up to 7 at once, until blown or ours are within 15 m of the door), two mortars, a fuel dump (50 HP: it goes up, hurting theirs within 12 m and any tank beside it), the motor pool with two lorries, an ammo store, an anti-aircraft gun, the command post at the east end.
+- 30 men (`ddBaseGarrison`, posted when the counterattack starts): 3 at the checkpoint, 2 snipers up the towers, 8 in the trench, 6 by the barracks, 2 on the mortars, 2 at the motor pool, 2 on the AA gun, 5 at the command post. Two more tanks: one dug in behind the gate (fires out to 40 m), one in the motor pool that rolls out to the gate once 3 or fewer of the west face's men are left or one of ours is inside. Tanks are a list now (`dd.tanks`, `ddTankSpawn(o)`, `ddTanksUp`).
+- The win: two of ours at the command post's door for 4 s with none of theirs within 24 m and no tank within 34 m (`ddBaseTick`).
+- The squad that runs itself and the other troops carry on east once the barracks is ours (`ddSquadEast`, `ddNpcEast`).
+- Test: `$SP/dd40.js` (the ground, paths, 30 men, three tanks, pictures), `$SP/dd41.js` (the barracks held, the ammo drop, the camera's bounds, men out of the barracks, the second tank, a tank knocked out, the fuel dump, the command post held: won). Not run: a whole battle played through by the bot, so how hard the base is isn't known.
+
+## Version 149
+
+Bryan: "Can the camera pan to the unit farthest ahead. Also, can the units have icons over their head with what unit type they are?"
+
+- Picking a squad (its tab, pressing the tab again, or a tap on one of its men) pans to that squad's man who is furthest ahead, not the squad's middle: furthest north on the beach and up the draw, furthest east once on the top. The camera still never follows by itself.
+- A round badge over every squad man's head with his role: a cross (medic), a belt of rounds (gunner), a scope (sharpshooter), a rocket (demolition). Filled in the squad's colour with a pointer for the squad being played, an outline for the other squad. Not on the other troops or the enemy.
+
+## Version 150
+
+Bryan, on the mock-up: "Let's make the change and see how it feels". The Alpha and Bravo tabs are at the bottom left, stacked just above the squad's bar, in both orientations.
+
+## Version 151
+
+Bryan: "I saw a sniper shoot but got the too far sign." A shot (or suppress) order: if anyone in the squad can fire on the target, nothing shows at the finger; each man who can't reach says "Too far" over his own head. Only when nobody can does "Too far" show at the finger (once, no bubbles). A tool (bazooka, grenade, smoke) only ever reports for the tool's own user.
+
+## Version 152
+
+Bryan: "If the soldiers can get too cover to shoot they won't move on their own. The player would have to then move them up to shoot. From each area the player controls, that's where the units will respawn from. So reinforcements come quicker. Crank up the reinforcements to 50 units. The upper right barracks is awkward to turn too. Can we make it more direct on the path? Or within the mountain."
+
+- A shoot or suppress order moves nobody. A man fires from where he stands, or says "Too far" (out of range) or "No clear shot" (in range, something in the way) over his head. If nobody can, the finger says it once.
+- Replacements come on foot out of the held place nearest the squad's men who are ashore: the left bunker, the pillbox, the upper bunker, the hill bunker, the way up, the heavy gun, the artillery, the barracks. With nothing held nearer than the waterline, a boat as before. The banner says where he comes from.
+- The pool is 50.
+- The hill's barracks (the one that opens the road to their base) stood far to the right along the top. It now stands straight ahead where the way up comes out, beside the other barracks behind the top bunker. Not built: a barracks set into the mountain.
+
+## Version 153
+
+Bryan, after 152: "my troops are dying at a much higher rate. AI units aren't moving up, and medics don't appear to be reviving/healing on their own when giving an opportunity."
+
+- Found: with the barracks moved to the top of the way up, "near the barracks" was true as soon as the squads came out on top, so the tank, sixteen men and the base's garrison arrived while the top bunker, the cannon and both barracks were still in the fight. The counterattack now waits until the top's own guns are down to one, or a man is at the barracks' door.
+- Medics went to a downed man only after 3 s without being shot at, which in a fight is never. Now only being pinned stops them. When it's quiet they also patch up a squad mate under 55 HP (one kit, kept to the last but one). They never healed men who were up before this.
+- Not found: a crash, or a change in how the other troops advance. Hands-off test battles on 150, 151 and 152 differ more from run to run than from version to version.
+
+## Version 154
+
+Bryan: "Bullets go through the hill at the top. Enemies can shoot right through it. The bunker on top of the first hill, on the right, should be positioned better so it can shoot down the path onto the beach and the beach itself. Draw me a draft."
+
+- The ground now stops bullets and sight on this map. Before, rock only stopped feet. Measured per fixed gun: the bunkers at beach level see exactly what they saw; the hill bunker was hitting 77-82% of the beach in its reach through the rock rim in front of it and now hits none.
+- Draft, not built: `docs/drafts/dday-hill-bunker-draft.png`. The hilltop carried about 4 m south to the cliff's edge and the bunker put on that lip, three guns (one down the path, two on the beach): 87% of the path and 99% of the beach in a 42 m reach, worked out from the terrain. Questions for Bryan: its reach, whether the upper bunker below stays, whether the grenadier stays.
+
+## Version 155
+
+Bryan's answers to the hill bunker draft: "1) longer but much more inaccurate after 42m. 2) that can stay. 3) yes."
+
+- Built as drawn: the hilltop carried south to the cliff's edge and the bunker on that lip, over the upper bunker and the path. Three guns (one down the path, two on the beach), the grenadier behind them.
+- Its guns reach 70 m. Past 42 m they lose a lot of accuracy (measured: 36% at 30 m, the 5% floor at 60 m, on a man in the open).
+- The upper bunker below it stays as it was.
+
+## Version 156: the camera stays with who you picked
+
+Bryan: "when a player's name is selected in the squad menu, can the camera go to them and track them. The camera should go to the squad or player selected and then track that team or unit until the player moves the camera."
+
+- Picking a squad (its tab, a tap on one of its men) sends the camera to its man furthest ahead, as before, and now it stays with him as the squad moves.
+- Tapping a man's name in the squad bar selects just him, sends the camera to him and follows him. Tapping his name again goes back to the squad.
+- Dragging the map lets go: the camera stays where you put it until the next pick. Pinching or turning the view doesn't let go.
+- If the man being followed dies, the camera goes back to following his squad.
+- Not followed from the landing: the first pick starts it (tap the squad's tab again to start following the squad you're already playing).
+
+## After the battle, the base, the barracks: Bryan's answers and the draft (not built)
+
+Draft picture: `docs/drafts/dday-after-battle-draft.png` (three phone screens: the report, the base, the barracks).
+
+Bryan's answers (after Version 156):
+- The report shows the two squads the player ended with, standing, stats growing above them; the dead are shown too.
+- Stats: kills, revives, guns/bunkers knocked out, XP and level-ups. One **unit** MVP (not a squad). Open: may a dead man be MVP?
+- Whoever the player ends with is the roster. The dead stay dead, gone for good with their equipment, unless a man of the same class swaps gear with the dead man (only with a dead man, only the same class).
+- Rifleman: Bryan asks what his special would be; if added he'd take the Sharpshooter's place in the starting four and the Sharpshooter becomes a later unlock. Open.
+- Stats shown as bars to the right of the unit, the unit's body on a stand like a character select: Health, Aim, Speed, Bravery. All rise a little per level; some units start better. Special traits with their own description: Nerves of Steel (never pinned), Double Life (two health bars), Marathon Runner (bonus speed), 20/20 (bonus aim).
+- Upgraded weapons from the start on some: a Gunner with a minigun, a Sharpshooter with a .50 cal, a Demo with a guided rocket, a Medic with a dart gun.
+- Lots of extra equipment per class. Some can be saved and replicated in the armory; some exist only while the man carrying it stays alive.
+- The base is the one taken; the beach is no longer part of the map.
+- Recruits are unlimited and start at the lowest level available (after chapter 1 that's level 2, and so on). Special-equipment troops should cost something: Bryan's idea, a Medal of Honor awarded each match unlocks them. Open: one every match with the MVP?
+- Armory sharing within a class; grenades and smoke for everyone.
+- Vehicles: after this round.
+
+### Draft 2 (Bryan's sketches)
+
+`docs/drafts/dday-after-battle-draft-2.png`; his two notebook pages are `docs/drafts/dday-barracks-sketch-1.jpg` and `-2.jpg`.
+
+Bryan, on draft 1: each squad lines up diagonally across from the other; the stats look fine; then a bird's-eye view of the base with Armory, Barracks and Vehicle Depot each over its own building. The barracks from his sketches:
+- Top: Alpha and Bravo rows of four slots showing unit types; an empty one is an open slot (+).
+- Click a unit: name and type, the man on a stand, level and rank under him, stats and equipment to the right, two buttons: Reserve (he goes to the reserve pool) and Replace (goes to the recruits).
+- Recruits: grey boxes, a small gold star top right if they have something special. Reserve: green boxes with type and level, a gold star for special equipment.
+
+### Draft 3: inside the barracks
+
+`docs/drafts/dday-after-battle-draft-3.png` (the bunk room is a 3D scene built for the draft by `tools/drafts/dday-barracks-room.js`, run from the scratchpad harness).
+
+Bryan, on draft 2: "Take" should be "Recruit". Equipment can be changed from within the barracks, but only equipment from reserves, squad mates, or equipment placed in the armory (saved for later by the player, like a supply chest in Kingdom Come: Deliverance). Going into the barracks should look like the inside of the barracks: a line of bunks with each unit standing in front of his bunk, his equipment laid out on a trunk to his right; pressing a piece of equipment changes it out.
+
+### Draft 4: Alpha left, Bravo right
+
+`docs/drafts/dday-after-battle-draft-4.png` (room: `tools/drafts/dday-barracks-room.js`, which swaps `figKitKey` so a man with `atEase` has no rifle in his hands).
+
+Bryan, on draft 3: Alpha's bunks on the left side, Bravo's on the right. Along the top, large squares with the unit type's icon instead of names; when one is chosen his name appears above him. The men stand at ease: fidgeting with their hands, stretching and so on. The gun lies across the bunk, and the change-equipment menu appears under the man's feet and across to under the gun.
+
+### Draft 5: two more looks for the barracks
+
+`docs/drafts/dday-after-battle-draft-5.png` (`tools/drafts/dday-barracks-room.js B|C`, run from the scratchpad harness; hanging spot lamps with shadows, the game's own lights off for the shot).
+
+Bryan, on draft 4: "This works, but I think it could look better. Can you give me another version or two before we commit?"
+- Version B: a wooden hut (plank walls and floor, roof beams, hanging lamps, a stove, a flag and notice board), bunks head to the wall as in draft 4.
+- Version C: a painted hut, darker, bunks lengthwise along the walls; the chosen man's view is square on to his bunk like a character select, the gun in full view along the lower bunk above its slot in the equipment bar.
+Draft notes: a figure's mesh needs `frustumCulled=false` for a camera other than the game's, and the draft holds the men at the floor's height.
+
+## Version 157: after the battle (built)
+
+Bryan, on draft 5: "I think I agree with you. Let's do it" (the wooden hut's look with the bunks along the walls and the square-on view).
+
+What a win does now:
+1. **The report.** The men he ended with stand in two diagonal lines in front of the barracks on the hill. A card each: kills, revives, XP counting up, his level (gold if it went up), and one MVP. The fallen are listed underneath. If the MVP died it says so, and the medal is still the player's.
+2. **The base from above.** BARRACKS, ARMORY and VEHICLE DEPOT each over its own building. The armory opens a list of what's been saved; the depot says it comes later. NEXT MISSION is D-Day again with the roster's men; MENU goes back to the start card.
+3. **The barracks.** A wooden hut: Alpha's bunks down the left wall, Bravo's down the right, each man at ease by his bunk with his gun laid on it. Eight big squares along the top with the unit type's icon; a dashed + is an empty bunk. Tap a square or a man: the camera goes square on to his bunk, his name over his head, his stats beside him, his kit in a bar under his feet with the weapon's slot under the gun. Press a piece of kit for what he could carry instead. RESERVE moves him to the reserve; REPLACE opens the recruits and the reserve.
+
+The rules built, with the defaults taken where Bryan hadn't answered:
+- The roster is whoever he ended with; the dead and their kit are gone. A lost battle changes nothing.
+- XP: 40 a kill, 50 a revive, 60 for living, 100 for the MVP. A level costs 250, then 50 more each time. A level is +2 on every stat.
+- Stats run 20-99. Health is damage taken, Aim his accuracy, Speed how fast he moves, Bravery how quickly he's pinned.
+- Traits: Nerves of Steel (never pinned), Double Life (half damage; not yet a second bar on screen), Marathon Runner, 20/20.
+- Kit slots: weapon, grenade, tool. Standard issue never runs out. Special pieces: Minigun (pins half as hard again), .50 cal (steadier), Dart gun (five heals), Guided rockets (six rockets). The last two are more of the same tool for now: darts at range and guidance aren't built. They and the first two are one of a kind.
+- A swap comes from a squad mate or a reserve man of the same type (they trade), or from the armory; "Put it in the armory" saves a special piece for later. Smoke is for anyone.
+- One medal a win (the MVP's). Eight recruits on offer at the lowest level (2 after chapter 1); about one in four has a trait (one medal) or a special piece (two). A recruit taken is replaced by another. The man replaced goes to the reserve, or is dismissed if it's full (eight), his special kit kept in the armory.
+- The dead can be MVP.
+
+Not built yet: the Rifleman and the Sharpshooter as an unlock, swapping kit with a dead man in the field, copying kit in the armory, the vehicle depot, a second mission, and the men walking about the base.
+
+## Version 158: its own game; the Rifleman; the counterattack drafted
+
+Bryan, after Version 157: "I would like to separate this completely with the horror game we built before we move forward. Next up is a counter attack on the base the player just took." "Let's just create a separate folder, keep it simple for now. Rifleman idea with the rifle grenade, let's do it."
+
+- D-Day lives in `dday/` with its own page and link; the horror game no longer has a D-Day button or its files.
+- The Rifleman replaces the Sharpshooter in the starting squads: rifle grenades (three, 36 m, a bigger blast than a frag), smoke, steadier on the move. The Sharpshooter unlocks after the first win.
+
+The counterattack, Bryan's answers: from inland; a large force seen marching toward the base ahead of time, tanks and troops; the base has MGs the player can put troops on by selecting them; leaving the barracks triggers it, with about 20 seconds to set up; artillery and MG nests are available in the field in front of the base; hold until all units are dead, three waves; the other troops fight too. Draft: `docs/drafts/counterattack-draft.png` (a plan and how it runs; the questions on it are open). Also raised, to discuss: switching between third and first person on a single unit.
+
+## Version 159: Chapter 2, the counterattack (built)
+
+Bryan, on the draft: the forward nests as drawn; reserve men come out of the barracks; a loss is a retry of the counterattack; a field gun fires where it's told, "or automatic if ignored". "Let's build the counter attack first."
+On the camera: "Let's do follow view and maybe first person on mounted objects. But we can build that after the counter. I would like it to turn into an actual 3rd or 1st person shooter when switching to it. So it can switch back and forth to team control or individual control." Not built; next.
+
+How it plays:
+- After D-Day's report and the base, going into the barracks and coming back out starts it (the button there reads LEAVE THE BARRACKS). From the start card: "Chapter 2 · Hold the base", once D-Day is won.
+- The camera goes up the road to the column, comes back, and a 20 second clock starts. Pick a squad and tap a nest, a wall gun or a field gun: the nearest free man of that squad goes to it. Whatever is left empty the other troops take.
+- A man on a gun stays on it under fire; only an order of yours takes him off.
+- A field gun you hold: tap it, then where to shell (17 to 96 m). Nine seconds to reload. Left alone for six seconds it picks its own target: the nearest tank, else where their men are thickest.
+- Wave 1: 22 infantry across the field. Wave 2: 16 infantry and a tank down the road, mortars on manned forward nests. Wave 3: 20 infantry and two tanks, one round each flank. Fifteen seconds between waves.
+- A man lost is replaced out of the barracks while the reserve lasts.
+- Won when the third wave is all dead: the report, then the base. Lost if they stand in the command post for 20 seconds with none of yours there, or both squads are gone: Try again puts the roster back as it was when you left the barracks.
+
+Not as drawn: the corner watchtowers are scenery (nobody mans them). The armory and the depot stand in the base's south corners, not its middle: there they hid the square from the camera.
+
+### Version 160: a tank can knock a gun out
+Bryan: "A tank can knock a gun out, in three hits. You can see it smoke after one, then dark smoke after 2." A tank's shell landing within about 4 m of a nest, a wall gun or a field gun is a hit on it. One: thin grey smoke, and its label reads HIT 1/3. Two: thick dark smoke, HIT 2/3 in red. Three: wrecked, burning, black smoke; whoever was on it is off it, nobody can man it again that fight, and the other troops leave it alone. Bullets, mortars and grenades don't count; only tank shells.
+
+## Version 161: play one man yourself
+Bryan: "Let's do follow view and maybe first person on mounted objects. But we can build that after the counter. I would like it to turn into an actual 3rd or 1st person shooter when switching to it. So it can switch back and forth to team control or individual control." On what the rest of the squad does: "Follow him. But they fight on their own, throw grenades and use items when needed".
+
+Built (js/ddfp.js): Control on the squad bar (or F) takes over the man picked, or the squad's lead man. Third person from behind his shoulder or first person (a button, V); first person always on a machine gun or field gun. He moves by a stick or WASD, looks by dragging or the mouse, and fires where the crosshair is: a hit is a hit, with a clip and a reload per gun. Grenade and item go where the crosshair meets the ground. Next man changes who is played; Command goes back to the squad view; if he goes down it goes back by itself. The squad follows, shoots, and uses rockets on tanks, grenades on men bunched or dug in, smoke when pinned.
+
+For Bryan to judge: the third-person camera's distance and height, the look speed on a phone, the guns' damage and rate by hand (a rifleman who aims well kills faster than the squad does by itself), whether the other squad should also be playable this way while commanding, and what's missing first (crouch, a sprint, hands on the gun).
+
+## Version 164: Chapter 3, the advance on the village
+Bryan, after Version 163: "Before I test again. Can you build the next level after the defense. I want the troops to attack the neighboring village and take control. Basically an advance. Woods and a field before the village with fire fights then a large battle with reinforcements at the village. Leading to the village only has the player's squads. I would like a sequence before they set out from the village after the counter attack."
+
+How I read it: the sequence comes before they set out from the base (after the counterattack); on the way to the village it's the two squads alone; at the village the battle gets big, with Fox Company coming up behind the squads and their reinforcements coming in too.
+
+Built (js/ddvillage.js):
+- The sequence: after the counterattack, leaving the barracks (or the start card's new Chapter 3 button) plays it on the base: the squads at ease on the parade square, the captain's briefing in the talk panel (text only, eight lines), then the column marches out of the gate and up the road, and it fades into the woods. A Skip button skips it; a retry after a loss skips it.
+- The woods: dense trees, a track, two clearings; their pickets in small groups (a forward pair, three at a woodcutters' hut, a machine gun dug in behind logs with two riflemen, a sniper by the track, three in foxholes at the edge). They don't know the squads are coming until they see or hear them. You see about 30 m through the leaves; trunks and logs are cover. The canopy opens over your men so you can see them.
+- The field: open ground with bales, walls, a cart and a knocked-out tank; a hedgerow across it with their machine gun in the road's gap, men at the other two gaps and behind it; a farm on the right with a second gun; an orchard on the left; mortars behind the hedgerow on men who stay in the open.
+- The village: a barricade at its edge with a machine gun, houses along the main street, the square with a well, the church with a sniper in its tower, the town hall with a machine gun. Past the hedgerow Fox Company (16 men, two of them with bazookas) comes out of the woods behind you, with an aid post and ammunition at the edge of the woods. Then their reinforcements: two trucks (from the north and the east, six men each; a rocket or grenade by one burns it), then a tank down the main street with six men from the west, and Fox Company's second platoon (10). Take the barricade, the square, the church and the town hall (none of theirs left in it, one of yours there), beat both of their waves and knock out or drive off the tank, and the last of them surrender.
+- Replacements come from your reserve; in the village, once it's empty, Fox Company can spare up to four men. Lose both squads and it's a retry with the roster as it was when you left the barracks.
+- After the win: the report, then the village is your base (the town hall the barracks, a house the armory, the garage the vehicle depot).
+
+For Bryan to judge: the briefing's words (and the captain's name, Hale), the difficulty (a bot that only moves forward won 9 of 9 runs, losing 0 to 8 men; it walks into the open, so a player will likely do better), whether the woods should be quieter (the enemies there start unaware), how big the village battle should feel, and whether the tank should be one you have to destroy rather than one that can pull back. Untested by hand and on a real phone.
+
+## Version 165: the wounded
+Bryan: "Another round of mid-battle customizing and healing happens before they set out." His answers to my questions: in the existing report → base → barracks stop, before the briefing; men still down when the battle ends are wounded and sit out the next chapter unless treated; next chapter only; one treatment a round free, then a medal each; the player picks the stand-in (or the squad goes short); kit swaps as now; after every chapter.
+
+Built: the report marks the wounded; the base view has a field hospital (the command post, or the church in the village) where TREAT heals one free and then costs a medal; in the barracks a wounded man lies in his top bunk with a red cross on his square and his own TREAT; Replace puts a reserve man or a recruit in his place; leaving the barracks with a wounded man still in a squad warns once. A man who sat out a chapter is fit again after it. Untested by hand.
+
+## Version 167: a cleaner screen
+Bryan, after Version 166: "Okay, so for the normal user it still feels way to confusing and messy. The dead tank should also be used as cover. How can we make this more sound, user friendly, and fun?" (the tank went in Version 166). My proposal in three parts, then his "Yes go ahead":
+1. Clean screen: words only where the player has to decide something. The soldiers' running commentary (Moving to cover, Got him, Frag out...) is gone; the hit chance shows only under the man your squad is shooting; each man of the squad you play has a cover shield over his head (green full, yellow half, red in the open); his health only once he's hurt; banners one short line; blood smaller and gone after about half a minute; rings only under the squad you play.
+2. One objective, always in view: a pill at the top ("Take the square · 2/4 · 80 m") and an arrow at the screen's edge toward it, or a marker over it.
+3. Danger shown: the field of fire of every enemy machine gun you've seen is red on the ground, cut off where something blocks it; whoever is shooting your men gets a red ring, or an arrow at the edge of the screen when he's off it.
+
+Several things that went were Bryan's own earlier asks (the hit chance under every enemy, the soldiers' callouts, the names over the bunkers and guns): his "go ahead" covered the proposal that cut them. What stayed: the role badges, the facing arrow, the refusals ("Too far", "I'm pinned!"), Man down / KIA / Critical, the downed men's timers, the red scope on the target, the counterattack's gun labels (you tap them), the village's four places, WIRE · TAP TO BLOW.
+
+Found on the way: the horror game's "base alert" was running on D-Day and writing "The base is on alert", "Alert II: helmets and vests on" and "Lockdown: a hunter team is coming" (no team comes) over the battle; the words are gone, the alert itself still counts as before (longer eyes, then helmets and vests on them), since the balance was tested with it. Bryan to say if it should go.
+
+Reviewed by independent agents after it was built: 13 problems confirmed and fixed (the red fields vanishing near the guns, the command post's countdown hidden behind a tank warning, a black tank bar in the counterattack, guns shelling you not marked, arrows under the pill, and smaller ones; CLAUDE.md lists them).
+
+For Bryan to judge: whether anything gone is missed (the bunker names, the hit chance on every enemy, the other squad's badges at full strength), the objective's words, how strong the red fields of fire are on the beach, where the pill sits on his phone.
+
+Bryan, after seeing this version's build described: "Blow wire shouldn't be a thing. They should blow up from just a regular explosive." The Blow wire button and the tap on the wire are gone; a grenade, a rifle grenade or a Bazooka rocket landing on the wire breaks that stretch (that part already worked). The wire's label and the objective say "grenade it or climb it". The enemy's own shells still don't break it: a decision for Bryan, since the beach's shelling lands round the wire all the time and would open it for you.
+
+## Drafts after Version 167: switching squads, shooting and throwing
+Bryan, after Version 167: "It's still a bit chaotic and confusing. Switching the teams is a little difficult and chaotic. Throwing grenades and shooting is a little confusing. Do you have any suggestions on how to improve gameplay in general?" What I found: the squad you aren't playing runs itself up its route, so switching flies the camera to wherever it got to and the one you left starts doing its own thing; orders come in many forms, several hidden (two taps to move, tap an enemy, hold on an enemy to suppress, hold the ground for a loop, a tool held "in hand" and then 2.5 s of dead taps and a double tap to move); a grenade is picked before you can see who throws it, whether it reaches or what it hits; the squad shoots by itself anyway, so a tap on an enemy shows little. My ideas, in four groups; he picked "1 & 2" to see first.
+
+Drawn over the real game on a phone (`tools/drafts/dday-controls-draft.js` sets each moment up and draws the proposed controls; `dday-controls-compose.py` makes the sheets):
+- `docs/drafts/dday-controls-draft-1.png`: one squad you lead, the other backs you up. The team tabs go; a swap button and a FOLLOW / HOLD toggle for the other squad sit bottom right over the squad's bar. (1) Alpha yours, Bravo following 10-15 m behind, taking cover near you and firing at what you fire at, never on a route of its own. (2) One tap on the swap button: Bravo yours, Alpha following; the camera only slides the few metres between them. (3) Bravo set to HOLD at the wall pins the machine gun (PINNED) while you take Alpha round the side; the move's ghosts say FLANK where the gun can't turn on you.
+- `docs/drafts/dday-controls-draft-2.png`: tap the target, then pick what to do; drag to throw. (1) A tap on an enemy: the squad opens fire at once (a thin line from each man who can hit him, an eye over one who can't), and a ring of actions comes up on him: Suppress, Grenade, Bazooka, each with who would do it and how far; ignored, it fades; quarter speed meanwhile. (2) The same for things: the wire's ring offers a grenade, a rifle grenade and the Bazooka, with who carries each. (3) Throwing at a spot: press Grenade on the bar and drag onto the map; who throws, the arc and where it lands show while you drag; let go to throw, drag back to cancel. (4) Too far: the circle turns red and says how far he can throw; letting go there throws nothing.
+
+Not drawn: groups 3 (calmer battles: pause that says you can give orders, the beach in stretches with breathers, fewer troops near your squad) and 4 (the first two minutes taught one step at a time).
+
+
+## Version 168: both drafts, playable
+Bryan, on the drafts: "Can you link both drafts so I can test it". Both are in the game, each with a switch on the start card under the chapter buttons ("Test controls · Version 168"), both on to start and remembered. Untick one and that part plays as Version 167 did, so the two can be tried apart or together.
+- Lead one squad: no team tabs. Bottom right, over the squad's bar, the swap button (the other squad's name and its men's health; tap to lead it) and FOLLOW / HOLD for the squad you aren't leading. Following, it keeps about 12 m behind yours and a little to one side, in cover, shoots at what yours shoots at and uses its own grenades and rockets; holding, it stays where it is and pins down what yours is shooting (or the nearest machine gun it can see). Its label on the map says which. The counterattack started both on HOLD (FOLLOW since Version 169, below). Lose everyone in the squad you lead and you take over the other.
+- Tap an enemy for actions: a tap on an enemy still opens fire, and a ring comes up on him: Suppress, Grenade, Rifle grenade, Bazooka, each saying who would do it and how far, greyed with the reason when it can't be done. A tank tapped gives the same with the Bazooka first; the wire gives the explosives and MOVE HERE. The game runs at quarter speed while the ring is up; a tap anywhere else puts it away, or it goes by itself after a few seconds.
+- Throwing: with the same switch, the grenade, rifle grenade, smoke, Bazooka and medic kit buttons are dragged from the bar onto the map. While dragging you see who will throw, the arc and where it lands, red if it can't be done; let go to throw, slide back onto the bar to cancel. The kit is dropped on a hurt man. A plain tap on them says to drag.
+
+What changes in play with Lead one squad on: the squad you aren't leading no longer climbs the beach by itself. It goes where you go.
+
+For Bryan to judge: whether leading one squad with the other following is calmer than switching tabs; FOLLOW or HOLD as the start; the ring's size and where it sits (above the enemy, or in a row on a phone on its side); dragging versus tapping for grenades; the quarter speed while the ring is up or something is being dragged.
+
+Bryan, after Version 168: "Follow by default, open fire by default. Old suppression can stay for now." In Version 169 the squad you aren't leading starts on FOLLOW everywhere, the counterattack too (it started on HOLD there). Tapping an enemy keeps opening fire at once, with the ring on top. Holding a finger on an enemy to pin him down stays, as well as the ring's Suppress.
+
+## Version 170: range circles, reserves from behind the front, everyone down, no red fields
+Bryan, after Version 169:
+1. "There should be a circle around the players to show the distance the tool can be used, do you get what I mean?" From the moment you press a grenade, rifle grenade, smoke or the Bazooka in the bar, the man who'd use it gets circles on the ground in that tool's colour: solid for how far he can throw or fire it from where he stands, dashed for how far once he moves up for it, and a label with his name and both distances. Everyone else in the squad who carries one gets a faint circle. Tapping a tool without dragging shows the circles for a couple of seconds. The medic kit rings the hurt and downed men in green instead.
+2. "The previously controlled area should produce the reinforcements, not the most recent." Replacements now come up at the place you took before the latest one (on the beach: the beach by boat, then the left bunker once you've taken a second place, and so on; in the village: the rally point before the last). Before, they came from the held place nearest the squad, which was nearly always the newest one, at the front.
+3. "When all troops are dead, speed up the deaths to zero and regenerate all reinforcements." When nobody of either squad is standing, the downed die straight away and every replacement comes in at once, with one banner saying where from, and a squad is picked for you. With nobody left in reserve the battle ends at once instead of after the bleed-out.
+4. "Why is there a large red area when I land on the beach? Can the controlled areas just turn blue." The red was the bunkers' machine guns' fields of fire (added in Version 167). They're gone. Ground you control is blue: the beach's places as before, and now the village's four places once taken.
+
+Bryan, after Version 170: "The circle is no good, it should be filled in with orange. Lighter than the placement, but dark enough to see." Version 171: while you drag a tool, the ground your squad's men can reach with it from where they stand is filled light orange (one shape, its outside edge drawn, lighter than the spot where it lands); the dashed ring for how far the thrower can reach after moving up and his label stay.
+
+Bryan, after Version 171: "I don't see the range circle..." The reach only counted men who weren't pinned, and on the beach under fire nearly everyone is, so nothing showed (and dragging a grenade said "Nobody free with one"). Version 172: pinned men count; a pinned man can only throw from where he stands, so he gets no "moving up" ring. The orange is a little stronger. With the old tool controls (Tap an enemy for actions off), a tool in hand shows its reach too.
+
+Bryan, after Version 172: "No finger dragging. I am clicking. I don't want the finger drag I want to click rpg and click where I shoot it." Version 173: dragging is gone. Tap (or click) a tool in the bar to take it in hand, then tap where to use it, as before Version 168. While it's in hand, the ground the man holding it can reach is filled orange, with his name and range; tapping the tool again puts it away. The ring of actions on a tapped enemy stays.
+
+Bryan, after Version 173: "I'm trying to throw smoke and it says too far" (his picture: the smoke was in the hands of a man off the screen behind the bar). Version 174: the tap goes to whoever in the squad has the tool and can reach the spot, the nearest first; smoke walks up to throw like a grenade (26 m from where he stands, 62 m moving up); the orange covers every man who has it, with an arrow at the edge of the screen toward him when he's off it; and when nobody can reach, it says how far ("Too far · 90 m (62 m at most)") and keeps the tool in hand.
+
+## Drafts after Version 174: men who leave their spots, the camera, cover for four
+Bryan, after Version 174: "1) The troops run out and away from where I put them too often. Sometimes they throw themselves into an open line of fire. 2) is there a way we can make the view point of the player easier. Like follows the map. I have two solutions. Maybe a fixed camera view for each section (at least in D-Day and other big maps) or make it third person view from being the squad, or the leader of the squad. 3) Cover should be able to always cover 4 men. Will that be hard or unrealistic? Or at least have two covers close by fit enough for two men each. Or should we make squads smaller? Let's brainstorm and draft". Nothing in the game is changed yet.
+
+### 1. Men leaving where they were put
+Measured with `tools/drafts/leave-test.js [beach|village] [secs] [seed] [port] [base|smart|hold]`. The squad you play is put in cover a little way up the beach and given no more orders for two minutes while the fight goes on. Every time one of its men sets off on his own, the test logs what sent him, how far he went, and whether any gun that can reach his new spot has an open shot at it. Five fights for each rule set (seeds 2 to 6), averaged:
+
+| per 2 minutes, the squad you play | moves on their own | into a gun's open line | to a spot more guns can see | damage taken |
+|---|---|---|---|---|
+| today | 48 | 40 | 17 | 311 |
+| smart (below) | 31 | 8 | 4 | 199 |
+| hold (below) | 25 | 10 | 5 | 201 |
+
+Why it happens today:
+- Shells cause 27 of the 48 moves, and every one of them ends in the open. Every enemy shell, mortar round and rifle grenade is dodged (layers.js's `dodgeTick`) by anyone within 6.8 m of where it lands, even outside its blast (4.2 to 6.4 m). The man goes to a spot 8 m from it, straight away from it, with no thought of cover. On the beach the shells come every few seconds, aimed at our men.
+- Running for cover when shot at, or after 2 s in the open, causes 16 moves, 10 of them into the open. combat.js's `playerThink` and `dashToCover` only count guns within 38 m. The riflemen reach about 43 m and the machine guns about 64 m (the hill's 70 m), so a man runs to a spot covered from the man shooting at him that is in plain sight of a machine gun further off. That's "throw themselves into an open line of fire".
+- A medic going to a downed man and a replacement joining make 2 or 3 more.
+- In the village it hardly happens: 3 short moves in two minutes, all into cover.
+
+The two drafts are patched into the test, not the game:
+- smart: a shell is dodged only from inside its blast, to the spot out of the blast that the fewest guns can see (cover spots within 14 m first). The run for cover and the shift to cover count every gun that can reach, and go only where none of them has an open shot, or at least fewer than where he stands.
+- hold: the same dodge, and no run or shift at all. They stay where you put them unless a shell is about to land on them.
+
+Both cut moves into the open by about four fifths and damage taken by about a third, and staying put cost no more than moving smartly. The fights vary a lot (damage today ranged from 104 to 536), so these are averages, not a promise. My suggestion: the smart rules for everyone, and, if Bryan wants it, a HOLD stance per squad on its bar (stay put, only out of a blast). Also found: a move's ghosts turn red for guns that are out of range (combat.js's `makeAssign` counts every known gun with a line, at any distance), so a safe spot can show red.
+
+### 2. The camera
+`docs/drafts/dday-camera-draft.jpg` (`tools/drafts/dday-camera-draft.js [OUT] [PORT]`, sheet by `dday-brainstorm-compose.py`): the beach map on a phone held upright at three moments: on the sand; the way up, where the route turns north-west; on top, where it turns east to the barracks. Each moment is shown from four cameras:
+- A, today: behind the man furthest ahead, always facing north. A drag stops it following. Where the route turns, the way ahead runs off the side of the screen: on top, the machine gun and the barracks are off to the right.
+- B, a set view for each section: framed by hand, gliding to the next one when the squad gets there. You see the most, but your men are small, and every big map needs its views set by hand.
+- C, turns with the route: today's distance, a little higher (22° instead of 17°), turned to face along the route so the way ahead is always up the screen. It turns by itself as the route turns; drag, pinch and twist still work.
+- D, over the leader's shoulder: low behind one man, like Full Spectrum Warrior. Close and dramatic, but the nearest men hide what's ahead and you see little to the sides. D-Day has no squad leader yet; the picture uses the man at the back. Version 161's take-one-man-over view is this with his gun in your hands.
+
+My suggestion: C as the camera, and B as a look on demand (for example, a tap on the objective pill swings up to the section's set view for a few seconds). Found on the way: at today's 17° a turned camera ends up behind the hill's shoulders (the rock between it and the men fades to a grey wash), which the higher pitch fixes on this map. A smoke cloud between the camera and the men greys out the closest views.
+
+### Camera samples in motion
+Bryan, on the drafts: "Can you show me some samples for the new camera ideas?" Films of one advance up the beach map, every frame of the game drawn by all four cameras, so the four films show the very same moments. On a page: https://claude.ai/artifact/BzeGd1HQa8wuFZ11rX85qX (the four side by side first, then each with its notes); the files are in `docs/drafts/camera-samples/` (`cam-grid.mp4`, `cam-A.mp4` to `cam-D.mp4`, about 30 s each, and the page). Made with `tools/drafts/dday-camera-video.js [OUT] [PORT] [FPS] [DPR] [STRETCHES]` (the frames; the stretches can be filmed in parallel, about 3.5 s a frame for the four cameras on one browser) and `dday-camera-video.py OUT FPS DIR...` (the films, the four-up film, the posters).
+- Three stretches, cut together: the sand to the wire; the way up, where the route turns north-west; the top, where it turns east to the barracks.
+- The squad runs the route by itself with no orders, so the films show the cameras and not the men's own moves. Nobody is hurt, nobody runs for cover or dodges, and smoke is cleared. Bravo follows as it does in the game.
+- A eases after the man furthest ahead as `ddTrack` does. B holds a view per section (the sand, the bluff, the draw, the top) and glides 1.6 s to the next when the squad's middle gets there. C turns toward the route about 18 m ahead of the lead man, eased, and follows like A. D rides 8 m behind and 3.6 m above the man at the back, turned like C.
+- Seen in the films: close to D's camera, the selection rings under the men are drawn huge. A real D would need smaller rings.
+
+### 3. Cover for four
+Measured with `tools/drafts/dday-cover-draft.js [OUT] [PORT] [pics]` on the beach after 20 s ashore (the guns the squad knows about are the ones it has seen firing). Pictures: `docs/drafts/dday-cover-draft.jpg`.
+- Of the 73 pieces from the water to the bunkers, 31 take one man behind them on the bunkers' far side (all 13 hedgehogs, 12 of the 15 rocks, a drum). 11 take two (mostly the crates), 8 take three, 10 take four or more (sandbag lines up at the bunkers, the two biggest shell holes), and 13 none.
+- The guns along the bluff fire from a wide arc, so behind most pieces some gun still has a line. Only 2 pieces have four spots out of every gun's line.
+- Four men sent to any of the hedgehogs: 0 of 4 in cover (the game's own move preview).
+- Two hedgehogs 3 m apart, two men each: only 3 of 26 places put two men out of every line, because of the crossfire. Letting a group move use cover up to 9 m from the tap instead of 4.5 m changes almost nothing: there's nothing out there.
+- The village is fine: 40 pieces (walls, houses, hedges) take four or more along one side, its 259 trees one each, the logs two or three.
+
+The draft: six more shell holes for four along the way up, staggered left and right 12 to 20 m apart, plus one rule change: a man down in a shell hole is covered from every side (from anyone outside it), not only by its far rim. With both, the 13 shell holes take four men out of every gun's line at 10 places and three at the other 3 (2 such places on the whole beach today). From the middle of the sand the nearest place for four is 3 to 9 m away (5 to 16 m today), and from the water's edge 15 to 28 m (20 to 35 m). The hole rule alone, with no new holes, makes 5 of today's 7 shell holes take four. Without the rule, only 3 of the 13 holes took four out of every line (the new one in the picture kept two).
+
+On Bryan's questions:
+- Four men behind one small piece isn't realistic: a squad spreads over several bits of cover, and the hedgehogs gave almost nothing at Omaha. Four men stopping where four fit is realistic: shell holes, wrecks, sandbag lines, walls.
+- It isn't hard: it's map layout plus one rule.
+- Smaller squads: I'd keep four. Each man has a role, the village fits four everywhere, and three men wouldn't fix the crossfire on the sand.
+
+## Version 175: the camera turns with the route; the other troops take the bunkers you pass
+Bryan, on the camera samples: "C looks best, the only thing is the second machine gun nest on the first hill is completely ignored. I guess the AI can take it over if the player misses it".
+- The camera is C: on the beach map it follows your squad from the moment it lands and turns to look along the way up, so the way ahead is up the screen: north up the sand, north-west up the draw, east-north-east on the top toward the barracks, and east along the road once their base is open. It's a little higher than before (22° against 17°). Twist it and it keeps your angle for 6 seconds, then eases back; pick a squad and it comes back at once. A drag of the map still lets go of the squad. The village and the counterattack keep the camera facing north.
+- A bunker's roof and walls go see-through when they hide one of your men from the camera, not only when one of your men is inside.
+- The bunkers off the way up: once your squads have gone past the upper bunker (into the draw) or the hill bunker (higher up the draw) and it's still manned, five of the other troops go for it ("The other troops go for the hill bunker."), cover to cover, grenades when they're close, and take it ("The hill bunker is yours."). More go if they're cut down. In tests both bunkers fell 20 to 45 seconds after the squads went past. You can still take them yourself.
+
+## Version 176: shell holes for four, and the smarter dodge and run for cover
+Bryan, after the brainstorm: "Do you think we should add the cover that takes four? And we should add the smarter cover".
+- Six more shell holes on the beach, each big enough for four, staggered either side of the way up. A man down in a shell hole is covered from every side now, not only by the rim on the far side. Four men sent to any of the new holes all end up in cover.
+- A man only dodges a shell that would actually hit him (before, anyone within about 7 m ran, hit or not), and he dodges toward the spot the fewest guns can see, cover first.
+- Running for cover when shot at, or after a couple of seconds in the open, now counts every gun that can reach him (it ignored guns further than 38 m, so men ran into the machine guns' fire), and never goes somewhere more guns can see him than where he is.
+- Measured on the beach (the squad put in cover, then two minutes of fighting with no orders, ten fights): they move on their own 40 times (48 to 50 before), into a gun's open line about 3 times (40 before), and they take about the same damage as before. Most of the moves left are men getting out of a shell's blast.
+- Tried and left out: going back to the spot once the shell has landed (the guns shell where the men are, so it walked them into the next shell: twice the moves and more damage); men in a shell hole staying put through shells that land outside it (half the moves, but about a third more damage). That one is a switch if you'd rather have it.
+
+## Version 177: a move order brings the camera back to the squad
+Bryan, after Version 176: "The view never automatically changed". The camera did turn, but only while it was following your squad, and dragging the map (to look round) stopped it following until you picked a squad again. On a phone that's almost at once, so it never followed or turned after that. Now any move you give your squad brings the camera back to it, and it turns with the way up again (north-west up the draw, east on the top; on the sand the way is north, so it hardly turns there). Dragging still lets you look round until your next move. The counterattack is unchanged: there you hold the base and the camera stays where you put it.
+
+## Version 178: every chapter open from the start
+Bryan, after Version 177: "let's make all levels accessible like we did for the horror game version." The start card has all three chapters from the start: Chapter 1 · Land at Normandy, Chapter 2 · Hold the base and Chapter 3 · Take the village.
+- Starting a chapter you haven't reached yet gives you squads for it, as if you'd won the chapters before: every empty place in the two squads gets a new man at the level you'd have by then (level 2 for the counterattack, level 3 for the village), the recruits in the barracks are at that level too, and you have a medal for each chapter before it. The men you already have are kept.
+- If you've already got that far, nothing changes: you play it with your own men.
+- The reserve is left as it was. For a new player that's empty (as it usually is after Chapter 1), so in the counterattack nobody comes out of the barracks to replace a man you lose unless you've put men in the reserve.
+- Chapter 3 still starts with the setting-out talk on the parade square (Skip as before).
+- Winning a chapter you jumped to carries on as usual: the report, the base, the barracks, then the next chapter.
+
+## Drafts after Version 178: the camera on the top, and the squad you aren't playing
+Bryan, after Version 177: "1) The camera angles should follow the road better. At the top of the hill it's facing forward instead of down the road where the tank is when you are at the top. I like how it tracks the teams but it's focusing on the first bunker on the top of the hill rather than the incoming tank. 2) I like how I originally selected the squads, but I want Bravo to follow by default, closer and more aggressive. Almost like I am using a 16 person team when using Alpha - but not quite. I would also like the option to hold Bravo back. Same with Bravo. Let's experiment with ideas give me some drafts on how we can do it."
+
+The page with the films: https://claude.ai/artifact/7sMqQpJhFKLKFBK7oK7kNS (`docs/drafts/hill-follow/`).
+
+The camera on the top, four cameras filming the same moments as the tank comes down the road:
+- A, today: the way up ends at the barracks, so on the top the camera faces the barracks. The tank comes from the right and stays off the screen (only its arrow at the edge) all the way from 51 m to 31 m.
+- B, down the road: on the top the camera faces along the road east, where their base is and the counterattack comes from. The game already does this, but only once the barracks is taken. The tank drives straight at you, up the screen.
+- C, turn to the tank: as B, and whenever a tank comes within 90 m it turns to face it. Here it looks much like B, since this tank comes down the road; it also covers tanks that come from anywhere else.
+- D, frame both: as C, and it pulls back to keep your men and the tank on the screen together. You see everything, but your men get small.
+- My pick: C.
+
+The squad you aren't playing. The control: the team tabs as before Version 168, and the tab of the squad you aren't playing gets a small FOLLOW / HOLD switch (FOLLOW to start). Five ways for it to follow, each filmed in the same fight with a bot playing Alpha, and measured in four fights each with real fire:
+- Today's FOLLOW (about 12 m behind, moves once yours has gone 6 m): 20 m apart on average, over 20 m apart 43% of the time. Bravo gets hurt least.
+- 1, close behind (goes the moment you send yours, to cover 5 m behind where yours is going): 13 m apart, over 20 m 15% of the time. Bravo takes about half as much damage again as today and has 5 men knocked down a fight against 3.
+- 2, side by side (goes the moment you send yours, to cover level with it about 8 m to one side): 12 m apart, the closest, over 20 m 11% of the time; the bot got furthest up the beach with it (129 m against 97 m). Bravo is hurt about as much as with 1.
+- 3, leapfrog (Bravo pins down what yours is shooting while yours moves, then moves up past it): 20 m apart on average, since it's ahead of Alpha or behind it in turns. Bravo killed the most (6 a fight against 5 today) and lost no more men than today.
+- 4, pincer (close behind until yours shoots at a man, then Bravo works round to one side of him): 18 m apart, and Bravo often ends up alone on open sand.
+- My pick: 2, side by side, taken in turns: while Alpha runs, Bravo pins down whatever Alpha is shooting, and once Alpha is in cover, Bravo moves up beside it, a little further out (10 to 12 m) so one shell can't catch both squads (leapfrog's covering fire with side by side's closeness; not filmed as such). The tabs and the switch would replace Lead one squad and its swap button.
+
+## Version 179: on the top the camera faces down the road, and it turns to a tank
+Bryan, on the hilltop camera drafts: "Let's do C".
+- On the top of the hill the camera now faces down the road east, where their base is and the counterattack comes from, as soon as you're up there (before, only once the barracks was taken).
+- When a tank comes within 90 m of your squad, the camera turns to face it and slides a little toward it, so the tank is up the screen and your men are still in view. Once it's knocked out, the camera goes back to the way ahead (in the village, back to facing north).
+- A tank still waiting to join the fight doesn't turn it, nor does one further off than 90 m.
+- Twisting the camera yourself still holds your angle for 6 seconds, and dragging the map still lets go of the squad until your next move.
+
+### The pincer only when it's safe
+Bryan, after a picture of what the pincer means (`docs/drafts/hill-follow/pincer-explained.png`): "Pincer is interesting. Can bravo/alpha do it if it would be safe?"
+- Yes. The game already knows which spots the enemy guns can see (the dodge and the run for cover use it), so the squad you aren't playing can stay beside yours and swing round the man yours is shooting only when: he's behind cover from yours (otherwise there's no need), there's a spot round his side where his cover doesn't help him, no other German gun can see that spot, the way there stays out of their fire (a few metres in the open at most), it's no more than 38 m away, and none of the squad is down and most aren't pinned. Otherwise it stays beside yours. The same works for Alpha when you play Bravo.
+- Tested in the same four beach fights: it never swung. Every time, another gun covered the ground round the man's side, so on the beach it fought like plain side by side. Set up on the top with one man behind a crate and nobody else about, it swung round him; with a second gun watching that ground, it stayed beside Alpha. So it would mostly show up on the top and in the village, where there's more cover and the guns don't all watch each other's sides. The village isn't tested with it yet.
+
+## Version 180: the team tabs are back, and the other squad fights beside yours
+Bryan: "Yeah let the ai/npc determine if a pincer move is a good move at the moment. Let's make the squads work together actively".
+- The team tabs are back, as they were before the swap button: tap ALPHA or BRAVO to play that squad. The tab of the squad you aren't playing has a small switch: FOLLOW (to start) or HOLD. Tap the switch to change it; tap the rest of the tab to play that squad. The start card's Lead one squad switch is gone.
+- On FOLLOW the other squad fights beside yours, either way round:
+  - When you send yours somewhere, it goes to cover beside where yours is going, about 10 m to one side (Bravo on Alpha's right, Alpha on Bravo's left), at the same time, and catches up if it's left behind.
+  - If yours is being shot at as it goes, the other squad first pins down whoever is shooting at yours, then moves up beside yours once it's there.
+  - When the man you're shooting is dug in behind cover, one of its men throws a grenade at him if he's in reach, and it goes round to his side (a pincer) when it judges that safe: a spot where his cover doesn't help him, that no other German gun can see, with a way there that stays out of their fire, not too far, and nobody in the squad down. Otherwise it stays beside yours.
+  - Over the other squad it says what it's doing: FOLLOWING, COVERING, FLANKING or HOLDING.
+- On HOLD it settles into cover where it is and pins down whatever yours is shooting.
+- After you switch squads, the one you let go stays where it is until you move.
+- On the beach you'll rarely see the pincer: the bunkers' crossfire covers the ground round any man's side, so there's almost never a safe spot. On the top and in the village there's more cover.
+
+## Version 181: the pincer under fire, and the squads' teamwork on the screen
+Bryan: "Pincer move can happen under fire only when the ai thinks it's safe-ish. And there is cover available. Make up your own mind on how this can be made effective. I want the player to see the teams working together while they are controlling it."
+- When the other squad goes for a pincer: when the man you're shooting is dug in behind cover, or when a machine gun dug in behind cover is shooting at your squad.
+- Where it goes: to real cover on that man's side, places where his cover doesn't protect him from them, no other German gun can shoot at them (whether that gun has noticed you yet or not), no other German is within 20 m, and no tank is close by.
+- How: its machine gunner stays back and keeps the man's head down while the others go (fire and movement). If the way there is too open to the other guns and one of them carries smoke, he throws it on the worst stretch first and the others go behind it. Without the gunner on him (or the man already pinned), the man himself counts as a danger on the way too. Only men over half health go. Once they're in place, the whole squad shoots him.
+- When it won't: if a man in the squad is down, if fewer than two could go, if it's too far, or if the way there is far too exposed even with smoke.
+- If one of them goes down on the way, the rest take cover where they are ("Bravo takes a hit and goes to ground.") and leave that man alone for a while. Once he's down, they stay in the cover they flanked to until you move your squad on, instead of walking straight back across open ground.
+- What you see: a banner as it starts ("Bravo flanks the machine gun."), an arrow on the ground showing where they're going, the man marked PINCER, and once they're in place, lines from both squads to him. While the other squad covers yours, lines from its men to whoever they're pinning down. Right after it moves with yours, rings where its men are going. The label over it says FOLLOWING, COVERING, FLANKING or HOLDING.
+- How it measured (a bot playing your squad in the village, 18 fights each): Version 180 lost 4.4 men and had 5.8 knocked down a fight. My first try at this version, which only worried about Germans who had already noticed you, lost 4.5 and had 6.5 down: the other squad kept swinging round toward Germans in the woods who hadn't seen it yet. As shipped: 3.4 lost and 4.1 knocked down a fight, the other squad's men down half as often as in Version 180, about 2 pincers a fight with nobody hit during one, and the village taken a little faster. Fights vary a lot, so treat the men lost as "about the same or a bit better"; the drop in men knocked down is clearer. On the beach (16 test fights each) it plays about the same as Version 180, and you'll see a pincer now and then (9 times in 16 fights, against 3 for Version 180's careful version), since the bunkers' crossfire covers most ground round a man's side. The tag PINCER sits above the man's own PINNED label.
+
+## Version 182: flank everywhere
+Bryan: "I like flank everywhere because I didn't know what pincer meant."
+- The German the other squad goes round is now tagged FLANKED (it said PINCER). The label over the other squad still says FLANKING and the banner still says "Bravo flanks him.", so it's one word everywhere on screen.
+
+## Version 183: the camera looks where you send your squad
+Bryan: "The camera doesn't follow the first hill when you reach the end of the beach, it turns to the second hill. Can you double check and see for yourself"
+- What I saw: the camera only ever turned along the set way up the draw, on the left. At the end of the beach that left the pillbox and the first hill off the right edge of a phone screen, with the view facing the rock at the draw's mouth; and when the squad was sent up onto the first hill, the camera kept looking up the draw instead of at them.
+- Now: when you send your squad somewhere off the way up (the pillbox, the first hill, a bunker to the side), the camera turns to face the way you sent them and stays facing it once they're there, until your next move. Moving them along the way up turns it with the way up as before. A move back the way you came doesn't spin the camera round. A tank coming near still comes first, and picking a squad brings back the way-up view.
+- Before and after, in pictures: `docs/drafts/end-of-beach-camera.jpg`.
+
+## Version 184: at the end of the beach the camera turns to the next bunker
+Bryan, with a picture: "See when I'm on the road near the first bunker, the camera doesn't turn right."
+- Why: Version 183 kept the camera facing the way your squad walked to get there, which by the left bunker was north, into the cliff, with the pillbox to take next off to the right.
+- Now: once your squad has stopped at the end of the beach, the camera turns to the bunker you're told to take next (the left bunker or the pillbox), as long as it's within about 60 m and not back down the beach. While they're walking it still faces where you sent them. Up the draw and on the top nothing changes.
+- Before and after at your spot: `docs/drafts/left-bunker-camera.jpg`.
+
+## Version 185: the camera faces the first hill until you're up on it
+Bryan: "Camera still turns into the second hill before I even reach the top of the first. This needs to be fixed."
+- Why: the camera turned with the way up about 20 m ahead of your squad, and at the top of the ramp the way bends north-west into the draw, so all the way up the ramp it already faced the high ground up the draw, with the first hill (the step about 9 m up on the right, the hill bunker on its edge) off the right of the screen.
+- Now: from the wire until the man the camera follows is up on the first hill, the camera faces the first hill. It turns up the draw as he climbs the last few metres onto it, smoothly and only once, and stays that way unless the squad goes back down by the beach. A tank coming near, a move you give off the way, and the bunker to take next at the end of the beach still come first, as before.
+- While you climb the ramp, the MG nest up the draw is off to the left; its arrow at the screen's edge shows where.
+- Before and after, the same climb: `docs/drafts/first-hill-camera.jpg`.
+
+## Version 186: at the top of the first hill the camera swings left
+Bryan: "At the top of the first hill the camera should swing left."
+- Why: Version 185 turned up the way only gradually, finishing about 6 m past where the ramp levels out, so standing at the top of the ramp it still mostly faced the first hill, on the right.
+- Now: it faces the first hill until the man the camera follows gets to the top of the ramp, then swings left up the way, about 90 degrees, most of it within 2 seconds. It does this even if you sent them to the far side of that hilltop: while they walk there it faces where they're going, and once they're there it swings left. On the plateau with the hill bunker it still faces where you sent them.
+- Before and after, standing at the top of the ramp: `docs/drafts/top-swing.jpg`.
+
+## Version 187: the pillbox isn't a place to take, and the camera drifts left up the first hill
+Bryan: "1) the Pill box on the right side of the beach doesn't need to be a capture point. 2) walking up the first hill should gradually turn the camera left, so the player knows where to go before reaching the top. Basically, the camera should drift towards where the enemy troops are coming from."
+- The pillbox: no longer a place to take. No "Take the pillbox" objective, no blue ground or "The pillbox is yours.", and no replacements coming from it. At the end of the beach the only bunker to take is the left one. The pillbox's gunners are still there and still shoot, so knock them out or go past them.
+- The camera: from the wire it faces the first hill, then as your squad climbs the ramp it drifts steadily left, toward the way up the draw, where the enemy's men come down from their barracks. By the top it already faces up the draw, so there's no sudden swing any more. It only drifts back if the squad goes back down to the foot of the ramp.
+- Before and after, the same climb: `docs/drafts/drift-camera.jpg`.
+
+## Version 188: graphics and sound, first half: the light and the guns
+Bryan: "do everything you can to make this game better in your own opinions. Graphics and sound should be the top priority. No need to change the core mechanics, just graphics and sounds." Then: "When I wake up I want it to look genuinely impressive."
+- The light: D-Day has its own tone curve and colour grade instead of the night-time horror game's, so it's no longer washed out; a stronger, slightly golden sun with real shadows that stay crisp near the camera; a sky with a gradient, a sun glow and drifting lit clouds; smoke columns rising behind the bluffs and along the coast; the haze kept beyond the battle; cloud shadows drifting over the ground.
+- The guns: real 1940s-era recordings (CC0): the M1 Garand from the same .30-06 round, with its clip ping, the BAR, the Springfield working its bolt, the Germans' bolt rifles and machine pistols, the bunkers' guns a heavy THUD THUD THUD; explosions that carry on a phone speaker, a different one for a grenade, a mortar, a shell, a tank gun and a shell into the sea; the whistle of an incoming shell before it lands; cracks of rounds passing close; an echo off the bluffs; the landing craft's ramp; far fewer screams at once.
+- Still to come today: the ground and props, the battle's effects (smoke, dust, fire), the sea, and the sound bed (surf, the battle around you, engines).
+- Pictures: `docs/drafts/v188-light-guns.jpg`. Sound: `docs/sound/v188-guns-demo.mp3`, `docs/sound/v188-guns-lineup.mp3`.
+
+## Version 189: graphics and sound, second part: the ground and the sound bed
+- The ground: proper craters (dug spoil round the rim, damp dark insides, scorched on one side, clods round them) instead of pale rings; sand with ripples and grit; cliffs with irregular rock beds and weathering streaks, grass hanging over their tops; burlap sandbags, wooden ammo crates, rusting iron hedgehogs, concertina wire on posts, weathered bunkers with turf roofs; barracks with weatherboards and tiled roofs; canvas tents and trucks; the counterattack's field with grass and craters, the base wall a bank of dug earth; the village's houses limewash or stone with matching gables. The barracks and the base's buildings now fade when your men are behind them.
+- The sound bed: surf along the waterline from a real recording, the battle on the beaches round you as a constant far-off crackle with flurries, ships' guns in salvos that a phone can play, fighters passing over, the landing craft's diesel, tank engines and tracks, trucks, fires, gusting wind, birds in the village's woods that go quiet at the first shot.
+- Still to come: the battle's effects (smoke, dust, fire) and the sea.
+- Pictures: `docs/drafts/v189-ground-beach.jpg`, `v189-ground-other.jpg`. Sound: `docs/sound/v189-bed-demo.mp3` (everything), `v189-bed-alone.mp3` (the bed without the guns).
+
+## Version 190: graphics and sound, last part: the effects, the sea, and a round over the whole
+- The effects: shells throw up tall plumes of sand and earth that fall back and leave smoke drifting downwind; grenades smaller; shells in the sea white columns of water; tracers in 3D; dust when men run and dive; burning wrecks that smoke for minutes; tanks' track dust and exhaust; smoke rings at the big guns' muzzles; low banks of battle smoke; on a phone the bluff ahead shelled now and then, far booms with it. Smoke thins in front of your men so they stay readable.
+- The sea: real water with a swell that breaks on the shallows, turquoise to teal with depth, foam lines where the waves run up the sand and a dark wet band behind them, foam round the obstacles; the landing craft ride the swell with wakes and bow spray; shell splashes as water columns.
+- After an independent look at the whole game: skin no longer burnt orange or white; the white "statue" enemies gone (a dead man's hit flash never faded); 1944 kit (M1 helmets, field jackets, leggings; the Germans in Stahlhelms) and 1944 guns (M1 Garand, BAR, Kar98k) in place of the modern kit; the picture a little brighter; splashes and smoke no longer white out or black out the screen near your men; tanks rebuilt (a Panzer IV in dunkelgelb, a Sherman wreck on the beach, burnt brown instead of black); the land beyond the battle Normandy's fields and hedgerows fading into the haze instead of a lime slab; boulders that aren't dice.
+- Pictures: `docs/drafts/v190-phone.jpg`, `v190-wide.jpg` (Version 187 above, this below), `v190-close.jpg` (the kit, the guns, the tanks close up).
+
+## Version 191: polish after Version 190
+- The bluffs have gullies, lighter and darker masses and scrub, so they read from the boat; trees, bushes and hedges rounder and less neon; the helmet's team mark hidden on the ride in and in first person; the bluff shelled nearer your men on a phone; shell plumes more ragged.
+- Still synthesised: engines and wind. Picture: `docs/drafts/v191-polish.jpg`.
+
+## Version 192: following into cover, the report as a roll call, a shortcut to it
+- The squad you aren't playing takes cover when it follows yours instead of standing in the open beside it.
+- After a win: VICTORY, then each man in turn with his own commendation, his XP bar filling with sound and his level up, then a summary; the base says what's next; the next mission starts only from NEXT MISSION and its briefing's START.
+- Start card: "After Chapter 1 · The report and your base" goes straight to the report.
+
+## Version 193: sound after an interruption; drafts for the post-battle screens
+- If the sound went away (after the screen locked, a call, or switching apps), the next tap brings it back. Not yet checked on a real phone.
+- Drafts only for the post-battle screens: `docs/drafts/v193-postbattle-drafts.jpg`.
+
+## Version 194: the new report and base
+- After VICTORY you give the company's medal to one of three men (a star and +100 XP).
+- Then one card a man: swipe, or NEXT MAN. At a level up, choose one of two perks (+6 on one stat). SEE ALL shows everyone; tap a man for his card.
+- The base: numbered stops (hospital, barracks, briefing) and one NEXT card with GO. Perks you skipped are asked for first.
+
+## Version 195
+- New XP and level-up sounds (no beeps). WOUNDED is stamped on a wounded man's card. The grid after the cards is only the cards and CONTINUE.
+
+## Version 196
+- Level-up perks are now his job's (a gunner: pins harder or takes less). At levels 3 and 5 a bigger upgrade for his job unlocks by itself; his card shows the next one.
+- The base: the camera glides to each stop and back out.
+
+## Version 197
+- The report's sounds are recordings now: a snare roll as the bar fills, brass for a level up, VICTORY and the medal, a thump with the WOUNDED stamp.
+
+## Version 198: the checkpoint
+- At the top of the first path: sandbags, two machine guns, stone walls, a stone shelter, a concrete house. Five men hold it; four more come out of the house during the fight.
+- The objective reads "Take the checkpoint" and the camera faces it until it's yours; then the camera turns up the second hill.
+- Taken: the flag turns blue, your other troops man both guns and turn them up the hill, and replacements arrive from the house.
+
+## Version 199: your own men on the checkpoint's guns
+- Once the checkpoint is yours, each gun has a grey circle with ENTER under it. Tap it and the nearest man of your squad takes the gun; the circle turns blue with CONTROL.
+- Tap CONTROL to fire it yourself in first person. EXIT (top left) goes back to the squads and leaves him on the gun.
+- He gets off when you order him alone, when his squad has moved on and nothing is left to shoot, or when a shell is coming down on the gun.

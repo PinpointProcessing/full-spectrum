@@ -1,0 +1,14 @@
+const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
+(async()=>{const port=9791,srv=await serve('/home/user/full-spectrum/dday',port);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
+const {page,errors}=await open(b,`http://localhost:${port}/index.html?noseq&gfx=2`);await page.setViewportSize({width:390,height:760});
+const ev=(f,a)=>page.evaluate(f,a);const log=async(l,f,a)=>console.log(l+':',await ev(f,a));
+await ev(()=>{localStorage.removeItem('warehouseYard.ddmeta.v1');ddRoster=ddmRead();const R=ddRoster;R.stage=2;['A','B'].forEach(t=>['medic','gunner','rifle','demo'].forEach((r,i)=>R.squads[t][i]=ddmNewMan(r,3,false)));ddmSave();window.requestAnimationFrame=()=>0;window.RUN=s=>{for(let i=0;i<Math.round(s*30);i++){update(1/30);panTick(1/30);ddFrame(1/30,simT);}};});
+await ev(()=>startVillage({skip:true}));await page.waitForTimeout(600);await ev(()=>RUN(1));
+await log('wreck',()=>{const K=ddTankSpawn({x:700,y:700,ang:-Math.PI/2,hold:true,name:'Tank'});const u=players[0];u.x=702;u.y=704;u.path=[];const n0=objs.length,c0=coverPts.length;
+  ddTankHit(K.x,K.y,3);const o=objs.find(q=>q.kind==='ddtankw');
+  return `hp ${K.hp} obj ${!!o} ${o&&o.w+'x'+o.h} objs ${n0}->${objs.length} cover ${c0}->${coverPts.length} man moved to ${Math.round(u.x)},${Math.round(u.y)} free ${isFree(u.x,u.y)} behind-cover ${coverAt(700,668,700,800)} los-across ${los(700,640,700,780)} path-across ${!!findPath(700,630,700,790)}`;});
+await log('seeThrough',()=>{const p=players[1];p.x=700;p.y=640;p.path=[];dd.track=null;camT.x=700;camT.z=600;zoom=DD_CAM.zoom;yaw=0;tilt=ddTilt(zoom);updateCamera();for(let i=0;i<10;i++)render(.03,simT);return `faded ${[...fadeObjs].some(o=>o.kind==='ddtankw')} cam z ${Math.round(camera.position.z)} h ${Math.round(camera.position.y)}`;});
+await log('cover from a known enemy',()=>{const e=enemies.find(q=>!beaten(q));e.x=700;e.y=420;e.path=[];e.seen=true;e.vis=true;e.last={x:700,y:420};e.alerted=true;
+  const m=players.filter(p=>p.team==='A'&&alive(p));for(const u of m){u.x=700+(Math.random()-.5)*40;u.y=820;u.path=[];}const as=makeAssign(m,700,745);for(const q of as)Object.assign(q.u,{path:q.path,lastOrder:simT});
+  for(let i=0;i<180;i++){update(1/30);e.x=700;e.y=420;e.cool=99;}return m.map(u=>Math.round(u.x)+','+Math.round(u.y)+' cover '+coverAt(u.x,u.y,700,420)).join(' | ');});
+console.log('errors',errors.length,errors.slice(0,5));await b.close();srv.close();})();

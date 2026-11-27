@@ -1,0 +1,22 @@
+const {chromium}=require('playwright');const {serve,open}=require('./harness.js');
+(async()=>{const srv=await serve('/home/user/full-spectrum/dday',9985);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
+const {page,errors}=await open(b,'http://localhost:9985/index.html?noseq&gfx=0');await page.setViewportSize({width:390,height:760});
+await page.evaluate(()=>localStorage.removeItem('warehouseYard.ddmeta.v1'));await page.reload();await page.waitForTimeout(2500);
+const ev=(f,a)=>page.evaluate(f,a);const fr=async n=>{await ev(n=>{for(let i=0;i<n;i++)ddMetaFrame(.05,1);},n);await page.waitForTimeout(300);};
+console.log('start card: chapter 2 button hidden '+await ev(()=>document.querySelector('#ddCtrBtn').hidden));
+await page.click('#ddBtn');await page.waitForTimeout(1200);
+console.log(await ev(()=>{window.requestAnimationFrame=()=>0;for(let i=0;i<900&&!dd.land.done;i++)update(1/30);players[1].stats.kills=5;dd.won=true;ddFinish();return 'D-Day won: state '+state+' stage '+ddRoster.stage;}));
+await fr(4);await page.evaluate(()=>ddmRollTap(true));await page.waitForTimeout(150);await page.click('#ddm [data-a="base"]');await fr(4);
+console.log('base bar: '+await page.$eval('#ddm .ddm-bar.bot',e=>e.textContent.trim().replace(/\s+/g,' ')));
+await page.click('#ddm .ddm-bar.bot [data-a="barracks"]');await fr(10);
+console.log('barracks out button: '+await page.$eval('#ddm [data-a="out"]',e=>e.textContent));
+await page.click('#ddm [data-a="out"]');await page.waitForTimeout(200);await page.click('#ddm [data-a="go"]');await page.waitForTimeout(150);await page.click('#ddm [data-a="start"]');await page.waitForTimeout(1500);
+console.log(await ev(()=>'after leaving: state '+state+' mode '+DD_MODE+' counter '+!!(dd&&dd.counter)+' players '+players.map(p=>p.name+'/'+p.ddRole[0]).join(' ')+' enemies '+enemies.length+' #ddm '+!!document.querySelector('#ddm')));
+// lose it: the retry
+console.log(await ev(()=>{for(let i=0;i<300;i++)update(1/30);const names=players.map(p=>p.name).join(',');for(const p of players.slice())ddKill(p,'test',true);ddRoster.reserve.length=0;dd.queue.length=0;for(let i=0;i<120;i++)update(1/30);const e=!!endAt;finish();return 'all lost: endAt '+e+' state '+state+' title "'+document.querySelector('#endTitle').textContent+'" button "'+document.querySelector('#againBtn').textContent+'" was '+names;}));
+await page.click('#againBtn');await page.waitForTimeout(1200);
+console.log(await ev(()=>'retry: state '+state+' counter '+!!dd.counter+' players '+players.map(p=>p.name).join(',')+' ph '+dd.dc.ph));
+await ev(()=>{reset();document.querySelector('#intro').hidden=false;state='intro';ddCtrBtnShow();});
+console.log('menu: chapter 2 button hidden '+await ev(()=>document.querySelector('#ddCtrBtn').hidden));
+await page.click('#ddBtn');await page.waitForTimeout(1200);console.log(await ev(()=>'D-Day again after: mode '+DD_MODE+' counter '+!!dd.counter+' boats '+dd.boats.length+' sea visible '+DD.sea.visible));
+console.log('errors',JSON.stringify(errors).slice(0,500));await b.close();srv.close();})();
