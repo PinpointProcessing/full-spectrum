@@ -24,7 +24,13 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   // light guns twice the rounds a second (10 a burst, 0.035 s apart, where a gunner fired 5 at 0.07), the heavy gun as slow as before with more
   // than twice the damage a round. shield (dcShield, from combat.js's damage): what hits a man on a gun hits the gun (gun x); he takes man x of it
   // the usual way, never below floor, never killed outright (ddplay.js's ddDamage); the gun blown up throws him off it, off more, not below floor
-  gw:{lt:{n:10,gap:.035,cool:[1.3,1.8],dmg:[11,16],sup:.09},hv:{n:5,gap:.12,cool:[1.4,1.9],dmg:[26,36],sup:.16}},
+  gw:{lt:{n:10,gap:.035,cool:[1.3,1.8],dmg:[11,16],sup:.09},hv:{n:5,gap:.12,cool:[1.4,1.9],dmg:[26,36],sup:.16},
+    // (Version 258, Bryan: "Make sure the stationary nests work at a distance too. Obviously not as strong or as accurate, but make it feel like it
+    // does something") reach: the machine guns' reach, by themselves and from behind them, r out from near (44 m, where a gunner's reach ended and
+    // nothing changes); past near a round is less likely to hit, down to acc at r (0.37 at near), and hits for less, down to dmg times at r.
+    // combat.js's wRange, gunFar, gunFarDmg and hitChance, ddfp.js's fpShoot. Until now a gunner chose nobody past 44 m, and from behind a gun a round
+    // stopped at 62 m: their men came out of the woods 110 m off and the nests did nothing until they were close
+    reach:{near:440,r:1150,acc:.12,dmg:.45}},
   shield:{gun:.6,man:.3,floor:50,off:30,stun:1.1},
   // Version 254 (Bryan: "After the first wave show Wave 1 complete. And give a timer on the rest time until the next wave"; "At the end of Wave 2,
   // have NPC soldiers run to the second checkpoint, with the lead NPC saying Move Forward!! Take the checkpoint ahead!! After that, show an
@@ -92,6 +98,7 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   tankAt:{road:[430,-396],west:[300,-450],east:[190,-500]},
   roads:{west:[[700,-150],[672,-210],[640,-262],[560,-330],[420,-400],[250,-470],[60,-560]],east:[[700,-150],[790,-190],[900,-250],[990,-320],[1040,-380],[1120,-470],[1200,-520]]},   // (the fork's two branches, as drawn)
   ways:{road:[[560,-330],[640,-262],[690,-150],[700,100],[700,300],[700,440]],west:[[420,-400],[560,-330],[640,-262],[690,-150],[660,150],[640,300],[690,400],[700,450]],east:[[560,-330],[640,-262],[700,-150],[760,-40],[790,150],[770,300],[712,400],[700,450]]}};
+DCA.gw.lt.reach=DCA.gw.hv.reach=DCA.gw.reach;   // (Version 258: a man on one of the guns carries it in u.gunW)
 const dcIn=(u,z)=>u.x>z.x0&&u.x<z.x1&&u.y>z.y0&&u.y<z.y1;
 
 /* ---------- the ground ---------- */

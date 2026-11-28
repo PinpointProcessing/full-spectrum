@@ -111,13 +111,18 @@ function swapWeapon(u){
   [u.weapon,u.weapon2]=[u.weapon2,u.weapon];u.cool=Math.max(u.cool||0,.8);u.silent=null;
   callout(u,WEAPON[u.weapon].label,C.good);return true;
 }
-function wRange(u){return u.gunner?u.longR||440:wOf(u).range;}
+function wRange(u){return u.gunner?(u.onGun&&u.gunW&&u.gunW.reach?u.gunW.reach.r:u.longR||440):wOf(u).range;}
+// (Version 258, D-Day's Chapter 2) the machine guns' long reach, gunW.reach with near, r, acc and dmg (ddcounter.js's DCA.gw.reach): how far past near
+// a round goes, 0 within near and 1 at r, and what a hit does there, its damage times 1 within near down to reach.dmg at r
+function gunFar(u,d){const R=u&&u.onGun&&u.gunW&&u.gunW.reach;return R&&d>R.near?Math.min(1,(d-R.near)/(R.r-R.near)):0;}
+function gunFarDmg(u,d){const R=u&&u.onGun&&u.gunW&&u.gunW.reach;return R?1-(1-R.dmg)*gunFar(u,d):1;}
 function hitChance(s,t,L){
   L=L||lineOf(s,t);
   const ob=s.side==='P'?(s.watch&&inWatch(s,t)?WATCH.bonus:0)+(simT<(s.breachT||0)?BREACH.bonus:0):0;   // Watch and Breach (orders.js)
   const d=hyp(L.tx-L.fx,L.ty-L.fy);
   const sg=s.weapon==='shotgun';
   const W=wOf(s);let c=sg?1-Math.max(0,d-80)/150:W.far?0.92-d/2600:0.86-d/900;   // a shotgun: near-certain within 8 m, falling off fast beyond; a sniper rifle barely falls off
+  {const R=s.onGun&&s.gunW&&s.gunW.reach;if(R&&d>R.near){const c0=.86-R.near/900;c=c0+(R.acc-c0)*gunFar(s,d);}}   // (Version 258: Chapter 2's machine guns past 44 m, less likely to hit, not out of reach)
   c+=W.acc||0;if(s.path.length)c+=W.move||0;
   if(s.longR&&d>420)c-=.28+(d-420)/700;   // (D-Day's hill bunker: it reaches further than the other guns, and sprays past 42 m)
   let cov=shotCover(L);if(t.inVeh||t.onTower||t.onTank)cov=Math.max(cov,1);   // inside the jeep, up the watchtower behind its rails, or in a tank's hatch behind its rim (D-Day, Version 247): partial cover
@@ -531,7 +536,7 @@ function resolveShot(s){
   if(s.hit&&t.veh){sparks.push({x:tx,y:ty,t:0});if(typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');}   // the jeep: rounds spark off its body, and some find the crew
   else if(s.hit&&t.air){if(Math.random()<.4&&typeof sfxImpact==='function')sfxImpact(tx,ty,'metal');}   // (the helicopter: rounds on its skin)
   else if(s.hit&&typeof sfxFlesh==='function'){sfxFlesh(tx,ty);if(t.side==='P'&&Math.random()<.45)sfxGrunt(t,false);}   // (an enemy's cry is in damage())   // a hit: the thud, and often a grunt
-  if(s.hit){const W=u.onGun&&u.gunW||wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1);if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,t.veh?dm*GJEEP.bullet:dm,u);}
+  if(s.hit){const W=u.onGun&&u.gunW||wOf(u),dm=sg?(38+Math.random()*12)*clamp(1-(hyp(tx-fx,ty-fy)-60)/200,.35,1):(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*(u.side==='E'?(u.heavy?HEAVY.dmg:u.gunner?0.45:W.far?ESNIPER.dmg:0.6):1)*gunFarDmg(u,hyp(tx-fx,ty-fy));if(t.seat==='driver')vehHit(t.inVeh,dm,u);else damage(t,t.veh?dm*GJEEP.bullet:dm,u);}
   if(u.side==='P'){alertAll('Contact. Weapons free.',true,fx,fy,ex,ey,{x:fx,y:fy},s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined,!s.quiet,u);squadNoise(u,fx,fy,s.quiet?SIL.open:undefined,s.quiet?SIL.wall:undefined);}   // they'll think the squad is where the shot came from (a silenced shot: only close by)
   else alertAll(null,false,fx,fy,ex,ey,t.mon?t:{x:t.x,y:t.y});   // (at a monster, Level 4: their men hear it, but it gives none of ours away)   // their own gunfire is heard nearby too
   if(t.side==='E'&&!t.alerted)t.alerted=true;

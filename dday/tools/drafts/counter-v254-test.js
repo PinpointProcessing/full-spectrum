@@ -83,9 +83,9 @@ const by=k=>`dd.dc.guns.find(g=>g.k==='${k}')`;
     return{ours:dd.dc.cpOurs,ph:dd.dc.ph,row:[...document.querySelectorAll('#dcBar .dcb-row:not(.two) .dcb-t i')].map(q=>q.textContent),big:EV.filter(q=>q[0]==='big').map(q=>q[1]).slice(-2)};});
   console.log('  ',JSON.stringify(c));ok(c.ours&&c.ph==='lull'&&c.big.includes('Checkpoint taken')&&c.row.includes('FORWARD MG 1')&&c.row.includes('FORWARD MG 2'),'its men down and ours in it: "Checkpoint taken", their two light guns ours in the row (FORWARD MG 1, 2), and the rest before wave 3');
   const m=await ev(()=>{RUN(8);return dd.dc.guns.filter(g=>g.cp).map(g=>g.man?(g.man.npc?'npc':'squad'):g.going?'going':'-');});ok(m.every(q=>q==='npc'||q==='going'),'the other troops up there take their light guns ('+m.join(', ')+')');
-  // wave 3: some of it comes for the checkpoint; none comes out of it
+  // wave 3: some of it comes for the checkpoint; none comes out of it (each man of it with a 0.4 roll, DCA.cpAtt: 2 or more of 20, not 4, since Version 258)
   const w3=await ev(()=>{RUN(14);const W=enemies.filter(e=>e.tag==='w3');return{ph:dd.dc.ph,n:W.length,att:W.filter(e=>e.cpAtt).length,fromCp:W.filter(e=>!e.cpAtt&&e.y>-380&&e.y<-330&&e.x>690&&e.x<790).length};});   // (Version 255: not counting those going into it: with the 10 s rest they're 18 s in, not 8)
-  console.log('  ',JSON.stringify(w3));ok(w3.ph==='w3'&&w3.att>=4&&w3.att<w3.n&&w3.fromCp===0,`wave 3: ${w3.att} of its ${w3.n} go for the checkpoint first, none out of it`);
+  console.log('  ',JSON.stringify(w3));ok(w3.ph==='w3'&&w3.att>=2&&w3.att<w3.n&&w3.fromCp===0,`wave 3: ${w3.att} of its ${w3.n} go for the checkpoint first, none out of it`);
   // lost: theirs in it, none of ours, for the time it takes
   const l=await ev(()=>{const Z=DCA.cz;for(const u of[...dd.npcs,...players])if(alive(u)&&dcIn(u,Z)){u.x=700;u.y=420;u.path=[];u.cpGo=false;u.ln=1;}
     for(const g of dd.dc.guns)if(g.cp&&g.man){const u=g.man;dcLeave(g);u.x=700;u.y=430;u.path=[];u.ln=1;}

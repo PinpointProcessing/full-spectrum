@@ -118,13 +118,13 @@ function fpShoot(){
   // (Version 211, Bryan: "the MG nest from the top of the hill can reach the lowers MG nests and vice versa. It seems like I was unable to hit them
   // from the bottom MG nest": a gun's reach in your hands was 62 m and the roof's guns are 72 to 75 m off, so every round stopped short. One of the
   // checkpoint's guns reaches 90 m now; and a man up on a roof is hit over whatever stands between on the ground)
-  const R=u.postGun?900:W.range,reach=Math.min(bt,R+tmin);let ex=O.x+D.x*reach,ey=O.z+D.z*reach;
+  const GR=u.onGun&&u.gunW&&u.gunW.reach,R=u.postGun?900:GR?GR.r:W.range,reach=Math.min(bt,R+tmin);let ex=O.x+D.x*reach,ey=O.z+D.z*reach;   // (GR: Chapter 2's machine guns, Version 258: out to 115 m, weaker past 44 m, gunFarDmg below)
   if(best&&(hyp(best.x-u.x,best.y-u.y)>R||!(best.air||(best.elev||0)>20&&u.postGun)&&!los(u.x,u.y,best.x,best.y)))best=null;
   let z2=null;if(best&&best.air){ex=O.x+D.x*bt;ey=O.z+D.z*bt;z2=O.y+D.y*bt;}else if(!best&&!tank&&!G){z2=O.y+D.y*reach;}   // (up at the helicopter, or into the sky: the tracer goes there, not to the ground under it)
   if(best){if(!best.air){ex=best.x;ey=best.y;}const c=best.air?0:coverAt(best.x,best.y,u.x,u.y);best.revealT=Math.max(best.revealT||0,simT+1.6);
     best.sup=Math.min(1.2,best.sup+W.sup*(u.supK||1)*(best.nerveK||1));if(!best.alerted)best.alerted=true;
     if(c&&Math.random()<(c>=2?.45:.25)){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}
-    else{const hs=u.weapon==='shotgun'?clamp(1-(hyp(ex-u.x,ey-u.y)-60)/200,.35,1):1;if(best.air){if(Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');}else if(typeof sfxFlesh==='function')sfxFlesh(ex,ey);damage(best,(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*hs,u);F.hitT=performance.now();if(best.dead)F.killT=F.hitT;}}
+    else{const hs=u.weapon==='shotgun'?clamp(1-(hyp(ex-u.x,ey-u.y)-60)/200,.35,1):1;if(best.air){if(Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');}else if(typeof sfxFlesh==='function')sfxFlesh(ex,ey);damage(best,(W.dmg[0]+Math.random()*(W.dmg[1]-W.dmg[0]))*hs*gunFarDmg(u,hyp(best.x-u.x,best.y-u.y)),u);F.hitT=performance.now();if(best.dead)F.killT=F.hitT;}}
   else{if(tank){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey,'metal');if(u.dcGun&&u.dcGun.hv&&typeof dcHvTank==='function'){dcHvTank(tank,W.tank||.34,u);F.hitT=performance.now();}}else if(G&&Math.random()<.5&&typeof sfxImpact==='function')sfxImpact(ex,ey);   // (a heavy machine gun in your hands marks a tank: ddcounter.js. Version 247: the miss's sound on the ground had been swallowed by this note since Version 224)
     for(const e of enemies)if(!beaten(e)&&hyp(e.x-ex,e.y-ey)<28)e.sup=Math.min(1.2,e.sup+W.sup*.7);}
   tracers.push({x1:u.x+Math.cos(F.a)*14,y1:u.y+Math.sin(F.a)*14,x2:ex,y2:ey,t:0,col:'255,231,163',z2});
