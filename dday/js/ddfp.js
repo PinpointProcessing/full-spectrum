@@ -269,7 +269,8 @@ function fpBuild(){
 <div class="fp-msg" hidden></div>
 <button type="button" data-a="gexit" class="fp-gexit">Exit gun</button>
 <div class="fp-stick" aria-hidden="true"><i></i></div>
-<div class="fp-btns"><button type="button" data-a="gprev" class="fp-gprev">‹ Prev<small></small></button><button type="button" data-a="gnext" class="fp-gnext">Next gun ›<small></small></button><div class="fp-ammo"></div><button type="button" data-a="use" hidden></button><button type="button" data-a="reload">Reload</button><button type="button" data-a="spec"></button><button type="button" data-a="nade"></button><button type="button" data-a="aim">Aim</button><button type="button" data-a="fire" class="fp-fire">FIRE</button></div>
+<div class="fp-btns"><div class="fp-ammo"></div><button type="button" data-a="use" hidden></button><button type="button" data-a="reload">Reload</button><button type="button" data-a="spec"></button><button type="button" data-a="nade"></button><button type="button" data-a="aim">Aim</button><button type="button" data-a="fire" class="fp-fire">FIRE</button></div>
+<div class="fp-gnav"><button type="button" data-a="gprev" class="fp-gprev">‹ Prev<small></small></button><button type="button" data-a="gnext" class="fp-gnext">Next ›<small></small></button></div>
 <div class="fp-keys">WASD move · mouse look · click fire · right click aim · R reload · G grenade · Q item · E use · V view · Tab next man · F command</div>`;
   (sq?sq.parentNode:document.body).appendChild(el);
   const ptrs={},stick=el.querySelector('.fp-stick'),knob=stick.firstElementChild;
@@ -315,11 +316,12 @@ function fpHud(){
   set('[data-a="next"]',u.postGun&&typeof ddPostNextOf==='function'&&ddPostNextOf(u)?'Next gun ▶':'Next man ▶');
   // (Version 255, Bryan: "The screen is too busy. The next gun button can be above the count of bullets. On the left side of the screen it can be
   // previous. The bottom can show the teammates that are on the guns. On the top right there is an exit gun button"): on one of Chapter 2's guns
-  // (#fp.dcg) only EXIT GUN at the top right, PREV on the left, NEXT GUN over the rounds left, AIM and FIRE, and the row of guns along the bottom
+  // (#fp.dcg) only EXIT GUN at the top right, PREV and NEXT at the bottom left across from AIM and FIRE (Version 257), the rounds left over AIM and
+  // FIRE, and the row of guns along the bottom
   // (ddcounter.js's dcBar). The man's name and health, Command, the view, reload, grenade and item are hidden there (css/style.css)
   {const cg=!!(dd.counter&&u.dcGun);el.classList.toggle('dcg',cg);
     if(cg){const nx=typeof dcNextOf==='function'?dcNextOf(u):null,pv=typeof dcPrevOf==='function'?dcPrevOf(u):null,nb=el.querySelector('[data-a="gnext"]'),pb=el.querySelector('[data-a="gprev"]');
-      set('[data-a="gnext"] small',nx?dcName(nx):'none other manned');if(nb.disabled!==!nx)nb.disabled=!nx;set('[data-a="gprev"] small',pv?dcName(pv):'');if(pb.disabled!==!pv)pb.disabled=!pv;}
+      set('[data-a="gnext"] small',nx?dcName(nx):'');if(nb.disabled!==!nx)nb.disabled=!nx;set('[data-a="gprev"] small',pv?dcName(pv):'');if(pb.disabled!==!pv)pb.disabled=!pv;}
     set('.fp-keys',cg?'mouse aim · click fire · right click zoom · Tab next gun · Shift+Tab previous · Esc exit gun':'WASD move · mouse look · click fire · right click aim · R reload · G grenade · Q item · E use · V view · Tab next man · F command');}
   const gname=A?'Field gun':u.onGun?'Machine gun':(typeof WEAPON!=='undefined'&&WEAPON[u.weapon||'rifle']?WEAPON[u.weapon||'rifle'].label:'Rifle');
   set('.fp-ammo',A?`<b>${simT>=A.fireT?'READY':'LOADING '+Math.ceil(A.fireT-simT)}</b><span>${gname}</span>`:`<b>${F.reloadT?'RELOADING':F.clip+' / '+W.clip}</b><span>${gname}</span>`);

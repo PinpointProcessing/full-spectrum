@@ -27,7 +27,7 @@ const row=ev=>ev(()=>{DRAW();const T=[...document.querySelectorAll('#dcBar .dcb-
   if(OUT){await page.waitForTimeout(400);await ev(()=>DRAW());await page.waitForTimeout(300);await page.screenshot({path:OUT+'/row-above.png'});}
   await page.click('#dcBar .dcb-t:first-child');const c=await row(ev);console.log('  ',JSON.stringify(c.two),c.nx,c.ex,c.on);
   ok(c.on==='a1','a real click on the first tile: behind the field gun');
-  ok(!c.two.length&&/^Next gun ›heavy MG$/i.test(c.nx||'')&&c.ex,'nothing under the tiles; on the gun screen NEXT GUN (it names the heavy MG) and EXIT GUN');
+  ok(!c.two.length&&/^Next ›heavy MG$/i.test(c.nx||'')&&c.ex,'nothing under the tiles; on the gun screen NEXT (it names the heavy MG; NEXT GUN until Version 257) and EXIT GUN');
   if(OUT){await page.waitForTimeout(500);await ev(()=>DRAW());await page.waitForTimeout(400);await page.screenshot({path:OUT+'/row-behind.png'});}
   const seq=[];for(let i=0;i<4;i++){await page.click('#fp [data-a="gnext"]');seq.push((await row(ev)).on);}
   ok(seq.join()==='h1,n1,n2,a1','NEXT GUN four times: the heavy gun, nest 1, nest 2, and round to the field gun again ('+seq.join(' > ')+')');

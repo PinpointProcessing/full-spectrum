@@ -24,7 +24,7 @@ for(const[W,H]of[[390,760],[844,390]]){const {page,errors,ev}=await start(255,W,
   console.log('  ',W,JSON.stringify({exit:L.exit,prev:L.prev,next:L.next,ammo:L.ammo,fire:L.fire,bar:L.bar,pill:L.pill,names:L.names,next:L.nextTxt,prev:L.prevTxt}));
   ok(L.on==='n1'&&L.exit.vis&&L.exit.x+L.exit.w>W-30&&L.exit.y<140&&L.exit.y>=L.pause.y+L.pause.h-2,`${W}: one click on MG NEST 1's tile and you're behind it; EXIT GUN at the top right, under PAUSE (${L.exit.x},${L.exit.y})`);
   ok(L.prev.vis&&Math.abs(L.prev.y-L.next.y)<=3&&L.prev.x+L.prev.w<=L.next.x+1,`${W}: PREV left of NEXT GUN, one row (Version 256; on the left halfway down in Version 255) (${L.prev.x},${L.prev.y}): "${L.prevTxt}"`);
-  ok(L.next.vis&&L.next.y+L.next.h<=L.ammo.y+2&&L.next.x+L.next.w>W*.6&&/NEXT GUN/i.test(L.nextTxt),`${W}: NEXT GUN over the rounds left, on the right (${L.next.x},${L.next.y}): "${L.nextTxt}"`);
+  ok(L.next.vis&&Math.abs(L.next.y+L.next.h-(L.aim.y+L.aim.h))<=2&&L.next.x+L.next.w<=L.aim.x&&/NEXT/i.test(L.nextTxt),`${W}: NEXT at the bottom left across from AIM and FIRE (Version 257; over the rounds left on the right in Versions 255 and 256) (${L.next.x},${L.next.y}): "${L.nextTxt}"`);
   ok(L.bar.vis&&L.bar.y+L.bar.h>=H-2&&L.bar.y>H*.55&&!L.two&&L.names.includes('YOU')&&L.names.filter(n=>n&&n!=='YOU'&&n!=='empty').length>=2&&L.fire.y+L.fire.h<=L.bar.y+1,`${W}: the row of guns along the bottom, who is on each (${L.names.join(', ')}), no BACK / LEAVE row under it, FIRE over it`);
   ok(!L.top.vis&&!L.reload.vis&&!L.nade.vis&&!L.spec.vis&&!L.stick.vis&&L.aim.vis&&L.fire.vis,`${W}: no name and health panel, Command, reload, grenade, item or stick on the gun; AIM and FIRE`);
   ok(!(L.pill&&L.pill.vis)||L.pill.y>=L.exit.y+L.exit.h-4||L.pill.x+L.pill.w<=L.exit.x,`${W}: the objective pill clear of EXIT GUN`);
@@ -67,7 +67,7 @@ for(const[W,H]of[[390,760],[844,390]]){const {page,errors,ev}=await start(255,W,
   ok(tp.bz.length===2&&tp.bz.every(n=>n===3),`between waves: a bazooka man lost is made up from the others, rockets made up (${tp.bz.join(', ')})`);
   // the last of a wave hiding out of reach: 25 s and he falls back into the woods, and the wave is over
   const sg=await ev(()=>{const C=dd.dc;let k=0;while(!/^w/.test(C.ph)&&k++<80)RUN(.5);RUN(3);for(const K of dd.tanks)K.hp=0;C.more=1;const L=enemies.filter(e=>/^w/.test(e.tag)&&!beaten(e)&&e.tag==='w'+C.wave);
-    if(!L.length)return{skip:C.ph};for(const e of L.slice(1)){e.dead=true;e.hp=0;}const e=L[0];e.x=300;e.y=-660;e.path=[];e.stunT=1e9;e.advT=1e9;const ph0=C.ph;
+    if(!L.length)return{skip:C.ph};for(const e of L.slice(1)){e.dead=true;e.hp=0;}const e=L[0];e.x=300;e.y=-660;e.path=[];e.stunT=1e9;e.advT=1e9;e.hp=1e6;const ph0=C.ph;   // (hp: not to be shot meanwhile, the other troops are out at the hedgerow by then)
     RUN(20);const mid=C.ph;RUN(8);return{ph0,mid,ph:C.ph,gone:e.dead,ban:EV.filter(q=>q[0]==='banner'&&/fall/.test(q[1])).map(q=>q[1])};});
   console.log('  ',JSON.stringify(sg));
   ok(sg.skip||sg.ph0===sg.mid&&sg.ph!==sg.ph0&&sg.gone&&sg.ban.length===1,`the last man of the wave out of reach: still the wave 20 s on (${sg.mid}), then he falls back and the wave is over (${sg.ph}): "${sg.ban&&sg.ban[0]}"`);
@@ -107,7 +107,7 @@ for(const[W,H]of[[390,760],[844,390]]){const {page,errors,ev}=await start(255,W,
   console.log('  ',JSON.stringify(f));
   ok(f.fp&&f.hits>=200&&f.hit&&f.z>0,`behind the heavy gun, 12 rounds with the crosshair on it: ${f.hits} off it, the hit mark, the tracers going up to it`);
   // it can't be left: the wave waits for it; shot down it spins, falls and burns, its gunner with it, and the wave is over
-  const d=await ev(()=>{const C=dd.dc,H=C.helis[0];if(dd.fp)fpExit();for(const e of enemies)if(!e.air&&!e.dead){e.dead=true;e.hp=0;}for(const K of dd.tanks)K.hp=0;C.more=1;RUN(4);const ph1=C.ph;
+  const d=await ev(()=>{const C=dd.dc,H=C.helis[0];if(dd.fp)fpExit();for(const e of enemies)if(!e.air&&!e.dead){e.dead=true;e.hp=0;}for(const K of dd.tanks)K.hp=0;C.more=1;H.hp=1e6;RUN(4);const ph1=C.ph;   // (hp: our guns would bring it down meanwhile now and then)
     H.hp=5;dcHeliHit(H,20,C.guns.find(g=>g.k==='h1').man);const st1=H.st;let i=0;while(H.st==='crash'&&i++<100)RUN(.1);RUN(2.5);
     return{ph1,st1,st:H.st,fall:i/10,gunner:H.e.dead,fire:tankFires.some(f=>hyp(f.x-H.x,f.y-H.y)<5),big:EV.filter(q=>q[0]==='big').map(q=>q[1]).slice(-3),ph:C.ph};});
   console.log('  ',JSON.stringify(d));

@@ -29,7 +29,7 @@ for(const[W,H,PAD]of[[390,740,34],[844,390,21],[390,760,0]]){const {page,errors,
   console.log('  ',W,H,PAD,JSON.stringify({prev:L.prev,next:L.next,ammo:L.ammo,aim:L.aim,fire:L.fire,bar:L.bar,hit:L.hit,dcbh:L.dcbh,fpB:L.fpB}));
   const tag=`${W}x${H}${PAD?`, a ${PAD} px home bar`:''}`;
   ok(L.on==='h1'&&L.prev.vis&&L.next.vis&&Math.abs(L.prev.y-L.next.y)<=3&&Math.abs(L.prev.h-L.next.h)<=3&&L.prev.x+L.prev.w<=L.next.x+1&&L.next.x-(L.prev.x+L.prev.w)<=14,`${tag}: PREV ("${L.prevTxt}") on the left of NEXT GUN ("${L.nextTxt}"), one row`);
-  ok(L.next.y+L.next.h<=L.ammo.y+2&&L.prev.y+L.prev.h<=L.ammo.y+2,`${tag}: both over the rounds left`);
+  ok(Math.abs(L.next.y+L.next.h-(L.aim.y+L.aim.h))<=2&&Math.abs(L.prev.y+L.prev.h-(L.aim.y+L.aim.h))<=2&&L.next.x+L.next.w<=L.aim.x,`${tag}: both at the bottom left across from AIM and FIRE (Version 257; over the rounds left in Version 256)`);
   ok([L.prev,L.next,L.aim,L.fire].every(q=>q.vis&&q.y+q.h<=L.bar.y+1)&&L.hit.prev&&L.hit.next&&L.hit.aim&&L.hit.fire,`${tag}: PREV, NEXT GUN, AIM and FIRE all above the row of guns (row at ${L.bar.y}, FIRE down to ${L.fire.y+L.fire.h}), nothing of the row over them`);
   ok(Math.abs(parseInt(L.dcbh)-(L.fpB-L.bar.y))<=2,`${tag}: the buttons' room measured from the screen's bottom to the row's top (${L.dcbh} for ${L.fpB-L.bar.y})`);
   ok(!L.keys.vis||[L.prev,L.next,L.aim,L.fire].every(q=>L.keys.x+L.keys.w<=q.x||L.keys.y+L.keys.h<=q.y||L.keys.y>=q.y+q.h),`${tag}: the keys line (a desktop's) clear of the buttons (${L.keys.vis?'shown':'not shown'})`);
