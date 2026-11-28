@@ -2,6 +2,8 @@
 // MG unit on top of the tank too"): Chapter 2's tanks. The man at the machine gun in the commander's hatch (there, at the hatch, seen, round with the
 // turret); the fight left to itself (the tank's gun fires with every gun of ours on it); from behind the field gun (a shell aimed at the tank's hull
 // hits the tank, a second knocks it out, its gunner with it; a shot at open ground lands where the crosshair is); the gunner (he fires on our men,
+// (Version 259: the shell falls with distance, ddfp.js's FP_DROP: the first shot, 89 m off, at the middle of its hull, 17 up, not 12 up, where it
+// now comes down just short; a shot at open ground lands where the falling shell meets the ground, short of the crosshair's straight line)
 // the flash from his gun's muzzle, half cover in his hatch, killed from behind a machine gun, the tank fights on).
 // node tank-fight-test.js PORT [real=0|1] [OUTDIR for pictures]   (real 1: the draft's tank and its own machine gun; DDROOT = the dday folder; HARNESS = the scratchpad's harness.js)
 const {chromium}=require('playwright');const {serve,open}=require(process.env.HARNESS||'/tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/harness.js');const fs=require('fs');
@@ -55,14 +57,14 @@ const shot=async(page,ev,name,c)=>{if(!OUT)return;await ev(c=>{window._cam=c;if(
     const shoot=(label,hgt)=>{const P0=fpPose();F.a=Math.atan2(K.y-P0.O.z,K.x-P0.O.x);const P1=fpPose(),d=Math.hypot(K.x-P1.O.x,K.y-P1.O.z);F.p=Math.atan2(gndH(K.x,K.y)+hgt-P1.O.y,d);F.kick=0;
       g.fireT=0;const n0=nades.length,hp0=K.hp;F.fire=true;fpTick(1/30);const n=nades[nades.length-1],fired=nades.length>n0;RUN((n?n.dur:1)+.3);
       out.shots.push({label,dist:Math.round(d),dur:n?+n.dur.toFixed(2):null,direct:!!(n&&n.direct),tk:!!(n&&n.tk),fired,hp0:Math.round(hp0),hp1:Math.round(K.hp),tankDead:K.hp<=0});};
-    shoot('at its hull',12);shoot('at its turret',25);out.mg=K.mg?{dead:K.mg.dead,gone:!!K.mg.gone}:null;
-    // a shot at open ground still lands where the crosshair is
-    {const P0=fpPose();F.a=-Math.PI/2+.5;F.p=-.05;F.kick=0;g.fireT=0;const A=fpAimPoint(DCA.art.max,DCA.art.min);F.fire=true;fpTick(1/30);const n=nades[nades.length-1];out.ground={dx:Math.round(n.x1-A.x),dy:Math.round(n.y1-A.y),direct:!!n.direct,dur:+n.dur.toFixed(2)};}
+    shoot('at the middle of its hull',17);shoot('at its turret',25);out.mg=K.mg?{dead:K.mg.dead,gone:!!K.mg.gone}:null;
+    // a shot at open ground lands where the falling shell meets the ground (Version 259)
+    {const P0=fpPose();F.a=-Math.PI/2+.5;F.p=-.05;F.kick=0;g.fireT=0;const A=fpAimPoint(DCA.art.max,DCA.art.min,FP_DROP.v.shell),S=fpAimPoint(DCA.art.max,DCA.art.min,0);F.fire=true;fpTick(1/30);const n=nades[nades.length-1];out.ground={dx:Math.round(n.x1-A.x),dy:Math.round(n.y1-A.y),direct:!!n.direct,dur:+n.dur.toFixed(2),at:Math.round(A.d),line:Math.round(S.d)};}
     out.err=TKERR.slice(0,3);return out;});
   console.log('  ',JSON.stringify(r));
-  ok(r.shots&&r.shots[0].fired&&r.shots[0].direct&&r.shots[0].tk&&r.shots[0].hp1<r.shots[0].hp0-120,'aimed at the tank\'s hull the shell hits the tank ('+(r.shots&&r.shots[0].hp0)+' to '+(r.shots&&r.shots[0].hp1)+', '+(r.shots&&r.shots[0].dur)+' s in the air at '+(r.shots&&r.shots[0].dist/10)+' m)');
+  ok(r.shots&&r.shots[0].fired&&r.shots[0].direct&&r.shots[0].tk&&r.shots[0].hp1<r.shots[0].hp0-120,'aimed at the middle of the tank\'s hull the shell hits the tank ('+(r.shots&&r.shots[0].hp0)+' to '+(r.shots&&r.shots[0].hp1)+', '+(r.shots&&r.shots[0].dur)+' s in the air at '+(r.shots&&r.shots[0].dist/10)+' m)');
   ok(r.shots&&r.shots[1].tankDead,'a second, at its turret, knocks it out');ok(r.mg&&r.mg.dead,'and its gunner with it');
-  ok(r.ground&&Math.abs(r.ground.dx)<2&&Math.abs(r.ground.dy)<2&&r.ground.direct,'a shot at open ground lands where the crosshair is, flat ('+JSON.stringify(r.ground)+')');
+  ok(r.ground&&Math.abs(r.ground.dx)<2&&Math.abs(r.ground.dy)<2&&r.ground.direct,'a shot at open ground lands where the falling shell meets the ground (kept within the gun\'s reach), flat ('+JSON.stringify(r.ground)+')');   // (at, line: where the falling shell and the straight line meet the ground; aimed this flat the line never does, and line is the reach's fallback)
   ok(errors.length===0&&(await ev(()=>TKERR.length))===0,'no errors '+errors.slice(0,2)+(await ev(()=>TKERR.slice(0,2))));await page.close();}
 // ---- 4. the gunner can be shot: by the squad's own fire, and from behind a machine gun; the tank fights on without him
 {const {page,errors,ev}=await start();

@@ -71,14 +71,21 @@ function fpPose(){
   else{O=new T.Vector3(u.x,g+F.H+7,u.y).addScaledVector(D,-FPC.back).addScaledVector(R,FPC.side);const gh=gndH(O.x,O.z)+3;if(O.y<gh)O.y=gh;}
   return{O,D,R,one,mt,A};
 }
-function fpGround(O,D){   // where a ray meets the ground: walked along, then halved (as scene.js's toW does)
-  const under=q=>O.y+D.y*q<=gndH(O.x+D.x*q,O.z+D.z*q);let a=0,b=-1;
+// (Version 259, Bryan: "Bullets, and missiles/field guns drop with distance") a round falls as it flies: q along the line it has dropped
+// fpDrop(q,v), with v the speed it leaves the muzzle at (FP_DROP.v, units a second, slower than life so the fall shows) and FP_DROP.g: a machine
+// gun's round has dropped half a metre at 60 m and 2 m at 115 m, the bazooka's rocket 1 m at 40 m and 5 m at its 90 m (much as a real one),
+// the field gun's shell 1.4 m at 96 m (a shot at the middle of a tank's hull still lands at any range; one at its tracks far out falls short).
+// Aim above a far man
+const FP_DROP={g:98,v:{rifle:2200,hmg:2200,sniper:4000,shotgun:1500,mg:1800,lmg:1800,hvmg:1800,rocket:900,shell:1800}};
+const fpDrop=(q,v)=>v?.5*FP_DROP.g*(q/v)*(q/v):0;
+function fpGround(O,D,v){   // where a ray meets the ground: walked along, then halved (as scene.js's toW does); v: a round's speed, the line falling (fpDrop)
+  const under=q=>O.y+D.y*q-fpDrop(q,v)<=gndH(O.x+D.x*q,O.z+D.z*q);let a=0,b=-1;
   for(let q=6;q<1600;q+=q<600?6:18){if(under(q)){b=q;break;}a=q;}
   if(b<0)return null;for(let i=0;i<8;i++){const m=(a+b)/2;if(under(m))b=m;else a=m;}
   return{x:O.x+D.x*b,y:O.z+D.z*b,t:b};
 }
-function fpAimPoint(max,min){   // the spot on the ground under the crosshair, kept within a reach of him
-  const F=dd.fp,u=F.u,P=fpPose(),G=fpGround(P.O,P.D)||{x:u.x+Math.cos(F.a)*max,y:u.y+Math.sin(F.a)*max};
+function fpAimPoint(max,min,v){   // the spot on the ground under the crosshair, kept within a reach of him (v: where a falling round meets it instead, fpDrop)
+  const F=dd.fp,u=F.u,P=fpPose(),G=fpGround(P.O,P.D,v)||{x:u.x+Math.cos(F.a)*max,y:u.y+Math.sin(F.a)*max};
   const ox=P.A?P.A.x:u.x,oy=P.A?P.A.y:u.y;let dx=G.x-ox,dy=G.y-oy,d=hyp(dx,dy)||1;const k=clamp(d,min||0,max)/d;return{x:ox+dx*k,y:oy+dy*k,d};
 }
 // a ray against a box turned ang about the vertical (a tank's hull and turret): half sizes hx along it, hy up, hz across; how far along the ray, or null
@@ -92,35 +99,36 @@ function fpRayBox(O,D,cx,cy,cz,ang,hx,hy,hz){
    14 m past it), so only a shot at the ground at its feet, led by a tank's length, ever hurt it. Now the first thing on the crosshair's line takes
    it: a tank (its hull and turret as a box, a little bigger with distance), one of their men (the man on a tank: the tank), else the ground. */
 function fpArtAim(){
-  const F=dd.fp,P=fpPose(),O=P.O,D=P.D,G=fpGround(O,D);let bt=G?G.t:1e9,best=null;
-  for(const K of ddTanksUp()){const m=hyp(K.x-O.x,K.y-O.z)*.006,t=fpRayBox(O,D,K.x,gndH(K.x,K.y)+17,K.y,K.ang,36+m,18+m,21+m);if(t!=null&&t<bt){bt=t;best={x:K.x,y:K.y,tank:K};}}
+  const F=dd.fp,P=fpPose(),O=P.O,D=P.D,V=FP_DROP.v.shell,G=fpGround(O,D,V);let bt=G?G.t:1e9,best=null;   // (V: the shell falls, Version 259)
+  for(const K of ddTanksUp()){const m=hyp(K.x-O.x,K.y-O.z)*.006,cy=gndH(K.x,K.y)+17,t=fpRayBox(O,D,K.x,cy+fpDrop(Math.hypot(K.x-O.x,cy-O.y,K.y-O.z),V),K.y,K.ang,36+m,18+m,21+m);if(t!=null&&t<bt){bt=t;best={x:K.x,y:K.y,tank:K};}}   // (the box raised by the shell's drop that far: the same as the line lowered)
   if(best)return best;   // (a tank on the line takes it even with a man nearer on that line: the blast has him too)
   for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone||e.air)continue;const g=gndH(e.x,e.y)+(e.elev||0);   // (not Chapter 2's helicopter: a shell bursts on the ground)
     for(const h of[5,12,19]){const vx=e.x-O.x,vy=g+h-O.y,vz=e.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<0||t>=bt)continue;
-      if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<3.5+t*.004){bt=t;const K=e.onTank&&e.onTank.hp>0?e.onTank:null;best=K?{x:K.x,y:K.y,tank:K}:{x:e.x,y:e.y};break;}}}
-  return best||fpAimPoint(DCA.art.max,DCA.art.min);
+      if(Math.hypot(vx-D.x*t,vy-D.y*t+fpDrop(t,V),vz-D.z*t)<3.5+t*.004){bt=t;const K=e.onTank&&e.onTank.hp>0?e.onTank:null;best=K?{x:K.x,y:K.y,tank:K}:{x:e.x,y:e.y};break;}}}
+  return best||fpAimPoint(DCA.art.max,DCA.art.min,V);
 }
 /* one round, where the crosshair is: it hits whoever is on that line (their cover still stops some), not a roll of the dice */
 function fpShoot(){
   const F=dd.fp,u=F.u,P=fpPose(),W=FP_W[fpWK(u)],O=P.O,D=P.D.clone();
   const sp=W.spread*(F.aim?.5:1)*(F.moving?1.8:1)*(1+Math.min(1,u.sup))*(u.postGun?.6:1);   // (the checkpoint's guns are steadier: at 73 m four rounds in sixty hit, Version 211)
   D.x+=(Math.random()-.5)*2*sp;D.y+=(Math.random()-.5)*2*sp;D.z+=(Math.random()-.5)*2*sp;D.normalize();
-  const tmin=P.one?0:FPC.back*.9,G=fpGround(O,D),tG=G?G.t:1500;
+  const tmin=P.one?0:FPC.back*.9,V=FP_DROP.v[fpWK(u)]||FP_DROP.v.rifle,G=fpGround(O,D,V),tG=G?G.t:1500;   // (V: the round falls as it flies, Version 259: fpDrop below)
   let best=null,bt=tG+6;
   // (Version 255) Chapter 2's helicopter: its nose, cabin, boom and tail on the line, a little more forgiving with distance. A hit is its door gunner's, and combat.js's damage hands it on
   if(typeof dcHeliUp==='function')for(const H of dcHeliUp()){if(!H.e||H.e.dead)continue;const c=Math.cos(H.ang),s=Math.sin(H.ang),g=gndH(H.x,H.y)+H.alt;
     for(const[f,r]of[[18,9],[2,11],[-22,7],[-46,6]]){const vx=H.x+c*f-O.x,vy=g+2-O.y,vz=H.y+s*f-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;
-      if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<r+t*.011){best=H.e;bt=t;break;}}}
+      if(Math.hypot(vx-D.x*t,vy-D.y*t+fpDrop(t,V),vz-D.z*t)<r+t*.011){best=H.e;bt=t;break;}}}
   for(const e of enemies){if(e.dead||e.surr||e.dormant||e.gone||e.air)continue;const g=gndH(e.x,e.y)+(e.elev||0);
     for(const h of[5,12,19]){const vx=e.x-O.x,vy=g+h-O.y,vz=e.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;
-      if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<4.2+t*.011){best=e;bt=t;break;}}}
-  let tank=null;for(const K of ddTanksUp()){if(best&&best.onTank===K)continue;const vx=K.x-O.x,vy=gndH(K.x,K.y)+12-O.y,vz=K.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;if(Math.hypot(vx-D.x*t,vy-D.y*t,vz-D.z*t)<24){tank=K;best=null;bt=t-20;}}
+      if(Math.hypot(vx-D.x*t,vy-D.y*t+fpDrop(t,V),vz-D.z*t)<4.2+t*.011){best=e;bt=t;break;}}}
+  let tank=null;for(const K of ddTanksUp()){if(best&&best.onTank===K)continue;const vx=K.x-O.x,vy=gndH(K.x,K.y)+12-O.y,vz=K.y-O.z,t=vx*D.x+vy*D.y+vz*D.z;if(t<tmin||t>=bt)continue;if(Math.hypot(vx-D.x*t,vy-D.y*t+fpDrop(t,V),vz-D.z*t)<24){tank=K;best=null;bt=t-20;}}
   // (Version 211, Bryan: "the MG nest from the top of the hill can reach the lowers MG nests and vice versa. It seems like I was unable to hit them
   // from the bottom MG nest": a gun's reach in your hands was 62 m and the roof's guns are 72 to 75 m off, so every round stopped short. One of the
   // checkpoint's guns reaches 90 m now; and a man up on a roof is hit over whatever stands between on the ground)
   const GR=u.onGun&&u.gunW&&u.gunW.reach,R=u.postGun?900:GR?GR.r:W.range,reach=Math.min(bt,R+tmin);let ex=O.x+D.x*reach,ey=O.z+D.z*reach;   // (GR: Chapter 2's machine guns, Version 258: out to 115 m, weaker past 44 m, gunFarDmg below)
   if(best&&(hyp(best.x-u.x,best.y-u.y)>R||!(best.air||(best.elev||0)>20&&u.postGun)&&!los(u.x,u.y,best.x,best.y)))best=null;
-  let z2=null;if(best&&best.air){ex=O.x+D.x*bt;ey=O.z+D.z*bt;z2=O.y+D.y*bt;}else if(!best&&!tank&&!G){z2=O.y+D.y*reach;}   // (up at the helicopter, or into the sky: the tracer goes there, not to the ground under it)
+  if(best&&!best.air&&MAPID==='dd'&&smokes.length&&smokeBlocks(u.x,u.y,best.x,best.y)&&Math.random()<SMOKE.ddFp)best=null;   // (Version 259: through smoke some rounds go wide, not all: map.js's SMOKE.ddFp)
+  let z2=null;if(best&&best.air){ex=O.x+D.x*bt;ey=O.z+D.z*bt;z2=O.y+D.y*bt;}else if(!best&&!tank&&!G){z2=O.y+D.y*reach-fpDrop(reach,V);}   // (up at the helicopter, or into the sky: the tracer goes there, not to the ground under it)
   if(best){if(!best.air){ex=best.x;ey=best.y;}const c=best.air?0:coverAt(best.x,best.y,u.x,u.y);best.revealT=Math.max(best.revealT||0,simT+1.6);
     best.sup=Math.min(1.2,best.sup+W.sup*(u.supK||1)*(best.nerveK||1));if(!best.alerted)best.alerted=true;
     if(c&&Math.random()<(c>=2?.45:.25)){sparks.push({x:ex,y:ey,t:0});if(typeof sfxImpact==='function')sfxImpact(ex,ey);}
@@ -144,7 +152,8 @@ function fpSpec(){
   const F=dd.fp;if(!F)return;const u=F.u;if(u.onGun||fpArt(u)){fpSay('Leave the gun first');return;}
   if(!u.spec||!(u.specN>0)){fpSay('Nothing left');return;}
   if(u.spec==='smoke'){const p=fpAimPoint(SMOKE.range-4,34);if(!throwSmoke(u,p.x,p.y))fpSay('No clear throw');}
-  else if(u.spec==='rpg'){const p=fpAimPoint(PRPG.range-4,PRPG.min+4);if(!fireRPG(u,p.x,p.y))fpSay('No clear shot');}
+  else if(u.spec==='rpg'){const p=fpAimPoint(PRPG.range-4,PRPG.min+4,FP_DROP.v.rocket);   // (the rocket falls short of the crosshair the further it goes, Version 259)
+   if(!fireRPG(u,p.x,p.y))fpSay('No clear shot');}
   else if(u.spec==='medkit'){const mates=players.filter(p=>p.team===u.team&&!p.dead&&p!==u&&!p.inBoat),by=(a,b)=>hyp(a.x-u.x,a.y-u.y)-hyp(b.x-u.x,b.y-u.y);
     const t=mates.filter(p=>p.downed&&hyp(p.x-u.x,p.y-u.y)<160).sort(by)[0]||(u.hp<75?u:mates.filter(p=>alive(p)&&p.hp<65&&hyp(p.x-u.x,p.y-u.y)<90).sort(by)[0]||(u.hp<96?u:null));
     if(!t){fpSay('Nobody needs it');return;}orderMedkit(u,t);fpSay(t===u?'Patching yourself up':`Medic kit: ${t.name}`);}

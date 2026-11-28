@@ -39,6 +39,11 @@ const DCA={x0:200,x1:1010,wallY:556,gate:[624,776],road:700,setup:10,fixT:8,fixN
   // of theirs that long takes it; loseT: theirs in it and none of ours that long loses it again), the other troops kept at npcN between waves,
   // cpFrom: the share of a wave that comes out of their checkpoint while it's theirs
   pushMax:100,capT:5,loseT:10,npcN:10,cpFrom:.25,cpAtt:.4,
+  // (Version 259, Bryan: "The checkpoint base can be removed. The building gets destroyed and regenerates troops until it does", "The player just
+  // needs to hold the command center - the other checkpoint is too confusing for a new player") no push on their checkpoint any more: while their
+  // blockhouse stands, a quarter of each lot comes out of it (cpFrom) and, from `from` s into a wave, n more every `every` s, at most max a wave and
+  // only while min or more of the wave's men are still out there; three hits of the field gun bring it down and they stop (dcRegen)
+  regen:{from:15,every:18,n:2,max:6,min:4},
   cz:{x0:560,y0:-372,x1:852,y1:-96},   // (the checkpoint to take: the blockhouse and its bags, and their two light guns left of the fork)
   cliffX:1010,beachH:-78,
   cp:{x:624,y:562,w:152,h:80,arch:[686,714]},cpZone:{x0:620,y0:462,x1:780,y1:558},flag:{x:756,y:548},   // (the ground in front of the command post: theirs for flagT s with none of ours in it and the base is lost)
@@ -549,9 +554,11 @@ function dcGunsTick(dt){
       if(fo){const d=hyp(fo.x-g.x,fo.y-g.y);if(d>DCA.art.min&&d<DCA.art.max&&!dd.allies.some(a=>hyp(a.x-fo.x,a.y-fo.y)<100)){dcFire(g,fo.x+(Math.random()-.5)*24,fo.y+(Math.random()-.5)*24);continue;}}}
     // (Version 254) the push on their checkpoint: the blockhouse, while it stands and no tank is in reach (three direct hits bring it down)
     {const co=C.cpGo&&!C.cpOurs&&objs.find(o=>o.tag==='check'&&!o.gone),c=DCA.check;if(co&&!tanks.some(K=>!K.hold&&hyp(K.x-g.x,K.y-g.y)<DCA.art.max)&&hyp(c.x+c.w/2-g.x,c.y+c.h/2-g.y)<DCA.art.max){dcFire(g,c.x+c.w/2,c.y+c.h/2);continue;}}
-    // by itself: the nearest tank in reach, else where their men are thickest
-    let best=null,bs=0;for(const K of tanks){const d=hyp(K.x-g.x,K.y-g.y);if(d>DCA.art.min&&d<DCA.art.max&&K.y>DCA.treeY-40){const s=900-d;if(s>bs){bs=s;best={x:K.x+Math.cos(K.ang)*30,y:K.y+Math.sin(K.ang)*30};}}}
-    if(!best)for(const e of foes){const d=hyp(e.x-g.x,e.y-g.y);if(d<DCA.art.min||d>DCA.art.max||e.y<DCA.treeY-20)continue;const n=foes.filter(o=>hyp(o.x-e.x,o.y-e.y)<70).length;
+    // by itself: the nearest tank in reach, else where their men are thickest. (Version 259) Never where its shell would strike the blockhouse
+    // (dcFire's rule): bringing it down is the player's call. The crew had levelled it in under a minute shelling the men coming out of it
+    const bh=objs.find(o=>o.tag==='check'&&!o.gone),bc=DCA.check,bhOn=(x,y)=>!!bh&&(hyp(x-(bc.x+bc.w/2),y-(bc.y+bc.h/2))<116||segHitsRect(g.x,g.y,x,y,bh,20));   // (wider than dcFire's 90 and 6 by the scatter below)
+    let best=null,bs=0;for(const K of tanks){const d=hyp(K.x-g.x,K.y-g.y),ax=K.x+Math.cos(K.ang)*30,ay=K.y+Math.sin(K.ang)*30;if(d>DCA.art.min&&d<DCA.art.max&&K.y>DCA.treeY-40&&!bhOn(ax,ay)){const s=900-d;if(s>bs){bs=s;best={x:ax,y:ay};}}}
+    if(!best)for(const e of foes){const d=hyp(e.x-g.x,e.y-g.y);if(d<DCA.art.min||d>DCA.art.max||e.y<DCA.treeY-20||bhOn(e.x,e.y))continue;const n=foes.filter(o=>hyp(o.x-e.x,o.y-e.y)<70).length;
       if(dd.allies.some(a=>hyp(a.x-e.x,a.y-e.y)<110))continue;if(n>bs){bs=n;best={x:e.x,y:e.y};}}
     if(best&&(bs>=2||tanks.length))dcFire(g,best.x+(Math.random()-.5)*36,best.y+(Math.random()-.5)*36);
   }
@@ -664,8 +671,8 @@ function dcCpLost(){
 /* ---------- the enemy ---------- */
 // a lot of their men for wave n: out of the woods along the whole front, some of them out of their checkpoint while it's theirs and nobody's
 // pushing on it; with it ours, most go for it first (cpAtt: dcEnemy), the rest down the flanks round it
-function dcSpawnLot(n,count){
-  const C=dd.dc,tag='w'+n,fromCp=!C.cpOurs&&!C.cpGo?Math.round(count*DCA.cpFrom):0,L=[];
+function dcSpawnLot(n,count,all){
+  const C=dd.dc,tag='w'+n,fromCp=!dcCheckUp()?0:all?count:Math.round(count*DCA.cpFrom),L=[];   // (Version 259: while the blockhouse stands, not while the checkpoint is theirs; all: the blockhouse's own men, dcRegen)
   for(let i=0;i<count;i++){let x,y,lane;
     if(i<fromCp){x=704+Math.random()*70;y=-352-Math.random()*16;lane=520+Math.random()*360;}
     else{lane=250+(i/Math.max(1,count-1))*720+(Math.random()-.5)*30;x=lane+(Math.random()-.5)*30;y=-600-Math.random()*100;}
@@ -675,7 +682,7 @@ function dcSpawnLot(n,count){
   C.spawned+=count;return L;
 }
 function dcSpawnWave(n){
-  const C=dd.dc,W=DCA.waves[n-1],tag='w'+n;if(!W)return;C.more=0;
+  const C=dd.dc,W=DCA.waves[n-1],tag='w'+n;if(!W)return;C.more=0;C.regenN=0;C.regenT=simT+DCA.regen.from;
   if(n>1)dcSpawnLot(n,W.inf);   // (wave 1's men are on the road already: enterCounter)
   for(const e of enemies)if(e.tag===tag){e.cool=Math.min(e.cool,1+Math.random()*2);e.stage=0;e.advT=simT+Math.random()*3;e.gait=null;}
   (W.tanks||[]).forEach((k,i)=>{const at=DCA.tankAt[k]||DCA.tankAt.road,K=ddTankSpawn({x:at[0],y:at[1],ang:.4,hold:true,way:DCA.ways[k],name:'Tank',range:DCA.tankR});K.w=n;K.relT=simT+i*7;K.hp=K.hp0=DCA.tankHp;});
@@ -683,6 +690,15 @@ function dcSpawnWave(n){
   const tk=W.tanks?W.tanks.length:0,hl=W.helis||0,what=[tk?(tk>1?tk+' tanks':'a tank'):'',hl?(hl>1?hl+' helicopters':'a helicopter'):''].filter(Boolean).join(' and ');
   if(n>1){bigText(`Wave ${n}`,'inbound');banner(what?`Wave ${n} of ${DCA.waves.length}: ${what} with them.`:`Wave ${n} of ${DCA.waves.length}.`,3200);}
   else banner(what?`Here they come: infantry across the whole field, ${what} behind them.`:'Here they come: infantry across the whole field.',3600);
+}
+const dcCheckUp=()=>{const co=objs.find(o=>o.tag==='check');return !!co&&!co.gone&&!dd.dc.checkDead;};
+// (Version 259) the blockhouse's men: DCA.regen.n of them out of it every DCA.regen.every s of a wave while it stands (DCA.regen above)
+function dcRegen(){
+  const C=dd.dc,R=DCA.regen;if(!/^w/.test(C.ph)||!dcCheckUp()||(C.regenN||0)>=R.max||simT<(C.regenT||0))return;
+  const n=C.wave;if(enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length<R.min)return;
+  C.regenT=simT+R.every;const k=Math.min(R.n,R.max-(C.regenN||0));C.regenN=(C.regenN||0)+k;
+  for(const e of dcSpawnLot(n,k,true)){e.stage=0;e.advT=simT+Math.random()*2;e.cool=1+Math.random()*2;e.bh=1;}   // (bh: one of the blockhouse's own)
+  if(!C.regenSaid){C.regenSaid=1;banner('More of them come out of the blockhouse. Bring it down with the field gun: three hits.',4200);}
 }
 function dcSpawnMore(n){const W=DCA.waves[n-1];if(!W||!W.more)return;for(const e of dcSpawnLot(n,W.more)){e.stage=0;e.advT=simT+Math.random()*3;e.cool=1+Math.random()*2;}}
 // each man works his way down the field in bounds: the hedgerow, the open ground, the trench, the wire, then the gate and the command post
@@ -925,8 +941,7 @@ function dcWaveDone(){
   for(const g of C.guns)if(!g.dead&&g.hp<g.hp0){g.hp=g.hp0;g.hits=0;}
   for(const u of players)u.fixN=0;
   dcNpcTopUp();
-  if(n>=2&&!C.cpOurs){C.ph='push';C.t=0;C.pushOn=false;}
-  else{C.ph='lull';C.t=0;C.rest=DCA.lull;}
+  C.ph='lull';C.t=0;C.rest=DCA.lull;   // (Version 259: no push on their checkpoint after a wave any more; the push code below stays, unused)
 }
 function dcTick(dt){
   const C=dd.dc;C.t+=dt;
@@ -934,7 +949,7 @@ function dcTick(dt){
   dcGunsTick(dt);ddHot();ddTankTick(dt);dcTankRoll();dcHeliTick(dt);dcCpTick(dt);
   for(const K of dd.tanks)if(K.hold&&K.relT!=null&&simT>=K.relT){K.hold=false;K.i=0;K.relT=null;}   // (a wave's tanks let loose one after another)
   if((dd.aiT-=dt)<=0){dd.aiT=1;ddMedics();if(!dd.seq&&typeof ddcLead==='function'&&ddcLead()){ddcLeadCheck();ddcSupport(dd.active==='A'?'B':'A');}}   // (Version 168: ddctl.js)
-  if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();if(typeof vgBazooka==='function')vgBazooka();if(typeof dcFranticTick==='function')dcFranticTick();}
+  if((dd.npcT-=dt)<=0){dd.npcT=.5;dcNpc();dcEnemy();dcReplace();ddHelpers();ddTidy();updateObjUI();if(typeof vgBazooka==='function')vgBazooka();if(typeof dcFranticTick==='function')dcFranticTick();dcRegen();}
   const left=n=>enemies.filter(e=>e.tag==='w'+n&&!beaten(e)).length+dd.tanks.filter(K=>K.w===n&&K.hp>0).length+(C.helis||[]).filter(H=>H.w===n&&H.hp>0).length;   // (a helicopter still to come counts: Version 255)
   if(dd.seq&&dd.seq.dc){dcSeqTick(dt);}   // (Version 228: the opening, ddcseq.js; it ends in the first wave)
   else if(C.ph==='intro'){if(C.t>4.2&&!C.back){C.back=1;camPan={from:{x:camT.x,z:camT.z,zoom},to:{x:DCA.square.x,z:DCA.wallY-34+DD_CAM.look,zoom:7.4},t:0,dur:1.6};}
@@ -958,7 +973,7 @@ function dcHint(){
   const C=dd.dc;
   if(C.ph==='intro')return'They are coming. In a moment the guns are yours.';
   if(C.cpGo&&!C.cpOurs)return'Take their checkpoint: the other troops and your free men are going in. Cover them from the guns: the field gun brings the blockhouse down in three hits, the machine guns keep their heads down.';
-  return`${DCA.waves.length} waves. Your men are on the guns: tap a gun, on the map or in the row at the bottom, to fire it yourself; an empty one, to send a man to it. A thumb on one of theirs turns every gun on him. The field gun and the bazookas are for the tanks, a tank or more every wave. A helicopter comes over in waves 5 and 7: the machine guns, the heavy one most of all. A gun takes the hits before its man does. Nobody comes to replace the fallen: lose the flag, or everyone, and it is lost.`;
+  return`${DCA.waves.length} waves. Your men are on the guns: tap a gun, on the map or in the row at the bottom, to fire it yourself; an empty one, to send a man to it. A thumb on one of theirs turns every gun on him. The field gun and the bazookas are for the tanks, a tank or more every wave. A helicopter comes over in waves 5 and 7: the machine guns, the heavy one most of all. A gun takes the hits before its man does. Their blockhouse out in the field keeps sending men until the field gun brings it down: three hits. Hold the command center: nobody comes to replace the fallen, and lose the flag, or everyone, and it is lost.`;
 }
 function dcDraw(){
   const C=dd.dc,lab=(x,y,h,text,col,sz=9)=>{toSBack=false;const[sx,sy]=toS(x,y,h);if(!toSBack&&sx>-40&&sx<cw+40&&sy>0&&sy<ch)label(text,sx,sy,col,sz,700);};

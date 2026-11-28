@@ -3,6 +3,7 @@
 // troops pushing out into the field, more defensive points, and after wave 2 the push on their checkpoint (Sgt. Kane's shout, the objective over it,
 // taken, held, lost). Real clicks on the row.   node counter-v254-test.js [port] [OUTDIR for pictures]   (DDROOT, HARNESS as gun-row-test.js)
 // (Version 255: the waves' tanks and helicopters and the 10 s rest are Version 255's; a wave is beaten here with its tanks knocked out too)
+// (Version 259: no push on their checkpoint any more; after wave 2 the rest and wave 3)
 const {chromium}=require('playwright');const {serve,open}=require(process.env.HARNESS||'/tmp/claude-0/-home-user-full-spectrum/06534f05-c23e-508f-8c0c-c1774a77e081/scratchpad/harness.js');const fs=require('fs');
 const PORT=+process.argv[2]||9771,OUT=process.argv[3]||null;if(OUT)fs.mkdirSync(OUT,{recursive:true});
 (async()=>{const srv=await serve(process.env.DDROOT||'/home/user/full-spectrum/dday',PORT);const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader']});
@@ -69,28 +70,17 @@ const by=k=>`dd.dc.guns.find(g=>g.k==='${k}')`;
   console.log('  ',JSON.stringify(b1),JSON.stringify(b2));
   ok(b1.ph==='lull'&&b1.big.includes('Wave 1 complete')&&/^WAVE 2 IN [89]$/.test(b1.rest||'')&&/^WAVE 2 IN [45]$/.test(b2.rest||''),`wave 1 beaten (its men and its tank): "Wave 1 complete", then the rest's clock (10 s since Version 255): ${b1.rest}, four seconds later ${b2.rest} (bar ${b2.w})`);
   if(OUT){await ev(()=>{RUN(.1);DRAW();});await page.waitForTimeout(500);await ev(()=>DRAW());await page.waitForTimeout(300);await page.screenshot({path:OUT+'/rest.png'});}
-  // wave 2 beaten: the push
-  const p=await ev(()=>{RUN(15);for(const e of enemies)if(/^w/.test(e.tag)&&!e.dead){e.hp=0;e.dead=true;}for(const K of dd.tanks)K.hp=0;dd.dc.more=1;RUN(5);return{ph:dd.dc.ph,go:dd.npcs.filter(u=>alive(u)&&u.cpGo).length,n:dd.npcs.filter(alive).length,garr:enemies.filter(e=>e.tag==='cp'&&!e.dead).length,
-    garr0:(dd.dc.garr||[]).length,kane:EV.filter(q=>q[0]==='bubble').map(q=>q[1]),big:EV.filter(q=>q[0]==='big').map(q=>q[1])};});
+  // wave 2 beaten: since Version 259 no push on their checkpoint (Bryan: "The player just needs to hold the command center - the other checkpoint is
+  // too confusing for a new player"): the rest, then wave 3; the push's checks (Sgt. Kane, taken, held, lost) are gone with it (counter-v259-test.js)
+  const p=await ev(()=>{RUN(15);for(const e of enemies)if(/^w/.test(e.tag)&&!e.dead){e.hp=0;e.dead=true;}for(const K of dd.tanks)K.hp=0;dd.dc.more=1;dd.dc.regenN=99;RUN(5);return{ph:dd.dc.ph,go:dd.npcs.filter(u=>alive(u)&&u.cpGo).length,n:dd.npcs.filter(alive).length,
+    kane:EV.filter(q=>q[0]==='bubble').map(q=>q[1]).filter(t=>/Kane/.test(t)),big:EV.filter(q=>q[0]==='big').map(q=>q[1])};});   // (regenN: no more men out of the blockhouse, so the wave ends)
   console.log('  ',JSON.stringify(p));
-  ok(p.ph==='push'&&p.big.includes('Wave 2 complete')&&p.kane.some(t=>t==='Sgt. Kane: Move Forward!! Take the checkpoint ahead!!'),'wave 2 beaten: "Wave 2 complete", then Sgt. Kane: "Move Forward!! Take the checkpoint ahead!!"');
-  ok(p.go>=8&&p.n>=10&&p.garr0===7,`the other troops made up to ${p.n} and ${p.go} of them run for it; their checkpoint has men in it now (${p.garr0}, ${p.garr} still up three seconds on: the field gun shells the blockhouse)`);
-  const o=await ev(()=>{RUN(1);DRAW();const O=ddObjective();return{t:O&&O.t,x:O&&O.x,shown:simT-dd.dc.pushT0>2.5};});
-  console.log('  ',JSON.stringify(o));ok(o.shown&&/^Take the checkpoint/.test(o.t||'')&&Math.abs(o.x-706)<20,`after the shout the objective is over the checkpoint: "${o.t}"`);
-  if(OUT){await ev(()=>{dd.fp=null;camT.x=706;camT.z=-160;zoom=4.2;updateCamera();DRAW();});await page.waitForTimeout(600);await ev(()=>DRAW());await page.waitForTimeout(300);await page.screenshot({path:OUT+'/push.png'});}
-  // taken: its men down and ours in it for the capture's time
-  const c=await ev(()=>{for(const e of enemies)if(e.tag==='cp'||(/^w/.test(e.tag)&&!e.dead)){e.hp=0;e.dead=true;}for(const K of dd.tanks)K.hp=0;const Z=DCA.cz;dd.npcs.filter(alive).slice(0,3).forEach((u,i)=>{u.x=640+i*30;u.y=-200;u.path=[];u.stunT=simT+7;});RUN(6);DRAW();
-    return{ours:dd.dc.cpOurs,ph:dd.dc.ph,row:[...document.querySelectorAll('#dcBar .dcb-row:not(.two) .dcb-t i')].map(q=>q.textContent),big:EV.filter(q=>q[0]==='big').map(q=>q[1]).slice(-2)};});
-  console.log('  ',JSON.stringify(c));ok(c.ours&&c.ph==='lull'&&c.big.includes('Checkpoint taken')&&c.row.includes('FORWARD MG 1')&&c.row.includes('FORWARD MG 2'),'its men down and ours in it: "Checkpoint taken", their two light guns ours in the row (FORWARD MG 1, 2), and the rest before wave 3');
-  const m=await ev(()=>{RUN(8);return dd.dc.guns.filter(g=>g.cp).map(g=>g.man?(g.man.npc?'npc':'squad'):g.going?'going':'-');});ok(m.every(q=>q==='npc'||q==='going'),'the other troops up there take their light guns ('+m.join(', ')+')');
-  // wave 3: some of it comes for the checkpoint; none comes out of it (each man of it with a 0.4 roll, DCA.cpAtt: 2 or more of 20, not 4, since Version 258)
-  const w3=await ev(()=>{RUN(14);const W=enemies.filter(e=>e.tag==='w3');return{ph:dd.dc.ph,n:W.length,att:W.filter(e=>e.cpAtt).length,fromCp:W.filter(e=>!e.cpAtt&&e.y>-380&&e.y<-330&&e.x>690&&e.x<790).length};});   // (Version 255: not counting those going into it: with the 10 s rest they're 18 s in, not 8)
-  console.log('  ',JSON.stringify(w3));ok(w3.ph==='w3'&&w3.att>=2&&w3.att<w3.n&&w3.fromCp===0,`wave 3: ${w3.att} of its ${w3.n} go for the checkpoint first, none out of it`);
-  // lost: theirs in it, none of ours, for the time it takes
-  const l=await ev(()=>{const Z=DCA.cz;for(const u of[...dd.npcs,...players])if(alive(u)&&dcIn(u,Z)){u.x=700;u.y=420;u.path=[];u.cpGo=false;u.ln=1;}
-    for(const g of dd.dc.guns)if(g.cp&&g.man){const u=g.man;dcLeave(g);u.x=700;u.y=430;u.path=[];u.ln=1;}
-    const e=enemies.find(e=>e.tag==='w3'&&!e.dead);e.x=700;e.y=-200;e.path=[];e.stunT=1e9;for(let i=0;i<11*30;i++){update(1/30);for(const u of[...dd.npcs,...players])if(alive(u)&&dcIn(u,Z)){u.x=700;u.y=430;u.path=[];u.ln=1;}}DRAW();
-    return{ours:dd.dc.cpOurs,row:[...document.querySelectorAll('#dcBar .dcb-row:not(.two) .dcb-t i')].map(q=>q.textContent).join(',')};});
-  console.log('  ',JSON.stringify(l));ok(!l.ours&&!/FORWARD/.test(l.row),'theirs in it and none of ours for ten seconds: lost, the forward guns out of the row');
+  ok(p.ph==='lull'&&p.big.includes('Wave 2 complete')&&!p.kane.length&&!p.go&&p.n>=10,`wave 2 beaten: "Wave 2 complete", then the rest (${p.ph}); no Sgt. Kane, nobody runs for their checkpoint; the other troops made up to ${p.n}`);
+  const o=await ev(()=>{RUN(1);DRAW();const O=ddObjective();return{t:O&&O.t};});
+  console.log('  ',JSON.stringify(o));ok(!/checkpoint/i.test(o.t||''),`the objective sends nobody to their checkpoint: "${o.t}"`);
+  if(OUT){await ev(()=>{dd.fp=null;camT.x=706;camT.z=-160;zoom=4.2;updateCamera();DRAW();});await page.waitForTimeout(600);await ev(()=>DRAW());await page.waitForTimeout(300);await page.screenshot({path:OUT+'/after-wave2.png'});}
+  // wave 3: nobody of it goes for their checkpoint
+  const w3=await ev(()=>{RUN(14);const W=enemies.filter(e=>e.tag==='w3');return{ph:dd.dc.ph,n:W.length,att:W.filter(e=>e.cpAtt).length};});
+  console.log('  ',JSON.stringify(w3));ok(w3.ph==='w3'&&w3.n>0&&w3.att===0,`wave 3 (${w3.n} men): none goes for their checkpoint (${w3.att})`);
   ok(errors.length===0&&(await ev(()=>TKERR.length))===0,'the waves: no errors '+errors.slice(0,2)+(await ev(()=>TKERR.slice(0,2))));await page.close();}
 console.log(fails?'FAILED '+fails:'ALL OK');await b.close();srv.close();})();

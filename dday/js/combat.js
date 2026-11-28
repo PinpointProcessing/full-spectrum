@@ -136,6 +136,7 @@ function hitChance(s,t,L){
   if(s.side==='E')c-=ENEMY_AIM+(s.aimPen??(s.l1?L1E.aim:0));   // (Level 1's and Level 2's guards: worse still, level1.js, level2.js)
   if(s.gunner)c-=0.05;   // machine gun: sprays
   if(s.aimK)c+=s.aimK;   // (a man's own eye: D-Day's replacements and other troops, dday.js)
+  if(MAPID==='dd'&&!L.air&&smokes.length&&smokeBlocks(L.fx,L.fy,L.tx,L.ty))c*=SMOKE.ddHit;   // (D-Day, Version 259: through smoke, half the chance, not out of sight: map.js's los)
   return clamp(c,0.05,0.95);
 }
 function threats(){
